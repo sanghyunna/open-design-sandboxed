@@ -8,7 +8,7 @@ import {
 
 const METADATA_URL = "https://releases.open-design.ai/beta/latest/metadata.json";
 
-describe("resolvePackagedUpdaterEnv portable updater gate", () => {
+describe("resolvePackagedUpdaterEnv updater disable (fork never auto-updates)", () => {
   it("disables the updater for a portable run when OD_UPDATE_ENABLED is unset", () => {
     const overrides = resolvePackagedUpdaterEnv({
       updateMetadataUrl: METADATA_URL,
@@ -29,11 +29,21 @@ describe("resolvePackagedUpdaterEnv portable updater gate", () => {
     expect(overrides).not.toHaveProperty(UPDATE_ENABLED_ENV);
   });
 
-  it("does not touch OD_UPDATE_ENABLED for a non-portable run", () => {
+  it("disables the updater for a non-portable run too (regression: win-unpacked pulled upstream 0.10.1)", () => {
     const overrides = resolvePackagedUpdaterEnv({
       updateMetadataUrl: METADATA_URL,
       portable: false,
       env: {},
+    });
+
+    expect(overrides[UPDATE_ENABLED_ENV]).toBe("0");
+  });
+
+  it("leaves an explicit OD_UPDATE_ENABLED untouched in a non-portable run", () => {
+    const overrides = resolvePackagedUpdaterEnv({
+      updateMetadataUrl: METADATA_URL,
+      portable: false,
+      env: { [UPDATE_ENABLED_ENV]: "1" },
     });
 
     expect(overrides).not.toHaveProperty(UPDATE_ENABLED_ENV);
