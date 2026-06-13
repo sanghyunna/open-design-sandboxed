@@ -103,11 +103,21 @@ Write-Host ""
 
 $sw = [Diagnostics.Stopwatch]::StartNew()
 Push-Location $ProjectRoot
+# tools-pack writes its phase logs to STDERR. Under PowerShell 5.1, when this
+# script's output is redirected (2>&1 / *> to a log, as the background build
+# launcher does), each native-stderr line is wrapped as a NativeCommandError
+# ErrorRecord. With $ErrorActionPreference='Stop' that wrapped record THROWS at
+# the first phase line and kills the build even though pnpm exited 0. Drop to
+# Continue for the native call, stringify the merged stream so the phase logs
+# stay readable, and trust $LASTEXITCODE (the real exit signal) for failure.
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 try {
-    & "$Node24\pnpm.cmd" @buildArgs
+    & "$Node24\pnpm.cmd" @buildArgs 2>&1 | ForEach-Object { "$_" }
     $exit = $LASTEXITCODE
 }
 finally {
+    $ErrorActionPreference = $prevEAP
     Pop-Location
 }
 $sw.Stop()
@@ -128,6 +138,12 @@ if ($zip) {
     $zipMB = [math]::Round($zip.Length / 1MB, 1)
     Write-Host "Portable zip : $($zip.FullName)" -ForegroundColor Green
     Write-Host "Size         : $zipMB MB" -ForegroundColor Green
+    # Always drop a copy in the parent dir for easy access (the build output is
+    # buried deep under .tmp). Overwrites the previous copy each build.
+    $dropDir = "D:\dev\open_design_port"
+    $dropPath = Join-Path $dropDir $zip.Name
+    Copy-Item -Path $zip.FullName -Destination $dropPath -Force
+    Write-Host "Copied to    : $dropPath" -ForegroundColor Green
 } elseif ($To -eq "nsis" -or $To -eq "dir") {
     Write-Host "(No portable zip for --to '$To'; that's expected.)" -ForegroundColor Yellow
 } else {
