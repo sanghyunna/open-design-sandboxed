@@ -1,15 +1,8 @@
-// Single entry point for the web-side observability surface.
+// Single entry point for web-side observability hooks.
 //
-// Called as a side-effect import from `apps/web/app/[[...slug]]/client-app.tsx`
-// at module load — runs before React mounts, before posthog-js's lazy
-// import resolves, before any product code can throw. Each observer is
-// individually defensive (no-ops in environments where its API is
-// missing), so this call is safe to make unconditionally.
-//
-// Why one entry point: every observer reaches into the same
-// error-tracking transport for its consent-bypass + early-buffer
-// guarantees, and centralising the install order makes it easy to
-// audit what runs at boot.
+// These observers still run defensively so local UI diagnostics and existing
+// call sites remain intact, but their shared transport is a no-op in this fork:
+// no exception, resource, boot-timing, or visibility data leaves the browser.
 
 import { installLongTaskObserver } from './long-task';
 import { installResourceErrorObserver } from './resource-error';

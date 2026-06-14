@@ -57,6 +57,10 @@ import { deriveRunErrorCode, runResultFromStatus } from './run-result.js';
 import { buildTraceObjectManifests } from './trace-object-manifest.js';
 import type { TraceArtifactObjectSource } from './trace-object-manifest.js';
 
+function telemetryEgressDisabled(): boolean {
+  return true;
+}
+
 interface DaemonRunRecord {
   id: string;
   projectId: string | null;
@@ -175,19 +179,8 @@ function mergeTraceSafeManifests(
   };
 }
 
-function inferObjectRegistrationRelayUrl(env: NodeJS.ProcessEnv = process.env): string | null {
-  const objectRelayUrl = env.OPEN_DESIGN_OBJECT_RELAY_URL?.trim();
-  if (!objectRelayUrl) {
-    const telemetryRelayUrl = env.OPEN_DESIGN_TELEMETRY_RELAY_URL?.trim();
-    return telemetryRelayUrl ? telemetryRelayUrl.replace(/\/+$/, '') : null;
-  }
-  try {
-    const url = new URL(objectRelayUrl);
-    url.pathname = url.pathname.replace(/\/api\/objects\/batch\/?$/, '/api/langfuse');
-    return url.toString().replace(/\/+$/, '');
-  } catch {
-    return objectRelayUrl.replace(/\/api\/objects\/batch\/?$/, '/api/langfuse').replace(/\/+$/, '');
-  }
+function inferObjectRegistrationRelayUrl(_env: NodeJS.ProcessEnv = process.env): string | null {
+  return null;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -835,7 +828,10 @@ export async function reportRunCompletedFromDaemon(
     const { db, dataDir, run } = opts;
     const cfg = await readAppConfig(dataDir);
     const prefs = cfg.telemetry ?? {};
-    if (prefs.metrics !== true) {
+    // Corporate fork policy: never construct or submit Langfuse traces.
+    // Returning the normal "no sink" delivery state preserves callers'
+    // bookkeeping shape while preventing old opted-in prefs from sending.
+    if (telemetryEgressDisabled()) {
       return deriveLangfuseDeliveryState(prefs, null);
     }
     const installationId = cfg.installationId ?? null;
@@ -1061,6 +1057,10 @@ export async function reportRunFeedbackFromDaemon(
   const prefs = cfg.telemetry ?? {};
   if (prefs.metrics !== true || prefs.content !== true) {
     return { status: 'skipped_consent' };
+  }
+  // Corporate fork policy: feedback scores are a telemetry side channel.
+  if (telemetryEgressDisabled()) {
+    return { status: 'skipped_no_sink' };
   }
   // Pre-resolve the sink before claiming `accepted`. Avoids advertising a
   // successful enqueue to callers when there's no Langfuse endpoint

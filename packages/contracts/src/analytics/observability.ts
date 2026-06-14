@@ -1,13 +1,5 @@
-// Wire shape for the cross-process safety-event bridge.
-//
-// Used by `POST /api/observability/event` so non-renderer surfaces
-// (Electron main process, packaged-app helper processes, daemon
-// itself in cases where it can't talk to itself in-process) can
-// hand a safety event off to the daemon's posthog-node client.
-//
-// The endpoint intentionally does NOT gate on the user's analytics
-// consent — the safety-bypass contract is the same one the web
-// error-tracking module relies on for `$exception` events.
+// Wire shape for the legacy cross-process safety-event bridge. The endpoint is
+// retained for compatibility, but the daemon handler is now a no-op.
 
 export interface ObservabilityEventRequest {
   event: string;

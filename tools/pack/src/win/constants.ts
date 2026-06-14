@@ -7,7 +7,10 @@ export const ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE = false;
 export const ELECTRON_BUILDER_NODE_GYP_REBUILD = false;
 export const ELECTRON_BUILDER_NPM_REBUILD = false;
 export const ELECTRON_REBUILD_MODE = "sequential" as const;
-export const ELECTRON_REBUILD_NATIVE_MODULES = ["better-sqlite3"] as const;
+// Windows daemon/web sidecars run under the packaged Node runtime, not as
+// Electron renderer/native modules. Rebuilding better-sqlite3 to Electron's ABI
+// makes the daemon crash at startup with NODE_MODULE_VERSION mismatch.
+export const ELECTRON_REBUILD_NATIVE_MODULES = [] as const;
 export const ELECTRON_BUILDER_FILE_PATTERNS = [
   "**/*",
   "!**/node_modules/.bin",

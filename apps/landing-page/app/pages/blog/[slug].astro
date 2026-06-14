@@ -9,7 +9,6 @@
 import { getCollection, render } from 'astro:content';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import GoogleAnalytics from '../../_components/google-analytics.astro';
 import HeaderEnhancer from '../../_components/header-enhancer.astro';
 import { Header, type HeaderProps } from '../../_components/header';
 import LocaleSwitcherScript from '../../_components/locale-switcher-script.astro';
@@ -158,7 +157,6 @@ const fmtDate = (d: Date) =>
       category={post.data.category}
     />
     <script is:inline type='application/ld+json' set:html={JSON.stringify(breadcrumbJsonLd)} />
-    <GoogleAnalytics />
   </head>
   <body>
     <div class='shell'>

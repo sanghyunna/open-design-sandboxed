@@ -10,10 +10,8 @@
 //   - dom_content_loaded_ms: navigationStart → domContentLoadedEventStart
 //   - app_mount_ms:  navigationStart → first `home_view`-like DOM marker
 //
-// Why we don't reuse posthog-js's `$performance` events: those are
-// stripped for users who opted out of analytics. Boot timing is a
-// stability signal more than a behavioral one — slow boots are bugs we
-// need to triage regardless of consent.
+// Upstream reported this as safety telemetry. This fork still computes the
+// local event shape for compatibility, but reportSafetyEvent is a hard no-op.
 //
 // Fires at most once per page load.
 

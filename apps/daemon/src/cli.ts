@@ -184,6 +184,19 @@ const PROJECT_STRING_FLAGS = new Set([
   'title', 'against', 'seed-from', 'fork-after', 'mode',
 ]);
 const PROJECT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json', 'follow']);
+const CHAT_STRING_FLAGS = new Set([
+  'daemon-url',
+  'project',
+  'conversation',
+  'checkpoint',
+  'message',
+  'mode',
+  'conflict-policy',
+  'title',
+  'seed-from',
+  'fork-after',
+]);
+const CHAT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 // `od templates …` mirrors NewProjectPanel / ExamplesTab. Same surface,
 // same /api/templates store. The CLI form is the embeddability contract:
 // external agents (hermes-agent, openclaw, ...) can snapshot, list, or
@@ -241,6 +254,7 @@ const RECOVERABLE_EXIT_CODES = {
   'genui-surface-awaiting':   73,
   'desktop-auth-pending':     74,
   'desktop-import-token-rejected': 75,
+  'rollback-conflict':        76,
 };
 const PLUGIN_LIST_FILTER_FLAGS = new Set([
   ...PLUGIN_STRING_FLAGS,
@@ -1246,6 +1260,7 @@ async function structuredHttpFailure(resp, fallbackCode = 'daemon-not-running') 
 }
 
 function normalizeRecoverableErrorCode(code, message) {
+  if (code === 'ROLLBACK_CONFLICT') return 'rollback-conflict';
   if (code === 'DESKTOP_AUTH_PENDING') return 'desktop-auth-pending';
   if (code === 'FORBIDDEN' && /desktop import token rejected/i.test(String(message ?? ''))) {
     return 'desktop-import-token-rejected';
@@ -1258,6 +1273,7 @@ function structuredErrorData(error) {
   const data = {};
   if ('data' in error && error.data !== undefined) Object.assign(data, error.data);
   if ('details' in error && error.details !== undefined) data.details = error.details;
+  if ('conflicts' in error && error.conflicts !== undefined) data.conflicts = error.conflicts;
   if (typeof error.retryable === 'boolean') data.retryable = error.retryable;
   return Object.keys(data).length > 0 ? data : undefined;
 }
@@ -5926,6 +5942,117 @@ Common options:
   }
 }
 
+function requireChatFlag(flags, name, usage) {
+  const value = flags?.[name];
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  console.error(usage);
+  process.exit(2);
+}
+
+function normalizeRollbackMode(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().replace(/-/g, '_');
+  if (normalized === 'files_only' || normalized === 'chat_only' || normalized === 'files_and_chat') {
+    return normalized;
+  }
+  return null;
+}
+
+function normalizeRollbackConflictPolicy(value) {
+  if (value == null) return null;
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().replace(/-/g, '_');
+  if (normalized === 'fail' || normalized === 'overwrite' || normalized === 'keep_current') {
+    return normalized;
+  }
+  return null;
+}
+
+function formatRollbackCliValue(value) {
+  return String(value ?? '').replace(/_/g, '-');
+}
+
+function printChatCheckpoints(data) {
+  const checkpoints = Array.isArray(data?.checkpoints) ? data.checkpoints : [];
+  if (checkpoints.length === 0) {
+    console.log('No chat checkpoints found.');
+    return;
+  }
+  console.log('# id\tkind\tcreatedAt\tmessageId\trunId\tfiles\tbytes');
+  for (const checkpoint of checkpoints) {
+    console.log([
+      checkpoint.id ?? '',
+      checkpoint.kind ?? '',
+      formatCheckpointTime(checkpoint.createdAt),
+      checkpoint.messageId ?? '',
+      checkpoint.runId ?? '',
+      checkpoint.fileCount ?? 0,
+      checkpoint.totalBytes ?? 0,
+    ].join('\t'));
+  }
+}
+
+function printChatCheckpointDiff(data) {
+  const checkpoint = data?.checkpoint ?? {};
+  const files = Array.isArray(data?.files) ? data.files : [];
+  const conflicts = Array.isArray(data?.conflicts) ? data.conflicts : [];
+  const counts = countCheckpointFileStatuses(files);
+  console.log(`[chat checkpoint diff] ${checkpoint.id ?? '-'}`);
+  if (checkpoint.messageId) console.log(`message\t${checkpoint.messageId}`);
+  console.log(`files\t${counts.added} added, ${counts.modified} modified, ${counts.deleted} deleted, ${counts.unchanged} unchanged`);
+  console.log(`conflicts\t${conflicts.length}`);
+  if (files.length > 0) {
+    console.log('# status\tpath');
+    for (const file of files) {
+      console.log(`${file.status ?? 'unknown'}\t${file.path ?? ''}`);
+    }
+  }
+  if (conflicts.length > 0) {
+    console.log('# conflict\treason\tpath');
+    for (const conflict of conflicts) {
+      console.log(`conflict\t${conflict.reason ?? ''}\t${conflict.path ?? ''}`);
+    }
+  }
+}
+
+function printChatRollbackResult(data, context) {
+  const fileChanges = data?.fileChanges ?? {};
+  const deletedMessageIds = Array.isArray(data?.deletedMessageIds) ? data.deletedMessageIds : [];
+  const conflicts = Array.isArray(data?.conflicts) ? data.conflicts : [];
+  console.log(`[chat rollback] restored ${data?.restoredCheckpointId ?? data?.targetMessageId ?? '-'}`);
+  console.log(`mode\t${formatRollbackCliValue(data?.mode)}`);
+  console.log(`targetMessage\t${data?.targetMessageId ?? ''}`);
+  console.log(`safetyCheckpoint\t${data?.safetyCheckpointId ?? ''}`);
+  console.log(`files\t${fileChanges.added ?? 0} added, ${fileChanges.modified ?? 0} modified, ${fileChanges.deleted ?? 0} deleted, ${fileChanges.unchanged ?? 0} unchanged`);
+  console.log(`deletedMessages\t${deletedMessageIds.length}`);
+  console.log(`clearedAgentSessions\t${data?.clearedAgentSessions === true ? 'yes' : 'no'}`);
+  console.log(`conflicts\t${conflicts.length}`);
+  if (conflicts.length > 0) {
+    console.log('# conflict\treason\tpath');
+    for (const conflict of conflicts) {
+      console.log(`conflict\t${conflict.reason ?? ''}\t${conflict.path ?? ''}`);
+    }
+  }
+  if (data?.safetyCheckpointId) {
+    console.log(`recovery\tod chat rollback --project ${context.projectId} --conversation ${context.conversationId} --message ${data.targetMessageId ?? '<messageId>'} --checkpoint ${data.safetyCheckpointId} --mode files-only`);
+  }
+}
+
+function countCheckpointFileStatuses(files) {
+  const counts = { added: 0, modified: 0, deleted: 0, unchanged: 0 };
+  for (const file of files) {
+    const status = file?.status;
+    if (status && status in counts) counts[status]++;
+  }
+  return counts;
+}
+
+function formatCheckpointTime(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return value ?? '';
+  const millis = value > 10_000_000_000 ? value : value * 1000;
+  return new Date(millis).toISOString();
+}
+
 // ---------------------------------------------------------------------------
 // Subcommand: od chat  (Side Chat — context-seeded conversations)
 //
@@ -5946,6 +6073,18 @@ async function runChat(args) {
                                            context (--seed-from). Use
                                            --fork-after to stop at one source
                                            message.
+  od chat checkpoints --project <id> --conversation <id> [--json]
+                                           List rollback checkpoints for one
+                                           conversation.
+  od chat checkpoint diff --project <id> --checkpoint <id> [--json]
+                                           Show file changes for one checkpoint.
+  od chat rollback --project <id> --conversation <id> --message <id>
+                   --mode files-only|chat-only|files-and-chat
+                   [--checkpoint <id>]
+                   [--conflict-policy fail|overwrite|keep-current]
+                   [--json]
+                                           Restore files, chat history, or both
+                                           through the daemon rollback API.
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
@@ -5954,7 +6093,13 @@ Common options:
   }
   const sub = args[0];
   const rest = args.slice(1);
-  const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
+  let flags;
+  try {
+    flags = parseFlags(rest, { string: CHAT_STRING_FLAGS, boolean: CHAT_BOOLEAN_FLAGS });
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
+  }
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
   switch (sub) {
     case 'new': {
@@ -5962,7 +6107,7 @@ Common options:
       // or a bare positional id for convenience.
       const id = typeof flags.project === 'string' && flags.project
         ? flags.project
-        : positionalArgs(rest, PROJECT_STRING_FLAGS)[0];
+        : positionalArgs(rest, CHAT_STRING_FLAGS)[0];
       if (!id) {
         console.error('Usage: od chat new --project <id> [--seed-from <cid>] [--fork-after <mid>] [--title "<title>"]');
         process.exit(2);
@@ -5997,6 +6142,84 @@ Common options:
         ? ` through ${body.forkAfterMessageId}`
         : '';
       console.log(`[chat] created ${conv?.id ?? '-'}${conv?.title ? ` "${conv.title}"` : ''}${seeded}${forked} (mode ${conv?.sessionMode ?? sessionMode ?? 'design'})`);
+      return;
+    }
+    case 'checkpoints': {
+      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat checkpoints --project <id> --conversation <id> [--json]');
+      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: od chat checkpoints --project <id> --conversation <id> [--json]');
+      const query = new URLSearchParams({ conversationId }).toString();
+      let resp;
+      try {
+        resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/checkpoints?${query}`);
+      } catch (err) {
+        surfaceFetchError(err, base);
+        process.exit(3);
+      }
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      printChatCheckpoints(data);
+      return;
+    }
+    case 'checkpoint': {
+      const action = positionalArgs(rest, CHAT_STRING_FLAGS)[0];
+      if (action !== 'diff') {
+        console.error('Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+        process.exit(2);
+      }
+      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+      const checkpointId = requireChatFlag(flags, 'checkpoint', 'Usage: od chat checkpoint diff --project <id> --checkpoint <id> [--json]');
+      let resp;
+      try {
+        resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/checkpoints/${encodeURIComponent(checkpointId)}/diff?base=current`);
+      } catch (err) {
+        surfaceFetchError(err, base);
+        process.exit(3);
+      }
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      printChatCheckpointDiff(data);
+      return;
+    }
+    case 'rollback': {
+      const projectId = requireChatFlag(flags, 'project', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const conversationId = requireChatFlag(flags, 'conversation', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const targetMessageId = requireChatFlag(flags, 'message', 'Usage: od chat rollback --project <id> --conversation <id> --message <id> --mode files-only|chat-only|files-and-chat [--checkpoint <id>] [--json]');
+      const mode = normalizeRollbackMode(flags.mode);
+      if (!mode) {
+        console.error('--mode is required and must be one of: files-only | chat-only | files-and-chat');
+        process.exit(2);
+      }
+      const conflictPolicy = normalizeRollbackConflictPolicy(flags['conflict-policy']);
+      if (flags['conflict-policy'] && !conflictPolicy) {
+        console.error('--conflict-policy must be one of: fail | overwrite | keep-current');
+        process.exit(2);
+      }
+      const body = {
+        targetMessageId,
+        mode,
+        conflictPolicy: conflictPolicy ?? 'fail',
+        createSafetyCheckpoint: true,
+      };
+      if (typeof flags.checkpoint === 'string' && flags.checkpoint) {
+        body.targetCheckpointId = flags.checkpoint;
+      }
+      let resp;
+      try {
+        resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/rollback`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        surfaceFetchError(err, base);
+        process.exit(3);
+      }
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      printChatRollbackResult(data, { projectId, conversationId });
       return;
     }
     default:

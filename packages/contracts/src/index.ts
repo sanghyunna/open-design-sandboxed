@@ -5,6 +5,7 @@ export * from './api/app-config.js';
 export * from './api/automations.js';
 export * from './api/artifacts.js';
 export * from './api/chat.js';
+export * from './api/checkpoints.js';
 export * from './api/context.js';
 export * from './api/connectors.js';
 export * from './api/comments.js';

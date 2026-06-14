@@ -355,6 +355,7 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   // memo swallows the deltas and the card only updates on the final tool_use.
   'liveToolInput',
 ];
+const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
 
 function areAssistantMessagePropsEqual(prev: Props, next: Props): boolean {
   for (const key of ASSISTANT_MESSAGE_COMPARED_PROPS) {
@@ -551,6 +552,18 @@ function AssistantMessageImpl({
     unfinishedTodos.length > 0 &&
     !!onContinueRemainingTasks;
   const canFork = !streaming && !!onForkFromMessage;
+  const canRollback = !streaming && !!projectId && !!conversationId;
+  const handleRollbackFromMessage = canRollback
+    ? () => {
+        window.dispatchEvent(new CustomEvent(ASSISTANT_ROLLBACK_EVENT, {
+          detail: {
+            projectId,
+            conversationId,
+            message,
+          },
+        }));
+      }
+    : undefined;
   const copyMarkdown = message.content.trim().length > 0 ? message.content : undefined;
   const showFeedback =
     !!onFeedback &&
@@ -569,7 +582,8 @@ function AssistantMessageImpl({
     unfinishedTodos.length > 0 ||
     hasEmptyResponse ||
     !!copyMarkdown ||
-    canFork;
+    canFork ||
+    canRollback;
   const canShowOpenDesignSubmission = !!onShareToOpenDesign && showFeedback && runSucceeded;
   const showOpenDesignSubmission =
     canShowOpenDesignSubmission && (!!isLast || shareToOpenDesignBusy);
@@ -752,6 +766,7 @@ function AssistantMessageImpl({
                   copyMarkdown,
                   onFork: canFork ? onForkFromMessage : undefined,
                   forking,
+                  onRollback: handleRollbackFromMessage,
                   forceVisible: true,
                   isLast: !!isLast,
                 }}
@@ -768,6 +783,7 @@ function AssistantMessageImpl({
                 copyMarkdown={copyMarkdown}
                 onFork={canFork ? onForkFromMessage : undefined}
                 forking={forking}
+                onRollback={handleRollbackFromMessage}
                 isLast={!!isLast}
               />
             )}
@@ -950,6 +966,7 @@ interface AssistantFooterProps {
   copyMarkdown?: string;
   onFork?: () => void;
   forking?: boolean;
+  onRollback?: () => void;
   feedbackControls?: ReactNode;
   forceVisible?: boolean;
   // The most recent assistant reply keeps its footer permanently visible
@@ -968,6 +985,7 @@ function AssistantFooter({
   copyMarkdown,
   onFork,
   forking = false,
+  onRollback,
   feedbackControls,
   forceVisible = false,
   isLast = false,
@@ -989,7 +1007,8 @@ function AssistantFooter({
     !hasUnfinishedTodos &&
     !hasEmptyResponse &&
     !copyMarkdown &&
-    !onFork
+    !onFork &&
+    !onRollback
   )
     return null;
   return (
@@ -1018,9 +1037,10 @@ function AssistantFooter({
           : ""}
         {costLabel}
       </span>
-      {copyMarkdown || onFork || feedbackControls ? (
+      {copyMarkdown || onFork || onRollback || feedbackControls ? (
         <span className="assistant-footer-controls">
           {copyMarkdown ? <AssistantMarkdownCopyButton markdown={copyMarkdown} /> : null}
+          {onRollback ? <AssistantRollbackButton onRollback={onRollback} /> : null}
           {onFork ? (
             <AssistantForkButton
               disabled={forking}
@@ -1057,6 +1077,24 @@ function AssistantForkButton({
       title={label}
     >
       <Icon name={disabled ? "spinner" : "fork"} size={13} />
+    </button>
+  );
+}
+
+function AssistantRollbackButton({ onRollback }: { onRollback: () => void }) {
+  const t = useT();
+  const label = t("assistant.rollbackConversation");
+  return (
+    <button
+      type="button"
+      className="assistant-copy-button od-tooltip"
+      data-tooltip={label}
+      data-tooltip-placement="top"
+      onClick={onRollback}
+      aria-label={label}
+      title={label}
+    >
+      <Icon name="history" size={13} />
     </button>
   );
 }

@@ -87,6 +87,7 @@ export interface ServerContext {
   node: any;
   projectStore: any;
   projectFiles: any;
+  checkpoints: any;
   conversations: any;
   templates: any;
   status: any;

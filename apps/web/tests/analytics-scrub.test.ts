@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CaptureResult } from 'posthog-js';
-import { scrubBeforeSend } from '../src/analytics/scrub';
+import { scrubBeforeSend, type CaptureResult } from '../src/analytics/scrub';
 
 function makeEvent(event: string, properties: Record<string, unknown>): CaptureResult {
   return {
@@ -35,7 +34,7 @@ describe('scrubBeforeSend', () => {
         ],
       }),
     );
-    const els = cleaned!.properties.$elements as Array<Record<string, unknown>>;
+    const els = cleaned!.properties!.$elements as Array<Record<string, unknown>>;
     expect(els[0]!.$el_text).toBeUndefined();
     expect(els[0]!.attr__value).toBeUndefined();
     expect(els[0]!.attr__placeholder).toBeUndefined();
@@ -50,7 +49,7 @@ describe('scrubBeforeSend', () => {
         ],
       }),
     );
-    const els = cleaned!.properties.$elements as Array<Record<string, unknown>>;
+    const els = cleaned!.properties!.$elements as Array<Record<string, unknown>>;
     expect(els[0]!.$el_text).toBeUndefined();
   });
 
@@ -62,7 +61,7 @@ describe('scrubBeforeSend', () => {
         ],
       }),
     );
-    const els = cleaned!.properties.$elements as Array<Record<string, unknown>>;
+    const els = cleaned!.properties!.$elements as Array<Record<string, unknown>>;
     expect(els[0]!.$el_text).toBeUndefined();
   });
 
@@ -72,7 +71,7 @@ describe('scrubBeforeSend', () => {
         $elements: [{ tag_name: 'button', $el_text: 'Create project' }],
       }),
     );
-    const els = cleaned!.properties.$elements as Array<Record<string, unknown>>;
+    const els = cleaned!.properties!.$elements as Array<Record<string, unknown>>;
     expect(els[0]!.$el_text).toBe('Create project');
   });
 
@@ -82,7 +81,7 @@ describe('scrubBeforeSend', () => {
         $current_url: 'http://localhost:7457/projects/abc-123?prompt=secret&model=foo',
       }),
     );
-    expect(cleaned!.properties.$current_url).toBe(
+    expect(cleaned!.properties!.$current_url).toBe(
       'http://localhost:7457/projects/abc-123',
     );
   });
@@ -93,7 +92,7 @@ describe('scrubBeforeSend', () => {
         $current_url: 'http://localhost:7457/projects/abc#anchor-with-data',
       }),
     );
-    expect(cleaned!.properties.$current_url).toBe(
+    expect(cleaned!.properties!.$current_url).toBe(
       'http://localhost:7457/projects/abc',
     );
   });
@@ -102,7 +101,7 @@ describe('scrubBeforeSend', () => {
     const cleaned = scrubBeforeSend(
       makeEvent('$pageview', { $current_url: 'not a url' }),
     );
-    expect(cleaned!.properties.$current_url).toBe('not a url');
+    expect(cleaned!.properties!.$current_url).toBe('not a url');
   });
 
   it('rewrites absolute file:// paths in exception stack traces', () => {
@@ -125,7 +124,7 @@ describe('scrubBeforeSend', () => {
         ],
       }),
     );
-    const list = cleaned!.properties.$exception_list as Array<{
+    const list = cleaned!.properties!.$exception_list as Array<{
       stacktrace: { frames: Array<{ filename: string; abs_path: string }> };
     }>;
     expect(list[0]!.stacktrace.frames[0]!.filename).toBe('app://apps/web/src/App.tsx');

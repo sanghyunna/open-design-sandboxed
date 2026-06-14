@@ -2,8 +2,6 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const LOCAL_ENV_FILE_NAME = ".env.local";
-export const LOCAL_DEVELOPMENT_TELEMETRY_ENV = "local_development";
-export const TELEMETRY_ENV_KEY = "OD_TELEMETRY_ENV";
 
 export interface LoadWorkspaceLocalEnvResult {
   envPath: string;
@@ -22,9 +20,6 @@ export function loadWorkspaceLocalEnv(options: {
   const parsed = parseDotEnvLocal(readFileSync(envPath, "utf8"));
   for (const [key, value] of Object.entries(parsed)) {
     env[key] = value;
-  }
-  if (env[TELEMETRY_ENV_KEY] == null || env[TELEMETRY_ENV_KEY]?.trim() === "") {
-    env[TELEMETRY_ENV_KEY] = LOCAL_DEVELOPMENT_TELEMETRY_ENV;
   }
   return { envPath, loaded: true, keys: Object.keys(parsed).sort() };
 }

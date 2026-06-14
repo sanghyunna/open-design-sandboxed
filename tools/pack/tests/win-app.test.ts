@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ToolPackConfig } from "../src/config.js";
-import { INTERNAL_PACKAGES } from "../src/win/constants.js";
+import { ELECTRON_REBUILD_NATIVE_MODULES, INTERNAL_PACKAGES } from "../src/win/constants.js";
 import { createWorkspaceTarballsCacheKey } from "../src/win/app.js";
 
 const PACKAGE_DIRS = INTERNAL_PACKAGES.map((packageInfo) => packageInfo.directory);
@@ -70,5 +70,11 @@ describe("createWorkspaceTarballsCacheKey", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+});
+
+describe("Windows native module ABI policy", () => {
+  it("does not rebuild daemon native dependencies to Electron ABI", () => {
+    expect(ELECTRON_REBUILD_NATIVE_MODULES).toEqual([]);
   });
 });

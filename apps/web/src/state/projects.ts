@@ -17,7 +17,17 @@ import type {
   InstalledPluginRecord,
   PluginInstallOutcome,
   PluginShareAction,
+  ProjectCheckpointConflict,
+  ProjectCheckpointDiffResponse,
+  ProjectCheckpointFileDelta,
+  ProjectCheckpointSummary,
+  ProjectCheckpointsResponse,
   ProjectPluginFolderInstallRequest,
+  RollbackConflictPolicy,
+  RollbackConflictResponse,
+  RollbackMode,
+  RollbackRequest,
+  RollbackResponse,
   TerminalSession,
 } from '@open-design/contracts';
 import { randomUUID } from '../utils/uuid';
@@ -32,6 +42,28 @@ import type {
 
 export type { PluginInstallOutcome } from '@open-design/contracts';
 export type { PluginShareAction } from '@open-design/contracts';
+export type {
+  ProjectCheckpointConflict,
+  ProjectCheckpointDiffResponse,
+  ProjectCheckpointFileDelta,
+  ProjectCheckpointSummary,
+  RollbackConflictPolicy,
+  RollbackRequest,
+  RollbackResponse,
+} from '@open-design/contracts';
+export type RollbackRestoreMode = RollbackMode;
+
+export class RollbackConflictError extends Error {
+  readonly code: string;
+  readonly conflicts: ProjectCheckpointConflict[];
+
+  constructor(message: string, conflicts: ProjectCheckpointConflict[] = []) {
+    super(message);
+    this.name = 'RollbackConflictError';
+    this.code = 'ROLLBACK_CONFLICT';
+    this.conflicts = conflicts;
+  }
+}
 
 export async function listProjects(): Promise<Project[]> {
   try {
@@ -375,6 +407,80 @@ export async function listMessages(
   } catch {
     return [];
   }
+}
+
+export async function listProjectCheckpoints(
+  projectId: string,
+  conversationId: string,
+): Promise<ProjectCheckpointSummary[]> {
+  try {
+    const params = new URLSearchParams({ conversationId });
+    const resp = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/checkpoints?${params.toString()}`,
+    );
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as ProjectCheckpointsResponse;
+    return Array.isArray(json.checkpoints) ? json.checkpoints : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchProjectCheckpointDiff(
+  projectId: string,
+  checkpointId: string,
+): Promise<ProjectCheckpointDiffResponse | null> {
+  try {
+    const params = new URLSearchParams({ base: 'current' });
+    const resp = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/checkpoints/${encodeURIComponent(checkpointId)}/diff?${params.toString()}`,
+    );
+    if (!resp.ok) return null;
+    const json = (await resp.json()) as ProjectCheckpointDiffResponse;
+    return {
+      ...json,
+      files: Array.isArray(json.files) ? json.files : [],
+      conflicts: Array.isArray(json.conflicts) ? json.conflicts : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function rollbackConversation(
+  projectId: string,
+  conversationId: string,
+  request: RollbackRequest,
+): Promise<RollbackResponse> {
+  const resp = await fetch(
+    `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/rollback`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    },
+  );
+  const json = (await resp.json().catch(() => null)) as
+    | RollbackResponse
+    | RollbackConflictResponse
+    | { error?: string | { code?: string; message?: string; conflicts?: ProjectCheckpointConflict[] }; message?: string }
+    | null;
+  if (resp.ok) return json as RollbackResponse;
+
+  const error = json && 'error' in json ? json.error : undefined;
+  const code = typeof error === 'object' ? error.code : undefined;
+  const conflicts =
+    (typeof error === 'object' && Array.isArray(error.conflicts) ? error.conflicts : undefined)
+    ?? [];
+  const message =
+    (json && 'message' in json ? json.message : undefined)
+    ?? (typeof error === 'string' ? error : error?.message)
+    ?? resp.statusText
+    ?? 'Rollback failed.';
+  if (code === 'ROLLBACK_CONFLICT' || conflicts.length > 0) {
+    throw new RollbackConflictError(message, conflicts);
+  }
+  throw new Error(message);
 }
 
 export interface SaveMessageOptions {

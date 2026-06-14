@@ -30,8 +30,12 @@ import {
   writeProjectManifest,
 } from './project-locations.js';
 import { auditDesignSystemPackage } from './tools-connectors-cli.js';
+import {
+  ProjectCheckpointConflictError,
+  ProjectCheckpointError,
+} from './project-checkpoints.js';
 
-export interface RegisterProjectRoutesDeps extends RouteDeps<'db' | 'design' | 'http' | 'paths' | 'projectStore' | 'projectFiles' | 'conversations' | 'templates' | 'status' | 'events' | 'ids' | 'telemetry' | 'appConfig' | 'validation'> {}
+export interface RegisterProjectRoutesDeps extends RouteDeps<'db' | 'design' | 'http' | 'paths' | 'projectStore' | 'projectFiles' | 'checkpoints' | 'conversations' | 'templates' | 'status' | 'events' | 'ids' | 'telemetry' | 'appConfig' | 'validation'> {}
 
 function projectDetailResolvedDir(
   projectsRoot: string,
@@ -759,12 +763,31 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
   const { readAppConfig, writeAppConfig } = ctx.appConfig;
   const { insertProject, validateLinkedDirs, getProject, updateProject, dbDeleteProject, removeProjectDir } = ctx.projectStore;
   const { writeProjectFile, readProjectFile, ensureProject, listFiles, listTabs, setTabs, resolveProjectDir } = ctx.projectFiles;
+  const checkpoints = ctx.checkpoints;
   const { insertConversation, getConversation, listConversations, updateConversation, deleteConversation, listMessages, upsertMessage, listPreviewComments, upsertPreviewComment, updatePreviewCommentStatus, deletePreviewComment } = ctx.conversations;
   const { getTemplate, listTemplates, deleteTemplate, insertTemplate, findTemplateByNameAndProject, updateTemplate } = ctx.templates;
   const { listLatestProjectRunStatuses, listProjectsAwaitingInput, normalizeProjectDisplayStatus, composeProjectDisplayStatus, listProjects } = ctx.status;
   const { subscribeFileEvents, activeProjectEventSinks } = ctx.events;
   const { randomId } = ctx.ids;
   const { validateProjectDesignSystemId, validateProjectSkillId } = ctx.validation;
+  const sendCheckpointError = (res: Response, err: unknown): void => {
+    if (err instanceof ProjectCheckpointConflictError) {
+      sendApiError(res, err.status, err.code, err.message, {
+        conflicts: err.conflicts,
+        safetyCheckpointId: err.safetyCheckpointId,
+      });
+      return;
+    }
+    if (err instanceof ProjectCheckpointError) {
+      sendApiError(res, err.status, err.code, err.message);
+      return;
+    }
+    sendApiError(res, 500, 'INTERNAL_ERROR', err instanceof Error ? err.message : String(err));
+  };
+  const hasActiveConversationRun = (projectId: string, conversationId: string): boolean => {
+    const runs = design.runs?.list?.({ projectId, conversationId }) ?? [];
+    return runs.some((run: any) => !design.runs.isTerminal?.(run.status));
+  };
   async function loadPluginRegistryView() {
     const [skills, designSystems] = await Promise.all([
       listSkills(SKILLS_DIR),
@@ -1611,7 +1634,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     res.json({ messages: listMessages(db, req.params.cid) });
   });
 
-  app.put('/api/projects/:id/conversations/:cid/messages/:mid', (req, res) => {
+  app.put('/api/projects/:id/conversations/:cid/messages/:mid', async (req, res) => {
     const conv = getConversation(db, req.params.cid);
     if (!conv || conv.projectId !== req.params.id) {
       return res.status(404).json({ error: 'conversation not found' });
@@ -1626,8 +1649,90 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     });
     // Bump the parent project's updatedAt so the project list re-orders.
     updateProject(db, req.params.id, {});
+    if (m.telemetryFinalized === true && saved.role === 'assistant') {
+      await checkpoints.captureCheckpoint({
+        projectId: req.params.id,
+        conversationId: req.params.cid,
+        messageId: req.params.mid,
+        runId: saved.runId ?? null,
+        kind: 'after_message',
+      }).catch((err: unknown) => {
+        console.warn('[checkpoints] after_message capture failed', err);
+      });
+    }
     ctx.telemetry?.reportFinalizedMessage(saved, m);
     res.json({ message: saved });
+  });
+
+  app.get('/api/projects/:id/checkpoints', (req, res) => {
+    if (!getProject(db, req.params.id)) {
+      return sendApiError(res, 404, 'PROJECT_NOT_FOUND', 'project not found');
+    }
+    const conversationId = typeof req.query.conversationId === 'string'
+      ? req.query.conversationId
+      : null;
+    if (conversationId) {
+      const conv = getConversation(db, conversationId);
+      if (!conv || conv.projectId !== req.params.id) {
+        return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
+      }
+    }
+    try {
+      res.json({ checkpoints: checkpoints.listCheckpoints(req.params.id, conversationId) });
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
+  });
+
+  app.get('/api/projects/:id/checkpoints/:checkpointId', (req, res) => {
+    try {
+      res.json({ checkpoint: checkpoints.getCheckpoint(req.params.id, req.params.checkpointId) });
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
+  });
+
+  app.get('/api/projects/:id/checkpoints/:checkpointId/diff', async (req, res) => {
+    try {
+      res.json(await checkpoints.diffCheckpoint(req.params.id, req.params.checkpointId));
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
+  });
+
+  app.post('/api/projects/:id/conversations/:cid/rollback', async (req, res) => {
+    const conv = getConversation(db, req.params.cid);
+    if (!conv || conv.projectId !== req.params.id) {
+      return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
+    }
+    if (hasActiveConversationRun(req.params.id, req.params.cid)) {
+      return sendApiError(res, 409, 'ACTIVE_RUN', 'cannot rollback while a run is active');
+    }
+    const body = req.body || {};
+    if (typeof body.targetMessageId !== 'string' || !body.targetMessageId) {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'targetMessageId is required');
+    }
+    if (
+      body.conflictPolicy !== undefined &&
+      body.conflictPolicy !== 'fail' &&
+      body.conflictPolicy !== 'keep_current' &&
+      body.conflictPolicy !== 'overwrite'
+    ) {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'invalid conflictPolicy');
+    }
+    try {
+      res.json(await checkpoints.rollback({
+        projectId: req.params.id,
+        conversationId: req.params.cid,
+        targetMessageId: body.targetMessageId,
+        targetCheckpointId: typeof body.targetCheckpointId === 'string' ? body.targetCheckpointId : null,
+        mode: body.mode,
+        conflictPolicy: body.conflictPolicy,
+        createSafetyCheckpoint: true,
+      }));
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
   });
 
   // ---- Preview comments ----------------------------------------------------

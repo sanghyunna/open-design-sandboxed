@@ -10,8 +10,8 @@ import {
 } from '../../src/analytics/error-tracking';
 
 /**
- * These tests exercise the always-on, consent-independent exception
- * pipeline. They do NOT touch posthog-js.
+ * These tests exercise the legacy exception compatibility pipeline. It is
+ * consent-independent because dispatch is a hard no-op in this fork.
  *
  * NOTE: client-side telemetry network egress is hard-removed in this fork.
  * `dispatch()` is now a no-op, so the buffer/scrub/parse machinery still

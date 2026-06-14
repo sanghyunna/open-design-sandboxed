@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { mergeProxyAwareEnv, resolveSystemProxyEnv } from '@open-design/platform';
-import { readAppConfigSync } from '../app-config.js';
 import { resolveProjectRelativePath } from '../home-expansion.js';
 import { expandConfiguredEnv } from './paths.js';
 import { resolveAmrOpenCodeExecutable } from './executables.js';
@@ -51,33 +50,13 @@ const RUNTIME_MODULE_PROJECT_ROOT = resolveProjectRootFromNestedModule(
 // object loses Node's case-insensitive accessor — `Anthropic_Api_Key`
 // would survive a literal `delete env.ANTHROPIC_API_KEY` and still reach
 // the child. Iterate keys and compare case-insensitively to close that.
-// When the daemon launches the vela (amr) CLI, forward this installation's id
-// so vela's analytics can be correlated back to it. spawnEnvForAgent is
-// synchronous, so this uses readAppConfigSync — the synchronous mirror of
-// readAppConfig — to resolve consent and the installationId through the exact
-// same parsing/validation/defaulting the daemon and web analytics config use.
-// That keeps vela's correlation in lockstep with what the web side already
-// emits: telemetry defaults to on (opt-out), the id is withheld only when the
-// user has explicitly opted out (metrics !== true) or no id exists, and an
-// unreadable config simply omits the env (vela reports without it).
+// Corporate fork policy: do not forward installation identifiers to child CLIs
+// for analytics correlation.
 function amrAnalyticsIdentityEnv(
   env: NodeJS.ProcessEnv,
 ): Record<string, string> {
-  const dataDir = env.OD_DATA_DIR?.trim();
-  if (!dataDir) return {};
-  let cfg: { telemetry?: { metrics?: boolean }; installationId?: string | null };
-  try {
-    cfg = readAppConfigSync(dataDir);
-  } catch {
-    return {};
-  }
-  // Matches the analytics gate in analytics.ts (`telemetry?.metrics !== true`).
-  if (cfg.telemetry?.metrics !== true) return {};
-  const installationId = cfg.installationId;
-  if (typeof installationId !== 'string' || installationId.length === 0) {
-    return {};
-  }
-  return { OD_INSTALLATION_ID: installationId };
+  void env;
+  return {};
 }
 
 export function spawnEnvForAgent(
@@ -109,13 +88,6 @@ export function spawnEnvForAgent(
     if (!env.HOME?.trim()) {
       const home = os.homedir();
       if (home) env.HOME = home;
-    }
-    // Identify Open Design as the host so the vela CLI tags its command +
-    // model_request analytics with source=open_design (revenue attribution).
-    // Not PII (unlike the installation id above), so set it regardless of the
-    // telemetry-consent gate that amrAnalyticsIdentityEnv applies.
-    if (!env.AMR_CLIENT_SOURCE?.trim()) {
-      env.AMR_CLIENT_SOURCE = 'open_design';
     }
     if (!env.OPENCODE_TEST_HOME?.trim() && env.OD_DATA_DIR?.trim()) {
       env.OPENCODE_TEST_HOME = path.join(

@@ -11,7 +11,7 @@ import {
 } from "../vela-cli.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
-const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 6;
+const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 7;
 
 async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<string> {
   const velaCliBin = await resolveOptionalVelaCliBinary({
@@ -27,6 +27,7 @@ async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<strin
     craft: await hashPath(join(config.workspaceRoot, "craft")),
     designSystems: await hashPath(join(config.workspaceRoot, "design-systems")),
     designTemplates: await hashPath(join(config.workspaceRoot, "design-templates")),
+    nodeExecutable: await hashPath(process.execPath),
     node: "win.resource-tree",
     pluginOfficial: await hashPath(join(config.workspaceRoot, "plugins", "_official")),
     pluginPreviews: await hashPath(join(config.workspaceRoot, "data", "plugin-previews")),
@@ -69,6 +70,7 @@ export async function prepareResourceTree(
         resourceRoot,
       });
       await mkdir(join(resourceRoot, "bin"), { recursive: true });
+      await cp(process.execPath, join(resourceRoot, "bin", "node.exe"));
       await cp(winResources.sevenZipExe, join(resourceRoot, "bin", "7z.exe"));
       await cp(winResources.sevenZipDll, join(resourceRoot, "bin", "7z.dll"));
       await copyOptionalVelaCliBinary({

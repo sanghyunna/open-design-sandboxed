@@ -125,6 +125,7 @@ import {
   cacheTabsLocally,
   persistTabsToDaemonNow,
   listPlugins,
+  type RollbackResponse,
   type SaveMessageOptions,
   waitGeneratedPluginShareTask,
 } from '../state/projects';
@@ -172,6 +173,7 @@ import { PluginDetailsModal } from './PluginDetailsModal';
 import { DesignSystemPreviewModal } from './DesignSystemPreviewModal';
 import { ChatPane } from './ChatPane';
 import type { QuestionFormOpenRequest } from './AssistantMessage';
+import { RollbackModal } from './RollbackModal';
 import type { ChatSendMeta } from './ChatComposer';
 import {
   CritiqueTheaterMount,
@@ -357,10 +359,16 @@ const DESIGN_SYSTEM_AUDIT_AUTO_REPAIR_ATTEMPTS = 2;
 // Embedded-browser navigation bursts settle well within this; the local cache
 // is written immediately so nothing is lost if the daemon write is coalesced.
 const TAB_PERSIST_DEBOUNCE_MS = 400;
+const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
 const MIN_NORMAL_SPLIT_WIDTH =
   MIN_CHAT_PANEL_WIDTH + SPLIT_RESIZE_HANDLE_WIDTH + MIN_WORKSPACE_PANEL_WIDTH;
 type DesignSystemReviewEntry = NonNullable<ProjectMetadata['designSystemReview']>[string];
 type DesignSystemReviewAgentTask = NonNullable<DesignSystemReviewEntry['agentTask']>;
+type AssistantRollbackEventDetail = {
+  projectId: string;
+  conversationId: string;
+  message: ChatMessage;
+};
 interface DesignSystemReviewDetails {
   feedback?: string;
   files?: string[];
@@ -904,6 +912,20 @@ export function ProjectView({
   useEffect(() => {
     previewCommentsRef.current = previewComments;
   }, [previewComments]);
+  useEffect(() => {
+    const onAssistantRollback = (event: Event) => {
+      const detail = (event as CustomEvent<AssistantRollbackEventDetail>).detail;
+      if (!detail) return;
+      if (detail.projectId !== project.id) return;
+      if (!activeConversationId || detail.conversationId !== activeConversationId) return;
+      setRollbackTargetMessage(detail.message);
+    };
+    window.addEventListener(ASSISTANT_ROLLBACK_EVENT, onAssistantRollback);
+    return () => window.removeEventListener(ASSISTANT_ROLLBACK_EVENT, onAssistantRollback);
+  }, [activeConversationId, project.id]);
+  useEffect(() => {
+    setRollbackTargetMessage(null);
+  }, [activeConversationId]);
   const [attachedComments, setAttachedComments] = useState<PreviewComment[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [streamingConversationId, setStreamingConversationId] = useState<string | null>(null);
@@ -915,6 +937,7 @@ export function ProjectView({
   const [error, setError] = useState<string | null>(null);
   const [audioVoiceOptionsError, setAudioVoiceOptionsError] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
+  const [rollbackTargetMessage, setRollbackTargetMessage] = useState<ChatMessage | null>(null);
   const [filesRefresh, setFilesRefresh] = useState(0);
   // True while a working-dir replace is reindexing the new folder. Surfaced
   // to the Design Files panel so the file list shows a loading state instead
@@ -2443,9 +2466,65 @@ export function ProjectView({
     setAttachedComments((current) =>
       current
         .map((attached) => next.find((comment) => comment.id === attached.id))
-        .filter((comment): comment is PreviewComment => Boolean(comment)),
+      .filter((comment): comment is PreviewComment => Boolean(comment)),
     );
   }, [project.id, activeConversationId]);
+
+  const handleRollbackSuccess = useCallback(
+    async (response: RollbackResponse) => {
+      const conversationId = response.conversationId || activeConversationId;
+      if (!conversationId) return;
+      const [serverMessages, nextFiles] = await Promise.all([
+        listMessages(project.id, conversationId),
+        refreshWorkspaceItems(),
+        refreshPreviewComments(),
+      ]);
+      if (messagesConversationIdRef.current === conversationId) {
+        setMessages(serverMessages);
+        setMessagesInitialized(true);
+        setMessagesConversationId(conversationId);
+        setFailedMessagesConversationId(null);
+      }
+      const availableFiles = new Set(nextFiles.map((file) => file.name));
+      const nextTabs = openTabsState.tabs.filter(
+        (name) => availableFiles.has(name) || isLiveArtifactTabId(name),
+      );
+      const active =
+        openTabsState.active && nextTabs.includes(openTabsState.active)
+          ? openTabsState.active
+          : nextTabs[0] ?? null;
+      if (
+        nextTabs.length !== openTabsState.tabs.length ||
+        active !== openTabsState.active
+      ) {
+        persistTabsState({ tabs: nextTabs, active });
+      }
+      setArtifact((current) => {
+        if (!current) return current;
+        const identifier = current.identifier || artifactBaseNameFor(current);
+        const ext = artifactExtensionFor(current);
+        const likelyName = identifier.endsWith(ext) ? identifier : `${identifier}${ext}`;
+        return availableFiles.has(likelyName) ? current : null;
+      });
+      setProjectActionsToast({
+        message: t('rollback.success'),
+        details: response.safetyCheckpointId
+          ? t('rollback.successDetails', { id: response.safetyCheckpointId })
+          : null,
+      });
+      setRollbackTargetMessage(null);
+    },
+    [
+      activeConversationId,
+      openTabsState.active,
+      openTabsState.tabs,
+      persistTabsState,
+      project.id,
+      refreshPreviewComments,
+      refreshWorkspaceItems,
+      t,
+    ],
+  );
 
   const savePreviewComment = useCallback(
     async (target: PreviewCommentTarget, note: string, attachAfterSave: boolean, images: File[] = []) => {
@@ -5873,6 +5952,15 @@ export function ProjectView({
         <DesignSystemPreviewModal
           system={contextDesignSystemDetails}
           onClose={() => setContextDesignSystemDetails(null)}
+        />
+      ) : null}
+      {rollbackTargetMessage && activeConversationId ? (
+        <RollbackModal
+          projectId={project.id}
+          conversationId={activeConversationId}
+          targetMessage={rollbackTargetMessage}
+          onClose={() => setRollbackTargetMessage(null)}
+          onSuccess={handleRollbackSuccess}
         />
       ) : null}
       <AnimatePresence>

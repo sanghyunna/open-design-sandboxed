@@ -1,37 +1,9 @@
-// Direct-fetch safety telemetry transport.
+// Web observability compatibility surface.
 //
-// Why this exists alongside posthog-js's autocapture
-// ---------------------------------------------------
-// Two design constraints make posthog-js's normal capture path insufficient
-// for safety / reliability telemetry:
-//
-//   1. **Consent gate.** `posthog.opt_out_capturing()` silences ALL captures.
-//      Product policy is that *safety* telemetry — exceptions, white
-//      screens, dropped chunks, long tasks, stuck runs — flows
-//      unconditionally so we don't lose ground truth on stability when a
-//      user opts out of general analytics. The user-facing copy in
-//      Settings → Privacy must reflect this.
-//
-//   2. **Lazy-load window.** posthog-js is dynamically `import()`-ed only
-//      after `/api/analytics/config` returns AND the user has consented.
-//      Errors / metrics that fire during the first 1-2 seconds (React
-//      hydration, early effects, route init) are lost. We hook the
-//      relevant browser events synchronously at module load, before any
-//      of that, and buffer until we have credentials.
-//
-// This module exposes two surfaces:
-//
-//   - `reportHandledException` / `installErrorHandlers` — emit shaped
-//     `$exception` events (used directly + via `window.error` /
-//     `unhandledrejection`).
-//   - `reportSafetyEvent(eventName, properties)` — generic transport for
-//     non-exception observability events (long tasks, white screens,
-//     resource errors, boot timing, etc.) that need the same
-//     consent-bypass + early-buffer guarantees.
-//
-// To avoid duplicate `$exception` events, `client.ts` sets
-// `capture_exceptions: false` on the posthog-js init — this module is the
-// single source of truth for browser exception capture.
+// The upstream app used this module as a direct-fetch safety telemetry
+// transport. This fork keeps the public functions so existing call sites
+// remain type-clean, but dispatch is a hard no-op and no browser exception,
+// resource, long-task, boot-timing, or white-screen event leaves the app.
 
 import { scrubExceptionList, scrubFilePath } from './scrub';
 
@@ -50,10 +22,9 @@ interface BufferedSafetyEvent {
   timestamp: string;
 }
 
-// Cap the buffer so a chain of early errors (e.g. infinite render loop
-// before posthog-js loads) cannot grow indefinitely. 50 is enough to
-// capture the burst that usually surrounds a real bug while keeping the
-// memory footprint trivial.
+// Cap the compatibility buffer so a chain of early errors (e.g. an infinite
+// render loop) cannot grow indefinitely. 50 is enough to capture the burst
+// that usually surrounds a real bug while keeping the memory footprint trivial.
 const MAX_BUFFER_SIZE = 50;
 
 let context: ExceptionTrackingContext | null = null;
@@ -70,10 +41,6 @@ export function setExceptionTrackingContext(next: ExceptionTrackingContext): voi
 }
 
 export function clearExceptionTrackingContext(): void {
-  // Called when /api/analytics/config returns `key: null` (no build-time
-  // POSTHOG_KEY, e.g. a fork build). The buffered events stay in memory
-  // until the page unloads — no key, nowhere to send them, but also
-  // nothing leaks.
   context = null;
 }
 
@@ -99,9 +66,9 @@ export function installErrorHandlers(): void {
   });
 }
 
-// Public entry point for code paths that catch their own error but still
-// want it visible in PostHog (e.g. an ErrorBoundary's componentDidCatch).
-// Unhandled errors go through the window listeners above.
+// Public entry point retained for code paths that catch their own error.
+// Unhandled errors go through the window listeners above, then stop at the
+// no-op dispatch boundary.
 export function reportHandledException(error: unknown, message?: string): void {
   captureException(error, message ?? defaultMessage(error), { handled: true });
 }
@@ -134,13 +101,9 @@ function captureException(
   enqueue('$exception', properties);
 }
 
-// Generic safety-telemetry surface for non-exception observability events
-// (long tasks, white screens, resource errors, boot timing, stuck runs,
-// visibility changes, etc.). Goes through the same buffer + direct-fetch
-// transport as `$exception` so the same consent-bypass + early-firing
-// guarantees apply. Callers should namespace event names with `client_*`
-// (or `desktop_*` / `daemon_*` for cross-process forwards) so they're
-// easy to filter against posthog-js-captured product events.
+// Generic observability surface retained for existing non-exception call sites
+// (long tasks, white screens, resource errors, boot timing, visibility
+// changes, etc.). Events are parsed and scrubbed locally, then dropped.
 export function reportSafetyEvent(
   eventName: string,
   properties: Record<string, unknown> = {},
@@ -171,8 +134,8 @@ function enqueue(eventName: string, properties: Record<string, unknown>): void {
 
 function dispatch(_item: BufferedSafetyEvent): void {
   // Telemetry network egress is hard-removed in this fork. This used to POST
-  // the safety event to the PostHog ingest endpoint (`<host>/i/v0/e/`); that
-  // is now a no-op, which zeroes ALL observability egress — white-screen,
+  // safety events to a remote ingest endpoint; that is now a no-op, which
+  // zeroes ALL observability egress: white-screen,
   // boot-timing, long-task, visibility, resource-error, and exceptions all
   // funnel through here. The buffer/scrub/parse machinery above is kept
   // intact (harmless) so the module's public surface stays type-clean.
@@ -298,9 +261,8 @@ function randomId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  // Fallback for older browsers / SSR — collision risk is negligible
-  // because $insert_id only needs to dedupe within a single user-session
-  // window on the PostHog ingest side.
+  // Fallback for older browsers / SSR. Collision risk is negligible because
+  // this only needs to dedupe within a single user-session window.
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 

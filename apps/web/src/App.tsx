@@ -551,45 +551,25 @@ function AppInner() {
     return true;
   }, []);
 
-  // Propagate the Privacy toggle through to PostHog without a reload —
-  // posthog-js's opt_out_capturing flips a localStorage flag that makes
-  // every subsequent capture() a no-op. When the user opts back in we
-  // call opt_in_capturing to resume.
+  // Corporate fork policy: analytics provider methods are no-ops, but keep
+  // these calls so stale configs cannot revive the old consent path.
   useEffect(() => {
-    analytics.setConsent(config.telemetry?.metrics === true);
-  }, [analytics.setConsent, config.telemetry?.metrics]);
+    analytics.setConsent(false);
+  }, [analytics.setConsent]);
 
-  // Sync PostHog's distinct_id with the anonymous installationId, both on
-  // first opt-in (when the daemon stamps a fresh id) and on Delete-my-data
-  // rotation (when PrivacySection.tsx generates a new one). posthog-js
-  // caches the previous id in localStorage; identify() alone would stitch
-  // the two ids together, so applyIdentity() does reset() first to
-  // guarantee the new session is fully decoupled from the deleted one.
+  // Keep the legacy analytics identity cleared. The provider no longer
+  // installs daemon analytics headers.
   useEffect(() => {
-    if (config.telemetry?.metrics !== true) return;
-    analytics.setIdentity(config.installationId ?? null);
-  }, [analytics.setIdentity, config.installationId, config.telemetry?.metrics]);
+    analytics.setIdentity(null);
+  }, [analytics.setIdentity]);
 
   // App-level AMR sign-in state — declared here because the configure
   // globals effect below reads it; the sync effects live next to the
   // other AMR plumbing further down.
   const [amrLoginStatus, setAmrLoginStatus] = useState<VelaLoginStatus | null>(null);
 
-  // v2 analytics requires every event to carry the configure-state
-  // triplet (has_available_configure_cli / configure_type /
-  // configure_availability). We push it into the PostHog global register
-  // whenever the user's execution-mode config or the detected agent list
-  // changes; the next capture inherits the fresh values, so dashboards
-  // can segment by execution setup without per-helper boilerplate.
-  //
-  // Gated on `agentsLoading` so the cold-start probe (`fetchAgentsStream()`
-  // lands asynchronously after this effect's first run) does not stamp
-  // the first home/projects/plugins page_view with
-  // has_available_configure_cli=false / configure_availability=unavailable
-  // on machines that DO have an installed CLI. While the probe is in
-  // flight we leave the boot defaults ('unknown'/'unknown') in place,
-  // matching what the helper would return for an empty agent list with
-  // no mode pinned.
+  // Preserve the old configure-state calculation for compatibility with the
+  // analytics wrapper API. The wrapper is a no-op in this fork.
   useEffect(() => {
     if (agentsLoading) return;
     const byokConfigured = (() => {
@@ -636,11 +616,10 @@ function AppInner() {
   // {active:false} if this hasn't run.
   const activeProjectId = route.kind === 'project' ? route.projectId : null;
   const activeFileName = route.kind === 'project' ? route.fileName : null;
-  // The first-run privacy consent banner was removed along with all
-  // client-side telemetry egress — there is nothing left to consent to.
+  // The first-run privacy consent banner was removed along with telemetry
+  // egress; there is nothing left to consent to.
   // `config.privacyDecisionAt` is intentionally left in the config schema
-  // (it is still load-bearing for state hydration/migration and the
-  // Settings → Privacy section).
+  // because legacy config files may still include it.
   useEffect(() => {
     const body = activeProjectId
       ? { projectId: activeProjectId, fileName: activeFileName }

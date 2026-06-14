@@ -90,111 +90,46 @@ function bodyOf(
 }
 
 describe('readLangfuseConfig', () => {
-  it('returns null when keys are missing', () => {
+  it('always ignores direct Langfuse environment credentials', () => {
     expect(readLangfuseConfig({})).toBeNull();
     expect(readLangfuseConfig({ LANGFUSE_PUBLIC_KEY: 'pk' })).toBeNull();
     expect(readLangfuseConfig({ LANGFUSE_SECRET_KEY: 'sk' })).toBeNull();
-  });
-
-  it('returns null when keys are whitespace-only', () => {
     expect(
       readLangfuseConfig({
-        LANGFUSE_PUBLIC_KEY: '   ',
+        LANGFUSE_PUBLIC_KEY: 'pk-lf-abc',
         LANGFUSE_SECRET_KEY: 'sk',
+        LANGFUSE_BASE_URL: 'https://cloud.langfuse.com//',
+        LANGFUSE_TIMEOUT_MS: '45000',
+        LANGFUSE_RETRIES: '2',
       }),
     ).toBeNull();
-  });
-
-  it('builds Basic auth header from public:secret', () => {
-    const cfg = readLangfuseConfig({
-      LANGFUSE_PUBLIC_KEY: 'pk-lf-abc',
-      LANGFUSE_SECRET_KEY: 'sk-lf-xyz',
-    });
-    expect(cfg).not.toBeNull();
-    const expected =
-      'Basic ' + Buffer.from('pk-lf-abc:sk-lf-xyz').toString('base64');
-    expect(cfg!.authHeader).toBe(expected);
-  });
-
-  it('uses default US base URL when LANGFUSE_BASE_URL is absent', () => {
-    const cfg = readLangfuseConfig({
-      LANGFUSE_PUBLIC_KEY: 'pk',
-      LANGFUSE_SECRET_KEY: 'sk',
-    });
-    expect(cfg!.baseUrl).toBe('https://us.cloud.langfuse.com');
-  });
-
-  it('honours LANGFUSE_BASE_URL and strips trailing slashes', () => {
-    const cfg = readLangfuseConfig({
-      LANGFUSE_PUBLIC_KEY: 'pk',
-      LANGFUSE_SECRET_KEY: 'sk',
-      LANGFUSE_BASE_URL: 'https://cloud.langfuse.com//',
-    });
-    expect(cfg!.baseUrl).toBe('https://cloud.langfuse.com');
-  });
-
-  it('reads optional timeout and retry tuning from env', () => {
-    const cfg = readLangfuseConfig({
-      LANGFUSE_PUBLIC_KEY: 'pk',
-      LANGFUSE_SECRET_KEY: 'sk',
-      LANGFUSE_TIMEOUT_MS: '45000',
-      LANGFUSE_RETRIES: '2',
-    });
-    expect(cfg!.timeoutMs).toBe(45_000);
-    expect(cfg!.retries).toBe(2);
-  });
-
-  it('falls back when timeout and retry env values are invalid', () => {
-    const cfg = readLangfuseConfig({
-      LANGFUSE_PUBLIC_KEY: 'pk',
-      LANGFUSE_SECRET_KEY: 'sk',
-      LANGFUSE_TIMEOUT_MS: '-1',
-      LANGFUSE_RETRIES: '-2',
-    });
-    expect(cfg!.timeoutMs).toBe(20_000);
-    expect(cfg!.retries).toBe(1);
   });
 });
 
 describe('readTelemetrySinkConfig', () => {
-  it('prefers the Open Design telemetry relay when configured', () => {
-    const cfg = readTelemetrySinkConfig({
+  it('ignores the Open Design telemetry relay when configured', () => {
+    expect(readTelemetrySinkConfig({
       OPEN_DESIGN_TELEMETRY_RELAY_URL: 'https://telemetry.open-design.ai/api/langfuse//',
       LANGFUSE_PUBLIC_KEY: 'pk',
       LANGFUSE_SECRET_KEY: 'sk',
-    });
-    expect(cfg).toEqual({
-      kind: 'relay',
-      relayUrl: 'https://telemetry.open-design.ai/api/langfuse',
-      timeoutMs: 20_000,
-      retries: 1,
-    });
+    })).toBeNull();
   });
 
-  it('uses relay-specific timeout and retry tuning when present', () => {
-    const cfg = readTelemetrySinkConfig({
+  it('ignores relay-specific timeout and retry tuning when present', () => {
+    expect(readTelemetrySinkConfig({
       OPEN_DESIGN_TELEMETRY_RELAY_URL: 'https://telemetry.open-design.ai/api/langfuse',
       OPEN_DESIGN_TELEMETRY_TIMEOUT_MS: '30000',
       OPEN_DESIGN_TELEMETRY_RETRIES: '3',
       LANGFUSE_TIMEOUT_MS: '1',
       LANGFUSE_RETRIES: '0',
-    });
-    expect(cfg).toMatchObject({
-      kind: 'relay',
-      timeoutMs: 30_000,
-      retries: 3,
-    });
+    })).toBeNull();
   });
 
-  it('falls back to direct Langfuse config for local smoke tests', () => {
-    const cfg = readTelemetrySinkConfig({
+  it('ignores direct Langfuse config', () => {
+    expect(readTelemetrySinkConfig({
       LANGFUSE_PUBLIC_KEY: 'pk',
       LANGFUSE_SECRET_KEY: 'sk',
-    });
-    expect(cfg).toMatchObject({
-      kind: 'langfuse',
-      baseUrl: 'https://us.cloud.langfuse.com',
-    });
+    })).toBeNull();
   });
 });
 
@@ -1411,7 +1346,26 @@ describe('buildTracePayload', () => {
   });
 });
 
-describe('reportRunCompleted', () => {
+describe('reportRunCompleted disabled egress', () => {
+  it('does not fetch even when consent and an explicit config are present', async () => {
+    const fetchSpy = vi.fn();
+    const result = await reportRunCompleted(
+      makeCtx({
+        prefs: { metrics: true, content: true, artifactManifest: false },
+      }),
+      { config: TEST_CONFIG, fetchImpl: fetchSpy as any },
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      langfuse_expected: false,
+      langfuse_delivery_status: 'not_expected',
+      langfuse_drop_reason: 'missing_sink_config',
+    });
+  });
+});
+
+describe.skip('reportRunCompleted legacy network sender', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -1998,7 +1952,19 @@ describe('buildFeedbackPayload', () => {
   });
 });
 
-describe('reportRunFeedback', () => {
+describe('reportRunFeedback disabled egress', () => {
+  it('does not fetch even when consent and an explicit config are present', async () => {
+    const fetchSpy = vi.fn();
+    await reportRunFeedback(
+      makeFeedbackCtx({ reasonCodes: ['matched_request'] }),
+      { config: TEST_CONFIG, fetchImpl: fetchSpy as any },
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe.skip('reportRunFeedback legacy network sender', () => {
   const TEST_CONFIG: LangfuseConfig = {
     baseUrl: 'https://us.cloud.langfuse.com',
     authHeader: 'Basic Zm9vOmJhcg==',

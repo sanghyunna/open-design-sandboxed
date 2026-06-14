@@ -8,7 +8,15 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import type { ProjectBrowserWorkspaceTab, ProjectTabsState } from '@open-design/contracts';
+import type {
+  ProjectBrowserWorkspaceTab,
+  ProjectCheckpointKind,
+  ProjectCheckpointSummary,
+  ProjectTabsState,
+  RollbackConflictPolicy,
+  RollbackFileChangeCounts,
+  RollbackMode,
+} from '@open-design/contracts';
 import { migrateCritique } from './critique/persistence.js';
 import { migrateMediaTasks } from './media-tasks.js';
 import { migratePlugins } from './plugins/persistence.js';
@@ -237,6 +245,46 @@ function migrate(db: SqliteDb): void {
 
     CREATE INDEX IF NOT EXISTS idx_routine_runs_routine
       ON routine_runs(routine_id, started_at DESC);
+
+    CREATE TABLE IF NOT EXISTS project_checkpoints (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      conversation_id TEXT,
+      message_id TEXT,
+      run_id TEXT,
+      kind TEXT NOT NULL,
+      root_path_hash TEXT NOT NULL,
+      manifest_hash TEXT NOT NULL,
+      manifest_path TEXT NOT NULL,
+      file_count INTEGER NOT NULL,
+      total_bytes INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      metadata_json TEXT,
+      FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_project_checkpoints_project_time
+      ON project_checkpoints(project_id, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_project_checkpoints_message_kind
+      ON project_checkpoints(project_id, conversation_id, message_id, kind);
+
+    CREATE TABLE IF NOT EXISTS project_checkpoint_restores (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      conversation_id TEXT,
+      target_message_id TEXT,
+      target_checkpoint_id TEXT,
+      safety_checkpoint_id TEXT,
+      mode TEXT NOT NULL,
+      conflict_policy TEXT NOT NULL,
+      file_changes_json TEXT NOT NULL,
+      deleted_message_ids_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      metadata_json TEXT,
+      FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
   `);
   // Forward-compatible column add for databases created before metadata_json.
   // SQLite has no IF NOT EXISTS for ALTER, so we check pragma_table_info.
@@ -1166,6 +1214,16 @@ export function clearAgentSession(
   ).run(conversationId, agentId);
 }
 
+export function clearAgentSessionsForConversation(
+  db: SqliteDb,
+  conversationId: string,
+): number {
+  const result = db
+    .prepare(`DELETE FROM agent_sessions WHERE conversation_id = ?`)
+    .run(conversationId);
+  return result.changes;
+}
+
 // ---------- messages ----------
 
 export function listMessages(db: SqliteDb, conversationId: string) {
@@ -1351,6 +1409,287 @@ export function deleteMessage(db: SqliteDb, id: string) {
   db.prepare(`DELETE FROM messages WHERE id = ?`).run(id);
 }
 
+export function getMessagePosition(
+  db: SqliteDb,
+  conversationId: string,
+  messageId: string,
+): { id: string; position: number; createdAt: number | null } | null {
+  const row = db
+    .prepare(
+      `SELECT id, position, created_at AS createdAt
+         FROM messages
+        WHERE conversation_id = ? AND id = ?`,
+    )
+    .get(conversationId, messageId) as DbRow | undefined;
+  if (!row || typeof row.id !== 'string' || typeof row.position !== 'number') {
+    return null;
+  }
+  return {
+    id: row.id,
+    position: row.position,
+    createdAt: typeof row.createdAt === 'number' ? row.createdAt : null,
+  };
+}
+
+export function deleteMessagesAfterPosition(
+  db: SqliteDb,
+  conversationId: string,
+  position: number,
+): string[] {
+  const rows = db
+    .prepare(
+      `SELECT id FROM messages
+        WHERE conversation_id = ? AND position > ?
+        ORDER BY position ASC`,
+    )
+    .all(conversationId, position) as DbRow[];
+  const ids = rows
+    .map((item) => (typeof item.id === 'string' ? item.id : null))
+    .filter((item): item is string => item !== null);
+  if (ids.length === 0) return [];
+  const tx = db.transaction((messageIds: string[]) => {
+    const stmt = db.prepare(`DELETE FROM messages WHERE id = ?`);
+    for (const id of messageIds) stmt.run(id);
+    db.prepare(`UPDATE conversations SET updated_at = ? WHERE id = ?`).run(
+      Date.now(),
+      conversationId,
+    );
+  });
+  tx(ids);
+  return ids;
+}
+
+// ---------- project checkpoints ----------
+
+export interface DbProjectCheckpointInput {
+  id: string;
+  projectId: string;
+  conversationId?: string | null;
+  messageId?: string | null;
+  runId?: string | null;
+  kind: ProjectCheckpointKind;
+  rootPathHash: string;
+  manifestHash: string;
+  manifestPath: string;
+  fileCount: number;
+  totalBytes: number;
+  createdAt?: number;
+  metadata?: JsonObject | null;
+}
+
+export interface DbProjectCheckpointRow extends ProjectCheckpointSummary {
+  manifestPath: string;
+  metadata?: JsonObject;
+}
+
+export function insertProjectCheckpoint(
+  db: SqliteDb,
+  input: DbProjectCheckpointInput,
+): DbProjectCheckpointRow {
+  const createdAt = input.createdAt ?? Date.now();
+  db.prepare(
+    `INSERT INTO project_checkpoints
+       (id, project_id, conversation_id, message_id, run_id, kind,
+        root_path_hash, manifest_hash, manifest_path, file_count, total_bytes,
+        created_at, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       project_id = excluded.project_id,
+       conversation_id = excluded.conversation_id,
+       message_id = excluded.message_id,
+       run_id = excluded.run_id,
+       kind = excluded.kind,
+       root_path_hash = excluded.root_path_hash,
+       manifest_hash = excluded.manifest_hash,
+       manifest_path = excluded.manifest_path,
+       file_count = excluded.file_count,
+       total_bytes = excluded.total_bytes,
+       created_at = excluded.created_at,
+       metadata_json = excluded.metadata_json`,
+  ).run(
+    input.id,
+    input.projectId,
+    input.conversationId ?? null,
+    input.messageId ?? null,
+    input.runId ?? null,
+    input.kind,
+    input.rootPathHash,
+    input.manifestHash,
+    input.manifestPath,
+    input.fileCount,
+    input.totalBytes,
+    createdAt,
+    input.metadata ? JSON.stringify(input.metadata) : null,
+  );
+  const row = getProjectCheckpoint(db, input.id);
+  if (!row) throw new Error('checkpoint insert failed');
+  return row;
+}
+
+export function listProjectCheckpoints(
+  db: SqliteDb,
+  projectId: string,
+  options: { conversationId?: string | null } = {},
+): DbProjectCheckpointRow[] {
+  const hasConversation = typeof options.conversationId === 'string' && options.conversationId.length > 0;
+  const rows = hasConversation
+    ? db
+        .prepare(
+          `SELECT id, project_id AS projectId, conversation_id AS conversationId,
+                  message_id AS messageId, run_id AS runId, kind,
+                  root_path_hash AS rootPathHash, manifest_hash AS manifestHash,
+                  manifest_path AS manifestPath, file_count AS fileCount,
+                  total_bytes AS totalBytes, created_at AS createdAt,
+                  metadata_json AS metadataJson
+             FROM project_checkpoints
+            WHERE project_id = ? AND conversation_id = ?
+            ORDER BY created_at DESC`,
+        )
+        .all(projectId, options.conversationId) as DbRow[]
+    : db
+        .prepare(
+          `SELECT id, project_id AS projectId, conversation_id AS conversationId,
+                  message_id AS messageId, run_id AS runId, kind,
+                  root_path_hash AS rootPathHash, manifest_hash AS manifestHash,
+                  manifest_path AS manifestPath, file_count AS fileCount,
+                  total_bytes AS totalBytes, created_at AS createdAt,
+                  metadata_json AS metadataJson
+             FROM project_checkpoints
+            WHERE project_id = ?
+            ORDER BY created_at DESC`,
+        )
+        .all(projectId) as DbRow[];
+  return rows.map(normalizeProjectCheckpointRow);
+}
+
+export function getProjectCheckpoint(
+  db: SqliteDb,
+  checkpointId: string,
+): DbProjectCheckpointRow | null {
+  const row = db
+    .prepare(
+      `SELECT id, project_id AS projectId, conversation_id AS conversationId,
+              message_id AS messageId, run_id AS runId, kind,
+              root_path_hash AS rootPathHash, manifest_hash AS manifestHash,
+              manifest_path AS manifestPath, file_count AS fileCount,
+              total_bytes AS totalBytes, created_at AS createdAt,
+              metadata_json AS metadataJson
+         FROM project_checkpoints
+        WHERE id = ?`,
+    )
+    .get(checkpointId) as DbRow | undefined;
+  return row ? normalizeProjectCheckpointRow(row) : null;
+}
+
+export function findProjectCheckpointForMessage(
+  db: SqliteDb,
+  input: {
+    projectId: string;
+    conversationId: string;
+    messageId: string;
+    kinds: ProjectCheckpointKind[];
+  },
+): DbProjectCheckpointRow | null {
+  if (input.kinds.length === 0) return null;
+  const placeholders = input.kinds.map(() => '?').join(', ');
+  const row = db
+    .prepare(
+      `SELECT id, project_id AS projectId, conversation_id AS conversationId,
+              message_id AS messageId, run_id AS runId, kind,
+              root_path_hash AS rootPathHash, manifest_hash AS manifestHash,
+              manifest_path AS manifestPath, file_count AS fileCount,
+              total_bytes AS totalBytes, created_at AS createdAt,
+              metadata_json AS metadataJson
+         FROM project_checkpoints
+        WHERE project_id = ?
+          AND conversation_id = ?
+          AND message_id = ?
+          AND kind IN (${placeholders})
+        ORDER BY created_at DESC
+        LIMIT 1`,
+    )
+    .get(
+      input.projectId,
+      input.conversationId,
+      input.messageId,
+      ...input.kinds,
+    ) as DbRow | undefined;
+  return row ? normalizeProjectCheckpointRow(row) : null;
+}
+
+export interface DbProjectCheckpointRestoreInput {
+  id: string;
+  projectId: string;
+  conversationId?: string | null;
+  targetMessageId?: string | null;
+  targetCheckpointId?: string | null;
+  safetyCheckpointId?: string | null;
+  mode: RollbackMode;
+  conflictPolicy: RollbackConflictPolicy;
+  fileChanges: RollbackFileChangeCounts;
+  deletedMessageIds: string[];
+  createdAt?: number;
+  metadata?: JsonObject | null;
+}
+
+export function insertProjectCheckpointRestore(
+  db: SqliteDb,
+  input: DbProjectCheckpointRestoreInput,
+): void {
+  db.prepare(
+    `INSERT INTO project_checkpoint_restores
+       (id, project_id, conversation_id, target_message_id, target_checkpoint_id,
+        safety_checkpoint_id, mode, conflict_policy, file_changes_json,
+        deleted_message_ids_json, created_at, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    input.id,
+    input.projectId,
+    input.conversationId ?? null,
+    input.targetMessageId ?? null,
+    input.targetCheckpointId ?? null,
+    input.safetyCheckpointId ?? null,
+    input.mode,
+    input.conflictPolicy,
+    JSON.stringify(input.fileChanges),
+    JSON.stringify(input.deletedMessageIds),
+    input.createdAt ?? Date.now(),
+    input.metadata ? JSON.stringify(input.metadata) : null,
+  );
+}
+
+function normalizeProjectCheckpointRow(row: DbRow): DbProjectCheckpointRow {
+  const metadata = parseJsonOrUndef(row.metadataJson);
+  return {
+    id: String(row.id),
+    projectId: String(row.projectId),
+    conversationId: typeof row.conversationId === 'string' ? row.conversationId : null,
+    messageId: typeof row.messageId === 'string' ? row.messageId : null,
+    runId: typeof row.runId === 'string' ? row.runId : null,
+    kind: normalizeProjectCheckpointKind(row.kind),
+    createdAt: typeof row.createdAt === 'number' ? row.createdAt : 0,
+    rootPathHash: String(row.rootPathHash ?? ''),
+    fileCount: typeof row.fileCount === 'number' ? row.fileCount : 0,
+    totalBytes: typeof row.totalBytes === 'number' ? row.totalBytes : 0,
+    manifestHash: String(row.manifestHash ?? ''),
+    manifestPath: String(row.manifestPath ?? ''),
+    restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    ...(metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? { metadata: metadata as JsonObject }
+      : {}),
+  };
+}
+
+function normalizeProjectCheckpointKind(value: unknown): ProjectCheckpointKind {
+  return value === 'before_run' ||
+    value === 'after_run_unfinalized' ||
+    value === 'after_message' ||
+    value === 'before_restore' ||
+    value === 'manual'
+    ? value
+    : 'manual';
+}
+
 // ---------- preview comments ----------
 
 const PREVIEW_COMMENT_STATUSES = new Set([
@@ -1485,6 +1824,21 @@ export function deletePreviewComment(db: SqliteDb, projectId: string, conversati
     )
     .run(id, projectId, conversationId);
   return result.changes > 0;
+}
+
+export function deletePreviewCommentsAfter(
+  db: SqliteDb,
+  projectId: string,
+  conversationId: string,
+  createdAfter: number,
+): number {
+  const result = db
+    .prepare(
+      `DELETE FROM preview_comments
+        WHERE project_id = ? AND conversation_id = ? AND created_at > ?`,
+    )
+    .run(projectId, conversationId, createdAfter);
+  return result.changes;
 }
 
 function getPreviewComment(db: SqliteDb, projectId: string, conversationId: string, id: string) {

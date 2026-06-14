@@ -3,13 +3,73 @@ import {
   applyPlugin,
   contributeGeneratedPluginToOpenDesign,
   createPluginShareProject,
+  fetchProjectCheckpointDiff,
   importClaudeDesignZip,
   importFolderProject,
   installGeneratedPluginFolder,
+  listProjectCheckpoints,
   listPlugins,
   pickLocalFolderPath,
   publishGeneratedPluginToGitHub,
+  rollbackConversation,
 } from '../../src/state/projects';
+
+describe('project checkpoints', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('lists checkpoints and loads current diff through project endpoints', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url === '/api/projects/proj-1/checkpoints?conversationId=conv-1') {
+        return new Response(
+          JSON.stringify({ checkpoints: [{ id: 'cp-1', messageId: 'msg-1' }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url === '/api/projects/proj-1/checkpoints/cp-1/diff?base=current') {
+        return new Response(
+          JSON.stringify({ summary: { added: 1, modified: 2, deleted: 0, conflicts: 0 } }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('not found', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(listProjectCheckpoints('proj-1', 'conv-1')).resolves.toEqual([
+      { id: 'cp-1', messageId: 'msg-1' },
+    ]);
+    await expect(fetchProjectCheckpointDiff('proj-1', 'cp-1')).resolves.toMatchObject({
+      summary: { added: 1, modified: 2 },
+    });
+  });
+
+  it('posts rollback mode and exposes conflict responses', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify({
+        error: {
+          code: 'ROLLBACK_CONFLICT',
+          message: 'Rollback has file conflicts.',
+          conflicts: [{ path: 'index.html', reason: 'modified' }],
+        },
+      }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    )));
+
+    await expect(rollbackConversation('proj-1', 'conv-1', {
+      targetMessageId: 'msg-1',
+      targetCheckpointId: 'cp-1',
+      mode: 'files_and_chat',
+      conflictPolicy: 'fail',
+      createSafetyCheckpoint: true,
+    })).rejects.toMatchObject({
+      code: 'ROLLBACK_CONFLICT',
+      conflicts: [{ path: 'index.html', reason: 'modified' }],
+    });
+  });
+});
 
 describe('applyPlugin', () => {
   afterEach(() => {

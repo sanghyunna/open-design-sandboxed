@@ -1,9 +1,9 @@
 // The daemon's `uncaughtException` / `unhandledRejection` handlers must
 // preserve Node's fatal-exit semantics. Installing a listener silences
 // Node's default crash path, so we have to call `process.exit(1)`
-// explicitly after a bounded posthog-node flush. Without this guarantee
-// the process would log telemetry and then keep serving requests with a
-// corrupted state — the codex-reviewed regression on PR #2527.
+// explicitly after bounded analytics-service cleanup. Without this guarantee
+// the process could keep serving requests with corrupted state: the
+// codex-reviewed regression on PR #2527.
 //
 // This file pins the contract that's hard to assert from the server.ts
 // integration suite (which has no way to throw inside Express handlers
@@ -88,7 +88,7 @@ afterEach(() => {
 });
 
 describe('daemon fatal-shutdown helper', () => {
-  it('flushes posthog-node and exits with code 1 on uncaughtException', async () => {
+  it('runs bounded cleanup and exits with code 1 on uncaughtException', async () => {
     const fatal = buildFatalShutdown(analytics, exit);
 
     fatal('daemon_uncaught_exception', { error_message: 'boom' });
@@ -105,7 +105,7 @@ describe('daemon fatal-shutdown helper', () => {
   });
 
   it('still exits even when shutdown() hangs past the timeout (bounded flush)', async () => {
-    // Simulate posthog-node never resolving — network hang during exit.
+    // Simulate cleanup never resolving during exit.
     shutdownMock.mockReturnValue(new Promise<void>(() => undefined));
 
     const fatal = buildFatalShutdown(analytics, exit);
@@ -136,7 +136,7 @@ describe('daemon fatal-shutdown helper', () => {
   });
 
   it('still tries to exit when captureSafety itself throws', async () => {
-    captureSafetyMock.mockRejectedValue(new Error('posthog client died'));
+    captureSafetyMock.mockRejectedValue(new Error('analytics service died'));
 
     const fatal = buildFatalShutdown(analytics, exit);
     fatal('daemon_uncaught_exception', { error_message: 'capture-explodes' });
@@ -146,10 +146,9 @@ describe('daemon fatal-shutdown helper', () => {
   });
 
   // Regression test for the codex review on PR #2527 (second pass):
-  // captureSafety must complete (event enqueued in posthog-node) BEFORE
-  // shutdown() drains the queue. A previous fire-and-forget shape let
-  // shutdown race ahead of the internal `await readInstallationIdSafe()`
-  // inside captureSafety, so the crash event was lost during exit.
+  // captureSafety must settle BEFORE shutdown cleanup. A previous
+  // fire-and-forget shape let shutdown race ahead of the internal async work
+  // inside captureSafety, so fatal-exit ordering became nondeterministic.
   it('waits for the captureSafety promise to settle before invoking shutdown', async () => {
     const events: string[] = [];
     captureSafetyMock.mockImplementation(async () => {

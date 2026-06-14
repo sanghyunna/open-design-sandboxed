@@ -34,12 +34,14 @@ import {
 import { resolvePackagedNamespacePaths } from "./paths.js";
 import { packagedEntryUrl, registerOdProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
+import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
 import { resolvePackagedUpdaterEnv } from "./updater-env.js";
 import { syncWindowsUninstallDisplayVersion } from "./windows-lifecycle.js";
 
 let packagedLogger: PackagedDesktopLogger | null = null;
 let pendingSecondInstanceFocus = false;
 let showExistingDesktop: (() => void) | null = null;
+let flushStartupTimingOnFailure: (() => void) | null = null;
 
 function createPackagedDesktopStamp(namespace: string): SidecarStamp {
   return {
@@ -79,6 +81,9 @@ function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portable: boo
 }
 
 async function main(): Promise<void> {
+  const startupTiming = createPackagedStartupPhaseTimer({ buffer: true });
+  flushStartupTimingOnFailure = startupTiming.flush;
+
   // Must run BEFORE `app.whenReady()` below, because Chromium consumes
   // `--lang` at session bootstrap. Doing it here lets the packaged
   // renderer's `navigator.language` follow the OS instead of Chromium's
@@ -87,6 +92,7 @@ async function main(): Promise<void> {
   applyOsLocaleSwitch(app);
 
   const config = await readPackagedConfig();
+  startupTiming.mark("config-read-complete");
   const afterQuit = parseLauncherAfterQuitArgs(process.argv.slice(1));
   const argvStamp = readProcessStamp(process.argv.slice(1), OPEN_DESIGN_SIDECAR_CONTRACT);
   const namespace = argvStamp?.namespace ?? config.namespace;
@@ -98,16 +104,21 @@ async function main(): Promise<void> {
     paths: initialPaths,
   });
   if (existingDesktop.action === "exit") {
+    startupTiming.flush();
+    flushStartupTimingOnFailure = null;
     return;
   }
   const launcherRuntime = await resolvePackagedLauncherRuntime(namespaceConfig, initialPaths);
   const activeConfig = launcherRuntime.config;
   const paths = launcherRuntime.paths;
+  startupTiming.mark("packaged-paths-resolved");
   const stamp = argvStamp ?? createPackagedDesktopStamp(namespace);
 
   await ensurePackagedNamespacePaths(paths);
   packagedLogger = createPackagedDesktopLogger(paths);
   attachPackagedDesktopProcessLogging({ logger: packagedLogger, paths, stamp });
+  startupTiming.flush();
+  flushStartupTimingOnFailure = null;
   applyPackagedElectronPathOverrides(paths);
   applyPackagedUpdaterEnv(activeConfig.updateMetadataUrl, activeConfig.portable);
   if (!claimPackagedSingleInstanceLock(app, () => {
@@ -145,9 +156,6 @@ async function main(): Promise<void> {
     daemonCliEntry: activeConfig.daemonCliEntry,
     daemonSidecarEntry: activeConfig.daemonSidecarEntry,
     nodeCommand: activeConfig.nodeCommand,
-    telemetryRelayUrl: activeConfig.telemetryRelayUrl,
-    posthogKey: activeConfig.posthogKey,
-    posthogHost: activeConfig.posthogHost,
     // PR #974 round-5 (lefarcen P2): the Electron entry runs desktop
     // main alongside the daemon, so the import-folder gate must be
     // pinned ON from request 0. See `apps/packaged/src/headless.ts` for
@@ -156,10 +164,12 @@ async function main(): Promise<void> {
     webSidecarEntry: activeConfig.webSidecarEntry,
     webStandaloneRoot: activeConfig.webStandaloneRoot,
     webOutputMode: activeConfig.webOutputMode,
+    logStartupPhase: startupTiming.mark,
   });
   registerOdProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
 
   const { runDesktopMain } = await import("@open-design/desktop/main");
+  startupTiming.mark("desktop-main-handoff");
   await runDesktopMain(runtime, {
     splashWindow: splash.window,
     splashStartedAt: splash.startedAt,
@@ -210,6 +220,8 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error: unknown) => {
+  flushStartupTimingOnFailure?.();
+  flushStartupTimingOnFailure = null;
   if (error instanceof PackagedPathAccessError) {
     try {
       dialog.showErrorBox(error.title, error.message);

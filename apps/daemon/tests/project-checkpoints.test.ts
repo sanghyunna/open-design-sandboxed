@@ -1,0 +1,616 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import {
+  closeDatabase,
+  getProjectCheckpoint,
+  insertConversation,
+  insertProject,
+  listMessages,
+  openDatabase,
+  updateProject,
+  upsertMessage,
+} from '../src/db.js';
+import { createProjectCheckpointService } from '../src/project-checkpoints.js';
+
+const tempRoots: string[] = [];
+
+afterEach(async () => {
+  closeDatabase();
+  await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+async function makeFixture() {
+  const root = await mkdtemp(path.join(tmpdir(), 'od-project-checkpoints-'));
+  tempRoots.push(root);
+  const dataDir = path.join(root, 'data');
+  const projectsRoot = path.join(root, 'projects');
+  const projectId = 'project-1';
+  const projectDir = path.join(projectsRoot, projectId);
+  await mkdir(projectDir, { recursive: true });
+  await mkdir(dataDir, { recursive: true });
+  const db = openDatabase(dataDir, { dataDir });
+  const now = Date.now();
+  insertProject(db, { id: projectId, name: 'P', createdAt: now, updatedAt: now });
+  insertConversation(db, {
+    id: 'conv-1',
+    projectId,
+    title: 'C',
+    createdAt: now,
+    updatedAt: now,
+  });
+  const service = createProjectCheckpointService({ db, dataDir, projectsRoot });
+  return { db, service, dataDir, projectsRoot, projectId, projectDir };
+}
+
+async function writeFixtureFile(projectDir: string, relativePath: string, content: string | Buffer) {
+  const target = path.join(projectDir, ...relativePath.split('/'));
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, content);
+}
+
+function seedConversationMessages(db: ReturnType<typeof openDatabase>) {
+  for (const message of [
+    { id: 'user-1', role: 'user', content: 'first' },
+    { id: 'assistant-1', role: 'assistant', content: 'first answer' },
+    { id: 'user-2', role: 'user', content: 'second' },
+    { id: 'assistant-2', role: 'assistant', content: 'second answer' },
+  ]) {
+    upsertMessage(db, 'conv-1', message);
+  }
+}
+
+async function readManifest(db: ReturnType<typeof openDatabase>, checkpointId: string) {
+  const row = getProjectCheckpoint(db, checkpointId);
+  if (!row) throw new Error(`missing checkpoint ${checkpointId}`);
+  return JSON.parse(await readFile(row.manifestPath, 'utf8')) as {
+    schemaVersion: 1;
+    projectId: string;
+    checkpointId: string;
+    files: Array<{ path: string; hash: string; blob: string }>;
+  };
+}
+
+describe('project checkpoint capture', () => {
+  it('captures hashes and content-addressed blobs, includes .live-artifacts, and excludes ignored dirs', async () => {
+    const { db, service, dataDir, projectId, projectDir } = await makeFixture();
+    await writeFixtureFile(projectDir, 'src/app.ts', 'same bytes');
+    await writeFixtureFile(projectDir, 'docs/copy.txt', 'same bytes');
+    await writeFixtureFile(projectDir, '.live-artifacts/la-1/artifact.json', '{"title":"Live"}\n');
+    await writeFixtureFile(projectDir, 'node_modules/pkg/index.js', 'ignored');
+    await writeFixtureFile(projectDir, '.git/config', '[core]\n');
+    await writeFixtureFile(projectDir, '.od/app.sqlite', 'ignored daemon data');
+    await writeFixtureFile(projectDir, 'dist/bundle.js', 'ignored build output');
+
+    const checkpoint = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_message',
+    });
+    const manifest = await readManifest(db, checkpoint.id);
+
+    expect(checkpoint).toMatchObject({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_message',
+      fileCount: 3,
+    });
+    expect(manifest).toMatchObject({
+      schemaVersion: 1,
+      projectId,
+      checkpointId: checkpoint.id,
+    });
+    expect(manifest.files.map((file) => file.path).sort()).toEqual([
+      '.live-artifacts/la-1/artifact.json',
+      'docs/copy.txt',
+      'src/app.ts',
+    ]);
+    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('node_modules');
+    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('.git');
+    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('.od');
+    expect(manifest.files.map((file) => file.path).join('\n')).not.toContain('dist');
+
+    const duplicateHashes = manifest.files
+      .filter((file) => file.path === 'src/app.ts' || file.path === 'docs/copy.txt')
+      .map((file) => file.hash);
+    expect(new Set(duplicateHashes).size).toBe(1);
+    const blobPath = manifest.files.find((file) => file.path === 'src/app.ts')?.blob;
+    expect(blobPath).toBeTruthy();
+    await expect(stat(path.join(dataDir, 'checkpoints', 'blobs', blobPath!))).resolves.toMatchObject({});
+  });
+
+  it('does not follow a symlinked directory outside the project root', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    const outside = await mkdtemp(path.join(tmpdir(), 'od-checkpoint-outside-'));
+    tempRoots.push(outside);
+    await writeFixtureFile(outside, 'secret.txt', 'outside');
+    await fsSymlinkDir(outside, path.join(projectDir, 'linked-outside'));
+    await writeFixtureFile(projectDir, 'safe.txt', 'inside');
+
+    const checkpoint = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      kind: 'after_message',
+    });
+    const manifest = await readManifest(db, checkpoint.id);
+
+    expect(manifest.files.map((file) => file.path)).toEqual(['safe.txt']);
+  });
+});
+
+describe('project checkpoint restore', () => {
+  it('rejects an explicit checkpoint id that does not belong to the target message', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>first</h1>');
+    const first = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', '<h1>second</h1>');
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-2',
+        targetCheckpointId: first.id,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'CHECKPOINT_MESSAGE_MISMATCH',
+    });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>second</h1>');
+  });
+
+  it('validates explicit checkpoint ids for chat_only rollback before pruning messages', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>second</h1>');
+    const second = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-2',
+      kind: 'after_message',
+    });
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: second.id,
+        mode: 'chat_only',
+        conflictPolicy: 'fail',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: 'CHECKPOINT_MESSAGE_MISMATCH',
+    });
+    expect(listMessages(db, 'conv-1').map((message) => message.id)).toEqual([
+      'user-1',
+      'assistant-1',
+      'user-2',
+      'assistant-2',
+    ]);
+  });
+
+  it('restores modified and deleted files, removes files added after the checkpoint, and creates a safety checkpoint first', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'src/app.ts', 'before');
+    await writeFixtureFile(projectDir, '.live-artifacts/la-1/artifact.json', '{"title":"Before"}\n');
+
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_message',
+    });
+
+    await writeFixtureFile(projectDir, 'src/app.ts', 'after');
+    await writeFixtureFile(projectDir, 'generated.html', '<h1>new</h1>');
+    await rm(path.join(projectDir, '.live-artifacts', 'la-1', 'artifact.json'));
+
+    const restored = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      createSafetyCheckpoint: true,
+    });
+
+    expect(restored).toMatchObject({
+      projectId,
+      conversationId: 'conv-1',
+      safetyCheckpointId: expect.any(String),
+      restoredCheckpointId: target.id,
+      fileChanges: {
+        modified: 1,
+        added: 1,
+        deleted: 1,
+      },
+    });
+    expect(restored.conflicts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'src/app.ts' }),
+        expect.objectContaining({ path: 'generated.html' }),
+        expect.objectContaining({ path: '.live-artifacts/la-1/artifact.json' }),
+      ]),
+    );
+    expect(await readFile(path.join(projectDir, 'src', 'app.ts'), 'utf8')).toBe('before');
+    expect(await readFile(path.join(projectDir, '.live-artifacts', 'la-1', 'artifact.json'), 'utf8')).toBe(
+      '{"title":"Before"}\n',
+    );
+    await expect(stat(path.join(projectDir, 'generated.html'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('reports conflicts without writing when current files diverged from the latest checkpoint lineage', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>target</h1>');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+
+    await writeFixtureFile(projectDir, 'index.html', '<h1>agent change</h1>');
+    await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-2',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', '<h1>human edit</h1>');
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'fail',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'ROLLBACK_CONFLICT',
+      conflicts: [
+        expect.objectContaining({
+          path: 'index.html',
+          reason: 'current_changed_since_checkpoint',
+        }),
+      ],
+    });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>human edit</h1>');
+  });
+
+  it('reports conflicts instead of overwriting dirty edits when no baseline checkpoint exists', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>target</h1>');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', '<h1>dirty current</h1>');
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'fail',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'ROLLBACK_CONFLICT',
+      conflicts: [
+        expect.objectContaining({
+          path: 'index.html',
+          reason: 'current_changed_since_checkpoint',
+        }),
+      ],
+      safetyCheckpointId: expect.any(String),
+    });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>dirty current</h1>');
+  });
+
+  it('creates a safety checkpoint for file restore even when callers pass createSafetyCheckpoint false', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>target</h1>');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', '<h1>current</h1>');
+
+    const restored = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      createSafetyCheckpoint: false,
+    });
+
+    expect(restored.safetyCheckpointId).toEqual(expect.any(String));
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>target</h1>');
+  });
+
+  it('creates a safety checkpoint before chat_only rollback prunes messages', async () => {
+    const { db, service, projectId } = await makeFixture();
+    seedConversationMessages(db);
+
+    const restored = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      mode: 'chat_only',
+      conflictPolicy: 'fail',
+      createSafetyCheckpoint: false,
+    });
+
+    expect(restored).toMatchObject({
+      safetyCheckpointId: expect.any(String),
+      deletedMessageIds: ['user-2', 'assistant-2'],
+      clearedAgentSessions: true,
+    });
+    const safety = getProjectCheckpoint(db, restored.safetyCheckpointId!);
+    expect(safety).toMatchObject({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'before_restore',
+    });
+  });
+
+  it('refuses to restore when the manifest hash no longer matches checkpoint metadata', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>target</h1>');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    const row = getProjectCheckpoint(db, target.id);
+    if (!row) throw new Error('missing checkpoint row');
+    await writeFile(row.manifestPath, `${await readFile(row.manifestPath, 'utf8')}\n`);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>current</h1>');
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'CHECKPOINT_UNAVAILABLE',
+    });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>current</h1>');
+  });
+
+  it('verifies every target blob before copying any restore file', async () => {
+    const { db, service, dataDir, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'a.txt', 'target a');
+    await writeFixtureFile(projectDir, 'z.txt', 'target z');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    const manifest = await readManifest(db, target.id);
+    const blob = manifest.files.find((file) => file.path === 'z.txt')?.blob;
+    if (!blob) throw new Error('missing checkpoint blob');
+    await writeFile(path.join(dataDir, 'checkpoints', 'blobs', blob), 'corrupt blob');
+    await writeFixtureFile(projectDir, 'a.txt', 'current a');
+    await writeFixtureFile(projectDir, 'z.txt', 'current z');
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'CHECKPOINT_UNAVAILABLE',
+    });
+    expect(await readFile(path.join(projectDir, 'a.txt'), 'utf8')).toBe('current a');
+    expect(await readFile(path.join(projectDir, 'z.txt'), 'utf8')).toBe('current z');
+  });
+
+  it('preflights a later target file blocked by a current directory before writing earlier files', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'a.txt', 'target a');
+    await writeFixtureFile(projectDir, 'z.txt', 'target z');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+
+    await writeFixtureFile(projectDir, 'a.txt', 'current a');
+    await rm(path.join(projectDir, 'z.txt'));
+    await writeFixtureFile(projectDir, 'z.txt/nested.txt', 'current nested');
+    await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-2',
+      kind: 'after_message',
+    });
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'fail',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'ROLLBACK_CONFLICT',
+      conflicts: [
+        expect.objectContaining({
+          path: 'z.txt',
+          reason: 'target_path_blocked',
+        }),
+      ],
+      safetyCheckpointId: expect.any(String),
+    });
+    expect(await readFile(path.join(projectDir, 'a.txt'), 'utf8')).toBe('current a');
+    expect(await readFile(path.join(projectDir, 'z.txt', 'nested.txt'), 'utf8')).toBe('current nested');
+  });
+
+  it('preflights a later target file blocked by a current parent file before writing earlier files', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'a.txt', 'target a');
+    await writeFixtureFile(projectDir, 'z-dir/file.txt', 'target nested');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+
+    await writeFixtureFile(projectDir, 'a.txt', 'current a');
+    await rm(path.join(projectDir, 'z-dir'), { recursive: true, force: true });
+    await writeFixtureFile(projectDir, 'z-dir', 'current parent file');
+    await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-2',
+      kind: 'after_message',
+    });
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'fail',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'ROLLBACK_CONFLICT',
+      conflicts: [
+        expect.objectContaining({
+          path: 'z-dir',
+          reason: 'target_path_blocked',
+        }),
+      ],
+      safetyCheckpointId: expect.any(String),
+    });
+    expect(await readFile(path.join(projectDir, 'a.txt'), 'utf8')).toBe('current a');
+    expect(await readFile(path.join(projectDir, 'z-dir'), 'utf8')).toBe('current parent file');
+  });
+
+  it('rejects restore when the checkpoint root hash does not match the current project root', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    await writeFixtureFile(projectDir, 'index.html', '<h1>target</h1>');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', '<h1>old root current</h1>');
+    const otherRoot = await mkdtemp(path.join(tmpdir(), 'od-checkpoint-other-root-'));
+    tempRoots.push(otherRoot);
+    await writeFixtureFile(otherRoot, 'index.html', '<h1>other root current</h1>');
+    updateProject(db, projectId, { metadata: { baseDir: otherRoot } });
+
+    await expect(
+      service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: target.id,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'CHECKPOINT_ROOT_MISMATCH',
+    });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('<h1>old root current</h1>');
+    expect(await readFile(path.join(otherRoot, 'index.html'), 'utf8')).toBe('<h1>other root current</h1>');
+  });
+
+  it('computes added, modified, and deleted paths for rollback preview', async () => {
+    const { service, projectId, projectDir } = await makeFixture();
+    await writeFixtureFile(projectDir, 'keep.txt', 'same');
+    await writeFixtureFile(projectDir, 'modify.txt', 'before');
+    await writeFixtureFile(projectDir, 'delete.txt', 'present in checkpoint');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+
+    await writeFixtureFile(projectDir, 'keep.txt', 'same');
+    await writeFixtureFile(projectDir, 'modify.txt', 'after');
+    await rm(path.join(projectDir, 'delete.txt'));
+    await writeFixtureFile(projectDir, 'added.txt', 'new');
+
+    const diff = await service.diffCheckpoint(projectId, target.id);
+
+    expect(diff.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'added.txt', status: 'added' }),
+        expect.objectContaining({ path: 'modify.txt', status: 'modified' }),
+        expect.objectContaining({ path: 'delete.txt', status: 'deleted' }),
+      ]),
+    );
+    expect(diff.files.filter((file) => file.status === 'unchanged')).toHaveLength(1);
+  });
+});
+
+async function fsSymlinkDir(target: string, linkPath: string) {
+  const { symlink } = await import('node:fs/promises');
+  await symlink(target, linkPath, 'dir');
+}

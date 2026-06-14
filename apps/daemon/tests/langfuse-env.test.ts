@@ -1,21 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { buildTracePayload } from '../src/langfuse-trace.js';
 
-const ORIGINAL_OD_TELEMETRY_ENV = process.env.OD_TELEMETRY_ENV;
-
-afterEach(() => {
-  if (ORIGINAL_OD_TELEMETRY_ENV === undefined) {
-    delete process.env.OD_TELEMETRY_ENV;
-  } else {
-    process.env.OD_TELEMETRY_ENV = ORIGINAL_OD_TELEMETRY_ENV;
-  }
-});
-
-describe('langfuse telemetry environment', () => {
-  it('stamps trace metadata with env', () => {
-    process.env.OD_TELEMETRY_ENV = 'local_development';
-
+describe('langfuse disabled environment', () => {
+  it('stamps dropped trace metadata with the disabled environment', () => {
     const batch = buildTracePayload({
       installationId: 'install-1',
       projectId: 'project-1',
@@ -44,6 +32,6 @@ describe('langfuse telemetry environment', () => {
       },
     });
 
-    expect((batch[0] as any).body.metadata.env).toBe('local_development');
+    expect((batch[0] as any).body.metadata.env).toBe('disabled');
   });
 });

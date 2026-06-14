@@ -21,6 +21,12 @@ export const PACKAGED_WEB_OUTPUT_MODE_ENV = "OD_WEB_OUTPUT_MODE";
 export type PackagedWebOutputMode = "server" | "standalone";
 export type PackagedAmrProfile = "prod" | "test" | "local";
 
+export function resolveDefaultPackagedNodeCommandRelativePath(
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return `open-design/bin/${platform === "win32" ? "node.exe" : "node"}`;
+}
+
 export type RawPackagedConfig = {
   amrProfile?: string;
   appVersion?: string;
@@ -37,18 +43,7 @@ export type RawPackagedConfig = {
   // (see readPackagedConfig and apps/packaged/src/index.ts).
   portable?: boolean;
   resourceRoot?: string;
-  // Baked by tools/pack from OPEN_DESIGN_TELEMETRY_RELAY_URL and forwarded to
-  // the daemon at runtime; Langfuse credentials never ship in packaged config.
-  telemetryRelayUrl?: string;
   updateMetadataUrl?: string;
-  // PostHog product-analytics ingest key, baked by tools/pack from
-  // process.env.POSTHOG_KEY at packaging time. Forwarded to the daemon
-  // sidecar's spawn env as POSTHOG_KEY. `phc_` keys are public ingest
-  // tokens (write-only event capture); embedding them in the bundle is
-  // the PostHog-recommended pattern. The integration short-circuits when
-  // either this is absent or the user has declined Privacy → metrics.
-  posthogKey?: string;
-  posthogHost?: string;
   webSidecarEntryRelative?: string;
   webStandaloneRoot?: string;
   webOutputMode?: string;
@@ -64,10 +59,7 @@ export type PackagedConfig = {
   nodeCommand: string | null;
   portable: boolean;
   resourceRoot: string;
-  telemetryRelayUrl: string | null;
   updateMetadataUrl: string | null;
-  posthogKey: string | null;
-  posthogHost: string | null;
   webSidecarEntry: string | null;
   webStandaloneRoot: string | null;
   webOutputMode: PackagedWebOutputMode;
@@ -192,7 +184,7 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   const resourceRoot = resolveOptionalPath(raw.resourceRoot) ?? join(process.resourcesPath, "open-design");
   const relativeNodeCommand =
     raw.nodeCommandRelative == null || raw.nodeCommandRelative.length === 0
-      ? join("open-design", "bin", "node")
+      ? resolveDefaultPackagedNodeCommandRelativePath()
       : raw.nodeCommandRelative;
   const nodeCommandCandidate = join(process.resourcesPath, relativeNodeCommand);
   const nodeCommand = (await pathExists(nodeCommandCandidate)) ? nodeCommandCandidate : null;
@@ -222,10 +214,7 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
     nodeCommand,
     portable,
     resourceRoot,
-    telemetryRelayUrl: cleanOptionalString(raw.telemetryRelayUrl),
     updateMetadataUrl: cleanOptionalString(raw.updateMetadataUrl),
-    posthogKey: cleanOptionalString(raw.posthogKey),
-    posthogHost: cleanOptionalString(raw.posthogHost),
     webSidecarEntry,
     webStandaloneRoot,
     webOutputMode,

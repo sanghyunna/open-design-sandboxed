@@ -9,6 +9,14 @@ import type { ToolPackConfig } from "../src/config.js";
 import { prepareResourceTree } from "../src/win/resources.js";
 import type { WinPaths } from "../src/win/types.js";
 
+function stubExecPath(execPath: string): () => void {
+  const previous = process.execPath;
+  Object.defineProperty(process, "execPath", { value: execPath, configurable: true });
+  return () => {
+    Object.defineProperty(process, "execPath", { value: previous, configurable: true });
+  };
+}
+
 async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
   await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
   await mkdir(join(workspaceRoot, "design-templates", "orbit-general"), {
@@ -143,6 +151,71 @@ describe("prepareResourceTree", () => {
         "miss",
       ]);
     } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("materializes a bundled node.exe copied from process.execPath", async () => {
+    const root = await mkdtemp(join(tmpdir(), "open-design-win-node-"));
+    const workspaceRoot = join(root, "workspace");
+    const resourceRoot = join(root, "materialized", "open-design");
+    const sourceRoot = join(root, "source");
+    const nodePath = join(sourceRoot, "node.exe");
+    const cache = new ToolPackCache(join(root, "cache"));
+    const config = { workspaceRoot } as ToolPackConfig;
+    const paths = { resourceRoot } as WinPaths;
+    let restoreExecPath: () => void = () => undefined;
+
+    try {
+      await createWorkspaceFixture(workspaceRoot);
+      await mkdir(sourceRoot, { recursive: true });
+      await writeFile(nodePath, "fake node binary\n", "utf8");
+      restoreExecPath = stubExecPath(nodePath);
+
+      await prepareResourceTree(config, paths, cache, { materialize: true });
+
+      await expect(readFile(join(resourceRoot, "bin", "node.exe"))).resolves.toEqual(
+        await readFile(process.execPath),
+      );
+    } finally {
+      restoreExecPath();
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("invalidates the Windows resource tree cache when the bundled Node binary changes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "open-design-win-node-cache-"));
+    const workspaceRoot = join(root, "workspace");
+    const resourceRoot = join(root, "materialized", "open-design");
+    const sourceRoot = join(root, "source");
+    const nodePath = join(sourceRoot, "node.exe");
+    const cache = new ToolPackCache(join(root, "cache"));
+    const config = { workspaceRoot } as ToolPackConfig;
+    const paths = { resourceRoot } as WinPaths;
+    let restoreExecPath: () => void = () => undefined;
+
+    try {
+      await createWorkspaceFixture(workspaceRoot);
+      await mkdir(sourceRoot, { recursive: true });
+      await writeFile(nodePath, "node binary one\n", "utf8");
+
+      restoreExecPath = stubExecPath(nodePath);
+      await prepareResourceTree(config, paths, cache, { materialize: true });
+      await expect(readFile(join(resourceRoot, "bin", "node.exe"), "utf8")).resolves.toBe(
+        "node binary one\n",
+      );
+
+      await writeFile(nodePath, "node binary two\n", "utf8");
+      await prepareResourceTree(config, paths, cache, { materialize: true });
+      await expect(readFile(join(resourceRoot, "bin", "node.exe"), "utf8")).resolves.toBe(
+        "node binary two\n",
+      );
+      expect(cache.report().entries.map((entry) => entry.status)).toEqual([
+        "miss",
+        "miss",
+      ]);
+    } finally {
+      restoreExecPath();
       await rm(root, { force: true, recursive: true });
     }
   });

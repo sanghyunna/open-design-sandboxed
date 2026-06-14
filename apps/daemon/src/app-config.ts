@@ -453,15 +453,15 @@ function filterAllowedKeys(obj: Record<string, unknown>): AppConfigPrefs {
 // render — without these defaults the gate at
 // `analytics.ts` (`if (cfg.telemetry?.metrics !== true) return`)
 // dropped every event a user fired before the post-onboarding
-// disclosure modal had a chance to set them. An EXPLICIT `false`
-// the user previously saved is preserved (only `undefined` gets
-// the new default), so opt-out users stay opted out across the
-// 0.7.x → 0.8.0 upgrade.
+// Corporate fork policy: missing telemetry prefs default to off. Existing
+// explicit values are still parsed for backward compatibility, but runtime
+// telemetry sinks are disabled separately so stale opted-in configs cannot
+// re-enable network egress.
 function applyTelemetryDefaults(prefs: AppConfigPrefs): AppConfigPrefs {
   if (prefs.telemetry === undefined) {
     return {
       ...prefs,
-      telemetry: { metrics: true, content: true },
+      telemetry: { metrics: false, content: false },
     };
   }
   return prefs;

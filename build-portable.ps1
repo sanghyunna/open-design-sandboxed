@@ -19,10 +19,11 @@
         NSIS / %LOCALAPPDATA% install. (An explicit OD_UPDATE_ENABLED still wins.)
 
     This machine's system Node is v22 (violates engines ~24), so the script
-    forces the portable Node 24 toolchain onto PATH. better-sqlite3 is rebuilt
-    to Electron's ABI during the build via @electron/rebuild (VS Build Tools
-    2022 are installed here). The 16 workspace packages build in parallel via
-    pnpm's topological scheduler (tools/pack/src/win/app.ts).
+    forces the portable Node 24 toolchain onto PATH. better-sqlite3 must remain
+    on the Node ABI because the daemon sidecar runs under the packaged Node
+    runtime; rebuilding it to Electron's ABI makes the portable app crash at
+    startup. The 16 workspace packages build in parallel via pnpm's topological
+    scheduler (tools/pack/src/win/app.ts).
 
     BUILD SPEED — Windows Defender (build-machine only):
       The single biggest cost on a fresh machine is Defender real-time scanning
@@ -57,15 +58,21 @@
       all -> packaged dir + NSIS installer + portable zip
     Keep 'zip' unless you also need the NSIS installer.
 
+.PARAMETER DropDir
+    Folder that receives the final portable zip after the build moves it. Default:
+    D:\dev\open_design_port.
+
 .EXAMPLE
     .\build-portable.ps1
     .\build-portable.ps1 -To all
+    .\build-portable.ps1 -DropDir D:\dev\open_design_port
 #>
 [CmdletBinding()]
 param(
     [string]$Namespace = "rg",
     [ValidateSet("zip", "all", "dir", "nsis")]
-    [string]$To = "zip"
+    [string]$To = "zip",
+    [string]$DropDir = "D:\dev\open_design_port"
 )
 
 $ErrorActionPreference = "Stop"
@@ -79,6 +86,7 @@ Write-Host "=== Open Design portable build ===" -ForegroundColor Cyan
 Write-Host "Project root : $ProjectRoot"
 Write-Host "Namespace    : $Namespace"
 Write-Host "Target (--to): $To"
+Write-Host "Zip drop dir : $DropDir"
 
 # --- 1. Force the Node 24 toolchain onto PATH -------------------------------
 if (-not (Test-Path (Join-Path $Node24 "node.exe"))) {
@@ -93,9 +101,9 @@ if ($nodeVersion -notmatch '^v24\.') {
 Write-Host "Node         : $nodeVersion (from $Node24)" -ForegroundColor Green
 
 # --- 2. Build the portable artifact -----------------------------------------
-# tools-pack win build also (re)builds the 16 workspace packages and rebuilds
-# better-sqlite3 to the Electron ABI. Watch the log for:
-#   "[tools-pack] rebuilding Electron ABI modules: better-sqlite3"
+# tools-pack win build also (re)builds the 16 workspace packages. Keep
+# better-sqlite3 on the Node ABI for the daemon sidecar; do not Electron-rebuild
+# the assembled app's native module.
 $buildArgs = @("tools-pack", "win", "build", "--to", $To, "--namespace", $Namespace, "--portable")
 Write-Host ""
 Write-Host "Running: pnpm $($buildArgs -join ' ')" -ForegroundColor Cyan
@@ -138,12 +146,19 @@ if ($zip) {
     $zipMB = [math]::Round($zip.Length / 1MB, 1)
     Write-Host "Portable zip : $($zip.FullName)" -ForegroundColor Green
     Write-Host "Size         : $zipMB MB" -ForegroundColor Green
-    # Always drop a copy in the parent dir for easy access (the build output is
-    # buried deep under .tmp). Overwrites the previous copy each build.
-    $dropDir = "D:\dev\open_design_port"
-    $dropPath = Join-Path $dropDir $zip.Name
-    Copy-Item -Path $zip.FullName -Destination $dropPath -Force
-    Write-Host "Copied to    : $dropPath" -ForegroundColor Green
+    # Move the portable artifact to the requested drop dir for easy access; the
+    # raw packager output is buried deep under .tmp.
+    $dropDirInfo = New-Item -ItemType Directory -Path $DropDir -Force
+    $dropPath = Join-Path $dropDirInfo.FullName $zip.Name
+    if ([string]::Equals($zip.FullName, $dropPath, [StringComparison]::OrdinalIgnoreCase)) {
+        Write-Host "Already at   : $dropPath" -ForegroundColor Green
+    } else {
+        if (Test-Path -LiteralPath $dropPath) {
+            Remove-Item -LiteralPath $dropPath -Force
+        }
+        Move-Item -LiteralPath $zip.FullName -Destination $dropPath
+        Write-Host "Moved to     : $dropPath" -ForegroundColor Green
+    }
 } elseif ($To -eq "nsis" -or $To -eq "dir") {
     Write-Host "(No portable zip for --to '$To'; that's expected.)" -ForegroundColor Yellow
 } else {

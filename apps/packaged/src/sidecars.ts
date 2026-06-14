@@ -32,6 +32,10 @@ import {
 
 import type { PackagedWebOutputMode } from "./config.js";
 import type { PackagedNamespacePaths } from "./paths.js";
+import {
+  createPackagedStartupPhaseTimer,
+  type PackagedStartupPhaseLogger,
+} from "./startup-timing.js";
 
 const require = createRequire(import.meta.url);
 const PACKAGED_CHILD_ENV_ALLOWLIST = [
@@ -85,9 +89,9 @@ type PackagedDaemonManagedPathEnv = {
    * must outlive a namespace-scoped data-dir reset) outside the
    * `<namespace>/data/` subtree.
    *
-   * Required so PostHog person identity survives a reinstall of the same
-   * channel even when the baked namespace token changes or per-namespace
-   * data is cleared. See `apps/daemon/src/installation.ts`.
+   * Required so installation-scoped state survives a reinstall of the same
+   * channel even when the baked namespace token changes or per-namespace data
+   * is cleared. See `apps/daemon/src/installation.ts`.
    */
   OD_INSTALLATION_DIR: string;
 };
@@ -292,9 +296,6 @@ export type PackagedDaemonSpawnEnvOptions = {
    */
   requireDesktopAuth: boolean;
   legacyDataDir?: string | null;
-  telemetryRelayUrl?: string | null;
-  posthogKey?: string | null;
-  posthogHost?: string | null;
 };
 
 /**
@@ -327,9 +328,6 @@ export function buildPackagedDaemonSpawnEnv(
       ? {}
       : { OPEN_DESIGN_AMR_PROFILE: options.amrProfile }),
     ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
-    ...(options.telemetryRelayUrl == null || options.telemetryRelayUrl.length === 0
-      ? {}
-      : { OPEN_DESIGN_TELEMETRY_RELAY_URL: options.telemetryRelayUrl }),
     // OD_LEGACY_DATA_DIR is the one-shot recovery handle for users
     // upgrading from 0.3.x .od/ layouts. The daemon's startup
     // migrator (legacy-data-migrator.ts) reads it; the env-allowlist
@@ -339,17 +337,6 @@ export function buildPackagedDaemonSpawnEnv(
     ...(options.legacyDataDir == null || options.legacyDataDir.length === 0
       ? {}
       : { OD_LEGACY_DATA_DIR: options.legacyDataDir }),
-    // PostHog analytics ingest key, baked into the bundle at packaging time
-    // by tools/pack. Daemon reads this as POSTHOG_KEY at startup. Absent
-    // for fork builds without the CI secret — the daemon's analytics
-    // module no-ops cleanly in that case, and /api/analytics/config
-    // returns enabled=false regardless of user consent.
-    ...(options.posthogKey == null || options.posthogKey.length === 0
-      ? {}
-      : { POSTHOG_KEY: options.posthogKey }),
-    ...(options.posthogHost == null || options.posthogHost.length === 0
-      ? {}
-      : { POSTHOG_HOST: options.posthogHost }),
   };
 }
 
@@ -441,9 +428,6 @@ export async function startPackagedSidecars(
     daemonCliEntry: string | null;
     daemonSidecarEntry: string | null;
     nodeCommand: string | null;
-    telemetryRelayUrl: string | null;
-    posthogKey: string | null;
-    posthogHost: string | null;
     /**
      * PR #974 round-5 (lefarcen P2): caller asserts whether a desktop
      * runtime is being started in this packaged process group. The
@@ -457,8 +441,14 @@ export async function startPackagedSidecars(
     webSidecarEntry: string | null;
     webStandaloneRoot: string | null;
     webOutputMode: PackagedWebOutputMode;
+    logStartupPhase?: PackagedStartupPhaseLogger;
   },
 ): Promise<PackagedSidecarHandle> {
+  const localStartupTiming = options.logStartupPhase == null
+    ? createPackagedStartupPhaseTimer()
+    : null;
+  const logStartupPhase = options.logStartupPhase ?? localStartupTiming?.mark ?? (() => undefined);
+
   await mkdir(paths.namespaceRoot, { recursive: true });
   await mkdir(paths.cacheRoot, { recursive: true });
   await mkdir(paths.dataRoot, { recursive: true });
@@ -468,6 +458,7 @@ export async function startPackagedSidecars(
   await mkdir(paths.updateRoot, { recursive: true });
   await mkdir(paths.electronUserDataRoot, { recursive: true });
   await mkdir(paths.electronSessionDataRoot, { recursive: true });
+  logStartupPhase("namespace-runtime-dirs-ensured");
 
   const children: ManagedSidecarChild[] = [];
 
@@ -481,16 +472,13 @@ export async function startPackagedSidecars(
         daemonCliEntry: options.daemonCliEntry,
         legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
         requireDesktopAuth: options.requireDesktopAuth,
-        telemetryRelayUrl: options.telemetryRelayUrl,
-        posthogKey: options.posthogKey,
-        posthogHost: options.posthogHost,
       }),
       nodeCommand: options.nodeCommand,
       paths,
       runtime,
     });
+    logStartupPhase("daemon-child-spawned");
     children.push(daemon);
-    const daemonT0 = Date.now();
     const daemonStatus = await waitForStatus<DaemonStatusSnapshot>(
       daemon.ipcPath,
       (status) => status.url != null,
@@ -502,7 +490,7 @@ export async function startPackagedSidecars(
       // 30-minute migration budget for a process that already died.
       { child: daemon.child, logPath: logPathFor(paths, APP_KEYS.DAEMON) },
     );
-    console.info("packaged daemon ready", { elapsedMs: Date.now() - daemonT0, uptimeMs: Math.round(process.uptime() * 1000) });
+    logStartupPhase("daemon-status-ready");
     if (daemonStatus.url == null) throw new Error("daemon did not report a URL");
 
     const web = await spawnSidecarChild({
@@ -519,13 +507,13 @@ export async function startPackagedSidecars(
       paths,
       runtime,
     });
+    logStartupPhase("web-child-spawned");
     children.push(web);
-    const webT0 = Date.now();
     const webStatus = await waitForStatus<WebStatusSnapshot>(
       web.ipcPath,
       (status) => status.url != null,
     );
-    console.info("packaged web ready", { elapsedMs: Date.now() - webT0, uptimeMs: Math.round(process.uptime() * 1000) });
+    logStartupPhase("web-status-ready");
     if (webStatus.url == null) throw new Error("web did not report a URL");
 
     return {

@@ -17,7 +17,12 @@ import {
   type LauncherTargetSelection,
 } from "@open-design/launcher-proto";
 
-import type { PackagedConfig, PackagedWebOutputMode, RawPackagedConfig } from "./config.js";
+import {
+  resolveDefaultPackagedNodeCommandRelativePath,
+  type PackagedConfig,
+  type PackagedWebOutputMode,
+  type RawPackagedConfig,
+} from "./config.js";
 import type { PackagedNamespacePaths } from "./paths.js";
 
 type LauncherPayloadManifest = {
@@ -194,7 +199,7 @@ async function resolvePayloadConfig(
     : raw.resourceRoot;
   const relativeNodeCommand =
     raw.nodeCommandRelative == null || raw.nodeCommandRelative.length === 0
-      ? join("open-design", "bin", process.platform === "win32" ? "node.exe" : "node")
+      ? resolveDefaultPackagedNodeCommandRelativePath(manifest.platform)
       : raw.nodeCommandRelative;
   const nodeCommand = await resolveOptionalPayloadEntry(resourcesPath, relativeNodeCommand);
   return {

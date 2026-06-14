@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -16,7 +16,22 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { PACKAGED_CONFIG_PATH_ENV, readPackagedConfig } from "../src/config.js";
+import {
+  PACKAGED_CONFIG_PATH_ENV,
+  readPackagedConfig,
+  resolveDefaultPackagedNodeCommandRelativePath,
+} from "../src/config.js";
+
+describe("resolveDefaultPackagedNodeCommandRelativePath", () => {
+  it("uses the bundled node.exe path on Windows", () => {
+    expect(resolveDefaultPackagedNodeCommandRelativePath("win32")).toBe("open-design/bin/node.exe");
+  });
+
+  it("uses the bundled node path on Linux and macOS", () => {
+    expect(resolveDefaultPackagedNodeCommandRelativePath("linux")).toBe("open-design/bin/node");
+    expect(resolveDefaultPackagedNodeCommandRelativePath("darwin")).toBe("open-design/bin/node");
+  });
+});
 
 // Each case writes a minimal packaged config to a temp file and points
 // OD_PACKAGED_CONFIG_PATH at it, so readPackagedConfig resolves the same raw
@@ -128,5 +143,17 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
 
     expect(config.portable).toBe(false);
     expect(config.namespaceBaseRoot).toBe(explicitRoot);
+  });
+
+  it("resolves the default bundled node command when it exists under resources", async () => {
+    const relativeNode = resolveDefaultPackagedNodeCommandRelativePath(process.platform);
+    const nodePath = join(configDir, relativeNode);
+    mkdirSync(dirname(nodePath), { recursive: true });
+    writeFileSync(nodePath, "fake node\n", "utf8");
+    writeConfig({ namespace: "rg" });
+
+    const config = await readPackagedConfig();
+
+    expect(config.nodeCommand).toBe(nodePath);
   });
 });

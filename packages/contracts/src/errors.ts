@@ -41,6 +41,14 @@ export const API_ERROR_CODES = [
   // Handoff (`POST /api/projects/:id/handoff`): the requested conversation
   // is not in the project, or has no messages to synthesize a handoff from.
   'CONVERSATION_NOT_FOUND',
+  'ACTIVE_RUN',
+  'ROLLBACK_CONFLICT',
+  'CHECKPOINT_CAPTURE_FAILED',
+  'CHECKPOINT_MESSAGE_MISMATCH',
+  'CHECKPOINT_NOT_FOUND',
+  'CHECKPOINT_ROOT_MISMATCH',
+  'CHECKPOINT_UNAVAILABLE',
+  'MESSAGE_NOT_FOUND',
   'EMPTY_TRANSCRIPT',
   'FILE_NOT_FOUND',
   'ARTIFACT_NOT_FOUND',

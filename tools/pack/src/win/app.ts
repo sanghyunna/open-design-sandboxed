@@ -4,7 +4,6 @@ import { cpus } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 
-import { rebuild } from "@electron/rebuild";
 import { createCommandInvocation, createPackageManagerInvocation } from "@open-design/platform";
 
 import { hashJson, hashPath, ToolPackCache } from "../cache.js";
@@ -75,36 +74,12 @@ async function runEsbuild(config: ToolPackConfig, args: string[]): Promise<void>
   await runPnpm(config, ["--filter", "@open-design/packaged", "exec", "esbuild", ...args]);
 }
 
-async function runElectronRebuild(config: ToolPackConfig, appRoot: string): Promise<void> {
-  const foundModules = new Set<string>();
-  const rebuildResult = rebuild({
-    arch: "x64",
-    buildFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
-    buildPath: appRoot,
-    electronVersion: config.electronVersion,
-    force: true,
-    mode: ELECTRON_REBUILD_MODE,
-    onlyModules: [...ELECTRON_REBUILD_NATIVE_MODULES],
-    platform: "win32",
-    projectRootPath: appRoot,
-  });
-  rebuildResult.lifecycle.on("modules-found", (modules: string[]) => {
-    for (const moduleName of modules) foundModules.add(moduleName);
-    process.stderr.write(`[tools-pack] rebuilding Electron ABI modules: ${modules.join(", ") || "none"}\n`);
-  });
-  await rebuildResult;
-  const missingModules = ELECTRON_REBUILD_NATIVE_MODULES.filter((moduleName) => !foundModules.has(moduleName));
-  if (missingModules.length > 0) {
-    throw new Error(`Electron ABI rebuild did not discover required native module(s): ${missingModules.join(", ")}`);
-  }
-}
-
-function nativeRebuildOutputPath(appRoot: string): string {
+function nodeNativeModuleOutputPath(appRoot: string): string {
   return join(appRoot, "node_modules", "better-sqlite3", "build", "Release", "better_sqlite3.node");
 }
 
-async function validateNativeRebuildOutput(appRoot: string): Promise<string | null> {
-  const nativePath = nativeRebuildOutputPath(appRoot);
+async function validateNodeNativeModuleOutput(appRoot: string): Promise<string | null> {
+  const nativePath = nodeNativeModuleOutputPath(appRoot);
   try {
     const metadata = await stat(nativePath);
     if (metadata.size < 100_000) return `native module output is too small: ${nativePath}`;
@@ -163,9 +138,8 @@ async function buildWorkspaceArtifacts(config: ToolPackConfig): Promise<void> {
       { OD_WEB_OUTPUT_MODE: config.webOutputMode },
     );
     await runPnpm(config, ["--filter", "@open-design/web", "build:sidecar"]);
-    // Inject chunk IDs + upload browser sourcemaps to PostHog, then strip
-    // .map files before any packaging step copies the web output into the
-    // Electron resources. See `tools/pack/src/web-sourcemaps.ts`.
+    // Strip browser sourcemaps before any packaging step copies the web
+    // output into the Electron resources.
     await processWebSourcemaps(config);
   } finally {
     if (previousWebNextEnv == null) await rm(webNextEnvPath, { force: true });
@@ -457,7 +431,7 @@ export async function prepareWinPackagedApp(
     key,
     outputs: ["app"],
     invalidate: async ({ entryRoot }: { entryRoot: string }) => {
-      const nativeValidationError = await validateNativeRebuildOutput(join(entryRoot, "app"));
+      const nativeValidationError = await validateNodeNativeModuleOutput(join(entryRoot, "app"));
       return nativeValidationError == null ? null : { reason: nativeValidationError };
     },
     build: async ({ entryRoot }: { entryRoot: string }): Promise<PackagedAppCacheMetadata> => {
@@ -474,8 +448,7 @@ export async function prepareWinPackagedApp(
         await buildPrebundledStandaloneRuntime(config, appPaths);
       }
       await runNpmInstall(appRoot);
-      await runElectronRebuild(config, appRoot);
-      const nativeValidationError = await validateNativeRebuildOutput(appRoot);
+      const nativeValidationError = await validateNodeNativeModuleOutput(appRoot);
       if (nativeValidationError != null) throw new Error(nativeValidationError);
       return { packagedVersion };
     },

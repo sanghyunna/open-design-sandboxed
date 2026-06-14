@@ -8,10 +8,13 @@
 //     unreferenced rows (no expires_at) when called explicitly.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type http from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import Database from 'better-sqlite3';
+import { closeDatabase, openDatabase } from '../src/db.js';
 import { migratePlugins } from '../src/plugins/persistence.js';
 import {
   createSnapshot,
@@ -62,6 +65,19 @@ const baseInput = (extra = {}) => ({
   query: 'Make a deck',
   ...extra,
 });
+
+async function waitForCondition(
+  predicate: () => boolean,
+  errorMessage: string,
+  timeoutMs = 3000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) return;
+    await delay(20);
+  }
+  throw new Error(errorMessage);
+}
 
 describe('snapshot GC', () => {
   it('stamps expires_at on unreferenced snapshots and leaves referenced ones pinned', () => {
@@ -174,5 +190,55 @@ describe('snapshot GC', () => {
       expect(result.removed).toBe(0);
       expect(getSnapshot(db, referenced.snapshotId)).not.toBeNull();
     });
+  });
+
+  it('defers the startup sweep until after startServer resolves, even when periodic GC is disabled', async () => {
+    const previousInterval = process.env.OD_SNAPSHOT_GC_INTERVAL_MS;
+    const serverDataDir = process.env.OD_DATA_DIR;
+    if (serverDataDir == null || serverDataDir.length === 0) {
+      throw new Error('OD_DATA_DIR must be set by the daemon test harness');
+    }
+    process.env.OD_SNAPSHOT_GC_INTERVAL_MS = '0';
+
+    const projectRoot = path.join(tmpDir, 'server-project');
+    const serverDb = openDatabase(projectRoot, { dataDir: serverDataDir });
+    const now = Date.now();
+    serverDb
+      .prepare('INSERT INTO projects (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)')
+      .run('project-startup', 'Startup GC Project', now, now);
+    const expired = createSnapshot(serverDb, baseInput({ projectId: 'project-startup' }));
+    serverDb
+      .prepare('UPDATE applied_plugin_snapshots SET expires_at = ? WHERE id = ?')
+      .run(now - 1, expired.snapshotId);
+
+    let started: { url: string; server: http.Server; shutdown?: () => Promise<void> | void } | null = null;
+
+    try {
+      const { startServer } = await import('../src/server.js');
+      started = (await startServer({ port: 0, returnServer: true })) as {
+        url: string;
+        server: http.Server;
+        shutdown?: () => Promise<void> | void;
+      };
+
+      expect(getSnapshot(serverDb, expired.snapshotId)).not.toBeNull();
+
+      await waitForCondition(
+        () => getSnapshot(serverDb, expired.snapshotId) == null,
+        'deferred startup snapshot GC sweep did not prune the expired snapshot',
+      );
+    } finally {
+      await Promise.resolve(started?.shutdown?.());
+      await new Promise<void>((resolve) => {
+        if (started == null) {
+          resolve();
+          return;
+        }
+        started.server.close(() => resolve());
+      });
+      closeDatabase();
+      if (previousInterval == null) delete process.env.OD_SNAPSHOT_GC_INTERVAL_MS;
+      else process.env.OD_SNAPSHOT_GC_INTERVAL_MS = previousInterval;
+    }
   });
 });

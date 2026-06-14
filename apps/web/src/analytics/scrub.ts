@@ -1,19 +1,19 @@
-// Single point of privacy scrubbing for outgoing PostHog events.
-// Wired in via posthog-js's `before_send` hook so every autocapture,
-// pageview, exception, web-vital, etc. passes through this function
-// before reaching the network. Returning null drops the event.
+// Legacy event scrubber retained for observability compatibility tests.
+// Telemetry egress is disabled, but error-tracking still uses the path scrub
+// helpers locally before dropping events at the no-op dispatch boundary.
 //
 // The masking rules here intentionally over-redact rather than rely on
 // per-element `ph-no-capture` marks scattered across the codebase. A
 // single function is easier to audit and harder to forget when a new
 // sensitive surface ships.
 
-import type { CaptureResult } from 'posthog-js';
+export interface CaptureResult {
+  event: string;
+  properties?: Record<string, unknown>;
+}
 
-// Tags whose text content can carry user-typed values. PostHog autocapture
-// does not capture input/textarea `value` properties by default, but it
-// does capture `$el_text` (element.textContent) — for a <textarea> with
-// typed content that becomes the prompt body. Strip eagerly.
+// Tags whose text content can carry user-typed values. Historical autocapture
+// could include element text content, so keep the scrubber conservative.
 const TEXT_BEARING_TAGS = new Set(['input', 'textarea']);
 
 function scrubElementsChain(
@@ -60,8 +60,8 @@ function scrubUrl(url: unknown): unknown {
 // which leaks both the install root and the user's home dir in homebrew /
 // custom installs. Reduce to the repo-relative tail.
 //
-// Exported so error-tracking.ts can apply the same scrub to events it
-// dispatches directly to PostHog (bypassing posthog-js's before_send).
+// Exported so error-tracking.ts can apply the same scrub before dropping
+// compatibility events at the no-op dispatch boundary.
 export function scrubFilePath(value: unknown): unknown {
   if (typeof value !== 'string') return value;
   // file:///abs/path/.../apps/web/src/foo.tsx → app://apps/web/src/foo.tsx
@@ -79,8 +79,8 @@ export function scrubFilePath(value: unknown): unknown {
   );
 }
 
-// Exported so error-tracking.ts can apply the same scrub before it sends
-// a directly-built `$exception` payload to PostHog.
+// Exported so error-tracking.ts can apply the same scrub before dropping a
+// directly-built `$exception` compatibility payload.
 export function scrubExceptionList(
   list: Array<Record<string, unknown>>,
 ): Array<Record<string, unknown>> {
@@ -110,13 +110,9 @@ export function scrubExceptionList(
   });
 }
 
-// Some events we don't need at all; suppressing them keeps the volume
-// below PostHog's free-tier cap and avoids capturing surfaces that don't
-// add product insight.
+// Some historical events do not need local compatibility processing.
 const SUPPRESSED_EVENTS = new Set<string>([
-  // PostHog's $opt_in event records the act of opting in. We already
-  // emit explicit consent via the toggle handler in App.tsx; the
-  // duplicate is noise.
+  // Historical opt-in event; no longer emitted by this fork.
   '$opt_in',
 ]);
 

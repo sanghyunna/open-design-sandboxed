@@ -85,16 +85,10 @@ export const DEFAULT_CONFIG: AppConfig = {
   orbit: DEFAULT_ORBIT,
   projectLocations: [],
   defaultProjectLocationId: 'default',
-  // Telemetry defaults to ON so fresh-install users emit onboarding /
-  // ui_click events from the first frame. The disclosure modal still
-  // appears after `onboardingCompleted` flips, and Settings → Privacy
-  // remains the one-click opt-out. Without these defaults the gate at
-  // `daemon/src/analytics.ts` (`if (telemetry?.metrics !== true) return`)
-  // dropped every event fired during onboarding because no consent
-  // existed yet — observed live on the nightly.10 QA run, which left
-  // zero `page_view pn=onboarding` rows on PostHog despite the user
-  // completing the flow.
-  telemetry: { metrics: true, content: true },
+  // Corporate fork policy: telemetry is off by default. Runtime sinks are
+  // disabled separately so old daemon configs with opted-in prefs cannot
+  // re-enable network egress.
+  telemetry: { metrics: false, content: false },
 };
 
 /** Well-known providers with pre-filled base URLs. */

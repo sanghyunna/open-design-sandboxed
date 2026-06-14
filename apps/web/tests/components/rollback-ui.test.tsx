@@ -1,0 +1,235 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { AssistantMessage } from '../../src/components/AssistantMessage';
+import { RollbackModal } from '../../src/components/RollbackModal';
+import type { AgentEvent, ChatMessage } from '../../src/types';
+import type {
+  ProjectCheckpointDiffResponse,
+  ProjectCheckpointSummary,
+  RollbackResponse,
+} from '../../src/state/projects';
+
+const projectStateMocks = vi.hoisted(() => {
+  class MockRollbackConflictError extends Error {
+    readonly code = 'ROLLBACK_CONFLICT';
+    readonly conflicts: Array<{ path: string; reason?: string }>;
+
+    constructor(message: string, conflicts: Array<{ path: string; reason?: string }> = []) {
+      super(message);
+      this.name = 'RollbackConflictError';
+      this.conflicts = conflicts;
+    }
+  }
+
+  return {
+    fetchProjectCheckpointDiff: vi.fn(),
+    listProjectCheckpoints: vi.fn(),
+    rollbackConversation: vi.fn(),
+    RollbackConflictError: MockRollbackConflictError,
+  };
+});
+
+vi.mock('../../src/state/projects', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/state/projects')>();
+  return {
+    ...actual,
+    fetchProjectCheckpointDiff: projectStateMocks.fetchProjectCheckpointDiff,
+    listProjectCheckpoints: projectStateMocks.listProjectCheckpoints,
+    rollbackConversation: projectStateMocks.rollbackConversation,
+    RollbackConflictError: projectStateMocks.RollbackConflictError,
+  };
+});
+
+const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
+
+function baseMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
+  return {
+    id: 'msg-1',
+    role: 'assistant',
+    content: 'Done.',
+    runStatus: 'succeeded',
+    startedAt: 1_700_000_000_000,
+    endedAt: 1_700_000_005_000,
+    events: [{ kind: 'text', text: 'Done.' } as AgentEvent],
+    producedFiles: [],
+    ...overrides,
+  } as ChatMessage;
+}
+
+afterEach(() => {
+  cleanup();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('rollback action in assistant footer', () => {
+  it('dispatches the rollback target when project and conversation context are available', () => {
+    const message = baseMessage();
+    const onRollback = vi.fn();
+    window.addEventListener(ASSISTANT_ROLLBACK_EVENT, onRollback);
+
+    try {
+      render(
+        <AssistantMessage
+          message={message}
+          streaming={false}
+          projectId="proj-1"
+          conversationId="conv-1"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Rollback from here' }));
+
+      expect(onRollback).toHaveBeenCalledTimes(1);
+      expect(onRollback.mock.calls[0]?.[0]).toMatchObject({
+        detail: {
+          projectId: 'proj-1',
+          conversationId: 'conv-1',
+          message,
+        },
+      });
+    } finally {
+      window.removeEventListener(ASSISTANT_ROLLBACK_EVENT, onRollback);
+    }
+  });
+
+  it('places rollback immediately after the copy action in the assistant footer', () => {
+    render(
+      <AssistantMessage
+        message={baseMessage()}
+        streaming={false}
+        projectId="proj-1"
+        conversationId="conv-1"
+        onForkFromMessage={vi.fn()}
+      />,
+    );
+
+    const controls = document.querySelector('.assistant-footer-controls');
+    expect(controls).toBeInstanceOf(HTMLElement);
+
+    const labels = within(controls as HTMLElement)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label'));
+
+    expect(labels).toEqual([
+      'Copy response markdown',
+      'Rollback from here',
+      'Fork from here',
+    ]);
+  });
+
+  it('hides the rollback action without a conversation target or while streaming', () => {
+    const { rerender } = render(
+      <AssistantMessage
+        message={baseMessage()}
+        streaming={false}
+        projectId="proj-1"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Rollback from here' })).toBeNull();
+
+    rerender(
+      <AssistantMessage
+        message={baseMessage({ runStatus: 'running', endedAt: undefined })}
+        streaming
+        projectId="proj-1"
+        conversationId="conv-1"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Rollback from here' })).toBeNull();
+  });
+});
+
+describe('RollbackModal', () => {
+  it('renders checkpoint conflicts and requires a non-fail policy before restoring files', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-1',
+      projectId: 'proj-1',
+      kind: 'after_message',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_006_000,
+      rootPathHash: 'root-hash',
+      fileCount: 2,
+      totalBytes: 200,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const diff: ProjectCheckpointDiffResponse = {
+      checkpoint,
+      files: [
+        { path: 'index.html', status: 'modified' },
+        { path: 'styles.css', status: 'added' },
+      ],
+      conflicts: [
+        { path: 'index.html', reason: 'current_changed_since_checkpoint' },
+      ],
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_and_chat',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: 'checkpoint-1',
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: {
+        added: 1,
+        modified: 1,
+        deleted: 0,
+        unchanged: 0,
+      },
+      conflicts: [],
+    };
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue(diff);
+    projectStateMocks.rollbackConversation.mockResolvedValue(rollbackResponse);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    expect(projectStateMocks.listProjectCheckpoints).toHaveBeenCalledWith('proj-1', 'conv-1');
+    expect(await screen.findByText('File conflicts')).toBeTruthy();
+    expect(screen.getAllByText('index.html')).toHaveLength(2);
+    expect(screen.getByText('current_changed_since_checkpoint')).toBeTruthy();
+    const confirmButton = screen.getByRole('button', { name: 'Restore files and chat' }) as HTMLButtonElement;
+    expect(confirmButton.disabled).toBe(true);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Conflict policy' }), {
+      target: { value: 'keep_current' },
+    });
+    expect(confirmButton.disabled).toBe(false);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(projectStateMocks.rollbackConversation).toHaveBeenCalledWith('proj-1', 'conv-1', {
+        targetMessageId: 'msg-1',
+        targetCheckpointId: 'checkpoint-1',
+        mode: 'files_and_chat',
+        conflictPolicy: 'keep_current',
+        createSafetyCheckpoint: true,
+      });
+    });
+    expect(onSuccess).toHaveBeenCalledWith(rollbackResponse);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

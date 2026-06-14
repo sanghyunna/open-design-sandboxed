@@ -23,7 +23,6 @@ import {
   trackSettingsExecutionModeTabClick,
   trackSettingsMediaProvidersClick,
   trackSettingsNotificationsClick,
-  trackSettingsPrivacyClick,
   trackSettingsView,
 } from '../analytics/events';
 import { LOCALE_LABEL, LOCALES, useI18n } from '../i18n';
@@ -113,7 +112,6 @@ import { PetSettings } from './pet/PetSettings';
 import { McpClientSection } from './McpClientSection';
 import { SkillsSection } from './SkillsSection';
 import { DesignSystemsSection } from './DesignSystemsSection';
-import { PrivacySection } from './PrivacySection';
 import { ProjectLocationsSection } from './ProjectLocationsSection';
 import { RoutinesSection } from './RoutinesSection';
 import { ConnectorsBrowser } from './ConnectorsBrowser';
@@ -173,7 +171,6 @@ export type SettingsSection =
   | 'designSystems'
   | 'projectLocations'
   | 'memory'
-  | 'privacy'
   // 'library' is consumed by the EntryShell library route — App opens it
   // via this same openSettings entry point, so SettingsSection must
   // accept the token even though SettingsDialog itself has no Library
@@ -2675,7 +2672,6 @@ export function SettingsDialog({
       subtitle: t('critiqueTheater.settingsNavHint'),
     },
     notifications: { title: t('settings.notifications'), subtitle: t('settings.notificationsHint') },
-    privacy: { title: t('settings.privacy'), subtitle: t('settings.privacyHint') },
     pet: { title: t('pet.title'), subtitle: t('pet.subtitle') },
     skills: { title: t('settings.skills'), subtitle: t('settings.skillsHint') },
     designSystems: {
@@ -3165,17 +3161,6 @@ export function SettingsDialog({
               <span>
                 <strong>{t('settings.projectLocations')}</strong>
                 <small>{t('settings.projectLocationsHint')}</small>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`settings-nav-item${activeSection === 'privacy' ? ' active' : ''}`}
-              onClick={() => setActiveSection('privacy')}
-            >
-              <Icon name="eye" size={18} />
-              <span>
-                <strong>{t('settings.privacy')}</strong>
-                <small>{t('settings.privacyHint')}</small>
               </span>
             </button>
             <button
@@ -4395,10 +4380,6 @@ export function SettingsDialog({
               chatAgentId={cfg.mode === 'daemon' ? cfg.agentId ?? null : null}
               chatModel={selectedMemoryChatModel}
             />
-          ) : null}
-
-          {activeSection === 'privacy' ? (
-            <PrivacySection cfg={cfg} setCfg={setCfg} />
           ) : null}
 
           {activeSection === 'about' ? (

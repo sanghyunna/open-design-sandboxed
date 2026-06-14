@@ -17,14 +17,12 @@ import { readAppConfig, writeAppConfig } from '../src/app-config.js';
 import { isLocalSameOrigin } from '../src/origin-validation.js';
 
 // Default telemetry preference applied when an existing config has no
-// telemetry block (fresh install, pre-disclosure). See
+// telemetry block. See
 // `app-config.ts#applyTelemetryDefaults` and `state/config.ts#DEFAULT_CONFIG`
-// for the matching client default. Tests that previously expected an
-// empty `{}` are now updated to expect this default; tests confirming
-// "user opted out → stays opted out" assert on `metrics: false`.
+// for the matching client default.
 const DEFAULT_TELEMETRY = {
-  metrics: true,
-  content: true,
+  metrics: false,
+  content: false,
 } as const;
 
 describe('app-config', () => {
@@ -560,15 +558,8 @@ describe('app-config telemetry prefs', () => {
   });
 
   it('drops invalid telemetry entirely from the on-disk file (read backfills the default)', async () => {
-    // Pre-default era: a bad-shaped `telemetry` write got stripped and
-    // `readAppConfig` returned `cfg.telemetry === undefined`. After the
-    // 2026-05-22 default-on switch, the same read backfills the
-    // default — telemetry is never undefined for callers, but the
-    // user's invalid value still didn't make it to disk. The
-    // assertion now tracks "what the gate sees" (the default), since
-    // that's the actually observable behavior; the write-validation
-    // invariant the test was guarding is still in force (nothing of
-    // the bad input survives).
+    // Bad-shaped telemetry writes are stripped from disk. Reads backfill the
+    // disabled default so callers never see a malformed object.
     await writeAppConfig(dataDir, {
       onboardingCompleted: true,
       telemetry: { metrics: 'yes' } as any,
@@ -594,13 +585,9 @@ describe('app-config telemetry prefs', () => {
   });
 
   it('clearing telemetry by sending null resets to default (read backfills)', async () => {
-    // Sending `null` for telemetry erases the on-disk field. Read
-    // path then backfills the default because the absence of a value
-    // is treated the same as a fresh install. If the user really
-    // wants to opt out, the PrivacySection writes
-    // `{ metrics: false, content: false, ... }` explicitly — that
-    // shape persists and is preserved across reads (see "preserves
-    // an explicit telemetry opt-out across reads" above).
+    // Sending `null` for telemetry erases the on-disk field. Read path then
+    // backfills the disabled default because absence is treated like a fresh
+    // install in this fork.
     await writeAppConfig(dataDir, {
       telemetry: { metrics: true, content: true },
     });

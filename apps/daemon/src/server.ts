@@ -233,6 +233,7 @@ import { subscribe as subscribeFileEvents } from './project-watchers.js';
 import { renderDesignSystemPreview } from './design-system-preview.js';
 import { renderDesignSystemShowcase } from './design-system-showcase.js';
 import { createChatRunService } from './runs.js';
+import { createProjectCheckpointService } from './project-checkpoints.js';
 import { deriveRunErrorCode, runResultFromStatus } from './run-result.js';
 import { classifyRunFailure, isResumableFailure } from './run-failure-classification.js';
 import { decideSafeRunRetry } from './run-retry-policy.js';
@@ -2561,7 +2562,7 @@ async function ensureGhReady() {
 
 const TERMINAL_RUN_STATUSES = new Set(['succeeded', 'failed', 'canceled']);
 
-function reconcileAssistantMessageOnRunEnd(db, runs, run) {
+function reconcileAssistantMessageOnRunEnd(db, runs, run, checkpoints = null) {
   if (!run.assistantMessageId) return;
   void runs
     .wait(run)
@@ -2571,10 +2572,46 @@ function reconcileAssistantMessageOnRunEnd(db, runs, run) {
             SET run_status = ?, ended_at = COALESCE(ended_at, ?)
           WHERE id = ? AND run_status IN ('queued', 'running')`,
       ).run(finalStatus.status, Date.now(), run.assistantMessageId);
+      if (run.projectId && run.conversationId && checkpoints) {
+        void checkpoints.captureCheckpoint({
+          projectId: run.projectId,
+          conversationId: run.conversationId,
+          messageId: run.assistantMessageId,
+          runId: run.id,
+          kind: 'after_run_unfinalized',
+        }).catch((err) => {
+          console.warn('[checkpoints] after_run_unfinalized capture failed', err);
+        });
+      }
     })
     .catch((err) => {
       console.warn('[runs] message reconciliation failed', err);
     });
+}
+
+async function captureBeforeRunCheckpointOrThrow(db, checkpoints, run) {
+  if (!run.projectId) return;
+  if (!run.conversationId || !run.assistantMessageId) {
+    throw new Error('project-bound runs require conversationId and assistantMessageId for checkpoint coverage');
+  }
+  assertProjectRunCheckpointBinding(db, run, { requireAssistantMessage: true });
+  await checkpoints.captureCheckpoint({
+    projectId: run.projectId,
+    conversationId: run.conversationId,
+    messageId: run.assistantMessageId,
+    runId: run.id,
+    kind: 'before_run',
+  });
+}
+
+async function prepareCheckpointedRunStart({
+  db,
+  runs,
+  run,
+  checkpoints,
+}) {
+  await captureBeforeRunCheckpointOrThrow(db, checkpoints, run);
+  reconcileAssistantMessageOnRunEnd(db, runs, run, checkpoints);
 }
 
 
@@ -2843,6 +2880,7 @@ function normalizePersistedToolInput(input) {
 
 function pinAssistantMessageOnRunCreate(db, run) {
   if (!run.conversationId || !run.assistantMessageId) return;
+  assertProjectRunCheckpointBinding(db, run, { requireAssistantMessage: false });
   const existing = db
     .prepare(`SELECT id FROM messages WHERE id = ?`)
     .get(run.assistantMessageId);
@@ -2869,6 +2907,29 @@ function pinAssistantMessageOnRunCreate(db, run) {
     runStatus: run.status,
     startedAt: run.createdAt,
   });
+}
+
+function assertProjectRunCheckpointBinding(db, run, options = {}) {
+  if (!run.projectId) return;
+  if (!run.conversationId || !run.assistantMessageId) {
+    throw new Error('project-bound runs require conversationId and assistantMessageId for checkpoint coverage');
+  }
+  const conversation = getConversation(db, run.conversationId);
+  if (!conversation || conversation.projectId !== run.projectId) {
+    throw new Error('project-bound run conversation does not belong to project');
+  }
+  const message = db
+    .prepare(`SELECT conversation_id AS conversationId FROM messages WHERE id = ?`)
+    .get(run.assistantMessageId);
+  if (!message) {
+    if (options.requireAssistantMessage) {
+      throw new Error('project-bound run assistant message does not belong to conversation');
+    }
+    return;
+  }
+  if (message.conversationId !== run.conversationId) {
+    throw new Error('project-bound run assistant message does not belong to conversation');
+  }
 }
 
 export function shouldReportRunCompletedFromMessage(saved, body = {}) {
@@ -4877,20 +4938,19 @@ export async function startServer({
   }
 
   // Plan §3.A5 / spec §16 Phase 5 / PB2: periodic snapshot GC. Disabled
-  // when OD_SNAPSHOT_GC_INTERVAL_MS is 0; otherwise one-time bootstrap
-  // sweep + interval. The function returns a NOOP_HANDLE when disabled
-  // so we don't have to branch on the result.
+  // when OD_SNAPSHOT_GC_INTERVAL_MS is 0. The function returns a
+  // NOOP_HANDLE when disabled so we don't have to branch on the result.
   const snapshotGc = startSnapshotGc({ db });
-  // One immediate sweep so a daemon that just gained the ALTER doesn't
-  // wait the full interval before reaping pre-existing expired rows.
-  try {
-    const initialSweep = pruneExpiredSnapshots(db);
-    if (initialSweep.removed > 0) {
-      console.log(`[plugins] snapshot GC startup sweep removed ${initialSweep.removed} row(s)`);
+  const runSnapshotGcStartupSweep = () => {
+    try {
+      const initialSweep = pruneExpiredSnapshots(db);
+      if (initialSweep.removed > 0) {
+        console.log(`[plugins] snapshot GC startup sweep removed ${initialSweep.removed} row(s)`);
+      }
+    } catch (err) {
+      console.warn(`[plugins] snapshot GC startup sweep failed: ${(err)?.message ?? err}`);
     }
-  } catch (err) {
-    console.warn(`[plugins] snapshot GC startup sweep failed: ${(err)?.message ?? err}`);
-  }
+  };
   void snapshotGc; // keep handle alive for the daemon's lifetime
 
   // Warm agent-capability probes (e.g. whether the installed Claude Code
@@ -5334,74 +5394,25 @@ export async function startServer({
     getAppVersion: () => cachedAppVersion?.version ?? '0.0.0',
     readAnalyticsContext,
   };
+  const checkpointService = createProjectCheckpointService({
+    db,
+    dataDir: RUNTIME_DATA_DIR,
+    projectsRoot: PROJECTS_DIR,
+  });
 
   // Interactive Terminal sessions (node-pty). In-memory, process-local, and
   // killed on daemon shutdown — see shutdownDaemonRuns below.
   const terminalService = createTerminalService();
 
-  // PostHog runtime config.
-  //
-  // - `enabled` reflects ONLY the user's consent toggle (Privacy → "Share
-  //   usage data"). When false, posthog-js's full autocapture/$pageview/
-  //   $autocapture pipeline must stay off — that's the privacy contract.
-  //
-  // - `key` and `host` are populated whenever the server has a build-time
-  //   POSTHOG_KEY, regardless of consent. The error-tracking module
-  //   (apps/web/src/analytics/error-tracking.ts) reads them to ship
-  //   `$exception` events directly to the ingest endpoint, bypassing the
-  //   consent gate. Product decision: error reports always flow so we
-  //   don't lose ground truth on stability — see the privacy section of
-  //   Settings → Privacy for the user-facing copy.
-  //
-  // - When the build itself has no POSTHOG_KEY (forks, PR builds, OSS
-  //   contributors), `key` and `host` are null and even the error
-  //   pipeline becomes a no-op.
+  // Legacy analytics runtime config. The response shape is preserved for the
+  // web app, but readPublicConfigResponse() reports disabled in this fork and
+  // no key/host are returned.
   app.get('/api/analytics/config', async (_req, res) => {
-    const baseline = readPublicConfigResponse();
-    if (!baseline.enabled) {
-      // No build-time key → nothing to report on, consent or not.
-      res.json(baseline);
-      return;
-    }
-    try {
-      const appCfg = await readAppConfig(RUNTIME_DATA_DIR);
-      const consentGranted = appCfg.telemetry?.metrics === true;
-      // Echo the installationId so the web client uses the same anonymous
-      // id PostHog already saw on prior runs (and that Langfuse uses too).
-      const installationId =
-        typeof appCfg.installationId === 'string' && appCfg.installationId
-          ? appCfg.installationId
-          : null;
-      res.json({
-        enabled: consentGranted,
-        env: baseline.env,
-        key: baseline.key,
-        host: baseline.host,
-        installationId,
-      });
-    } catch {
-      // If the config file is unreadable, fail closed for analytics but
-      // still let the error tracker run — exception reports are the most
-      // valuable signal in a degraded-state scenario.
-      res.json({
-        enabled: false,
-        env: baseline.env,
-        key: baseline.key,
-        host: baseline.host,
-        installationId: null,
-      });
-    }
+    res.json(readPublicConfigResponse());
   });
 
-  // Cross-process safety-event bridge. Used by:
-  //   - Electron main process (renderer crash via render-process-gone)
-  //   - Any future helper / sidecar that needs to report a safety event
-  //     without owning its own posthog-node client
-  //
-  // The route DOES NOT check the user's analytics consent: this is the
-  // same "safety telemetry always flows" contract the web error-tracking
-  // module relies on. If POSTHOG_KEY is not set on the daemon (fork
-  // builds), captureSafety is a no-op on NOOP_SERVICE.
+  // Legacy cross-process observability bridge. captureSafety is a no-op in
+  // this fork, but the route remains so older clients do not break.
   app.post('/api/observability/event', express.json({ limit: '64kb' }), (req, res) => {
     const body = (req.body ?? {}) as Partial<ObservabilityEventRequest>;
     const eventName = typeof body.event === 'string' ? body.event.trim() : '';
@@ -5444,12 +5455,10 @@ export async function startServer({
   ): void => {
     if (fatalShuttingDown) return;
     fatalShuttingDown = true;
-    // CRITICAL — wait for captureSafety to ENQUEUE the event in
-    // posthog-node's local buffer before starting shutdown(). The
-    // captureSafety implementation does an `await readInstallationIdSafe()`
-    // before calling `client.capture()`; a sync fire-and-forget here would
-    // race shutdown() ahead of that await, drain an empty queue, and lose
-    // the crash event itself. See codex review on PR #2527 (Siri-Ray).
+    // CRITICAL: wait for captureSafety to settle before starting shutdown().
+    // The no-op analytics service preserves the old async contract, and the
+    // fatal path still needs bounded ordering so process exit remains
+    // deterministic. See codex review on PR #2527 (Siri-Ray).
     const flushSequence = (async () => {
       try {
         await analyticsService.captureSafety({
@@ -5462,10 +5471,9 @@ export async function startServer({
       }
       await analyticsService.shutdown();
     })();
-    // Race the enqueue+shutdown sequence against a bounded timeout. If
-    // posthog-node hangs on a slow flush (or the installationId read
-    // hangs on the filesystem) we still die in bounded time — the
-    // supervisor will restart us, which is the whole point.
+    // Race cleanup against a bounded timeout. If the compatibility service or
+    // installationId read hangs, we still die in bounded time; the supervisor
+    // will restart us, which is the whole point.
     void Promise.race([
       flushSequence,
       new Promise<void>((resolve) => {
@@ -5787,6 +5795,7 @@ export async function startServer({
     paths: pathDeps,
     projectStore: projectStoreDeps,
     projectFiles: projectFileDeps,
+    checkpoints: checkpointService,
     conversations: conversationDeps,
     templates: templateDeps,
     status: projectStatusDeps,
@@ -13639,6 +13648,12 @@ export async function startServer({
     }
 
     const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
+    await prepareCheckpointedRunStart({
+      db,
+      runs: design.runs,
+      run,
+      checkpoints: checkpointService,
+    });
     design.runs.start(run, () => startChatRun({
       agentId,
       projectId,
@@ -13940,6 +13955,22 @@ export async function startServer({
         // Linking is best-effort here; in-memory run still carries the id.
       }
     }
+    try {
+      await prepareCheckpointedRunStart({
+        db,
+        runs: design.runs,
+        run,
+        checkpoints: checkpointService,
+      });
+    } catch (err) {
+      design.runs.drop(run);
+      return sendApiError(
+        res,
+        500,
+        'CHECKPOINT_CAPTURE_FAILED',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
     /** @type {import('@open-design/contracts').ChatRunCreateResponse} */
     const body = {
       runId: run.id,
@@ -13974,7 +14005,6 @@ export async function startServer({
         db,
       });
     }
-    reconcileAssistantMessageOnRunEnd(db, design.runs, run);
     if (run.projectId && run.conversationId) {
       try {
         const project = getProject(db, run.projectId);
@@ -14486,7 +14516,7 @@ export async function startServer({
     res.json(body);
   });
 
-  app.post('/api/chat', (req, res) => {
+  app.post('/api/chat', async (req, res) => {
     if (daemonShuttingDown) {
       return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
     }
@@ -14531,6 +14561,27 @@ export async function startServer({
       ...(chatProject?.metadata ? { projectMetadata: chatProject.metadata } : {}),
     };
     const run = design.runs.create(meta);
+    try {
+      pinAssistantMessageOnRunCreate(db, run);
+    } catch (err) {
+      console.warn('[chat] message create pin failed', err);
+    }
+    try {
+      await prepareCheckpointedRunStart({
+        db,
+        runs: design.runs,
+        run,
+        checkpoints: checkpointService,
+      });
+    } catch (err) {
+      design.runs.drop(run);
+      return sendApiError(
+        res,
+        500,
+        'CHECKPOINT_CAPTURE_FAILED',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
     design.runs.stream(run, req, res);
     design.runs.start(run, () => startChatRun(meta, run));
   });
@@ -14746,6 +14797,12 @@ export async function startServer({
         runId: run.id,
         runStatus: 'queued',
         startedAt: now,
+      });
+      await prepareCheckpointedRunStart({
+        db,
+        runs: design.runs,
+        run,
+        checkpoints: checkpointService,
       });
     };
 
@@ -15030,6 +15087,7 @@ export async function startServer({
         }
         daemonUrl = url;
         resolve(returnServer ? { url, server, shutdown: shutdownDaemonRuns } : url);
+        setImmediate(runSnapshotGcStartupSweep);
       });
     } catch (error) {
       cleanupDaemonBackgroundWork();
