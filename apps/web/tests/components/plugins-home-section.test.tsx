@@ -73,12 +73,12 @@ function renderSection(
   );
 }
 
-function renderSectionInChinese(
+function renderSectionInKorean(
   plugins: InstalledPluginRecord[] = sample,
   props: Partial<ComponentProps<typeof PluginsHomeSection>> = {},
 ) {
   return render(
-    <I18nProvider initial="zh-CN">
+    <I18nProvider initial="ko">
       <PluginsHomeSection
         plugins={plugins}
         loading={false}
@@ -88,9 +88,10 @@ function renderSectionInChinese(
         onOpenDetails={() => {}}
         {...props}
       />
-    </I18nProvider>,
+    </I18nProvider>
   );
 }
+
 
 function pluginIds(): Array<string | null> {
   return within(screen.getByRole('list'))
@@ -238,28 +239,28 @@ describe('PluginsHomeSection (category bar)', () => {
   });
 
   it('localizes plugin card titles, descriptions, search, and save toast', () => {
-    renderSectionInChinese([
+    renderSectionInKorean([
       makePlugin({
         id: 'localized-deck',
         title: 'Swiss International Deck',
-        titleI18n: { en: 'Swiss International Deck', 'zh-CN': '瑞士国际主义 Deck' },
+        titleI18n: { en: 'Swiss International Deck', ko: '스위스 인터내셔널 덱' },
         description: '16-column grid.',
-        descriptionI18n: { en: '16-column grid.', 'zh-CN': '16 列网格。' },
+        descriptionI18n: { en: '16-column grid.', ko: '16열 그리드.' },
         mode: 'deck',
         tags: ['grid'],
       }),
     ], { preferDefaultFacet: false });
 
-    expect(screen.getAllByText('瑞士国际主义 Deck').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('스위스 인터내셔널 덱').length).toBeGreaterThan(0);
     expect(screen.queryByText('Swiss International Deck')).toBeNull();
 
-    fireEvent.change(screen.getByPlaceholderText('搜索插件…'), {
-      target: { value: '瑞士' },
+    fireEvent.change(screen.getByPlaceholderText('플러그인 검색…'), {
+      target: { value: '스위스' },
     });
     expect(pluginIds()).toEqual(['localized-deck']);
 
     fireEvent.click(screen.getByTestId('plugins-home-save-localized-deck'));
-    expect(screen.getByRole('status').textContent).toContain('Saved 瑞士国际主义 Deck.');
+    expect(screen.getByRole('status').textContent).toContain('Saved 스위스 인터내셔널 덱.');
   });
 
   it('shows the normal empty-filter state for planned empty buckets', () => {

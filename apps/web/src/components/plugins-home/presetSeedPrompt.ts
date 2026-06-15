@@ -25,11 +25,9 @@ const HOME_ESCAPED_ARGUMENT_PLACEHOLDER_PATTERN =
 const HOME_ARGUMENT_PLACEHOLDER_PATTERN =
   /\{argument\s+name=(?:"([^"]+)"|'([^']+)')\s+default=(?:"([^"]*)"|'([^']*)')[^}]*\}/g;
 
-export type PromptLocaleKind = 'zh' | 'ja' | 'en';
+export type PromptLocaleKind = 'en';
 
-export function promptLocaleKind(locale: Locale): PromptLocaleKind {
-  if (locale === 'zh-CN' || locale === 'zh-TW') return 'zh';
-  if (locale === 'ja') return 'ja';
+export function promptLocaleKind(_locale: Locale): PromptLocaleKind {
   return 'en';
 }
 
@@ -131,12 +129,6 @@ export function examplePresetSeedPrompt(
   fallback: () => string,
 ): PresetSeed {
   const description = localizePluginDescription(locale, record).trim();
-  // zh: the localized useCase.query is a generator-facing meta-instruction
-  // ("follow the en field verbatim; start from example.html"), useless as a
-  // human seed — surface the curated one-line description instead.
-  if (promptLocaleKind(locale) === 'zh' && description) {
-    return { text: description, fromRenderedQuery: false };
-  }
   const query = pluginPresetQuery(record, locale);
   // Input-templated queries (raw `{{...}}` placeholders in the leading
   // paragraph) are authored as editable human seeds; keep the rendered head so

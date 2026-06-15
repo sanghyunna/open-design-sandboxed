@@ -232,13 +232,13 @@ describe('HomeHero plugin picker', () => {
 
   it('matches localized plugin and skill text in the home @ picker', async () => {
     const localizedPlugin = makePlugin('localized-plugin', 'Localized Plugin');
-    localizedPlugin.manifest.title_i18n = { 'zh-CN': '官方看板' };
-    localizedPlugin.manifest.description_i18n = { 'zh-CN': '内置官方插件。' };
+    localizedPlugin.manifest.title_i18n = { 'en': '官方看板' };
+    localizedPlugin.manifest.description_i18n = { 'en': '内置官方插件。' };
     const localizedSkill = makeSkill('localized-skill', 'localized-skill');
-    localizedSkill.displayName = { 'zh-CN': '杂志文章' };
-    localizedSkill.descriptionI18n = { 'zh-CN': '中文能力描述' };
+    localizedSkill.displayName = { 'en': '杂志文章' };
+    localizedSkill.descriptionI18n = { 'en': '中文能力描述' };
     const { rerender } = render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <HomeHero
           prompt=""
           onPromptChange={() => undefined}
@@ -267,7 +267,7 @@ describe('HomeHero plugin picker', () => {
     expect(screen.getByRole('option', { name: /官方看板/i })).toBeTruthy();
 
     rerender(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <HomeHero
           prompt=""
           onPromptChange={() => undefined}

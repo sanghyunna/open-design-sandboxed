@@ -101,14 +101,14 @@ describe('examplePresetSeedPrompt', () => {
     expect(seed.fromRenderedQuery).toBe(true);
   });
 
-  it('keeps the zh description-first behavior', () => {
+  it('prefers the curated description over a meta-instruction query', () => {
     const record = fixture({
       id: 'dreamcore-landing',
-      description: '沉浸式视差落地页。',
-      query: { 'zh-CN': '构建梦核风格的沉浸式视差落地页（详见 en 字段的完整规格说明，以 en 为准）。' },
+      description: 'A dreamy, immersive parallax landing page.',
+      query: { en: 'Follow the en field verbatim; start from example.html.' },
     });
-    const seed = examplePresetSeedPrompt(record, 'zh-CN', fallback);
-    expect(seed.text).toBe('沉浸式视差落地页。');
+    const seed = examplePresetSeedPrompt(record, 'en', fallback);
+    expect(seed.text).toBe('A dreamy, immersive parallax landing page.');
     expect(seed.fromRenderedQuery).toBe(false);
   });
 
