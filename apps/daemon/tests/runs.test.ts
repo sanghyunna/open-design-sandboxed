@@ -62,6 +62,19 @@ describe('chat run service shutdown', () => {
       runs.list({ projectId: 'project-1', conversationId: 'conv-b', status: 'active' }),
     ).toEqual([runB]);
   });
+  it('does not report a running run with an already exited child as active', () => {
+    const runs = createRuns();
+    const run = runs.create({ projectId: 'project-1', conversationId: 'conv-stale' });
+    const child = new FakeChildProcess({ closeOn: 'SIGTERM' });
+    child.exitCode = 1;
+    run.status = 'running';
+    (run as any).child = child;
+
+    expect(
+      runs.list({ projectId: 'project-1', conversationId: 'conv-stale', status: 'active' }),
+    ).toEqual([]);
+    expect(run.status).toBe('failed');
+  });
   it('cancels a queued run immediately without waiting for child process shutdown', async () => {
     const runs = createRuns();
     const run = runs.create({ projectId: 'project-1', conversationId: 'conv-queued' });

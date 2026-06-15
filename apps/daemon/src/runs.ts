@@ -224,7 +224,20 @@ export function createChatRunService({
     });
   };
 
+  const reconcileExitedChild = (run) => {
+    if (TERMINAL_RUN_STATUSES.has(run.status)) return;
+    const child = run.child;
+    if (!child || (child.exitCode === null && child.signalCode === null)) return;
+    const nextStatus = run.cancelRequested
+      ? 'canceled'
+      : child.exitCode === 0
+        ? 'succeeded'
+        : 'failed';
+    finish(run, nextStatus, child.exitCode, child.signalCode ?? null);
+  };
+
   const list = ({ projectId, conversationId, status } = {}) => Array.from(runs.values()).filter((run) => {
+    reconcileExitedChild(run);
     if (typeof projectId === 'string' && projectId && run.projectId !== projectId) return false;
     if (typeof conversationId === 'string' && conversationId && run.conversationId !== conversationId) return false;
     if (status === 'active') return !TERMINAL_RUN_STATUSES.has(run.status);
