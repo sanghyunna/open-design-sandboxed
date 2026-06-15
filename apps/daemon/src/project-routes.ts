@@ -37,6 +37,16 @@ import {
 
 export interface RegisterProjectRoutesDeps extends RouteDeps<'db' | 'design' | 'http' | 'paths' | 'projectStore' | 'projectFiles' | 'checkpoints' | 'conversations' | 'templates' | 'status' | 'events' | 'ids' | 'telemetry' | 'appConfig' | 'validation'> {}
 
+export function cancelActiveConversationRuns(
+  design: any,
+  projectId: string,
+  conversationId: string,
+): number {
+  const runs = design.runs?.list?.({ projectId, conversationId, status: 'active' }) ?? [];
+  for (const run of runs) design.runs?.cancel?.(run);
+  return runs.length;
+}
+
 function projectDetailResolvedDir(
   projectsRoot: string,
   project: any,
@@ -783,10 +793,6 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       return;
     }
     sendApiError(res, 500, 'INTERNAL_ERROR', err instanceof Error ? err.message : String(err));
-  };
-  const hasActiveConversationRun = (projectId: string, conversationId: string): boolean => {
-    const runs = design.runs?.list?.({ projectId, conversationId }) ?? [];
-    return runs.some((run: any) => !design.runs.isTerminal?.(run.status));
   };
   async function loadPluginRegistryView() {
     const [skills, designSystems] = await Promise.all([
@@ -1705,9 +1711,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     if (!conv || conv.projectId !== req.params.id) {
       return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
     }
-    if (hasActiveConversationRun(req.params.id, req.params.cid)) {
-      return sendApiError(res, 409, 'ACTIVE_RUN', 'cannot rollback while a run is active');
-    }
+    cancelActiveConversationRuns(design, req.params.id, req.params.cid);
     const body = req.body || {};
     if (typeof body.targetMessageId !== 'string' || !body.targetMessageId) {
       return sendApiError(res, 400, 'BAD_REQUEST', 'targetMessageId is required');
