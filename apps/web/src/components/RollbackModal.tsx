@@ -22,6 +22,7 @@ interface Props {
   projectId: string;
   conversationId: string;
   targetMessage: ChatMessage;
+  onBeforeRollback?: () => Promise<void> | void;
   onClose: () => void;
   onSuccess: (response: RollbackResponse) => Promise<void> | void;
 }
@@ -44,6 +45,7 @@ export function RollbackModal({
   projectId,
   conversationId,
   targetMessage,
+  onBeforeRollback,
   onClose,
   onSuccess,
 }: Props) {
@@ -145,6 +147,7 @@ export function RollbackModal({
     setError(null);
     setRollbackConflicts([]);
     try {
+      await onBeforeRollback?.();
       const response = await rollbackConversation(projectId, conversationId, {
         targetMessageId: targetMessage.id,
         ...(mode === 'chat_only' || !selectedCheckpointId ? {} : { targetCheckpointId: selectedCheckpointId }),

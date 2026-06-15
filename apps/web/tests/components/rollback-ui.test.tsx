@@ -232,4 +232,67 @@ describe('RollbackModal', () => {
     expect(onSuccess).toHaveBeenCalledWith(rollbackResponse);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('stops local streaming before posting rollback', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-1',
+      projectId: 'proj-1',
+      kind: 'after_message',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_006_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_and_chat',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: 'checkpoint-1',
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+    };
+    const calls: string[] = [];
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [],
+    });
+    projectStateMocks.rollbackConversation.mockImplementation(async () => {
+      calls.push('rollback');
+      return rollbackResponse;
+    });
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        onBeforeRollback={async () => {
+          calls.push('stop-start');
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          calls.push('stop-end');
+        }}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    const confirmButton = await screen.findByRole('button', { name: 'Restore files and chat' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirmButton.disabled).toBe(false));
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(projectStateMocks.rollbackConversation).toHaveBeenCalled());
+    expect(calls).toEqual(['stop-start', 'stop-end', 'rollback']);
+  });
 });

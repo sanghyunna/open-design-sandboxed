@@ -1093,6 +1093,7 @@ export function ProjectView({
   const reattachControllersRef = useRef<Map<string, AbortController>>(new Map());
   const reattachCancelControllersRef = useRef<Map<string, AbortController>>(new Map());
   const completedReattachRunsRef = useRef<Set<string>>(new Set());
+  const pendingPersistPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const startingQueuedChatSendIdRef = useRef<string | null>(null);
   const [queuedAutoStartTick, setQueuedAutoStartTick] = useState(0);
   const skillCache = useRef<Map<string, string>>(new Map());
@@ -1505,14 +1506,20 @@ export function ProjectView({
   }, [project.id, activeConversationId]);
 
   const cancelSendTextBuffer = useCallback((flushPending = false) => {
-    if (flushPending) sendTextBufferRef.current?.flush();
+    if (flushPending) {
+      sendTextBufferRef.current?.flush();
+      sendTextBufferRef.current?.flushAndPersistNow?.();
+    }
     sendTextBufferRef.current?.cancel();
     sendTextBufferRef.current = null;
   }, []);
 
   const cancelReattachTextBuffers = useCallback((flushPending = false) => {
     for (const textBuffer of reattachTextBuffersRef.current) {
-      if (flushPending) textBuffer.flush();
+      if (flushPending) {
+        textBuffer.flush();
+        textBuffer.flushAndPersistNow?.();
+      }
       textBuffer.cancel();
     }
     reattachTextBuffersRef.current.clear();
@@ -2187,6 +2194,12 @@ export function ProjectView({
     locale,
   ]);
 
+  const trackPersist = (promise: Promise<unknown> | null | undefined) => {
+    if (!promise) return;
+    pendingPersistPromisesRef.current.add(promise);
+    promise.finally(() => pendingPersistPromisesRef.current.delete(promise));
+  };
+
   const persistMessage = useCallback(
     (m: ChatMessage, options?: SaveMessageOptions) => {
       if (!activeConversationId) return;
@@ -2199,7 +2212,7 @@ export function ProjectView({
       // a runId — or the run finishes terminally — this guard lets the row
       // through normally.
       if (isPhantomDaemonRunMessage(m)) return;
-      void saveMessage(project.id, activeConversationId, m, options);
+      trackPersist(saveMessage(project.id, activeConversationId, m, options));
     },
     [project.id, activeConversationId],
   );
@@ -2210,7 +2223,7 @@ export function ProjectView({
       setMessages((curr) => {
         const found = curr.find((m) => m.id === messageId);
         if (found && !isPhantomDaemonRunMessage(found)) {
-          void saveMessage(project.id, activeConversationId, found, options);
+          trackPersist(saveMessage(project.id, activeConversationId, found, options));
         }
         return curr;
       });
@@ -2238,7 +2251,7 @@ export function ProjectView({
         // The runId-arriving update from onRunCreated passes through because
         // the updater sets runId before this check runs.
         if (persist && saved && activeConversationId && !isPhantomDaemonRunMessage(saved)) {
-          void saveMessage(project.id, activeConversationId, saved, persistOptions);
+          trackPersist(saveMessage(project.id, activeConversationId, saved, persistOptions));
         }
         return next;
       });
@@ -2259,7 +2272,7 @@ export function ProjectView({
       ) {
         setMessages((curr) => [...curr, message]);
       }
-      if (persist) void saveMessage(project.id, conversationId, message, options);
+      if (persist) trackPersist(saveMessage(project.id, conversationId, message, options));
     },
     [activeConversationId, project.id],
   );
@@ -2277,7 +2290,7 @@ export function ProjectView({
       ) {
         setMessages((curr) => curr.map((item) => (item.id === message.id ? message : item)));
       }
-      if (persist) void saveMessage(project.id, conversationId, message, options);
+      if (persist) trackPersist(saveMessage(project.id, conversationId, message, options));
     },
     [activeConversationId, project.id],
   );
@@ -3918,7 +3931,7 @@ export function ProjectView({
   // canceled, and drop the streaming state. Defined here — ahead of the
   // queued-send handlers — because "send now" interrupts the active run to
   // make room for the prioritized send.
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     const stoppedAt = Date.now();
     cancelSendTextBuffer(true);
     cancelReattachTextBuffers(true);
@@ -3937,11 +3950,15 @@ export function ProjectView({
     setStreaming(false);
     streamingConversationIdRef.current = null;
     setStreamingConversationId(null);
-    setMessages((curr) => {
-      const { messages: next, finalized } = finalizeActiveAssistantMessagesOnStop(curr, stoppedAt);
-      for (const message of finalized) persistMessage(message, { telemetryFinalized: true });
-      return next;
+    await new Promise<void>((resolve) => {
+      setMessages((curr) => {
+        const { messages: next, finalized } = finalizeActiveAssistantMessagesOnStop(curr, stoppedAt);
+        for (const message of finalized) persistMessage(message, { telemetryFinalized: true });
+        resolve();
+        return next;
+      });
     });
+    await Promise.all(Array.from(pendingPersistPromisesRef.current));
   }, [cancelSendTextBuffer, cancelReattachTextBuffers, persistMessage]);
 
   // Flip the deck preview to the slide a queued send's marked element lives on
@@ -5959,6 +5976,7 @@ export function ProjectView({
           projectId={project.id}
           conversationId={activeConversationId}
           targetMessage={rollbackTargetMessage}
+          onBeforeRollback={handleStop}
           onClose={() => setRollbackTargetMessage(null)}
           onSuccess={handleRollbackSuccess}
         />
@@ -6557,5 +6575,5 @@ export function createBufferedTextUpdates({
   // tool's stream position) add 1 for this still-buffered preamble.
   const hasPendingText = () => pendingTextEventDelta.length > 0;
 
-  return { appendContent, appendTextEvent, appendEvent, flush, cancel, hasPendingText };
+  return { appendContent, appendTextEvent, appendEvent, flush, flushAndPersistNow, cancel, hasPendingText };
 }
