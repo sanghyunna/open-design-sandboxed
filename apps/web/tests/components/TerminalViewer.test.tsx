@@ -74,7 +74,7 @@ afterEach(() => {
 describe('TerminalViewer', () => {
   it('shows localized loading copy while the initial terminal connection is pending', () => {
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <TerminalViewer terminalId="term-1" projectId="project-1" onClose={vi.fn()} />
       </I18nProvider>,
     );

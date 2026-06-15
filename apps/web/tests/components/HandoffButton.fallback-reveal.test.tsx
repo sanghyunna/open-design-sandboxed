@@ -104,7 +104,7 @@ describe('HandoffButton zero-editors fallback', () => {
     ];
 
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <HandoffButton
           projectId="p1"
           projectName="Landing"

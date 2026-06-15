@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SkillsSection } from '../../src/components/SkillsSection';
 import { I18nProvider } from '../../src/i18n';
+import { Locale } from '../../src/i18n/types';
 import type { AppConfig } from '../../src/types';
 import type { SkillSummary } from '@open-design/contracts';
 
@@ -43,7 +44,7 @@ function makeSkill(overrides: Partial<SkillSummary>): SkillSummary {
 function renderSkillsSection(
   skills: SkillSummary[],
   options?: {
-    locale?: 'en' | 'zh-CN';
+    locale?: Locale;
     onSkillsRefresh?: () => void | Promise<void>;
     onSkillsChanged?: (id?: string) => void;
   },
@@ -232,12 +233,12 @@ describe('SkillsSection', () => {
           name: 'localized-skill',
           displayName: {
             en: 'Localized Skill',
-            'zh-CN': '本地化技能',
+            ko: '지역화된 스킬',
           },
           description: 'English description',
           descriptionI18n: {
             en: 'English description',
-            'zh-CN': '中文能力描述',
+            ko: '한국어 능력 설명',
           },
           source: 'built-in',
         }),
@@ -246,18 +247,18 @@ describe('SkillsSection', () => {
           name: 'other-skill',
           displayName: {
             en: 'Other Skill',
-            'zh-CN': '其他技能',
+            ko: '다른 스킬',
           },
           description: 'Other description',
           source: 'built-in',
         }),
       ],
-      { locale: 'zh-CN' },
+      { locale: 'ko' },
     );
 
-    expect(await screen.findByText('本地化技能')).toBeTruthy();
-    fireEvent.change(screen.getByPlaceholderText('搜索...'), {
-      target: { value: '中文能力' },
+    expect(await screen.findByText('지역화된 스킬')).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText('검색...'), {
+      target: { value: '한국어 능력' },
     });
 
     expect(screen.getByTestId('skill-row-localized-skill')).toBeTruthy();

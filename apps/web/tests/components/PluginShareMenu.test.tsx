@@ -228,7 +228,7 @@ describe('PluginShareMenu', () => {
         marketplaceEntryName: 'open-design/zh-plugin',
         homepage: 'https://example.test/plugin-home',
       }),
-      'zh-CN',
+      'en',
     );
     openPopover('更多');
     const labels = Array.from(

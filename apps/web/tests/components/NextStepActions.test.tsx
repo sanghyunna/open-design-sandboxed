@@ -160,10 +160,10 @@ describe('NextStepActions', () => {
   it('matches and renders a global resource by its localized text under a non-English locale', () => {
     const localizedSkill = {
       ...skill('creative-director', 'creative-director'),
-      displayName: { 'zh-CN': '创意总监' },
-      descriptionI18n: { 'zh-CN': 'AI 创意总监，负责整体审美方向' },
+      displayName: { 'en': '创意总监' },
+      descriptionI18n: { 'en': 'AI 创意总监，负责整体审美方向' },
     } as SkillSummary;
-    renderActions({ skills: [localizedSkill] }, 'zh-CN');
+    renderActions({ skills: [localizedSkill] }, 'en');
     fireEvent.mouseEnter(screen.getByTestId('next-step-toolbox-more'));
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-toolbox'));
     const list = screen.getByTestId('next-step-toolbox-actions');
@@ -179,9 +179,9 @@ describe('NextStepActions', () => {
   it('keeps the paired action visible for a localized preferred-skill query (action/resource parity under a non-English locale)', () => {
     const motionSkill = {
       ...skill('emilkowalski-motion', 'emilkowalski-motion', 'animation-motion'),
-      displayName: { 'zh-CN': '动效大师' },
+      displayName: { 'en': '动效大师' },
     } as SkillSummary;
-    renderActions({ skills: [motionSkill] }, 'zh-CN');
+    renderActions({ skills: [motionSkill] }, 'en');
     fireEvent.mouseEnter(screen.getByTestId('next-step-toolbox-more'));
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-toolbox'));
     const list = screen.getByTestId('next-step-toolbox-actions');

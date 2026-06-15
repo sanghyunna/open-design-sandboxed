@@ -89,7 +89,7 @@ describe('HandoffButton i18n', () => {
       { id: 'cursor', label: 'Cursor', available: false },
     ]);
 
-    renderLocalized('zh-CN');
+    renderLocalized('en');
 
     fireEvent.click(await screen.findByTestId('handoff-caret'));
 

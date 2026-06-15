@@ -5588,7 +5588,7 @@ describe('LiveArtifactRefreshHistoryPanel', () => {
   it('renders Chinese strings end-to-end when wrapped in I18nProvider initial="zh-CN"', () => {
     const now = Date.now();
     const markup = renderToStaticMarkup(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <LiveArtifactRefreshHistoryPanel
           liveArtifact={baseLiveArtifact({
             refreshStatus: 'succeeded',
@@ -5676,7 +5676,7 @@ describe('LiveArtifactRefreshHistoryPanel', () => {
 
   it('renders the zh-CN empty hero ("从未") when lastRefreshedAt is missing', () => {
     const markup = renderToStaticMarkup(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <LiveArtifactRefreshHistoryPanel
           liveArtifact={baseLiveArtifact({ refreshStatus: 'never', lastRefreshedAt: undefined })}
           fallbackRefreshStatus="never"

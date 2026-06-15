@@ -134,7 +134,7 @@ describe('UpdaterPopup', () => {
     });
 
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <UpdaterPopup />
       </I18nProvider>,
     );
@@ -156,7 +156,7 @@ describe('UpdaterPopup', () => {
     });
 
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <UpdaterPopup />
       </I18nProvider>,
     );

@@ -2408,7 +2408,7 @@ describe('DesignSystemDetailView', () => {
     ]);
 
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <DesignSystemDetailView
           id={system.id}
           selectedId={system.id}
@@ -2429,7 +2429,7 @@ describe('DesignSystemDetailView', () => {
         projectId: project.id,
         conversationId: 'conv-design-system',
         designSystemId: system.id,
-        locale: 'zh-CN',
+        locale: 'en',
       }),
     );
   });

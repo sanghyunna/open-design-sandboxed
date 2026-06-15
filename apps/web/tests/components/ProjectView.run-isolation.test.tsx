@@ -42,7 +42,7 @@ const showCompletionNotification = vi.fn();
 
 vi.mock('../../src/i18n', () => ({
   useI18n: () => ({
-    locale: 'zh-CN',
+    locale: 'en',
     setLocale: () => undefined,
     t: (key: string) => key,
   }),
@@ -610,7 +610,7 @@ describe('ProjectView conversation run isolation', () => {
       expect.objectContaining({
         projectId: 'project-1',
         conversationId: 'conv-b',
-        locale: 'zh-CN',
+        locale: 'en',
       }),
     );
   });

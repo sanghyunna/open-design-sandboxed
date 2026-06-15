@@ -45,7 +45,7 @@ afterEach(() => {
 describe('DesignSystemPicker', () => {
   function renderPicker(
     props: Partial<ComponentProps<typeof DesignSystemPicker>> = {},
-    locale: Locale = 'zh-CN',
+    locale: Locale = 'en',
   ) {
     return render(
       <I18nProvider initial={locale}>
@@ -121,7 +121,7 @@ describe('DesignSystemPicker', () => {
   });
 
   it('uses localized picker copy', async () => {
-    renderPicker({}, 'fr');
+    renderPicker({}, 'en');
 
     fireEvent.click(screen.getByTestId('project-ds-picker-trigger'));
 

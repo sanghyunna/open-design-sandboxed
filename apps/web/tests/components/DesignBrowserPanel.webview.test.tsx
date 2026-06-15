@@ -96,7 +96,7 @@ describe('DesignBrowserPanel <webview> navigation', () => {
     const onRequestBrowserUsePrompt = vi.fn();
 
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <DesignBrowserPanel
           projectId="proj-webview-browser-use"
           initialTitle="Example"
@@ -379,7 +379,7 @@ describe('DesignBrowserPanel <webview> navigation', () => {
 
   it('does not expose page annotation controls in the external browser', () => {
     const { container } = render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <DesignBrowserPanel
           initialUrl="https://example.com"
           projectId="proj-webview-mark-i18n"

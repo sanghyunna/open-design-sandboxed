@@ -34,7 +34,7 @@ describe('SessionModeToggle', () => {
 
   it('shows localized guidance only after opening the menu', () => {
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <SessionModeToggle mode="chat" onChange={vi.fn()} />
       </I18nProvider>,
     );

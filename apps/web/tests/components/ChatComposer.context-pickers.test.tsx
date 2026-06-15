@@ -296,7 +296,7 @@ describe('ChatComposer context pickers', () => {
     plugins = [];
     skills = [];
     servers = [];
-    renderComposer({}, { locale: 'zh-CN' });
+    renderComposer({}, { locale: 'en' });
     await flushMounts();
 
     await typeAndSettle('@');
