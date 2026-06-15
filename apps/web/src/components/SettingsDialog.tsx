@@ -40,11 +40,13 @@ import {
 } from '../providers/daemon';
 import { ExportDiagnosticsRow } from './ExportDiagnosticsButton';
 import { Icon } from './Icon';
+import styles from './SettingsDialog.module.css';
 import {
   CUSTOM_MODEL_SENTINEL,
   SearchableModelSelect,
 } from './modelOptions';
 import {
+  DEFAULT_CONFIG,
   DEFAULT_NOTIFICATIONS,
   DEFAULT_ORBIT,
   isStoredMediaProviderEntryEmpty,
@@ -96,6 +98,7 @@ import type {
   ProviderModelsResponse,
   SkillSummary,
 } from '../types';
+import type { AgentCatalogItem } from '@open-design/contracts';
 import { testAgent, testApiProvider } from '../providers/connection-test';
 import { fetchProviderModels } from '../providers/provider-models';
 import {
@@ -171,6 +174,7 @@ export type SettingsSection =
   | 'designSystems'
   | 'projectLocations'
   | 'memory'
+  | 'codeAgents'
   // 'library' is consumed by the EntryShell library route — App opens it
   // via this same openSettings entry point, so SettingsSection must
   // accept the token even though SettingsDialog itself has no Library
@@ -258,43 +262,7 @@ export interface AgentRefreshOptions {
 const AMR_SIGN_IN_RESCAN_ATTEMPTS = 4;
 const AMR_SIGN_IN_RESCAN_RETRY_MS = 1500;
 
-function codexPathStrings(locale: Locale) {
-  if (locale === 'zh-CN') {
-    return {
-      repairHint: '当前保存的 Codex 路径不适合继续使用。',
-      useDetected: '使用检测到的 Codex',
-      clearCustom: '清空自定义路径',
-      configuredSuccess: (path: string) => `本次测试使用的是已配置的 Codex 路径：${path}。`,
-      invalidFallback: (configuredPath: string, detectedPath: string) =>
-        `已配置的 Codex 路径无效或不可执行：${configuredPath}。本次测试改用 PATH 中的 Codex CLI：${detectedPath}。建议更新 CODEX_BIN 或清空自定义路径。`,
-      failedFallback: (configuredPath: string, detectedPath: string) =>
-        `已配置的 Codex 路径启动失败：${configuredPath}。本次测试改用 PATH 中的 Codex CLI：${detectedPath}。建议更新 CODEX_BIN 或清空自定义路径。`,
-    };
-  }
-  if (locale === 'zh-TW') {
-    return {
-      repairHint: '目前儲存的 Codex 路徑不適合繼續使用。',
-      useDetected: '使用偵測到的 Codex',
-      clearCustom: '清除自訂路徑',
-      configuredSuccess: (path: string) => `本次測試使用的是已設定的 Codex 路徑：${path}。`,
-      invalidFallback: (configuredPath: string, detectedPath: string) =>
-        `已設定的 Codex 路徑無效或不可執行：${configuredPath}。本次測試改用 PATH 中的 Codex CLI：${detectedPath}。建議更新 CODEX_BIN 或清除自訂路徑。`,
-      failedFallback: (configuredPath: string, detectedPath: string) =>
-        `已設定的 Codex 路徑啟動失敗：${configuredPath}。本次測試改用 PATH 中的 Codex CLI：${detectedPath}。建議更新 CODEX_BIN 或清除自訂路徑。`,
-    };
-  }
-  if (locale === 'ja') {
-    return {
-      repairHint: '保存されている Codex のパスは、このテストで使用すべきバイナリではありません。',
-      useDetected: '検出された Codex を使用',
-      clearCustom: 'カスタムパスをクリア',
-      configuredSuccess: (path: string) => `このテストでは設定済みの Codex パスを使用しました：${path}。`,
-      invalidFallback: (configuredPath: string, detectedPath: string) =>
-        `設定された Codex パスが無効か実行できません：${configuredPath}。このテストでは PATH 上の Codex CLI（${detectedPath}）を使用しました。CODEX_BIN を更新するか、カスタムパスをクリアしてください。`,
-      failedFallback: (configuredPath: string, detectedPath: string) =>
-        `設定された Codex パスの起動に失敗しました：${configuredPath}。このテストは PATH 上の Codex CLI（${detectedPath}）で成功しました。CODEX_BIN を更新するか、カスタムパスをクリアしてください。`,
-    };
-  }
+function codexPathStrings(_locale: Locale) {
   return {
     repairHint: 'The saved Codex path is not the binary this test should keep using.',
     useDetected: 'Use detected Codex',
@@ -1143,6 +1111,8 @@ export function SettingsDialog({
   const [agentRescanRunning, setAgentRescanRunning] = useState(false);
   const [agentRescanNotice, setAgentRescanNotice] =
     useState<RescanNotice | null>(null);
+  const [agentCatalog, setAgentCatalog] = useState<AgentCatalogItem[]>([]);
+  const [agentCatalogLoading, setAgentCatalogLoading] = useState(false);
   const [agentTestState, setAgentTestState] = useState<TestState>({
     status: 'idle',
   });
@@ -1300,6 +1270,29 @@ export function SettingsDialog({
   useEffect(() => {
     setActiveSection(initialSection);
   }, [initialSection]);
+
+  // Load the configurable agent catalog once when the dialog opens. This list
+  // is independent from the installed/uninstalled detection grid and drives
+  // the "Code agents" enable/disable panel.
+  useEffect(() => {
+    let cancelled = false;
+    setAgentCatalogLoading(true);
+    void fetch('/api/agents/catalog')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Failed to load agent catalog');
+        const payload = (await response.json()) as { agents?: AgentCatalogItem[] };
+        if (!cancelled) setAgentCatalog(payload.agents ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setAgentCatalog([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAgentCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // settings_view — fires whenever the active section changes (and once on
   // mount). Keying the fire on a section+section-string lets us dedupe
@@ -1481,6 +1474,25 @@ export function SettingsDialog({
       ...(installUrl ? { onOpenInstall: () => openAgentFixUrl(installUrl) } : {}),
     };
   };
+  const toggleEnabledAgent = (agentId: string, nextEnabled: boolean) => {
+    setCfg((current) => {
+      const currentIds = new Set(current.enabledAgentIds ?? DEFAULT_CONFIG.enabledAgentIds ?? []);
+      if (nextEnabled) {
+        currentIds.add(agentId);
+      } else {
+        currentIds.delete(agentId);
+      }
+      return { ...current, enabledAgentIds: Array.from(currentIds) };
+    });
+  };
+
+  const resetEnabledAgents = () => {
+    setCfg((current) => ({
+      ...current,
+      enabledAgentIds: [...(DEFAULT_CONFIG.enabledAgentIds ?? [])],
+    }));
+  };
+
   useEffect(() => {
     const handleReturnToSettings = () => {
       if (
@@ -2682,6 +2694,10 @@ export function SettingsDialog({
       title: t('settings.projectLocations'),
       subtitle: t('settings.projectLocationsHint'),
     },
+    codeAgents: {
+      title: t('settings.codeAgentsTitle'),
+      subtitle: t('settings.codeAgentsSubtitle'),
+    },
     memory: { title: t('settings.memory'), subtitle: t('settings.memoryHint') },
     // 'library' is opened via EntryShell route — SettingsDialog doesn't
     // render it but SettingsSection must accept the token (see type def).
@@ -3007,6 +3023,17 @@ export function SettingsDialog({
               <span>
                 <strong>{t('settings.envConfigure')}</strong>
                 <small>{`${t('settings.localCli')} / ${t('settings.modeApiMeta')}`}</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`settings-nav-item${activeSection === 'codeAgents' ? ' active' : ''}`}
+              onClick={() => setActiveSection('codeAgents')}
+            >
+              <Icon name="terminal" size={18} />
+              <span>
+                <strong>{t('settings.codeAgentsTitle')}</strong>
+                <small>{t('settings.codeAgentsSubtitle')}</small>
               </span>
             </button>
             <button
@@ -4202,6 +4229,49 @@ export function SettingsDialog({
             </section>
           )}
             </>
+          ) : null}
+
+          {activeSection === 'codeAgents' ? (
+            <section className="settings-section">
+              <div className="section-head">
+                <div>
+                  <h3>{t('settings.codeAgentsTitle')}</h3>
+                  <p className="hint">{t('settings.codeAgentsSubtitle')}</p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={resetEnabledAgents}
+                  disabled={agentCatalogLoading}
+                >
+                  {t('settings.codeAgentsReset')}
+                </button>
+              </div>
+              {agentCatalogLoading ? (
+                <div className="empty-card">{t('common.loading')}</div>
+              ) : agentCatalog.length === 0 ? (
+                <div className="empty-card">{t('settings.codeAgentsEmpty')}</div>
+              ) : (
+                <div className={styles.codeAgentsList}>
+                  {agentCatalog.map((agent) => {
+                    const enabled = (cfg.enabledAgentIds ?? DEFAULT_CONFIG.enabledAgentIds ?? []).includes(agent.id);
+                    return (
+                      <label key={agent.id} className={`field ${styles.codeAgentToggle}`}>
+                        <span className="field-label">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(e) => toggleEnabledAgent(agent.id, e.target.checked)}
+                          />
+                          {' '}
+                          {agent.name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           ) : null}
 
           {activeSection === 'media' ? (

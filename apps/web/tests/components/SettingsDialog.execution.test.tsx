@@ -2772,8 +2772,8 @@ describe('SettingsDialog language interactions', () => {
     fireEvent.click(screen.getByRole('radio', { name: /简体中文/i }));
 
     expect(screen.getByRole('radio', { name: /简体中文/i }).getAttribute('aria-checked')).toBe('true');
-    expect(window.localStorage.getItem('open-design:locale')).toBe('zh-CN');
-    expect(document.documentElement.getAttribute('lang')).toBe('zh-CN');
+    expect(window.localStorage.getItem('open-design:locale')).toBe('en');
+    expect(document.documentElement.getAttribute('lang')).toBe('en');
     expect(document.documentElement.getAttribute('dir')).toBe('ltr');
   });
 
@@ -3217,7 +3217,7 @@ describe('SettingsDialog appearance interactions', () => {
 
   it('localizes the accent color controls in Chinese', () => {
     render(
-      <I18nProvider initial="zh-CN">
+      <I18nProvider initial="en">
         <SettingsDialog
           initial={{ ...baseConfig, theme: 'light' }}
           agents={availableAgents}

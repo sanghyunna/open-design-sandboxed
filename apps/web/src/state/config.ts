@@ -85,6 +85,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   orbit: DEFAULT_ORBIT,
   projectLocations: [],
   defaultProjectLocationId: 'default',
+  enabledAgentIds: ['codex', 'cursor-agent'],
   // Corporate fork policy: telemetry is off by default. Runtime sinks are
   // disabled separately so old daemon configs with opted-in prefs cannot
   // re-enable network egress.
@@ -736,6 +737,9 @@ export function mergeDaemonConfig(
   if (daemonConfig.defaultProjectLocationId !== undefined) {
     next.defaultProjectLocationId = daemonConfig.defaultProjectLocationId ?? 'default';
   }
+  if (daemonConfig.enabledAgentIds !== undefined) {
+    next.enabledAgentIds = daemonConfig.enabledAgentIds;
+  }
   return next;
 }
 
@@ -852,6 +856,7 @@ export async function syncConfigToDaemon(
     customInstructions: config.customInstructions ?? null,
     projectLocations: config.projectLocations ?? [],
     defaultProjectLocationId: config.defaultProjectLocationId ?? 'default',
+    enabledAgentIds: config.enabledAgentIds,
   };
   try {
     const response = await fetch('/api/app-config', {

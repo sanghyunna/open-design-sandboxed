@@ -417,6 +417,7 @@ export interface AppConfig {
   // IDs of skills/design-systems the user has explicitly disabled.
   disabledSkills?: string[];
   disabledDesignSystems?: string[];
+  enabledAgentIds?: string[];
   // Legacy anonymous install identifier. Retained only so existing daemon
   // config files continue to hydrate; telemetry sinks are disabled in this
   // fork.

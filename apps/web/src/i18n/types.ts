@@ -1,29 +1,12 @@
 // Supported UI locales. Adding a new locale requires creating a new
 // dictionary in `./locales/` and registering it in `./index.tsx`.
-export type Locale = 'en' | 'id' | 'de' | 'zh-CN' | 'zh-TW' | 'pt-BR' | 'es-ES' | 'ru' | 'fa' | 'ar' | 'ja' | 'ko' | 'pl' | 'hu' | 'fr' | 'uk' | 'tr' | 'th' | 'it';
+export type Locale = 'en' | 'ko';
 
-export const LOCALES: Locale[] = ['en', 'id', 'de', 'zh-CN', 'zh-TW', 'pt-BR', 'es-ES', 'ru', 'fa', 'ar', 'ja', 'ko', 'pl', 'hu', 'fr', 'uk', 'tr', 'th', 'it'];
+export const LOCALES: Locale[] = ['en', 'ko'];
 
 export const LOCALE_LABEL: Record<Locale, string> = {
   'en': 'English',
-  'id': 'Bahasa Indonesia',
-  'de': 'Deutsch',
-  'zh-CN': '简体中文',
-  'zh-TW': '繁體中文',
-  'pt-BR': 'Português (Brasil)',
-  'es-ES': 'Español (España)',
-  'ru': 'Русский',
-  'fa': 'فارسی',
-  'ar': 'العربية',
-  'ja': '日本語',
   'ko': '한국어',
-  'pl': 'Polski',
-  'hu': 'Magyar',
-  'fr': 'Français',
-  'uk': 'Українська',
-  'tr': 'Türkçe',
-  'th': 'ภาษาไทย',
-  'it': 'Italiano'
 };
 
 // Translation dictionary shape — flat keys, dot-namespaced. We keep it
@@ -407,6 +390,10 @@ export interface Dict {
   'settings.privacyDataDeletionHint': string;
   'settings.about': string;
   'settings.aboutHint': string;
+  'settings.codeAgentsTitle': string;
+  'settings.codeAgentsSubtitle': string;
+  'settings.codeAgentsReset': string;
+  'settings.codeAgentsEmpty': string;
   'settings.appVersion': string;
   'settings.appChannel': string;
   'settings.appRuntime': string;
