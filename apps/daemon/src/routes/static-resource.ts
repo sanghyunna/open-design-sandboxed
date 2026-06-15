@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import type { DesignSystemTokenContractRebuildJobResponse } from '@open-design/contracts';
-import { detectAgents, detectAgentsStream } from '../agents.js';
+import { AGENT_DEFS, detectAgents, detectAgentsStream } from '../agents.js';
 import {
   SkillImportError,
   deleteUserSkill,
@@ -23,7 +23,7 @@ import { importShadcnDesignSystemProject } from '../design-system-shadcn-import.
 import { renderDesignSystemPreview } from '../design-system-preview.js';
 import { renderDesignSystemShowcase } from '../design-system-showcase.js';
 import { listPromptTemplates, readPromptTemplate } from '../prompt-templates.js';
-import { readAppConfig } from '../app-config.js';
+import { readAppConfig, DEFAULT_ENABLED_AGENT_IDS } from '../app-config.js';
 import { installFromTarget, uninstallById } from '../library-install.js';
 import type { RouteDeps } from '../server-context.js';
 
@@ -86,10 +86,13 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       return;
     }
     const agentCliEnv = config.agentCliEnv ?? {};
+    const detectOptions = {
+      enabledAgentIds: [...(config.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS)],
+    };
 
     if (!wantsStream) {
       try {
-        const list = await detectAgents(agentCliEnv);
+        const list = await detectAgents(agentCliEnv, detectOptions);
         res.json({ agents: list });
       } catch (err: any) {
         res.status(500).json({ error: String(err) });
@@ -112,7 +115,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       aborted = true;
     });
     try {
-      for await (const agent of detectAgentsStream(agentCliEnv)) {
+      for await (const agent of detectAgentsStream(agentCliEnv, detectOptions)) {
         if (aborted) break;
         res.write(`event: agent\ndata: ${JSON.stringify(agent)}\n\n`);
       }
@@ -125,6 +128,20 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       }
     } finally {
       res.end();
+    }
+  });
+
+  // GET /api/agents/catalog — static registry of all configurable agents.
+  // Unlike /api/agents this does not probe PATH or auth, so the Code Agents
+  // settings panel can render toggle choices instantly. The returned ids are
+  // the canonical ids that /api/agents honors via enabledAgentIds.
+  app.get('/api/agents/catalog', async (_req, res) => {
+    try {
+      res.json({
+        agents: AGENT_DEFS.map(({ id, name }) => ({ id, name })),
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: String(err) });
     }
   });
 

@@ -1,5 +1,6 @@
 import { execAgentFile } from './invocation.js';
 import { AGENT_DEFS } from './registry.js';
+import { DEFAULT_ENABLED_AGENT_IDS } from '../app-config.js';
 import {
   DEFAULT_MODEL_OPTION,
   getRememberedLiveModels,
@@ -318,15 +319,18 @@ function rememberDetectedLiveModels(
 
 export async function detectAgents(
   configuredEnvByAgent: Record<string, Record<string, string>> = {},
+  options: { enabledAgentIds?: string[] } = {},
 ) {
+  const enabledAgentIds = options.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS;
+  const defs = AGENT_DEFS.filter((def) => enabledAgentIds.includes(def.id));
   const results = await Promise.all(
-    AGENT_DEFS.map((def) => safeProbe(def, configuredEnvByAgent?.[def.id] ?? {})),
+    defs.map((def) => safeProbe(def, configuredEnvByAgent?.[def.id] ?? {})),
   );
   // Refresh the validation cache from whatever we just surfaced to the UI
   // so /api/chat can accept any model the user could have just picked,
   // including ones that only showed up after a CLI re-auth.
   for (const [index, agent] of results.entries()) {
-    const def = AGENT_DEFS[index];
+    const def = defs[index];
     if (!def) continue;
     rememberDetectedLiveModels(def, configuredEnvByAgent?.[def.id] ?? {}, agent);
   }
@@ -341,8 +345,11 @@ export async function detectAgents(
 // that don't care about incremental delivery (cache warm, analytics, chat).
 export async function* detectAgentsStream(
   configuredEnvByAgent: Record<string, Record<string, string>> = {},
+  options: { enabledAgentIds?: string[] } = {},
 ): AsyncGenerator<DetectedAgent> {
-  const tagged = AGENT_DEFS.map((def, index) =>
+  const enabledAgentIds = options.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS;
+  const defs = AGENT_DEFS.filter((def) => enabledAgentIds.includes(def.id));
+  const tagged = defs.map((def, index) =>
     safeProbe(def, configuredEnvByAgent?.[def.id] ?? {}).then((agent) => {
       rememberDetectedLiveModels(def, configuredEnvByAgent?.[def.id] ?? {}, agent);
       return { index, agent };

@@ -20,6 +20,7 @@ import {
   applyJsonInstall,
   removeJsonInstall,
 } from './mcp-agent-install.js';
+import { validateEnabledAgentIds } from './app-config.js';
 
 const argv = process.argv.slice(2);
 
@@ -176,6 +177,8 @@ const DIAGNOSTICS_STRING_FLAGS = new Set(['daemon-url', 'output']);
 const DIAGNOSTICS_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 const CONFIG_STRING_FLAGS = new Set(['daemon-url', 'value', 'value-json']);
 const CONFIG_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
+const AGENT_STRING_FLAGS = new Set(['daemon-url']);
+const AGENT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 const PROJECT_STRING_FLAGS = new Set([
   'daemon-url', 'name', 'skill', 'design-system', 'plugin', 'metadata-json',
   'pending-prompt', 'project', 'conversation', 'message', 'prompt',
@@ -293,6 +296,7 @@ const SUBCOMMAND_MAP = {
   version: runVersion,
   doctor: runDoctor,
   config: runConfig,
+  agent: runAgent,
 };
 
 if (argv[0] === 'mcp' && argv[1] === 'live-artifacts') {
@@ -7144,6 +7148,108 @@ Common options:
       console.error(`unknown subcommand: od config ${sub}`);
       process.exit(2);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Subcommand: od agent …
+// ---------------------------------------------------------------------------
+
+async function runAgent(args) {
+  if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
+    printAgentHelp();
+    process.exit(args.length === 0 ? 2 : 0);
+  }
+  const sub = args[0];
+  const rest = args.slice(1);
+  const flags = parseFlags(rest, { string: AGENT_STRING_FLAGS, boolean: AGENT_BOOLEAN_FLAGS });
+  const base = await cliDaemonBaseUrl(flags);
+  const useJson = Boolean(flags.json);
+
+  const fetchConfig = async () => {
+    const resp = await fetch(`${base}/api/app-config`);
+    if (!resp.ok) return structuredHttpFailure(resp);
+    const data = await resp.json();
+    return data?.config ?? {};
+  };
+  const writeConfig = async (next) => {
+    const resp = await fetch(`${base}/api/app-config`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(next),
+    });
+    if (!resp.ok) return structuredHttpFailure(resp);
+    return (await resp.json())?.config ?? next;
+  };
+
+  switch (sub) {
+    case 'list': {
+      const resp = await fetch(`${base}/api/agents`);
+      if (!resp.ok) return structuredHttpFailure(resp);
+      const data = await resp.json();
+      if (useJson) {
+        process.stdout.write(JSON.stringify(data ?? { agents: [] }, null, 2) + '\n');
+      } else {
+        const agents = Array.isArray(data?.agents) ? data.agents : [];
+        for (const agent of agents) {
+          console.log(`${agent.id}\t${agent.available ? 'available' : 'unavailable'}\t${agent.name ?? ''}`);
+        }
+      }
+      return;
+    }
+    case 'enable':
+    case 'disable': {
+      const ids = positionalArgs(rest, AGENT_STRING_FLAGS);
+      if (ids.length === 0) {
+        console.error(`Usage: od agent ${sub} <id> [<id>...]`);
+        process.exit(2);
+      }
+      const cfg = await fetchConfig();
+      const normalized = validateEnabledAgentIds(ids) ?? [];
+      const current = new Set(Array.isArray(cfg.enabledAgentIds) ? cfg.enabledAgentIds : []);
+      for (const id of normalized) {
+        if (sub === 'enable') current.add(id);
+        else current.delete(id);
+      }
+      const written = await writeConfig({ enabledAgentIds: Array.from(current) });
+      if (useJson) {
+        process.stdout.write(JSON.stringify(written, null, 2) + '\n');
+      } else {
+        console.log(`[agent] ${sub}d ${normalized.join(', ')}`);
+      }
+      return;
+    }
+    case 'reset': {
+      const written = await writeConfig({ enabledAgentIds: null });
+      if (useJson) {
+        process.stdout.write(JSON.stringify(written, null, 2) + '\n');
+      } else {
+        console.log('[agent] reset enabled agents to defaults');
+      }
+      return;
+    }
+    default:
+      console.error(`unknown subcommand: od agent ${sub}`);
+      process.exit(2);
+  }
+}
+
+function printAgentHelp() {
+  console.log(`Usage:
+  od agent list [--json]
+      List enabled agents and their install status.
+
+  od agent enable <id> [<id>...] [--json]
+      Add agents to the enabled scan set.
+
+  od agent disable <id> [<id>...] [--json]
+      Remove agents from the enabled scan set.
+
+  od agent reset [--json]
+      Clear the enabled set and fall back to defaults (codex + cursor-agent).
+
+Common options:
+  --daemon-url <url>   Open Design daemon HTTP base.
+  --json               Emit raw JSON.`);
 }
 
 // ---------------------------------------------------------------------------

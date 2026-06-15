@@ -348,7 +348,7 @@ import {
   readAllTokens,
   setToken,
 } from './mcp-tokens.js';
-import { agentCliEnvForAgent, readAppConfig, readPluginEnvKnobs, writeAppConfig } from './app-config.js';
+import { agentCliEnvForAgent, DEFAULT_ENABLED_AGENT_IDS, readAppConfig, readPluginEnvKnobs, writeAppConfig } from './app-config.js';
 import { OrbitService, formatLocalProjectTimestamp, renderOrbitTemplateSystemPrompt } from './orbit.js';
 import { buildOrbitNoLiveArtifactSummary } from './orbit-agent-summary.js';
 import {
@@ -4959,9 +4959,11 @@ export async function startServer({
   void readAppConfig(RUNTIME_DATA_DIR)
     .then((config) => {
       orbitService.configure(config.orbit);
-      return detectAgents(config.agentCliEnv ?? {});
+      return detectAgents(config.agentCliEnv ?? {}, {
+        enabledAgentIds: config.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
+      });
     })
-    .catch(() => detectAgents().catch(() => {}));
+    .catch(() => detectAgents({}, { enabledAgentIds: DEFAULT_ENABLED_AGENT_IDS }).catch(() => {}));
 
   await recoverStaleLiveArtifactRefreshes({ projectsRoot: PROJECTS_DIR }).catch((error) => {
     console.warn('[od] Failed to recover stale live artifact refreshes:', error);
@@ -13575,7 +13577,9 @@ export async function startServer({
       ? appConfig.agentId
       : null;
     if (!agentId) {
-      const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(() => []);
+      const agents = await detectAgents(appConfig.agentCliEnv ?? {}, {
+        enabledAgentIds: appConfig.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
+      }).catch(() => []);
       agentId = agents.find((agent) => agent.available)?.id ?? null;
     }
     if (!agentId) throw new Error('No available agent is configured for Orbit. Choose an agent in Settings first.');
@@ -13839,7 +13843,9 @@ export async function startServer({
         const cfgAgent = typeof appCfg.agentId === 'string' && appCfg.agentId
           ? appCfg.agentId
           : null;
-        const agents = await detectAgents(appCfg.agentCliEnv ?? {}).catch(() => []);
+        const agents = await detectAgents(appCfg.agentCliEnv ?? {}, {
+          enabledAgentIds: appCfg.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
+        }).catch(() => []);
         const cfgAgentAvailable = cfgAgent
           ? agents.some((agent) => agent.id === cfgAgent && agent.available)
           : false;
@@ -14043,6 +14049,9 @@ export async function startServer({
       );
       const detectedAgentsForAnalytics = await detectAgents(
         (appCfgForAnalytics as { agentCliEnv?: Record<string, unknown> }).agentCliEnv ?? {},
+        {
+          enabledAgentIds: (appCfgForAnalytics as { enabledAgentIds?: string[] }).enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
+        },
       ).catch(() => [] as Array<{ id: string; available: boolean }>);
       // BYOK credentials live in the web client (localStorage / store) and
       // are not visible to the daemon at this layer, so we pass
@@ -14593,7 +14602,9 @@ export async function startServer({
     let agentId = routine.agentId
       || (typeof appConfig.agentId === 'string' && appConfig.agentId ? appConfig.agentId : null);
     if (!agentId) {
-      const agents = await detectAgents(appConfig.agentCliEnv ?? {}).catch(() => []);
+      const agents = await detectAgents(appConfig.agentCliEnv ?? {}, {
+        enabledAgentIds: appConfig.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
+      }).catch(() => []);
       agentId = agents.find((agent) => agent.available)?.id ?? null;
     }
     if (!agentId) {

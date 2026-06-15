@@ -115,6 +115,9 @@ export interface AppConfigPrefs {
   // `metadata.linkedDirs` (read-only `--add-dir` awareness, no Design Files
   // import). Stored most-recent-first; capped at RECENT_LINKED_DIRS_MAX.
   recentLinkedDirs?: string[];
+  // Canonical agent ids that /api/agents will probe. When absent, defaults to
+  // DEFAULT_ENABLED_AGENT_IDS at read time. Aliases normalized on write.
+  enabledAgentIds?: string[];
 }
 
 // Cap on how many recent working directories we remember. Keeps the picker's
@@ -138,7 +141,42 @@ const ALLOWED_KEYS: ReadonlySet<keyof AppConfigPrefs> = new Set([
   'projectLocations',
   'defaultProjectLocationId',
   'recentLinkedDirs',
+  'enabledAgentIds',
 ] as const);
+
+// Default set probed on cold start. VDI optimization: only the two most
+// commonly pre-installed agents so PATH probing stays cheap.
+export const DEFAULT_ENABLED_AGENT_IDS: ReadonlyArray<string> = ['codex', 'cursor-agent'];
+
+// Normalize common aliases to their canonical agent id. Every alias that maps
+// to the same binary must be collapsed so the enabled set can be compared
+// against AGENT_DEFS by canonical id.
+const AGENT_ID_ALIASES: Readonly<Record<string, string>> = {
+  'agent': 'cursor-agent',
+  'cursor': 'cursor-agent',
+  'cursor-agent': 'cursor-agent',
+  'codex': 'codex',
+};
+
+function normalizeAgentId(raw: string): string {
+  const trimmed = raw.trim().toLowerCase();
+  return AGENT_ID_ALIASES[trimmed] ?? trimmed;
+}
+
+export function validateEnabledAgentIds(raw: unknown): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const normalized = normalizeAgentId(item);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result.length > 0 ? result : undefined;
+}
 
 function configFile(dataDir: string): string {
   return path.join(dataDir, 'app-config.json');
@@ -430,6 +468,15 @@ function applyConfigValue(
         if (cleaned.length >= RECENT_LINKED_DIRS_MAX) break;
       }
       target[key] = cleaned;
+    } else {
+      delete target[key];
+    }
+    return;
+  }
+  if (key === 'enabledAgentIds') {
+    const validated = validateEnabledAgentIds(value);
+    if (validated !== undefined) {
+      target[key] = validated;
     } else {
       delete target[key];
     }

@@ -44,6 +44,8 @@ export const cursorAgentDef = {
         return parseCursorAgentModels(trimmed);
       },
     },
+    // `agent` is the legacy alias shipped with older Cursor installations.
+    fallbackBins: ['agent'],
     fallbackModels: [
       DEFAULT_MODEL_OPTION,
       { id: 'auto', label: 'auto' },

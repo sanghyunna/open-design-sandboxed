@@ -3,6 +3,16 @@ export interface AgentModelOption {
   label: string;
 }
 
+/** Minimal agent descriptor exposed by {@link GET /api/agents/catalog}. */
+export interface AgentCatalogItem {
+  id: string;
+  name: string;
+}
+
+export interface AgentCatalogResponse {
+  agents: AgentCatalogItem[];
+}
+
 /**
  * A typed "what should the UI do to fix this" intent attached to an
  * {@link AgentDiagnostic}. The UI renders a button per intent and owns the

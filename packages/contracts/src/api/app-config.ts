@@ -58,6 +58,12 @@ export interface AppConfigPrefs {
    * most-recent-first and capped by the daemon.
    */
   recentLinkedDirs?: string[];
+  /**
+   * Canonical agent ids that should be probed by /api/agents. When absent,
+   * defaults to ['codex', 'cursor-agent']. Aliases ('agent', 'cursor') are
+   * normalized to their canonical id at write time.
+   */
+  enabledAgentIds?: string[];
 }
 
 export interface AppConfigResponse {
