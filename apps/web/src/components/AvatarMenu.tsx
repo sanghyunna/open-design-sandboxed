@@ -7,7 +7,7 @@ import { SearchableModelSelect } from './modelOptions';
 import type { AgentInfo, AppConfig, ExecMode, ProviderModelOption } from '../types';
 import { SUGGESTED_MODELS_BY_PROTOCOL } from '../state/apiProtocols';
 import { KNOWN_PROVIDERS } from '../state/config';
-import { mergeProviderModelOptions, providerModelsCacheKey } from './SettingsDialog';
+import { mergeProviderModelOptions, providerModelsCacheKey } from './providerModelsCache';
 import { apiProtocolLabel } from '../utils/apiProtocol';
 import { fetchProviderModels } from '../providers/provider-models';
 import { isMacPlatform } from '../utils/platform';

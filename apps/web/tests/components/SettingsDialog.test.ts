@@ -3,21 +3,25 @@ import {
   agentRefreshOptionsForConfig,
   canFetchProviderModels,
   canRunProviderConnectionTest,
-  deriveComposioCredentialState,
   configForManualOrbitRun,
   isOrbitRunDisabled,
   isValidApiBaseUrl,
-  mergeProviderModelOptions,
-  providerModelsCacheKey,
   sanitizeSettingsSavePayload,
   shouldEnableSettingsSave,
   shouldShowCustomModelInput,
   persistConfigAndRunOrbit,
-  switchApiProtocolConfig,
   testStatusVariant,
   updateAgentCliEnvValue,
-  updateCurrentApiProtocolConfig,
 } from '../../src/components/SettingsDialog';
+import { deriveComposioCredentialState } from '../../src/components/ConnectorSection';
+import {
+  mergeProviderModelOptions,
+  providerModelsCacheKey,
+} from '../../src/components/providerModelsCache';
+import {
+  switchApiProtocolConfig,
+  updateCurrentApiProtocolConfig,
+} from '../../src/state/apiProtocolConfig';
 import type { AppConfig, ConnectionTestResponse } from '../../src/types';
 
 const originalFetch = globalThis.fetch;

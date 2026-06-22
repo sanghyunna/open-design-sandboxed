@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  shouldSyncMediaProvidersOnSave,
+} from '../src/App';
+import {
   buildPersistedConfig,
   isAutosaveDraftOnlyChange,
   persistComposioConfigChange,
   resolveSettingsCloseConfig,
-  shouldSyncMediaProvidersOnSave,
-} from '../src/App';
+} from '../src/state/settings-persistence';
 import type { AppConfig } from '../src/types';
 
 const baseConfig: AppConfig = {

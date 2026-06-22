@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import { useAnalytics } from './analytics/provider';
 import {
@@ -16,32 +17,19 @@ import {
 import type { AmrModelsResponse, ChatSessionMode } from '@open-design/contracts';
 import { EntryView } from './components/EntryView';
 import type { IntegrationTab } from './components/IntegrationsView';
-import { MarketplaceView } from './components/MarketplaceView';
-import { PluginDetailView } from './components/PluginDetailView';
 import type { CreateInput, ImportClaudeDesignOutcome } from './components/NewProjectPanel';
 import { MemoryToast } from './components/MemoryToast';
 import { Toast } from './components/Toast';
 import { PetOverlay, type PetTaskCenter } from './components/pet/PetOverlay';
 import { buildPetTaskCenter } from './components/pet/taskCenter';
 import { migrateCustomPetAtlas } from './components/pet/pets';
-import { ProjectView } from './components/ProjectView';
 import { TooltipLayer } from './components/TooltipLayer';
 import { openWorkspaceTab, WorkspaceTabsBar } from './components/WorkspaceTabsBar';
-import {
-  DesignSystemCreationFlow,
-  DesignSystemDetailView,
-} from './components/DesignSystemFlow';
 import {
   IframeKeepAliveProvider,
   useIframeKeepAlivePool,
 } from './components/IframeKeepAlivePool';
-import {
-  SettingsDialog,
-  switchApiProtocolConfig,
-  updateCurrentApiProtocolConfig,
-  type SettingsSection,
-  type SettingsHighlight,
-} from './components/SettingsDialog';
+import type { SettingsSection, SettingsHighlight } from './components/SettingsDialog';
 import {
   daemonIsLive,
   fetchAppVersionInfo,
@@ -78,6 +66,15 @@ import {
   syncMediaProvidersToDaemon,
 } from './state/config';
 import { applyAppearanceToDocument } from './state/appearance';
+import {
+  switchApiProtocolConfig,
+  updateCurrentApiProtocolConfig,
+} from './state/apiProtocolConfig';
+import {
+  buildPersistedConfig,
+  persistComposioConfigChange,
+  resolveSettingsCloseConfig,
+} from './state/settings-persistence';
 import { isMacPlatform } from './utils/platform';
 import {
   createProject,
@@ -115,6 +112,31 @@ import type {
   SkillSummary,
 } from './types';
 
+const MarketplaceView = dynamic(
+  () => import('./components/MarketplaceView').then((m) => m.MarketplaceView),
+  { ssr: false },
+);
+const PluginDetailView = dynamic(
+  () => import('./components/PluginDetailView').then((m) => m.PluginDetailView),
+  { ssr: false },
+);
+const ProjectView = dynamic(
+  () => import('./components/ProjectView').then((m) => m.ProjectView),
+  { ssr: false },
+);
+const DesignSystemCreationFlow = dynamic(
+  () => import('./components/DesignSystemFlow').then((m) => m.DesignSystemCreationFlow),
+  { ssr: false },
+);
+const DesignSystemDetailView = dynamic(
+  () => import('./components/DesignSystemFlow').then((m) => m.DesignSystemDetailView),
+  { ssr: false },
+);
+const SettingsDialog = dynamic(
+  () => import('./components/SettingsDialog').then((m) => m.SettingsDialog),
+  { ssr: false },
+);
+
 const APP_CONFIG_CHANGED_EVENT = 'open-design:app-config-changed';
 const AMR_AGENT_ID = 'amr';
 const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
@@ -124,19 +146,6 @@ export function shouldSyncMediaProvidersOnSave(
   options?: { force?: boolean },
 ): boolean {
   return Boolean(options?.force) || hasAnyConfiguredProvider(mediaProviders);
-}
-
-function normalizeSavedComposioConfig(config: AppConfig['composio']): AppConfig['composio'] {
-  const apiKey = config?.apiKey?.trim() ?? '';
-  if (apiKey) {
-    return {
-      ...config,
-      apiKey: '',
-      apiKeyConfigured: true,
-      apiKeyTail: apiKey.slice(-4),
-    };
-  }
-  return { ...(config ?? {}) };
 }
 
 function amrProfileForConfig(config: AppConfig): string | null {
@@ -171,70 +180,6 @@ type ProjectListRequest = {
   generation: number;
   mutationVersion: number;
 };
-
-export async function persistComposioConfigChange(
-  current: AppConfig,
-  composio: AppConfig['composio'],
-  sync: (config: AppConfig['composio']) => Promise<boolean> = syncComposioConfigToDaemon,
-): Promise<AppConfig> {
-  const saved = await sync(composio);
-  if (!saved) throw new Error('Composio config save failed');
-  return {
-    ...current,
-    composio: normalizeSavedComposioConfig(composio),
-  };
-}
-
-export function buildPersistedConfig(next: AppConfig, current: AppConfig): AppConfig {
-  const stalePrivacySnapshot =
-    current.privacyDecisionAt != null && next.privacyDecisionAt == null;
-  return {
-    ...next,
-    onboardingCompleted: current.onboardingCompleted ? true : next.onboardingCompleted,
-    ...(stalePrivacySnapshot
-      ? {
-          installationId: current.installationId,
-          privacyDecisionAt: current.privacyDecisionAt,
-          telemetry: current.telemetry,
-        }
-      : {}),
-    composio: next.composio
-      ? {
-          apiKey: '',
-          apiKeyConfigured: Boolean(next.composio.apiKeyConfigured),
-          apiKeyTail: next.composio.apiKeyTail ?? '',
-        }
-      : next.composio,
-  };
-}
-
-/**
- * True when `next` and `last` produce an identical persisted shape —
- * i.e. the only diffs between them are fields that buildPersistedConfig
- * intentionally strips before disk/daemon writes (the Composio API key
- * draft today; any future save-on-explicit-confirm secrets later).
- *
- * The autosave loop in Settings uses this to skip the "All changes
- * saved" indicator transition when the user has only typed an unsaved
- * secret. Without it, autosave completes a no-op write and flashes
- * "Saved" — misleading users into trusting that a sensitive key has
- * been persisted when in fact only the section-local "Save key"
- * gesture commits it.
- */
-export function isAutosaveDraftOnlyChange(next: AppConfig, last: AppConfig): boolean {
-  return (
-    JSON.stringify(buildPersistedConfig(next, next))
-    === JSON.stringify(buildPersistedConfig(last, last))
-  );
-}
-
-export function resolveSettingsCloseConfig(
-  rendered: AppConfig,
-  latestPersisted: AppConfig,
-): AppConfig {
-  const base = latestPersisted === rendered ? rendered : latestPersisted;
-  return base.onboardingCompleted ? base : { ...base, onboardingCompleted: true };
-}
 
 function mergeAmrModelsIntoAgents(
   agents: AgentInfo[],
