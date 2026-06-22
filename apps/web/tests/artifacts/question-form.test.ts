@@ -113,10 +113,18 @@ describe('splitOnQuestionForms', () => {
     expect(out.map((s) => s.kind)).toEqual(['text']);
   });
 
-  it('keeps unterminated tags as prose without swallowing trailing text', () => {
-    const out = splitOnQuestionForms(`leading <ask-question>${VALID_BODY}`);
+  it('keeps unrecoverable unterminated tags as prose without swallowing trailing text', () => {
+    const out = splitOnQuestionForms(`leading <ask-question>${VALID_BODY}\ntrailing`);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ kind: 'text' });
+  });
+
+  it('recovers a final question form when the model omits the close tag', () => {
+    const out = splitOnQuestionForms(`ready\n<question-form id="task-type" title="Task type">${VALID_BODY}`);
+    expect(out.map((s) => s.kind)).toEqual(['text', 'form']);
+    if (out[1]?.kind !== 'form') throw new Error('expected recovered form segment');
+    expect(out[1].form.id).toBe('task-type');
+    expect(out[1].form.title).toBe('Task type');
   });
 
   it('finds close tags without Unicode index desync (#1194)', () => {

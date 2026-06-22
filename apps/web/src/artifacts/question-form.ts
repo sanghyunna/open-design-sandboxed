@@ -118,6 +118,15 @@ export function splitOnQuestionForms(input: string): FormSegment[] {
     const openEnd = openStart + m[0].length;
     const closeIdx = findCloseTag(input, openEnd, closeTag);
     if (closeIdx === -1) {
+      const attrs = parseAttrs(m[2] ?? '');
+      const form = tryParseForm(input.slice(openEnd), attrs);
+      if (form) {
+        if (openStart > cursor) {
+          out.push({ kind: 'text', text: input.slice(cursor, openStart) });
+        }
+        out.push({ kind: 'form', form, raw: input.slice(openStart) });
+        break;
+      }
       // Unterminated — leave the rest as prose so we don't swallow it.
       out.push({ kind: 'text', text: slice });
       break;

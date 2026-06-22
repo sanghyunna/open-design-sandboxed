@@ -503,6 +503,48 @@ describe('AssistantMessage question forms', () => {
       form: expect.objectContaining({ id: 'discovery', title: 'Quick brief — tailored' }),
     }));
   });
+
+  it('recovers a final unclosed question form as a banner instead of raw JSON', () => {
+    const form = [
+      '<question-form id="task-type" title="Task type">',
+      JSON.stringify({
+        description: 'Pick the workflow.',
+        questions: [
+          {
+            id: 'taskType',
+            label: 'What should we build?',
+            type: 'radio',
+            required: true,
+            options: ['Prototype', 'Report', 'Other'],
+          },
+        ],
+      }, null, 2),
+    ].join('\n');
+    const onOpenQuestions = vi.fn();
+    const { container } = render(
+      <AssistantMessage
+        message={baseMessage({
+          events: [
+            {
+              kind: 'text',
+              text: `Okay.\n\n${form}`,
+            } as ChatMessage['events'][number],
+          ],
+        })}
+        streaming={false}
+        projectId="proj-1"
+        onOpenQuestions={onOpenQuestions}
+      />,
+    );
+
+    const banner = screen.getByTestId('questions-banner');
+    expect(container.textContent).not.toContain('"questions"');
+    expect(container.textContent).not.toContain('Task type');
+    fireEvent.click(banner);
+    expect(onOpenQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      form: expect.objectContaining({ id: 'task-type', title: 'Task type' }),
+    }));
+  });
 });
 
 describe('AssistantMessage recovered produced files', () => {
@@ -626,4 +668,3 @@ describe('AssistantMessage recovered produced files', () => {
     expect(screen.getByText('agent-sketch.sketch.json')).toBeTruthy();
   });
 });
-
