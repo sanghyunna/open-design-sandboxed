@@ -84,9 +84,11 @@ function exitCodeError(code: number): NodeJS.ErrnoException {
 }
 
 describe('probe (issue #658) — ghost CLI after the binary is uninstalled', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     execAgentFileMock.mockReset();
     resolveAgentLaunchMock.mockReset();
+    const { _resetAgentDetectionCacheForTests } = await import('../../src/runtimes/detection.js');
+    _resetAgentDetectionCacheForTests();
     // Default: pretend every agent definition resolves to a fake bin so
     // we exercise the spawn path uniformly.
     resolveAgentLaunchMock.mockImplementation(fakeCodexLaunch);
@@ -176,7 +178,7 @@ describe('probe (issue #658) — ghost CLI after the binary is uninstalled', () 
     }));
     const { detectAgents } = await import('../../src/runtimes/detection.js');
 
-    await detectAgents();
+    await detectAgents({}, { enabledAgentIds: ['trae-cli'] });
 
     const traeVersionCall = execAgentFileMock.mock.calls.find(
       ([command, args]) =>
@@ -241,7 +243,7 @@ describe('probe (issue #658) — ghost CLI after the binary is uninstalled', () 
     execAgentFileMock.mockResolvedValue({ stdout: 'agent 1.2.3\n', stderr: '' });
     const { detectAgents } = await import('../../src/runtimes/detection.js');
 
-    const agents = await detectAgents();
+    const agents = await detectAgents({}, { enabledAgentIds: ['codex', 'trae-cli'] });
     const traeCli = agents.find((agent) => agent.id === 'trae-cli');
     const codex = agents.find((agent) => agent.id === 'codex');
 

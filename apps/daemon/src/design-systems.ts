@@ -197,6 +197,15 @@ type AtomicTextFileSnapshot =
   | { existed: true; content: string }
   | { existed: false };
 
+const DESIGN_SYSTEM_LIST_CACHE_TTL_MS = 60_000;
+
+type DesignSystemListCacheEntry = {
+  expiresAtMs: number;
+  systems: DesignSystemSummary[];
+};
+
+const designSystemListCache = new Map<string, DesignSystemListCacheEntry>();
+
 export const LEGACY_DESIGN_SYSTEM_ARTIFACTS = [
   {
     legacyPath: 'preview/colors-ui-palette.html',
@@ -253,15 +262,45 @@ export type DesignSystemListOptions = {
   defaultStatus?: DesignSystemStatus;
 };
 
+export function invalidateDesignSystemListCache(root?: string): void {
+  if (root === undefined) {
+    designSystemListCache.clear();
+    return;
+  }
+  const rootPrefix = `${path.resolve(root)}\0`;
+  for (const key of designSystemListCache.keys()) {
+    if (key.startsWith(rootPrefix)) designSystemListCache.delete(key);
+  }
+}
+
+function designSystemListCacheKey(root: string, options: DesignSystemListOptions): string {
+  return [
+    path.resolve(root),
+    options.idPrefix ?? '',
+    options.source ?? '',
+    String(options.isEditable ?? ''),
+    options.defaultStatus ?? '',
+  ].join('\0');
+}
+
 export async function listDesignSystems(
   root: string,
   options: DesignSystemListOptions = {},
 ): Promise<DesignSystemSummary[]> {
+  const cacheKey = designSystemListCacheKey(root, options);
+  const now = Date.now();
+  const cached = designSystemListCache.get(cacheKey);
+  if (cached && cached.expiresAtMs > now) return cached.systems;
+  if (cached) designSystemListCache.delete(cacheKey);
   const out: DesignSystemSummary[] = [];
   let entries = [];
+  let scannedRoot = false;
+  let failedRead = false;
   try {
     entries = await readdir(root, { withFileTypes: true });
-  } catch {
+    scannedRoot = true;
+  } catch (err) {
+    if (!isAbsenceError(err)) failedRead = true;
     return out;
   }
   for (const entry of entries) {
@@ -318,9 +357,16 @@ export async function listDesignSystems(
         ...(metadata.provenance ? { provenance: metadata.provenance } : {}),
         ...(metadata.projectId ? { projectId: metadata.projectId } : {}),
       });
-    } catch {
+    } catch (err) {
+      if (!isAbsenceError(err)) failedRead = true;
       // Skip.
     }
+  }
+  if (scannedRoot && !failedRead) {
+    designSystemListCache.set(cacheKey, {
+      expiresAtMs: now + DESIGN_SYSTEM_LIST_CACHE_TTL_MS,
+      systems: out,
+    });
   }
   return out;
 }
@@ -875,6 +921,7 @@ export async function createUserDesignSystem(
       body,
     });
   }
+  invalidateDesignSystemListCache(root);
   const listed = await listDesignSystems(root, {
     idPrefix: 'user:',
     source: 'user',
@@ -936,6 +983,7 @@ export async function updateUserDesignSystem(
       body,
     });
   }
+  invalidateDesignSystemListCache(root);
   const listed = await listDesignSystems(root, {
     idPrefix: 'user:',
     source: 'user',
@@ -964,6 +1012,7 @@ export async function linkUserDesignSystemProject(
     ...existingMeta,
     projectId: cleanProjectId,
   });
+  invalidateDesignSystemListCache(root);
   const listed = await listDesignSystems(root, {
     idPrefix: 'user:',
     source: 'user',
@@ -1075,6 +1124,7 @@ export async function updateUserDesignSystemRevisionStatus(
   if (status === 'accepted') {
     const accepted = await writeAcceptedUserDesignSystemRevision(root, dirId, revision, next);
     if (!accepted) return null;
+    invalidateDesignSystemListCache(root);
     return next;
   }
   await writeUserDesignSystemRevision(root, dirId, next);
@@ -1086,6 +1136,7 @@ export async function deleteUserDesignSystem(root: string, id: string): Promise<
   if (!dirId) return false;
   try {
     await rm(path.join(root, dirId), { recursive: true, force: false });
+    invalidateDesignSystemListCache(root);
     return true;
   } catch {
     return false;

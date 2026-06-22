@@ -134,8 +134,19 @@ export function handleCritiqueArtifact(
     //
     // O_NOFOLLOW is a POSIX flag; on Windows the constant resolves to
     // undefined and the open fall-through behaves like a normal read.
-    // The path-traversal guard above plus the orchestrator never writing
-    // through symlinks make Windows still safe in practice.
+    // To keep the no-follow invariant on Windows we explicitly reject
+    // symlinks before opening.
+    try {
+      const lstat = await fs.lstat(resolvedArtifactPath);
+      if (lstat.isSymbolicLink()) {
+        res
+          .status(HTTP_NOT_FOUND)
+          .json({ error: { code: 'NOT_FOUND', message: 'critique artifact not found' } });
+        return;
+      }
+    } catch {
+      // ENOENT, EACCES, etc. fall through to the same not-found response below.
+    }
     const noFollowFlag =
       typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0;
     const openFlags = fsConstants.O_RDONLY | noFollowFlag;

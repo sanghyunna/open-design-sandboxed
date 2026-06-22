@@ -2,7 +2,6 @@ import type http from 'node:http';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -14,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   composeLiveInstructionPrompt,
@@ -27,42 +26,17 @@ import {
 } from '../src/server.js';
 import { skillCwdAliasSegment } from '../src/cwd-aliases.js';
 import { getAgentDef } from '../src/agents.js';
+import { closeHttpServer } from '../src/daemon-startup.js';
 import { readMemoryConfig, writeMemoryConfig } from '../src/memory.js';
 import { upsertMessage } from '../src/db.js';
 import { renderCodexImagegenOverride } from '../src/prompts/system.js';
+import { invalidateSkillListCache } from '../src/skills.js';
+import { withFakeAgent } from './helpers/fake-agent.js';
 
 const FAKE_VELA_FIXTURE = resolve(process.cwd(), 'tests', 'fixtures', 'fake-vela.mjs');
 
 function symlinkDir(target: string, link: string): void {
   symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
-}
-
-async function withFakeAgent<T>(
-  binName: string,
-  script: string,
-  run: () => Promise<T>,
-): Promise<T> {
-  const dir = await fsp.mkdtemp(join(tmpdir(), 'od-chat-route-bin-'));
-  const oldPath = process.env.PATH;
-  try {
-    if (process.platform === 'win32') {
-      const runner = join(dir, `${binName}-test-runner.cjs`);
-      await fsp.writeFile(runner, script);
-      await fsp.writeFile(
-        join(dir, `${binName}.cmd`),
-        `@echo off\r\nnode "${runner}" %*\r\n`,
-      );
-    } else {
-      const bin = join(dir, binName);
-      await fsp.writeFile(bin, `#!/usr/bin/env node\n${script}`);
-      await fsp.chmod(bin, 0o755);
-    }
-    process.env.PATH = `${dir}${delimiter}${oldPath ?? ''}`;
-    return await run();
-  } finally {
-    process.env.PATH = oldPath;
-    await fsp.rm(dir, { recursive: true, force: true });
-  }
 }
 
 describe('/api/chat', () => {
@@ -140,7 +114,7 @@ describe('/api/chat', () => {
       rmSync(dir, { recursive: true, force: true });
     }
     if (server) {
-      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await closeHttpServer(server);
     }
     if (process.env.OD_DATA_DIR && originalMemoryConfig) {
       await writeMemoryConfig(process.env.OD_DATA_DIR, {
@@ -985,6 +959,7 @@ process.stdin.on('end', () => {
     });
 
     expect(createProjectResponse.ok).toBe(true);
+    const createProjectBody = await createProjectResponse.json() as { conversationId: string };
 
     const fakeAgentScript = `
 const fs = require('node:fs');
@@ -1012,13 +987,15 @@ process.stdin.on('end', () => {
           body: JSON.stringify({
             agentId: 'opencode',
             projectId,
+            conversationId: createProjectBody.conversationId,
+            assistantMessageId: `assistant-${randomUUID()}`,
             message: 'draft the release notes',
             skillIds: ['release-notes-one-pager'],
           }),
         });
         const body = await response.text();
 
-        expect(response.ok).toBe(true);
+        expect(response.ok, body).toBe(true);
         expect(body).toContain('staged-skill-side-files-before-spawn');
       },
     );
@@ -1055,6 +1032,7 @@ process.stdin.on('end', () => {
     });
 
     expect(createProjectResponse.ok).toBe(true);
+    const createProjectBody = await createProjectResponse.json() as { conversationId: string };
 
     const fakeAgentScript = `
 const fs = require('node:fs');
@@ -1086,13 +1064,15 @@ process.stdin.on('end', () => {
           body: JSON.stringify({
             agentId: 'opencode',
             projectId,
+            conversationId: createProjectBody.conversationId,
+            assistantMessageId: `assistant-${randomUUID()}`,
             message: 'compose multiple skills',
             skillIds: ['release-notes-one-pager', 'swiss-creative-mode-template'],
           }),
         });
         const body = await response.text();
 
-        expect(response.ok).toBe(true);
+        expect(response.ok, body).toBe(true);
         expect(body).toContain('multi-staged-skill-side-files-before-spawn');
       },
     );
@@ -1272,6 +1252,7 @@ This skill should suppress critique when selected through skillIds.
 `,
       'utf8',
     );
+    invalidateSkillListCache();
 
     process.env.OD_CRITIQUE_ENABLED = 'true';
 
@@ -1322,6 +1303,7 @@ process.stdin.on('end', () => {
         process.env.OD_CRITIQUE_ENABLED = originalCritiqueEnabled;
       }
       await fsp.rm(skillDir, { recursive: true, force: true });
+      invalidateSkillListCache();
     }
   });
 
@@ -1442,6 +1424,7 @@ process.stdin.on('end', () => {
       'utf8',
     );
     await fsp.writeFile(resolve(userSkillDir, 'references', 'checklist.md'), userChecklist, 'utf8');
+    invalidateSkillListCache();
 
     try {
       const createProjectResponse = await fetch(`${baseUrl}/api/projects`, {
@@ -1512,6 +1495,7 @@ process.stdin.on('end', () => {
       );
     } finally {
       await fsp.rm(userSkillDir, { recursive: true, force: true });
+      invalidateSkillListCache();
     }
   });
 
@@ -1761,7 +1745,15 @@ process.exit(1);
         const deepseek = getAgentDef('deepseek');
         expect(deepseek).toBeDefined();
         const originalBudget = deepseek?.maxPromptArgBytes;
-        if (deepseek) deepseek.maxPromptArgBytes = 200_000;
+        const originalBuildArgs = deepseek?.buildArgs;
+        if (deepseek) {
+          deepseek.maxPromptArgBytes = 200_000;
+          // Prompt-budget behavior is covered in runtimes/prompt-budget.test.ts.
+          // Keep this case focused on auth-failure classification; otherwise a
+          // Windows fake .cmd shim can fail the CreateProcess budget before the
+          // fake CLI emits its auth guidance.
+          deepseek.buildArgs = () => ['exec', '--auto', 'auth probe'];
+        }
         try {
           const createResponse = await fetch(`${baseUrl}/api/runs`, {
             method: 'POST',
@@ -1791,6 +1783,9 @@ process.exit(1);
           expect(statusBody.status).toBe('failed');
         } finally {
           if (deepseek) {
+            if (originalBuildArgs) {
+              deepseek.buildArgs = originalBuildArgs;
+            }
             if (originalBudget === undefined) {
               delete deepseek.maxPromptArgBytes;
             } else {
@@ -2265,7 +2260,7 @@ setInterval(() => {}, 1000);
       } else {
         process.env.OD_CHAT_RUN_SHUTDOWN_GRACE_MS = previousGrace;
       }
-      await new Promise<void>((resolve) => started.server.close(() => resolve()));
+      await closeHttpServer(started.server);
     }
   });
 });

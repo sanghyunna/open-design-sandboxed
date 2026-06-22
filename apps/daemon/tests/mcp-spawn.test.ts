@@ -14,15 +14,13 @@ import type http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { existsSync, promises as fsp, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { closeHttpServer } from '../src/daemon-startup.js';
 import { startServer } from '../src/server.js';
+import { withFakeAgent } from './helpers/fake-agent.js';
 
 async function withFakeClaude<T>(run: () => Promise<T>): Promise<T> {
-  const dir = await fsp.mkdtemp(join(tmpdir(), 'od-mcp-spawn-bin-'));
-  const oldPath = process.env.PATH;
-  const oldClaudeBin = process.env.CLAUDE_BIN;
-  const oldAgentHome = process.env.OD_AGENT_HOME;
   // Fake `claude` that prints stream-json the daemon understands and exits 0.
   // The single result frame is enough to drive the run to `succeeded`.
   const script = `
@@ -38,31 +36,10 @@ const out = {
 console.log(JSON.stringify(out));
 process.exit(0);
 `;
-  try {
-    if (process.platform === 'win32') {
-      const runner = join(dir, 'claude-test-runner.cjs');
-      await fsp.writeFile(runner, script);
-      await fsp.writeFile(
-        join(dir, 'claude.cmd'),
-        `@echo off\r\nnode "${runner}" %*\r\n`,
-      );
-    } else {
-      const bin = join(dir, 'claude');
-      await fsp.writeFile(bin, `#!/usr/bin/env node\n${script}`);
-      await fsp.chmod(bin, 0o755);
-    }
-    process.env.PATH = `${dir}${delimiter}${oldPath ?? ''}`;
-    delete process.env.CLAUDE_BIN;
-    process.env.OD_AGENT_HOME = dir;
-    return await run();
-  } finally {
-    process.env.PATH = oldPath;
-    if (oldClaudeBin === undefined) delete process.env.CLAUDE_BIN;
-    else process.env.CLAUDE_BIN = oldClaudeBin;
-    if (oldAgentHome === undefined) delete process.env.OD_AGENT_HOME;
-    else process.env.OD_AGENT_HOME = oldAgentHome;
-    await fsp.rm(dir, { recursive: true, force: true });
-  }
+  return withFakeAgent('claude', script, run, {
+    setAgentHome: true,
+    deleteEnv: ['CLAUDE_BIN'],
+  });
 }
 
 async function waitForRunStatus(
@@ -99,22 +76,29 @@ describe('spawn writes external MCP config for Claude Code', () => {
 
   afterAll(async () => {
     for (const id of projectsToClean.splice(0)) {
-      await fetch(`${baseUrl}/api/projects/${id}`, { method: 'DELETE' }).catch(() => {});
+      await cleanupRequest(`${baseUrl}/api/projects/${id}`, { method: 'DELETE' });
     }
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await closeHttpServer(server);
   });
 
   afterEach(async () => {
     // Always reset the global MCP servers list so test ordering doesn't matter.
-    await fetch(`${baseUrl}/api/mcp/servers`, {
+    await cleanupRequest(`${baseUrl}/api/mcp/servers`, {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ servers: [] }),
-    }).catch(() => {});
+    });
     for (const dir of tempDirs.splice(0)) {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  async function cleanupRequest(input: string, init: RequestInit): Promise<void> {
+    try {
+      const response = await fetch(input, init);
+      await response.arrayBuffer().catch(() => {});
+    } catch {}
+  }
 
   async function createProject(): Promise<{ id: string; dir: string; conversationId: string }> {
     const id = `mcp-spawn-${randomUUID()}`;
@@ -352,7 +336,7 @@ describe('spawn writes external MCP config for Claude Code', () => {
       );
     } finally {
       if (routineId) {
-        await fetch(`${baseUrl}/api/routines/${routineId}`, { method: 'DELETE' }).catch(() => {});
+        await cleanupRequest(`${baseUrl}/api/routines/${routineId}`, { method: 'DELETE' });
       }
     }
   }, 30_000);
@@ -679,7 +663,7 @@ describe('spawn writes external MCP config for Claude Code', () => {
     // Trigger any non-claude agent — it'll fail to spawn (no fake binary) but
     // the .mcp.json write gate runs BEFORE bin resolution, so the absence of
     // the file is the assertion that the gate held.
-    await fetch(`${baseUrl}/api/runs`, {
+    const runRes = await fetch(`${baseUrl}/api/runs`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -688,8 +672,9 @@ describe('spawn writes external MCP config for Claude Code', () => {
         message: 'hi',
       }),
     });
-    // Give the run a moment to reach the spawn pre-flight.
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(runRes.status).toBe(202);
+    const { runId } = (await runRes.json()) as { runId: string };
+    await waitForRunStatus(baseUrl, runId);
 
     const target = join(dir, '.mcp.json');
     expect(existsSync(target)).toBe(false);

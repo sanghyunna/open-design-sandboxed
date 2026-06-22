@@ -32,6 +32,15 @@ type SkillSurface = "web" | "image" | "video" | "audio";
 type SkillPlatform = "desktop" | "mobile" | null;
 type JsonRecord = Record<string, unknown>;
 
+const SKILL_LIST_CACHE_TTL_MS = 60_000;
+
+type SkillListCacheEntry = {
+  expiresAtMs: number;
+  skills: SkillInfo[];
+};
+
+const skillListCache = new Map<string, SkillListCacheEntry>();
+
 interface SkillFrontmatter extends JsonRecord {
   name?: unknown;
   zh_name?: unknown;
@@ -136,6 +145,19 @@ export function findSkillById(skills: unknown, id: unknown): SkillInfo | undefin
   return (skills as SkillInfo[]).find((s) => s.id === canonical);
 }
 
+export function invalidateSkillListCache(skillsRoots?: string | readonly string[]): void {
+  if (skillsRoots === undefined) {
+    skillListCache.clear();
+    return;
+  }
+  skillListCache.delete(skillListCacheKey(skillsRoots));
+}
+
+function skillListCacheKey(skillsRoots: string | readonly string[]): string {
+  const roots = Array.isArray(skillsRoots) ? skillsRoots : [skillsRoots];
+  return roots.map((root) => path.resolve(root || '')).join('\0');
+}
+
 // Accept either a single root path or an array. When given multiple roots,
 // the first one wins on id collisions so user-imported skills under
 // USER_SKILLS_DIR can shadow a built-in skill of the same name without
@@ -145,9 +167,16 @@ export function findSkillById(skills: unknown, id: unknown): SkillInfo | undefin
 export async function listSkills(
   skillsRoots: string | readonly string[],
 ): Promise<SkillInfo[]> {
+  const cacheKey = skillListCacheKey(skillsRoots);
+  const now = Date.now();
+  const cached = skillListCache.get(cacheKey);
+  if (cached && cached.expiresAtMs > now) return cached.skills;
+  if (cached) skillListCache.delete(cacheKey);
   const roots = Array.isArray(skillsRoots) ? skillsRoots : [skillsRoots];
   const out: SkillInfo[] = [];
   const seenIds = new Set<string>();
+  let scannedRoot = false;
+  let failedRead = false;
   for (let rootIdx = 0; rootIdx < roots.length; rootIdx += 1) {
     const skillsRoot = roots[rootIdx];
     if (!skillsRoot) continue;
@@ -155,7 +184,9 @@ export async function listSkills(
     let entries: Dirent[] = [];
     try {
       entries = await readdir(skillsRoot, { withFileTypes: true });
+      scannedRoot = true;
     } catch {
+      if (await pathExists(skillsRoot)) failedRead = true;
       continue;
     }
     for (const entry of entries) {
@@ -305,12 +336,39 @@ export async function listSkills(
             dir,
           });
         }
-      } catch {
+      } catch (err) {
+        if (!isAbsenceError(err)) failedRead = true;
         // Skip unreadable entries — this is discovery, not validation.
       }
     }
   }
+  if (scannedRoot && !failedRead) {
+    skillListCache.set(cacheKey, {
+      expiresAtMs: now + SKILL_LIST_CACHE_TTL_MS,
+      skills: out,
+    });
+  }
   return out;
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await stat(filePath);
+    return true;
+  } catch (err) {
+    if (isAbsenceError(err)) return false;
+    return true;
+  }
+}
+
+function isAbsenceError(err: unknown): boolean {
+  return Boolean(
+    err &&
+      typeof err === "object" &&
+      "code" in err &&
+      ((err as NodeJS.ErrnoException).code === "ENOENT" ||
+        (err as NodeJS.ErrnoException).code === "ENOTDIR"),
+  );
 }
 
 // Discover example artifacts that live alongside SKILL.md under
@@ -835,6 +893,7 @@ export async function importUserSkill(
   await mkdir(dir, { recursive: true });
   const md = buildSkillMarkdown({ name, description, body, triggers });
   await writeFile(path.join(dir, "SKILL.md"), md, "utf8");
+  invalidateSkillListCache();
   return { id: name, slug, dir };
 }
 
@@ -922,6 +981,7 @@ export async function updateUserSkill(
   }
   const md = buildSkillMarkdown({ name, description, body, triggers });
   await writeFile(path.join(dir, "SKILL.md"), md, "utf8");
+  invalidateSkillListCache();
   return { id: name, slug, dir };
 }
 
@@ -1039,4 +1099,5 @@ export async function deleteUserSkill(
     throw err;
   }
   await rm(target, { recursive: true, force: true });
+  invalidateSkillListCache();
 }

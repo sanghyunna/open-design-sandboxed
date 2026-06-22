@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createJsonIpcServer, type JsonIpcServerHandle } from "@open-design/sidecar";
 import { SIDECAR_ENV, SIDECAR_MESSAGES } from "@open-design/sidecar-proto";
 import { resolveDaemonUrl, DEFAULT_DAEMON_URL } from "../src/daemon-url.js";
+import { namedPipePath, writeExecutableScript } from "./helpers/fake-agent.js";
 
 // Verifies the resolution chain: --daemon-url > OD_DAEMON_URL > sidecar
 // IPC status discovery > legacy default. Each layer must short-circuit the next
@@ -60,20 +61,18 @@ describe("resolveDaemonUrl", () => {
   });
 
   it("discovers the default tools-dev daemon URL when no sidecar IPC path is available", async () => {
-    const pnpmBin = path.join(fakeBinDir, process.platform === "win32" ? "pnpm.cmd" : "pnpm");
-    const statusJson = JSON.stringify({
+    const status = {
       apps: {
         daemon: {
           url: "http://127.0.0.1:60123",
         },
       },
-    });
-    if (process.platform === "win32") {
-      fs.writeFileSync(pnpmBin, `@echo off\r\necho ${statusJson.replace(/"/g, '\\"')}\r\n`);
-    } else {
-      fs.writeFileSync(pnpmBin, `#!/bin/sh\nprintf '%s\\n' 'pnpm warning before json'\nprintf '%s\\n' '${statusJson}'\n`);
-      fs.chmodSync(pnpmBin, 0o755);
-    }
+    };
+    await writeExecutableScript(
+      fakeBinDir,
+      "pnpm",
+      `console.log('pnpm warning before json');\nconsole.log(JSON.stringify(${JSON.stringify(status)}));`,
+    );
 
     const url = await resolveDaemonUrl({
       env: {
@@ -86,7 +85,7 @@ describe("resolveDaemonUrl", () => {
 
   it("discovers the live daemon URL via the concrete sidecar IPC status endpoint", async () => {
     const socketPath = process.platform === "win32"
-      ? `\\\\.\\pipe\\open-design-daemon-url-${process.pid}-${Date.now()}`
+      ? namedPipePath(`open-design-daemon-url-${process.pid}-${Date.now()}`)
       : path.join(ipcBaseDir, "daemon.sock");
     let ipc: JsonIpcServerHandle | null = null;
     try {

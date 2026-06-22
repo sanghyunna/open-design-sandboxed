@@ -196,7 +196,9 @@ describe('Phase 2C CLI wrappers', () => {
 
     try {
       const ipcRoot = makeFolder();
-      const ipcPath = path.join(ipcRoot, 'daemon.sock');
+      const ipcPath = process.platform === 'win32'
+        ? `\\\\.\\pipe\\open-design-cli-phase2c-${process.pid}-${Date.now()}`
+        : path.join(ipcRoot, 'daemon.sock');
       const sidecar = await createJsonIpcServer({
         socketPath: ipcPath,
         handler: async (message) => {

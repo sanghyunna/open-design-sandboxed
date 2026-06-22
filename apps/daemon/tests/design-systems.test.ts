@@ -7,6 +7,7 @@ import {
   createUserDesignSystem,
   createUserDesignSystemRevision,
   deleteUserDesignSystem,
+  invalidateDesignSystemListCache,
   linkUserDesignSystemProject,
   listDesignSystems,
   listUserDesignSystemFiles,
@@ -25,7 +26,43 @@ describe('design systems registry', () => {
   });
 
   afterEach(async () => {
+    invalidateDesignSystemListCache();
     await rm(root, { recursive: true, force: true });
+  });
+
+  it('caches successful scans for 60 seconds and refreshes after explicit invalidation', async () => {
+    await mkdir(path.join(root, 'acme'), { recursive: true });
+    await writeFile(
+      path.join(root, 'acme', 'DESIGN.md'),
+      '# Acme\n\n> Category: Custom\n\nAcme brand.\n',
+    );
+
+    const first = await listDesignSystems(root);
+    expect(first.map((system) => system.id)).toEqual(['acme']);
+
+    await mkdir(path.join(root, 'bravo'), { recursive: true });
+    await writeFile(
+      path.join(root, 'bravo', 'DESIGN.md'),
+      '# Bravo\n\n> Category: Custom\n\nBravo brand.\n',
+    );
+
+    const cached = await listDesignSystems(root);
+    expect(cached.map((system) => system.id)).toEqual(['acme']);
+
+    invalidateDesignSystemListCache(root);
+    const afterInvalidate = await listDesignSystems(root);
+    expect(afterInvalidate.map((system) => system.id).sort()).toEqual(['acme', 'bravo']);
+  });
+
+  it('does not cache an empty result for a missing root', async () => {
+    const missingRoot = path.join(root, 'missing-root');
+
+    await expect(listDesignSystems(missingRoot)).resolves.toEqual([]);
+    await mkdir(path.join(missingRoot, 'acme'), { recursive: true });
+    await writeFile(path.join(missingRoot, 'acme', 'DESIGN.md'), '# Acme\n\nBody.\n');
+
+    const afterCreate = await listDesignSystems(missingRoot);
+    expect(afterCreate.map((system) => system.id)).toEqual(['acme']);
   });
 
   it('lists bundled design systems as published and non-editable', async () => {

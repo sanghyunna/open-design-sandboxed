@@ -20,15 +20,16 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import { isLocalSameOrigin } from '../../src/origin-validation.js';
 import { writeAppConfig } from '../../src/app-config.js';
+import { listSkills } from '../../src/skills.js';
 
 type FakeAgent = { id: string; available?: boolean };
 type DetectAgentsFn = (
   envByAgent?: Record<string, Record<string, string>>,
-  options?: { enabledAgentIds?: string[] },
+  options?: { enabledAgentIds?: string[]; refresh?: boolean },
 ) => Promise<FakeAgent[]>;
 type DetectAgentsStreamFn = (
   envByAgent?: Record<string, Record<string, string>>,
-  options?: { enabledAgentIds?: string[] },
+  options?: { enabledAgentIds?: string[]; refresh?: boolean },
 ) => AsyncGenerator<FakeAgent>;
 
 const { detectAgentsMock, detectAgentsStreamMock } = vi.hoisted(() => ({
@@ -98,7 +99,10 @@ describe('GET /api/agents respects enabledAgentIds', () => {
           },
           resources: {
             listAllDesignSystems: async () => [],
-            listAllSkills: async () => [],
+            listAllSkills: async () => listSkills([
+              path.join(tempRoot, 'user-skills'),
+              path.join(tempRoot, 'skills'),
+            ]),
             listAllDesignTemplates: async () => [],
             listAllSkillLikeEntries: async () => [],
             mimeFor: () => 'application/octet-stream',
@@ -125,6 +129,7 @@ describe('GET /api/agents respects enabledAgentIds', () => {
 
   beforeEach(() => {
     detectAgentsMock.mockClear();
+    detectAgentsStreamMock.mockClear();
     detectAgentsMock.mockResolvedValue([
       { id: 'codex', available: true },
       { id: 'cursor-agent', available: true },
@@ -134,6 +139,28 @@ describe('GET /api/agents respects enabledAgentIds', () => {
     try {
       fs.rmSync(path.join(dataDir, 'app-config.json'), { force: true });
     } catch {}
+  });
+
+  it('serves newly imported skills immediately after a cached empty list', async () => {
+    const resBefore = await fetch(`${baseUrl}/api/skills`);
+    expect(resBefore.status).toBe(200);
+    await expect(resBefore.json()).resolves.toMatchObject({ skills: [] });
+
+    const importRes = await fetch(`${baseUrl}/api/skills/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Route Cache Skill',
+        description: 'Imported through the route.',
+        body: '# Route Cache Skill\n\nUse this skill.',
+      }),
+    });
+    expect(importRes.status).toBe(201);
+
+    const resAfter = await fetch(`${baseUrl}/api/skills`);
+    expect(resAfter.status).toBe(200);
+    const body = (await resAfter.json()) as { skills: Array<{ id: string }> };
+    expect(body.skills.map((skill) => skill.id)).toContain('Route Cache Skill');
   });
 
   it('defaults enabledAgentIds to ["codex","cursor-agent"] when config has none', async () => {
@@ -177,6 +204,19 @@ describe('GET /api/agents respects enabledAgentIds', () => {
       | { enabledAgentIds?: string[] }
       | undefined;
     expect(options?.enabledAgentIds).toEqual(['cursor-agent']);
+  });
+
+  it('forces a fresh probe for streamed rescans', async () => {
+    detectAgentsStreamMock.mockImplementationOnce(async function* () {
+      yield { id: 'codex', available: true };
+    });
+
+    const res = await fetch(`${baseUrl}/api/agents?stream=1`);
+    expect(res.status).toBe(200);
+    await expect(res.text()).resolves.toContain('event: agent');
+
+    const options = detectAgentsStreamMock.mock.calls[0]?.[1];
+    expect(options).toMatchObject({ refresh: true });
   });
 
   it('serves a static catalog at /api/agents/catalog without probing', async () => {

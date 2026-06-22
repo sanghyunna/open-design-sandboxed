@@ -68,11 +68,29 @@ async function discoverDaemonUrlFromToolsDev(
 ): Promise<string | null> {
   return await new Promise<string | null>((resolve) => {
     let child;
+    const childEnv = { ...env };
+    if (process.platform === "win32") {
+      // ponytail: shell:true on Windows needs these; callers may
+      // pass a stripped env (e.g., tests) so merge them in if missing.
+      for (const key of ["SystemRoot", "ComSpec", "PATHEXT"]) {
+        if (!(key in childEnv) && process.env[key]) {
+          childEnv[key] = process.env[key];
+        }
+      }
+    }
+
     try {
-      child = spawn("pnpm", ["--silent", "exec", "tools-dev", "status", "--json"], {
+      const command = process.platform === "win32"
+        ? "pnpm --silent exec tools-dev status --json"
+        : "pnpm";
+      const args = process.platform === "win32"
+        ? []
+        : ["--silent", "exec", "tools-dev", "status", "--json"];
+      child = spawn(command, args, {
         cwd: REPO_ROOT,
-        env,
+        env: childEnv,
         stdio: ["ignore", "pipe", "ignore"],
+        shell: process.platform === "win32",
       });
     } catch {
       resolve(null);

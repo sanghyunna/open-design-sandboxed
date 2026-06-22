@@ -1,11 +1,13 @@
 import type { Server } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { closeHttpServer } from '../src/daemon-startup.js';
 import { startServer } from '../src/server.js';
+import { cleanupFakeAgentDir, writeExecutableScript } from './helpers/fake-agent.js';
 
 type StartedServer = {
   url: string;
@@ -42,10 +44,10 @@ describe('same-run retry runtime', () => {
   afterEach(async () => {
     await Promise.resolve(started?.shutdown?.());
     if (started?.server) {
-      await new Promise<void>((resolve) => started?.server.close(() => resolve()));
+      await closeHttpServer(started.server);
     }
     started = null;
-    if (binDir) await rm(binDir, { recursive: true, force: true });
+    if (binDir) await cleanupFakeAgentDir(binDir);
     binDir = null;
     restoreEnv(originalEnv);
   });
@@ -193,10 +195,8 @@ function restoreEnv(env: Record<string, string | undefined>): void {
 }
 
 async function writeFlakyClaude(dir: string, name: string): Promise<string> {
-  const bin = path.join(dir, name);
   const counterPath = path.join(dir, `${name}-attempts`);
-  await writeFile(bin, `#!/usr/bin/env node
-const fs = require('node:fs');
+  return writeExecutableScript(dir, name, `const fs = require('node:fs');
 const counterPath = ${JSON.stringify(counterPath)};
 if (process.argv.includes('--version')) {
   console.log('claude-code 1.0.0-retry-runtime');
@@ -224,20 +224,16 @@ if (attempts === 0) {
   }));
   setTimeout(() => process.exit(0), 20);
 }
-`, 'utf8');
-  await chmod(bin, 0o755);
-  return bin;
+`);
 }
 
 async function writeStallingClaude(
   dir: string,
   name: string,
 ): Promise<{ bin: string; argsLogPath: string }> {
-  const bin = path.join(dir, name);
   const counterPath = path.join(dir, `${name}-attempts`);
   const argsLogPath = path.join(dir, `${name}-args.jsonl`);
-  await writeFile(bin, `#!/usr/bin/env node
-const fs = require('node:fs');
+  const bin = await writeExecutableScript(dir, name, `const fs = require('node:fs');
 const counterPath = ${JSON.stringify(counterPath)};
 const argsLogPath = ${JSON.stringify(argsLogPath)};
 if (process.argv.includes('--version')) {
@@ -253,10 +249,6 @@ try { attempts = Number(fs.readFileSync(counterPath, 'utf8')) || 0; } catch {}
 fs.writeFileSync(counterPath, String(attempts + 1));
 fs.appendFileSync(argsLogPath, JSON.stringify(process.argv.slice(2)) + '\\n');
 if (attempts === 0) {
-  // First attempt: emit nothing on stdout/stderr and hang well past the
-  // inactivity watchdog window so the daemon classifies a silent first-token
-  // stall. Exit cleanly when the watchdog SIGTERMs us (default Node behavior),
-  // and keep a long fallback timer so we never self-exit before the watchdog.
   setTimeout(() => process.exit(0), 60000);
 } else {
   console.log(JSON.stringify({ type: 'system', subtype: 'init', model: 'claude-retry-test' }));
@@ -270,8 +262,7 @@ if (attempts === 0) {
   }));
   setTimeout(() => process.exit(0), 20);
 }
-`, 'utf8');
-  await chmod(bin, 0o755);
+`);
   return { bin, argsLogPath };
 }
 

@@ -22,9 +22,11 @@ import {
   validateBaseUrlResolved,
   type DnsLookupAddress,
 } from '../src/connectionTest.js';
+import { closeHttpServer } from '../src/daemon-startup.js';
 import { listProviderModels } from '../src/providerModels.js';
 import { startServer } from '../src/server.js';
 import { rememberLiveModels } from '../src/runtimes/models.js';
+import { cleanupFakeAgentDir, withFakeAgent, writeExecutableScript } from './helpers/fake-agent.js';
 
 type FetchInput = Parameters<typeof fetch>[0];
 type FetchInit = Parameters<typeof fetch>[1];
@@ -61,68 +63,16 @@ function passThroughOrUpstream(handler: (url: string, init?: FetchInit) => Respo
   });
 }
 
-async function withFakeAgent<T>(
-  binName: string,
-  script: string,
-  run: () => Promise<T>,
-): Promise<T> {
-  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-bin-'));
-  const oldPath = process.env.PATH;
-  try {
-    if (process.platform === 'win32') {
-      const runner = path.join(dir, `${binName}-test-runner.cjs`);
-      await fsp.writeFile(runner, script);
-      await fsp.writeFile(
-        path.join(dir, `${binName}.cmd`),
-        `@echo off\r\nnode "${runner}" %*\r\n`,
-      );
-    } else {
-      const bin = path.join(dir, binName);
-      await fsp.writeFile(bin, `#!/usr/bin/env node\n${script}`);
-      await fsp.chmod(bin, 0o755);
-    }
-    process.env.PATH = `${dir}${path.delimiter}${oldPath ?? ''}`;
-    return await run();
-  } finally {
-    process.env.PATH = oldPath;
-    await fsp.rm(dir, { recursive: true, force: true });
-  }
-}
-
 async function withOnlyFakeAgent<T>(
   binName: string,
   script: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-bin-'));
-  const oldPath = process.env.PATH;
-  const oldAgentHome = process.env.OD_AGENT_HOME;
-  const oldClaudeBin = process.env.CLAUDE_BIN;
-  try {
-    if (process.platform === 'win32') {
-      const runner = path.join(dir, `${binName}-test-runner.cjs`);
-      await fsp.writeFile(runner, script);
-      await fsp.writeFile(
-        path.join(dir, `${binName}.cmd`),
-        `@echo off\r\nnode "${runner}" %*\r\n`,
-      );
-    } else {
-      const bin = path.join(dir, binName);
-      await fsp.writeFile(bin, `#!/usr/bin/env node\n${script}`);
-      await fsp.chmod(bin, 0o755);
-    }
-    process.env.PATH = dir;
-    process.env.OD_AGENT_HOME = dir;
-    delete process.env.CLAUDE_BIN;
-    return await run();
-  } finally {
-    process.env.PATH = oldPath;
-    if (oldAgentHome === undefined) delete process.env.OD_AGENT_HOME;
-    else process.env.OD_AGENT_HOME = oldAgentHome;
-    if (oldClaudeBin === undefined) delete process.env.CLAUDE_BIN;
-    else process.env.CLAUDE_BIN = oldClaudeBin;
-    await fsp.rm(dir, { recursive: true, force: true });
-  }
+  return withFakeAgent(binName, script, run, {
+    isolated: true,
+    setAgentHome: true,
+    deleteEnv: ['CLAUDE_BIN'],
+  });
 }
 
 async function withFakeCodex<T>(script: string, run: () => Promise<T>): Promise<T> {
@@ -186,7 +136,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+afterAll(() => closeHttpServer(server));
 
 describe('POST /api/provider/models', () => {
   it('lists OpenAI-compatible models from /models', async () => {
@@ -2498,12 +2448,11 @@ process.stdin.on('end', () => {
     const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-bin-'));
     const oldPath = process.env.PATH;
     try {
-      const bin = path.join(dir, 'codex-next');
-      await fsp.writeFile(
-        bin,
-        `#!/usr/bin/env node\nconsole.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));\n`,
+      const bin = await writeExecutableScript(
+        dir,
+        'codex-next',
+        `console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));\n`,
       );
-      await fsp.chmod(bin, 0o755);
       process.env.PATH = oldPath ?? '';
 
       const result = await testAgentConnection({
@@ -2526,7 +2475,7 @@ process.stdin.on('end', () => {
       expect(result.detail).toContain(`This test used the configured Codex path: ${bin}.`);
     } finally {
       process.env.PATH = oldPath;
-      await fsp.rm(dir, { recursive: true, force: true });
+      await cleanupFakeAgentDir(dir);
     }
   });
 
@@ -2571,12 +2520,11 @@ process.stdin.on('end', () => {
       async () => {
         const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-fallback-'));
         try {
-          const bin = path.join(dir, 'codex-bad');
-          await fsp.writeFile(
-            bin,
-            `#!/usr/bin/env node\nconsole.error('macOS blocked this Codex binary');\nprocess.exit(1);\n`,
+          const bin = await writeExecutableScript(
+            dir,
+            'codex-bad',
+            `console.error('macOS blocked this Codex binary');\nprocess.exit(1);\n`,
           );
-          await fsp.chmod(bin, 0o755);
 
           const result = await testAgentConnection({
             agentId: 'codex',
@@ -2601,7 +2549,7 @@ process.stdin.on('end', () => {
           expect(result.detail).toContain('This test succeeded with the PATH Codex CLI at');
           expect(result.detail).toContain('Update CODEX_BIN or clear the custom path');
         } finally {
-          await fsp.rm(dir, { recursive: true, force: true });
+          await cleanupFakeAgentDir(dir);
         }
       },
     );
@@ -2613,12 +2561,12 @@ process.stdin.on('end', () => {
       async () => {
         const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-stale-shim-'));
         try {
-          const bin = path.join(dir, 'codex-stale-shim');
-          await fsp.writeFile(
-            bin,
+          const bin = await writeExecutableScript(
+            dir,
+            'codex-stale-shim',
             '#!/definitely/missing/node\nconsole.log("never runs");\n',
+            { winInterpreter: 'C:\\definitely\\missing\\node' },
           );
-          await fsp.chmod(bin, 0o755);
 
           const result = await testAgentConnection({
             agentId: 'codex',
@@ -2642,7 +2590,7 @@ process.stdin.on('end', () => {
           expect(result.detail).toContain(`Configured Codex path failed: ${bin}.`);
           expect(result.detail).toContain('This test succeeded with the PATH Codex CLI at');
         } finally {
-          await fsp.rm(dir, { recursive: true, force: true });
+          await cleanupFakeAgentDir(dir);
         }
       },
     );
@@ -3030,7 +2978,11 @@ setInterval(() => {}, 1000);
       }
       const pid = Number(await fsp.readFile(pidFile, 'utf8'));
       if (process.platform === 'win32') {
-        process.kill(pid, 'SIGKILL');
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== 'ESRCH') throw err;
+        }
         await waitForPidToExit(pid);
       } else {
         expect(() => process.kill(pid, 0)).toThrow();

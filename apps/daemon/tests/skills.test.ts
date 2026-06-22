@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { rmSync } from 'node:fs';
 
@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
 import {
   deleteUserSkill,
   importUserSkill,
+  invalidateSkillListCache,
   listSkillFiles,
   listSkills,
   slugifySkillName,
@@ -74,7 +75,64 @@ function writeSkill(
   }
 }
 
+afterEach(() => {
+  invalidateSkillListCache();
+  vi.useRealTimers();
+});
+
 describe('listSkills', () => {
+  it('caches successful scans for 60 seconds and refreshes after invalidation', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-17T00:00:00Z'));
+    const root = fresh();
+    try {
+      writeSkill(root, 'first-skill');
+
+      const first = await listSkills(root);
+      expect(first.map((skill) => skill.id)).toEqual(['first-skill']);
+
+      writeSkill(root, 'second-skill');
+      const cached = await listSkills(root);
+      expect(cached.map((skill) => skill.id)).toEqual(['first-skill']);
+
+      vi.setSystemTime(new Date('2026-06-17T00:00:59Z'));
+      const stillCached = await listSkills(root);
+      expect(stillCached.map((skill) => skill.id)).toEqual(['first-skill']);
+
+      vi.setSystemTime(new Date('2026-06-17T00:01:01Z'));
+      const afterTtl = await listSkills(root);
+      expect(afterTtl.map((skill) => skill.id).sort()).toEqual([
+        'first-skill',
+        'second-skill',
+      ]);
+
+      writeSkill(root, 'third-skill');
+      invalidateSkillListCache(root);
+      const afterInvalidate = await listSkills(root);
+      expect(afterInvalidate.map((skill) => skill.id).sort()).toEqual([
+        'first-skill',
+        'second-skill',
+        'third-skill',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('does not cache an empty result for a missing root', async () => {
+    const root = path.join(fresh(), 'missing-skills');
+    const parent = path.dirname(root);
+    try {
+      await expect(listSkills(root)).resolves.toEqual([]);
+      writeSkill(root, 'appeared-later');
+
+      const afterCreate = await listSkills(root);
+      expect(afterCreate.map((skill) => skill.id)).toEqual(['appeared-later']);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
+  });
+
   it('surfaces optional localized display metadata from SKILL.md frontmatter', async () => {
     const root = fresh();
     try {

@@ -45,7 +45,10 @@ test('detectAgents isolates a single agent probe throw so the picker still lists
     return originalResolveImpl(def, env);
   });
 
-  const agents = await detectAgents();
+  // ponytail: DEFAULT_ENABLED_AGENT_IDS is now limited to the two most
+  // common agents; enable the full registry so fault isolation is checked
+  // across every adapter, not just the cold-start default set.
+  const agents = await detectAgents({}, { enabledAgentIds: AGENT_DEFS.map((d) => d.id) });
 
   // Every adapter from the registry must still appear, including the
   // one whose probe blew up — it just gets surfaced as unavailable so
@@ -81,7 +84,7 @@ test('detectAgents isolates a probe throw from applyAgentLaunchEnv just like res
     return originalApplyImpl(env, launch, nodeBinDir);
   });
 
-  const agents = await detectAgents();
+  const agents = await detectAgents({}, { enabledAgentIds: AGENT_DEFS.map((d) => d.id) });
 
   expect(agents.length).toBe(AGENT_DEFS.length);
   // At least one adapter is marked unavailable because of the throw;

@@ -34,7 +34,24 @@ const FAKE_VELA = path.resolve(HERE, '..', 'fixtures', 'fake-vela.mjs');
 let baseUrl: string;
 let server: http.Server;
 let originalHome: string | undefined;
+let originalUserProfile: string | undefined;
 let tmpHome: string;
+let velaWrapperPath: string | undefined;
+let velaWrapperDir: string | undefined;
+
+function velaBin(): string {
+  if (process.platform !== 'win32') return FAKE_VELA;
+  if (!velaWrapperPath) {
+    velaWrapperDir = mkdtempSync(path.join(tmpdir(), 'od-vela-wrapper-'));
+    velaWrapperPath = path.join(velaWrapperDir, 'vela.cmd');
+    writeFileSync(
+      velaWrapperPath,
+      `@echo off\n"${process.execPath}" "${FAKE_VELA}" %*\n`,
+      'utf8',
+    );
+  }
+  return velaWrapperPath;
+}
 
 async function getJson<T = unknown>(url: string): Promise<{ status: number; body: T }> {
   const resp = await fetch(url);
@@ -134,7 +151,7 @@ beforeAll(async () => {
       ...(config.agentCliEnv ?? {}),
       amr: {
         ...((config.agentCliEnv?.amr as Record<string, string>) ?? {}),
-        VELA_BIN: FAKE_VELA,
+        VELA_BIN: velaBin(),
       },
     },
   });
@@ -147,8 +164,10 @@ afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
 beforeEach(() => {
   originalHome = process.env.HOME;
+  originalUserProfile = process.env.USERPROFILE;
   tmpHome = mkdtempSync(path.join(tmpdir(), 'od-vela-routes-'));
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
   process.env.OPEN_DESIGN_AMR_PROFILE = 'local';
   process.env.VELA_PROFILE = 'prod';
 });
@@ -156,6 +175,8 @@ beforeEach(() => {
 afterEach(() => {
   if (originalHome === undefined) delete process.env.HOME;
   else process.env.HOME = originalHome;
+  if (originalUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = originalUserProfile;
   delete process.env.OPEN_DESIGN_AMR_PROFILE;
   delete process.env.VELA_PROFILE;
   delete process.env.FAKE_VELA_LOGIN_DELAY_MS;
@@ -165,6 +186,10 @@ afterEach(() => {
   delete process.env.VELA_RUNTIME_KEY;
   delete process.env.VELA_LINK_URL;
   rmSync(tmpHome, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  if (velaWrapperDir) rmSync(velaWrapperDir, { recursive: true, force: true });
 });
 
 describe('GET /api/integrations/vela/status', () => {
@@ -184,7 +209,7 @@ describe('GET /api/integrations/vela/status', () => {
     // configPath must point inside the temp HOME so the suite never leaks
     // into the developer's real config file.
     expect(body.configPath.startsWith(tmpHome)).toBe(true);
-    expect(body.configPath).toContain('/.amr/');
+    expect(body.configPath).toContain(path.sep + '.amr' + path.sep);
   });
 
   it('ignores legacy ~/.vela/config.json when reporting AMR status', async () => {
@@ -211,7 +236,7 @@ describe('GET /api/integrations/vela/status', () => {
     expect(status).toBe(200);
     expect(body.loggedIn).toBe(false);
     expect(body.user).toBeNull();
-    expect(body.configPath).toContain('/.amr/');
+    expect(body.configPath).toContain(path.sep + '.amr' + path.sep);
   });
 
   it('reports Settings-configured AMR env credentials as logged in', async () => {
@@ -386,7 +411,7 @@ describe('POST /api/integrations/vela/login', () => {
         ...(previous.agentCliEnv ?? {}),
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
-          VELA_BIN: FAKE_VELA,
+          VELA_BIN: velaBin(),
           OPEN_DESIGN_AMR_PROFILE: 'local',
         },
       },
@@ -425,7 +450,7 @@ describe('POST /api/integrations/vela/login', () => {
         ...(previous.agentCliEnv ?? {}),
         amr: {
           ...((previous.agentCliEnv?.amr as Record<string, string>) ?? {}),
-          VELA_BIN: FAKE_VELA,
+          VELA_BIN: velaBin(),
           OPEN_DESIGN_AMR_PROFILE: 'local',
         },
       },

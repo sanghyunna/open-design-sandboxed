@@ -8,12 +8,13 @@ import {
   deleteUserSkill,
   findSkillById,
   importUserSkill,
+  invalidateSkillListCache,
   listSkillFiles,
   splitDerivedSkillId,
   updateUserSkill,
 } from '../skills.js';
 import { listCodexPets, readCodexPetSpritesheet } from '../codex-pets.js';
-import { readDesignSystem } from '../design-systems.js';
+import { invalidateDesignSystemListCache, readDesignSystem } from '../design-systems.js';
 import {
   LocalDesignSystemImportError,
   importLocalDesignSystemProject,
@@ -115,7 +116,10 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       aborted = true;
     });
     try {
-      for await (const agent of detectAgentsStream(agentCliEnv, detectOptions)) {
+      for await (const agent of detectAgentsStream(agentCliEnv, {
+        ...detectOptions,
+        refresh: true,
+      })) {
         if (aborted) break;
         res.write(`event: agent\ndata: ${JSON.stringify(agent)}\n\n`);
       }
@@ -597,6 +601,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       if (typeof result.dir !== 'string' || !result.dir) {
         return res.status(500).json({ error: 'skill install did not return an installation directory' });
       }
+      invalidateSkillListCache();
       const skills = await listAllSkills();
       const installedDir = fs.realpathSync.native(result.dir);
       const skill = skills.find((candidate) => fs.realpathSync.native(candidate.dir) === installedDir);
@@ -621,6 +626,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
     try {
       const result = await uninstallById(req.params.id, USER_SKILLS_DIR, SKILLS_DIR, 'skill');
       if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      invalidateSkillListCache();
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: String(err) });
@@ -635,6 +641,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       if (typeof result.dir !== 'string' || !result.dir) {
         return res.status(500).json({ error: 'design system install did not return an installation directory' });
       }
+      invalidateDesignSystemListCache();
       const systems = await listAllDesignSystems();
       const designSystemId = path.basename(fs.realpathSync.native(result.dir));
       const designSystem = findUserDesignSystemInCatalog(systems, designSystemId);
@@ -695,6 +702,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
         ...(craftApplies ? { craftApplies } : {}),
         reservedIds: designSystemDirIdsFromCatalog(before),
       });
+      invalidateDesignSystemListCache();
       const systems = await listAllDesignSystems();
       const designSystem = findUserDesignSystemInCatalog(systems, result.id);
       if (!designSystem) {
@@ -739,6 +747,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
           reservedIds: designSystemDirIdsFromCatalog(before),
         },
       );
+      invalidateDesignSystemListCache();
       const systems = await listAllDesignSystems();
       const designSystem = findUserDesignSystemInCatalog(systems, result.id);
       if (!designSystem) {
@@ -785,6 +794,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
           reservedIds: designSystemDirIdsFromCatalog(before),
         },
       );
+      invalidateDesignSystemListCache();
       const systems = await listAllDesignSystems();
       const designSystem = findUserDesignSystemInCatalog(systems, result.id);
       if (!designSystem) {
@@ -817,6 +827,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
         'design-system',
       );
       if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+      invalidateDesignSystemListCache();
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: String(err) });

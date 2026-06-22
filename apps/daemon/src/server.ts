@@ -2,7 +2,6 @@
 import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@open-design/sidecar-proto';
 import express from 'express';
 import multer from 'multer';
-import JSZip from 'jszip';
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -6792,6 +6791,7 @@ export async function startServer({
     if (buffer.length > PLUGIN_UPLOAD_MAX_BYTES) {
       throw new Error('zip file too large');
     }
+    const { default: JSZip } = await import('jszip');
     const zip = await JSZip.loadAsync(buffer);
     let totalBytes = 0;
     const entries = Object.values(zip.files);
@@ -6898,10 +6898,15 @@ export async function startServer({
     // and https://*.tar.gz / *.tgz sources. Plan §3.F3: also accept a
     // bare plugin name and resolve it through the configured marketplaces.
     // Other shapes are 400 so the error surface is clear.
-    const looksAbsolute = source.startsWith('/') || source.startsWith('./') || source.startsWith('~');
+    const looksLocal = path.isAbsolute(source)
+      || path.win32.isAbsolute(source)
+      || path.posix.isAbsolute(source)
+      || source.startsWith('./')
+      || source.startsWith('../')
+      || source.startsWith('~');
     const looksGithub = source.startsWith('github:');
     const looksHttps = /^https:\/\//i.test(source);
-    if (!looksAbsolute && !looksGithub && !looksHttps) {
+    if (!looksLocal && !looksGithub && !looksHttps) {
       // Treat the source as a plugin name and look it up in the
       // marketplace registry. Match resolution returns the canonical
       // source (github:… / https://…) so the installer can replay
@@ -13892,42 +13897,50 @@ export async function startServer({
     // point on, the existing appendMessageAgentEvent path accumulates
     // every text_delta into the assistant row's content — same as web
     // chat.
+    const needsConversationId = typeof meta.conversationId !== 'string' || !meta.conversationId;
+    const needsAssistantMessageId = typeof meta.assistantMessageId !== 'string' || !meta.assistantMessageId;
     if (
       typeof meta.projectId === 'string' &&
       meta.projectId &&
-      (typeof meta.conversationId !== 'string' || !meta.conversationId)
+      (needsConversationId || needsAssistantMessageId)
     ) {
       try {
-        const convs = listConversations(db, meta.projectId);
-        // listConversations is ordered for the UI by recent activity; this
-        // fallback must bind to the seeded default conversation instead.
-        const defaultConv = Array.isArray(convs) && convs.length > 0
-          ? [...convs].sort((a, b) => {
-              const aCreated = Number(a?.createdAt);
-              const bCreated = Number(b?.createdAt);
-              if (Number.isFinite(aCreated) && Number.isFinite(bCreated) && aCreated !== bCreated) {
-                return aCreated - bCreated;
-              }
-              return String(a?.id ?? '').localeCompare(String(b?.id ?? ''));
-            })[0]
-          : null;
-        if (defaultConv && typeof defaultConv.id === 'string' && defaultConv.id) {
-          meta.conversationId = defaultConv.id;
-          if (typeof meta.assistantMessageId !== 'string' || !meta.assistantMessageId) {
-            meta.assistantMessageId = randomUUID();
+        let conversationId = meta.conversationId;
+        if (needsConversationId) {
+          const convs = listConversations(db, meta.projectId);
+          // listConversations is ordered for the UI by recent activity; this
+          // fallback must bind to the seeded default conversation instead.
+          const defaultConv = Array.isArray(convs) && convs.length > 0
+            ? [...convs].sort((a, b) => {
+                const aCreated = Number(a?.createdAt);
+                const bCreated = Number(b?.createdAt);
+                if (Number.isFinite(aCreated) && Number.isFinite(bCreated) && aCreated !== bCreated) {
+                  return aCreated - bCreated;
+                }
+                return String(a?.id ?? '').localeCompare(String(b?.id ?? ''));
+              })[0]
+            : null;
+          if (defaultConv && typeof defaultConv.id === 'string' && defaultConv.id) {
+            conversationId = defaultConv.id;
           }
-          const promptForUserMessage =
-            typeof meta.message === 'string' && meta.message.trim().length > 0
-              ? meta.message
-              : null;
-          if (promptForUserMessage) {
-            upsertMessage(db, defaultConv.id, {
-              id: randomUUID(),
-              role: 'user',
-              content: promptForUserMessage,
-              startedAt: Date.now(),
-              endedAt: Date.now(),
-            });
+        }
+        if (typeof conversationId === 'string' && conversationId) {
+          meta.conversationId = conversationId;
+          if (needsAssistantMessageId) {
+            meta.assistantMessageId = randomUUID();
+            const promptForUserMessage =
+              typeof meta.message === 'string' && meta.message.trim().length > 0
+                ? meta.message
+                : null;
+            if (promptForUserMessage) {
+              upsertMessage(db, conversationId, {
+                id: randomUUID(),
+                role: 'user',
+                content: promptForUserMessage,
+                startedAt: Date.now(),
+                endedAt: Date.now(),
+              });
+            }
           }
         }
       } catch (err) {
@@ -14569,6 +14582,44 @@ export async function startServer({
       toolBundle: toolBundle.bundle,
       ...(chatProject?.metadata ? { projectMetadata: chatProject.metadata } : {}),
     };
+    // Web chat callers normally supply both conversationId and assistantMessageId,
+    // but test / headless callers may pass only conversationId. Synthesize the
+    // assistant message id so checkpoint capture and the chat log pin can proceed.
+    if (
+      typeof meta.projectId === 'string' &&
+      meta.projectId &&
+      typeof meta.conversationId === 'string' &&
+      meta.conversationId &&
+      (typeof meta.assistantMessageId !== 'string' || !meta.assistantMessageId)
+    ) {
+      meta.assistantMessageId = randomUUID();
+    }
+    // Legacy callers may POST /api/chat with a projectId and an arbitrary
+    // conversationId that does not exist yet. Create the conversation so the
+    // run can be pinned and checkpointed correctly.
+    if (
+      typeof meta.projectId === 'string' &&
+      meta.projectId &&
+      typeof meta.conversationId === 'string' &&
+      meta.conversationId &&
+      chatProject
+    ) {
+      const existingConversation = getConversation(db, meta.conversationId);
+      if (!existingConversation) {
+        try {
+          insertConversation(db, {
+            id: meta.conversationId,
+            projectId: meta.projectId,
+            title: null,
+            sessionMode: 'design',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+        } catch (err) {
+          console.warn('[chat] conversation create failed', err);
+        }
+      }
+    }
     const run = design.runs.create(meta);
     try {
       pinAssistantMessageOnRunCreate(db, run);

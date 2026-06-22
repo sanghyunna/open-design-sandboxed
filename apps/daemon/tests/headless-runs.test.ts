@@ -77,6 +77,7 @@ describe('POST /api/runs headless fallbacks', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agentId: 'claude',
+          enabledAgentIds: ['claude', 'opencode'],
           agentCliEnv: {
             claude: { CLAUDE_BIN: path.join(binDir, 'missing-claude') },
             opencode: { OPENCODE_BIN: opencodeBin },
@@ -167,9 +168,9 @@ async function restoreAppConfig(url: string, config: Record<string, unknown>): P
 }
 
 async function writeFakeOpencode(dir: string): Promise<string> {
-  const bin = path.join(dir, 'opencode');
-  await writeFile(bin, `#!/usr/bin/env node
-if (process.argv.includes('--version')) {
+  const isWin = process.platform === 'win32';
+  const runnerPath = path.join(dir, 'opencode-runner.cjs');
+  const body = `if (process.argv.includes('--version')) {
   console.log('opencode 0.0.0');
   process.exit(0);
 }
@@ -184,7 +185,15 @@ if (process.argv[2] === 'run') {
 } else {
   process.exit(0);
 }
-`, 'utf8');
+`;
+  await writeFile(runnerPath, body, 'utf8');
+  if (isWin) {
+    const cmdPath = path.join(dir, 'opencode.cmd');
+    await writeFile(cmdPath, `@echo off\n"${process.execPath}" "${runnerPath}" %*\n`, 'utf8');
+    return cmdPath;
+  }
+  const bin = path.join(dir, 'opencode');
+  await writeFile(bin, `#!/usr/bin/env node\n${body}`, 'utf8');
   await chmod(bin, 0o755);
   return bin;
 }

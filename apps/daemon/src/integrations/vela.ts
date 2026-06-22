@@ -153,16 +153,20 @@ export function mergeVelaEnv(
   };
 }
 
-function configDir(): string {
-  return path.join(homedir(), '.amr');
+function homeDirFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  return env.HOME || env.USERPROFILE || homedir();
 }
 
-export function amrConfigPath(): string {
-  return path.join(configDir(), 'config.json');
+function configDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(homeDirFromEnv(env), '.amr');
 }
 
-function readConfigFile(): VelaConfigFileShape | null {
-  const file = amrConfigPath();
+export function amrConfigPath(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(configDir(env), 'config.json');
+}
+
+function readConfigFile(env: NodeJS.ProcessEnv = process.env): VelaConfigFileShape | null {
+  const file = amrConfigPath(env);
   if (!existsSync(file)) return null;
   try {
     const data = readFileSync(file, 'utf8');
@@ -180,14 +184,14 @@ export function readVelaLoginStatus(
 ): VelaLoginStatus {
   const mergedEnv = mergeVelaEnv(env, configuredEnv);
   const profile = resolveAmrProfile(mergedEnv);
-  const configPath = amrConfigPath();
+  const configPath = amrConfigPath(mergedEnv);
   const loginInFlight = isVelaLoginInFlight();
   const runtimeKey = mergedEnv.VELA_RUNTIME_KEY?.trim() ?? '';
   const linkUrl = mergedEnv.VELA_LINK_URL?.trim() ?? '';
   if (runtimeKey && linkUrl) {
     return { loggedIn: true, loginInFlight, profile, user: null, configPath };
   }
-  const file = readConfigFile();
+  const file = readConfigFile(mergedEnv);
   const stored = file?.profiles?.[profile];
   const storedRuntimeKey = stored?.runtimeKey?.trim() ?? '';
   if (!storedRuntimeKey) {
@@ -229,9 +233,9 @@ export function readVelaCredentialRevision(
 }
 
 export function forgetVelaLogin(env: NodeJS.ProcessEnv = process.env): void {
-  const file = amrConfigPath();
+  const file = amrConfigPath(env);
   if (!existsSync(file)) return;
-  const parsed = readConfigFile();
+  const parsed = readConfigFile(env);
   if (!parsed?.profiles) return;
   const profile = resolveAmrProfile(env);
   if (!Object.prototype.hasOwnProperty.call(parsed.profiles, profile)) return;

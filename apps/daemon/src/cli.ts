@@ -1,17 +1,10 @@
 #!/usr/bin/env node
 // @ts-nocheck
 import { runDaemonCliStartup, startDaemonRuntime } from './daemon-startup.js';
-import { runLiveArtifactsMcpServer } from './mcp-live-artifacts-server.js';
-import { runArtifactsCli } from './artifacts-cli.js';
-import { runProjectHandoff } from './handoff-cli.js';
-import { runConnectorsToolCli } from './tools-connectors-cli.js';
-import { runDesignSystemsToolCli } from './tools-design-systems-cli.js';
-import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-cli-help.js';
-import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
-import { runLiveArtifactsToolCli } from './tools-live-artifacts-cli.js';
 import { splitResearchSubcommand } from './research/cli-args.js';
 import { resolveDaemonUrl } from './daemon-url.js';
-import { requestJsonIpc } from '@open-design/sidecar';
+import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-cli-help.js';
+import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
 import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@open-design/sidecar-proto';
 import {
   AGENT_SLUGS,
@@ -20,7 +13,6 @@ import {
   applyJsonInstall,
   removeJsonInstall,
 } from './mcp-agent-install.js';
-import { validateEnabledAgentIds } from './app-config.js';
 
 const argv = process.argv.slice(2);
 
@@ -301,6 +293,7 @@ const SUBCOMMAND_MAP = {
 
 if (argv[0] === 'mcp' && argv[1] === 'live-artifacts') {
   try {
+    const { runLiveArtifactsMcpServer } = await import('./mcp-live-artifacts-server.js');
     const { exitCode } = await runLiveArtifactsMcpServer();
     process.exit(exitCode);
   } catch (error) {
@@ -311,46 +304,58 @@ if (argv[0] === 'mcp' && argv[1] === 'live-artifacts') {
 }
 
 const first = argv.find((a) => !a.startsWith('-'));
-if (first && SUBCOMMAND_MAP[first]) {
-  const idx = argv.indexOf(first);
-  const rest = [...argv.slice(0, idx), ...argv.slice(idx + 1)];
-  await SUBCOMMAND_MAP[first](rest);
-  process.exit(0);
-}
+await (async () => {
+  if (first && SUBCOMMAND_MAP[first]) {
+    const idx = argv.indexOf(first);
+    const rest = [...argv.slice(0, idx), ...argv.slice(idx + 1)];
+    await SUBCOMMAND_MAP[first](rest);
+    // Allow stdout/stderr to drain; hard process.exit(0) crashed libuv on Windows.
+    process.exitCode = 0;
+    return;
+  }
 
-if (argv[0] === 'tools' && argv[1] === 'live-artifacts') {
-  runLiveArtifactsToolCli(argv.slice(2))
-    .then(({ exitCode }) => {
-      process.exitCode = exitCode;
-    })
-    .catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-      process.exitCode = 1;
-    });
-} else if (argv[0] === 'tools' && argv[1] === 'connectors') {
-  runConnectorsToolCli(argv.slice(2))
-    .then(({ exitCode }) => {
-      process.exitCode = exitCode;
-    })
-    .catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-      process.exitCode = 1;
-    });
-} else if (argv[0] === 'tools' && argv[1] === 'design-systems') {
-  runDesignSystemsToolCli(argv.slice(2))
-    .then(({ exitCode }) => {
-      process.exitCode = exitCode;
-    })
-    .catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-      process.exitCode = 1;
-    });
-} else {
+  if (argv[0] === 'tools' && argv[1] === 'live-artifacts') {
+    import('./tools-live-artifacts-cli.js')
+      .then(({ runLiveArtifactsToolCli }) => runLiveArtifactsToolCli(argv.slice(2)))
+      .then(({ exitCode }) => {
+        process.exitCode = exitCode;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
+        process.exitCode = 1;
+      });
+    return;
+  }
+  if (argv[0] === 'tools' && argv[1] === 'connectors') {
+    import('./tools-connectors-cli.js')
+      .then(({ runConnectorsToolCli }) => runConnectorsToolCli(argv.slice(2)))
+      .then(({ exitCode }) => {
+        process.exitCode = exitCode;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
+        process.exitCode = 1;
+      });
+    return;
+  }
+  if (argv[0] === 'tools' && argv[1] === 'design-systems') {
+    import('./tools-design-systems-cli.js')
+      .then(({ runDesignSystemsToolCli }) => runDesignSystemsToolCli(argv.slice(2)))
+      .then(({ exitCode }) => {
+        process.exitCode = exitCode;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
+        process.exitCode = 1;
+      });
+    return;
+  }
+
   await runDaemonCliStartup(argv, { printHelp: printRootHelp });
-}
+})();
 
 function printRootHelp() {
   console.log(`Usage:
@@ -500,6 +505,7 @@ async function runResearchSearch(rawArgs) {
 }
 
 async function runArtifacts(args) {
+  const { runArtifactsCli } = await import('./artifacts-cli.js');
   const { exitCode } = await runArtifactsCli(args);
   process.exit(exitCode);
 }
@@ -1662,7 +1668,11 @@ function buildLoginShellCommand(innerCommand) {
 }
 
 async function execGhBuffered(args, opts = {}) {
-  if (process.platform === 'win32') return execFileBuffered('gh', args, opts);
+  if (process.platform === 'win32') {
+    // Use the shell so test .cmd shims and the real gh.exe are both reachable
+    // on PATH; a bare execFile cannot execute .cmd files.
+    return execFileBuffered('gh', args, { shell: true, ...opts });
+  }
   const shell = process.env.SHELL && process.env.SHELL.trim() ? process.env.SHELL.trim() : '/bin/zsh';
   return execFileBuffered(shell, ['-c', buildLoginShellCommand(buildGhShellCommand(args))], {
     env: process.env,
@@ -1680,7 +1690,11 @@ async function spawnPassthrough(command, args, opts = {}) {
 }
 
 async function spawnGhPassthrough(args) {
-  if (process.platform === 'win32') return spawnPassthrough('gh', args);
+  if (process.platform === 'win32') {
+    // Use the shell so test .cmd shims and the real gh.exe are both reachable
+    // on PATH; a bare spawn cannot execute .cmd files.
+    return spawnPassthrough('gh', args, { shell: true });
+  }
   const shell = process.env.SHELL && process.env.SHELL.trim() ? process.env.SHELL.trim() : '/bin/zsh';
   return spawnPassthrough(shell, ['-c', buildLoginShellCommand(buildGhShellCommand(args))], {
     env: process.env,
@@ -4877,6 +4891,7 @@ Common options:
   // (`--unknown`, `--max-tokens` with no value) hits handoff-cli's
   // machine-readable fail() path instead of throwing out of parseFlags.
   if (sub === 'handoff') {
+    const { runProjectHandoff } = await import('./handoff-cli.js');
     const { exitCode } = await runProjectHandoff(rest);
     if (exitCode !== 0) process.exit(exitCode);
     return;
@@ -5581,6 +5596,7 @@ async function mintCliImportToken(baseDir) {
   if (typeof socketPath !== 'string' || socketPath.length === 0) return null;
   let result;
   try {
+    const { requestJsonIpc } = await import('@open-design/sidecar');
     result = await requestJsonIpc(
       socketPath,
       { type: SIDECAR_MESSAGES.MINT_IMPORT_TOKEN, input: { baseDir } },
@@ -7204,6 +7220,7 @@ async function runAgent(args) {
         process.exit(2);
       }
       const cfg = await fetchConfig();
+      const { validateEnabledAgentIds } = await import('./app-config.js');
       const normalized = validateEnabledAgentIds(ids) ?? [];
       const current = new Set(Array.isArray(cfg.enabledAgentIds) ? cfg.enabledAgentIds : []);
       for (const id of normalized) {

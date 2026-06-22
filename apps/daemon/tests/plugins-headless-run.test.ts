@@ -25,13 +25,15 @@
 import type http from 'node:http';
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import path from 'node:path';
 import url from 'node:url';
 import { promisify } from 'node:util';
+import { closeHttpServer } from '../src/daemon-startup.js';
 import { startServer } from '../src/server.js';
+import { withFakeAgent } from './helpers/fake-agent.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -57,40 +59,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await Promise.resolve(shutdown?.());
-  await new Promise<void>((resolve) => server.close(() => resolve()));
+  await closeHttpServer(server);
 });
-
-async function withFakeAgent<T>(
-  binName: string,
-  script: string,
-  run: () => Promise<T>,
-): Promise<T> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'od-headless-agent-bin-'));
-  const oldPath = process.env.PATH;
-  try {
-    if (process.platform === 'win32') {
-      const runner = path.join(dir, `${binName}-runner.cjs`);
-      await writeFile(runner, script);
-      await writeFile(
-        path.join(dir, `${binName}.cmd`),
-        `@echo off\r\nnode "${runner}" %*\r\n`,
-      );
-    } else {
-      const bin = path.join(dir, binName);
-      await writeFile(bin, `#!/usr/bin/env node\n${script}`);
-      await chmod(bin, 0o755);
-    }
-    process.env.PATH = `${dir}${path.delimiter}${oldPath ?? ''}`;
-    return await run();
-  } finally {
-    if (oldPath === undefined) {
-      delete process.env.PATH;
-    } else {
-      process.env.PATH = oldPath;
-    }
-    await rm(dir, { recursive: true, force: true });
-  }
-}
 
 async function runCli(
   args: string[],
@@ -304,16 +274,38 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       .find(Boolean)
       ?.trim();
     expect(realGit).toBeTruthy();
+    if (!realGit) throw new Error('git executable not found');
     const previousRealGit = process.env.OD_REAL_GIT;
     const previousGitAuthorName = process.env.GIT_AUTHOR_NAME;
     const previousGitAuthorEmail = process.env.GIT_AUTHOR_EMAIL;
     const previousGitCommitterName = process.env.GIT_COMMITTER_NAME;
     const previousGitCommitterEmail = process.env.GIT_COMMITTER_EMAIL;
+    const previousGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL;
+    const publishBareDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-publish-'));
+    const forkBareDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-fork-'));
+    const forkSeedDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-fork-seed-'));
+    const gitConfigPath = path.join(await mkdtemp(path.join(tmpdir(), 'od-fake-gh-config-')), 'gitconfig');
+    await execFileP(realGit, ['init', '--bare', publishBareDir]);
+    await execFileP(realGit, ['init', '--bare', forkBareDir]);
+    await execFileP(realGit, ['init', '-b', 'main', forkSeedDir]);
+    await execFileP(realGit, ['commit', '--allow-empty', '-m', 'seed', '--'], { cwd: forkSeedDir });
+    await execFileP(realGit, ['push', forkBareDir, 'main'], { cwd: forkSeedDir });
+    const toForwardSlash = (p: string) => p.replace(/\\/g, '/');
+    await writeFile(
+      gitConfigPath,
+      `[url "${toForwardSlash(publishBareDir)}"]
+\tinsteadOf = https://github.com/test-user/sample-plugin
+[url "${toForwardSlash(forkBareDir)}"]
+\tinsteadOf = https://github.com/test-user/open-design.git
+`,
+      'utf8',
+    );
     process.env.OD_REAL_GIT = realGit;
     process.env.GIT_AUTHOR_NAME = 'Open Design Test';
     process.env.GIT_AUTHOR_EMAIL = 'open-design-test@example.com';
     process.env.GIT_COMMITTER_NAME = 'Open Design Test';
     process.env.GIT_COMMITTER_EMAIL = 'open-design-test@example.com';
+    process.env.GIT_CONFIG_GLOBAL = gitConfigPath;
     try {
       await withFakeAgent(
         'gh',
@@ -329,7 +321,16 @@ function ok(text) {
 if (args[0] === '--version') ok('gh version 2.0.0');
 if (args[0] === 'auth' && args[1] === 'status') ok('Logged in to github.com account test-user');
 if (args[0] === 'api' && args[1] === 'user') ok('test-user');
-if (args[0] === 'repo' && args[1] === 'create') ok('https://github.com/test-user/' + args[2]);
+if (args[0] === 'repo' && args[1] === 'create') {
+  const repoArg = args[2] || 'sample-plugin';
+  const [owner, name] = repoArg.includes('/') ? repoArg.split('/') : ['test-user', repoArg];
+  const url = 'https://github.com/' + owner + '/' + name;
+  if (args.includes('--source') && args.includes('--push')) {
+    spawnSync(process.env.OD_REAL_GIT, ['remote', 'add', 'origin', url], { stdio: 'inherit' });
+    spawnSync(process.env.OD_REAL_GIT, ['push', '-u', 'origin', 'HEAD'], { stdio: 'inherit' });
+  }
+  ok(url);
+}
 if (args[0] === 'repo' && args[1] === 'view') {
   const repo = args[2] || '';
   if (!args.includes('--json') && (repo === 'test-user/sample-plugin' || repo.endsWith('/sample-plugin'))) {
@@ -379,6 +380,14 @@ if (args[0] === 'clone') {
     if (remoteAdd.stderr) process.stderr.write(remoteAdd.stderr);
     process.exit(remoteAdd.status ?? 1);
   }
+  process.exit(0);
+}
+if (args[0] === 'config' && args[1] === 'user.name') {
+  console.log(process.env.GIT_AUTHOR_NAME || 'test-user');
+  process.exit(0);
+}
+if (args[0] === 'config' && args[1] === 'user.email') {
+  console.log(process.env.GIT_AUTHOR_EMAIL || 'test-user@example.com');
   process.exit(0);
 }
 const result = spawnSync(process.env.OD_REAL_GIT, args, {
@@ -452,6 +461,15 @@ process.exit(result.status ?? 0);
       } else {
         process.env.GIT_COMMITTER_EMAIL = previousGitCommitterEmail;
       }
+      if (previousGitConfigGlobal === undefined) {
+        delete process.env.GIT_CONFIG_GLOBAL;
+      } else {
+        process.env.GIT_CONFIG_GLOBAL = previousGitConfigGlobal;
+      }
+      await rm(publishBareDir, { recursive: true, force: true }).catch(() => undefined);
+      await rm(forkBareDir, { recursive: true, force: true }).catch(() => undefined);
+      await rm(forkSeedDir, { recursive: true, force: true }).catch(() => undefined);
+      await rm(path.dirname(gitConfigPath), { recursive: true, force: true }).catch(() => undefined);
     }
   }, 120_000);
 

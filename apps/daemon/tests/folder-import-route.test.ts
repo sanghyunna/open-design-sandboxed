@@ -346,8 +346,9 @@ describe('POST /api/import/folder', () => {
   it('refuses archive root that resolves outside the imported folder', async () => {
     const real = makeFolder();
     await writeFile(path.join(real, 'index.html'), '<!doctype html>');
+    const outside = makeFolder();
     try {
-      symlinkSync('/etc', path.join(real, 'docs'));
+      symlinkSync(outside, path.join(real, 'docs'));
     } catch {
       return;
     }
@@ -432,10 +433,14 @@ describe('POST /api/import/folder', () => {
   it('refuses raw reads through a descendant symlink that escapes the folder', async () => {
     const real = makeFolder();
     await mkdir(path.join(real, 'assets'));
-    // Point a symlink at /etc/hosts (always exists, harmless to read,
-    // but unambiguously outside the imported folder).
+    const outsideFile = path.join(makeFolder(), 'hosts.txt');
+    await writeFile(outsideFile, 'outside');
     try {
-      symlinkSync('/etc/hosts', path.join(real, 'assets', 'leak.txt'));
+      symlinkSync(
+        outsideFile,
+        path.join(real, 'assets', 'leak.txt'),
+        process.platform === 'win32' ? 'file' : undefined,
+      );
     } catch {
       return;
     }

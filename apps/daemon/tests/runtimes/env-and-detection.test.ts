@@ -339,7 +339,7 @@ fsTest('spawnEnvForAgent gives AMR a discovered OpenCode binary under a minimal 
   }
 });
 
-test('resolveAgentExecutable prefers a configured CODEX_BIN override over PATH resolution', () => {
+fsTest('resolveAgentExecutable prefers a configured CODEX_BIN override over PATH resolution', () => {
   const dir = mkdtempSync(join(tmpdir(), 'od-codex-bin-'));
   try {
     return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
@@ -361,7 +361,7 @@ test('resolveAgentExecutable prefers a configured CODEX_BIN override over PATH r
   }
 });
 
-test('inspectAgentExecutableResolution reports configured and PATH Codex binaries separately', () => {
+fsTest('inspectAgentExecutableResolution reports configured and PATH Codex binaries separately', () => {
   const dir = mkdtempSync(join(tmpdir(), 'od-codex-bin-inspect-'));
   try {
     return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
@@ -390,7 +390,7 @@ test('inspectAgentExecutableResolution reports configured and PATH Codex binarie
   }
 });
 
-test('resolveAgentExecutable supports configured binary overrides for non-Codex adapters', () => {
+fsTest('resolveAgentExecutable supports configured binary overrides for non-Codex adapters', () => {
   const cases: Array<[string, string, string]> = [
     ['claude', 'claude', 'CLAUDE_BIN'],
     ['gemini', 'gemini', 'GEMINI_BIN'],
@@ -427,7 +427,7 @@ test('resolveAgentExecutable supports configured binary overrides for non-Codex 
   }
 });
 
-test('resolveAgentExecutable prefers opencode-cli before desktop opencode fallback', () => {
+fsTest('resolveAgentExecutable prefers opencode-cli before desktop opencode fallback', () => {
   const dir = mkdtempSync(join(tmpdir(), 'od-opencode-cli-'));
   try {
     return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
@@ -457,7 +457,7 @@ test('detectAgents includes sanitized install and docs metadata from split runti
       process.env.PATH = dir;
       process.env.OD_AGENT_HOME = dir;
 
-      const agents = await detectAgents();
+      const agents = await detectAgents({}, { enabledAgentIds: ['qoder', 'deepseek'] });
       const qoder = agents.find((agent) => agent.id === 'qoder');
       const deepseek = agents.find((agent) => agent.id === 'deepseek');
 
@@ -843,9 +843,10 @@ test('detectAgents applies configured env while probing the CLI', async () => {
       process.env.PATH = dir;
       process.env.OD_AGENT_HOME = dir;
 
-      const agents = await detectAgents({
-        claude: { CLAUDE_CONFIG_DIR: '/tmp/claude-config-probe' },
-      });
+      const agents = await detectAgents(
+        { claude: { CLAUDE_CONFIG_DIR: '/tmp/claude-config-probe' } },
+        { enabledAgentIds: ['claude'] },
+      );
 
       const detected = agents.find((agent) => agent.id === 'claude');
       assert.equal(detected?.available, true);
@@ -896,7 +897,7 @@ test('detectAgents surfaces Cursor Agent model labels without putting labels in 
       if (process.platform === 'win32') {
         writeFileSync(
           bin,
-          '@echo off\r\nif "%~1"=="--version" echo 2026.05.16-test& exit /b 0\r\nif "%~1"=="models" (\r\n  echo Available models\r\n  echo auto - Auto\r\n  echo composer-2.5 - Composer 2.5 (current)\r\n  exit /b 0\r\n)\r\nif "%~1"=="status" echo Authenticated& exit /b 0\r\nexit /b 0\r\n',
+          '@echo off\r\nif "%~1"=="--version" echo 2026.05.16-test& exit /b 0\r\nif "%~1"=="models" (\r\n  echo Available models\r\n  echo auto - Auto\r\n  echo composer-2.5 - Composer 2.5 ^(current^)\r\n  exit /b 0\r\n)\r\nif "%~1"=="status" echo Authenticated& exit /b 0\r\nexit /b 0\r\n',
         );
       } else {
         writeFileSync(
