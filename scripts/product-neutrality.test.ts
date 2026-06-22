@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { describe, test } from "node:test";
 
 import {
+  collectDaemonWindowsFootgunViolations,
   collectProductNeutralityViolationsFromSource,
   isProductNeutralityCheckedPath,
 } from "./guard.ts";
@@ -49,4 +50,54 @@ test("product-neutrality check ignores out-of-scope paths", () => {
     ),
     [],
   );
+});
+
+describe("daemon windows footgun collector", () => {
+  test("flags daemon tests that create real /tmp filesystem paths", () => {
+    const violations = collectDaemonWindowsFootgunViolations(
+      "apps/daemon/tests/daemon-footgun.test.ts",
+      [
+        "import { mkdtemp } from 'node:fs/promises';",
+        "await mkdtemp('/tmp/od-foo');",
+      ].join("\n"),
+    );
+
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0]?.lineNumber, 2);
+  });
+
+  test("flags daemon source that exits immediately after awaiting filesystem cleanup", () => {
+    const violations = collectDaemonWindowsFootgunViolations(
+      "apps/daemon/src/server.ts",
+      [
+        "import { rm } from 'node:fs/promises';",
+        "await rm('/tmp/od-foo', { recursive: true, force: true });",
+        "process.exit(0);",
+      ].join("\n"),
+    );
+
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0]?.lineNumber, 3);
+  });
+
+  test("does not flag semantic fixture strings that are not filesystem paths", () => {
+    const violations = collectDaemonWindowsFootgunViolations(
+      "apps/daemon/tests/daemon-footgun.test.ts",
+      "const fixture = { cwd: '/tmp/od-project' };",
+    );
+
+    assert.deepEqual(violations, []);
+  });
+
+  test("does not flag process.exit(0) in help text that is not after await", () => {
+    const violations = collectDaemonWindowsFootgunViolations(
+      "apps/daemon/src/cli.ts",
+      [
+        "const help = 'Use process.exit(0) only for actual termination.';",
+        "console.log(help);",
+      ].join("\n"),
+    );
+
+    assert.deepEqual(violations, []);
+  });
 });

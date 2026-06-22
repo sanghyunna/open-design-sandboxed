@@ -548,6 +548,46 @@ type ProductNeutralityViolation = {
   reason: string;
 };
 
+type DaemonWindowsFootgunViolation = {
+  filePath: string;
+  lineNumber: number;
+  match: string;
+  reason: string;
+};
+
+const daemonWindowsFootgunCheckedPathPrefixes = ["apps/daemon/src/", "apps/daemon/tests/"];
+const daemonWindowsFootgunTextExtensions = new Set([".ts"]);
+const daemonWindowsFootgunTestFilePattern = /(?:^|\/)(?:[^/]+\.)?(?:test|spec)\.ts$/;
+const daemonWindowsFilesystemApis = [
+  "mkdtemp",
+  "path\\.join",
+  "path\\.resolve",
+  "writeFile",
+  "mkdir",
+  "mkdirSync",
+  "rm",
+  "rmSync",
+  "readFile",
+  "readFileSync",
+  "existsSync",
+  "readdir",
+  "lstat",
+  "stat",
+  "symlink",
+  "symlinkSync",
+  "realpath",
+  "realpathSync",
+  "copyFile",
+  "rename",
+  "open",
+] as const;
+
+const daemonWindowsFilesystemCallPattern = new RegExp(
+  String.raw`\b(?:${daemonWindowsFilesystemApis.join("|")})\s*\([^\n)]*(?:/var/tmp/|/tmp/)[^\n)]*\)`,
+  "g",
+);
+const daemonWindowsFilesystemFixtureAllowlistPattern = /^\s*cwd:\s*path\.(?:resolve|join)\(\s*['"`](?:\/var\/tmp\/|\/tmp\/)/;
+
 export function isProductNeutralityCheckedPath(repositoryPath: string): boolean {
   return (
     productNeutralityCheckedPathPrefixes.some((prefix) => repositoryPath.startsWith(prefix)) ||
@@ -564,6 +604,113 @@ function productNeutralityForbiddenTerms(): string[] {
     .split(",")
     .map((term) => term.trim())
     .filter((term) => term.length > 0);
+}
+
+function isDaemonWindowsFootgunTestPath(repositoryPath: string): boolean {
+  return (
+    repositoryPath.startsWith("apps/daemon/tests/") &&
+    daemonWindowsFootgunTextExtensions.has(path.extname(repositoryPath)) &&
+    daemonWindowsFootgunTestFilePattern.test(repositoryPath)
+  );
+}
+
+function isDaemonWindowsFootgunSourcePath(repositoryPath: string): boolean {
+  return daemonWindowsFootgunTextExtensions.has(path.extname(repositoryPath)) && repositoryPath.startsWith("apps/daemon/src/");
+}
+
+function collectDaemonWindowsFilesystemViolations(repositoryPath: string, source: string): DaemonWindowsFootgunViolation[] {
+  const violations: DaemonWindowsFootgunViolation[] = [];
+
+  if (!isDaemonWindowsFootgunTestPath(repositoryPath)) {
+    return violations;
+  }
+
+  const sourceLines = source.split(/\r?\n/);
+
+  for (const [lineIndex, line] of sourceLines.entries()) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0 || trimmedLine.startsWith("//") || trimmedLine.startsWith("/*") || trimmedLine.startsWith("*")) {
+      continue;
+    }
+
+    if (daemonWindowsFilesystemFixtureAllowlistPattern.test(trimmedLine)) {
+      continue;
+    }
+
+    for (const match of line.matchAll(daemonWindowsFilesystemCallPattern)) {
+      violations.push({
+        filePath: repositoryPath,
+        lineNumber: lineIndex + 1,
+        match: match[0],
+        reason: "literal /tmp and /var/tmp paths must not be used in daemon filesystem calls on Windows",
+      });
+    }
+  }
+
+  return violations;
+}
+
+function collectDaemonWindowsAwaitExitViolations(repositoryPath: string, source: string): DaemonWindowsFootgunViolation[] {
+  const violations: DaemonWindowsFootgunViolation[] = [];
+
+  if (!isDaemonWindowsFootgunSourcePath(repositoryPath)) {
+    return violations;
+  }
+
+  const sourceLines = source.split(/\r?\n/);
+  let pendingAwaitLineNumber: number | null = null;
+  let inBlockComment = false;
+
+  for (const [lineIndex, line] of sourceLines.entries()) {
+    const trimmedLine = line.trim();
+
+    if (inBlockComment) {
+      if (trimmedLine.includes("*/")) {
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (trimmedLine.length === 0 || trimmedLine.startsWith("//")) {
+      continue;
+    }
+
+    if (trimmedLine.startsWith("/*")) {
+      inBlockComment = !trimmedLine.includes("*/");
+      continue;
+    }
+
+    if (pendingAwaitLineNumber !== null) {
+      if (trimmedLine.includes("process.exit(0)")) {
+        violations.push({
+          filePath: repositoryPath,
+          lineNumber: lineIndex + 1,
+          match: "process.exit(0)",
+          reason: "process.exit(0) must not run immediately after await in daemon source on Windows",
+        });
+      }
+
+      pendingAwaitLineNumber = null;
+      continue;
+    }
+
+    if (trimmedLine.includes("await") && trimmedLine.includes(";")) {
+      pendingAwaitLineNumber = lineIndex + 1;
+    }
+  }
+
+  return violations;
+}
+
+export function collectDaemonWindowsFootgunViolations(repositoryPath: string, source: string): DaemonWindowsFootgunViolation[] {
+  if (!daemonWindowsFootgunTextExtensions.has(path.extname(repositoryPath))) {
+    return [];
+  }
+
+  return [
+    ...collectDaemonWindowsFilesystemViolations(repositoryPath, source),
+    ...collectDaemonWindowsAwaitExitViolations(repositoryPath, source),
+  ];
 }
 
 export function collectProductNeutralityViolationsFromSource(
@@ -623,6 +770,31 @@ async function checkProductNeutrality(): Promise<boolean> {
   }
 
   console.log("Product-neutrality check passed: public docs, contracts, and prompts use generic orchestrator naming.");
+  return true;
+}
+
+async function checkDaemonWindowsFootguns(): Promise<boolean> {
+  const violations: DaemonWindowsFootgunViolation[] = [];
+
+  for (const repositoryPath of await collectRepositoryFiles(path.join(repoRoot, "apps/daemon"), residualSkippedDirectories)) {
+    if (!daemonWindowsFootgunCheckedPathPrefixes.some((prefix) => repositoryPath.startsWith(prefix))) {
+      continue;
+    }
+
+    const source = await readFile(path.join(repoRoot, repositoryPath), "utf8");
+    violations.push(...collectDaemonWindowsFootgunViolations(repositoryPath, source));
+  }
+
+  if (violations.length > 0) {
+    console.error("Daemon Windows footgun violations found:");
+    for (const violation of violations) {
+      console.error(`${violation.filePath}:${violation.lineNumber} \`${violation.match}\` -> ${violation.reason}`);
+    }
+    console.error("Use platform-neutral temp paths in daemon tests and avoid exiting immediately after await in daemon source.");
+    return false;
+  }
+
+  console.log("Daemon Windows footgun check passed: daemon tests and source avoid literal /tmp filesystem calls and immediate post-await exits.");
   return true;
 }
 
@@ -1053,6 +1225,7 @@ const checks: GuardCheck[] = [
   { name: "residual JavaScript", run: checkResidualJavaScript },
   { name: "package dependency specs", run: checkPackageDependencySpecs },
   { name: "product neutrality", run: checkProductNeutrality },
+  { name: "daemon Windows footguns", run: checkDaemonWindowsFootguns },
   { name: "cross-app imports", run: checkCrossAppImports },
   { name: "test layout", run: checkTestLayout },
   { name: "e2e layout", run: checkE2eLayout },

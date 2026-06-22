@@ -100,6 +100,8 @@ desktop.ini
 $RECYCLE.BIN/
 
 # --- Agent / local tooling state ---------------------------------------------
+.omo/
+.playwright-mcp/
 **/.claude-sessions/*
 .cursor/
 .agents/
