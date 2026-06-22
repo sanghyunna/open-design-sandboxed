@@ -159,11 +159,13 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: configuredAllowedDevHosts(),
   outputFileTracingRoot: WORKSPACE_ROOT,
   reactStrictMode: true,
-  // Emit browser sourcemaps so packaged-runtime exceptions can be symbolicated
-  // by PostHog. `tools/pack/src/web-sourcemaps.ts` runs after `next build`
-  // to inject chunk IDs, upload to PostHog, and ALWAYS delete the .map files
-  // before packaging so source never ships inside an installer.
-  productionBrowserSourceMaps: true,
+  // Emit browser sourcemaps only when explicitly requested, so packaged-runtime
+  // exceptions can be symbolicated by PostHog. `tools/pack/src/web-sourcemaps.ts`
+  // runs after `next build` to inject chunk IDs, upload to PostHog, and ALWAYS
+  // delete the .map files before packaging so source never ships inside an
+  // installer. Defaulting to off cuts build time and disk use for the common
+  // local/package build path.
+  productionBrowserSourceMaps: process.env.OD_WEB_BROWSER_SOURCE_MAPS === '1',
   transpilePackages: ['@open-design/components'],
   turbopack: {
     root: WORKSPACE_ROOT,

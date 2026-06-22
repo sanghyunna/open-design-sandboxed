@@ -314,6 +314,23 @@ function isAbortError(err: unknown): boolean {
   );
 }
 
+function scheduleStartupIdle(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const requestIdle = (window as unknown as {
+    requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  }).requestIdleCallback;
+  if (typeof requestIdle === 'function') {
+    const id = requestIdle(callback, { timeout: 1200 });
+    return () => {
+      const cancelIdle = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+      if (typeof cancelIdle === 'function') cancelIdle(id);
+    };
+  }
+  const id = window.setTimeout(callback, 0);
+  return () => window.clearTimeout(id);
+}
+
 export function App() {
   // `reducedMotion="user"` makes every motion/react component honor the OS
   // `prefers-reduced-motion` setting: transform/layout animations are zeroed
@@ -417,6 +434,7 @@ function AppInner() {
   const [dsLoading, setDsLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(true);
+  const [startupDeferredReady, setStartupDeferredReady] = useState(false);
   // Goes true once the daemon-persisted config (agentId/designSystemId/etc.)
   // has merged into local state. Auto-selection effects below wait on this
   // so they don't race ahead of the daemon-stored choice and overwrite it
@@ -711,14 +729,11 @@ function AppInner() {
     restartAmrPolling();
   }, [restartAmrPolling]);
 
-  // Bootstrap — detect daemon, then fan out independent fetches so each
-  // entry-view tab can render the moment its own data lands. Earlier this
-  // was one Promise.all behind a global "Loading workspace…" placeholder,
-  // which made the slowest endpoint (typically `/api/agents` on cold start)
-  // gate every tab including the ones that don't need agents at all.
   useEffect(() => {
     let cancelled = false;
     const agentStreamAbort = new AbortController();
+    const deferredAbort = new AbortController();
+    let cancelDeferredStartup: () => void = () => undefined;
     (async () => {
       const alive = await daemonIsLive();
       if (cancelled) return;
@@ -732,6 +747,7 @@ function AppInner() {
         setProjectsLoading(false);
         setPromptTemplatesLoading(false);
         setDaemonConfigLoaded(true);
+        setStartupDeferredReady(true);
         // Composio hydration also depends on the daemon. With no daemon
         // we just keep whatever localStorage already held; drop the
         // skeleton so the Settings → Connectors input reflects state.
@@ -739,64 +755,10 @@ function AppInner() {
         return;
       }
 
-      const agentRequestId = beginAgentStreamRequest();
-      void fetchAgentsStream({
-        signal: agentStreamAbort.signal,
-        onAgent: (agent) => {
-          if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
-          setAgents((current) =>
-            mergeAmrModelsIntoAgents(
-              upsertAgent(current, agent),
-              amrModelsRef.current,
-            ),
-          );
-        },
-      })
-        .then((list) => {
-          if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
-          setAgents(
-            mergeAmrModelsIntoAgents(
-              orderAgentsByRegistry(list),
-              amrModelsRef.current,
-            ),
-          );
-        })
-        .catch((err) => {
-          if (
-            cancelled ||
-            isAbortError(err) ||
-            !isCurrentAgentStreamRequest(agentRequestId)
-          ) {
-            return;
-          }
-          setAgents([]);
-        })
-        .finally(() => {
-          if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
-          setAgentsLoading(false);
-        });
-
-      // Functional skills + design templates land independently. Both
-      // gate `skillsLoading` together so the EntryView stops rendering
-      // its loader once both registries respond — neither tab would have
-      // a complete picture if we cleared the flag on the first reply.
-      let functionalReady = false;
-      let templatesReady = false;
-      const maybeClearLoading = () => {
-        if (functionalReady && templatesReady) setSkillsLoading(false);
-      };
       void fetchSkills().then((list) => {
         if (cancelled) return;
         setSkills(list);
-        functionalReady = true;
-        maybeClearLoading();
-      });
-
-      void fetchDesignTemplates().then((list) => {
-        if (cancelled) return;
-        setDesignTemplates(list);
-        templatesReady = true;
-        maybeClearLoading();
+        setSkillsLoading(false);
       });
 
       void fetchDesignSystems().then((list) => {
@@ -812,47 +774,8 @@ function AppInner() {
         setProjectsLoading(false);
       });
 
-      void listTemplates().then((list) => {
+      void fetchDaemonConfig().then((daemonConfig) => {
         if (cancelled) return;
-        setTemplates(list);
-      });
-
-      void fetchPromptTemplates().then((list) => {
-        if (cancelled) return;
-        setPromptTemplates(list);
-        setPromptTemplatesLoading(false);
-      });
-
-      void fetchAppVersionInfo().then((info) => {
-        if (cancelled) return;
-        setAppVersionInfo(info);
-      });
-
-      // Daemon-persisted config + composio config + media provider config land
-      // together so the welcome-modal decision and daemon-backed settings
-      // apply in one merge, avoiding a flash where local-only state is shown
-      // before daemon overrides it.
-      void Promise.all([
-        fetchDaemonConfig(),
-        fetchComposioConfigFromDaemon(),
-        fetchMediaProvidersFromDaemon(),
-      ]).then(([
-        daemonConfig,
-        daemonComposioConfig,
-        daemonMediaProvidersResult,
-      ]) => {
-        if (cancelled) return;
-        const daemonMediaProvidersLoaded =
-          daemonMediaProvidersResult.status === 'ok'
-            ? daemonMediaProvidersResult.providers
-            : null;
-        setDaemonMediaProviders(daemonMediaProvidersLoaded);
-        setDaemonMediaProvidersFetchState(daemonMediaProvidersResult.status);
-        setMediaProvidersNotice(
-          daemonMediaProvidersResult.status === 'error'
-            ? t('settings.mediaProviderLoadError')
-            : null,
-        );
         // Compute the next config outside the setConfig updater so we can
         // both (a) call navigate() after setConfig returns — calling it
         // inside the updater would trigger a Router setState during React's
@@ -861,36 +784,18 @@ function AppInner() {
         // the next render. latestPersistedConfigRef is kept in sync with
         // the rendered config and is safe to read here.
         const baseConfig = latestPersistedConfigRef.current;
-        const migratedLocalMediaProviders = shouldSyncLocalMediaProvidersToDaemon(
-          baseConfig.mediaProviders,
-          daemonMediaProvidersLoaded,
-        );
         const next = mergeDaemonMediaProviders(
           clearStaleAmrModelChoiceOnProfileChange(
             baseConfig,
             mergeDaemonConfig(baseConfig, daemonConfig),
           ),
-          daemonMediaProvidersLoaded,
+          null,
         );
-        const hasLocalComposioKey = Boolean(next.composio?.apiKey?.trim());
-        if (!hasLocalComposioKey && daemonComposioConfig) {
-          next.composio = daemonComposioConfig;
-        }
         saveConfig(next);
-        if (
-          daemonMediaProvidersResult.status === 'ok' &&
-          migratedLocalMediaProviders &&
-          hasAnyConfiguredProvider(next.mediaProviders)
-        ) {
-          void syncMediaProvidersToDaemon(next.mediaProviders, {
-            daemonProviders: daemonMediaProvidersLoaded,
-          });
-        }
         // Migrate localStorage prefs to daemon on first boot with the new
         // endpoint. If daemon already had values the merge above used them;
         // writing back is idempotent and keeps both sides in sync.
         void syncConfigToDaemon(next);
-        void syncComposioConfigToDaemon(next.composio);
         latestPersistedConfigRef.current = next;
         setConfig(next);
 
@@ -904,23 +809,128 @@ function AppInner() {
           navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
         }
         setDaemonConfigLoaded(true);
-        // Composio key hydration is part of this same daemon-config
-        // fetch — by the time we land here the daemon has either
-        // returned the saved-key shape (apiKeyConfigured + tail) or
-        // it errored and we kept whatever localStorage held. Either
-        // way it is safe to drop the skeleton.
-        setComposioConfigLoading(false);
+      });
+
+      cancelDeferredStartup = scheduleStartupIdle(() => {
+        if (cancelled) return;
+        setStartupDeferredReady(true);
+
+        const agentRequestId = beginAgentStreamRequest();
+        void fetchAgentsStream({
+          signal: agentStreamAbort.signal,
+          onAgent: (agent) => {
+            if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
+            setAgents((current) =>
+              mergeAmrModelsIntoAgents(
+                upsertAgent(current, agent),
+                amrModelsRef.current,
+              ),
+            );
+          },
+        })
+          .then((list) => {
+            if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
+            setAgents(
+              mergeAmrModelsIntoAgents(
+                orderAgentsByRegistry(list),
+                amrModelsRef.current,
+              ),
+            );
+          })
+          .catch((err) => {
+            if (
+              cancelled ||
+              isAbortError(err) ||
+              !isCurrentAgentStreamRequest(agentRequestId)
+            ) {
+              return;
+            }
+            setAgents([]);
+          })
+          .finally(() => {
+            if (cancelled || !isCurrentAgentStreamRequest(agentRequestId)) return;
+            setAgentsLoading(false);
+          });
+
+        void fetchDesignTemplates({ signal: deferredAbort.signal }).then((list) => {
+          if (cancelled) return;
+          setDesignTemplates(list);
+        });
+
+        void listTemplates().then((list) => {
+          if (cancelled) return;
+          setTemplates(list);
+        });
+
+        void fetchPromptTemplates({ signal: deferredAbort.signal }).then((list) => {
+          if (cancelled) return;
+          setPromptTemplates(list);
+          setPromptTemplatesLoading(false);
+        });
+
+        void fetchAppVersionInfo({ signal: deferredAbort.signal }).then((info) => {
+          if (cancelled) return;
+          setAppVersionInfo(info);
+        });
+
+        void Promise.all([
+          fetchComposioConfigFromDaemon(),
+          fetchMediaProvidersFromDaemon(),
+        ]).then(([
+          daemonComposioConfig,
+          daemonMediaProvidersResult,
+        ]) => {
+          if (cancelled) return;
+          const daemonMediaProvidersLoaded =
+            daemonMediaProvidersResult.status === 'ok'
+              ? daemonMediaProvidersResult.providers
+              : null;
+          setDaemonMediaProviders(daemonMediaProvidersLoaded);
+          setDaemonMediaProvidersFetchState(daemonMediaProvidersResult.status);
+          setMediaProvidersNotice(
+            daemonMediaProvidersResult.status === 'error'
+              ? t('settings.mediaProviderLoadError')
+              : null,
+          );
+          const baseConfig = latestPersistedConfigRef.current;
+          const migratedLocalMediaProviders = shouldSyncLocalMediaProvidersToDaemon(
+            baseConfig.mediaProviders,
+            daemonMediaProvidersLoaded,
+          );
+          const next = mergeDaemonMediaProviders(baseConfig, daemonMediaProvidersLoaded);
+          const hasLocalComposioKey = Boolean(next.composio?.apiKey?.trim());
+          if (!hasLocalComposioKey && daemonComposioConfig) {
+            next.composio = daemonComposioConfig;
+          }
+          saveConfig(next);
+          if (
+            daemonMediaProvidersResult.status === 'ok' &&
+            migratedLocalMediaProviders &&
+            hasAnyConfiguredProvider(next.mediaProviders)
+          ) {
+            void syncMediaProvidersToDaemon(next.mediaProviders, {
+              daemonProviders: daemonMediaProvidersLoaded,
+            });
+          }
+          void syncComposioConfigToDaemon(next.composio);
+          latestPersistedConfigRef.current = next;
+          setConfig(next);
+          setComposioConfigLoading(false);
+        });
       });
     })();
     return () => {
       cancelled = true;
+      cancelDeferredStartup();
       agentStreamAbort.abort();
+      deferredAbort.abort();
     };
   }, [
     beginAgentStreamRequest,
     beginProjectListRequest,
     isCurrentAgentStreamRequest,
     reconcileFetchedProjects,
+    t,
   ]);
 
   // Auto-pick the first available agent once both the daemon-stored config
@@ -1788,7 +1798,10 @@ function AppInner() {
     setSettingsInitialSection(section);
     setSettingsHighlight(opts?.highlight ?? null);
     setSettingsOpen(true);
-  }, []);
+    if (section === 'codeAgents' || section === 'execution') {
+      void refreshAgents();
+    }
+  }, [refreshAgents]);
 
   // Entry point from the failed-run AMR nudge: open Settings on the execution
   // section and flag the AMR agent card for a one-shot scroll-into-view +
@@ -1897,8 +1910,9 @@ function AppInner() {
   // immediately in the From-template tab without forcing a page reload.
   useEffect(() => {
     if (route.kind !== 'home') return;
+    if (!startupDeferredReady) return;
     void refreshTemplates();
-  }, [route.kind, refreshTemplates]);
+  }, [route.kind, refreshTemplates, startupDeferredReady]);
 
   // Existing card grids (DesignsTab, ProjectView), pickers (NewProjectPanel,
   // ChatComposer mention) all look skills up by id without caring whether

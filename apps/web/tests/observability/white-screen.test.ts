@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { createElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { AppConfig } from '../../src/types';
 
 // Client-side telemetry network egress is hard-removed in this fork: the
 // safety-event transport (`dispatch` in error-tracking.ts) is a no-op, so the
@@ -19,7 +23,119 @@ vi.mock('../../src/analytics/error-tracking', () => ({
   clearExceptionTrackingContext: () => undefined,
 }));
 
+vi.mock('../../src/router', () => ({
+  navigate: vi.fn(),
+  useRoute: () => ({ kind: 'home' as const, view: 'home' as const }),
+}));
+
+vi.mock('../../src/components/EntryView', () => ({
+  EntryView: ({ config, onOpenSettings }: { config: AppConfig; onOpenSettings: (section: string) => void }) => createElement(
+    'main',
+    { 'data-testid': 'home-ready' },
+    createElement('button', { type: 'button' }, 'New project'),
+    createElement('button', { type: 'button', onClick: () => onOpenSettings('codeAgents') }, 'Open agent settings'),
+    createElement('span', { 'data-testid': 'selected-agent' }, config.agentId ?? 'none'),
+  ),
+}));
+
+vi.mock('../../src/components/ProjectView', () => ({
+  ProjectView: () => createElement('main', null, 'Project view'),
+}));
+
+vi.mock('../../src/components/WorkspaceTabsBar', () => ({
+  WorkspaceTabsBar: () => null,
+  openWorkspaceTab: () => {},
+}));
+
+vi.mock('../../src/components/pet/PetOverlay', () => ({
+  PetOverlay: () => null,
+}));
+
+vi.mock('../../src/components/pet/pets', () => ({
+  migrateCustomPetAtlas: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../../src/components/SettingsDialog', () => ({
+  SettingsDialog: () => null,
+  switchApiProtocolConfig: (config: AppConfig) => config,
+  updateCurrentApiProtocolConfig: (config: AppConfig) => config,
+}));
+
+vi.mock('../../src/providers/registry', async () => {
+  const actual = await vi.importActual<typeof import('../../src/providers/registry')>(
+    '../../src/providers/registry',
+  );
+  return {
+    ...actual,
+    daemonIsLive: vi.fn(),
+    fetchAgentsStream: vi.fn(),
+    fetchAppVersionInfo: vi.fn(),
+    fetchDesignSystems: vi.fn(),
+    fetchDesignTemplates: vi.fn(),
+    fetchPromptTemplates: vi.fn(),
+    fetchSkills: vi.fn(),
+  };
+});
+
+vi.mock('../../src/providers/daemon', async () => {
+  const actual = await vi.importActual<typeof import('../../src/providers/daemon')>(
+    '../../src/providers/daemon',
+  );
+  return {
+    ...actual,
+    fetchAmrModels: vi.fn().mockResolvedValue(null),
+    fetchVelaLoginStatus: vi.fn().mockResolvedValue(null),
+    listProjectRuns: vi.fn().mockResolvedValue([]),
+  };
+});
+
+vi.mock('../../src/state/projects', async () => {
+  const actual = await vi.importActual<typeof import('../../src/state/projects')>(
+    '../../src/state/projects',
+  );
+  return {
+    ...actual,
+    listProjects: vi.fn(),
+    listTemplates: vi.fn(),
+  };
+});
+
+vi.mock('../../src/state/config', async () => {
+  const actual = await vi.importActual<typeof import('../../src/state/config')>(
+    '../../src/state/config',
+  );
+  return {
+    ...actual,
+    fetchComposioConfigFromDaemon: vi.fn(),
+    fetchDaemonConfig: vi.fn(),
+    fetchMediaProvidersFromDaemon: vi.fn(),
+    loadConfig: vi.fn(),
+    mergeDaemonConfig: vi.fn(actual.mergeDaemonConfig),
+    saveConfig: vi.fn(),
+    syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
+    syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
+    syncMediaProvidersToDaemon: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 import { installWhiteScreenDetector } from '../../src/observability/white-screen';
+import { App } from '../../src/App';
+import {
+  daemonIsLive,
+  fetchAgentsStream,
+  fetchAppVersionInfo,
+  fetchDesignSystems,
+  fetchDesignTemplates,
+  fetchPromptTemplates,
+  fetchSkills,
+} from '../../src/providers/registry';
+import { listProjects, listTemplates } from '../../src/state/projects';
+import {
+  fetchComposioConfigFromDaemon,
+  fetchDaemonConfig,
+  fetchMediaProvidersFromDaemon,
+  loadConfig,
+} from '../../src/state/config';
 
 /**
  * The detector is allowed to be conservative on the false-negative side
@@ -35,6 +151,25 @@ import { installWhiteScreenDetector } from '../../src/observability/white-screen
 const fetchMock = vi.fn();
 const ORIGINAL_FETCH = globalThis.fetch;
 
+const appConfig: AppConfig = {
+  mode: 'daemon',
+  apiKey: '',
+  apiProtocol: 'anthropic',
+  apiVersion: '',
+  baseUrl: 'https://api.anthropic.com',
+  model: 'claude-sonnet-4-5',
+  apiProviderBaseUrl: 'https://api.anthropic.com',
+  apiProtocolConfigs: {},
+  agentId: 'codex',
+  skillId: null,
+  designSystemId: 'default',
+  onboardingCompleted: true,
+  mediaProviders: {},
+  composio: {},
+  agentModels: {},
+  agentCliEnv: {},
+};
+
 beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockResolvedValue(new Response('', { status: 200 }));
@@ -43,13 +178,28 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: false });
   document.body.innerHTML = '';
   document.documentElement.removeAttribute('data-od-app-mounted');
+  vi.mocked(daemonIsLive).mockResolvedValue(true);
+  vi.mocked(fetchAgentsStream).mockReturnValue(new Promise(() => undefined));
+  vi.mocked(fetchSkills).mockResolvedValue([]);
+  vi.mocked(fetchDesignSystems).mockResolvedValue([]);
+  vi.mocked(fetchDesignTemplates).mockRejectedValue(new Error('deferred templates failed'));
+  vi.mocked(fetchPromptTemplates).mockRejectedValue(new Error('deferred prompts failed'));
+  vi.mocked(fetchAppVersionInfo).mockRejectedValue(new Error('deferred version failed'));
+  vi.mocked(listProjects).mockResolvedValue([]);
+  vi.mocked(listTemplates).mockReturnValue(new Promise(() => undefined));
+  vi.mocked(loadConfig).mockReturnValue({ ...appConfig });
+  vi.mocked(fetchDaemonConfig).mockResolvedValue({ agentId: 'codex', designSystemId: 'default' });
+  vi.mocked(fetchComposioConfigFromDaemon).mockReturnValue(new Promise(() => undefined));
+  vi.mocked(fetchMediaProvidersFromDaemon).mockReturnValue(new Promise(() => undefined));
 });
 
 afterEach(() => {
   vi.useRealTimers();
   globalThis.fetch = ORIGINAL_FETCH;
+  cleanup();
   document.body.innerHTML = '';
   document.documentElement.removeAttribute('data-od-app-mounted');
+  vi.clearAllMocks();
 });
 
 function lastSafetyEvent(): { event: string; properties: Record<string, unknown> } | null {
@@ -62,6 +212,31 @@ function lastSafetyEvent(): { event: string; properties: Record<string, unknown>
 }
 
 describe('observability/white-screen', () => {
+  it('lets Home mount before deferred registries settle or fail', () => {
+    render(createElement(App));
+
+    expect(screen.getByTestId('home-ready')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
+    expect(document.documentElement.getAttribute('data-od-app-mounted')).toBe('1');
+    expect(screen.getByTestId('selected-agent').textContent).toBe('codex');
+    expect(fetchAgentsStream).not.toHaveBeenCalled();
+    expect(fetchDesignTemplates).not.toHaveBeenCalled();
+    expect(fetchPromptTemplates).not.toHaveBeenCalled();
+    expect(fetchAppVersionInfo).not.toHaveBeenCalled();
+  });
+
+  it('starts agent detection when the agent settings section opens', async () => {
+    render(createElement(App));
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fetchAgentsStream).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open agent settings' }));
+
+    expect(fetchAgentsStream).toHaveBeenCalledTimes(1);
+  });
+
   it('runs the detector and reports client_white_screen (no network) when only the dynamic-import loading shell is in the DOM after the timeout', () => {
     // Reproduces the codex-review reported bug: the loading shell text
     // "Loading Open Design…" is longer than the legacy 10-char floor.

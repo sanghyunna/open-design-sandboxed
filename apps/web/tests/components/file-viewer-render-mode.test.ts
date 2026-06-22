@@ -63,6 +63,14 @@ describe('shouldUrlLoadHtmlPreview', () => {
     expect(shouldUrlLoadHtmlPreview({ ...base, needsFocusGuard: true })).toBe(false);
   });
 
+  it('falls back to srcDoc when the palette/tweaks bridge is active', () => {
+    expect(shouldUrlLoadHtmlPreview({ ...base, paletteActive: true })).toBe(false);
+  });
+
+  it('falls back to srcDoc when the HTML source needs the sandbox shim', () => {
+    expect(shouldUrlLoadHtmlPreview({ ...base, needsSandboxShim: true })).toBe(false);
+  });
+
   it('does not URL-load while the source-code tab is active', () => {
     expect(shouldUrlLoadHtmlPreview({ ...base, mode: 'source' })).toBe(false);
   });

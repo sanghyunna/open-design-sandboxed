@@ -202,9 +202,9 @@ export async function fetchAgentsStream(args: {
   return collected;
 }
 
-export async function fetchSkills(): Promise<SkillSummary[]> {
+export async function fetchSkills(options?: { signal?: AbortSignal }): Promise<SkillSummary[]> {
   try {
-    const resp = await fetch('/api/skills');
+    const resp = await fetch('/api/skills', { signal: options?.signal });
     if (!resp.ok) return [];
     const json = (await resp.json()) as { skills: SkillSummary[] };
     return json.skills ?? [];
@@ -218,9 +218,9 @@ export async function fetchSkills(): Promise<SkillSummary[]> {
 // fetched from a separate registry root so the EntryView Templates tab
 // and Settings → Skills surface stay decoupled. See
 // specs/current/skills-and-design-templates.md.
-export async function fetchDesignTemplates(): Promise<SkillSummary[]> {
+export async function fetchDesignTemplates(options?: { signal?: AbortSignal }): Promise<SkillSummary[]> {
   try {
-    const resp = await fetch('/api/design-templates');
+    const resp = await fetch('/api/design-templates', { signal: options?.signal });
     if (!resp.ok) return [];
     const json = (await resp.json()) as { designTemplates: SkillSummary[] };
     return json.designTemplates ?? [];
@@ -407,8 +407,8 @@ export async function fetchSkill(id: string): Promise<SkillDetail | null> {
   }
 }
 
-export async function fetchDesignSystems(): Promise<DesignSystemSummary[]> {
-  const result = await fetchDesignSystemsResult();
+export async function fetchDesignSystems(options?: { signal?: AbortSignal }): Promise<DesignSystemSummary[]> {
+  const result = await fetchDesignSystemsResult(options);
   return result.ok ? result.designSystems : [];
 }
 
@@ -421,9 +421,9 @@ export type DesignSystemsResult =
   | { ok: true; designSystems: DesignSystemSummary[] }
   | { ok: false };
 
-export async function fetchDesignSystemsResult(): Promise<DesignSystemsResult> {
+export async function fetchDesignSystemsResult(options?: { signal?: AbortSignal }): Promise<DesignSystemsResult> {
   try {
-    const resp = await fetch('/api/design-systems');
+    const resp = await fetch('/api/design-systems', { signal: options?.signal });
     if (!resp.ok) return { ok: false };
     const json = (await resp.json()) as { designSystems?: DesignSystemSummary[] };
     return { ok: true, designSystems: json.designSystems ?? [] };
@@ -739,9 +739,9 @@ async function readImportError(resp: Response): Promise<SkillImportError> {
   };
 }
 
-export async function fetchPromptTemplates(): Promise<PromptTemplateSummary[]> {
+export async function fetchPromptTemplates(options?: { signal?: AbortSignal }): Promise<PromptTemplateSummary[]> {
   try {
-    const resp = await fetch('/api/prompt-templates');
+    const resp = await fetch('/api/prompt-templates', { signal: options?.signal });
     if (!resp.ok) return [];
     const json = (await resp.json()) as { promptTemplates: PromptTemplateSummary[] };
     return json.promptTemplates ?? [];
@@ -1149,9 +1149,9 @@ function isAppVersionInfo(value: unknown): value is AppVersionInfo {
   );
 }
 
-export async function fetchAppVersionInfo(): Promise<AppVersionInfo | null> {
+export async function fetchAppVersionInfo(options?: { signal?: AbortSignal }): Promise<AppVersionInfo | null> {
   try {
-    const resp = await fetch('/api/version');
+    const resp = await fetch('/api/version', { signal: options?.signal });
     if (!resp.ok) return null;
     const json = (await resp.json()) as Partial<AppVersionResponse>;
     return isAppVersionInfo(json.version) ? json.version : null;

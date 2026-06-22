@@ -54,6 +54,12 @@ export interface UrlLoadDecision {
    * so `injectPreviewFocusGuard` can suppress the focus grab.
    */
   needsFocusGuard?: boolean;
+  /**
+   * The HTML source needs the srcDoc sandbox shim (external scripts, Babel
+   * standalone, or Web Storage access). When true, forces the srcDoc path so
+   * `injectSandboxShim` runs before any user script.
+   */
+  needsSandboxShim?: boolean;
 }
 
 /**
@@ -92,6 +98,7 @@ export function shouldUrlLoadHtmlPreview(d: UrlLoadDecision): boolean {
   if (d.tweaksBridge) return false;
   if (d.forceInline) return false;
   if (d.needsFocusGuard) return false;
+  if (d.needsSandboxShim) return false;
   return true;
 }
 

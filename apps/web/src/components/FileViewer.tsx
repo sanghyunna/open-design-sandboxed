@@ -85,6 +85,7 @@ import { shouldConsumeSlideNav } from '../runtime/slide-nav';
 import { findHtmlEntriesReferencing } from '../runtime/jsx-module-refs';
 import { buildLazySrcdocTransport, buildSrcdoc, canActivateSrcDocTransport } from '../runtime/srcdoc';
 import {
+  hasTweaksTemplate,
   hasUrlModeBridge,
   htmlNeedsFocusGuard,
   htmlNeedsSandboxShim,
@@ -5212,6 +5213,7 @@ function HtmlViewer({
     : livePreviewSource;
   const manualEditPageStylesEnabled = typeof source === 'string' && isManualEditFullHtmlDocument(source);
   const urlModeBridge = hasUrlModeBridge(source);
+  const tweaksBridge = hasTweaksTemplate(source);
   const manualEditRequiresSrcDoc = manualEditSrcDocActive && !urlModeBridge;
   // When we URL-load the iframe directly, skip every in-host inlining /
   // srcDoc-rebuilding step. The browser does the asset resolution itself,
@@ -5241,8 +5243,11 @@ function HtmlViewer({
     urlModeBridge,
     inspectMode,
     drawMode: drawOverlayOpen,
-    forceInline: forceInline || needsSandboxShim,
+    tweaksBridge,
+    paletteActive: false,
+    forceInline,
     needsFocusGuard,
+    needsSandboxShim,
   }) && !manualEditRequiresSrcDoc;
   const basePreviewSrcUrl = useMemo(
     () => `${projectRawUrl(projectId, file.name)}?v=${Math.round(file.mtime)}&r=${reloadKey}&odPreviewBridge=scroll&odPreviewBridge=selection&odPreviewBridge=snapshot`,
