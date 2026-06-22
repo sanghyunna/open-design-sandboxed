@@ -62,6 +62,9 @@
     Folder that receives the final portable zip after the build moves it. Default:
     D:\dev\open_design_port.
 
+.PARAMETER PortableZipCompression
+    Optional 7z compression level for the portable zip. Default: 5.
+
 .EXAMPLE
     .\build-portable.ps1
     .\build-portable.ps1 -To all
@@ -72,7 +75,8 @@ param(
     [string]$Namespace = "rg",
     [ValidateSet("zip", "all", "dir", "nsis")]
     [string]$To = "zip",
-    [string]$DropDir = "D:\dev\open_design_port"
+    [string]$DropDir = "D:\dev\open_design_port",
+    [string]$PortableZipCompression
 )
 
 $ErrorActionPreference = "Stop"
@@ -87,6 +91,19 @@ Write-Host "Project root : $ProjectRoot"
 Write-Host "Namespace    : $Namespace"
 Write-Host "Target (--to): $To"
 Write-Host "Zip drop dir : $DropDir"
+if ([string]::IsNullOrWhiteSpace($PortableZipCompression)) {
+    $PortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
+}
+
+$previousPortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
+if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
+    if ($PortableZipCompression -notmatch '^\d+$' -or [int]$PortableZipCompression -lt 0 -or [int]$PortableZipCompression -gt 9) {
+        throw "Portable zip compression must be an integer from 0 to 9, but got '$PortableZipCompression'."
+    }
+
+    $env:OD_PORTABLE_ZIP_COMPRESSION = $PortableZipCompression
+    Write-Host "Zip compression: -mx=$PortableZipCompression" -ForegroundColor Green
+}
 
 # --- 1. Force the Node 24 toolchain onto PATH -------------------------------
 if (-not (Test-Path (Join-Path $Node24 "node.exe"))) {
@@ -105,6 +122,9 @@ Write-Host "Node         : $nodeVersion (from $Node24)" -ForegroundColor Green
 # better-sqlite3 on the Node ABI for the daemon sidecar; do not Electron-rebuild
 # the assembled app's native module.
 $buildArgs = @("tools-pack", "win", "build", "--to", $To, "--namespace", $Namespace, "--portable")
+if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
+    $buildArgs += @("--cache-dir", (Join-Path $ProjectRoot ".tmp\tools-pack\cache\portable-zip-mx-$PortableZipCompression"))
+}
 Write-Host ""
 Write-Host "Running: pnpm $($buildArgs -join ' ')" -ForegroundColor Cyan
 Write-Host ""
@@ -126,6 +146,11 @@ try {
 }
 finally {
     $ErrorActionPreference = $prevEAP
+    if ($previousPortableZipCompression -eq $null) {
+        Remove-Item Env:OD_PORTABLE_ZIP_COMPRESSION -ErrorAction SilentlyContinue
+    } else {
+        $env:OD_PORTABLE_ZIP_COMPRESSION = $previousPortableZipCompression
+    }
     Pop-Location
 }
 $sw.Stop()

@@ -19,7 +19,7 @@ describe("desktop BrowserWindow chrome options", () => {
   });
 
   test("keeps the visible renderer responsive when Chromium misclassifies visibility", () => {
-    const browserWindowBlock = /new BrowserWindow\(\{([\s\S]*?)title: "Open Design",([\s\S]*?)width: 1280,/.exec(runtimeSource)?.[0] ?? "";
+    const browserWindowBlock = /new BrowserWindow\(\{([\s\S]*?)minWidth: 900,([\s\S]*?)width: 1280,/.exec(runtimeSource)?.[0] ?? "";
 
     expect(browserWindowBlock).toContain("backgroundThrottling: false");
   });

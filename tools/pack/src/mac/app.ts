@@ -137,6 +137,7 @@ export async function copyResourceTree(config: ToolPackConfig, paths: MacPaths):
   await copyBundledResourceTrees({
     workspaceRoot: config.workspaceRoot,
     resourceRoot: paths.resourceRoot,
+    portable: config.portable,
   });
   await copyOptionalVelaCliBinary({
     platform: "mac",

@@ -35,7 +35,6 @@ import { resolvePackagedNamespacePaths } from "./paths.js";
 import { packagedEntryUrl, registerOdProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
-import { resolvePackagedUpdaterEnv } from "./updater-env.js";
 import { syncWindowsUninstallDisplayVersion } from "./windows-lifecycle.js";
 
 let packagedLogger: PackagedDesktopLogger | null = null;
@@ -69,7 +68,8 @@ function applyLaunchEnv(base: string, stamp: SidecarStamp): void {
   }
 }
 
-function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portable: boolean): void {
+async function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portable: boolean): Promise<void> {
+  const { resolvePackagedUpdaterEnv } = await import("./updater-env.js");
   const overrides = resolvePackagedUpdaterEnv({
     updateMetadataUrl,
     portable,
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
   startupTiming.flush();
   flushStartupTimingOnFailure = null;
   applyPackagedElectronPathOverrides(paths);
-  applyPackagedUpdaterEnv(activeConfig.updateMetadataUrl, activeConfig.portable);
+  await applyPackagedUpdaterEnv(activeConfig.updateMetadataUrl, activeConfig.portable);
   if (!claimPackagedSingleInstanceLock(app, () => {
     if (showExistingDesktop == null) {
       pendingSecondInstanceFocus = true;
@@ -156,6 +156,7 @@ async function main(): Promise<void> {
     daemonCliEntry: activeConfig.daemonCliEntry,
     daemonSidecarEntry: activeConfig.daemonSidecarEntry,
     nodeCommand: activeConfig.nodeCommand,
+    pathsAlreadyEnsured: true,
     // PR #974 round-5 (lefarcen P2): the Electron entry runs desktop
     // main alongside the daemon, so the import-folder gate must be
     // pinned ON from request 0. See `apps/packaged/src/headless.ts` for

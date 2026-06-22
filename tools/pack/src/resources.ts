@@ -78,6 +78,7 @@ export async function copyBundledResourceTrees({
 }: {
   workspaceRoot: string;
   resourceRoot: string;
+  portable?: boolean;
 }): Promise<void> {
   for (const entry of BUNDLED_RESOURCE_TREES) {
     await cp(join(workspaceRoot, entry.from), join(resourceRoot, entry.to), {

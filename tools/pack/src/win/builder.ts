@@ -54,7 +54,11 @@ import {
   resolveWinExecutableVersionTargets,
   rewriteWinExecutableVersion,
 } from "./version-resource.js";
-import { buildWinPortableZip, withPortableConfigFlag } from "./zip.js";
+import {
+  buildWinPortableZip,
+  resolvePortableZipCompression,
+  withPortableConfigFlag,
+} from "./zip.js";
 import type {
   ElectronBuilderDirCacheMetadata,
   WinBuiltAppManifest,
@@ -76,7 +80,7 @@ const WIN_NSIS_BASE_PAYLOAD_INPUT_HASH_CACHE_VERSION = 1;
 // v2: the patch also strips any baked namespaceBaseRoot, making the zip's
 // config — and therefore the zip — identical for --portable and non-portable
 // invocations even though their unpacked trees' baked configs differ.
-const WIN_PORTABLE_ZIP_CACHE_VERSION = 2;
+const WIN_PORTABLE_ZIP_CACHE_VERSION = 4;
 
 // Pure key-input assembly for the portable-zip cache node, exported for tests.
 // The zip's true inputs are the materialized unpacked tree and the exact
@@ -89,6 +93,7 @@ const WIN_PORTABLE_ZIP_CACHE_VERSION = 2;
 export function buildWinPortableZipCacheKeyInput(input: {
   electronBuilderDirKey: string;
   injectedPackagedConfig: string;
+  portableZipCompression: number;
   namespace: string;
   packagedAppKey: string;
   packagedVersion: string;
@@ -101,10 +106,76 @@ export function buildWinPortableZipCacheKeyInput(input: {
     namespace: input.namespace,
     packagedAppKey: input.packagedAppKey,
     packagedVersion: input.packagedVersion,
+    portableZipCompression: input.portableZipCompression,
     portableZipCacheVersion: WIN_PORTABLE_ZIP_CACHE_VERSION,
     signing: input.signing,
     target: "portable-zip",
   };
+}
+
+function isPurePortableZipCacheHitEligible(config: ToolPackConfig): boolean {
+  return config.to === "zip" && config.portable && !config.signed;
+}
+
+function createWinPortableZipNode(input: {
+  build: (context: { entryRoot: string }) => Promise<{ createdAt: string; portableZipPath: string }>;
+  electronBuilderDirKey: string;
+  injectedPackagedConfig: string;
+  namespace: string;
+  packagedAppKey: string;
+  packagedVersion: string;
+  portableZipCompression: number;
+  signingCacheKey: unknown;
+}): CacheNode<{ createdAt: string; portableZipPath: string }> {
+  return {
+    build: input.build,
+    id: "win.portable-zip",
+    invalidate: async () => null,
+    key: hashJson(
+      buildWinPortableZipCacheKeyInput({
+        electronBuilderDirKey: input.electronBuilderDirKey,
+        injectedPackagedConfig: input.injectedPackagedConfig,
+        namespace: input.namespace,
+        packagedAppKey: input.packagedAppKey,
+        packagedVersion: input.packagedVersion,
+        portableZipCompression: input.portableZipCompression,
+        signing: input.signingCacheKey,
+      }),
+    ),
+    outputs: ["portable.zip"],
+  };
+}
+
+export async function materializeCachedPurePortableZip(input: {
+  cache: ToolPackCache;
+  config: ToolPackConfig;
+  electronBuilderDirKey: string;
+  packagedAppKey: string;
+  packagedVersion: string;
+  paths: WinPaths;
+  signingCacheKey: unknown;
+}): Promise<boolean> {
+  if (!isPurePortableZipCacheHitEligible(input.config)) return false;
+  const portableZipCompression = resolvePortableZipCompression();
+  const injectedPackagedConfig = withPortableConfigFlag(
+    await readFile(input.paths.packagedConfigPath, "utf8"),
+  );
+  const hit = await input.cache.readHit({
+    materialize: [{ from: "portable.zip", reuse: true, to: input.paths.setupZipPath }],
+    node: createWinPortableZipNode({
+      build: async () => {
+        throw new Error("portable zip read-hit probe must not build");
+      },
+      electronBuilderDirKey: input.electronBuilderDirKey,
+      injectedPackagedConfig,
+      namespace: input.config.namespace,
+      packagedAppKey: input.packagedAppKey,
+      packagedVersion: input.packagedVersion,
+      portableZipCompression,
+      signingCacheKey: input.signingCacheKey,
+    }),
+  });
+  return hit != null;
 }
 
 function logWinBuildProgress(message: string, fields: Record<string, unknown> = {}): void {
@@ -801,6 +872,18 @@ export async function runElectronBuilder(
       }
     }
 
+  const purePortableZipHit = await runSegment("portable-zip:read-hit-before-unpacked", async () =>
+      materializeCachedPurePortableZip({
+        cache,
+        config,
+        electronBuilderDirKey: key,
+        packagedAppKey,
+        packagedVersion,
+        paths,
+        signingCacheKey,
+      }), { eligible: isPurePortableZipCacheHitEligible(config) });
+    if (purePortableZipHit) return segments;
+
     const materialized = await runSegment("installer:materialize-unpacked", async () => {
       const materializedManifest = await cache.readHit({
         materialize: [{
@@ -836,6 +919,7 @@ export async function runElectronBuilder(
     if (shouldBuildWinPortableZip(config.to)) {
       const archiveSegments: WinPackTiming[] = [];
       await runSegment("portable-zip:cache", async () => {
+        const portableZipCompression = resolvePortableZipCompression();
         // Key on the exact bytes this node zips: the dir key identifies the
         // materialized tree (including resourceTreeKey and the baked config's
         // inputs), and the post-injection config text pins the one archive
@@ -843,27 +927,21 @@ export async function runElectronBuilder(
         const injectedPackagedConfig = withPortableConfigFlag(
           await readFile(materialized.configPath, "utf8"),
         );
-        const portableZipNode: CacheNode<{ createdAt: string; portableZipPath: string }> = {
+        const portableZipNode = createWinPortableZipNode({
           build: async ({ entryRoot }) => {
             await ensureSignedUnpacked();
             archiveSegments.push(...await buildWinPortableZip(config, paths, materialized));
             await cp(paths.setupZipPath, join(entryRoot, "portable.zip"));
             return { createdAt: new Date().toISOString(), portableZipPath: paths.setupZipPath };
           },
-          id: "win.portable-zip",
-          invalidate: async () => null,
-          key: hashJson(
-            buildWinPortableZipCacheKeyInput({
-              electronBuilderDirKey: key,
-              injectedPackagedConfig,
-              namespace: config.namespace,
-              packagedAppKey,
-              packagedVersion,
-              signing: signingCacheKey,
-            }),
-          ),
-          outputs: ["portable.zip"],
-        };
+          electronBuilderDirKey: key,
+          injectedPackagedConfig,
+          namespace: config.namespace,
+          packagedAppKey,
+          packagedVersion,
+          portableZipCompression,
+          signingCacheKey,
+        });
         await cache.acquire({
           materialize: [{ from: "portable.zip", reuse: true, to: paths.setupZipPath }],
           node: portableZipNode,

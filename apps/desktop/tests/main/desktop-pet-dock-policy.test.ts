@@ -8,10 +8,10 @@
 // *process* type between `UIElementApplication` and
 // `ForegroundApplication` while applying that call (the Electron docs
 // note it "will hide the window and dock for a short time"). On
-// Electron 41 / macOS 26 that round-trip races during the launch burst
-// — the pet window is created alongside the main window — and the
-// process can stay stuck as an accessory app: no Dock icon, no menu
-// bar. Passing `skipTransformProcessType: true` bypasses the transform,
+// Electron 41 / macOS 26 that round-trip raced with launch when the pet
+// window was still created alongside the main window, and the process could
+// stay stuck as an accessory app: no Dock icon, no menu bar. Passing
+// `skipTransformProcessType: true` bypasses the transform,
 // keeping the app a regular Dock app; the pet still floats on every
 // Space via its `alwaysOnTop` floating level.
 //

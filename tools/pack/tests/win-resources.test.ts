@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { ToolPackCache } from "../src/cache.js";
 import type { ToolPackConfig } from "../src/config.js";
+import { shouldMaterializeWinResourceTree } from "../src/win/build.js";
 import { prepareResourceTree } from "../src/win/resources.js";
 import type { WinPaths } from "../src/win/types.js";
 
@@ -43,9 +44,14 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
     "utf8",
   );
   await mkdir(join(workspaceRoot, "assets", "frames"), { recursive: true });
-  await mkdir(join(workspaceRoot, "assets", "community-pets", "sample"), {
+  await mkdir(join(workspaceRoot, "assets", "community-pets", "clippit"), {
     recursive: true,
   });
+  await mkdir(join(workspaceRoot, "assets", "community-pets", "dario"), { recursive: true });
+  await writeFile(join(workspaceRoot, "assets", "community-pets", "clippit", "pet.json"), "{\"name\":\"clippit\"}\n", "utf8");
+  await writeFile(join(workspaceRoot, "assets", "community-pets", "clippit", "spritesheet.webp"), "clippit-sheet\n", "utf8");
+  await writeFile(join(workspaceRoot, "assets", "community-pets", "dario", "pet.json"), "{\"name\":\"dario\"}\n", "utf8");
+  await writeFile(join(workspaceRoot, "assets", "community-pets", "dario", "spritesheet.webp"), "dario-sheet\n", "utf8");
   await mkdir(join(workspaceRoot, "prompt-templates", "image"), {
     recursive: true,
   });
@@ -63,6 +69,59 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
 }
 
 describe("prepareResourceTree", () => {
+  it("keeps pure portable zip resource packaging on the cache tree", async () => {
+    const root = await mkdtemp(join(tmpdir(), "open-design-win-resources-cache-"));
+    const workspaceRoot = join(root, "workspace");
+    const resourceRoot = join(root, "materialized", "open-design");
+    const cache = new ToolPackCache(join(root, "cache"));
+    const config = {
+      portable: true,
+      to: "zip",
+      workspaceRoot,
+    } as ToolPackConfig;
+    const paths = { resourceRoot } as WinPaths;
+    const templatePath = join(
+      workspaceRoot,
+      "design-templates",
+      "orbit-general",
+      "SKILL.md",
+    );
+
+    try {
+      await createWorkspaceFixture(workspaceRoot);
+      await writeFile(templatePath, "portable resource\n", "utf8");
+
+      await prepareResourceTree({ ...config, portable: false }, paths, cache, { materialize: true });
+
+      const result = await prepareResourceTree(config, paths, cache, {
+        materialize: shouldMaterializeWinResourceTree(config),
+      });
+
+      expect(result.resourceRoot).not.toBe(resourceRoot);
+      await expect(
+        readFile(join(result.resourceRoot, "design-templates", "orbit-general", "SKILL.md"), "utf8"),
+      ).resolves.toBe("portable resource\n");
+      await expect(
+        readFile(join(result.resourceRoot, "community-pets", "clippit", "pet.json"), "utf8"),
+      ).resolves.toBe("{\"name\":\"clippit\"}\n");
+      await expect(
+        readFile(join(result.resourceRoot, "community-pets", "dario", "pet.json"), "utf8"),
+      ).resolves.toBe("{\"name\":\"dario\"}\n");
+      await expect(access(join(result.resourceRoot, "bin", "node.exe"))).resolves.toBeUndefined();
+      expect(cache.report().entries.at(-1)?.materialized).toEqual([]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("only skips namespace resource materialization for pure portable zip", () => {
+    expect(shouldMaterializeWinResourceTree({ portable: true, to: "zip" } as ToolPackConfig)).toBe(false);
+    expect(shouldMaterializeWinResourceTree({ portable: false, to: "zip" } as ToolPackConfig)).toBe(true);
+    expect(shouldMaterializeWinResourceTree({ portable: true, to: "all" } as ToolPackConfig)).toBe(true);
+    expect(shouldMaterializeWinResourceTree({ portable: true, to: "nsis" } as ToolPackConfig)).toBe(true);
+    expect(shouldMaterializeWinResourceTree({ portable: true, to: "dir" } as ToolPackConfig)).toBe(false);
+  });
+
   it("invalidates the Windows resource tree cache when design templates change", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-win-resources-"));
     const workspaceRoot = join(root, "workspace");

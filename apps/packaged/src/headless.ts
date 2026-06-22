@@ -132,6 +132,7 @@ async function main(): Promise<void> {
     daemonCliEntry: activeConfig.daemonCliEntry,
     daemonSidecarEntry: activeConfig.daemonSidecarEntry,
     nodeCommand: activeConfig.nodeCommand,
+    pathsAlreadyEnsured: false,
     // PR #974 round-5 (lefarcen P2): headless packaged mode runs daemon
     // + web only, no Electron, no privileged shell.openPath surface.
     // Pinning OD_REQUIRE_DESKTOP_AUTH here would arm a gate no client

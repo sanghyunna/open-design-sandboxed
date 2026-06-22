@@ -15,6 +15,10 @@ import {
 import { PathSizeIndex, pathExists, sizeExistingFileBytes } from "./fs.js";
 import type { WinBuiltAppManifest, WinPaths, WinSizeReport } from "./types.js";
 
+type CollectWinSizeReportOptions = {
+  detailed?: boolean;
+};
+
 function isBetterSqlite3SourceResidue(path: string): boolean {
   return (
     path.includes("/node_modules/better-sqlite3/deps/") ||
@@ -70,8 +74,79 @@ export async function collectWinSizeReport(
   config: ToolPackConfig,
   paths: WinPaths,
   builtApp: WinBuiltAppManifest | null,
+  options: CollectWinSizeReportOptions = {},
 ): Promise<WinSizeReport> {
+  const detailed = options.detailed !== false;
   const unpackedRoot = builtApp?.unpackedRoot ?? paths.unpackedRoot;
+  const builder = {
+    asar: ELECTRON_BUILDER_ASAR,
+    buildDependenciesFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
+    filePatterns: ELECTRON_BUILDER_FILE_PATTERNS,
+    nativeRebuild: {
+      buildFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
+      mode: ELECTRON_REBUILD_MODE,
+      modules: ELECTRON_REBUILD_NATIVE_MODULES,
+    },
+    nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
+    npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
+    targets: resolveWinTargets(config.to),
+    webOutputMode: config.webOutputMode,
+  };
+  const generatedAt = new Date().toISOString();
+  const installerBytes = await sizeExistingFileBytes(paths.setupPath);
+  const portableZipBytes = await sizeExistingFileBytes(paths.setupZipPath);
+
+  if (!detailed) {
+    return {
+      builder,
+      generatedAt,
+      installerBytes,
+      mode: "fast",
+      outputRootBytes: 0,
+      portableZipBytes,
+      resourceRootBytes: 0,
+      runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
+      topLevel: {
+        appResourcesBytes: 0,
+        copiedStandaloneBytes: 0,
+        electronLocalesBytes: 0,
+        resourcesBytes: 0,
+      },
+      tracked: {
+        appNodeModulesBytes: 0,
+        betterSqlite3Bytes: 0,
+        betterSqlite3SourceResidueBytes: 0,
+        bundledNodeBytes: 0,
+        copiedStandaloneNextBytes: 0,
+        copiedStandaloneNextSwcBytes: 0,
+        copiedStandaloneNodeModulesBytes: 0,
+        copiedStandalonePnpmHoistedNextBytes: 0,
+        copiedStandaloneSharpLibvipsBytes: 0,
+        copiedStandaloneSourcemapBytes: 0,
+        copiedStandaloneTsbuildInfoBytes: 0,
+        copiedStandaloneWebNextBytes: 0,
+        copiedStandaloneWebNodeModulesBytes: 0,
+        electronLocalesBytes: 0,
+        markdownBytes: 0,
+        nextBytes: 0,
+        nextSwcBytes: 0,
+        prebundledRuntimeBytes: 0,
+        sharpLibvipsBytes: 0,
+        sourcemapBytes: 0,
+        tsbuildInfoBytes: 0,
+        webCopiedStandaloneBytes: 0,
+        webNextCacheBytes: 0,
+        webPackageAppBytes: 0,
+        webPackageBytes: 0,
+        webPackageDistBytes: 0,
+        webPackagePublicBytes: 0,
+        webPackageSrcBytes: 0,
+        webPackageStandaloneBytes: 0,
+      },
+      unpackedBytes: null,
+    };
+  }
+
   const sizeIndex = await PathSizeIndex.create(unpackedRoot);
   const namespaceSizeIndex = await PathSizeIndex.create(config.roots.output.namespaceRoot);
   const appResourcesRoot = join(unpackedRoot, "resources");
@@ -83,23 +158,13 @@ export async function collectWinSizeReport(
   const rootWebPackageRoot = join(appNodeModulesRoot, "@open-design", "web");
   return {
     builder: {
-      asar: ELECTRON_BUILDER_ASAR,
-      buildDependenciesFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
-      filePatterns: ELECTRON_BUILDER_FILE_PATTERNS,
-      nativeRebuild: {
-        buildFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,
-        mode: ELECTRON_REBUILD_MODE,
-        modules: ELECTRON_REBUILD_NATIVE_MODULES,
-      },
-      nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
-      npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
-      targets: resolveWinTargets(config.to),
-      webOutputMode: config.webOutputMode,
+      ...builder,
     },
-    generatedAt: new Date().toISOString(),
-    installerBytes: await sizeExistingFileBytes(paths.setupPath),
+    generatedAt,
+    installerBytes,
+    mode: "detailed",
     outputRootBytes: namespaceSizeIndex.sizePathBytes(config.roots.output.namespaceRoot),
-    portableZipBytes: await sizeExistingFileBytes(paths.setupZipPath),
+    portableZipBytes,
     resourceRootBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "open-design")),
     runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
     topLevel: {

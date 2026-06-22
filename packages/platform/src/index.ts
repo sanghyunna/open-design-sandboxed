@@ -82,6 +82,7 @@ export type RemovePathBestEffortResult = {
 export type SystemProxyCommandRunner = (command: string, args: string[]) => string;
 
 export type ResolveSystemProxyEnvOptions = {
+  cacheKey?: string;
   platform?: NodeJS.Platform;
   runCommand?: SystemProxyCommandRunner;
 };
@@ -108,6 +109,8 @@ function defaultSystemProxyCommandRunner(command: string, args: string[]): strin
     windowsHide: true,
   });
 }
+
+const systemProxyEnvCache = new Map<string, NodeJS.ProcessEnv>();
 
 function canonicalProxyEnvKey(
   key: string,
@@ -387,6 +390,11 @@ export function parseWindowsInternetSettingsProxyOutput(
 }
 
 export function resolveSystemProxyEnv(options: ResolveSystemProxyEnvOptions = {}): NodeJS.ProcessEnv {
+  if (options.cacheKey != null) {
+    const cached = systemProxyEnvCache.get(options.cacheKey);
+    if (cached != null) return { ...cached };
+  }
+
   const platform = options.platform ?? process.platform;
   const runCommand = options.runCommand ?? defaultSystemProxyCommandRunner;
   const tryRun = (command: string, args: string[]): string => {
@@ -397,11 +405,11 @@ export function resolveSystemProxyEnv(options: ResolveSystemProxyEnvOptions = {}
     }
   };
   try {
+    let resolved: NodeJS.ProcessEnv;
     if (platform === "darwin") {
-      return parseMacosScutilProxyOutput(tryRun("scutil", ["--proxy"]), platform);
-    }
-    if (platform === "win32") {
-      return parseWindowsInternetSettingsProxyOutput(
+      resolved = parseMacosScutilProxyOutput(tryRun("scutil", ["--proxy"]), platform);
+    } else if (platform === "win32") {
+      resolved = parseWindowsInternetSettingsProxyOutput(
         {
           proxyEnable: tryRun("reg", [
             "query",
@@ -424,11 +432,15 @@ export function resolveSystemProxyEnv(options: ResolveSystemProxyEnvOptions = {}
         },
         platform,
       );
+    } else {
+      resolved = {};
     }
+
+    if (options.cacheKey != null) systemProxyEnvCache.set(options.cacheKey, { ...resolved });
+    return resolved;
   } catch {
     return {};
   }
-  return {};
 }
 
 export function createProcessStampArgs<TStamp extends ProcessStampShape>(

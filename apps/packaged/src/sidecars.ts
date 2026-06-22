@@ -244,6 +244,7 @@ function extractPort(url: string): string {
 // @open-design/platform's wellKnownUserToolchainBins so the daemon
 // resolver and this PATH builder cannot drift again. See issue #442.
 const PACKAGED_POSIX_SYSTEM_BINS = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"] as const;
+const PACKAGED_SYSTEM_PROXY_CACHE_KEY = "packaged-child-base-env";
 
 export function resolvePackagedPathEnv(basePath = process.env.PATH ?? ""): string {
   const candidates = [
@@ -257,7 +258,7 @@ export function resolvePackagedPathEnv(basePath = process.env.PATH ?? ""): strin
 export function resolvePackagedChildBaseEnv(
   env: NodeJS.ProcessEnv = process.env,
   includeProviderSecrets = false,
-  systemProxyEnv: NodeJS.ProcessEnv = resolveSystemProxyEnv(),
+  systemProxyEnv?: NodeJS.ProcessEnv,
   includeSystemProxyEnv = true,
 ): NodeJS.ProcessEnv {
   const forwardedEnv: NodeJS.ProcessEnv = {};
@@ -267,7 +268,11 @@ export function resolvePackagedChildBaseEnv(
     }
   }
   return includeSystemProxyEnv
-    ? mergeProxyAwareEnv(process.platform, systemProxyEnv, forwardedEnv)
+    ? mergeProxyAwareEnv(
+      process.platform,
+      systemProxyEnv ?? resolveSystemProxyEnv({ cacheKey: PACKAGED_SYSTEM_PROXY_CACHE_KEY }),
+      forwardedEnv,
+    )
     : mergeProxyAwareEnv(process.platform, forwardedEnv);
 }
 
@@ -369,7 +374,7 @@ async function spawnSidecarChild(options: {
       ...resolvePackagedChildBaseEnv(
         process.env,
         options.app === APP_KEYS.DAEMON,
-        resolveSystemProxyEnv(),
+        undefined,
         options.app !== APP_KEYS.DAEMON,
       ),
       ...options.env,
@@ -428,6 +433,7 @@ export async function startPackagedSidecars(
     daemonCliEntry: string | null;
     daemonSidecarEntry: string | null;
     nodeCommand: string | null;
+    pathsAlreadyEnsured: boolean;
     /**
      * PR #974 round-5 (lefarcen P2): caller asserts whether a desktop
      * runtime is being started in this packaged process group. The
@@ -449,16 +455,18 @@ export async function startPackagedSidecars(
     : null;
   const logStartupPhase = options.logStartupPhase ?? localStartupTiming?.mark ?? (() => undefined);
 
-  await mkdir(paths.namespaceRoot, { recursive: true });
-  await mkdir(paths.cacheRoot, { recursive: true });
-  await mkdir(paths.dataRoot, { recursive: true });
-  await mkdir(paths.logsRoot, { recursive: true });
-  await mkdir(paths.desktopLogsRoot, { recursive: true });
-  await mkdir(paths.runtimeRoot, { recursive: true });
-  await mkdir(paths.updateRoot, { recursive: true });
-  await mkdir(paths.electronUserDataRoot, { recursive: true });
-  await mkdir(paths.electronSessionDataRoot, { recursive: true });
-  logStartupPhase("namespace-runtime-dirs-ensured");
+  if (!options.pathsAlreadyEnsured) {
+    await mkdir(paths.namespaceRoot, { recursive: true });
+    await mkdir(paths.cacheRoot, { recursive: true });
+    await mkdir(paths.dataRoot, { recursive: true });
+    await mkdir(paths.logsRoot, { recursive: true });
+    await mkdir(paths.desktopLogsRoot, { recursive: true });
+    await mkdir(paths.runtimeRoot, { recursive: true });
+    await mkdir(paths.updateRoot, { recursive: true });
+    await mkdir(paths.electronUserDataRoot, { recursive: true });
+    await mkdir(paths.electronSessionDataRoot, { recursive: true });
+    logStartupPhase("namespace-runtime-dirs-ensured");
+  }
 
   const children: ManagedSidecarChild[] = [];
 

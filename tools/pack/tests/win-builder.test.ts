@@ -5,7 +5,14 @@ import { join } from "node:path";
 import { NtExecutable, NtExecutableResource, Resource } from "resedit";
 import { describe, expect, it } from "vitest";
 
-import { materializeCachedUnpackedForInstaller } from "../src/win/builder.js";
+import { hashJson, ToolPackCache, type CacheNode } from "../src/cache.js";
+import type { ToolPackConfig } from "../src/config.js";
+import {
+  buildWinPortableZipCacheKeyInput,
+  materializeCachedPurePortableZip,
+  materializeCachedUnpackedForInstaller,
+} from "../src/win/builder.js";
+import { withPortableConfigFlag } from "../src/win/zip.js";
 import type { WinPaths } from "../src/win/types.js";
 import { readWinExecutableVersionSnapshot } from "../src/win/version-resource.js";
 
@@ -116,6 +123,85 @@ describe("materializeCachedUnpackedForInstaller", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+});
+
+describe("materializeCachedPurePortableZip", () => {
+  it("copies a cached portable zip without materializing win-unpacked", async () => {
+    const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-zip-hit-"));
+    const paths = createPaths(root);
+    const cache = new ToolPackCache(join(root, "cache"));
+    const packagedConfig = `${JSON.stringify({ appVersion: "0.5.0-beta.2", namespace: "second" }, null, 2)}\n`;
+    const electronBuilderDirKey = "dir-key";
+    const packagedAppKey = "app-key";
+    const packagedVersion = "0.5.0-beta.2";
+    const signingCacheKey = null;
+
+    try {
+      await mkdir(join(paths.packagedConfigPath, ".."), { recursive: true });
+      await writeFile(paths.packagedConfigPath, packagedConfig, "utf8");
+    const portableZipNode: CacheNode<{ createdAt: string; portableZipPath: string }> = {
+      build: async ({ entryRoot }) => {
+        await writeFile(join(entryRoot, "portable.zip"), "cached zip bytes", "utf8");
+        return { createdAt: "2026-06-17T00:00:00.000Z", portableZipPath: "cache" };
+      },
+        id: "win.portable-zip",
+        invalidate: async () => null,
+        key: hashJson(
+          buildWinPortableZipCacheKeyInput({
+            electronBuilderDirKey,
+            injectedPackagedConfig: withPortableConfigFlag(packagedConfig),
+            namespace: "second",
+            packagedAppKey,
+            packagedVersion,
+            portableZipCompression: 5,
+            signing: signingCacheKey,
+          }),
+        ),
+        outputs: ["portable.zip"],
+      };
+      await cache.acquire({ materialize: [], node: portableZipNode });
+
+      const hit = await materializeCachedPurePortableZip({
+        cache,
+        config: { namespace: "second", portable: true, signed: false, to: "zip" } as ToolPackConfig,
+        electronBuilderDirKey,
+        packagedAppKey,
+        packagedVersion,
+        paths,
+        signingCacheKey,
+      });
+
+      expect(hit).toBe(true);
+      await expect(readFile(paths.setupZipPath, "utf8")).resolves.toBe("cached zip bytes");
+      expect(cache.report().entries.at(-1)).toMatchObject({
+        materialized: [{ from: "portable.zip", to: paths.setupZipPath }],
+        nodeId: "win.portable-zip",
+        status: "hit",
+      });
+      expect(cache.report().entries.some((entry) => entry.nodeId === "win.electron-builder-dir" && entry.materialized.length > 0)).toBe(
+        false,
+      );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("changes the portable zip cache key when compression changes", () => {
+    const base = {
+      electronBuilderDirKey: "dir-key",
+      injectedPackagedConfig: `${JSON.stringify({ namespace: "second", portable: true }, null, 2)}\n`,
+      namespace: "second",
+      packagedAppKey: "app-key",
+      packagedVersion: "0.5.0-beta.2",
+      portableZipCompression: 5,
+      signing: null,
+    };
+
+    const defaultCompressionKey = hashJson(buildWinPortableZipCacheKeyInput(base));
+    const fastCompressionKey = hashJson(buildWinPortableZipCacheKeyInput({ ...base, portableZipCompression: 1 }));
+
+    expect(fastCompressionKey).not.toBe(defaultCompressionKey);
   });
 });
 

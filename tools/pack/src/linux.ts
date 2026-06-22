@@ -453,6 +453,7 @@ async function copyResourceTree(config: ToolPackConfig, paths: LinuxPaths): Prom
   await copyBundledResourceTrees({
     workspaceRoot: config.workspaceRoot,
     resourceRoot: paths.resourceRoot,
+    portable: config.portable,
   });
   await mkdir(join(paths.resourceRoot, "bin"), { recursive: true });
   await cp(process.execPath, join(paths.resourceRoot, "bin", "node"));

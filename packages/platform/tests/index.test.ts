@@ -435,6 +435,29 @@ HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settin
     expect(callCount).toBe(2);
   });
 
+  it("caches system proxy resolution when a cache key is provided", () => {
+    let callCount = 0;
+    const runCommand = () => {
+      callCount += 1;
+      return "\n<dictionary> {\n  HTTPEnable : 1\n  HTTPPort : 8003\n  HTTPProxy : 127.0.0.1\n}\n";
+    };
+
+    const first = resolveSystemProxyEnv({
+      cacheKey: "platform-test-cache",
+      platform: "darwin",
+      runCommand,
+    });
+    const second = resolveSystemProxyEnv({
+      cacheKey: "platform-test-cache",
+      platform: "darwin",
+      runCommand,
+    });
+
+    expect(first.HTTP_PROXY).toBe("http://127.0.0.1:8003");
+    expect(second.HTTP_PROXY).toBe("http://127.0.0.1:8003");
+    expect(callCount).toBe(1);
+  });
+
   it("makes the last proxy env source win case-insensitively", () => {
     const env = mergeProxyAwareEnv(
       "linux",

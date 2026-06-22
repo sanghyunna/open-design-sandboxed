@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -9,10 +9,37 @@ import { removeTree } from "./fs.js";
 import type { WinBuiltAppManifest, WinPackTiming, WinPaths } from "./types.js";
 
 const execFileAsync = promisify(execFile);
+const DEFAULT_PORTABLE_ZIP_COMPRESSION = 5;
+const PORTABLE_ZIP_COMPRESSION_ENV = "OD_PORTABLE_ZIP_COMPRESSION";
+export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as const;
 
 // Relative path of the packaged config inside both the unpacked tree and the
 // archive. The portable flag is injected ONLY into the zip's copy of this file.
 const PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH = "resources/open-design-config.json";
+const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";
+
+export function shouldPruneWinPortableZipLocales(config: ToolPackConfig): boolean {
+  return config.to === "zip" && config.portable === true && config.signed !== true;
+}
+
+export async function resolveWinPortableZipLocalePruneEntries(input: {
+  config: ToolPackConfig;
+  unpackedRoot: string;
+}): Promise<string[]> {
+  if (!shouldPruneWinPortableZipLocales(input.config)) return [];
+  const localeRoot = join(input.unpackedRoot, CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR);
+  const allowed = new Set<string>(WIN_PORTABLE_CHROMIUM_LOCALE_PAKS);
+  let entries: string[];
+  try {
+    entries = await readdir(localeRoot);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry.endsWith(".pak") && !allowed.has(entry))
+    .sort()
+    .map((entry) => `${CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR}/${entry}`);
+}
 
 // Adds the portable signal to a packaged `open-design-config.json` payload,
 // preserving every other (including unknown) field and re-serializing in the
@@ -43,6 +70,22 @@ export function withPortableConfigFlag(configJsonText: string): string {
   return `${JSON.stringify(parsed, null, 2)}\n`;
 }
 
+export function resolvePortableZipCompression(value = process.env[PORTABLE_ZIP_COMPRESSION_ENV]): number {
+  const normalized = value?.trim();
+  if (normalized == null || normalized.length === 0) return DEFAULT_PORTABLE_ZIP_COMPRESSION;
+
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`${PORTABLE_ZIP_COMPRESSION_ENV} must be an integer from 0 to 9: ${value}`);
+  }
+
+  const parsed = Number(normalized);
+  if (parsed < 0 || parsed > 9) {
+    throw new Error(`${PORTABLE_ZIP_COMPRESSION_ENV} must be an integer from 0 to 9: ${value}`);
+  }
+
+  return parsed;
+}
+
 function logWinZipProgress(message: string, fields: Record<string, unknown> = {}): void {
   const suffix = Object.entries(fields)
     .map(([key, value]) => `${key}=${String(value)}`)
@@ -69,11 +112,12 @@ function logWinZipProgress(message: string, fields: Record<string, unknown> = {}
 // `7z a` pass (`a` replaces the matching entry already in the archive). See
 // withPortableConfigFlag and Trap 1 in refactor_ideas.md §3.4.
 export async function buildWinPortableZip(
-  _config: ToolPackConfig,
+  config: ToolPackConfig,
   paths: WinPaths,
   builtApp: WinBuiltAppManifest,
 ): Promise<WinPackTiming[]> {
   if (process.platform !== "win32") throw new Error("Windows portable zip build must run on Windows");
+  const portableZipCompression = resolvePortableZipCompression();
   const timings: WinPackTiming[] = [];
   const runSegment = async <T>(phase: string, task: () => Promise<T>): Promise<T> => {
     const startedAt = Date.now();
@@ -144,7 +188,20 @@ export async function buildWinPortableZip(
     await runExecSegment(
       "portable-zip:7z:process",
       winResources.sevenZipExe,
-      ["a", "-tzip", "-mx=5", paths.setupZipPath, ".\\*"],
+      ["a", "-tzip", `-mx=${portableZipCompression}`, paths.setupZipPath, ".\\*"],
+      {
+        cwd: builtApp.unpackedRoot,
+        outputPath: paths.setupZipPath,
+      },
+    );
+  });
+  await runSegment("portable-zip:locales", async () => {
+    const pruneEntries = await resolveWinPortableZipLocalePruneEntries({ config, unpackedRoot: builtApp.unpackedRoot });
+    if (pruneEntries.length === 0) return;
+    await runExecSegment(
+      "portable-zip:locales:process",
+      winResources.sevenZipExe,
+      ["d", paths.setupZipPath, ...pruneEntries],
       {
         cwd: builtApp.unpackedRoot,
         outputPath: paths.setupZipPath,

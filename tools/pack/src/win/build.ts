@@ -59,6 +59,10 @@ async function writeLocalLatestYml(config: ToolPackConfig, paths: WinPaths): Pro
   );
 }
 
+export function shouldMaterializeWinResourceTree(config: ToolPackConfig): boolean {
+  return config.to !== "dir" && !(config.portable && config.to === "zip");
+}
+
 export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
   const paths = resolveWinPaths(config);
   const cache = new ToolPackCache(config.roots.cacheRoot);
@@ -106,7 +110,7 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
     await ensureWinWorkspaceBuild(config, cache);
   });
   const resourceTree = await runPhase("resource-tree", async () =>
-    prepareResourceTree(config, paths, cache, { materialize: config.to !== "dir" })
+    prepareResourceTree(config, paths, cache, { materialize: shouldMaterializeWinResourceTree(config) })
   );
   await runPhase("win-icon", async () => {
     await copyWinIcon(paths);
@@ -137,7 +141,11 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
       segments.push(...await buildWinLauncherPayloadArchive(config, paths, builtApp, cache));
     });
   }
-  const sizeReport = await runPhase("size-report", async () => collectWinSizeReport(config, paths, builtApp));
+  const detailedSizeReport = !(config.to === "zip" && config.portable);
+  const sizeReport = await runPhase("size-report", async () =>
+    collectWinSizeReport(config, paths, builtApp, { detailed: detailedSizeReport }),
+  );
+
   return {
     blockmapPath: (await pathExists(paths.blockmapPath)) ? paths.blockmapPath : null,
     installerPath: hasNsisTarget && await pathExists(paths.setupPath) ? paths.setupPath : null,

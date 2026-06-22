@@ -11,7 +11,7 @@ import {
 } from "../vela-cli.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
-const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 7;
+const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 8;
 
 async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<string> {
   const velaCliBin = await resolveOptionalVelaCliBinary({
@@ -33,6 +33,7 @@ async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<strin
     pluginPreviews: await hashPath(join(config.workspaceRoot, "data", "plugin-previews")),
     pluginRegistry: await hashPath(join(config.workspaceRoot, "plugins", "registry")),
     promptTemplates: await hashPath(join(config.workspaceRoot, "prompt-templates")),
+    portable: config.portable,
     schemaVersion: RESOURCE_TREE_CACHE_SCHEMA_VERSION,
     skills: await hashPath(join(config.workspaceRoot, "skills")),
     sevenZipDll: await hashPath(winResources.sevenZipDll),
@@ -68,6 +69,7 @@ export async function prepareResourceTree(
       await copyBundledResourceTrees({
         workspaceRoot: config.workspaceRoot,
         resourceRoot,
+        portable: config.portable,
       });
       await mkdir(join(resourceRoot, "bin"), { recursive: true });
       await cp(process.execPath, join(resourceRoot, "bin", "node.exe"));

@@ -1489,7 +1489,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   });
 
   const consoleEntries: DesktopConsoleEntry[] = [];
-  const petWindow = createDesktopPetWindow(preloadPath, options.osLocale);
+  let petWindow: BrowserWindow | null = null;
   const window = new BrowserWindow({
     height: 900,
     icon: resolveDesktopIconPath(),
@@ -1643,11 +1643,54 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     return { ok: true };
   });
 
+  let currentUrl: string | null = null;
+  let currentPetUrl: string | null = null;
+  let pendingUrl: string | null = null;
+  let stopped = false;
+  let timer: NodeJS.Timeout | null = null;
+
+  const ensureDesktopPetWindow = async (baseUrl: string): Promise<BrowserWindow | null> => {
+    if (stopped) return null;
+    if (petWindow == null || petWindow.isDestroyed()) {
+      petWindow = createDesktopPetWindow(preloadPath, options.osLocale);
+      currentPetUrl = null;
+    }
+    const nextPetUrl = desktopPetUrl(baseUrl);
+    if (nextPetUrl !== currentPetUrl) {
+      await petWindow.loadURL(nextPetUrl);
+      currentPetUrl = nextPetUrl;
+    }
+    return petWindow;
+  };
+
+  const isDesktopPetEnabled = async (): Promise<boolean> => {
+    if (window.isDestroyed()) return false;
+    const enabled = await window.webContents.executeJavaScript(
+      `(() => {
+        try {
+          const raw = localStorage.getItem("open-design:config");
+          if (!raw) return false;
+          return JSON.parse(raw)?.pet?.enabled === true;
+        } catch {
+          return false;
+        }
+      })()`,
+      true,
+    ).catch(() => false);
+    return enabled === true;
+  };
+
   ipcMain.removeAllListeners("desktop-pet:set-visible");
   ipcMain.on("desktop-pet:set-visible", (event, visible: unknown) => {
-    if (petWindow.isDestroyed() || event.sender !== petWindow.webContents) return;
-    if (visible) petWindow.showInactive();
-    else petWindow.hide();
+    const ownedPetWindow = petWindow != null && !petWindow.isDestroyed() && event.sender === petWindow.webContents;
+    const mainWindow = event.sender === window.webContents;
+    if (!ownedPetWindow && !mainWindow) return;
+    if (visible) {
+      const url = currentUrl ?? pendingUrl;
+      if (url != null) void ensureDesktopPetWindow(url).then((created) => created?.showInactive());
+    } else if (petWindow != null && !petWindow.isDestroyed()) {
+      petWindow.hide();
+    }
   });
 
   ipcMain.removeHandler('od:print-pdf');
@@ -1691,12 +1734,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       return { ok: false, reason: error instanceof Error ? error.message : String(error) };
     }
   });
-
-  let currentUrl: string | null = null;
-  let currentPetUrl: string | null = null;
-  let pendingUrl: string | null = null;
-  let stopped = false;
-  let timer: NodeJS.Timeout | null = null;
 
   window.on("focus", () => showWindowButtons(window));
   window.on("blur", () => showWindowButtons(window));
@@ -1873,10 +1910,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         await window.loadURL(url);
         currentUrl = url;
         pendingUrl = null;
-        const nextPetUrl = desktopPetUrl(url);
-        if (!petWindow.isDestroyed() && nextPetUrl !== currentPetUrl) {
-          await petWindow.loadURL(nextPetUrl);
-          currentPetUrl = nextPetUrl;
+        if (await isDesktopPetEnabled()) {
+          await ensureDesktopPetWindow(url);
         }
         if (!revealed) {
           void revealWhenReady();
@@ -1885,6 +1920,12 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         }
       } else if (url == null) {
         pendingUrl = null;
+      } else if (currentUrl != null) {
+        if (await isDesktopPetEnabled()) {
+          await ensureDesktopPetWindow(currentUrl);
+        } else if (petWindow != null && !petWindow.isDestroyed()) {
+          petWindow.hide();
+        }
       }
       schedule(currentUrl == null ? PENDING_POLL_MS : RUNNING_POLL_MS);
     } catch (error) {
@@ -1923,7 +1964,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       }
       ipcMain.removeHandler("browser:clear-data");
       if (splash != null && !splash.isDestroyed()) splash.close();
-      if (!petWindow.isDestroyed()) petWindow.close();
+      if (petWindow != null && !petWindow.isDestroyed()) petWindow.close();
       if (!window.isDestroyed()) window.close();
     },
     console() {

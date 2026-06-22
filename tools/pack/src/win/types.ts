@@ -137,6 +137,7 @@ export type WinSizeReport = {
   };
   generatedAt: string;
   installerBytes: number | null;
+  mode: "fast" | "detailed";
   outputRootBytes: number;
   portableZipBytes: number | null;
   resourceRootBytes: number;
