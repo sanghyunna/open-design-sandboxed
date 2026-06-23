@@ -178,6 +178,21 @@ function hasCanonicalProxyEnv(
   return Object.keys(env).some((key) => key.toLowerCase() === canonicalKey.toLowerCase());
 }
 
+function readCanonicalProxyEnvValue(
+  env: NodeJS.ProcessEnv,
+  canonicalKey: "ALL_PROXY" | "HTTP_PROXY" | "HTTPS_PROXY" | "NODE_USE_ENV_PROXY" | "NO_PROXY",
+): string | undefined {
+  let selected: { preferLowercase: boolean; value: string } | undefined;
+  for (const [key, value] of Object.entries(env)) {
+    if (value == null || key.toLowerCase() !== canonicalKey.toLowerCase()) continue;
+    const preferLowercase = key === key.toLowerCase();
+    if (!selected || preferLowercase || !selected.preferLowercase) {
+      selected = { preferLowercase, value };
+    }
+  }
+  return selected?.value;
+}
+
 function hasProxyEndpointEnv(env: NodeJS.ProcessEnv): boolean {
   return ["ALL_PROXY", "HTTP_PROXY", "HTTPS_PROXY"].some((key) => {
     for (const [envKey, value] of Object.entries(env)) {
@@ -224,6 +239,29 @@ function buildNoProxyValue(tokens: Iterable<string>): string | null {
 
 function preserveWildcardNoProxyValue(noProxy: string | null | undefined): string | undefined {
   return noProxy?.split(",").some((token) => token.trim() === "*") ? "*" : undefined;
+}
+
+export function addLoopbackNoProxyEnv(
+  env: NodeJS.ProcessEnv,
+  platform: NodeJS.Platform = process.platform,
+): NodeJS.ProcessEnv {
+  const hasProxyEndpoint = hasProxyEndpointEnv(env);
+  const existingNoProxy = readCanonicalProxyEnvValue(env, "NO_PROXY");
+  if (!hasProxyEndpoint && existingNoProxy == null) return env;
+
+  const noProxy =
+    preserveWildcardNoProxyValue(existingNoProxy) ??
+    buildNoProxyValue([
+      ...(existingNoProxy ? existingNoProxy.split(",") : []),
+      "localhost",
+      "127.0.0.1",
+      "[::1]",
+    ]);
+  if (noProxy) setCanonicalProxyEnvValue(env, "NO_PROXY", noProxy, platform);
+  if (hasProxyEndpoint && !hasCanonicalProxyEnv(env, "NODE_USE_ENV_PROXY")) {
+    env.NODE_USE_ENV_PROXY = "1";
+  }
+  return env;
 }
 
 function normalizeProxyUrl(raw: string, scheme: string): string | null {

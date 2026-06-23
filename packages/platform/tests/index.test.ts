@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  addLoopbackNoProxyEnv,
   atomicCopyFile,
   createCommandInvocation,
   createPackageManagerInvocation,
@@ -174,6 +175,70 @@ describe("system proxy env resolution", () => {
 
     expect(env.HTTPS_PROXY).toBe("http://user-proxy:7891");
     expect(env.NODE_USE_ENV_PROXY).toBe("0");
+  });
+
+  it("adds loopback entries to an inherited proxy env", () => {
+    const env = addLoopbackNoProxyEnv(
+      {
+        HTTPS_PROXY: "http://corp-proxy:8443",
+        NO_PROXY: ".corp,::1",
+      },
+      "win32",
+    );
+
+    expect(env.NO_PROXY).toBe(".corp,[::1],localhost,127.0.0.1");
+    expect(env.NODE_USE_ENV_PROXY).toBe("1");
+    expect(env.no_proxy).toBeUndefined();
+  });
+
+  it("preserves explicit Node env proxy opt-out while adding loopback bypasses", () => {
+    const env = addLoopbackNoProxyEnv(
+      {
+        HTTPS_PROXY: "http://corp-proxy:8443",
+        NODE_USE_ENV_PROXY: "0",
+      },
+      "win32",
+    );
+
+    expect(env.NO_PROXY).toBe("localhost,127.0.0.1,[::1]");
+    expect(env.NODE_USE_ENV_PROXY).toBe("0");
+  });
+
+  it("does not invent NO_PROXY when there is no proxy env", () => {
+    const env = addLoopbackNoProxyEnv({}, "win32");
+
+    expect(env.NO_PROXY).toBeUndefined();
+  });
+
+  it("adds loopback entries when an existing NO_PROXY is present without proxy env", () => {
+    const env = addLoopbackNoProxyEnv({ NO_PROXY: ".corp" }, "win32");
+
+    expect(env.NO_PROXY).toBe(".corp,localhost,127.0.0.1,[::1]");
+  });
+
+  it("mirrors the merged NO_PROXY value to lowercase on POSIX platforms", () => {
+    const env = addLoopbackNoProxyEnv(
+      {
+        https_proxy: "http://corp-proxy:8443",
+        no_proxy: ".corp,::1",
+      },
+      "darwin",
+    );
+
+    expect(env.NO_PROXY).toBe(".corp,[::1],localhost,127.0.0.1");
+    expect(env.no_proxy).toBe(".corp,[::1],localhost,127.0.0.1");
+  });
+
+  it("preserves wildcard NO_PROXY values", () => {
+    const env = addLoopbackNoProxyEnv(
+      {
+        HTTPS_PROXY: "http://corp-proxy:8443",
+        NO_PROXY: "*",
+      },
+      "win32",
+    );
+
+    expect(env.NO_PROXY).toBe("*");
   });
 
   it("parses macOS scutil output into standard proxy env vars", () => {

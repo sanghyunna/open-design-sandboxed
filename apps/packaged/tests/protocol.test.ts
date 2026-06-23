@@ -129,4 +129,31 @@ describe('od:// protocol proxy', () => {
     const body = (await response.json()) as { message: string };
     expect(body.message).toBe('sync timeout');
   });
+
+  it('logs response metadata and html title when OD_PROTOCOL_DIAG is enabled', async () => {
+    const originalDiag = process.env.OD_PROTOCOL_DIAG;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      process.env.OD_PROTOCOL_DIAG = '1';
+      const fetchImpl: typeof fetch = async () =>
+        new Response('<html><head><title>Blocked by corporate policy</title></head></html>', {
+          headers: { 'content-type': 'text/html' },
+          status: 200,
+        });
+
+      const response = await handleOdRequest(new Request('od://app/'), 'http://127.0.0.1:17579/', fetchImpl);
+
+      expect(await response.text()).toContain('Blocked by corporate policy');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('[open-design packaged] od proxy response status=200 contentType=text/html'),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('title="Blocked by corporate policy"'),
+      );
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      if (originalDiag == null) delete process.env.OD_PROTOCOL_DIAG;
+      else process.env.OD_PROTOCOL_DIAG = originalDiag;
+    }
+  });
 });

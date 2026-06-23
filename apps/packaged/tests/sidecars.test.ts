@@ -95,7 +95,7 @@ describe('packaged child Vite+ environment forwarding', () => {
       http_proxy: 'http://127.0.0.1:7891',
       https_proxy: 'http://127.0.0.1:7891',
       no_proxy: 'localhost,127.0.0.1,::1',
-    });
+    }, false, undefined, true, 'darwin');
 
     expect(env).toMatchObject({
       ALL_PROXY: 'socks5://127.0.0.1:1081',
@@ -103,11 +103,11 @@ describe('packaged child Vite+ environment forwarding', () => {
       HTTP_PROXY: 'http://127.0.0.1:7891',
       HTTPS_PROXY: 'http://127.0.0.1:7891',
       NODE_USE_ENV_PROXY: '1',
-      NO_PROXY: 'localhost,127.0.0.1,::1',
+      NO_PROXY: 'localhost,127.0.0.1,[::1]',
       all_proxy: 'socks5://127.0.0.1:1081',
       http_proxy: 'http://127.0.0.1:7891',
       https_proxy: 'http://127.0.0.1:7891',
-      no_proxy: 'localhost,127.0.0.1,::1',
+      no_proxy: 'localhost,127.0.0.1,[::1]',
     });
     expect(env.RANDOM_INTERNAL_FLAG).toBeUndefined();
   });
@@ -132,7 +132,7 @@ describe('packaged child Vite+ environment forwarding', () => {
       HTTP_PROXY: 'http://system-proxy:8080',
       HTTPS_PROXY: 'http://system-proxy:8443',
       ALL_PROXY: 'socks5://system-proxy:1080',
-      NO_PROXY: '.local,localhost',
+      NO_PROXY: '.local,localhost,127.0.0.1,[::1]',
       NODE_USE_ENV_PROXY: '1',
     });
   });
@@ -148,12 +148,12 @@ describe('packaged child Vite+ environment forwarding', () => {
         HTTPS_PROXY: 'http://system-uppercase:8443',
         NODE_USE_ENV_PROXY: '1',
       },
+      true,
+      'darwin',
     );
 
     expect(env.HTTPS_PROXY).toBe('http://user-lowercase:9443');
-    if (process.platform !== 'win32') {
-      expect(env.https_proxy).toBe('http://user-lowercase:9443');
-    }
+    expect(env.https_proxy).toBe('http://user-lowercase:9443');
   });
 
   it('enables Node env proxy support for forwarded lowercase proxy env', () => {
@@ -164,13 +164,13 @@ describe('packaged child Vite+ environment forwarding', () => {
       },
       false,
       {},
+      true,
+      'darwin',
     );
 
     expect(env.HTTPS_PROXY).toBe('http://user-lowercase:9443');
     expect(env.NODE_USE_ENV_PROXY).toBe('1');
-    if (process.platform !== 'win32') {
-      expect(env.https_proxy).toBe('http://user-lowercase:9443');
-    }
+    expect(env.https_proxy).toBe('http://user-lowercase:9443');
   });
 
   it('can skip injecting system proxy env into the packaged daemon base env', () => {
@@ -217,7 +217,7 @@ describe('resolvePackagedElectronNodeCommand', () => {
     const root = mkdtempSync(join(tmpdir(), 'od-packaged-electron-helper-'));
     try {
       const appPath = join(root, 'Open Design.app');
-      const execPath = join(appPath, 'Contents', 'MacOS', 'Open Design');
+      const execPath = join(appPath, 'Contents', 'MacOS', 'Open Design').replace(/\\/g, '/');
       const helperPath = join(
         appPath,
         'Contents',
@@ -242,7 +242,7 @@ describe('resolvePackagedElectronNodeCommand', () => {
   it('falls back to the main executable when the macOS helper is unavailable', async () => {
     const root = mkdtempSync(join(tmpdir(), 'od-packaged-no-electron-helper-'));
     try {
-      const execPath = join(root, 'Open Design.app', 'Contents', 'MacOS', 'Open Design');
+      const execPath = join(root, 'Open Design.app', 'Contents', 'MacOS', 'Open Design').replace(/\\/g, '/');
       mkdirSync(dirname(execPath), { recursive: true });
       writeFileSync(execPath, '#!/bin/sh\n', 'utf8');
 

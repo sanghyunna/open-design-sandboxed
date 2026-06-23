@@ -14,6 +14,7 @@ import {
   type SidecarStamp,
 } from "@open-design/sidecar-proto";
 import { bootstrapSidecarRuntime, createJsonIpcServer, resolveAppIpcPath } from "@open-design/sidecar";
+import { addLoopbackNoProxyEnv } from "@open-design/platform";
 
 import { PACKAGED_NAMESPACE_ENV, type PackagedConfig } from "./config.js";
 import { writePackagedDesktopIdentity, writePackagedWebIdentity } from "./identity.js";
@@ -100,6 +101,7 @@ function colorize(text: string): string {
 
 async function main(): Promise<void> {
   const startupTiming = createPackagedStartupPhaseTimer();
+  addLoopbackNoProxyEnv(process.env);
   const config = resolveHeadlessConfig();
   startupTiming.mark("config-read-complete");
   const initialPaths = resolvePackagedNamespacePaths(config);

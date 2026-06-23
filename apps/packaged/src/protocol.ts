@@ -45,6 +45,22 @@ function buildProxyErrorResponse(error: unknown, target: string): Response {
   );
 }
 
+async function logOdProtocolResponse(response: Response, target: string): Promise<void> {
+  if (process.env.OD_PROTOCOL_DIAG !== "1") return;
+
+  const contentType = response.headers.get("content-type") ?? "unknown";
+  const title = contentType.toLowerCase().includes("text/html")
+    ? /<title[^>]*>([^<]*)<\/title>/i
+      .exec(await response.clone().text().catch(() => ""))?.[1]
+      ?.replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160)
+    : null;
+  console.warn(
+    `[open-design packaged] od proxy response status=${response.status} contentType=${contentType}${title ? ` title=${JSON.stringify(title)}` : ""} target=${target} url=${response.url || "unknown"}`,
+  );
+}
+
 /**
  * Inner request handler for the `od://` Electron protocol — every
  * renderer fetch flows through here and gets proxied to the local web
@@ -70,7 +86,9 @@ export async function handleOdRequest(
 ): Promise<Response> {
   const target = toWebRuntimeUrl(webRuntimeUrl, request.url);
   try {
-    return await fetchImpl(new Request(target, request));
+    const response = await fetchImpl(new Request(target, request));
+    await logOdProtocolResponse(response, target);
+    return response;
   } catch (error) {
     return buildProxyErrorResponse(error, target);
   }

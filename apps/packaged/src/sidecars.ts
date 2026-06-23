@@ -22,6 +22,7 @@ import {
   type SidecarRuntimeContext,
 } from "@open-design/sidecar";
 import {
+  addLoopbackNoProxyEnv,
   createProcessStampArgs,
   mergeProxyAwareEnv,
   resolveSystemProxyEnv,
@@ -260,6 +261,7 @@ export function resolvePackagedChildBaseEnv(
   includeProviderSecrets = false,
   systemProxyEnv?: NodeJS.ProcessEnv,
   includeSystemProxyEnv = true,
+  platform: NodeJS.Platform = process.platform,
 ): NodeJS.ProcessEnv {
   const forwardedEnv: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(env)) {
@@ -267,13 +269,14 @@ export function resolvePackagedChildBaseEnv(
       forwardedEnv[key] = value;
     }
   }
-  return includeSystemProxyEnv
+  const merged = includeSystemProxyEnv
     ? mergeProxyAwareEnv(
-      process.platform,
+      platform,
       systemProxyEnv ?? resolveSystemProxyEnv({ cacheKey: PACKAGED_SYSTEM_PROXY_CACHE_KEY }),
       forwardedEnv,
     )
-    : mergeProxyAwareEnv(process.platform, forwardedEnv);
+    : mergeProxyAwareEnv(platform, forwardedEnv);
+  return addLoopbackNoProxyEnv(merged, platform);
 }
 
 function createPackagedDaemonManagedPathEnv(

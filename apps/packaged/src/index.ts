@@ -12,7 +12,7 @@ import {
   resolveAppIpcPath,
 } from "@open-design/sidecar";
 import { applyOsLocaleSwitch, createSplashWindow } from "@open-design/desktop/main";
-import { readProcessStamp } from "@open-design/platform";
+import { addLoopbackNoProxyEnv, readProcessStamp } from "@open-design/platform";
 import { join } from "node:path";
 import { app, dialog } from "electron";
 
@@ -90,6 +90,7 @@ async function main(): Promise<void> {
   // en-US default. runDesktopMain (called later) calls the same helper
   // again to recover the resolved locale string for the BrowserWindow.
   applyOsLocaleSwitch(app);
+  addLoopbackNoProxyEnv(process.env);
 
   const config = await readPackagedConfig();
   startupTiming.mark("config-read-complete");
