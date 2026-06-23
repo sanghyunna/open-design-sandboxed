@@ -220,7 +220,7 @@ export function signDesktopImportToken(
 
 const PENDING_POLL_MS = 120;
 const RUNNING_POLL_MS = 2000;
-// Minimum time the light splash window stays on screen before we reveal the main
+// Minimum time the dark splash window stays on screen before we reveal the main
 // window. It is sized to outlast the ~1.7s clip so the brand animation always
 // plays through. The splash is shown immediately and in parallel with the
 // daemon/web boot (see the packaged entry), so this time overlaps startup rather
@@ -791,10 +791,10 @@ const MAC_WINDOW_CHROME_CSS = `
   }
 `;
 
-// Light-background startup splash shown while the web runtime boots. It plays
-// the brand intro clip once and then holds on its final settled logo frame until
-// the main window is ready. The clip is embedded as a base64 data URL so it
-// renders identically in dev and in packaged builds (see `splash-video.ts`).
+// Dark-gradient startup splash shown while the web runtime boots. It plays the
+// brand intro clip once and then holds on its final settled logo frame until the
+// main window is ready. The clip is embedded as a base64 data URL so it renders
+// identically in dev and in packaged builds (see `splash-video.ts`).
 function createPendingHtml(): string {
   return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html>
 <html>
@@ -804,7 +804,7 @@ function createPendingHtml(): string {
     <style>
       html,
       body {
-        background: #f2f4f5;
+        background: #070b19;
         height: 100%;
         margin: 0;
         overflow: hidden;
@@ -815,7 +815,7 @@ function createPendingHtml(): string {
         justify-content: center;
       }
       video {
-        background: #f2f4f5;
+        background: #070b19;
         height: auto;
         max-height: 100%;
         max-width: 100%;
@@ -863,7 +863,7 @@ export type SplashWindowHandle = {
 };
 
 /**
- * Create and immediately show the light brand-splash window. The packaged entry
+ * Create and immediately show the dark brand-splash window. The packaged entry
  * calls this BEFORE awaiting the daemon/web sidecars so the animation masks the
  * whole cold boot (no black no-window gap); the desktop runtime then adopts it
  * via `DesktopRuntimeOptions.splashWindow` + `splashStartedAt` and closes it
@@ -875,7 +875,7 @@ export function createSplashWindow(): SplashWindowHandle {
   const startedAt = Date.now();
   const splash = new BrowserWindow({
     autoHideMenuBar: true,
-    backgroundColor: "#f2f4f5",
+    backgroundColor: "#070b19",
     frame: false,
     height: 900,
     resizable: false,
@@ -1834,7 +1834,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     void persistRendererEntry(entry);
   });
 
-  // The splash window carries the light brand animation. In packaged builds the
+  // The splash window carries the dark brand animation. In packaged builds the
   // entry hands us one it created BEFORE the sidecars booted (so it overlaps the
   // whole cold start); otherwise we create our own. The main window above stays
   // hidden behind it until the real app has mounted.

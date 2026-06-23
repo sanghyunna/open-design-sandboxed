@@ -16,8 +16,14 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  color: var(--text-muted);
-  background: var(--bg-app);
+  color: rgba(236, 244, 255, 0.78);
+  background:
+    radial-gradient(circle at 24% 22%, rgba(84, 108, 208, 0.28) 0%, rgba(84, 108, 208, 0) 46%),
+    radial-gradient(circle at 86% 18%, rgba(22, 176, 158, 0.16) 0%, rgba(22, 176, 158, 0) 40%),
+    linear-gradient(180deg, rgba(11, 18, 39, 0.95) 0%, rgba(7, 11, 25, 0.98) 100%),
+    linear-gradient(90deg, rgba(255, 176, 78, 0.03) 0%, rgba(255, 176, 78, 0.03) 100%, rgba(255, 176, 78, 0) 100%),
+    #070b19;
   font: 500 13px/1.4 var(--sans);
+  position: relative;
+  overflow: hidden;
 }
-
