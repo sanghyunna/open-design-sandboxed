@@ -1,4 +1,4 @@
-export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, p, a, button, img, strong, span';
+export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em';
 export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
 export const MANUAL_EDIT_HOST_NODE_SELECTOR = [
   '[data-od-sandbox-shim]',
@@ -78,13 +78,21 @@ export function buildManualEditBridge(enabled: boolean): string {
   function isDiscoveryTarget(el){
     return !!(el && el.matches && el.matches(discoverySelector));
   }
+  function hasElementChildren(el){
+    for (var i = 0; i < el.children.length; i++) {
+      if (!isHostNode(el.children[i])) return true;
+    }
+    return false;
+  }
   function inferKind(el){
     var explicit = el.getAttribute('data-od-edit');
     if (explicit) return explicit;
     var tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (tag === 'a') return 'link';
     if (tag === 'img') return 'image';
-    if (['section','main','nav','div','article','header','footer'].indexOf(tag) >= 0) return 'container';
+    if (['section','main','nav','div','article','header','footer'].indexOf(tag) >= 0) {
+      return hasElementChildren(el) ? 'container' : 'text';
+    }
     return 'text';
   }
   function labelFor(el, id, kind){

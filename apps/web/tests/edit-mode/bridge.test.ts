@@ -402,6 +402,81 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('turns text-only container targets into inline editors', () => {
+    const dom = new JSDOM(
+      `<main><div data-od-id="tagline">Original tagline</div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const tagline = dom.window.document.querySelector('[data-od-id="tagline"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    tagline.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(tagline.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'tagline',
+        kind: 'text',
+      }),
+    }, '*');
+
+    tagline.textContent = 'Edited tagline';
+    tagline.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-text-commit',
+      id: 'tagline',
+      value: 'Edited tagline',
+    }, '*');
+
+    dom.window.close();
+  });
+
+  it('turns lower-level heading targets into inline editors', () => {
+    const dom = new JSDOM(
+      `<main><h4 data-od-id="eyebrow">Original eyebrow</h4></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const eyebrow = dom.window.document.querySelector('[data-od-id="eyebrow"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    eyebrow.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(eyebrow.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'eyebrow',
+        kind: 'text',
+      }),
+    }, '*');
+
+    dom.window.close();
+  });
+
+  it('keeps nested containers out of inline text editing', () => {
+    const dom = new JSDOM(
+      `<main><section data-od-id="hero"><h1 data-od-id="title">Original title</h1></section></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const section = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    section.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(section.hasAttribute('contenteditable')).toBe(false);
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'hero',
+        kind: 'container',
+      }),
+    }, '*');
+
+    dom.window.close();
+  });
+
   it('cancels inline text edits with Escape without posting a commit', () => {
     const dom = new JSDOM(
       `<main><p data-od-id="body">Original body</p></main>${buildManualEditBridge(true)}`,

@@ -130,6 +130,30 @@ test('[P0] manual edit inspector previews and persists page and selected element
   await expect(page.getByRole('button', { name: /^Download$/ })).toBeVisible();
 });
 
+test('[P0] manual edit direct text typing persists text-only elements', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit text typing');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const textOnlyDiv = frame.locator('[data-od-id="pair-a"]');
+  await expect(textOnlyDiv).toHaveText('Left panel');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await textOnlyDiv.click();
+  await expect(textOnlyDiv).toHaveAttribute('contenteditable', 'plaintext-only');
+
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.type('Edited left panel');
+  await page.keyboard.press('Enter');
+
+  await expectFileSource(page, projectId, 'manual-edit.html', ['Edited left panel']);
+  await expect(frame.getByText('Edited left panel')).toBeVisible();
+});
+
 test('[P0] manual edit mode preserves preview actions after style edits', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit smoke');
