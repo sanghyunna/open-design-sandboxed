@@ -5,6 +5,19 @@ import {
 import { codexNeedsDangerFullAccessSandbox } from '../../src/runtimes/defs/codex.js';
 import { readLocalAgentProfileDefs } from '../../src/runtimes/registry.js';
 
+function writeFakeCodexBin(dir: string, script: string): string {
+  const runner = join(dir, 'codex-runner.cjs');
+  writeFileSync(runner, script);
+  const bin = join(dir, process.platform === 'win32' ? 'codex.cmd' : 'codex');
+  if (process.platform === 'win32') {
+    writeFileSync(bin, `@echo off\r\n"${process.execPath}" "%~dp0codex-runner.cjs" %*\r\n`);
+    return bin;
+  }
+  writeFileSync(bin, `#!/usr/bin/env node\nrequire(${JSON.stringify(runner)});\n`);
+  chmodSync(bin, 0o755);
+  return bin;
+}
+
 test('AGENT_DEFS ids are unique', () => {
   const ids = AGENT_DEFS.map((a) => a.id);
   const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -348,12 +361,14 @@ test('codex model picker includes current OpenAI choices in priority order', asy
   const dir = mkdtempSync(join(tmpdir(), 'od-agents-codex-models-'));
   try {
     await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'CODEX_BIN'], async () => {
-      const codexBin = join(dir, 'codex');
-      writeFileSync(
-        codexBin,
-        '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "codex 1.0.0"; exit 0; fi\nexit 0\n',
-      );
-      chmodSync(codexBin, 0o755);
+      writeFakeCodexBin(dir, `
+const args = process.argv.slice(2);
+if (args[0] === '--version') {
+  console.log('codex 1.0.0');
+  process.exit(0);
+}
+process.exit(0);
+`);
       process.env.OD_AGENT_HOME = dir;
       process.env.PATH = dir;
       delete process.env.CODEX_BIN;
@@ -404,19 +419,26 @@ test('codex detection surfaces live debug models separately from fallback models
   const dir = mkdtempSync(join(tmpdir(), 'od-agents-codex-live-models-'));
   try {
     await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'CODEX_BIN'], async () => {
-      const codexBin = join(dir, 'codex');
-      writeFileSync(
-        codexBin,
-        `#!/bin/sh
-if [ "$1" = "--version" ]; then echo "codex-cli 9.9.9"; exit 0; fi
-if [ "$1" = "debug" ] && [ "$2" = "models" ]; then
-  printf '%s\\n' '{"models":[{"slug":"gpt-6-codex","display_name":"GPT-6 Codex","visibility":"list"}]}'
-  exit 0
-fi
-exit 2
-`,
-      );
-      chmodSync(codexBin, 0o755);
+      writeFakeCodexBin(dir, `
+const args = process.argv.slice(2);
+if (args[0] === '--version') {
+  console.log('codex-cli 9.9.9');
+  process.exit(0);
+}
+if (args[0] === 'debug' && args[1] === 'models') {
+  console.log(JSON.stringify({
+    models: [
+      {
+        slug: 'gpt-6-codex',
+        display_name: 'GPT-6 Codex',
+        visibility: 'list',
+      },
+    ],
+  }));
+  process.exit(0);
+}
+process.exit(2);
+`);
       process.env.OD_AGENT_HOME = dir;
       process.env.PATH = dir;
       delete process.env.CODEX_BIN;
@@ -459,6 +481,15 @@ test('cursor-agent parses live model ids separately from display labels', () => 
     { id: 'composer-2.5', label: 'Composer 2.5 (current)' },
     { id: 'grok-4.3', label: 'Grok 4.3 1M' },
   ]);
+});
+
+test('cursor-agent probes allow slow Windows VDI startup', () => {
+  assert.ok(cursorAgent.listModels, 'cursor-agent must define live model discovery');
+  assert.ok((cursorAgent.listModels.timeoutMs ?? 0) >= 90_000);
+
+  assert.ok(cursorAgent.authProbe, 'cursor-agent must define an auth probe');
+  assert.deepEqual(cursorAgent.authProbe.args, ['status']);
+  assert.ok((cursorAgent.authProbe.timeoutMs ?? 0) >= 90_000);
 });
 
 test('grok-build filters login headers from live model discovery output', () => {

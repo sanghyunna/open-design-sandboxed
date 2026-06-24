@@ -11,6 +11,7 @@ import { Socks5ProxyAgent } from 'undici';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as platform from '@open-design/platform';
 import {
+  agentTimeoutMs,
   createAgentSink,
   isSmokeOkReply,
   mergeNoProxyWithLoopbackDefaults,
@@ -25,6 +26,7 @@ import {
 import { closeHttpServer } from '../src/daemon-startup.js';
 import { listProviderModels } from '../src/providerModels.js';
 import { startServer } from '../src/server.js';
+import { cursorAgentDef } from '../src/runtimes/defs/cursor-agent.js';
 import { rememberLiveModels } from '../src/runtimes/models.js';
 import { cleanupFakeAgentDir, withFakeAgent, writeExecutableScript } from './helpers/fake-agent.js';
 
@@ -3248,6 +3250,10 @@ describe('connection test timeout overrides', () => {
         OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: '120000',
       }),
     ).toBe(120_000);
+  });
+
+  it('uses Cursor Agent probe budget as the smoke-test default on slow Windows VDI', () => {
+    expect(agentTimeoutMs(cursorAgentDef, {})).toBeGreaterThanOrEqual(90_000);
   });
 
   it('warns and falls back on non-numeric, zero, negative, or non-integer overrides', () => {

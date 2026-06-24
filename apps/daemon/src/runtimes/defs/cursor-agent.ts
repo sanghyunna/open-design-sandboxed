@@ -27,6 +27,8 @@ export function parseCursorAgentModels(stdout: string): RuntimeModelOption[] | n
   return out.length > 1 ? out : null;
 }
 
+const CURSOR_AGENT_VDI_COLD_START_TIMEOUT_MS = 90_000;
+
 export const cursorAgentDef = {
     id: 'cursor-agent',
     name: 'Cursor Agent',
@@ -37,7 +39,7 @@ export const cursorAgentDef = {
     // account." — that's not a model list, so we detect it and fall back.
     listModels: {
       args: ['models'],
-      timeoutMs: 5000,
+      timeoutMs: CURSOR_AGENT_VDI_COLD_START_TIMEOUT_MS,
       parse: (stdout) => {
         const trimmed = String(stdout || '').trim();
         if (!trimmed || /no models available/i.test(trimmed)) return null;
@@ -84,8 +86,7 @@ export const cursorAgentDef = {
     promptViaStdin: true,
     streamFormat: 'json-event-stream',
     eventParser: 'cursor-agent',
-    // `cursor-agent status` is a cheap, side-effect-free auth check. Declaring
-    // it here is what makes detection surface an "auth required" badge for
-    // Cursor Agent (the generalized probe only runs for adapters that opt in).
-    authProbe: { args: ['status'], timeoutMs: 5000 },
+    // VDI security layers can make Cursor's cold CLI startup take close to a
+    // minute even when the user is already logged in.
+    authProbe: { args: ['status'], timeoutMs: CURSOR_AGENT_VDI_COLD_START_TIMEOUT_MS },
 } satisfies RuntimeAgentDef;

@@ -237,10 +237,24 @@ function providerTimeoutMs(): number {
   );
 }
 
-function agentTimeoutMs(): number {
+function defaultAgentTimeoutMs(
+  def: Pick<RuntimeAgentDef, 'authProbe' | 'listModels'>,
+): number {
+  return Math.max(
+    DEFAULT_AGENT_TIMEOUT_MS,
+    def.authProbe?.timeoutMs ?? 0,
+    def.listModels?.timeoutMs ?? 0,
+  );
+}
+
+export function agentTimeoutMs(
+  def: Pick<RuntimeAgentDef, 'authProbe' | 'listModels'>,
+  env: NodeJS.ProcessEnv = process.env,
+): number {
   return resolveConnectionTestTimeoutMs(
     'OD_CONNECTION_TEST_AGENT_TIMEOUT_MS',
-    DEFAULT_AGENT_TIMEOUT_MS,
+    defaultAgentTimeoutMs(def),
+    env,
   );
 }
 
@@ -2163,7 +2177,7 @@ async function testAgentConnectionInternal(
       child.stdin.end(formatPromptForAgentStdin(def, SMOKE_PROMPT), 'utf8');
     }
     const cancellationPromise = new Promise<{ kind: 'timeout' } | { kind: 'aborted' }>((resolve) => {
-      timer = setTimeout(() => resolve({ kind: 'timeout' }), agentTimeoutMs());
+      timer = setTimeout(() => resolve({ kind: 'timeout' }), agentTimeoutMs(def));
       abortHandler = () => resolve({ kind: 'aborted' });
       if (input.signal?.aborted) {
         abortHandler();
