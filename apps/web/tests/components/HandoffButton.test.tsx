@@ -93,9 +93,9 @@ describe('HandoffButton i18n', () => {
 
     fireEvent.click(await screen.findByTestId('handoff-caret'));
 
-    expect(await screen.findAllByText('未安装')).toHaveLength(1);
+    expect(await screen.findAllByText('Not installed')).toHaveLength(1);
     expect(screen.getByTestId('handoff-menu-item-cursor').textContent).toBe('Cursor');
     expect(screen.getByTestId('handoff-menu-item-cursor').getAttribute('title'))
-      .toBe('Cursor - 未在 $PATH 中检测到');
+      .toBe('Cursor - not detected on $PATH');
   });
 });

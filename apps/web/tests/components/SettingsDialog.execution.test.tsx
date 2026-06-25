@@ -91,7 +91,8 @@ import type { AgentRefreshOptions, SettingsSection } from '../../src/components/
 import { reconcileAmrModelChoice } from '../../src/components/SettingsDialog';
 import { reconcileAmrProfileEnv } from '../../src/components/SettingsDialog';
 import { I18nProvider } from '../../src/i18n';
-import { LOCALES } from '../../src/i18n/types';
+import { ko } from '../../src/i18n/locales/ko';
+import { LOCALE_LABEL, LOCALES } from '../../src/i18n/types';
 import { MAX_MAX_TOKENS, MIN_MAX_TOKENS } from '../../src/state/maxTokens';
 import type { AgentInfo, AppConfig, AppVersionInfo } from '../../src/types';
 
@@ -1528,7 +1529,7 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
   });
 
   it('lets users retry a failed BYOK connection test without editing the API key', async () => {
-    let attempt = 0;
+    let connectionShouldSucceed = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = input.toString();
       if (url === '/api/memory') {
@@ -1537,22 +1538,22 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }
-      attempt += 1;
+      expect(url).toBe('/api/test/connection');
       return new Response(
         JSON.stringify(
-          attempt === 1
+          connectionShouldSucceed
             ? {
-                ok: false,
-                kind: 'timeout',
-                latencyMs: 30000,
-                model: 'claude-sonnet-4-5',
-              }
-            : {
                 ok: true,
                 kind: 'ok',
                 latencyMs: 18,
                 model: 'claude-sonnet-4-5',
                 sample: 'pong',
+              }
+            : {
+                ok: false,
+                kind: 'timeout',
+                latencyMs: 30000,
+                model: 'claude-sonnet-4-5',
               },
         ),
         { status: 200, headers: { 'content-type': 'application/json' } },
@@ -1562,16 +1563,26 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
 
     renderSettingsDialog({ apiKey: 'sk-ant-test-provider' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Test' }));
-    expect(await screen.findByRole('button', { name: 'Retry test' })).toBeTruthy();
+    const readyState = await screen.findByText('Ready to test');
+    const byokTestControl = readyState.closest('.settings-byok-connection-test');
+    expect(byokTestControl).toBeTruthy();
+    const initialTestButton = within(byokTestControl as HTMLElement).getByRole('button', { name: 'Test' });
+    if (!initialTestButton.hasAttribute('disabled')) {
+      fireEvent.click(initialTestButton);
+    }
+    expect(await within(byokTestControl as HTMLElement).findByRole('button', { name: 'Retry test' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry test' }));
+    const connectionCallsBeforeRetry = fetchMock.mock.calls.filter(
+      ([input]) => input.toString() === '/api/test/connection',
+    ).length;
+    connectionShouldSucceed = true;
+    fireEvent.click(within(byokTestControl as HTMLElement).getByRole('button', { name: 'Retry test' }));
 
     expect(await screen.findByText(/Connected\. Replied in 18 ms/)).toBeTruthy();
     const testConnectionCalls = fetchMock.mock.calls.filter(
       ([input]) => input.toString() === '/api/test/connection',
     );
-    expect(testConnectionCalls).toHaveLength(2);
+    expect(testConnectionCalls).toHaveLength(connectionCallsBeforeRetry + 1);
   });
 
   it('marks a successful BYOK test after a config edit as success after action', async () => {
@@ -2757,53 +2768,43 @@ describe('SettingsDialog language interactions', () => {
     document.documentElement.removeAttribute('dir');
   });
 
-  it('shows every locale as a tile and marks the current locale as selected', async () => {
+  it('shows every supported locale as a tile and marks the current locale as selected', async () => {
     renderLanguageSettingsDialog('en');
 
     const tiles = await screen.findAllByRole('radio');
     expect(tiles).toHaveLength(LOCALES.length);
     expect(screen.getByRole('radio', { name: /English/i }).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('radio', { name: /简体中文/i }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByRole('radio', { name: /Deutsch/i })).toBeNull();
   });
 
   it('switches locale immediately and updates localStorage', async () => {
     renderLanguageSettingsDialog('en');
 
-    fireEvent.click(screen.getByRole('radio', { name: /简体中文/i }));
+    fireEvent.click(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }));
 
-    expect(screen.getByRole('radio', { name: /简体中文/i }).getAttribute('aria-checked')).toBe('true');
-    expect(window.localStorage.getItem('open-design:locale')).toBe('en');
-    expect(document.documentElement.getAttribute('lang')).toBe('en');
+    expect(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }).getAttribute('aria-checked')).toBe('true');
+    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(document.documentElement.getAttribute('lang')).toBe('ko');
     expect(document.documentElement.getAttribute('dir')).toBe('ltr');
-  });
-
-  it('sets rtl direction for rtl locales', async () => {
-    renderLanguageSettingsDialog('en');
-
-    fireEvent.click(screen.getByRole('radio', { name: /فارسی/i }));
-
-    expect(window.localStorage.getItem('open-design:locale')).toBe('fa');
-    expect(document.documentElement.getAttribute('lang')).toBe('fa');
-    expect(document.documentElement.getAttribute('dir')).toBe('rtl');
   });
 
   it('does not route language changes through autosave and closing does not revert an applied locale', async () => {
     const { onPersist, onClose } = renderLanguageSettingsDialog('en');
 
-    fireEvent.click(screen.getByRole('radio', { name: /Deutsch/i }));
+    fireEvent.click(screen.getByRole('radio', { name: new RegExp(LOCALE_LABEL.ko) }));
 
-    expect(window.localStorage.getItem('open-design:locale')).toBe('de');
-    expect(document.documentElement.getAttribute('lang')).toBe('de');
+    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(document.documentElement.getAttribute('lang')).toBe('ko');
 
-    fireEvent.click(screen.getByTitle(/close|schließen/i));
+    fireEvent.click(screen.getByTitle(ko['common.close']));
     expect(onPersist).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.getItem('open-design:locale')).toBe('de');
-    expect(document.documentElement.getAttribute('lang')).toBe('de');
+    expect(window.localStorage.getItem('open-design:locale')).toBe('ko');
+    expect(document.documentElement.getAttribute('lang')).toBe('ko');
     expect(document.documentElement.getAttribute('dir')).toBe('ltr');
   });
 });
-
 describe('SettingsDialog notifications interactions', () => {
   afterEach(() => {
     cleanup();
@@ -3215,9 +3216,9 @@ describe('SettingsDialog appearance interactions', () => {
     );
   });
 
-  it('localizes the accent color controls in Chinese', () => {
+  it('localizes the accent color controls in Korean', () => {
     render(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <SettingsDialog
           initial={{ ...baseConfig, theme: 'light' }}
           agents={availableAgents}
@@ -3232,13 +3233,12 @@ describe('SettingsDialog appearance interactions', () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByText('主题色')).toBeTruthy();
-    expect(screen.getByRole('radiogroup', { name: '主题色' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '默认主题色' })).toBeTruthy();
-    expect(screen.getByLabelText('自定义颜色')).toBeTruthy();
+    expect(screen.getByText(ko['pet.fieldAccent'])).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: ko['pet.fieldAccent'] })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: ko['pet.fieldAccentDefault'] })).toBeTruthy();
+    expect(screen.getByLabelText(ko['pet.fieldAccentCustom'])).toBeTruthy();
   });
 });
-
 describe('SettingsDialog pets interactions', () => {
   const clipboardDescriptor = Object.getOwnPropertyDescriptor(window.navigator, 'clipboard');
 
@@ -3648,4 +3648,3 @@ describe('SettingsDialog about interactions', () => {
   });
 
 });
-

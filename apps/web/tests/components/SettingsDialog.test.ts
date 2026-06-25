@@ -739,10 +739,10 @@ describe('SettingsDialog Orbit run behavior', () => {
     }) as typeof fetch;
 
     await expect(
-      persistConfigAndRunOrbit(baseConfig, { locale: 'zh-CN' }),
+      persistConfigAndRunOrbit(baseConfig, { locale: 'ko' }),
     ).resolves.toEqual({ projectId: 'orbit-project', agentRunId: 'run-zh' });
 
-    expect(JSON.parse(calls[1]!.body ?? '{}')).toEqual({ locale: 'zh-CN' });
+    expect(JSON.parse(calls[1]!.body ?? '{}')).toEqual({ locale: 'ko' });
   });
 
   it('persists the displayed default template before starting a legacy null-template run', async () => {

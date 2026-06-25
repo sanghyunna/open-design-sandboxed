@@ -78,7 +78,7 @@ vi.mock('../../src/components/SettingsDialog', () => ({
         onClick={() =>
           void onRefreshAgents({
             agentCliEnv: {
-              amr: { VELA_PROFILE: 'next-profile' },
+              amr: { OPEN_DESIGN_AMR_PROFILE: 'next-profile' },
             },
           })}
       >
@@ -384,6 +384,16 @@ describe('App AMR polling', () => {
       models: [{ id: 'old-remote', label: 'old-remote' }],
     });
     mockedFetchAgentsStream
+      .mockResolvedValueOnce([
+        {
+          id: 'amr',
+          name: 'AMR',
+          bin: 'vela',
+          available: true,
+          version: '1.0.0',
+          models: [],
+        },
+      ])
       .mockResolvedValueOnce([
         {
           id: 'amr',

@@ -89,10 +89,9 @@ describe('DesignSystemPicker', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getAllByText('Clay').length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByLabelText('关闭全屏预览'));
+    fireEvent.click(screen.getByLabelText('Close full-screen preview'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
-
   it('selects a design system option with keyboard activation', async () => {
     const onChange = vi.fn();
     renderPicker({ onChange });
@@ -127,7 +126,7 @@ describe('DesignSystemPicker', () => {
 
     // Category chips were removed from the list/preview per design; only the
     // surrounding picker copy needs to localize.
-    expect(screen.getByPlaceholderText('Rechercher des systèmes de design')).toBeTruthy();
-    expect(screen.getByText('Aucun système de design')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Search design systems')).toBeTruthy();
+    expect(screen.getByText('No design system')).toBeTruthy();
   });
 });

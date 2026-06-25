@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SessionModeToggle } from '../../src/components/SessionModeToggle';
 import { I18nProvider } from '../../src/i18n';
+import { en } from '../../src/i18n/locales/en';
+import { ko } from '../../src/i18n/locales/ko';
 
 afterEach(() => cleanup());
 
@@ -12,13 +14,17 @@ describe('SessionModeToggle', () => {
   it('shows only the active mode until the menu is opened', () => {
     render(<SessionModeToggle mode="design" onChange={vi.fn()} />);
 
-    expect(screen.getByTestId('session-mode-trigger').textContent).toContain('Design');
+    expect(screen.getByTestId('session-mode-trigger').textContent).toContain(en['chat.mode.design.label']);
     expect(screen.queryByRole('menu')).toBeNull();
 
     fireEvent.click(screen.getByTestId('session-mode-trigger'));
 
-    expect(screen.getByRole('menuitemradio', { name: /Design mode/i }).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('menuitemradio', { name: /Ask mode/i }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('menuitemradio', { name: en['chat.mode.design.title'] }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('menuitemradio', { name: en['chat.mode.chat.title'] }).getAttribute('aria-checked')).toBe(
+      'false',
+    );
   });
 
   it('switches mode from the menu', () => {
@@ -26,7 +32,7 @@ describe('SessionModeToggle', () => {
     render(<SessionModeToggle mode="design" onChange={onChange} />);
 
     fireEvent.click(screen.getByTestId('session-mode-trigger'));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /Ask mode/i }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: en['chat.mode.chat.title'] }));
 
     expect(onChange).toHaveBeenCalledWith('chat');
     expect(screen.queryByRole('menu')).toBeNull();
@@ -34,7 +40,7 @@ describe('SessionModeToggle', () => {
 
   it('shows localized guidance only after opening the menu', () => {
     render(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <SessionModeToggle mode="chat" onChange={vi.fn()} />
       </I18nProvider>,
     );
@@ -45,17 +51,18 @@ describe('SessionModeToggle', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
 
     fireEvent.click(trigger);
-    expect(screen.getByRole('tooltip').textContent).toContain('Ask 模式');
-    expect(screen.getByRole('tooltip').textContent).toContain('总结这份稿子，并指出还缺什么。');
+    expect(screen.getByRole('tooltip').textContent).toContain(ko['chat.mode.chat.title']);
+    expect(screen.getByRole('tooltip').textContent).toContain(ko['chat.mode.chat.summary']);
 
-    const designOption = screen.getByRole('menuitemradio', { name: /设计模式/i });
+    const designOption = screen.getByRole('menuitemradio', { name: ko['chat.mode.design.title'] });
     fireEvent.pointerEnter(designOption);
 
     const menu = screen.getByRole('menu');
     const card = screen.getByRole('tooltip');
-    expect(menu.textContent).not.toContain('适合创建或修改具体设计产物');
-    expect(card.textContent).toContain('适合创建或修改具体设计产物');
-    expect(card.textContent).toContain('图片、视频、HyperFrames、音频');
-    expect(card.textContent).toContain('为这次 campaign 生成图片、视频和音频创意。');
+    expect(menu.textContent).not.toContain(ko['chat.mode.design.summary']);
+    expect(card.textContent).toContain(ko['chat.mode.design.summary']);
+    expect(card.textContent).toContain(ko['chat.mode.design.solves']);
+    expect(card.textContent).toContain(ko['chat.mode.design.query1']);
+    expect(card.textContent).toContain(ko['chat.mode.design.query3']);
   });
 });

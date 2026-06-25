@@ -16,6 +16,7 @@ import {
   PluginShareMenu,
 } from '../../src/components/plugin-details/PluginShareMenu';
 import { I18nProvider, type Locale } from '../../src/i18n';
+import { ko } from '../../src/i18n/locales/ko';
 
 interface MakeArgs {
   id: string;
@@ -221,28 +222,27 @@ describe('PluginShareMenu', () => {
   it('localizes the plugin action menu labels', () => {
     renderMenu(
       make({
-        id: 'zh-plugin',
+        id: 'ko-plugin',
         sourceKind: 'github',
         source: 'github:owner/repo',
         marketplaceId: 'official',
-        marketplaceEntryName: 'open-design/zh-plugin',
+        marketplaceEntryName: 'open-design/ko-plugin',
         homepage: 'https://example.test/plugin-home',
       }),
-      'en',
+      'ko',
     );
-    openPopover('更多');
+    openPopover(ko['homeHero.moreShortcuts']);
     const labels = Array.from(
       container.querySelectorAll('.plugin-share-item'),
     ).map((item) => item.textContent ?? '');
-    expect(labels).toContain('复制安装命令');
-    expect(labels).toContain('复制插件 ID');
-    expect(labels).toContain('复制 README 徽章');
-    expect(labels).toContain('在 GitHub 打开源码');
-    expect(labels).toContain('打开项目主页');
-    expect(labels).toContain('在插件市场打开');
+    expect(labels).toContain(ko['plugins.actions.copyInstallCommand']);
+    expect(labels).toContain(ko['plugins.actions.copyPluginId']);
+    expect(labels).toContain(ko['plugins.actions.copyReadmeBadge']);
+    expect(labels).toContain(ko['plugins.actions.openSourceGithub']);
+    expect(labels).toContain(ko['plugins.actions.openHomepage']);
+    expect(labels).toContain(ko['plugins.actions.openMarketplace']);
     expect(labels.some((label) => label.includes('Copy install command'))).toBe(false);
   });
-
   it('points Open in marketplace at the public open-design.ai page for bundled plugins', () => {
     renderMenu(make({ id: 'plain' }));
     openPopover();

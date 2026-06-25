@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TerminalViewer } from '../../src/components/workspace/TerminalViewer';
 import { I18nProvider } from '../../src/i18n';
+import { en } from '../../src/i18n/locales/en';
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
@@ -80,7 +81,7 @@ describe('TerminalViewer', () => {
     );
 
     const loading = screen.getByTestId('terminal-loading');
-    expect(loading.textContent).toContain('正在启动项目终端…');
-    expect(loading.textContent).toContain('正在连接项目目录，通常只需几秒。');
+    expect(loading.textContent).toContain(en['workspace.terminalStarting']);
+    expect(loading.textContent).toContain(en['workspace.terminalStartingDescription']);
   });
 });

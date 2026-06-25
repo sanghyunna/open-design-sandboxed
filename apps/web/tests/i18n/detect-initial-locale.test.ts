@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { installMockOpenDesignHost } from '@open-design/host/testing';
-import { detectInitialLocale } from '../../src/i18n';
+import { detectInitialLocale, useI18n } from '../../src/i18n';
 
 const LS_KEY = 'open-design:locale';
 const LS_SOURCE_KEY = 'open-design:locale-source';
@@ -61,39 +62,39 @@ describe('detectInitialLocale priority chain', () => {
   });
 
   it('prefers a manually-tagged localStorage pick over host and navigator', () => {
-    setStoredLocale('ja', 'manual');
-    installHostWithOsLocale('zh-CN');
-    setNavigatorLanguages(['fr-FR']);
+    setStoredLocale('ko', 'manual');
+    installHostWithOsLocale('en-US');
+    setNavigatorLanguages(['en-US']);
 
-    expect(detectInitialLocale()).toBe('ja');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
   it('ignores an untagged localStorage value when a fresh host locale is available', () => {
-    setStoredLocale('ja', 'untagged');
-    installHostWithOsLocale('zh-CN');
+    setStoredLocale('en', 'untagged');
+    installHostWithOsLocale('ko-KR');
 
-    expect(detectInitialLocale()).toBe('zh-CN');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
   it('falls through to navigator when an unsupported locale was stored', () => {
     setStoredLocale('xx-YY', 'manual');
-    setNavigatorLanguages(['de-DE']);
+    setNavigatorLanguages(['ko-KR']);
 
-    expect(detectInitialLocale()).toBe('de');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
   it('uses the desktop host OS locale when no localStorage pick exists', () => {
-    installHostWithOsLocale('zh-CN');
+    installHostWithOsLocale('ko-KR');
     setNavigatorLanguages(['en-US']);
 
-    expect(detectInitialLocale()).toBe('zh-CN');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
-  it('routes packaged OS locale strings through resolveSystemLocale (zh-Hant → zh-TW)', () => {
-    installHostWithOsLocale('zh-Hant-TW');
+  it('routes packaged OS locale strings through resolveSystemLocale', () => {
+    installHostWithOsLocale('ko-KR');
     setNavigatorLanguages(['en-US']);
 
-    expect(detectInitialLocale()).toBe('zh-TW');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
   it('falls back to navigator when host osLocale is missing or not a string', () => {
@@ -102,15 +103,15 @@ describe('detectInitialLocale priority chain', () => {
     expect(detectInitialLocale()).toBe('ko');
 
     installHostWithOsLocale(42);
-    setNavigatorLanguages(['fr-FR']);
-    expect(detectInitialLocale()).toBe('fr');
+    setNavigatorLanguages(['en-US']);
+    expect(detectInitialLocale()).toBe('en');
   });
 
   it('falls back to navigator when host osLocale is not in the supported set', () => {
     installHostWithOsLocale('nl-NL');
-    setNavigatorLanguages(['pt-PT']);
+    setNavigatorLanguages(['ko-KR']);
 
-    expect(detectInitialLocale()).toBe('pt-BR');
+    expect(detectInitialLocale()).toBe('ko');
   });
 
   it('falls back to en when nothing else is available', () => {
@@ -118,5 +119,19 @@ describe('detectInitialLocale priority chain', () => {
     setNavigatorLanguages([]);
 
     expect(detectInitialLocale()).toBe('en');
+  });
+});
+
+describe('useI18n fallback', () => {
+  it('returns a stable fallback context when no provider is mounted', () => {
+    const { result, rerender } = renderHook(() => useI18n());
+    const firstContext = result.current;
+    const firstTranslator = result.current.t;
+
+    rerender();
+
+    expect(result.current).toBe(firstContext);
+    expect(result.current.t).toBe(firstTranslator);
+    expect(result.current.t('common.save')).toBe('Save');
   });
 });

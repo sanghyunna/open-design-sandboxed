@@ -9,7 +9,19 @@ import {
   localizeSkillPrompt,
   hasLocalizedContent,
 } from '../../src/i18n/content';
+import {
+  KO_DESIGN_SYSTEM_SUMMARIES,
+  KO_PROMPT_TEMPLATE_CATEGORIES,
+  KO_PROMPT_TEMPLATE_COPY,
+  KO_PROMPT_TEMPLATE_TAGS,
+  KO_SKILL_COPY,
+} from '../../src/i18n/content.ko';
 import { LOCALES } from '../../src/i18n/types';
+
+function requireDefined<T>(value: T | undefined): T {
+  expect(value).toBeDefined();
+  return value as T;
+}
 
 describe('localized resource content', () => {
   it('derives localized ids only from localized dictionaries', () => {
@@ -22,18 +34,28 @@ describe('localized resource content', () => {
   });
 
   it('prefers localized skill copy and falls back to english field-by-field', () => {
-    const partiallyLocalizedSkill = {
+    const localizedSkill = {
       id: 'brandkit',
       examplePrompt: '  English prompt from source.  ',
       description: '  English description from source.  ',
     } as unknown as SkillSummary;
+    const brandkitCopy = requireDefined(KO_SKILL_COPY.brandkit);
 
-    expect(localizeSkillPrompt('ko', partiallyLocalizedSkill)).toBe(
-      '이 제품을 위한 프리미엄 브랜드 키트 개요 이미지를 만들어 주세요: 로고 방향성, 팔레트, 타이포그래피, 적용 사례, 그리고 일관된 비주얼 월드.',
+    expect(localizeSkillPrompt('ko', localizedSkill)).toBe(
+      brandkitCopy.examplePrompt,
     );
-    expect(localizeSkillDescription('ko', partiallyLocalizedSkill)).toBe(
-      'English description from source.',
+    expect(localizeSkillDescription('ko', localizedSkill)).toBe(
+      brandkitCopy.description,
     );
+
+    const englishOnlySkill = {
+      id: 'english-only-skill',
+      examplePrompt: '  English prompt from source.  ',
+      description: '  English description from source.  ',
+    } as unknown as SkillSummary;
+
+    expect(localizeSkillPrompt('ko', englishOnlySkill)).toBe('English prompt from source.');
+    expect(localizeSkillDescription('ko', englishOnlySkill)).toBe('English description from source.');
   });
 
   it('uses inline skill display metadata before falling back to source fields', () => {
@@ -42,31 +64,41 @@ describe('localized resource content', () => {
       name: 'inline-skill',
       displayName: {
         en: 'Inline Skill',
-        ko: '인라인 스킬',
+        ko: 'Inline Skill KO',
       },
       description: ' English description from source. ',
       descriptionI18n: {
         en: 'English inline description.',
-        ko: '한국어 인라인 설명.',
+        ko: 'Korean inline description.',
       },
       examplePrompt: ' English prompt from source. ',
       examplePromptI18n: {
         en: 'English inline prompt.',
-        ko: '한국어 인라인 prompt.',
+        ko: 'Korean inline prompt.',
       },
     } as unknown as SkillSummary;
 
-    expect(localizeSkillName('ko', inlineSkill)).toBe('인라인 스킬');
+    expect(localizeSkillName('ko', inlineSkill)).toBe('Inline Skill KO');
     expect(localizeSkillName('en', inlineSkill)).toBe('Inline Skill');
-    expect(localizeSkillDescription('ko', inlineSkill)).toBe('한국어 인라인 설명.');
+    expect(localizeSkillDescription('ko', inlineSkill)).toBe('Korean inline description.');
     expect(localizeSkillDescription('en', inlineSkill)).toBe('English inline description.');
-    expect(localizeSkillPrompt('ko', inlineSkill)).toBe('한국어 인라인 prompt.');
+    expect(localizeSkillPrompt('ko', inlineSkill)).toBe('Korean inline prompt.');
     expect(localizeSkillPrompt('en', inlineSkill)).toBe('English inline prompt.');
   });
 
-  it('falls back to english design system summaries when localized copy is missing', () => {
-    const englishOnlySystem = {
+  it('prefers localized design system summaries and falls back to english when missing', () => {
+    const localizedSystem = {
       id: 'agentic',
+      summary: ' English summary from source. ',
+      category: 'English category',
+    } as DesignSystemSummary;
+
+    expect(localizeDesignSystemSummary('ko', localizedSystem)).toBe(
+      KO_DESIGN_SYSTEM_SUMMARIES.agentic,
+    );
+
+    const englishOnlySystem = {
+      id: 'english-only-system',
       summary: ' English summary from source. ',
       category: 'English category',
     } as DesignSystemSummary;
@@ -86,19 +118,20 @@ describe('localized resource content', () => {
     } satisfies PromptTemplateSummary;
 
     const localized = localizePromptTemplateSummary('ko', translatedTemplate);
-    expect(localized.title).toBe('3D 스톤 계단 진화 인포그래픽');
-    expect(localized.summary).toBe(
-      '평면의 진화 타임라인을 입체적인 돌 계단 형태의 3D 인포그래픽으로 전환하세요. 생명체의 상세한 렌더링과 구조화된 사이드 패널을 포함합니다.',
+    const expectedCopy = requireDefined(
+      KO_PROMPT_TEMPLATE_COPY['3d-stone-staircase-evolution-infographic'],
     );
-    expect(localized.category).toBe('인포그래픽');
-    expect(localized.tags).toEqual(['3d', 'unknown-tag']);
+    expect(localized.title).toBe(expectedCopy.title);
+    expect(localized.summary).toBe(expectedCopy.summary);
+    expect(localized.category).toBe(KO_PROMPT_TEMPLATE_CATEGORIES.Infographic);
+    expect(localized.tags).toEqual([KO_PROMPT_TEMPLATE_TAGS['3d'] ?? '3d', 'unknown-tag']);
     expect(
       localizePromptTemplateSummary('ko', { ...translatedTemplate, category: 'Unknown category' }).category,
     ).toBe('Unknown category');
 
     const englishOnlyTemplate = {
       ...translatedTemplate,
-      id: 'notion-team-dashboard-live-artifact',
+      id: 'english-only-template',
       title: ' English title from source ',
       summary: ' English summary from source ',
       category: 'General',
@@ -108,14 +141,14 @@ describe('localized resource content', () => {
     expect(localizePromptTemplateSummary('ko', englishOnlyTemplate)).toMatchObject({
       title: ' English title from source ',
       summary: ' English summary from source ',
-      category: '일반',
+      category: KO_PROMPT_TEMPLATE_CATEGORIES.General,
       tags: ['unknown-tag'],
     });
   });
 
   // Coverage lock: every supported non-English locale must resolve a
   // built-in-content bundle registered in LOCALIZED_CONTENT. When a locale has
-  // no bundle, built-in copy silently renders English — this test locks every
+  // no bundle, built-in copy silently renders English. This test locks every
   // non-English locale to a resolvable bundle so a future locale addition
   // cannot regress.
   it('resolves a built-in-content bundle for every supported non-English locale', () => {

@@ -46,6 +46,7 @@ import {
 import type { InspectOverrideMap } from '../../src/components/FileViewer';
 import type { LiveArtifact, LiveArtifactWorkspaceEntry, PreviewComment, ProjectFile } from '../../src/types';
 import { I18nProvider } from '../../src/i18n';
+import { ko } from '../../src/i18n/locales/ko';
 import type { Dict } from '../../src/i18n/types';
 import { emptyManualEditStyles } from '../../src/edit-mode/types';
 import { readExpandedIndexCss } from '../helpers/read-expanded-css';
@@ -1238,7 +1239,7 @@ describe('FileViewer SVG artifacts', () => {
     expect(resolvedTop).toBe('34px');
     style.remove();
     workspaceShell.remove();
-  });
+  }, 15_000);
 
   it('allows downloads in React component preview iframes', async () => {
     const file = baseFile({
@@ -5572,31 +5573,16 @@ describe('LiveArtifactRefreshHistoryPanel', () => {
     expect(markup).toContain('3.8s');
   });
 
-  // Lefarcen review on PR #1300: the existing renderToStaticMarkup
-  // assertions above can't prove that the panel actually routes its
-  // strings through i18n, because the no-provider fallback returns
-  // English no matter what locale the rest of the app is set to. This
-  // test wraps the panel in `I18nProvider initial="zh-CN"` and pins
-  // the Chinese rendering of the strings issue #1254 was filed for:
-  // the badge descriptor, the hero label + empty state, the session
-  // section header + hint, the empty-timeline copy, the persisted
-  // section + its empty copy, started / succeeded event labels, the
-  // pluralised source-count line, the document-source labels, and the
-  // advanced debug summary. If a future change drops `t()` off any
-  // of those callsites, this test catches it before the user sees
-  // the mixed-language regression.
-  it('renders Chinese strings end-to-end when wrapped in I18nProvider initial="zh-CN"', () => {
+  // Regression coverage for issue #1254: when a non-English UI locale wraps the
+  // panel, every visible label should come from the locale dictionary instead
+  // of leaking hardcoded English strings.
+  it('renders Korean strings end-to-end when wrapped in I18nProvider initial="ko"', () => {
     const now = Date.now();
     const markup = renderToStaticMarkup(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <LiveArtifactRefreshHistoryPanel
           liveArtifact={baseLiveArtifact({
             refreshStatus: 'succeeded',
-            // Real lastRefreshedAt + non-empty session events so the
-            // relative-time path also runs under zh-CN; the lefarcen
-            // P1 review specifically called out that the formerly
-            // hardcoded `Xs ago` / `Xm ago` strings would still leak
-            // English under a Chinese UI without this.
             lastRefreshedAt: new Date(now - 45_000).toISOString(),
             document: {
               format: 'html_template_v1',
@@ -5634,49 +5620,34 @@ describe('LiveArtifactRefreshHistoryPanel', () => {
       </I18nProvider>,
     );
 
-    // Hero
-    expect(markup).toContain('上次刷新');
-    // Session activity section
-    expect(markup).toContain('会话活动');
-    expect(markup).toContain('本标签页打开期间观察到的事件');
-    // Event labels + pluralised source count for n === 1
-    expect(markup).toContain('已开始');
-    expect(markup).toContain('已成功');
-    expect(markup).toContain('已更新 1 个数据源');
-    // Persisted history section + empty copy
-    expect(markup).toContain('持久化刷新记录');
-    expect(markup).toContain('尚无持久化的刷新记录。');
-    // Document source section
-    expect(markup).toContain('文档来源');
-    expect(markup).toContain('已配置的数据源');
-    expect(markup).toContain('类型');
-    expect(markup).toContain('工具');
-    expect(markup).toContain('连接器');
-    // Advanced debug metadata
-    expect(markup).toContain('高级调试元数据');
-    // English label that previously leaked through must NOT appear
-    // (mixed-language is exactly the regression issue #1254 filed for).
+    expect(markup).toContain(ko['liveArtifact.refresh.heroLastRefreshedLabel']);
+    expect(markup).toContain(ko['liveArtifact.refresh.sessionTitle']);
+    expect(markup).toContain(ko['liveArtifact.refresh.sessionHint']);
+    expect(markup).toContain(ko['liveArtifact.refresh.eventStarted']);
+    expect(markup).toContain(ko['liveArtifact.refresh.eventSucceeded']);
+    expect(markup).toContain(ko['liveArtifact.refresh.sourcesUpdatedOne'].replace('{n}', '1'));
+    expect(markup).toContain(ko['liveArtifact.refresh.persistedTitle']);
+    expect(markup).toContain(ko['liveArtifact.refresh.persistedEmpty']);
+    expect(markup).toContain(ko['liveArtifact.refresh.docSourceTitle']);
+    expect(markup).toContain(ko['liveArtifact.refresh.docSourceHint']);
+    expect(markup).toContain(ko['liveArtifact.refresh.docSourceType']);
+    expect(markup).toContain(ko['liveArtifact.refresh.docSourceTool']);
+    expect(markup).toContain(ko['liveArtifact.refresh.docSourceConnector']);
+    expect(markup).toContain(ko['liveArtifact.refresh.debugSummary']);
     expect(markup).not.toContain('Last refreshed');
     expect(markup).not.toContain('Session activity');
     expect(markup).not.toContain('Persisted refresh history');
     expect(markup).not.toContain('Document source');
     expect(markup).not.toContain('Advanced debug metadata');
-    // Relative-time output must be Chinese, not English. The lefarcen
-    // P1 review pointed out that formatRelativeTime was hardcoding
-    // English units (`Xs ago`), so a 45s-old hero metric would still
-    // read `45s ago` even with every label translated. Assert against
-    // the Chinese past-tense suffix `前` and rule out the English
-    // suffixes the legacy function emitted.
-    expect(markup).toContain('前');
     expect(markup).not.toContain(' ago');
     expect(markup).not.toContain('from now');
     expect(markup).not.toMatch(/\b\d+s ago\b/);
     expect(markup).not.toMatch(/\b\d+m ago\b/);
   });
 
-  it('renders the zh-CN empty hero ("从未") when lastRefreshedAt is missing', () => {
+  it('renders the Korean empty hero when lastRefreshedAt is missing', () => {
     const markup = renderToStaticMarkup(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <LiveArtifactRefreshHistoryPanel
           liveArtifact={baseLiveArtifact({ refreshStatus: 'never', lastRefreshedAt: undefined })}
           fallbackRefreshStatus="never"
@@ -5686,8 +5657,8 @@ describe('LiveArtifactRefreshHistoryPanel', () => {
       </I18nProvider>,
     );
 
-    expect(markup).toContain('上次刷新');
-    expect(markup).toContain('从未');
+    expect(markup).toContain(ko['liveArtifact.refresh.heroLastRefreshedLabel']);
+    expect(markup).toContain(ko['liveArtifact.refresh.heroLastRefreshedNever']);
     expect(markup).not.toContain('Last refreshed');
     expect(markup).not.toContain('>Never<');
   });

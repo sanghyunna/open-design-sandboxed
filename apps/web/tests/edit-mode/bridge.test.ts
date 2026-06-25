@@ -455,6 +455,31 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('targets inline text leaves inside wrapper containers', () => {
+    const dom = new JSDOM(
+      `<main><div data-od-id="wrapper" class="zh"><b data-od-source-path="path-0-0-0">Visible text</b></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const leaf = dom.window.document.querySelector('b') as HTMLElement;
+    const wrapper = dom.window.document.querySelector('[data-od-id="wrapper"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    leaf.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(leaf.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(wrapper.hasAttribute('contenteditable')).toBe(false);
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'path-0-0-0',
+        kind: 'text',
+        tagName: 'b',
+      }),
+    }, '*');
+
+    dom.window.close();
+  });
+
   it('keeps nested containers out of inline text editing', () => {
     const dom = new JSDOM(
       `<main><section data-od-id="hero"><h1 data-od-id="title">Original title</h1></section></main>${buildManualEditBridge(true)}`,

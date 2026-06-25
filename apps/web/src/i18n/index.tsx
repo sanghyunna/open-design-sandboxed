@@ -105,6 +105,21 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+const fallbackT: I18nContextValue['t'] = (key, vars) => {
+  const raw = en[key] ?? key;
+  if (!vars) return raw;
+  return raw.replace(/\{(\w+)\}/g, (_, n: string) => {
+    const v = vars[n];
+    return v == null ? `{${n}}` : String(v);
+  });
+};
+
+const FALLBACK_I18N_CONTEXT: I18nContextValue = {
+  locale: 'en',
+  setLocale: () => undefined,
+  t: fallbackT,
+};
+
 interface ProviderProps {
   initial?: Locale;
   children: ReactNode;
@@ -159,18 +174,7 @@ export function useI18n(): I18nContextValue {
     // Fall back to a stand-alone English translator when no provider is
     // mounted (e.g. an isolated test). This keeps the API safe to call
     // without requiring every callsite to wrap in a provider.
-    return {
-      locale: 'en',
-      setLocale: () => { },
-      t: (key, vars) => {
-        const raw = en[key] ?? key;
-        if (!vars) return raw;
-        return raw.replace(/\{(\w+)\}/g, (_, n: string) => {
-          const v = vars[n];
-          return v == null ? `{${n}}` : String(v);
-        });
-      },
-    };
+    return FALLBACK_I18N_CONTEXT;
   }
   return ctx;
 }

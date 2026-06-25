@@ -77,17 +77,6 @@ describe('HandoffButton zero-editors fallback', () => {
   });
 
   it('copies a framework-specific CLI handoff prompt with the local project path', async () => {
-    fetchHostEditors.mockResolvedValue({
-      platform: 'darwin',
-      editors: [
-        {
-          id: 'cursor',
-          label: 'Cursor',
-          available: true,
-        },
-      ],
-    });
-    copyToClipboard.mockResolvedValue(true);
     const agents: AgentInfo[] = [
       {
         id: 'claude',
@@ -102,6 +91,11 @@ describe('HandoffButton zero-editors fallback', () => {
         available: false,
       },
     ];
+    fetchHostEditors.mockResolvedValue({
+      platform: 'darwin',
+      editors: [{ id: 'cursor', label: 'Cursor', available: true }],
+    });
+    copyToClipboard.mockResolvedValue(true);
 
     render(
       <I18nProvider initial="en">
@@ -115,11 +109,11 @@ describe('HandoffButton zero-editors fallback', () => {
     );
 
     fireEvent.click(await screen.findByTestId('handoff-caret'));
-    fireEvent.click(await screen.findByRole('tab', { name: '复制给 CLI' }));
-    expect(screen.getByRole('link', { name: /打开 AMR 官网/ }).getAttribute('href'))
+    fireEvent.click(await screen.findByRole('tab', { name: 'Copy for CLI' }));
+    expect(screen.getByRole('link', { name: /Open AMR website/ }).getAttribute('href'))
       .toBe('https://open-design.ai/amr');
     expect(screen.getByTestId('handoff-cli-item-amr').textContent).toContain('Open Design AMR');
-    expect(screen.getByTestId('handoff-cli-item-amr').textContent).not.toContain('未安装');
+    expect(screen.getByTestId('handoff-cli-item-amr').textContent).not.toContain('Not installed');
     expect(
       screen.getByTestId('handoff-cli-item-amr').compareDocumentPosition(
         screen.getByTestId('handoff-cli-item-codex'),
@@ -133,9 +127,8 @@ describe('HandoffButton zero-editors fallback', () => {
     expect(prompt).toContain('/tmp/open-design/Landing');
     expect(prompt).toContain('Vue.js');
     expect(prompt).toContain('Claude Code');
-    expect(prompt).toContain('真实可运行');
+    expect(prompt).toContain('Preserve the current visual design');
   });
-
   it('keeps the project path hidden behind a compact copy row', async () => {
     fetchHostEditors.mockResolvedValue({
       platform: 'darwin',

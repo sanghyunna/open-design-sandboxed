@@ -1530,6 +1530,9 @@ export function SettingsDialog({
       byokLastUnsuccessfulTestKeyRef.current = currentConfigKey;
       return;
     }
+    if (!options.silentPreconditions) {
+      providerAutoTestKeyRef.current = currentConfigKey;
+    }
     const controller = new AbortController();
     const revision = providerTestRevisionRef.current;
     providerTestAbortRef.current = controller;

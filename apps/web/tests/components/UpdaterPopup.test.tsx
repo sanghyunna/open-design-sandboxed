@@ -8,6 +8,7 @@ import { installMockOpenDesignHost } from '@open-design/host/testing';
 
 import { UpdaterPopup } from '../../src/components/UpdaterPopup';
 import { I18nProvider } from '../../src/i18n';
+import { ko } from '../../src/i18n/locales/ko';
 
 function idleStatus(): OpenDesignHostUpdaterStatusSnapshot {
   return {
@@ -134,18 +135,17 @@ describe('UpdaterPopup', () => {
     });
 
     render(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <UpdaterPopup />
       </I18nProvider>,
     );
 
     fireEvent.click(await screen.findByTestId('entry-nav-updater'));
 
-    expect(await screen.findByRole('dialog', { name: '更新已就绪' })).toBeTruthy();
-    expect(screen.getByTestId('updater-install-button').textContent).toBe('安装更新');
-    expect(screen.getByText('Open Design 1.2.3-beta.4 已就绪。Open Design 会关闭并打开安装器。')).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: ko['updater.ready'] })).toBeTruthy();
+    expect(screen.getByTestId('updater-install-button').textContent).toBe(ko['updater.openInstaller']);
+    expect(screen.getByText(ko['updater.readyVersion'].replace('{version}', '1.2.3-beta.4'))).toBeTruthy();
   });
-
   it('uses install-and-restart copy for payload updates', async () => {
     restoreHost = installMockOpenDesignHost({
       host: {
@@ -156,20 +156,19 @@ describe('UpdaterPopup', () => {
     });
 
     render(
-      <I18nProvider initial="en">
+      <I18nProvider initial="ko">
         <UpdaterPopup />
       </I18nProvider>,
     );
 
     const button = await screen.findByTestId('entry-nav-updater');
-    expect(button.getAttribute('data-tooltip')).toBe('安装并重启');
+    expect(button.getAttribute('data-tooltip')).toBe(ko['updater.installRestart']);
     fireEvent.click(button);
 
-    expect(await screen.findByRole('dialog', { name: '更新已就绪' })).toBeTruthy();
-    expect(screen.getByTestId('updater-install-button').textContent).toBe('安装并重启');
-    expect(screen.getByText('Open Design 1.2.3-beta.4 已就绪。Open Design 会关闭并自动重启。')).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: ko['updater.ready'] })).toBeTruthy();
+    expect(screen.getByTestId('updater-install-button').textContent).toBe(ko['updater.installRestart']);
+    expect(screen.getByText(ko['updater.payloadReadyVersion'].replace('{version}', '1.2.3-beta.4'))).toBeTruthy();
   });
-
   it('dismisses the confirmation prompt before installation starts', async () => {
     restoreHost = installMockOpenDesignHost({
       host: {

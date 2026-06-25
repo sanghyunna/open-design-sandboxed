@@ -16,6 +16,7 @@ vi.mock('../../src/analytics/events', async (importOriginal) => {
 
 import { ChatComposer, type ChatComposerHandle } from '../../src/components/ChatComposer';
 import { I18nProvider } from '../../src/i18n';
+import { ko } from '../../src/i18n/locales/ko';
 import type { Locale } from '../../src/i18n/types';
 import type { AppliedPluginSnapshot } from '@open-design/contracts';
 import { composerText, pressEnter, typeAndSettle } from '../helpers/lexical-composer';
@@ -292,39 +293,38 @@ describe('ChatComposer context pickers', () => {
     expect(screen.getByText('Search Design Files, tabs, plugins, skills, MCP servers, and connectors.')).toBeTruthy();
   });
 
-  it('localizes @ panel tabs and empty states in Chinese mode', async () => {
+  it('localizes @ panel tabs and empty states in Korean mode', async () => {
     plugins = [];
     skills = [];
     servers = [];
-    renderComposer({}, { locale: 'en' });
+    renderComposer({}, { locale: 'ko' });
     await flushMounts();
 
     await typeAndSettle('@');
 
-    await waitFor(() => expect(screen.getByRole('tab', { name: '全部' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('tab', { name: ko['chat.mentionTabAll'] })).toBeTruthy());
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      '全部',
-      '设计文件',
-      '标签页',
-      '插件',
-      '技能',
-      'MCP',
-      '连接器',
+      ko['chat.mentionTabAll'],
+      ko['chat.mentionTabFiles'],
+      ko['chat.mentionTabTabs'],
+      ko['chat.mentionTabPlugins'],
+      ko['chat.mentionTabSkills'],
+      ko['chat.mentionTabMcp'],
+      ko['chat.mentionTabConnectors'],
     ]);
-    expect(screen.getByRole('tab', { name: '插件' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '技能' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'MCP' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '连接器' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '设计文件' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '标签页' })).toBeTruthy();
-    expect(screen.getByText('搜索设计文件、标签页、插件、技能、MCP 服务器和连接器。')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabPlugins'] })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabSkills'] })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabMcp'] })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabConnectors'] })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabFiles'] })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: ko['chat.mentionTabTabs'] })).toBeTruthy();
+    expect(screen.getByText(ko['chat.mentionSearchPrompt'])).toBeTruthy();
 
     await typeAndSettle('@missing');
 
-    await waitFor(() => expect(screen.getByText('没有找到“missing”的结果。')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(ko['chat.mentionNoResults'].replace('{query}', 'missing'))).toBeTruthy());
     expect(screen.queryByText('No results for “missing”.')).toBeNull();
   });
-
   it('lists Design Files first in All and picks the first file with Enter', async () => {
     renderComposer({
       projectFiles: [

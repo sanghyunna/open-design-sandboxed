@@ -108,9 +108,9 @@ describe('DesignBrowserPanel <webview> navigation', () => {
       </I18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '灵感' }));
-    fireEvent.change(screen.getByRole('searchbox', { name: '搜索灵感' }), {
-      target: { value: '字体' },
+    fireEvent.click(screen.getByRole('button', { name: 'Inspiration' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search inspiration' }), {
+      target: { value: 'font' },
     });
     expect(screen.queryByRole('menuitem', { name: /validate_view/ })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: /extract_fonts/ }));
@@ -123,7 +123,6 @@ describe('DesignBrowserPanel <webview> navigation', () => {
     expect(prompt).toContain('- url: https://example.com');
     expect(prompt).toContain('browser-use / browser-harness style evidence');
   });
-
   it('pins the webview src to the load target when the guest commits a redirected URL', () => {
     // Regression guard for the blank-page bug: the embedded <webview> rendered
     // but never painted because did-navigate fed the committed (trailing-slash)

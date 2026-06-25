@@ -162,6 +162,18 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain('pointer-events: none !important');
   });
 
+  it('adds manual edit source paths to inline text leaves', () => {
+    const dom = new JSDOM('');
+    globalThis.DOMParser = dom.window.DOMParser;
+    const srcdoc = buildSrcdoc('<main><div class="zh"><b>Bold text</b><figcaption>Caption text</figcaption></div></main>', {
+      editBridge: true,
+    });
+    Reflect.deleteProperty(globalThis, 'DOMParser');
+
+    expect(srcdoc).toContain('<b data-od-source-path="path-0-0-0">Bold text</b>');
+    expect(srcdoc).toContain('<figcaption data-od-source-path="path-0-0-1">Caption text</figcaption>');
+  });
+
   it('emits free-pin fallback coordinates in viewport space', () => {
     const srcdoc = buildSrcdoc('<main>Hero</main>', { commentBridge: true });
     const freePinStart = srcdoc.indexOf('var pinX = Math.round(ev.clientX);');

@@ -65,6 +65,10 @@
 .PARAMETER PortableZipCompression
     Optional 7z compression level for the portable zip. Default: 5.
 
+.PARAMETER AppVersion
+    Packaged app version baked into the portable artifact. Default: 0.1.1 for
+    the redesigned Windows release line.
+
 .EXAMPLE
     .\build-portable.ps1
     .\build-portable.ps1 -To all
@@ -76,7 +80,8 @@ param(
     [ValidateSet("zip", "all", "dir", "nsis")]
     [string]$To = "zip",
     [string]$DropDir = "D:\dev\open_design_port",
-    [string]$PortableZipCompression
+    [string]$PortableZipCompression,
+    [string]$AppVersion = "0.1.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -91,6 +96,7 @@ Write-Host "Project root : $ProjectRoot"
 Write-Host "Namespace    : $Namespace"
 Write-Host "Target (--to): $To"
 Write-Host "Zip drop dir : $DropDir"
+Write-Host "App version  : $AppVersion"
 if ([string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     $PortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
 }
@@ -121,7 +127,13 @@ Write-Host "Node         : $nodeVersion (from $Node24)" -ForegroundColor Green
 # tools-pack win build also (re)builds the 16 workspace packages. Keep
 # better-sqlite3 on the Node ABI for the daemon sidecar; do not Electron-rebuild
 # the assembled app's native module.
-$buildArgs = @("tools-pack", "win", "build", "--to", $To, "--namespace", $Namespace, "--portable")
+$buildArgs = @(
+    "tools-pack", "win", "build",
+    "--to", $To,
+    "--namespace", $Namespace,
+    "--portable",
+    "--app-version", $AppVersion
+)
 if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     $buildArgs += @("--cache-dir", (Join-Path $ProjectRoot ".tmp\tools-pack\cache\portable-zip-mx-$PortableZipCompression"))
 }
