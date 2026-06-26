@@ -569,3 +569,124 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 });
+
+describe('manual edit bridge rich-text editing', () => {
+  function selectContents(window: Window & typeof globalThis, el: Element): void {
+    const sel = window.getSelection();
+    const range = window.document.createRange();
+    range.selectNodeContents(el);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+
+  it('opens text targets in a formatting-capable contenteditable', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Original title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(title.getAttribute('contenteditable')).toBe('true');
+
+    dom.window.close();
+  });
+
+  it('keeps link targets on the plain-text editing path', () => {
+    const dom = new JSDOM(
+      `<main><a data-od-id="cta" href="/start">Start</a></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const link = dom.window.document.querySelector('[data-od-id="cta"]') as HTMLElement;
+
+    link.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(link.getAttribute('contenteditable')).toBe('plaintext-only');
+
+    dom.window.close();
+  });
+
+  it('wraps the selection in <strong> on Ctrl+B and commits rich html', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy">Hello world</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    selectContents(win, copy);
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    expect(copy.querySelector('strong')).not.toBeNull();
+    expect(copy.innerHTML).toContain('<strong>');
+
+    copy.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-html-commit', id: 'copy' }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('toggles formatting off when Ctrl+I is pressed inside an existing wrapper', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy"><em>Slanted</em></p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    const em = copy.querySelector('em') as HTMLElement;
+    selectContents(win, em);
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'i',
+      ctrlKey: true,
+    }));
+
+    expect(copy.querySelector('em')).toBeNull();
+    expect(copy.textContent).toBe('Slanted');
+
+    dom.window.close();
+  });
+
+  it('commits mixed-markup paragraph edits as inner html', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="nested"><strong>Nested</strong> copy</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const nested = dom.window.document.querySelector('[data-od-id="nested"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    nested.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(nested.getAttribute('contenteditable')).toBe('true');
+
+    nested.innerHTML = '<strong>Nested</strong> revised copy';
+    nested.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-html-commit',
+        id: 'nested',
+        html: '<strong>Nested</strong> revised copy',
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+});

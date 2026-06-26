@@ -226,4 +226,51 @@ describe('manual edit source patches', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain('nested markup');
   });
+
+  it('replaces inner html for mixed-markup elements via set-inner-html', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'nested',
+      html: '<strong>Nested</strong> updated copy',
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'nested');
+    expect(html).toContain('<strong>Nested</strong>');
+    expect(html).toContain('updated copy');
+    // Sibling target text outside this element is untouched.
+    expect(readManualEditFields(result.source, 'hero-title').text).toBe('Original title');
+  });
+
+  it('sanitizes script tags, event handlers, and javascript: urls in set-inner-html', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'hero-title',
+      html: 'Safe <strong onclick="evil()">bold</strong><script>alert(1)</script> <a href="javascript:steal()">link</a>',
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'hero-title');
+    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('Safe');
+    expect(html).not.toContain('onclick');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('alert(1)');
+    expect(html).not.toContain('javascript:');
+  });
+
+  it('keeps allowlisted inline formatting but unwraps unknown block tags in set-inner-html', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'hero-title',
+      html: '<u>Underlined</u> <div>blocky</div> <em>emph</em>',
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'hero-title');
+    expect(html).toContain('<u>Underlined</u>');
+    expect(html).toContain('<em>emph</em>');
+    expect(html).toContain('blocky');
+    expect(html).not.toContain('<div>');
+  });
 });
