@@ -6478,6 +6478,39 @@ function HtmlViewer({
     return () => window.removeEventListener('keydown', onKey);
   }, [effectiveDeck, mode]);
 
+  // Host-level undo/redo for manual edits. The undo/redo logic already rewrites
+  // the file (see undoManualEdit / redoManualEdit); this surfaces it through the
+  // platform-standard Ctrl/Cmd+Z (and Shift+… / Ctrl+Y for redo). We read the
+  // latest handlers through refs so the listener never goes stale between
+  // renders, and skip events from text fields / contenteditable so typing-undo
+  // inside an inline editor or any input keeps its native meaning.
+  const undoManualEditRef = useRef(undoManualEdit);
+  const redoManualEditRef = useRef(redoManualEdit);
+  undoManualEditRef.current = undoManualEdit;
+  redoManualEditRef.current = redoManualEdit;
+  useEffect(() => {
+    if (!manualEditMode) return;
+    function onKey(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) void redoManualEditRef.current();
+        else void undoManualEditRef.current();
+      } else if (key === 'y' && !e.shiftKey) {
+        e.preventDefault();
+        void redoManualEditRef.current();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [manualEditMode]);
+
   useEffect(() => {
     if (!presentMenuOpen) return;
     const onPointer = (e: MouseEvent) => {
