@@ -12,6 +12,17 @@ const INLINE_TEXT_WRAPPER_TAGS = new Set([
   'bdi', 'bdo',
 ]);
 
+// Inline-formatting tags allowed to survive a `set-inner-html` save. This is the
+// inline-text wrapper set plus the handful of formatting tags the rich-text edit
+// bridge can produce (`<a>`, `<br>`). Everything else is light-normalized: tags
+// outside this allowlist are unwrapped (their text is kept), `<script>`/`<style>`
+// are dropped entirely, and event-handler attributes / `javascript:` URLs are
+// stripped from the survivors.
+const INLINE_HTML_ALLOWED_TAGS = new Set([
+  ...INLINE_TEXT_WRAPPER_TAGS,
+  'a', 'br',
+]);
+
 export function applyManualEditPatch(source: string, patch: ManualEditPatch): ManualEditPatchResult {
   if (patch.kind === 'set-full-source') return { ok: true, source: patch.source };
 
@@ -55,6 +66,8 @@ export function applyManualEditPatch(source: string, patch: ManualEditPatch): Ma
     setInlineStyles(el as HTMLElement, patch.styles);
   } else if (patch.kind === 'set-attributes') {
     setAttributes(el, patch.attributes);
+  } else if (patch.kind === 'set-inner-html') {
+    el.innerHTML = sanitizeInlineHtml(doc, patch.html);
   } else if (patch.kind === 'set-outer-html') {
     const replaced = replaceOuterHtml(doc, el, patch.html);
     if (!replaced.ok) {
@@ -238,6 +251,48 @@ function setAttributes(el: Element, attributes: Record<string, string>): void {
     if (value.trim() === '') el.removeAttribute(name);
     else el.setAttribute(name, value);
   }
+}
+
+// Light, dependency-free normalization for rich-text inner HTML. The goal is
+// clean inline markup; blocking obvious script injection is a bonus rather than a
+// hardened security boundary. We allowlist inline-formatting tags, unwrap unknown
+// tags (keeping their text), remove `<script>`/`<style>` outright, and strip
+// `on*` handlers plus `javascript:` URLs from the tags we keep.
+function sanitizeInlineHtml(doc: Document, html: string): string {
+  const template = doc.createElement('template');
+  template.innerHTML = html;
+  // Pre-order (parents before children) so unwrapping a parent still lets the
+  // surviving children get visited in the same static snapshot.
+  const elements = Array.from(template.content.querySelectorAll('*'));
+  for (const el of elements) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'script' || tag === 'style') {
+      el.remove();
+      continue;
+    }
+    if (!INLINE_HTML_ALLOWED_TAGS.has(tag)) {
+      unwrapElement(el);
+      continue;
+    }
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on')) {
+        el.removeAttribute(attr.name);
+        continue;
+      }
+      if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(attr.value)) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  }
+  return template.innerHTML;
+}
+
+function unwrapElement(el: Element): void {
+  const parent = el.parentNode;
+  if (!parent) return;
+  while (el.firstChild) parent.insertBefore(el.firstChild, el);
+  parent.removeChild(el);
 }
 
 function replaceOuterHtml(doc: Document, el: Element, html: string): { ok: true } | { ok: false; error: string } {

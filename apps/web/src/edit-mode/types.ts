@@ -75,6 +75,7 @@ export type ManualEditPatch =
   | { kind: 'set-token'; token: string; value: string }
   | { id: string; kind: 'set-style'; styles: Partial<ManualEditStyles> }
   | { id: string; kind: 'set-attributes'; attributes: Record<string, string> }
+  | { id: string; kind: 'set-inner-html'; html: string }
   | { id: string; kind: 'set-outer-html'; html: string }
   | { kind: 'set-full-source'; source: string };
 
@@ -120,13 +121,20 @@ export interface ManualEditTextCommitMessage {
   value: string;
 }
 
+export interface ManualEditHtmlCommitMessage {
+  type: 'od-edit-html-commit';
+  id: string;
+  html: string;
+}
+
 export type ManualEditBridgeMessage =
   | ManualEditTargetMessage
   | ManualEditSelectMessage
   | ManualEditHoverMessage
   | ManualEditBackgroundMessage
   | ManualEditPreviewAppliedMessage
-  | ManualEditTextCommitMessage;
+  | ManualEditTextCommitMessage
+  | ManualEditHtmlCommitMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'lineHeight', 'letterSpacing',

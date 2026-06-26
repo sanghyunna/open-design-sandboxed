@@ -941,6 +941,6 @@ function normalizeColorForPicker(value: string): string {
 
 export function manualEditPatchSummary(patch: ManualEditPatch): string {
   if (patch.kind === 'set-full-source') return JSON.stringify({ kind: patch.kind, bytes: patch.source.length });
-  if (patch.kind === 'set-outer-html') return JSON.stringify({ id: patch.id, kind: patch.kind, bytes: patch.html.length });
+  if (patch.kind === 'set-outer-html' || patch.kind === 'set-inner-html') return JSON.stringify({ id: patch.id, kind: patch.kind, bytes: patch.html.length });
   return JSON.stringify(patch);
 }
