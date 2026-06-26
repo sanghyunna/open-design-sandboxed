@@ -101,6 +101,7 @@ export const DECK_SKELETON_HTML = `<!doctype html>
       position: absolute;
       inset: 0;
       overflow: hidden;
+      padding: 80px 120px;
     }
     /* Visibility toggle hardened with :not(.active) + !important so cascade
        order can't break it. The previous \`.slide { display:none }\` rule
@@ -115,7 +116,7 @@ export const DECK_SKELETON_HTML = `<!doctype html>
        \`.s-magazine { display:block }\` can override the default flex layout
        just by declaring \`display\` — no need for the variant to be more
        specific. The hide rule above still wins for inactive slides. */
-    :where(.slide.active) { display: flex; flex-direction: column; }
+    :where(.slide.active) { display: flex; flex-direction: column; justify-content: center; }
 
     /* Chrome — counter + prev/next live outside the scaled stage so they
        don't shrink with it. Do not relocate them inside .deck-stage. */
