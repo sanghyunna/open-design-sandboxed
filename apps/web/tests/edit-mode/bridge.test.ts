@@ -378,7 +378,7 @@ describe('manual edit bridge target normalization', () => {
       clientX: 8,
       clientY: 8,
     }));
-    expect(title.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(title.getAttribute('contenteditable')).toBe('true');
     expect(title.getAttribute('data-od-editing')).toBe('true');
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
@@ -412,7 +412,7 @@ describe('manual edit bridge target normalization', () => {
 
     tagline.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(tagline.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(tagline.getAttribute('contenteditable')).toBe('true');
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
       target: expect.objectContaining({
@@ -443,7 +443,7 @@ describe('manual edit bridge target normalization', () => {
 
     eyebrow.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(eyebrow.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(eyebrow.getAttribute('contenteditable')).toBe('true');
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
       target: expect.objectContaining({
@@ -466,7 +466,7 @@ describe('manual edit bridge target normalization', () => {
 
     leaf.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(leaf.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(leaf.getAttribute('contenteditable')).toBe('true');
     expect(wrapper.hasAttribute('contenteditable')).toBe(false);
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
@@ -490,7 +490,7 @@ describe('manual edit bridge target normalization', () => {
 
     value.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(value.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(value.getAttribute('contenteditable')).toBe('true');
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
       target: expect.objectContaining({

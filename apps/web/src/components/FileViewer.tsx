@@ -5973,6 +5973,18 @@ function HtmlViewer({
         }, 'Edit text');
         return;
       }
+      if (data.type === 'od-edit-html-commit') {
+        // Rich inline edits (Ctrl/Cmd+B/U/I, or any element that kept nested
+        // markup) commit the element's inner HTML. It flows through the same
+        // applyManualEdit history pipeline as set-text, so host Ctrl+Z undo works
+        // on rich edits too.
+        void applyManualEdit({
+          id: String(data.id),
+          kind: 'set-inner-html',
+          html: String(data.html),
+        }, 'Edit text');
+        return;
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);

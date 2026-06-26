@@ -271,11 +271,69 @@ export function buildManualEditBridge(enabled: boolean): string {
       sel.addRange(range);
     } catch (e) {}
   }
+  var richFormatKeys = { b: 'strong', i: 'em', u: 'u' };
+  function ancestorOfType(node, tagName, boundary){
+    var current = node && node.nodeType === 1 ? node : (node ? node.parentNode : null);
+    while (current && current !== boundary && current !== document.body) {
+      if (current.tagName && current.tagName.toLowerCase() === tagName) return current;
+      current = current.parentNode;
+    }
+    if (current && current === boundary && current.tagName && current.tagName.toLowerCase() === tagName) return current;
+    return null;
+  }
+  function unwrapInlineElement(node){
+    var parent = node.parentNode;
+    if (!parent) return;
+    var first = node.firstChild;
+    var last = node.lastChild;
+    while (node.firstChild) parent.insertBefore(node.firstChild, node);
+    parent.removeChild(node);
+    if (first && last) {
+      try {
+        var sel = window.getSelection();
+        var range = document.createRange();
+        range.setStartBefore(first);
+        range.setEndAfter(last);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch (e) {}
+    }
+  }
+  function wrapSelectionRange(range, tagName){
+    try {
+      var wrapper = document.createElement(tagName);
+      wrapper.appendChild(range.extractContents());
+      range.insertNode(wrapper);
+      var sel = window.getSelection();
+      var next = document.createRange();
+      next.selectNodeContents(wrapper);
+      sel.removeAllRanges();
+      sel.addRange(next);
+    } catch (e) {}
+  }
+  // Toggle an inline-format tag around the current selection. Wraps when the
+  // selection is not already inside that tag; unwraps when it is. Uses the
+  // Selection/Range API rather than the deprecated document.execCommand.
+  function toggleInlineFormat(tagName, boundary){
+    var sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    var range = sel.getRangeAt(0);
+    if (range.collapsed) return;
+    var existing = ancestorOfType(range.commonAncestorContainer, tagName, boundary);
+    if (existing) unwrapInlineElement(existing);
+    else wrapSelectionRange(range, tagName);
+  }
   function makeEditable(el, clickEvent){
-    if (!el || el.getAttribute('contenteditable') === 'true') return;
+    if (!el || el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === 'plaintext-only') return;
+    // Links (and any element the host routes here as a non-text leaf) stay on the
+    // plain-text path: their inline label is the only editable surface and rich
+    // markup would fight the panel's link/href fields. Everything else gets a
+    // formatting-capable contenteditable so Ctrl/Cmd+B/U/I can produce markup.
+    var rich = inferKind(el) === 'text';
     var originalText = el.textContent || '';
+    var originalHtml = el.innerHTML;
     clearSelectedTarget();
-    el.setAttribute('contenteditable', 'plaintext-only');
+    el.setAttribute('contenteditable', rich ? 'true' : 'plaintext-only');
     el.setAttribute('data-od-editing', 'true');
     try { el.focus(); } catch (e) {}
     placeCaretFromClick(clickEvent, el);
@@ -284,19 +342,48 @@ export function buildManualEditBridge(enabled: boolean): string {
       el.removeAttribute('data-od-editing');
       el.removeEventListener('blur', onBlur);
       el.removeEventListener('keydown', onKey);
+      if (!commit) {
+        if (rich) el.innerHTML = originalHtml;
+        else el.textContent = originalText;
+        return;
+      }
+      // Rich edits that introduced (or kept) inline markup commit the full inner
+      // HTML so nested formatting and sibling markup survive; pure-text edits stay
+      // on the lighter text-commit path the source patcher escapes safely.
+      var hasMarkup = false;
+      for (var i = 0; i < el.children.length; i++) {
+        if (!isHostNode(el.children[i])) { hasMarkup = true; break; }
+      }
+      if (rich && hasMarkup) {
+        var html = el.innerHTML;
+        if (html !== originalHtml) {
+          window.parent.postMessage({
+            type: 'od-edit-html-commit',
+            id: stableId(el),
+            html: html
+          }, '*');
+        }
+        return;
+      }
       var value = (el.textContent || '').trim();
-      if (commit && value !== originalText.trim()) {
+      if (value !== originalText.trim()) {
         window.parent.postMessage({
           type: 'od-edit-text-commit',
           id: stableId(el),
           value: value
         }, '*');
-      } else if (!commit) {
-        el.textContent = originalText;
       }
     }
     function onBlur(){ finish(true); }
     function onKey(ev){
+      if (rich && (ev.ctrlKey || ev.metaKey) && !ev.altKey) {
+        var formatTag = richFormatKeys[(ev.key || '').toLowerCase()];
+        if (formatTag) {
+          ev.preventDefault();
+          toggleInlineFormat(formatTag, el);
+          return;
+        }
+      }
       if (ev.key === 'Enter' && !ev.shiftKey) {
         ev.preventDefault();
         finish(true);
