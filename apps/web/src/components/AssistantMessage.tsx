@@ -112,140 +112,6 @@ function ActionNoticeView({ notice }: { notice: ActionNotice | null }) {
   );
 }
 
-type SkillPluginCandidateBlock = Extract<Block, { kind: "plugin-candidate" }>;
-
-function SkillPluginCandidateCard({
-  block,
-  projectId,
-  onRequestOpenFile,
-}: {
-  block: SkillPluginCandidateBlock;
-  projectId: string | null;
-  onRequestOpenFile?: (name: string) => void;
-}) {
-  const t = useT();
-  const [busy, setBusy] = useState<null | "draft" | "contribute">(null);
-  const [notice, setNotice] = useState<ActionNotice | null>(null);
-  const disabled = !projectId || busy !== null;
-  const description =
-    block.description === "Reusable skill material detected from a repository link." ||
-    block.description === "This repo looks like it could work as a plugin."
-      ? t("skillPluginCandidate.repoDescription")
-      : block.description || t("skillPluginCandidate.repoDescription");
-
-  async function post(path: string, body: Record<string, unknown> = {}) {
-    const resp = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok) {
-      const message =
-        data?.message ??
-        (typeof data?.error === "string" ? data.error : data?.error?.message) ??
-        resp.statusText;
-      throw new Error(message || "Plugin candidate action failed.");
-    }
-    return data;
-  }
-
-  async function createDraft() {
-    if (!projectId) return;
-    setBusy("draft");
-    setNotice(null);
-    try {
-      const data = await post(
-        `/api/projects/${encodeURIComponent(projectId)}/plugin-candidates/${encodeURIComponent(block.candidateId)}/draft`,
-      );
-      const draftPath = String(data?.draftPath ?? "");
-      if (data?.validation?.ok === false) {
-        setNotice({ message: "Draft created with validation issues." });
-      } else if (draftPath) {
-        const install = await post(
-          `/api/projects/${encodeURIComponent(projectId)}/plugins/install-folder`,
-          { path: draftPath },
-        );
-        if (install?.ok === false) {
-          setNotice({ message: install?.message ?? "Plugin draft created, but install failed." });
-        } else {
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("open-design:plugins-changed"));
-          }
-          setNotice({ message: install?.message ?? "Plugin draft created and added to My plugins." });
-        }
-      } else {
-        setNotice({ message: "Plugin draft created." });
-      }
-      if (draftPath && onRequestOpenFile) onRequestOpenFile(`${draftPath}/open-design.json`);
-    } catch (err) {
-      setNotice({ message: err instanceof Error ? err.message : String(err) });
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function share(action: "contribute-open-design") {
-    if (!projectId) return;
-    setBusy("contribute");
-    setNotice(null);
-    try {
-      const data = await post(
-        `/api/projects/${encodeURIComponent(projectId)}/plugin-candidates/${encodeURIComponent(block.candidateId)}/share-tasks`,
-        { action },
-      );
-      setNotice({
-        message: `Open Design contribution task started for ${data?.path ?? "the draft"}.`,
-      });
-    } catch (err) {
-      setNotice({ message: err instanceof Error ? err.message : String(err) });
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  return (
-    <div className="plugin-action-panel" data-testid={`skill-plugin-candidate-${block.candidateId}`}>
-      <div className="plugin-action-card">
-        <div className="plugin-action-card__body">
-          <div className="plugin-action-card__title">
-            <Icon name="sparkles" size={14} />
-            <span>{block.title}</span>
-          </div>
-          <p className="plugin-action-card__description">
-            {description}
-          </p>
-          <div className="plugin-action-card__actions">
-            <button
-              type="button"
-              className="plugin-action-button plugin-action-button--primary"
-              disabled={disabled}
-              onClick={() => void share("contribute-open-design")}
-            >
-              <Icon name={busy === "contribute" ? "spinner" : "share"} size={13} />
-              <span>{busy === "contribute" ? "Starting..." : t("skillPluginCandidate.contributeToMain")}</span>
-            </button>
-            <button
-              type="button"
-              className="plugin-action-button"
-              disabled={disabled}
-              onClick={() => void createDraft()}
-            >
-              <Icon name={busy === "draft" ? "spinner" : "plus"} size={13} />
-              <span>{busy === "draft" ? "Creating..." : t("skillPluginCandidate.createForMe")}</span>
-            </button>
-          </div>
-          {notice ? (
-            <div className="plugin-action-card__notice" role="status">
-              <ActionNoticeView notice={notice} />
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface Props {
   message: ChatMessage;
   streaming: boolean;
@@ -668,16 +534,6 @@ function AssistantMessageImpl({
           }
           if (b.kind === "live-tool") {
             return <LiveCodeBox key={b.id} name={b.name} raw={b.raw} />;
-          }
-          if (b.kind === "plugin-candidate") {
-            return (
-              <SkillPluginCandidateCard
-                key={i}
-                block={b}
-                projectId={projectId}
-                onRequestOpenFile={onRequestOpenFile}
-              />
-            );
           }
           if (b.kind === "status") {
             // Suppress this message's gray error pill ONLY when ChatPane is
@@ -2602,14 +2458,6 @@ type Block =
   | { kind: "thinking"; text: string }
   | { kind: "tool-group"; items: ToolItem[] }
   | { kind: "live-tool"; id: string; name: string; raw: string }
-  | {
-      kind: "plugin-candidate";
-      candidateId: string;
-      title: string;
-      description?: string | undefined;
-      confidence?: number | undefined;
-      draftPath?: string | null | undefined;
-    }
   | { kind: "status"; label: string; detail?: string | undefined };
 
 /**
@@ -2714,17 +2562,6 @@ function buildBlocks(events: AgentEvent[]): Block[] {
       continue;
     }
     if (ev.kind === "tool_result") continue;
-    if (ev.kind === "plugin_candidate") {
-      out.push({
-        kind: "plugin-candidate",
-        candidateId: ev.candidateId,
-        title: ev.title,
-        description: ev.description,
-        confidence: ev.confidence,
-        draftPath: ev.draftPath,
-      });
-      continue;
-    }
     if (ev.kind === "status") {
       if (
         ev.label === "streaming" ||
