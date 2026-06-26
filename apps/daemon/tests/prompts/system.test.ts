@@ -393,6 +393,29 @@ describe('composeSystemPrompt', () => {
     });
   });
 
+  describe('readability & Korean wrapping rule (Issue 4)', () => {
+    it('always injects the readability rule (comfortable padding + reading measure) regardless of locale', () => {
+      for (const locale of [undefined, 'en', 'ko', 'zh-CN']) {
+        const prompt = composeSystemPrompt(locale ? { locale } : {});
+        expect(prompt).toContain('## Readability & CJK wrapping');
+        expect(prompt).toContain('Horizontal breathing room (always)');
+        expect(prompt).toContain('Reading measure (always)');
+      }
+    });
+
+    it('adds the Korean keep-all clause only for the `ko` locale', () => {
+      const ko = composeSystemPrompt({ locale: 'ko' });
+      expect(ko).toContain('Korean (한국어) line breaking');
+      expect(ko).toContain('word-break: keep-all; overflow-wrap: anywhere; line-break: strict;');
+
+      for (const locale of [undefined, 'en', 'zh-CN', 'zh-TW', 'ja']) {
+        const prompt = composeSystemPrompt(locale ? { locale } : {});
+        expect(prompt).not.toContain('word-break: keep-all');
+        expect(prompt).not.toContain('Korean (한국어) line breaking');
+      }
+    });
+  });
+
   describe('connectedExternalMcp directive', () => {
     it('omits the directive when no servers are passed', () => {
       const prompt = composeSystemPrompt({});

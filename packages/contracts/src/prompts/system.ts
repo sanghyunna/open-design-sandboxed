@@ -91,6 +91,33 @@ function renderUiLocalePrompt(locale: string | undefined): string {
   return lines.join('\n');
 }
 
+// Always-on readability rule + a Korean-gated CJK line-breaking clause.
+// The base block applies to every HTML/page/deck/prototype generation so
+// "div box" layouts get comfortable horizontal padding and a capped
+// reading measure instead of edge-to-edge cramped text. The Korean clause
+// is gated to the `ko` UI-locale signal ONLY (not zh/ja, not universal):
+// `word-break: keep-all` wraps Korean at eojeol (word) boundaries instead
+// of mid-word, and pairing it with `overflow-wrap: anywhere` keeps long
+// English tokens / URLs from overflowing. Keep this byte-identical to the
+// daemon mirror in apps/daemon/src/prompts/system.ts.
+const READABILITY_RULE_BASE = `## Readability & CJK wrapping
+
+These apply to every HTML / page / deck / prototype artifact you generate, on every run:
+
+- **Horizontal breathing room (always).** Content containers, cards, and panels get generous left/right padding — comfortable inner gutters, never text crammed against the edge. Use padding for that breathing room, not narrow boxes with edge-to-edge prose; as a baseline, card/section inner padding is at least ~24–32px on each side at desktop scale.
+- **Reading measure (always).** Cap long body-text columns to a comfortable measure (~65ch, or a sensible \`max-width\`) so lines are neither sprawling nor a single word wide. Headings and full-bleed layout elements are exempt — this is for paragraph / reading text.`;
+
+const READABILITY_RULE_KOREAN = `
+- **Korean (한국어) line breaking.** This run's output language is Korean, so apply CJK-aware wrapping to Korean body text: \`word-break: keep-all; overflow-wrap: anywhere; line-break: strict;\`. \`keep-all\` makes Korean wrap at word (eojeol) boundaries instead of breaking mid-word, and pairing it with \`overflow-wrap: anywhere\` keeps long English words / URLs from overflowing their box. Apply it to paragraph, heading, and label text — not to code blocks.`;
+
+function renderReadabilityPrompt(locale: string | undefined): string {
+  const normalized = locale?.trim().toLowerCase();
+  // Gate the keep-all clause to Korean ONLY — locked product decision.
+  return normalized === 'ko'
+    ? `${READABILITY_RULE_BASE}\n${READABILITY_RULE_KOREAN}`
+    : READABILITY_RULE_BASE;
+}
+
 function normalizePromptText(value: string): string {
   return value
     .replace(/[\r\n]+/g, ' ')
@@ -300,6 +327,14 @@ export function composeSystemPrompt({
     parts.push(localePrompt);
     parts.push('\n\n---\n\n');
   }
+
+  // Always-on readability rule (comfortable horizontal padding + capped
+  // reading measure) plus the Korean-gated keep-all wrapping clause. Pushed
+  // for every surface so generated layouts stop shipping cramped "div box"
+  // text; the Korean clause only appears when `locale` is `ko`. Mirrors the
+  // daemon-side composer in apps/daemon/src/prompts/system.ts.
+  parts.push(renderReadabilityPrompt(locale));
+  parts.push('\n\n---\n\n');
 
   if (!isMediaSurfaceEarly) {
     parts.push(DISCOVERY_AND_PHILOSOPHY, '\n\n---\n\n');

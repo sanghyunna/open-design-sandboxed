@@ -159,6 +159,27 @@ describe('composeSystemPrompt', () => {
     );
   });
 
+  it('always injects the readability rule (Issue 4) regardless of locale', () => {
+    for (const locale of [undefined, 'en', 'ko', 'zh-CN']) {
+      const prompt = composeSystemPrompt(locale ? { locale } : {});
+      expect(prompt).toContain('## Readability & CJK wrapping');
+      expect(prompt).toContain('Horizontal breathing room (always)');
+      expect(prompt).toContain('Reading measure (always)');
+    }
+  });
+
+  it('adds the Korean keep-all clause only for the `ko` locale (Issue 4)', () => {
+    const ko = composeSystemPrompt({ locale: 'ko' });
+    expect(ko).toContain('Korean (한국어) line breaking');
+    expect(ko).toContain('word-break: keep-all; overflow-wrap: anywhere; line-break: strict;');
+
+    for (const locale of [undefined, 'en', 'zh-CN', 'zh-TW', 'ja']) {
+      const prompt = composeSystemPrompt(locale ? { locale } : {});
+      expect(prompt).not.toContain('word-break: keep-all');
+      expect(prompt).not.toContain('Korean (한국어) line breaking');
+    }
+  });
+
   it('does not include the HTML discovery layer for media surfaces', () => {
     const prompt = composeSystemPrompt({
       metadata: {
