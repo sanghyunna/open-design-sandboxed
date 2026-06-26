@@ -1082,9 +1082,6 @@ export interface Dict {
   'pluginCard.publishTitle': string;
   'pluginCard.contributeAria': string;
   'pluginCard.contributeTitle': string;
-  'skillPluginCandidate.createForMe': string;
-  'skillPluginCandidate.contributeToMain': string;
-  'skillPluginCandidate.repoDescription': string;
   'integrations.kicker': string;
   'integrations.lede': string;
   'integrations.agentReady': string;
@@ -1534,9 +1531,6 @@ export interface Dict {
   'entry.helpWhatsNew': string;
   'entry.helpDownloadDesktop': string;
   // GitHub star pill in the top bar
-  'entry.githubStarLabel': string;
-  'entry.githubStarTitle': string;
-  'entry.githubStarAria': string;
 
   // Connectors tab
   'connectors.title': string;
@@ -2914,7 +2908,6 @@ export interface Dict {
   'rollback.failed': string;
   'rollback.noCheckpointChatOnly': string;
   'assistant.shareToOpenDesign': string;
-  'assistant.shareToOpenDesignBusy': string;
   'assistant.feedbackPrompt': string;
   'assistant.feedbackPositive': string;
   'assistant.feedbackNegative': string;
@@ -2947,7 +2940,6 @@ export interface Dict {
   'nextStep.more': string;
   'nextStep.share': string;
   'nextStep.download': string;
-  'nextStep.contribute': string;
   'assistant.thinking': string;
   'assistant.thought': string;
   'assistant.thoughtFor': string;
@@ -3116,11 +3108,6 @@ export interface Dict {
   'pet.codexRefresh': string;
   'pet.codexAdopt': string;
   'pet.codexAdopting': string;
-  'pet.communitySync': string;
-  'pet.communitySyncing': string;
-  'pet.communitySyncTitle': string;
-  'pet.communitySyncDone': string;
-  'pet.communitySyncFailed': string;
   'pet.codexBundled': string;
   'pet.codexBundledTitle': string;
 
