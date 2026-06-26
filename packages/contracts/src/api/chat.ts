@@ -347,14 +347,6 @@ export type PersistedAgentEvent =
     }
   | { kind: 'tool_use'; id: string; name: string; input: unknown }
   | { kind: 'tool_result'; toolUseId: string; content: string; isError: boolean }
-  | {
-      kind: 'plugin_candidate';
-      candidateId: string;
-      title: string;
-      description?: string;
-      confidence?: number;
-      draftPath?: string | null;
-    }
   | { kind: 'usage'; inputTokens?: number; outputTokens?: number; costUsd?: number; durationMs?: number }
   | { kind: 'raw'; line: string };
 
