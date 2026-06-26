@@ -101,6 +101,7 @@ export const DECK_SKELETON_HTML = `<!doctype html>
       position: absolute;
       inset: 0;
       overflow: hidden;
+      padding: 80px 120px;
     }
     /* Visibility toggle hardened with :not(.active) + !important so cascade
        order can't break it. The previous \`.slide { display:none }\` rule
@@ -115,7 +116,7 @@ export const DECK_SKELETON_HTML = `<!doctype html>
        \`.s-magazine { display:block }\` can override the default flex layout
        just by declaring \`display\` — no need for the variant to be more
        specific. The hide rule above still wins for inactive slides. */
-    :where(.slide.active) { display: flex; flex-direction: column; }
+    :where(.slide.active) { display: flex; flex-direction: column; justify-content: center; }
 
     /* Chrome — counter + prev/next live outside the scaled stage so they
        don't shrink with it. Do not relocate them inside .deck-stage. */
@@ -392,16 +393,18 @@ Even with the visibility toggle working, slides go ugly when content overflows t
 Rules — non-negotiable:
 
 1. **Display headlines on cover/title slides: max ~140px font-size, max 8 words, max 3 lines.** If the headline doesn't fit those bounds, the slide is the wrong shape — split it, don't shrink the font and pack more in.
-2. **Reserve a footer safe-zone.** If you use \`.footer { position: absolute; bottom: Npx; }\`, flow content above the footer must stop at least 80px before \`1080 − footer_height − N\`. Practically: don't let flow content extend into the bottom 200px of the slide. Easiest enforcement: make the slide's main content area its own \`<div style="height: 760px;">\` (or \`max-height\`), and the footer absolute below it.
-3. **Body slides: ≤ 3 paragraphs, ≤ 56ch lead text width, ≤ 12 words per line.**
-4. **One idea per slide.** Two ideas = two slides.
+2. **Fill the vertical canvas — don't pool empty space at the bottom.** Overflow is one failure; the opposite — content clustered in the top half with a blank lower third — is just as ugly, and it is the more common one. The active-slide CSS already defaults to \`justify-content: center\`, so a single-idea slide should sit centered in the full 1080px height. For a multi-part slide, give the \`<section>\` (or its inner wrapper) a \`display: flex; flex-direction: column; justify-content: space-between;\` header/body/footer structure, let the main body region be \`flex: 1\` so it absorbs leftover height, and push the footer down with \`margin-top: auto\`. Give exactly ONE "hero" element (the headline block, the chart, the lead stat) \`flex: 1\` to soak up slack — do not spread the slack as equal gaps between everything. Create breathing room with **padding, never trailing bottom margins**; add \`*:last-child { margin-bottom: 0; }\` to your \`SLOT: per-deck styles\` so a trailing margin never leaks a gap below the last element. A slide that stops at ~60% height with an empty lower band is as broken as one that overflows.
+3. **Reserve a footer safe-zone.** If you use \`.footer { position: absolute; bottom: Npx; }\`, flow content above the footer must stop at least 80px before \`1080 − footer_height − N\` so the two never collide. A safe-zone is a no-collision margin, **not** a directive to leave the bottom of the slide empty. If you bound the main content area (e.g. a \`max-height\` content region with the footer absolute below it, roughly \`height: 760px\`), that content region must still FILL its band per Rule 2 — center or distribute its contents, don't let them float at the top of the band with dead space beneath.
+4. **Body slides: ≤ 3 paragraphs, ≤ 56ch lead text width, ≤ 12 words per line.**
+5. **One idea per slide.** Two ideas = two slides.
 
 ## Pre-emit self-check — run this BEFORE writing the \`<artifact>\` tag
 
 For every \`<section class="slide">\`, mentally render at 1920×1080 and answer:
 
 - [ ] Does the slide's content fit inside the canvas without clipping or overflowing the bottom?
-- [ ] If there's an absolutely-positioned footer/header, does flow content stop before the footer's reserved band? (See Rule 2 above.)
+- [ ] Is there a large empty band (> ~15% of slide height, i.e. ≳ 160px of the 1080px canvas) pooled at the bottom? If so, CENTER the content (the active slide already defaults to \`justify-content: center\`) or DISTRIBUTE it (\`justify-content: space-between\` + a \`flex: 1\` body) to fill the canvas — do not leave pooled empty space.
+- [ ] If there's an absolutely-positioned footer/header, does flow content stop before the footer's reserved band without leaving the rest of the slide empty? (See the footer safe-zone rule above.)
 - [ ] Is the display headline ≤ 140px and ≤ 8 words?
 - [ ] Does the slide carry ≤ one big idea? (No mashed-together masthead + display headline + subtitle + absolute footer + sidebar.)
 
