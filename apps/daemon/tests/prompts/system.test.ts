@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { composeSystemPrompt, resolveExclusiveSurface } from '../../src/prompts/system.js';
+import { DECK_FRAMEWORK_DIRECTIVE } from '../../src/prompts/deck-framework.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -358,6 +359,37 @@ describe('composeSystemPrompt', () => {
       const deckPrompt = composeSystemPrompt({ skillMode: 'deck' });
       expect(deckPrompt).not.toMatch(/^7\.\s+Emit single <artifact>\s*$/m);
       expect(deckPrompt).toMatch(/Emit single <artifact> if a new canonical deck HTML/i);
+    });
+  });
+
+  describe('deck vertical-fill discipline (Issue 3)', () => {
+    it('the deck directive teaches the model to fill the vertical canvas, not just guard overflow', () => {
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('Fill the vertical canvas');
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('justify-content: center');
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('justify-content: space-between');
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('margin-top: auto');
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('flex: 1');
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('*:last-child { margin-bottom: 0; }');
+    });
+
+    it('softens the footer safe-zone so it no longer reads as "leave the bottom empty"', () => {
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('Reserve a footer safe-zone');
+      // Genuine overflow protection is retained...
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('never collide');
+      // ...but it is explicitly NOT a directive to leave the bottom empty.
+      expect(DECK_FRAMEWORK_DIRECTIVE).toMatch(/not\*?\*?\s+a directive to leave the bottom of the slide empty/);
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('must still FILL its band');
+    });
+
+    it('adds a pre-emit self-check item for pooled empty space at the bottom', () => {
+      expect(DECK_FRAMEWORK_DIRECTIVE).toMatch(/large empty band \(> ~15% of slide height/);
+      expect(DECK_FRAMEWORK_DIRECTIVE).toContain('do not leave pooled empty space');
+    });
+
+    it('stacks the vertical-fill guidance into the composed deck prompt', () => {
+      const deckPrompt = composeSystemPrompt({ skillMode: 'deck' });
+      expect(deckPrompt).toContain('Fill the vertical canvas');
+      expect(deckPrompt).toContain('do not leave pooled empty space');
     });
   });
 
