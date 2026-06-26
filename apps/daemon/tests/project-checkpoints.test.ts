@@ -608,6 +608,54 @@ describe('project checkpoint restore', () => {
     );
     expect(diff.files.filter((file) => file.status === 'unchanged')).toHaveLength(1);
   });
+
+  it('uses the target checkpoint as the conflict baseline when no newer checkpoint exists (latest message)', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+
+    // Agent state captured at the first assistant turn.
+    await writeFixtureFile(projectDir, 'A.txt', 'a1');
+    await writeFixtureFile(projectDir, 'B.txt', 'b1');
+    await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      kind: 'after_message',
+    });
+
+    // The agent changes A.txt at the latest assistant turn; this is the most
+    // recent checkpoint, so nothing is strictly newer than it.
+    await writeFixtureFile(projectDir, 'A.txt', 'a2');
+    const latest = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-2',
+      kind: 'after_message',
+    });
+
+    // The user then manually edits B.txt only (working tree has drifted).
+    await writeFixtureFile(projectDir, 'B.txt', 'b2-manual');
+
+    const diff = await service.diffCheckpoint(projectId, latest.id);
+
+    // When no checkpoint is newer than the target, the baseline falls back to
+    // the target itself (the agent's last recorded state for these files),
+    // instead of being null.
+    expect(diff.baseCheckpoint?.id).toBe(latest.id);
+
+    // Only the file the working tree genuinely drifted from the checkpoint is a
+    // conflict. A.txt (changed by the agent but untouched by the user) matches
+    // the target and must NOT be reported as a conflict / data loss.
+    expect(diff.conflicts.map((conflict) => conflict.path)).toEqual(['B.txt']);
+
+    // The genuine conflict reports the target's recorded content as the expected
+    // baseline (so consumers can describe the drift), rather than a null
+    // baseline that erases the reference point.
+    const conflict = diff.conflicts.find((item) => item.path === 'B.txt');
+    expect(conflict).toBeTruthy();
+    expect(conflict?.expectedHash).not.toBeNull();
+    expect(conflict?.expectedHash).toBe(conflict?.targetHash);
+  });
 });
 
 async function fsSymlinkDir(target: string, linkPath: string) {
