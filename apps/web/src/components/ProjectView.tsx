@@ -190,7 +190,6 @@ import { FileWorkspace } from './FileWorkspace';
 import {
   type PluginFolderAgentAction,
 } from './design-files/pluginFolderActions';
-import { SHARE_TO_COMMUNITY_PROMPT } from './share-to-community/shareToCommunityPrompt';
 import { CenteredLoader } from './Loading';
 import type { SettingsSection } from './SettingsDialog';
 import { Toast } from './Toast';
@@ -4510,34 +4509,6 @@ export function ProjectView({
     ],
   );
 
-  // "Share to Open Design" — kicks off the bundled `od-share-to-community`
-  // scenario in the active conversation. We just inject the trigger prompt
-  // through the standard chat-send path; the agent then loads SKILL.md and
-  // drives the rest. Keep this preparing state alive for the resulting chat
-  // run so the action reads as async packaging instead of instant sharing.
-  const [shareToOpenDesignBusyMessageId, setShareToOpenDesignBusyMessageId] = useState<string | null>(null);
-  const shareToOpenDesignBusyMessageIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!shareToOpenDesignBusyMessageIdRef.current || currentConversationBusy) return;
-    shareToOpenDesignBusyMessageIdRef.current = null;
-    setShareToOpenDesignBusyMessageId(null);
-  }, [currentConversationBusy]);
-  const handleShareToOpenDesign = useCallback((assistantMessageId: string) => {
-    if (currentConversationActionDisabled || shareToOpenDesignBusyMessageIdRef.current) return;
-    shareToOpenDesignBusyMessageIdRef.current = assistantMessageId;
-    setShareToOpenDesignBusyMessageId(assistantMessageId);
-    void Promise.resolve(handleSend(SHARE_TO_COMMUNITY_PROMPT, [], []))
-      .then((started) => {
-        if (started) return;
-        shareToOpenDesignBusyMessageIdRef.current = null;
-        setShareToOpenDesignBusyMessageId(null);
-      })
-      .catch(() => {
-        shareToOpenDesignBusyMessageIdRef.current = null;
-        setShareToOpenDesignBusyMessageId(null);
-      });
-  }, [currentConversationActionDisabled, handleSend]);
-
   const sentDesignSystemReviewTaskKeysRef = useRef<Set<string>>(new Set());
   const persistDesignSystemReviewEntry = useCallback((
     sectionTitle: string,
@@ -5703,8 +5674,6 @@ export function ProjectView({
               onRequestPluginFolderAgentAction={handlePluginFolderAgentAction}
               activePluginActionPaths={activePluginActionPaths}
               hiddenPluginActionPaths={hiddenAssistantPluginActionPaths}
-              onShareToOpenDesign={handleShareToOpenDesign}
-              shareToOpenDesignBusyMessageId={shareToOpenDesignBusyMessageId}
               forceStreamingMessageIds={forceStreamingPluginMessageIds}
               initialDraft={chatInitialDraft}
               onOpenQuestions={openQuestionsTab}

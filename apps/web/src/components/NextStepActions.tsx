@@ -50,9 +50,6 @@ interface Props {
   skills?: SkillSummary[];
   // Resolved `@skill` names per featured action, shown in the hover detail.
   toolboxSkillNames?: Partial<Record<DesignToolboxActionId, string | null>>;
-  // Contribute the artifact to the Open Design community gallery.
-  onShareToOpenDesign?: () => void;
-  shareToOpenDesignBusy?: boolean;
 }
 
 const FLYOUT_GAP = 8;
@@ -101,8 +98,6 @@ export function NextStepActions({
   onPickSkill,
   skills = [],
   toolboxSkillNames,
-  onShareToOpenDesign,
-  shareToOpenDesignBusy = false,
 }: Props) {
   const { t, locale } = useI18n();
   const analytics = useAnalytics();
@@ -122,7 +117,7 @@ export function NextStepActions({
   //   featured row  → detail card (skill summary)
   //   More          → [Design toolbox, Share]   (level 2)
   //   Design toolbox → search + non-featured actions + global resources (level 3)
-  //   Share          → Share / Download / Contribute (level 3)
+  //   Share          → Share / Download (level 3)
   // A single close timer with hover-intent keeps the whole path open while the
   // cursor travels between levels; entering any panel cancels the pending close.
   const [detail, setDetail] = useState<{ id: DesignToolboxActionId } & Anchor | null>(null);
@@ -186,7 +181,7 @@ export function NextStepActions({
   );
 
   const track = useCallback(
-    (element: 'share' | 'toolbox_action' | 'toolbox_more' | 'share_to_open_design', chipId?: string) => {
+    (element: 'share' | 'toolbox_action' | 'toolbox_more', chipId?: string) => {
       trackNextStepActionClick(analytics.track, {
         page_name: 'chat_panel',
         area: 'next_step',
@@ -210,13 +205,6 @@ export function NextStepActions({
     onDownload(fileName);
     closeAll();
   }, [closeAll, fileName, onDownload, track]);
-
-  const handleContribute = useCallback(() => {
-    if (!onShareToOpenDesign || shareToOpenDesignBusy) return;
-    track('share_to_open_design');
-    onShareToOpenDesign();
-    closeAll();
-  }, [closeAll, onShareToOpenDesign, shareToOpenDesignBusy, track]);
 
   const handleToolboxAction = useCallback(
     (id: DesignToolboxActionId) => {
@@ -263,11 +251,10 @@ export function NextStepActions({
     return source.slice(0, toolboxQuery ? 14 : 8);
   }, [skills, toolboxQuery, locale]);
 
-  // Share group is available whenever any of its three actions can fire.
+  // Share group is available whenever any of its actions can fire.
   const canShare = !!(fileName && onShare);
   const canDownload = !!(fileName && onDownload);
-  const canContribute = !!onShareToOpenDesign;
-  const hasShareGroup = canShare || canDownload || canContribute;
+  const hasShareGroup = canShare || canDownload;
   const hasMore = !!onToolboxAction || hasShareGroup;
   const showToolbox = !!onToolboxAction;
 
@@ -461,7 +448,7 @@ export function NextStepActions({
           )
         : null}
 
-      {/* Level 3b: Share / Download / Contribute */}
+      {/* Level 3b: Share / Download */}
       {sub?.kind === 'share' && typeof document !== 'undefined'
         ? createPortal(
             <div
@@ -491,22 +478,6 @@ export function NextStepActions({
                 >
                   <Icon name="download" size={14} className={styles.toolboxRowIcon} />
                   <span className={styles.toolboxRowTitle}>{t('nextStep.download')}</span>
-                </button>
-              ) : null}
-              {canContribute ? (
-                <button
-                  type="button"
-                  className={styles.flyoutRow}
-                  data-testid="next-step-share-contribute"
-                  disabled={shareToOpenDesignBusy}
-                  onClick={handleContribute}
-                >
-                  <Icon
-                    name={shareToOpenDesignBusy ? 'spinner' : 'globe'}
-                    size={14}
-                    className={shareToOpenDesignBusy ? 'icon-spin' : styles.toolboxRowIcon}
-                  />
-                  <span className={styles.toolboxRowTitle}>{t('nextStep.contribute')}</span>
                 </button>
               ) : null}
             </div>,

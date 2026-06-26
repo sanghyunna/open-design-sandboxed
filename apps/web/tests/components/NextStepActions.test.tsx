@@ -51,7 +51,6 @@ function renderActions(
     onDownload: vi.fn(),
     onToolboxAction: vi.fn(),
     onPickSkill: vi.fn(),
-    onShareToOpenDesign: vi.fn(),
   };
   const ui = (
     <NextStepActions
@@ -60,7 +59,6 @@ function renderActions(
       onDownload={handlers.onDownload}
       onToolboxAction={handlers.onToolboxAction}
       onPickSkill={handlers.onPickSkill}
-      onShareToOpenDesign={handlers.onShareToOpenDesign}
       skills={[
         skill('creative-director', 'Creative Director'),
         skill('emilkowalski-motion', 'Emil Kowalski Motion', 'animation-motion'),
@@ -211,7 +209,7 @@ describe('NextStepActions', () => {
     expect(h.onPickSkill).toHaveBeenCalledWith('emilkowalski-motion');
   });
 
-  it('cascades into Share / Download / Contribute and routes each action', () => {
+  it('cascades into Share / Download and routes each action', () => {
     const h = renderActions();
     fireEvent.mouseEnter(screen.getByTestId('next-step-toolbox-more'));
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-share'));
@@ -224,11 +222,6 @@ describe('NextStepActions', () => {
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-share'));
     fireEvent.click(screen.getByTestId('next-step-share-download'));
     expect(h.onDownload).toHaveBeenCalledWith('landing.html');
-
-    fireEvent.mouseEnter(screen.getByTestId('next-step-toolbox-more'));
-    fireEvent.mouseEnter(screen.getByTestId('next-step-more-share'));
-    fireEvent.click(screen.getByTestId('next-step-share-contribute'));
-    expect(h.onShareToOpenDesign).toHaveBeenCalledTimes(1);
   });
 
   it('hides the toolbox rows when no toolbox handler is wired', () => {

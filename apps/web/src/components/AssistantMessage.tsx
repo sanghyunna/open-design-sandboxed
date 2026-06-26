@@ -140,11 +140,6 @@ interface Props {
   ) => Promise<{ message?: string; url?: string } | void> | { message?: string; url?: string } | void;
   activePluginActionPaths?: Set<string>;
   hiddenPluginActionPaths?: Set<string>;
-  // Click handler for the post-completion "Share to Open Design" submission
-  // action. ProjectView wires this to handleSend with the bundled
-  // `od-share-to-community` trigger prompt.
-  onShareToOpenDesign?: () => void;
-  shareToOpenDesignBusy?: boolean;
   // True only for the most recent assistant message.
   isLast?: boolean;
   // Assistant message id whose run-failure error is rendered as ChatPane's
@@ -207,7 +202,6 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   'errorCardOwnerId',
   'nextUserContent',
   'forking',
-  'shareToOpenDesignBusy',
   'suppressDirectionForms',
   'hasDesignSystemContext',
   // Memoized + stable from ChatPane; compared so a late skill-list load
@@ -261,8 +255,6 @@ function AssistantMessageImpl({
   onRequestPluginFolderAgentAction,
   activePluginActionPaths = new Set(),
   hiddenPluginActionPaths = new Set(),
-  onShareToOpenDesign,
-  shareToOpenDesignBusy = false,
   isLast,
   errorCardOwnerId = null,
   nextUserContent,
@@ -450,14 +442,12 @@ function AssistantMessageImpl({
     !!copyMarkdown ||
     canFork ||
     canRollback;
-  const canShowOpenDesignSubmission = !!onShareToOpenDesign && showFeedback && runSucceeded;
-  const showOpenDesignSubmission =
-    canShowOpenDesignSubmission && (!!isLast || shareToOpenDesignBusy);
   const showNextStepActions =
     !streaming &&
     !!projectId &&
     runSucceeded &&
-    ((!!isLast && !!onToolboxAction) || showOpenDesignSubmission);
+    !!isLast &&
+    !!onToolboxAction;
   // Pre-output vs working: before any real content (text / thinking / tools /
   // files) the footer shimmers "Preparing…"; the moment content lands it
   // flips to "Working". The elapsed clock stays anchored to the persisted run
@@ -654,8 +644,6 @@ function AssistantMessageImpl({
             onDownload={isLast && nextStepArtifactName ? onArtifactDownload : undefined}
             skills={isLast ? nextStepSkills : undefined}
             toolboxSkillNames={isLast ? toolboxSkillNames : undefined}
-            onShareToOpenDesign={showOpenDesignSubmission ? onShareToOpenDesign : undefined}
-            shareToOpenDesignBusy={shareToOpenDesignBusy}
           />
         ) : null}
       </div>
