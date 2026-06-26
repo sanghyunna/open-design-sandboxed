@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { Button } from '@open-design/components';
 import { useT } from '../i18n';
 import { emptyManualEditStyles, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';
+import { RemixIcon } from './RemixIcon';
 
 export interface ManualEditDraft {
   text: string;
@@ -27,6 +29,7 @@ export function ManualEditPanel({
   draft,
   error,
   canUndo,
+  canRedo,
   busy,
   onDraftChange,
   onStyleChange,
@@ -34,6 +37,8 @@ export function ManualEditPanel({
   onError,
   onCancelDraft,
   onSaveDraft,
+  onUndo,
+  onRedo,
   onExit,
   onApplyPatch,
   onPickImage,
@@ -229,6 +234,28 @@ export function ManualEditPanel({
         <div className="manual-edit-footer">
           <div className="manual-edit-footer-actions">
             <div className="manual-edit-footer-left">
+              <div className="manual-edit-history-actions">
+                <Button
+                  variant="subtle"
+                  size="icon"
+                  aria-label={t('manualEdit.undo')}
+                  title={t('manualEdit.undo')}
+                  disabled={busy || !canUndo}
+                  onClick={onUndo}
+                >
+                  <RemixIcon name="arrow-go-back-line" size={15} />
+                </Button>
+                <Button
+                  variant="subtle"
+                  size="icon"
+                  aria-label={t('manualEdit.redo')}
+                  title={t('manualEdit.redo')}
+                  disabled={busy || !canRedo}
+                  onClick={onRedo}
+                >
+                  <RemixIcon name="arrow-go-forward-line" size={15} />
+                </Button>
+              </div>
               {targetForInspector ? (
                 confirmDelete ? (
                   <div className="manual-edit-delete-confirm">
