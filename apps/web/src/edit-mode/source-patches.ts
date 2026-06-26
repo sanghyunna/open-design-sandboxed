@@ -6,6 +6,12 @@ export interface ManualEditPatchResult {
   error?: string;
 }
 
+const INLINE_TEXT_WRAPPER_TAGS = new Set([
+  'strong', 'span', 'small', 'em', 'b', 'i', 'u', 's', 'mark', 'code', 'time',
+  'abbr', 'cite', 'q', 'sub', 'sup', 'kbd', 'samp', 'var', 'dfn', 'ins', 'del',
+  'bdi', 'bdo',
+]);
+
 export function applyManualEditPatch(source: string, patch: ManualEditPatch): ManualEditPatchResult {
   if (patch.kind === 'set-full-source') return { ok: true, source: patch.source };
 
@@ -24,9 +30,14 @@ export function applyManualEditPatch(source: string, patch: ManualEditPatch): Ma
 
   if (patch.kind === 'set-text') {
     if (hasElementChildren(el)) {
-      return { ok: false, source, error: 'This element contains nested markup. Use the HTML tab instead.' };
+      const textNode = singleEditableTextNode(el);
+      if (!textNode) {
+        return { ok: false, source, error: 'This element contains nested markup. Use the HTML tab instead.' };
+      }
+      textNode.textContent = patch.value;
+    } else {
+      el.textContent = patch.value;
     }
-    el.textContent = patch.value;
   } else if (patch.kind === 'set-link') {
     if (hasElementChildren(el)) {
       const currentText = el.textContent?.trim() ?? '';
@@ -153,7 +164,9 @@ function inferKind(el: Element): 'text' | 'link' | 'image' | 'container' {
   const tag = el.tagName.toLowerCase();
   if (tag === 'a') return 'link';
   if (tag === 'img') return 'image';
-  if (['section', 'main', 'nav', 'div', 'article', 'header', 'footer'].includes(tag)) return 'container';
+  if (['section', 'main', 'nav', 'div', 'article', 'header', 'footer'].includes(tag)) {
+    return hasElementChildren(el) && !singleEditableTextNode(el) ? 'container' : 'text';
+  }
   return 'text';
 }
 
@@ -184,6 +197,30 @@ function findElementByPath(doc: Document, id: string): Element | null {
 
 function hasElementChildren(el: Element): boolean {
   return Array.from(el.children).some((child) => child.nodeType === 1);
+}
+
+function singleEditableTextNode(el: Element): Text | null {
+  let textNode: Text | null = null;
+  const visit = (node: Node): boolean => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === 3) {
+        if (!child.textContent?.trim()) continue;
+        if (textNode) return false;
+        textNode = child as Text;
+        continue;
+      }
+      if (child.nodeType === 1) {
+        const childEl = child as Element;
+        if (!INLINE_TEXT_WRAPPER_TAGS.has(childEl.tagName.toLowerCase())) return false;
+        if (!visit(child)) return false;
+        continue;
+      }
+      if (child.nodeType === 8) continue;
+      return false;
+    }
+    return true;
+  };
+  return visit(el) ? textNode : null;
 }
 
 function setInlineStyles(el: HTMLElement, styles: Partial<ManualEditStyles>): void {

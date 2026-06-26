@@ -50,6 +50,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','gap','flexDirection','justifyContent','alignItems','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
+  var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   function isHostNode(el){
     return !!(el && el.matches && el.matches(hostNodeSelector));
   }
@@ -84,6 +85,31 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     return false;
   }
+  function singleEditableTextNode(el){
+    var textNode = null;
+    function visit(node){
+      var children = node.childNodes || [];
+      for (var i = 0; i < children.length; i++) {
+        var child = children[i];
+        if (child.nodeType === 3) {
+          if (!(child.textContent || '').trim()) continue;
+          if (textNode) return false;
+          textNode = child;
+          continue;
+        }
+        if (child.nodeType === 1) {
+          var tag = child.tagName ? child.tagName.toLowerCase() : '';
+          if (!inlineTextWrapperTags[tag]) return false;
+          if (!visit(child)) return false;
+          continue;
+        }
+        if (child.nodeType === 8) continue;
+        return false;
+      }
+      return true;
+    }
+    return visit(el) ? textNode : null;
+  }
   function inferKind(el){
     var explicit = el.getAttribute('data-od-edit');
     if (explicit) return explicit;
@@ -91,7 +117,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (tag === 'a') return 'link';
     if (tag === 'img') return 'image';
     if (['section','main','nav','div','article','header','footer'].indexOf(tag) >= 0) {
-      return hasElementChildren(el) ? 'container' : 'text';
+      return hasElementChildren(el) && !singleEditableTextNode(el) ? 'container' : 'text';
     }
     return 'text';
   }

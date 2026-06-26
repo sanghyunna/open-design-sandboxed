@@ -204,8 +204,24 @@ describe('manual edit source patches', () => {
     expect(result.source).toContain('Path target');
   });
 
+  it('updates single-inline value wrappers without dropping the inline wrapper', () => {
+    const source = '<main><div class="value"><strong>42</strong></div></main>';
+    const result = applyManualEditPatch(source, { kind: 'set-text', id: 'path-0-0', value: '43' });
+
+    expect(result.ok).toBe(true);
+    expect(result.source).toBe('<main><div class="value"><strong>43</strong></div></main>');
+  });
+
   it('rejects text patches for nested markup', () => {
     const result = applyManualEditPatch(baseSource, { kind: 'set-text', id: 'nested', value: 'Flat text' });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('nested markup');
+  });
+
+  it('keeps mixed inline wrappers on the HTML editing path', () => {
+    const source = '<main><div class="value"><strong>2019</strong> — San Francisco</div></main>';
+    const result = applyManualEditPatch(source, { kind: 'set-text', id: 'path-0-0', value: '2020' });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain('nested markup');

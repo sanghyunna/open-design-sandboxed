@@ -480,6 +480,30 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('turns single-inline value wrappers into inline editors', () => {
+    const dom = new JSDOM(
+      `<main><div class="value" data-od-source-path="path-0-0"><strong data-od-source-path="path-0-0-0">42</strong></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const value = dom.window.document.querySelector('.value') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    value.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(value.getAttribute('contenteditable')).toBe('plaintext-only');
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'path-0-0',
+        kind: 'text',
+        tagName: 'div',
+        className: 'value',
+      }),
+    }, '*');
+
+    dom.window.close();
+  });
+
   it('keeps nested containers out of inline text editing', () => {
     const dom = new JSDOM(
       `<main><section data-od-id="hero"><h1 data-od-id="title">Original title</h1></section></main>${buildManualEditBridge(true)}`,
