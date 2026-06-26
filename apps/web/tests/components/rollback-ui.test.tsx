@@ -148,6 +148,80 @@ describe('rollback action in assistant footer', () => {
 });
 
 describe('RollbackModal', () => {
+  it('keeps Confirm reachable for the latest-message-with-drift case and shows the data-loss warning', async () => {
+    // Rolling back the latest assistant message after a manual edit: the diff
+    // reports a genuine conflict on the edited file. The user must still be able
+    // to proceed (overwrite) without the Confirm button being a permanent dead
+    // end — and the data loss must be surfaced, not silent.
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-latest',
+      projectId: 'proj-1',
+      kind: 'after_message',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_006_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const diff: ProjectCheckpointDiffResponse = {
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [{ path: 'index.html', reason: 'current_changed_since_checkpoint' }],
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_and_chat',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: 'checkpoint-latest',
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+    };
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue(diff);
+    projectStateMocks.rollbackConversation.mockResolvedValue(rollbackResponse);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    // The conflict block and an explicit data-loss warning are visible.
+    expect(await screen.findByText('File conflicts')).toBeTruthy();
+    expect(screen.getByText(/discard your manual edits/i)).toBeTruthy();
+
+    // Confirm is NOT permanently disabled: an actionable resolution is the
+    // default, so the user can proceed straight away.
+    const confirmButton = screen.getByRole('button', {
+      name: 'Restore files and chat',
+    }) as HTMLButtonElement;
+    await waitFor(() => expect(confirmButton.disabled).toBe(false));
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => {
+      expect(projectStateMocks.rollbackConversation).toHaveBeenCalledWith('proj-1', 'conv-1', {
+        targetMessageId: 'msg-1',
+        targetCheckpointId: 'checkpoint-latest',
+        mode: 'files_and_chat',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+      });
+    });
+  });
+
   it('renders checkpoint conflicts and requires a non-fail policy before restoring files', async () => {
     const checkpoint: ProjectCheckpointSummary = {
       id: 'checkpoint-1',
