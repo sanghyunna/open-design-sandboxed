@@ -144,3 +144,6 @@ growth/**
 /findings.md
 /refactor_ideas.md
 /design-browser-task-handoff.md
+
+# Local agent session archives (must stay out of git per AGENTS.md)
+session_*.zip
