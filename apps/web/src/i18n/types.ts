@@ -2899,6 +2899,7 @@ export interface Dict {
   'rollback.conflictPolicyOverwrite': string;
   'rollback.conflictPolicyKeepCurrent': string;
   'rollback.conflictsTitle': string;
+  'rollback.conflictDataLossWarning': string;
   'rollback.confirmFiles': string;
   'rollback.confirmChat': string;
   'rollback.confirmCombined': string;

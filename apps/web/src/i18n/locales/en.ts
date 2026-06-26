@@ -2338,9 +2338,11 @@ export const en: Dict = {
   'rollback.safetyNotice': 'Open Design creates a safety checkpoint before changing files or chat.',
   'rollback.conflictPolicyLabel': 'Conflict policy',
   'rollback.conflictPolicyFail': 'Cancel on conflicts',
-  'rollback.conflictPolicyOverwrite': 'Overwrite current files',
-  'rollback.conflictPolicyKeepCurrent': 'Keep current files',
+  'rollback.conflictPolicyOverwrite': 'Discard my edits, restore checkpoint',
+  'rollback.conflictPolicyKeepCurrent': 'Keep my edits, skip those files',
   'rollback.conflictsTitle': 'File conflicts',
+  'rollback.conflictDataLossWarning':
+    'Restoring will discard your manual edits to the files below. A safety checkpoint is saved first, so you can undo this.',
   'rollback.confirmFiles': 'Restore files',
   'rollback.confirmChat': 'Restore chat',
   'rollback.confirmCombined': 'Restore files and chat',

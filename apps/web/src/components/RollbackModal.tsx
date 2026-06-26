@@ -131,13 +131,31 @@ export function RollbackModal({
     : diff?.conflicts ?? [];
   const conflictCount = Math.max(counts.conflicts, conflicts.length);
   const fileModeUnavailable = !hasFileCheckpoint && mode !== 'chat_only';
-  const confirmBlockedByConflicts = conflictCount > 0 && conflictPolicy === 'fail' && mode !== 'chat_only';
+  // Genuine file conflicts only matter for a restore that writes files.
+  const hasFileConflicts = conflictCount > 0 && mode !== 'chat_only';
+  // Rollback intentionally overwrites the working tree, so conflicts must never
+  // leave Confirm a permanent dead end. We surface an explicit resolution
+  // (overwrite = discard my edits and restore the checkpoint; keep_current =
+  // keep my edits and skip those files) plus a visible data-loss warning, and
+  // keep Confirm reachable. We never silently restore: the warning stays up and
+  // a safety checkpoint is always captured server-side.
   const confirmDisabled =
     submitting ||
     !checkpointsLoaded ||
     fileModeUnavailable ||
-    diffLoading ||
-    confirmBlockedByConflicts;
+    diffLoading;
+
+  useEffect(() => {
+    // When a files restore reveals genuine conflicts, default to an actionable
+    // resolution ('overwrite' matches the rollback intent: restore the
+    // checkpoint) instead of stranding the user on the blocking 'fail' policy.
+    // The user can still switch to 'keep_current'; the data-loss warning stays
+    // visible the whole time.
+    if (hasFileConflicts && conflictPolicy === 'fail') {
+      setConflictPolicy('overwrite');
+    }
+  }, [hasFileConflicts, conflictPolicy]);
+
   const targetTime = formatMessageTime(targetMessage);
   const targetAgent = targetMessage.agentName ?? targetMessage.agentId ?? t('assistant.role');
 
@@ -277,16 +295,20 @@ export function RollbackModal({
               <div className={styles.conflictHead}>
                 <strong>{t('rollback.conflictsTitle')}</strong>
                 <select
-                  value={conflictPolicy}
+                  value={conflictPolicy === 'fail' ? 'overwrite' : conflictPolicy}
                   onChange={(event) => setConflictPolicy(event.currentTarget.value as RollbackConflictPolicy)}
                   disabled={submitting || mode === 'chat_only'}
                   aria-label={t('rollback.conflictPolicyLabel')}
                 >
-                  <option value="fail">{t('rollback.conflictPolicyFail')}</option>
-                  <option value="keep_current">{t('rollback.conflictPolicyKeepCurrent')}</option>
                   <option value="overwrite">{t('rollback.conflictPolicyOverwrite')}</option>
+                  <option value="keep_current">{t('rollback.conflictPolicyKeepCurrent')}</option>
                 </select>
               </div>
+              {hasFileConflicts ? (
+                <p className={styles.conflictWarning} role="alert">
+                  {t('rollback.conflictDataLossWarning')}
+                </p>
+              ) : null}
               {conflicts.length > 0 ? (
                 <ul>
                   {conflicts.slice(0, 24).map((conflict) => (

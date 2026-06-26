@@ -2338,9 +2338,11 @@ export const ko: Dict = {
   'rollback.safetyNotice': 'Open Design creates a safety checkpoint before changing files or chat.',
   'rollback.conflictPolicyLabel': 'Conflict policy',
   'rollback.conflictPolicyFail': 'Cancel on conflicts',
-  'rollback.conflictPolicyOverwrite': 'Overwrite current files',
-  'rollback.conflictPolicyKeepCurrent': 'Keep current files',
+  'rollback.conflictPolicyOverwrite': '내 편집 버리고 체크포인트 복원',
+  'rollback.conflictPolicyKeepCurrent': '내 편집 유지, 해당 파일 건너뛰기',
   'rollback.conflictsTitle': 'File conflicts',
+  'rollback.conflictDataLossWarning':
+    '복원하면 아래 파일에 대한 수동 편집 내용이 삭제됩니다. 먼저 안전 체크포인트가 저장되므로 이 작업을 되돌릴 수 있습니다.',
   'rollback.confirmFiles': 'Restore files',
   'rollback.confirmChat': 'Restore chat',
   'rollback.confirmCombined': 'Restore files and chat',

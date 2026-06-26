@@ -222,7 +222,7 @@ describe('RollbackModal', () => {
     });
   });
 
-  it('renders checkpoint conflicts and requires a non-fail policy before restoring files', async () => {
+  it('renders checkpoint conflicts and lets the user keep their edits instead of overwriting', async () => {
     const checkpoint: ProjectCheckpointSummary = {
       id: 'checkpoint-1',
       projectId: 'proj-1',
@@ -285,9 +285,13 @@ describe('RollbackModal', () => {
     expect(await screen.findByText('File conflicts')).toBeTruthy();
     expect(screen.getAllByText('index.html')).toHaveLength(2);
     expect(screen.getByText('current_changed_since_checkpoint')).toBeTruthy();
+    // Confirm is reachable straight away (default actionable policy), and the
+    // data-loss warning is shown — never a silent restore, never a dead end.
     const confirmButton = screen.getByRole('button', { name: 'Restore files and chat' }) as HTMLButtonElement;
-    expect(confirmButton.disabled).toBe(true);
+    await waitFor(() => expect(confirmButton.disabled).toBe(false));
+    expect(screen.getByText(/discard your manual edits/i)).toBeTruthy();
 
+    // The user can opt to keep their edits instead of overwriting.
     fireEvent.change(screen.getByRole('combobox', { name: 'Conflict policy' }), {
       target: { value: 'keep_current' },
     });
