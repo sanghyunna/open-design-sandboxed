@@ -493,6 +493,36 @@ describe('ManualEditPanel', () => {
     expect(onStyleChange).toHaveBeenCalledWith('hero-title', { flexDirection: 'column' }, 'Style: Hero Title');
   });
 
+  it('renders Undo/Redo controls that drive the manual-edit history handlers', () => {
+    const onUndo = vi.fn<() => void>();
+    const onRedo = vi.fn<() => void>();
+    renderPanel({ canUndo: true, canRedo: true, onUndo, onRedo });
+
+    const undo = host.querySelector('button[aria-label="Undo"]') as HTMLButtonElement | null;
+    const redo = host.querySelector('button[aria-label="Redo"]') as HTMLButtonElement | null;
+    if (!undo || !redo) throw new Error('Undo/Redo controls not found');
+    expect(undo.disabled).toBe(false);
+    expect(redo.disabled).toBe(false);
+
+    act(() => {
+      undo.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+      redo.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Undo/Redo controls when there is no history to traverse', () => {
+    renderPanel({ canUndo: false, canRedo: false });
+
+    const undo = host.querySelector('button[aria-label="Undo"]') as HTMLButtonElement | null;
+    const redo = host.querySelector('button[aria-label="Redo"]') as HTMLButtonElement | null;
+    if (!undo || !redo) throw new Error('Undo/Redo controls not found');
+    expect(undo.disabled).toBe(true);
+    expect(redo.disabled).toBe(true);
+  });
+
   it('summarizes full-source history entries without rendering the full file', () => {
     const source = '<html><body>' + 'x'.repeat(10_000) + '</body></html>';
 
@@ -518,6 +548,10 @@ describe('ManualEditPanel', () => {
     onClearSelection = vi.fn<OnClearSelection>(),
     onCancelDraft = vi.fn<OnCancelDraft>(),
     onSaveDraft = vi.fn<OnSaveDraft>(),
+    onUndo = vi.fn<() => void>(),
+    onRedo = vi.fn<() => void>(),
+    canUndo = false,
+    canRedo = false,
     attributesText = '{}',
     selectedTarget = target,
     styles = emptyManualEditStyles(),
@@ -533,6 +567,10 @@ describe('ManualEditPanel', () => {
     onClearSelection?: OnClearSelection;
     onCancelDraft?: OnCancelDraft;
     onSaveDraft?: OnSaveDraft;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    canUndo?: boolean;
+    canRedo?: boolean;
     attributesText?: string;
     selectedTarget?: ManualEditTarget | null;
     styles?: ReturnType<typeof emptyManualEditStyles>;
@@ -555,8 +593,8 @@ describe('ManualEditPanel', () => {
           draft={draft}
           history={[]}
           error={null}
-          canUndo={false}
-          canRedo={false}
+          canUndo={canUndo}
+          canRedo={canRedo}
           pageStylesEnabled={pageStylesEnabled}
           onSelectTarget={vi.fn<(target: ManualEditTarget) => void>()}
           onDraftChange={onDraftChange}
@@ -567,8 +605,8 @@ describe('ManualEditPanel', () => {
           onClearSelection={onClearSelection}
           onCancelDraft={onCancelDraft}
           onSaveDraft={onSaveDraft}
-          onUndo={vi.fn<() => void>()}
-          onRedo={vi.fn<() => void>()}
+          onUndo={onUndo}
+          onRedo={onRedo}
           floatingStyle={floatingStyle}
           onFloatingPositionChange={onFloatingPositionChange}
         />,
