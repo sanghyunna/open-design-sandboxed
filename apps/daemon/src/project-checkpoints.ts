@@ -732,7 +732,22 @@ export function createProjectCheckpointService(
         // Ignore stale or manually deleted manifests for baseline purposes.
       }
     }
-    return null;
+    // No checkpoint is strictly newer than the target — this is the case when
+    // rolling back the LATEST message. The agent's last recorded state for these
+    // files IS the target checkpoint, so use it as the baseline instead of null.
+    //
+    // detectConflicts skips a file only when current === baseline; with the
+    // target as baseline, every file the working tree has genuinely drifted from
+    // the checkpoint is still flagged (the conflict set is identical to the null
+    // baseline), so no real data-loss warning is masked. The difference is that
+    // each conflict now carries the target's recorded content as its expected
+    // baseline rather than a null reference point, and consumers no longer have
+    // to special-case a missing baseline for the most-recent message.
+    try {
+      return { row: target, manifest: await readManifest(target) };
+    } catch {
+      return null;
+    }
   }
 
   return {
