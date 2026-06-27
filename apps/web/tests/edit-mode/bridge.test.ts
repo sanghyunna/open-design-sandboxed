@@ -664,6 +664,99 @@ describe('manual edit bridge rich-text editing', () => {
     dom.window.close();
   });
 
+  function selectTextRange(window: Window & typeof globalThis, node: Node, start: number, end: number): void {
+    const sel = window.getSelection();
+    const range = window.document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+
+  it('unwraps only the selected slice inside an existing wrapper (Ctrl+B on "world")', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy"><strong>hello world</strong></p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    const strongText = copy.querySelector('strong')!.firstChild!; // Text "hello world"
+    selectTextRange(win, strongText, 6, 11); // "world"
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    // Only "world" loses formatting; "hello " stays bold.
+    expect(copy.innerHTML).toBe('<strong>hello </strong>world');
+    expect(copy.textContent).toBe('hello world');
+
+    dom.window.close();
+  });
+
+  it('wraps only the selected slice of plain text (Ctrl+B on "world")', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy">hello world</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    const textNode = copy.firstChild!; // Text "hello world"
+    selectTextRange(win, textNode, 6, 11); // "world"
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    expect(copy.innerHTML).toBe('hello <strong>world</strong>');
+    expect(copy.textContent).toBe('hello world');
+
+    dom.window.close();
+  });
+
+  it('wraps a selection that spans a wrapped/unwrapped boundary without nesting', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy"><strong>hello</strong> world</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    const strongText = copy.querySelector('strong')!.firstChild!; // "hello"
+    const tailText = copy.lastChild!; // " world"
+    const sel = win.getSelection();
+    const range = win.document.createRange();
+    range.setStart(strongText, 2); // mid "hello" -> "llo"
+    range.setEnd(tailText, 6); // end of " world"
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    // Whole selection ends up bold; no <strong> is nested inside another.
+    expect(copy.textContent).toBe('hello world');
+    expect(copy.querySelector('strong strong')).toBeNull();
+    expect(copy.innerHTML).toBe('<strong>he</strong><strong>llo world</strong>');
+
+    dom.window.close();
+  });
+
   it('commits mixed-markup paragraph edits as inner html', () => {
     const dom = new JSDOM(
       `<main><p data-od-id="nested"><strong>Nested</strong> copy</p></main>${buildManualEditBridge(true)}`,
