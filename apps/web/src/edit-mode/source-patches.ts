@@ -267,7 +267,7 @@ function isSafeUrlValue(value: string): boolean {
   const stripped = value.replace(/[\u0000-\u0020]+/g, '');
   const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
   if (!schemeMatch) return true; // relative / anchor / `/`-rooted / `//host`
-  return SAFE_URL_SCHEMES.has(schemeMatch[1].toLowerCase());
+  return SAFE_URL_SCHEMES.has((schemeMatch[1] ?? '').toLowerCase());
 }
 
 // Light, dependency-free normalization for rich-text inner HTML. The goal is
