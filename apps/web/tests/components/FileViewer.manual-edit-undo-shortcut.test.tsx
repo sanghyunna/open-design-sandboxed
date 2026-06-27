@@ -208,7 +208,157 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     expect(savedSources).toHaveLength(1);
     input.remove();
   });
+
+  it('undoes and redoes a multi-step manual edit stack in order', async () => {
+    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    let persistedSource = initialSource;
+    const savedSources: string[] = [];
+    vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
+      persistedSource = next;
+      savedSources.push(next);
+    }));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={initialSource}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectHero();
+
+    for (const value of ['Alpha', 'Bravo', 'Charlie']) {
+      const before = savedSources.length;
+      act(() => {
+        panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value }, 'Content: Hero');
+      });
+      await waitFor(() => expect(savedSources.length).toBe(before + 1));
+    }
+    expect(savedSources[0]).toContain('Alpha');
+    expect(savedSources[1]).toContain('Bravo');
+    expect(savedSources[2]).toContain('Charlie');
+
+    const undo = async (length: number) => {
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      await waitFor(() => expect(savedSources).toHaveLength(length));
+    };
+    // Walk the stack back: Charlie -> Bravo -> Alpha -> initial.
+    await undo(4);
+    expect(savedSources[3]).toContain('Bravo');
+    await undo(5);
+    expect(savedSources[4]).toContain('Alpha');
+    await undo(6);
+    expect(savedSources[5]).toBe(initialSource);
+
+    const redo = async (length: number) => {
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      await waitFor(() => expect(savedSources).toHaveLength(length));
+    };
+    // Replay forward: Alpha -> Bravo -> Charlie.
+    await redo(7);
+    expect(savedSources[6]).toContain('Alpha');
+    await redo(8);
+    expect(savedSources[7]).toContain('Bravo');
+    await redo(9);
+    expect(savedSources[8]).toContain('Charlie');
+  });
+
+  it('drops undo history when the viewed file/context changes', async () => {
+    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    let persistedSource = initialSource;
+    const savedSources: string[] = [];
+    vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
+      persistedSource = next;
+      savedSources.push(next);
+    }));
+
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={initialSource}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectHero();
+
+    act(() => {
+      panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
+    });
+    await waitFor(() => expect(savedSources).toHaveLength(1));
+
+    // Switching the viewed file resets manual-edit history (the [file.name]
+    // effect). The previous file's undo entry must not be replayable.
+    rerender(
+      <FileViewer projectId="project-1" projectKind="prototype" file={otherPreviewFile()}
+        liveHtml={initialSource}
+      />,
+    );
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    // No undo save: the stale history was cleared on the context switch.
+    expect(savedSources).toHaveLength(1);
+  });
+
+  it('ignores Ctrl+Z dispatched from a contentEditable host element', async () => {
+    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    let persistedSource = initialSource;
+    const savedSources: string[] = [];
+    vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
+      persistedSource = next;
+      savedSources.push(next);
+    }));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={initialSource}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectHero();
+
+    act(() => {
+      panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
+    });
+    await waitFor(() => expect(savedSources).toHaveLength(1));
+
+    const editable = document.createElement('div');
+    editable.setAttribute('contenteditable', 'true');
+    document.body.appendChild(editable);
+    act(() => {
+      editable.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    // contentEditable hosts (e.g. the chat composer) keep native typing-undo.
+    expect(savedSources).toHaveLength(1);
+    editable.remove();
+  });
 });
+
+function historyFetchMock(getPersisted: () => string, onSave: (next: string) => void) {
+  return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+    if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+      const payload = JSON.parse(String(init.body)) as { content: string };
+      onSave(payload.content);
+      return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (url.includes('/raw/')) {
+      return new Response(getPersisted(), { status: 200 });
+    }
+    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+}
 
 function htmlPreviewFile(): ProjectFile {
   return {
@@ -224,6 +374,26 @@ function htmlPreviewFile(): ProjectFile {
       kind: 'html',
       title: 'Preview',
       entry: 'preview.html',
+      renderer: 'html',
+      exports: ['html'],
+    },
+  };
+}
+
+function otherPreviewFile(): ProjectFile {
+  return {
+    name: 'other.html',
+    path: 'other.html',
+    type: 'file',
+    size: 1024,
+    mtime: 1710000001,
+    mime: 'text/html',
+    kind: 'html',
+    artifactManifest: {
+      version: 1,
+      kind: 'html',
+      title: 'Other',
+      entry: 'other.html',
       renderer: 'html',
       exports: ['html'],
     },
