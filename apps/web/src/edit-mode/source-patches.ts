@@ -253,11 +253,29 @@ function setAttributes(el: Element, attributes: Record<string, string>): void {
   }
 }
 
+// URL schemes allowed to survive on `href`/`src` after a rich-text save. Anything
+// outside this set (and any scheme-less URL: relative, anchor, `/`-rooted, or
+// scheme-relative `//host`) is treated below; unknown schemes (`data:`,
+// `vbscript:`, `file:`, `javascript:`, …) get the URL-bearing attribute dropped.
+const SAFE_URL_SCHEMES = new Set(['http', 'https', 'mailto', 'tel', 'ftp']);
+
+// Decide whether a URL attribute value is safe to keep. DOMParser has already
+// entity-decoded the value, so `&#106;avascript:` arrives as `javascript:`. We
+// additionally strip ASCII control/whitespace characters before the scheme test
+// so interior-obfuscated schemes (`ja\tvascript:`, newline-split) are caught.
+function isSafeUrlValue(value: string): boolean {
+  const stripped = value.replace(/[\u0000-\u0020]+/g, '');
+  const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(stripped);
+  if (!schemeMatch) return true; // relative / anchor / `/`-rooted / `//host`
+  return SAFE_URL_SCHEMES.has(schemeMatch[1].toLowerCase());
+}
+
 // Light, dependency-free normalization for rich-text inner HTML. The goal is
 // clean inline markup; blocking obvious script injection is a bonus rather than a
 // hardened security boundary. We allowlist inline-formatting tags, unwrap unknown
 // tags (keeping their text), remove `<script>`/`<style>` outright, and strip
-// `on*` handlers plus `javascript:` URLs from the tags we keep.
+// `on*` handlers plus URLs whose scheme is not on the safe allowlist from the
+// tags we keep.
 function sanitizeInlineHtml(doc: Document, html: string): string {
   const template = doc.createElement('template');
   template.innerHTML = html;
@@ -280,7 +298,7 @@ function sanitizeInlineHtml(doc: Document, html: string): string {
         el.removeAttribute(attr.name);
         continue;
       }
-      if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(attr.value)) {
+      if ((name === 'href' || name === 'src') && !isSafeUrlValue(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }
