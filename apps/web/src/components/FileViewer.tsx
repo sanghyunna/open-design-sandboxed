@@ -6507,7 +6507,12 @@ function HtmlViewer({
       const target = e.target as HTMLElement | null;
       if (target) {
         const tag = target.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+        // `isContentEditable` is the primary signal, but a custom contentEditable
+        // host (or a non-reflecting engine) may not expose it; fall back to the
+        // attribute so typing-undo inside any editable host keeps its meaning.
+        const inEditableHost = typeof target.closest === 'function'
+          && target.closest('[contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]') !== null;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable || inEditableHost) return;
       }
       const key = e.key.toLowerCase();
       if (key === 'z') {
