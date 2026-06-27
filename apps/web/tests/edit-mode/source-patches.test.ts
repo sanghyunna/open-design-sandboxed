@@ -259,6 +259,42 @@ describe('manual edit source patches', () => {
     expect(html).not.toContain('javascript:');
   });
 
+  it('strips unsafe url schemes (data:/vbscript:/obfuscated javascript:) but keeps safe ones', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'hero-title',
+      html: [
+        '<a href="data:text/html,evil">data</a>',
+        '<a href="vbscript:msgbox(1)">vb</a>',
+        '<a href="ja\tvascript:steal()">obf</a>',
+        '<a href="https://safe.example/x">https</a>',
+        '<a href="http://safe.example/x">http</a>',
+        '<a href="mailto:a@b.co">mail</a>',
+        '<a href="tel:+1555">tel</a>',
+        '<a href="/rooted/path">rooted</a>',
+        '<a href="relative/path">rel</a>',
+        '<a href="#anchor">anchor</a>',
+      ].join(''),
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'hero-title');
+    // Unsafe schemes (and obfuscated javascript: with an embedded tab) are dropped.
+    expect(html).not.toContain('data:');
+    expect(html).not.toContain('vbscript:');
+    expect(html).not.toContain('vascript');
+    expect(html).not.toContain('steal');
+    expect(html).not.toContain('msgbox');
+    // Safe schemes and scheme-less URLs survive untouched.
+    expect(html).toContain('href="https://safe.example/x"');
+    expect(html).toContain('href="http://safe.example/x"');
+    expect(html).toContain('href="mailto:a@b.co"');
+    expect(html).toContain('href="tel:+1555"');
+    expect(html).toContain('href="/rooted/path"');
+    expect(html).toContain('href="relative/path"');
+    expect(html).toContain('href="#anchor"');
+  });
+
   it('keeps allowlisted inline formatting but unwraps unknown block tags in set-inner-html', () => {
     const result = applyManualEditPatch(baseSource, {
       kind: 'set-inner-html',
