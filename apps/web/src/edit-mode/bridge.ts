@@ -281,28 +281,35 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (current && current === boundary && current.tagName && current.tagName.toLowerCase() === tagName) return current;
     return null;
   }
-  function unwrapInlineElement(node){
-    var parent = node.parentNode;
-    if (!parent) return;
-    var first = node.firstChild;
-    var last = node.lastChild;
-    while (node.firstChild) parent.insertBefore(node.firstChild, node);
-    parent.removeChild(node);
-    if (first && last) {
-      try {
-        var sel = window.getSelection();
-        var range = document.createRange();
-        range.setStartBefore(first);
-        range.setEndAfter(last);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      } catch (e) {}
+  function unwrapMatchingDescendants(root, tagName){
+    // Flatten any same-tag elements inside a fragment so re-wrapping a selection
+    // that spans a partially-formatted boundary does not produce nested tags.
+    var matches = root.querySelectorAll ? Array.prototype.slice.call(root.querySelectorAll(tagName)) : [];
+    for (var i = 0; i < matches.length; i++) {
+      var node = matches[i];
+      var parent = node.parentNode;
+      if (!parent) continue;
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
     }
+  }
+  function selectNodes(first, last){
+    if (!first || !last) return;
+    try {
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.setStartBefore(first);
+      range.setEndAfter(last);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e) {}
   }
   function wrapSelectionRange(range, tagName){
     try {
       var wrapper = document.createElement(tagName);
-      wrapper.appendChild(range.extractContents());
+      var contents = range.extractContents();
+      unwrapMatchingDescendants(contents, tagName);
+      wrapper.appendChild(contents);
       range.insertNode(wrapper);
       var sel = window.getSelection();
       var next = document.createRange();
@@ -311,8 +318,58 @@ export function buildManualEditBridge(enabled: boolean): string {
       sel.addRange(next);
     } catch (e) {}
   }
-  // Toggle an inline-format tag around the current selection. Wraps when the
-  // selection is not already inside that tag; unwraps when it is. Uses the
+  // Unwrap only the SELECTED slice of an existing inline wrapper, splitting the
+  // wrapper into a still-formatted lead, the unformatted selection, and a
+  // still-formatted trail. The trailing slice is extracted first so splitting
+  // off the lead does not invalidate the live selection's start offset.
+  function fragmentHasContent(frag){
+    for (var i = 0; i < frag.childNodes.length; i++) {
+      var node = frag.childNodes[i];
+      if (node.nodeType === 1) return true;
+      if (node.nodeType === 3 && (node.textContent || '').length > 0) return true;
+    }
+    return false;
+  }
+  function unwrapSelectionWithin(wrapper, range, tagName){
+    var parent = wrapper.parentNode;
+    if (!parent) return;
+    try {
+      var afterRange = document.createRange();
+      afterRange.setStart(range.endContainer, range.endOffset);
+      afterRange.setEnd(wrapper, wrapper.childNodes.length);
+      var afterFrag = afterRange.extractContents();
+      var beforeRange = document.createRange();
+      beforeRange.setStart(wrapper, 0);
+      beforeRange.setEnd(range.startContainer, range.startOffset);
+      var beforeFrag = beforeRange.extractContents();
+      var out = document.createDocumentFragment();
+      // Empty boundary slices (the zero-length text node a Range split leaves at
+      // an edge) must not resurrect an empty <tag></tag>.
+      if (fragmentHasContent(beforeFrag)) {
+        var lead = document.createElement(tagName);
+        lead.appendChild(beforeFrag);
+        out.appendChild(lead);
+      }
+      var firstNode = null;
+      var lastNode = null;
+      while (wrapper.firstChild) {
+        var child = wrapper.firstChild;
+        if (!firstNode) firstNode = child;
+        lastNode = child;
+        out.appendChild(child);
+      }
+      if (fragmentHasContent(afterFrag)) {
+        var trail = document.createElement(tagName);
+        trail.appendChild(afterFrag);
+        out.appendChild(trail);
+      }
+      parent.replaceChild(out, wrapper);
+      selectNodes(firstNode, lastNode);
+    } catch (e) {}
+  }
+  // Toggle an inline-format tag around the current selection. Wraps the selected
+  // Range when it is not already inside that tag; otherwise unwraps only the
+  // selected slice (leaving the unselected remainder formatted). Uses the
   // Selection/Range API rather than the deprecated document.execCommand.
   function toggleInlineFormat(tagName, boundary){
     var sel = window.getSelection();
@@ -320,7 +377,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var range = sel.getRangeAt(0);
     if (range.collapsed) return;
     var existing = ancestorOfType(range.commonAncestorContainer, tagName, boundary);
-    if (existing) unwrapInlineElement(existing);
+    if (existing) unwrapSelectionWithin(existing, range, tagName);
     else wrapSelectionRange(range, tagName);
   }
   function makeEditable(el, clickEvent){
