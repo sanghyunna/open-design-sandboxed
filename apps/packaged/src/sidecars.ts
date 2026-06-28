@@ -169,6 +169,30 @@ export function resolveDaemonStatusTimeoutMs(
   return DAEMON_STATUS_TIMEOUT_MS;
 }
 
+const WEB_STATUS_TIMEOUT_MS = 180_000;
+
+/**
+ * Web sidecar status wait budget for the packaged launcher.
+ *
+ * The web sidecar (apps/web/sidecar/server.ts) has its own internal
+ * readiness budget (120s) for cold first-boot standalone Next.js
+ * compiles. The launcher must wait strictly longer than that internal
+ * budget, otherwise it gives up first and the sidecar's longer budget
+ * is wasted. The default 180s leaves headroom above the 120s internal
+ * window. `OD_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
+ * absent, non-numeric, or non-positive value falls back to the default.
+ */
+export function resolveWebStatusTimeoutMs(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  const raw = env.OD_WEB_STATUS_TIMEOUT_MS;
+  if (raw != null && raw.length > 0) {
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed) && parsed > 0) return parsed;
+  }
+  return WEB_STATUS_TIMEOUT_MS;
+}
+
 /**
  * Waits for the sidecar to report a ready status over IPC.
  *
@@ -523,6 +547,14 @@ export async function startPackagedSidecars(
     const webStatus = await waitForStatus<WebStatusSnapshot>(
       web.ipcPath,
       (status) => status.url != null,
+      resolveWebStatusTimeoutMs(),
+      // Race the IPC polling against the web child's exit, mirroring the
+      // daemon wait. The default 180s budget is deliberately longer than
+      // the web sidecar's 120s internal readiness window, so without the
+      // exit race a web child that crashes at startup would hang the
+      // launcher at the splash for the full 180s. The watch surfaces the
+      // crash immediately and points at the web log for the failure.
+      { child: web.child, logPath: logPathFor(paths, APP_KEYS.WEB) },
     );
     logStartupPhase("web-status-ready");
     if (webStatus.url == null) throw new Error("web did not report a URL");
