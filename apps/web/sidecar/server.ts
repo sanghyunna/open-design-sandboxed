@@ -107,8 +107,9 @@ function parsePositiveIntegerEnv(envName: string, defaultValue: number): number 
   return parsed;
 }
 
-function resolveStandaloneStartupTimeoutMs(): number {
-  return parsePositiveIntegerEnv(STANDALONE_STARTUP_TIMEOUT_ENV, 35_000);
+export function resolveStandaloneStartupTimeoutMs(): number {
+  // 120s default gives cold first-launch headroom while Windows Defender cold-scans the freshly extracted tree.
+  return parsePositiveIntegerEnv(STANDALONE_STARTUP_TIMEOUT_ENV, 120_000);
 }
 
 export function createStandaloneParentMonitorImport(parentPidEnv = STANDALONE_PARENT_PID_ENV): string {
