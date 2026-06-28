@@ -209,7 +209,7 @@ export async function waitForStatus<T>(
   ipcPath: string,
   isReady: (status: T) => boolean,
   timeoutMs = DAEMON_STATUS_TIMEOUT_MS,
-  watch: { child: { exitCode: number | null; signalCode: NodeJS.Signals | null; once: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => void; off: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => void }; logPath: string } | null = null,
+  watch: { child: { exitCode: number | null; signalCode: NodeJS.Signals | null; once: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => void; off: (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void) => void }; logPath: string; label?: string } | null = null,
 ): Promise<T> {
   const startedAt = Date.now();
   let lastError: unknown;
@@ -231,7 +231,7 @@ export async function waitForStatus<T>(
     while (Date.now() - startedAt < timeoutMs) {
       if (childExited !== null) {
         throw new Error(
-          `daemon exited before reporting status (code=${childExited.code}, signal=${childExited.signal ?? 'none'}); see ${watch?.logPath ?? '<no log path>'} for details`,
+          `${watch?.label ?? 'daemon'} exited before reporting status (code=${childExited.code}, signal=${childExited.signal ?? 'none'}); see ${watch?.logPath ?? '<no log path>'} for details`,
         );
       }
       try {
@@ -554,7 +554,7 @@ export async function startPackagedSidecars(
       // exit race a web child that crashes at startup would hang the
       // launcher at the splash for the full 180s. The watch surfaces the
       // crash immediately and points at the web log for the failure.
-      { child: web.child, logPath: logPathFor(paths, APP_KEYS.WEB) },
+      { child: web.child, logPath: logPathFor(paths, APP_KEYS.WEB), label: "web" },
     );
     logStartupPhase("web-status-ready");
     if (webStatus.url == null) throw new Error("web did not report a URL");
