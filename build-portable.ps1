@@ -66,7 +66,7 @@
     Optional 7z compression level for the portable zip. Default: 5.
 
 .PARAMETER AppVersion
-    Packaged app version baked into the portable artifact. Default: 0.1.4 for
+    Packaged app version baked into the portable artifact. Default: 0.1.5 for
     the redesigned Windows release line.
 
 .EXAMPLE
@@ -81,7 +81,7 @@ param(
     [string]$To = "zip",
     [string]$DropDir = "D:\dev\open_design_port",
     [string]$PortableZipCompression,
-    [string]$AppVersion = "0.1.4"
+    [string]$AppVersion = "0.1.5"
 )
 
 $ErrorActionPreference = "Stop"
