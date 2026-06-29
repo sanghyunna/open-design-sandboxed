@@ -1,5 +1,7 @@
 export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em, b, i, u, s, mark, code, pre, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
+const MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR = 'strong, span, small, em, b, i, u, s, mark, code, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo';
+const MANUAL_EDIT_TEXT_PASSAGE_SELECTOR = 'div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_HOST_NODE_SELECTOR = [
   '[data-od-sandbox-shim]',
   '[data-od-deck-bridge]',
@@ -36,11 +38,26 @@ export function manualEditStableIdForElement(el: Element): string {
 }
 
 export function isMeaningfulManualEditElement(el: Element, rect: Pick<DOMRect, 'width' | 'height'>): boolean {
-  return isSourceMappableManualEditElement(el) && el.matches(MANUAL_EDIT_DISCOVERY_SELECTOR) && rect.width >= 4 && rect.height >= 4;
+  return isSourceMappableManualEditElement(el)
+    && el.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)
+    && !hasManualEditTextPassageAncestor(el)
+    && rect.width >= 4
+    && rect.height >= 4;
 }
 
 export function isSourceMappableManualEditElement(el: Element): boolean {
   return el.hasAttribute('data-od-id') || el.hasAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR);
+}
+
+function hasManualEditTextPassageAncestor(el: Element): boolean {
+  if (!el.matches(MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR)) return false;
+  let parent = el.parentElement;
+  while (parent && parent !== parent.ownerDocument.body) {
+    if (isSourceMappableManualEditElement(parent) && parent.matches(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)) return true;
+    if (isSourceMappableManualEditElement(parent) && parent.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)) return false;
+    parent = parent.parentElement;
+  }
+  return false;
 }
 
 export function buildManualEditBridge(enabled: boolean): string {
@@ -49,6 +66,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var discoverySelector = ${JSON.stringify(MANUAL_EDIT_DISCOVERY_SELECTOR)};
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
+  var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','gap','flexDirection','justifyContent','alignItems','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   function isHostNode(el){
@@ -78,6 +96,24 @@ export function buildManualEditBridge(enabled: boolean): string {
   }
   function isDiscoveryTarget(el){
     return !!(el && el.matches && el.matches(discoverySelector));
+  }
+  function isInlineTextWrapper(el){
+    var tag = el && el.tagName ? el.tagName.toLowerCase() : '';
+    return !!inlineTextWrapperTags[tag];
+  }
+  function textPassageParentTarget(el){
+    if (!isInlineTextWrapper(el)) return null;
+    var current = el.parentElement;
+    while (current && current !== document.body && current !== document.documentElement) {
+      if (isSourceMappable(current) && isDiscoveryTarget(current)) {
+        return current.matches(textPassageSelector) ? current : null;
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+  function targetForInlineText(el){
+    return textPassageParentTarget(el) || el;
   }
   function hasElementChildren(el){
     for (var i = 0; i < el.children.length; i++) {
@@ -204,6 +240,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     for (var i = 0; i < nodes.length; i++) {
       var rect = nodes[i].getBoundingClientRect();
       if (!isSourceMappable(nodes[i])) continue;
+      if (targetForInlineText(nodes[i]) !== nodes[i]) continue;
       if (!isHiddenTarget(nodes[i], rect) && (rect.width < 4 || rect.height < 4)) continue;
       targets.push(targetFrom(nodes[i], false));
     }
@@ -235,11 +272,33 @@ export function buildManualEditBridge(enabled: boolean): string {
     var el = event.target;
     while (el && el !== document.documentElement) {
       if (el !== document.body && el !== document.documentElement && isSourceMappable(el) && isDiscoveryTarget(el)) {
-        return el;
+        return targetForInlineText(el);
       }
       el = el.parentElement;
     }
     return null;
+  }
+  function currentSelectedRange(){
+    try {
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      var range = sel.getRangeAt(0);
+      return range.collapsed ? null : range;
+    } catch (e) {
+      return null;
+    }
+  }
+  function targetForSelection(el){
+    var range = currentSelectedRange();
+    if (!range || !el) return el;
+    if (el.contains(range.startContainer) && el.contains(range.endContainer)) return el;
+    var node = range.commonAncestorContainer;
+    var current = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
+    while (current && current !== document.documentElement) {
+      if (current !== document.body && isSourceMappable(current) && isDiscoveryTarget(current) && current.contains(range.startContainer) && current.contains(range.endContainer)) return current;
+      current = current.parentElement;
+    }
+    return el;
   }
   function caretRangeFromClick(clickEvent){
     try {
@@ -380,6 +439,28 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (existing) unwrapSelectionWithin(existing, range, tagName);
     else wrapSelectionRange(range, tagName);
   }
+  function selectedRangeWithin(el){
+    try {
+      var range = currentSelectedRange();
+      if (!range) return null;
+      if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return null;
+      return range.cloneRange();
+    } catch (e) {
+      return null;
+    }
+  }
+  function restoreSelectionRange(range){
+    try {
+      if (!range) return false;
+      var sel = window.getSelection();
+      if (!sel) return false;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
   function makeEditable(el, clickEvent){
     if (!el || el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === 'plaintext-only') return;
     // Links (and any element the host routes here as a non-text leaf) stay on the
@@ -389,11 +470,12 @@ export function buildManualEditBridge(enabled: boolean): string {
     var rich = inferKind(el) === 'text';
     var originalText = el.textContent || '';
     var originalHtml = el.innerHTML;
+    var selectedRange = selectedRangeWithin(el);
     clearSelectedTarget();
     el.setAttribute('contenteditable', rich ? 'true' : 'plaintext-only');
     el.setAttribute('data-od-editing', 'true');
     try { el.focus(); } catch (e) {}
-    placeCaretFromClick(clickEvent, el);
+    if (!restoreSelectionRange(selectedRange)) placeCaretFromClick(clickEvent, el);
     function finish(commit){
       el.removeAttribute('contenteditable');
       el.removeAttribute('data-od-editing');
@@ -534,6 +616,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       window.parent.postMessage({ type: 'od-edit-background' }, '*');
       return;
     }
+    el = targetForSelection(el);
     var kind = inferKind(el);
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true) }, '*');
     if (kind === 'text' || kind === 'link') {
@@ -561,9 +644,11 @@ html[data-od-edit-mode] body * { cursor: pointer !important; }
 html[data-od-edit-mode] [data-od-id],
 html[data-od-edit-mode] [data-od-runtime-id],
 html[data-od-edit-mode] [data-od-source-path] { outline: 1px dashed rgba(37, 99, 235, 0.35); outline-offset: 3px; }
+html[data-od-edit-mode] :is(${MANUAL_EDIT_TEXT_PASSAGE_SELECTOR}) :is(${MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR})[data-od-source-path] { outline: none; }
 html[data-od-edit-mode] [data-od-id]:hover,
 html[data-od-edit-mode] [data-od-runtime-id]:hover,
 html[data-od-edit-mode] [data-od-source-path]:hover { outline: 2px solid #2563eb; }
+html[data-od-edit-mode] :is(${MANUAL_EDIT_TEXT_PASSAGE_SELECTOR}) :is(${MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR})[data-od-source-path]:hover { outline: none; }
 html[data-od-edit-mode] [data-od-edit-selected] {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
