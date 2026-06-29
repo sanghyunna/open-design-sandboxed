@@ -2,6 +2,10 @@
 
 html, body, #root { height: 100%; margin: 0; }
 
+html {
+  font-family: var(--sans);
+}
+
 body {
   font-family: var(--sans);
   color: var(--text);

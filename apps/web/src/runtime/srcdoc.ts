@@ -53,7 +53,8 @@ export function buildSrcdoc(
   const withOdIds = annotateMissingOdIds(wrapped);
   const withSourcePaths = options.editBridge ? annotateManualEditSourcePaths(withOdIds) : withOdIds;
   const withBase = options.baseHref ? injectBaseHref(withSourcePaths, options.baseHref) : withSourcePaths;
-  const withShim = injectSandboxShim(withBase);
+  const withFont = injectPretendardFont(withBase);
+  const withShim = injectSandboxShim(withFont);
   const withFocusGuard = options.previewFocusGuard ? injectPreviewFocusGuard(withShim) : withShim;
   const withDeck = options.deck ? injectDeckBridge(withFocusGuard, options.initialSlideIndex) : withFocusGuard;
   // Comment + Inspect share an element-selection bridge: both pick a
@@ -637,6 +638,37 @@ function annotateMissingOdIds(doc: string): string {
 function injectManualEditBridge(doc: string): string {
   const withStyle = injectBeforeHeadEnd(doc, buildManualEditBridgeStyle());
   return injectBeforeBodyEnd(withStyle, buildManualEditBridge(false));
+}
+
+function injectPretendardFont(doc: string): string {
+  const style = `<style data-od-pretendard-font>
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+  src: url('/fonts/PretendardVariable.woff2') format('woff2');
+}
+:root {
+  --font: 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+  --font-display: 'Pretendard', sans-serif;
+  --font-mono: 'Pretendard', sans-serif;
+  --sans: 'Pretendard', sans-serif;
+  --serif: 'Pretendard', sans-serif;
+  --mono: 'Pretendard', sans-serif;
+}
+html,
+body,
+button,
+input,
+textarea,
+select,
+body *:not([class^='ri-']):not([class*=' ri-']) {
+  font-family: 'Pretendard', sans-serif !important;
+}
+</style>`;
+  return injectBeforeHeadEnd(doc, style);
 }
 
 function injectBeforeHeadEnd(doc: string, payload: string): string {

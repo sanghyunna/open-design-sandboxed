@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { readExpandedIndexCss } from '../helpers/read-expanded-css';
 
 const indexCss = readExpandedIndexCss();
+const layoutTsx = readFileSync(new URL('../../app/layout.tsx', import.meta.url), 'utf8');
+const fontsCss = readFileSync(new URL('../../src/styles/fonts.css', import.meta.url), 'utf8');
 
 function cssBlock(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -25,13 +28,32 @@ describe('default app background colors', () => {
     expect(dark).toContain('--bg-app: #1a1917;');
   });
 
-  it('prefers platform UI fonts over optional local app fonts', () => {
+  it('uses bundled Pretendard before platform fallback fonts', () => {
     const root = cssBlock(':root');
     const sans = /--sans:\s*([^;]+);/.exec(root)?.[1];
 
     expect(sans).toBeDefined();
-    expect(sans).toContain("'Segoe UI'");
+    expect(sans).toContain("'Pretendard'");
     expect(sans).not.toContain("'Inter'");
-    expect(sans).toMatch(/'Segoe UI', 'Microsoft YaHei UI', 'Noto Sans'/);
+    expect(sans).toMatch(/'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic'/);
+  });
+
+  it('loads the Pretendard override after app surface styles', () => {
+    const indexImport = layoutTsx.indexOf("import '../src/index.css';");
+    const homeImport = layoutTsx.indexOf("import '../src/styles/home/index.css';");
+    const fontsImport = layoutTsx.indexOf("import '../src/styles/fonts.css';");
+
+    expect(indexImport).toBeGreaterThanOrEqual(0);
+    expect(homeImport).toBeGreaterThan(indexImport);
+    expect(fontsImport).toBeGreaterThan(homeImport);
+    expect(indexCss).not.toContain("@import './styles/fonts.css';");
+  });
+
+  it('forces app text to Pretendard without clobbering Remix Icon glyphs', () => {
+    expect(fontsCss).toContain("format('woff2')");
+    expect(fontsCss).not.toContain('woff2-variations');
+    expect(fontsCss).toContain('body *:not([class^=\'ri-\']):not([class*=\' ri-\'])');
+    expect(fontsCss).toContain("font-family: 'Pretendard'");
+    expect(fontsCss).not.toContain('font-family: var(--sans) !important;');
   });
 });

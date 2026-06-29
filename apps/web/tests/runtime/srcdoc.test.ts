@@ -89,6 +89,16 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain('.replace(/@font-face\\s*\\{[^}]*\\}/gi,');
   });
 
+  it('forces Pretendard inside srcdoc previews while preserving icon fonts', () => {
+    const srcdoc = buildSrcdoc('<main style="font-family: Inter">Hero</main>');
+
+    expect(srcdoc).toContain('data-od-pretendard-font');
+    expect(srcdoc).toContain("format('woff2')");
+    expect(srcdoc).not.toContain('woff2-variations');
+    expect(srcdoc).toContain("body *:not([class^='ri-']):not([class*=' ri-'])");
+    expect(srcdoc).toContain("font-family: 'Pretendard', sans-serif !important;");
+  });
+
   it('prunes hidden snapshot clone nodes before rasterizing decks', () => {
     const srcdoc = buildSrcdoc(deckHtml, { deck: true });
 
