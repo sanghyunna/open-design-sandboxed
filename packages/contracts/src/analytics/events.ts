@@ -187,6 +187,9 @@ export type TrackingFeedbackProviderId =
 export type TrackingArtifactKind =
   | 'html'
   | 'markdown'
+  | 'image'
+  | 'video'
+  | 'audio'
   | 'doc'
   | 'unknown';
 
@@ -195,6 +198,7 @@ export type TrackingExportFormat =
   | 'pptx'
   | 'zip'
   | 'html'
+  | 'image'
   | 'markdown'
   | 'template'
   | 'share_link'
@@ -388,6 +392,9 @@ export type TrackingDesignSystemSource =
   | 'unknown';
 
 export type TrackingFileType =
+  | 'image'
+  | 'video'
+  | 'audio'
   | 'pdf'
   | 'zip'
   | 'folder'
@@ -1424,6 +1431,7 @@ export interface PluginDetailModalSharePopoverClickProps {
     | 'pdf'
     | 'zip'
     | 'html'
+    | 'image'
     | 'open_in_new_tab';
   plugin_id?: string;
   plugin_type?: string;
@@ -3098,6 +3106,10 @@ export function artifactKindToTracking(args: {
     return 'html';
   }
   if (rendererId === 'markdown') return 'markdown';
+  if (rendererId === 'svg') return 'image';
+  if (fileKind === 'image' || fileKind === 'sketch') return 'image';
+  if (fileKind === 'video') return 'video';
+  if (fileKind === 'audio') return 'audio';
   if (
     fileKind === 'pdf' ||
     fileKind === 'document' ||
@@ -3127,6 +3139,9 @@ export function fileTypeToTracking(args: {
   if (args.isFolder) return 'folder';
   if (args.isZip) return 'zip';
   const m = args.mime ?? '';
+  if (m.startsWith('image/')) return 'image';
+  if (m.startsWith('video/')) return 'video';
+  if (m.startsWith('audio/')) return 'audio';
   if (m === 'application/pdf') return 'pdf';
   return 'other';
 }

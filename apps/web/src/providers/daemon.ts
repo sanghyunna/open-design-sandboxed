@@ -23,7 +23,6 @@ import type {
   ChatSseStartPayload,
   DaemonAgentPayload,
   AmrModelsResponse,
-  MediaExecutionPolicy,
   ResearchOptions,
   RunContextSelection,
   SseErrorPayload,
@@ -242,7 +241,6 @@ export interface DaemonStreamOptions {
   research?: ResearchOptions;
   context?: RunContextSelection;
   appliedPluginSnapshotId?: string | null;
-  mediaExecution?: MediaExecutionPolicy;
   locale?: string;
   initialLastEventId?: string | null;
   onRunCreated?: (runId: string) => void;
@@ -535,7 +533,6 @@ export async function streamViaDaemon({
   research,
   context,
   appliedPluginSnapshotId,
-  mediaExecution,
   locale,
   initialLastEventId,
   onRunCreated,
@@ -571,7 +568,6 @@ export async function streamViaDaemon({
     ...(appliedPluginSnapshotId ? { appliedPluginSnapshotId } : {}),
     ...(context ? { context } : {}),
     ...(research ? { research } : {}),
-    ...(mediaExecution ? { mediaExecution } : {}),
     ...(analyticsHints ? { analyticsHints } : {}),
   };
   const body = JSON.stringify(request);

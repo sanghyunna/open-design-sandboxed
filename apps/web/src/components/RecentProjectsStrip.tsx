@@ -456,14 +456,12 @@ function projectCover(
   const entry = meta?.entryFile;
   if (entry) {
     const src = projectFileUrl(project.id, entry);
-    if (meta?.kind === 'image') return { kind: 'image', src, style, initial };
-    if (meta?.kind === 'video') return { kind: 'video', src, style, initial };
     if (/\.html?$/i.test(entry)) return { kind: 'html', src, style, initial };
   }
   return { kind: 'fallback', style, initial };
 }
 
-type ProjectCategory = 'prototype' | 'live-artifact' | 'slide' | 'media';
+type ProjectCategory = 'prototype' | 'live-artifact' | 'slide';
 
 function projectCategory(project: Project): ProjectCategory {
   const meta = project.metadata;
@@ -471,9 +469,6 @@ function projectCategory(project: Project): ProjectCategory {
     return 'live-artifact';
   }
   if (meta?.kind === 'deck') return 'slide';
-  if (meta?.kind === 'image' || meta?.kind === 'video' || meta?.kind === 'audio') {
-    return 'media';
-  }
   return 'prototype';
 }
 
@@ -484,9 +479,7 @@ function ProjectTag({ category }: { category: ProjectCategory }) {
       ? t('designs.tagLiveArtifact')
       : category === 'slide'
         ? t('designs.tagSlide')
-        : category === 'media'
-          ? t('designs.tagMedia')
-          : t('designs.tagPrototype');
+        : t('designs.tagPrototype');
   return <span className={`design-card-tag tag-${category}`}>{label}</span>;
 }
 
