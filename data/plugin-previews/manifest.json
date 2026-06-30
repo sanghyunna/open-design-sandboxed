@@ -295,13 +295,6 @@
       "holdMs": 2500,
       "hash": "c4595755aa58ad8a"
     },
-    "example-video-hyperframes": {
-      "video": "example-video-hyperframes.a2e7f0664e7ceed4.mp4",
-      "poster": "example-video-hyperframes.a2e7f0664e7ceed4.poster.jpg",
-      "durationMs": 1155,
-      "holdMs": 2500,
-      "hash": "a2e7f0664e7ceed4"
-    },
     "example-innovation": {
       "video": "example-innovation.9aa60cc61e4a1498.mp4",
       "poster": "example-innovation.9aa60cc61e4a1498.poster.jpg",
@@ -413,13 +406,6 @@
       "durationMs": 800,
       "holdMs": 2500,
       "hash": "d92af61e36bc9669"
-    },
-    "example-motion-frames": {
-      "video": "example-motion-frames.c7748a4d06f04f50.mp4",
-      "poster": "example-motion-frames.c7748a4d06f04f50.poster.jpg",
-      "durationMs": 2500,
-      "holdMs": 2500,
-      "hash": "c7748a4d06f04f50"
     },
     "example-mythic-naturecore": {
       "video": "example-mythic-naturecore.ac3e218fb4919591.mp4",
