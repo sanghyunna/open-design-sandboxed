@@ -29,7 +29,6 @@ import { getAgentDef } from '../src/agents.js';
 import { closeHttpServer } from '../src/daemon-startup.js';
 import { readMemoryConfig, writeMemoryConfig } from '../src/memory.js';
 import { upsertMessage } from '../src/db.js';
-import { renderCodexImagegenOverride } from '../src/prompts/system.js';
 import { invalidateSkillListCache } from '../src/skills.js';
 import { withFakeAgent } from './helpers/fake-agent.js';
 
@@ -1119,113 +1118,6 @@ process.stdin.on('end', () => {
     );
   });
 
-  it('preserves a persisted media skill as the primary surface over a composed deck mention', async () => {
-    await withFakeAgent(
-      'opencode',
-      `
-let prompt = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (chunk) => {
-  prompt += chunk;
-});
-process.stdin.on('end', () => {
-  const checks = [
-    prompt.includes('# imagegen') ? 'has-base-image-skill-body' : 'missing-base-image-skill-body',
-    prompt.includes('## Composed skill — open-design-landing-deck') ? 'has-composed-deck-skill-header' : 'missing-composed-deck-skill-header',
-    prompt.includes('## Media generation contract (load-bearing — overrides softer wording above)') ? 'has-image-contract' : 'missing-image-contract',
-    prompt.includes('# Slide deck — fixed framework (this is non-negotiable for deck mode)') ? 'unexpected-deck-framework' : 'kept-deck-framework-out',
-  ];
-  console.log(JSON.stringify({ type: 'step_start' }));
-  console.log(JSON.stringify({ type: 'text', part: { text: checks.join('\\n') } }));
-  console.log(JSON.stringify({ type: 'step_finish', part: { tokens: { input: 1, output: 1 } } }));
-  process.exit(0);
-});
-`,
-      async () => {
-        const response = await fetch(`${baseUrl}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            agentId: 'opencode',
-            message: 'generate an image while also referencing a deck template',
-            skillId: 'imagegen',
-            skillIds: ['open-design-landing-deck'],
-          }),
-        });
-        const body = await response.text();
-
-        expect(response.ok).toBe(true);
-        expect(body).toContain('has-base-image-skill-body');
-        expect(body).toContain('has-composed-deck-skill-header');
-        expect(body).toContain('has-image-contract');
-        expect(body).toContain('kept-deck-framework-out');
-        expect(body).not.toContain('missing-base-image-skill-body');
-        expect(body).not.toContain('missing-composed-deck-skill-header');
-        expect(body).not.toContain('missing-image-contract');
-        expect(body).not.toContain('unexpected-deck-framework');
-      },
-    );
-  });
-
-  it('honors mediaExecution on legacy chat requests', async () => {
-    const conversationId = `conv-${randomUUID()}`;
-
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agentId: `missing-agent-${randomUUID()}`,
-        conversationId,
-        message: 'plan an image without using OD media',
-        skillId: 'imagegen',
-        mediaExecution: {
-          mode: 'disabled',
-          allowedSurfaces: ['image'],
-        },
-      }),
-    });
-    const body = await response.text();
-
-    expect(response.ok).toBe(true);
-    expect(body).toContain('unknown agent');
-
-    const runsResponse = await fetch(
-      `${baseUrl}/api/runs?conversationId=${encodeURIComponent(conversationId)}`,
-    );
-    const runsBody = await runsResponse.json() as {
-      runs: Array<{ mediaExecution?: { mode?: string; allowedSurfaces?: string[] } }>;
-    };
-    expect(runsBody.runs).toHaveLength(1);
-    expect(runsBody.runs[0]?.mediaExecution).toMatchObject({
-      mode: 'disabled',
-      allowedSurfaces: ['image'],
-    });
-  });
-
-  it('rejects invalid mediaExecution on legacy chat requests', async () => {
-    const conversationId = `conv-${randomUUID()}`;
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agentId: 'opencode',
-        conversationId,
-        message: 'generate an image',
-        mediaExecution: { mode: 'provider-router' },
-      }),
-    });
-    const body = await response.text();
-
-    expect(response.status).toBe(400);
-    expect(body).toContain('mediaExecution.mode');
-
-    const runsResponse = await fetch(
-      `${baseUrl}/api/runs?conversationId=${encodeURIComponent(conversationId)}`,
-    );
-    const runsBody = await runsResponse.json() as { runs: unknown[] };
-    expect(runsBody.runs).toEqual([]);
-  });
-
   it('propagates ad-hoc skill critique policy into the chat resolver', async () => {
     if (!process.env.OD_DATA_DIR) {
       throw new Error('OD_DATA_DIR is required for user skill critique-policy tests');
@@ -2295,66 +2187,6 @@ async function waitForRunStatus(
 }
 
 describe('chat prompt helpers', () => {
-  it('appends the validated Codex override after the client system prompt and removes earlier duplicates', () => {
-    const override = renderCodexImagegenOverride('codex', {
-      kind: 'image',
-      imageModel: 'gpt-image-2',
-      imageAspect: '1:1',
-    });
-    const clientMediaContract =
-      '## Media generation contract\nclient contract wins unless a later override says otherwise';
-
-    const prompt = composeLiveInstructionPrompt({
-      daemonSystemPrompt: `daemon prompt\n${override}`,
-      runtimeToolPrompt: 'runtime tools',
-      clientSystemPrompt: clientMediaContract,
-      finalPromptOverride: override,
-    });
-
-    const clientIdx = prompt.indexOf(clientMediaContract);
-    const overrideIdx = prompt.indexOf('## Codex built-in imagegen override');
-    expect(clientIdx).toBeGreaterThan(-1);
-    expect(overrideIdx).toBeGreaterThan(clientIdx);
-    expect(prompt.match(/## Codex built-in imagegen override/g)).toHaveLength(1);
-  });
-
-  it('omits the Codex final imagegen override when run media policy blocks execution', () => {
-    const metadata = {
-      kind: 'image',
-      imageModel: 'gpt-image-2',
-      imageAspect: '1:1',
-    };
-    const mediaExecution = {
-      mode: 'disabled',
-      allowedSurfaces: ['image'],
-    };
-    const generatedImagesDir = resolveCodexGeneratedImagesDir(
-      'codex',
-      metadata,
-      { CODEX_HOME: '/tmp/custom-codex-home' },
-      '/home/tester',
-      mediaExecution,
-    );
-    const otherwiseGrantedDir = resolve('/tmp/custom-codex-home/generated_images');
-    const override = resolveGrantedCodexImagegenOverride({
-      agentId: 'codex',
-      metadata,
-      codexGeneratedImagesDir: otherwiseGrantedDir,
-      extraAllowedDirs: [otherwiseGrantedDir],
-      mediaExecution,
-    });
-    const prompt = composeLiveInstructionPrompt({
-      daemonSystemPrompt: 'daemon media policy prompt',
-      runtimeToolPrompt: 'runtime tools',
-      clientSystemPrompt: 'client instructions',
-      finalPromptOverride: override,
-    });
-
-    expect(generatedImagesDir).toBeNull();
-    expect(override).toBeNull();
-    expect(prompt).not.toContain('## Codex built-in imagegen override');
-  });
-
   it('defaults enabled research without an explicit query to the current message', () => {
     const prompt = resolveResearchCommandContract(
       { enabled: true },

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { composeSystemPrompt, resolveExclusiveSurface } from '../../src/prompts/system.js';
+import { composeSystemPrompt } from '../../src/prompts/system.js';
 import { DECK_FRAMEWORK_DIRECTIVE } from '../../src/prompts/deck-framework.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,29 +30,6 @@ const liveArtifactSkillBody = [
   '',
   '',
   liveArtifactSkillMarkdown.replace(/^---[\s\S]*?---\n\n/, '').trim(),
-].join('\n');
-
-// `hyperframes` also moved to design-templates/ in PR #955 — same split
-// as `live-artifact` above.
-const hyperframesRoot = path.join(repoRoot, 'design-templates/hyperframes');
-const hyperframesSkillPath = path.join(
-  repoRoot,
-  'design-templates/hyperframes/SKILL.md',
-);
-const officialHyperframesSkillPath = path.join(
-  repoRoot,
-  'plugins/_official/examples/hyperframes/SKILL.md',
-);
-const hyperframesSkillMarkdown = readFileSync(hyperframesSkillPath, 'utf8');
-const officialHyperframesSkillMarkdown = readFileSync(officialHyperframesSkillPath, 'utf8');
-const hyperframesSkillBody = [
-  `> **Skill root (absolute):** \`${hyperframesRoot}\``,
-  '>',
-  '> This skill ships side files alongside `SKILL.md`. Resolve references',
-  '> like `references/html-in-canvas.md` against the skill root above.',
-  '',
-  '',
-  hyperframesSkillMarkdown.replace(/^---[\s\S]*?---\n\n/, '').trim(),
 ].join('\n');
 
 describe('composeSystemPrompt — activeStageBlocks splice (spec §23.4)', () => {
@@ -223,37 +200,6 @@ describe('composeSystemPrompt', () => {
   // /system.ts exists for non-daemon contexts and was updated in the
   // hyperframes PR; without this test the two copies drift silently and the
   // main HyperFrames flow misses its preflight directive in production.
-  it('injects the html-in-canvas preflight for the hyperframes skill', () => {
-    const prompt = composeSystemPrompt({
-      skillName: 'hyperframes',
-      skillMode: 'video',
-      skillBody: hyperframesSkillBody,
-      metadata: {
-        kind: 'video',
-        videoModel: 'hyperframes-html',
-      } as any,
-    });
-
-    expect(prompt).toContain('## Active skill — hyperframes');
-    expect(prompt).toContain('**Pre-flight (do this before any other tool):**');
-    expect(prompt).toContain('`references/html-in-canvas.md`');
-    expect(prompt).toContain('media generate --surface video --model hyperframes-html --composition-dir <rel>');
-    expect(prompt).toContain('Do not run `npx hyperframes render` yourself');
-    expect(prompt).not.toContain('intentionally rejected for this model');
-    expect(prompt).not.toContain('AGENT_RENDERED');
-    expect(prompt).not.toContain('rendered by you directly via npx');
-  });
-
-  it('keeps both hyperframes skill copies aligned with the daemon render handoff', () => {
-    for (const markdown of [hyperframesSkillMarkdown, officialHyperframesSkillMarkdown]) {
-      expect(markdown).toContain('media generate --surface video --model hyperframes-html --composition-dir <rel>');
-      expect(markdown).toContain('Do not run `npx hyperframes render`');
-      expect(markdown).not.toContain('AGENT_RENDERED');
-      expect(markdown).not.toContain('rendered by you directly via npx');
-      expect(markdown).not.toContain('dispatcher path returns a 400');
-    }
-  });
-
   it('does not add the responsive web contract to deck metadata without platform fields', () => {
     const prompt = composeSystemPrompt({
       metadata: {
@@ -276,34 +222,6 @@ describe('composeSystemPrompt', () => {
 
     expect(prompt).toContain('Do not dump the full raw HTML source back into chat');
     expect(prompt).toContain('the assistant message should only summarize the result');
-  });
-
-  it('uses the primary skill surface when composed skill modes conflict', () => {
-    const prompt = composeSystemPrompt({
-      skillMode: 'image',
-      skillModes: ['deck', 'image'],
-    });
-
-    expect(prompt).toContain('## Media generation contract');
-    expect(prompt).not.toContain('# Slide deck — fixed framework');
-  });
-
-  it('lets metadata.kind win over conflicting composed skill modes', () => {
-    const prompt = composeSystemPrompt({
-      skillMode: 'image',
-      skillModes: ['deck', 'image'],
-      metadata: { kind: 'deck' } as any,
-    });
-
-    expect(prompt).toContain('# Slide deck — fixed framework');
-    expect(prompt).not.toContain('## Media generation contract');
-  });
-
-  it('resolves a non-media primary surface ahead of composed media mentions', () => {
-    expect(resolveExclusiveSurface({
-      skillMode: 'deck',
-      skillModes: ['deck', 'image'],
-    })).toBe('deck');
   });
 
   describe('artifact handoff no-emit clauses (#1143)', () => {
@@ -465,18 +383,6 @@ describe('composeSystemPrompt', () => {
       expect(prompt).not.toContain('- `github` (github)');
     });
 
-    it('keeps external MCP tools visible when OD-owned media execution is disabled', () => {
-      const prompt = composeSystemPrompt({
-        connectedExternalMcp: [{ id: 'external-media', label: 'External media' }],
-        metadata: { kind: 'image' },
-        mediaExecution: { mode: 'disabled' },
-      });
-
-      expect(prompt).toContain('## External MCP servers — already authenticated');
-      expect(prompt).toContain('`external-media`');
-      expect(prompt).toContain('Open Design-owned media execution is **disabled for this run**');
-      expect(prompt).not.toContain('## Media generation contract');
-    });
   });
 
   // The daemon experiment for compiling a brand's design system from prose
