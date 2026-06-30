@@ -85,10 +85,6 @@ describe('composeSystemPrompt', () => {
       'Prototype',
       'Live artifact',
       'Slide deck',
-      'Image',
-      'Video',
-      'HyperFrames',
-      'Audio',
       'Other',
     ]) {
       expect(prompt).toContain(`"${option}"`);
@@ -109,10 +105,6 @@ describe('composeSystemPrompt', () => {
       'Prototype',
       'Live artifact',
       'Slide deck',
-      'Image',
-      'Video',
-      'HyperFrames',
-      'Audio',
       'Other',
     ]) {
       expect(prompt).toContain(`"${option}"`);
@@ -197,9 +189,8 @@ describe('composeSystemPrompt', () => {
 
   // The daemon composer (this file) is what apps/daemon/src/server.ts wires
   // into live chat runs. The contracts copy at packages/contracts/src/prompts
-  // /system.ts exists for non-daemon contexts and was updated in the
-  // hyperframes PR; without this test the two copies drift silently and the
-  // main HyperFrames flow misses its preflight directive in production.
+  // /system.ts exists for non-daemon contexts, so keep deck metadata behavior
+  // from drifting silently.
   it('does not add the responsive web contract to deck metadata without platform fields', () => {
     const prompt = composeSystemPrompt({
       metadata: {
