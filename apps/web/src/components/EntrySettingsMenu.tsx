@@ -20,7 +20,6 @@ import { Icon } from './Icon';
 
 export type EntrySettingsSection =
   | 'execution'
-  | 'media'
   | 'composio'
   | 'orbit'
   | 'integrations'
