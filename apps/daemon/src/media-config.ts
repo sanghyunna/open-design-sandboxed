@@ -38,12 +38,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { MEDIA_PROVIDERS } from './media-models.js';
 import { expandHomePrefix } from './home-expansion.js';
 import { resolveXAIBearer } from './xai-credentials.js';
 import { isSandboxModeEnabled } from './sandbox-mode.js';
 
-const PROVIDER_IDS = MEDIA_PROVIDERS.map((p) => p.id);
 type ProviderEntry = { apiKey?: string; baseUrl?: string; model?: string };
 type ProviderMap = Record<string, ProviderEntry>;
 type ModelAliasMap = Record<string, string>;
@@ -106,6 +104,8 @@ const ENV_KEYS: Record<string, string[]> = {
   tavily: ['OD_TAVILY_API_KEY', 'TAVILY_API_KEY'],
   leonardo: ['OD_LEONARDO_API_KEY', 'LEONARDO_API_KEY'],
 };
+
+const PROVIDER_IDS = Object.keys(ENV_KEYS);
 
 // Resolve an `OD_*_DIR` env override using the same semantics as
 // `resolveDataDir()` in server.ts: expandHomePrefix() handles the `~`,

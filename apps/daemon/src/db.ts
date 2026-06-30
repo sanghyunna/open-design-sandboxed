@@ -18,7 +18,6 @@ import type {
   RollbackMode,
 } from '@open-design/contracts';
 import { migrateCritique } from './critique/persistence.js';
-import { migrateMediaTasks } from './media-tasks.js';
 import { migratePlugins } from './plugins/persistence.js';
 
 type SqliteDb = Database.Database;
@@ -392,7 +391,6 @@ function migrate(db: SqliteDb): void {
     db.exec(`ALTER TABLE tabs_state ADD COLUMN state_json TEXT`);
   }
   migrateCritique(db);
-  migrateMediaTasks(db);
   migratePlugins(db);
 }
 
