@@ -34,7 +34,6 @@ import {
   reportChatRunFeedback,
   streamViaDaemon,
 } from '../providers/daemon';
-import { fetchElevenLabsVoiceOptions } from '../providers/elevenlabs-voices';
 import { normalizeCustomReason } from '@open-design/contracts/analytics';
 import {
   deletePreviewComment,
@@ -56,7 +55,6 @@ import { useProjectFileEvents, type ProjectEvent } from '../providers/project-ev
 import { useCoalescedCallback } from '../hooks/useCoalescedCallback';
 import {
   composeSystemPrompt,
-  type AudioVoiceOption,
   type MemorySystemPromptResponse,
   type ResearchOptions,
 } from '@open-design/contracts';
@@ -201,13 +199,6 @@ import { buildClipboardPrompt } from '../lib/build-clipboard-prompt';
 import { copyToClipboard } from '../lib/copy-to-clipboard';
 import { effectiveMaxTokens } from '../state/maxTokens';
 import { effectiveAgentModelChoice } from './agentModelSelection';
-import { mediaExecutionPolicyForProjectMetadata } from '../media/execution-policy';
-import { mediaModelProviderId } from '../media/models';
-import {
-  useByokImageModelOptions,
-  useByokVideoModelOptions,
-  useByokSpeechModelOptions,
-} from '../media/aihubmix-image-models';
 import {
   buildFinalizeCredentialsMissingToast,
   buildFinalizeRequest,
@@ -715,65 +706,6 @@ function applySplitChatPanelWidth(
     `${width}px ${SPLIT_RESIZE_HANDLE_WIDTH}px ${workspacePanelTrack}`;
 }
 
-function shouldFetchElevenLabsVoiceOptions(project: Project): boolean {
-  const metadata = project.metadata;
-  return metadata?.kind === 'audio'
-    && metadata.audioKind === 'speech'
-    && metadata.audioModel === 'elevenlabs-v3'
-    && !metadata.voice;
-}
-
-// The media model the user picked in the New Project → Media dialog, keyed by
-// surface. For BYOK providers (AIHubMix) media is produced by the generate_*
-// chat tools whose default model comes from the per-request byok*Model field —
-// NOT the `od media generate` dispatcher — so without this seed the dialog pick
-// is dropped and the conversation falls back to the Settings default. Returns
-// undefined for non-media projects (and when the field is empty) so callers fall
-// back to the Settings default exactly as before. The daemon re-validates the id
-// against the active provider's registry, so a mismatched pick is safely ignored.
-function projectMediaModelSeed(
-  metadata: ProjectMetadata | null | undefined,
-  surface: 'image' | 'video' | 'speech',
-): string | undefined {
-  if (!metadata) return undefined;
-  if (surface === 'image' && metadata.kind === 'image') {
-    return metadata.imageModel?.trim() || undefined;
-  }
-  if (surface === 'video' && metadata.kind === 'video') {
-    return metadata.videoModel?.trim() || undefined;
-  }
-  if (surface === 'speech' && metadata.kind === 'audio' && metadata.audioKind === 'speech') {
-    return metadata.audioModel?.trim() || undefined;
-  }
-  return undefined;
-}
-
-function projectMediaVoiceSeed(
-  metadata: ProjectMetadata | null | undefined,
-): string | undefined {
-  if (metadata?.kind === 'audio' && metadata.audioKind === 'speech') {
-    return metadata.voice?.trim() || undefined;
-  }
-  return undefined;
-}
-
-// Carry the creation-time model pick into the conversation ONLY when it belongs
-// to the active BYOK provider. Guards against clobbering a user's Settings
-// default with a model from a different provider — e.g. a SenseAudio user whose
-// image project was created with the dialog's default `gpt-image-2` keeps their
-// configured SenseAudio model instead of being forced to the registry default.
-// AIHubMix's live (`aihubmix-` prefixed) ids resolve via mediaModelProviderId
-// without waiting on the async catalogue, so the AIHubMix path still seeds.
-function byokModelSeedForProtocol(
-  metadata: ProjectMetadata | null | undefined,
-  surface: 'image' | 'video' | 'speech',
-  protocol: string | undefined,
-): string | undefined {
-  const picked = projectMediaModelSeed(metadata, surface);
-  if (!picked) return undefined;
-  return mediaModelProviderId(picked) === protocol ? picked : undefined;
-}
-
 function projectEventToAgentEvent(evt: ProjectEvent): LiveArtifactEventItem['event'] | null {
   if (evt.type === 'file-changed') return null;
   if (evt.type === 'conversation-created') return null;
@@ -933,7 +865,6 @@ export function ProjectView({
     if (!streaming) setLiveToolInput((prev) => (Object.keys(prev).length ? {} : prev));
   }, [streaming]);
   const [error, setError] = useState<string | null>(null);
-  const [audioVoiceOptionsError, setAudioVoiceOptionsError] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [rollbackTargetMessage, setRollbackTargetMessage] = useState<ChatMessage | null>(null);
   const [filesRefresh, setFilesRefresh] = useState(0);
@@ -948,40 +879,6 @@ export function ProjectView({
   const [commentInspectorActive, setCommentInspectorActive] = useState(false);
   const commentInspectorPortalId = useId();
   const leftInspectorActive = commentInspectorActive;
-  // Per-session override for the BYOK chat's generate_image tool. Seeded once
-  // from the New Project → Media model pick (project.metadata.imageModel) — but
-  // only when that pick belongs to the active BYOK provider (see
-  // byokModelSeedForProtocol) — falling back to the Settings default
-  // (config.byokImageModel) otherwise. Subsequent selections live only in this
-  // component's state — page refresh / project switch resets to this seed.
-  // Persistent defaults live in Settings → BYOK → Image generation model.
-  const [byokImageModelOverride, setByokImageModelOverride] = useState<string>(
-    () => byokModelSeedForProtocol(project.metadata, 'image', config.apiProtocol) ?? config.byokImageModel ?? '',
-  );
-  // Same per-session override for the BYOK chat's generate_video tool, seeded
-  // from the project's videoModel pick (provider-gated), then Settings.
-  const [byokVideoModelOverride, setByokVideoModelOverride] = useState<string>(
-    () => byokModelSeedForProtocol(project.metadata, 'video', config.apiProtocol) ?? config.byokVideoModel ?? '',
-  );
-  // Same per-session overrides for the BYOK chat's generate_speech tool (model +
-  // voice), seeded from the project's speech pick (provider-gated), then Settings.
-  const [byokSpeechModelOverride, setByokSpeechModelOverride] = useState<string>(
-    () => byokModelSeedForProtocol(project.metadata, 'speech', config.apiProtocol) ?? config.byokSpeechModel ?? '',
-  );
-  // Voice only carries when the speech model itself is carried (same provider),
-  // so a cross-provider voice id never leaks into the request.
-  const [byokSpeechVoiceOverride, setByokSpeechVoiceOverride] = useState<string>(
-    () => (byokModelSeedForProtocol(project.metadata, 'speech', config.apiProtocol)
-      ? projectMediaVoiceSeed(project.metadata)
-      : undefined) ?? config.byokSpeechVoice ?? '',
-  );
-  // Live model option lists (same hooks the composer/Settings pickers use) so
-  // the chat "default" (no explicit pick) resolves to the FIRST catalogue model
-  // shown in the dropdown — not a hardcoded id. The daemon keeps its own
-  // fallback for when the catalogue hasn't loaded.
-  const byokImageModelOptionsPV = useByokImageModelOptions(config.apiProtocol);
-  const byokVideoModelOptionsPV = useByokVideoModelOptions(config.apiProtocol);
-  const byokSpeechModelOptionsPV = useByokSpeechModelOptions(config.apiProtocol);
   // PR #974 round 7 (mrcfps @ useDesignMdState.ts:131): counter that
   // bumps on file-changed SSE events, live_artifact* events, and the
   // chat streaming-completion edge so the staleness chip stays in sync
@@ -1327,7 +1224,6 @@ export function ProjectView({
     streamingConversationIdRef.current = null;
     setStreamingConversationId(null);
     setError(null);
-    setAudioVoiceOptionsError(null);
     setArtifact(null);
     savedArtifactRef.current = null;
     pendingWritesRef.current.clear();
@@ -2147,22 +2043,6 @@ export function ProjectView({
     } catch {
       // Ignore; memory injection is best-effort.
     }
-    let audioVoiceOptions: AudioVoiceOption[] | undefined;
-    let audioVoiceOptionsLookupError: string | undefined;
-    if (shouldFetchElevenLabsVoiceOptions(project)) {
-      try {
-        audioVoiceOptions = await fetchElevenLabsVoiceOptions();
-        setAudioVoiceOptionsError(null);
-      } catch (err) {
-        const message = err instanceof Error
-          ? err.message
-          : 'ElevenLabs voice list could not be loaded.';
-        audioVoiceOptionsLookupError = message;
-        setAudioVoiceOptionsError(message);
-      }
-    } else {
-      setAudioVoiceOptionsError(null);
-    }
     return composeSystemPrompt({
       skillBody,
       skillName,
@@ -2172,8 +2052,6 @@ export function ProjectView({
       memoryBody,
       metadata: project.metadata,
       template,
-      audioVoiceOptions,
-      audioVoiceOptionsError: audioVoiceOptionsLookupError,
       streamFormat: config.mode === 'api' ? 'plain' : undefined,
       sessionMode: sessionModeOverride,
       locale,
@@ -3730,7 +3608,6 @@ export function ProjectView({
           appliedPluginSnapshotId:
             meta?.appliedPluginSnapshotId ?? meta?.appliedPluginSnapshot?.snapshotId ?? null,
           research: meta?.research,
-          mediaExecution: mediaExecutionPolicyForProjectMetadata(project.metadata),
           model: choice?.model ?? null,
           reasoning: choice?.reasoning ?? null,
           locale,
@@ -3864,20 +3741,7 @@ export function ProjectView({
             });
           },
           onError: handlers.onError,
-        }, {
-          projectId: project.id,
-          // SenseAudio BYOK chat reads this to pre-fill the tool param's
-          // default model. Prefer the live composer override; fall back
-          // to the Settings default when the composer dropdown is on
-          // "use default". Other protocols ignore unknown body fields.
-          byokImageModel:
-            byokImageModelOverride || config.byokImageModel || byokImageModelOptionsPV[0]?.id,
-          byokVideoModel:
-            byokVideoModelOverride || config.byokVideoModel || byokVideoModelOptionsPV[0]?.id,
-          byokSpeechModel:
-            byokSpeechModelOverride || config.byokSpeechModel || byokSpeechModelOptionsPV[0]?.id,
-          byokSpeechVoice: byokSpeechVoiceOverride || config.byokSpeechVoice,
-        });
+        }, { projectId: project.id });
         return true;
       }
     },
@@ -3891,17 +3755,6 @@ export function ProjectView({
       config,
       locale,
       agentsById,
-      // Per-session BYOK image/video model overrides are read inside this
-      // callback (see the streamMessage context below). Without them in the
-      // deps, the dropdown updates its state + display but handleSend keeps a
-      // stale closure and sends the previously selected model.
-      byokImageModelOverride,
-      byokVideoModelOverride,
-      byokSpeechModelOverride,
-      byokSpeechVoiceOverride,
-      byokImageModelOptionsPV,
-      byokVideoModelOptionsPV,
-      byokSpeechModelOptionsPV,
       composedSystemPrompt,
       onTouchProject,
       project.id,
@@ -4885,7 +4738,7 @@ export function ProjectView({
 	            loading: currentConversationLoading,
 	            sendDisabled: currentConversationSendDisabled,
             queuedItems: currentConversationQueuedItems,
-            error: conversationLoadError ?? error ?? audioVoiceOptionsError,
+            error: conversationLoadError ?? error,
             onSend: handleSend,
             onRetry: handleRetry,
             onStop: handleStop,
@@ -4898,7 +4751,6 @@ export function ProjectView({
         : undefined,
     [
       activeConversationId,
-      audioVoiceOptionsError,
       conversationLoadError,
       currentConversationActionDisabled,
 	      currentConversationQueuedItems,
@@ -4928,7 +4780,7 @@ export function ProjectView({
       // surfaces. `target_project_kind` derives from
       // `project.metadata.kind`.
       const target =
-        (projectKindToTracking(project.metadata?.kind ?? null, project.metadata?.videoModel) ?? 'unknown') as TrackingDesignSystemApplyTargetKind;
+        (projectKindToTracking(project.metadata?.kind ?? null) ?? 'unknown') as TrackingDesignSystemApplyTargetKind;
       const picked = nextId
         ? designSystems.find((d) => d.id === nextId)
         : null;
@@ -5642,11 +5494,11 @@ export function ProjectView({
               loading={currentConversationLoading}
               sendDisabled={currentConversationSendDisabled}
               queuedItems={currentConversationQueuedItems}
-              error={conversationLoadError ?? error ?? audioVoiceOptionsError}
+              error={conversationLoadError ?? error}
               projectId={project.id}
               sessionMode={activeSessionMode}
               onSessionModeChange={handleActiveConversationSessionModeChange}
-              projectKindForTracking={projectKindToTracking(project.metadata?.kind, project.metadata?.videoModel)}
+              projectKindForTracking={projectKindToTracking(project.metadata?.kind)}
               projectFiles={projectFiles}
               activeProjectFileName={activeProjectFileName}
               hasActiveDesignSystem={!!project.designSystemId}
@@ -5719,15 +5571,6 @@ export function ProjectView({
               onTogglePet={onTogglePet}
               onOpenPetSettings={onOpenPetSettings}
               researchAvailable={config.mode === 'daemon'}
-              byokApiProtocol={config.apiProtocol}
-              byokImageModel={byokImageModelOverride}
-              onChangeByokImageModel={setByokImageModelOverride}
-              byokVideoModel={byokVideoModelOverride}
-              onChangeByokVideoModel={setByokVideoModelOverride}
-              byokSpeechModel={byokSpeechModelOverride}
-              onChangeByokSpeechModel={setByokSpeechModelOverride}
-              byokSpeechVoice={byokSpeechVoiceOverride}
-              onChangeByokSpeechVoice={setByokSpeechVoiceOverride}
               projectMetadata={project.metadata}
               onProjectMetadataChange={(metadata) => {
                 onProjectChange({ ...project, metadata });
@@ -5810,7 +5653,7 @@ export function ProjectView({
         ) : null}
         <FileWorkspace
           projectId={project.id}
-          projectKind={projectKindToTracking(project.metadata?.kind, project.metadata?.videoModel) ?? 'prototype'}
+          projectKind={projectKindToTracking(project.metadata?.kind) ?? 'prototype'}
           rootDirName={(() => {
             const baseDir =
               projectDetail.project?.metadata?.baseDir ?? project.metadata?.baseDir;
