@@ -29,15 +29,12 @@ type ModeFilter =
   | 'document'
   | 'orbit'
   | 'live';
-type SurfaceFilter = 'all' | Surface;
+type SurfaceFilter = 'all' | 'web';
 type ScenarioFilter = string;
 
 const SURFACE_PILLS: { value: SurfaceFilter; labelKey: keyof Dict }[] = [
   { value: 'all', labelKey: 'examples.modeAll' },
   { value: 'web', labelKey: 'examples.surfaceWeb' },
-  { value: 'image', labelKey: 'examples.surfaceImage' },
-  { value: 'video', labelKey: 'examples.surfaceVideo' },
-  { value: 'audio', labelKey: 'examples.surfaceAudio' },
 ];
 
 const MODE_PILLS: { value: ModeFilter; labelKey: keyof Dict }[] = [
@@ -108,7 +105,6 @@ function matchesMode(skill: SkillSummary, filter: ModeFilter): boolean {
 
 function surfaceOf(skill: SkillSummary): Surface {
   if (skill.surface) return skill.surface;
-  if (skill.mode === 'image' || skill.mode === 'video' || skill.mode === 'audio') return skill.mode;
   return 'web';
 }
 
@@ -293,8 +289,10 @@ export function ExamplesTab({ skills: rawSkills, onUsePrompt }: Props) {
   }, [skills, surfaceFilter]);
 
   const surfaceCounts = useMemo(() => {
-    const counts: Record<SurfaceFilter, number> = { all: skills.length, web: 0, image: 0, video: 0, audio: 0 };
-    for (const s of skills) counts[surfaceOf(s)]++;
+    const counts: Record<SurfaceFilter, number> = { all: skills.length, web: 0 };
+    for (const s of skills) {
+      if (surfaceOf(s) === 'web') counts.web++;
+    }
     return counts;
   }, [skills]);
 
@@ -755,9 +753,6 @@ function ExampleCard({
 }
 
 function tagForSkill(skill: SkillSummary, t: TranslateFn): string {
-  if (skill.mode === 'image' || skill.surface === 'image') return t('examples.tagImage');
-  if (skill.mode === 'video' || skill.surface === 'video') return t('examples.tagVideo');
-  if (skill.mode === 'audio' || skill.surface === 'audio') return t('examples.tagAudio');
   if (skill.mode === 'deck') return t('examples.tagSlideDeck');
   if (skill.mode === 'template') return t('examples.tagTemplate');
   if (skill.mode === 'design-system') return t('examples.tagDesignSystem');

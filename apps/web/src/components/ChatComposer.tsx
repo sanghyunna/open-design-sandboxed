@@ -4129,16 +4129,6 @@ function designToolboxActionPrompt({
         ...base,
         t('chat.designToolbox.prompt.visualPolish'),
       ].join('\n');
-    case 'image-gen':
-      return [
-        ...base,
-        t('chat.designToolbox.prompt.imageGen'),
-      ].join('\n');
-    case 'video-gen':
-      return [
-        ...base,
-        t('chat.designToolbox.prompt.videoGen'),
-      ].join('\n');
   }
 }
 
