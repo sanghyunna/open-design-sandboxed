@@ -16,9 +16,6 @@ import {
 } from '@open-design/contracts';
 import {
   composeSystemPrompt,
-  renderCodexImagegenOverride,
-  resolveCodexImagegenModelId,
-  shouldRenderCodexImagegenOverride,
 } from './prompts/system.js';
 import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
 import { emittedRenderableQuestionForm } from './question-form-detect.js';
@@ -562,211 +559,22 @@ export function resolveResearchCommandContract(research, message) {
   });
 }
 
-export function resolveCodexGeneratedImagesDir(
-  agentId,
-  metadata,
-  env = process.env,
-  homeDir = os.homedir(),
-) {
-  if (!shouldRenderCodexImagegenOverride(agentId, metadata)) return null;
-  const rawCodexHome =
-    typeof env?.CODEX_HOME === 'string' && env.CODEX_HOME.trim().length > 0
-      ? env.CODEX_HOME.trim()
-      : path.join(homeDir, '.codex');
-  const codexHome = rawCodexHome.startsWith('~/')
-    ? path.join(homeDir, rawCodexHome.slice(2))
-    : rawCodexHome;
-  return path.resolve(codexHome, 'generated_images');
-}
-
-type DirectoryStat = {
-  isDirectory(): boolean;
-  isSymbolicLink(): boolean;
-};
-
-type CodexGeneratedImagesDirValidationOptions = {
-  protectedDirs?: Array<string | null | undefined>;
-  mkdirSync?: (target: string, options: { recursive: true }) => unknown;
-  lstatSync?: (target: string) => DirectoryStat;
-  statSync?: (target: string) => DirectoryStat;
-  realpathSync?: (target: string) => string;
-  warn?: (message: string) => void;
-};
-
-function isMissingPathError(err: unknown): boolean {
-  return (
-    err &&
-    typeof err === 'object' &&
-    'code' in err &&
-    err.code === 'ENOENT'
-  );
-}
-
-function collectProtectedDirRoots(
-  protectedDirs: Array<string | null | undefined>,
-  {
-    realpathSync,
-    statSync,
-  }: {
-    realpathSync: (target: string) => string;
-    statSync: (target: string) => DirectoryStat;
-  },
-): string[] {
-  const roots = [];
-  for (const raw of Array.isArray(protectedDirs) ? protectedDirs : []) {
-    if (typeof raw !== 'string' || raw.trim().length === 0) continue;
-    const resolved = path.resolve(raw);
-    roots.push(resolved);
-    try {
-      const canonical = realpathSync(resolved);
-      try {
-        if (statSync(canonical).isDirectory()) roots.push(canonical);
-      } catch {
-        roots.push(canonical);
-      }
-    } catch {
-      // A missing protected root cannot be the canonical target of a symlink.
-    }
-  }
-  return Array.from(new Set(roots));
-}
-
-function findContainingProtectedRoot(
-  candidate: string,
-  protectedRoots: string[],
-): string | null {
-  return protectedRoots.find((root) => isPathWithin(root, candidate)) ?? null;
-}
-
-export function validateCodexGeneratedImagesDir(
-  codexGeneratedImagesDir: string | null | undefined,
-  {
-    protectedDirs = [],
-    mkdirSync = fs.mkdirSync,
-    lstatSync = fs.lstatSync,
-    statSync = fs.statSync,
-    realpathSync = fs.realpathSync.native,
-    warn = console.warn,
-  }: CodexGeneratedImagesDirValidationOptions = {},
-): string | null {
-  if (
-    typeof codexGeneratedImagesDir !== 'string' ||
-    codexGeneratedImagesDir.trim().length === 0
-  ) {
-    return null;
-  }
-
-  const resolved = path.resolve(codexGeneratedImagesDir);
-  const protectedRoots = collectProtectedDirRoots(protectedDirs, {
-    realpathSync,
-    statSync,
-  });
-  const warnSkipped = (reason: string) =>
-    warn(`[od] codex generated_images allowlist skipped: ${reason}`);
-
-  const protectedRoot = findContainingProtectedRoot(resolved, protectedRoots);
-  if (protectedRoot) {
-    warnSkipped(`${resolved} is inside protected root ${protectedRoot}`);
-    return null;
-  }
-
-  try {
-    let existingTargetStat = null;
-    try {
-      existingTargetStat = lstatSync(resolved);
-    } catch (err) {
-      if (!isMissingPathError(err)) throw err;
-    }
-    if (existingTargetStat?.isSymbolicLink()) {
-      warnSkipped(`${resolved} is a symlink`);
-      return null;
-    }
-    if (existingTargetStat && !existingTargetStat.isDirectory()) {
-      warnSkipped(`${resolved} is not a directory`);
-      return null;
-    }
-
-    const parent = path.dirname(resolved);
-    const protectedParentRoot = findContainingProtectedRoot(
-      parent,
-      protectedRoots,
-    );
-    if (protectedParentRoot) {
-      warnSkipped(`${parent} is inside protected root ${protectedParentRoot}`);
-      return null;
-    }
-
-    mkdirSync(parent, { recursive: true });
-    const canonicalParent = realpathSync(parent);
-    const canonicalCandidate = path.join(
-      canonicalParent,
-      path.basename(resolved),
-    );
-    const protectedCanonicalParentRoot = findContainingProtectedRoot(
-      canonicalCandidate,
-      protectedRoots,
-    );
-    if (protectedCanonicalParentRoot) {
-      warnSkipped(
-        `${canonicalCandidate} resolves inside protected root ${protectedCanonicalParentRoot}`,
-      );
-      return null;
-    }
-
-    mkdirSync(resolved, { recursive: true });
-    if (lstatSync(resolved).isSymbolicLink()) {
-      warnSkipped(`${resolved} is a symlink`);
-      return null;
-    }
-    if (!statSync(resolved).isDirectory()) {
-      warnSkipped(`${resolved} is not a directory`);
-      return null;
-    }
-    const canonicalDir = realpathSync(resolved);
-    const protectedCanonicalRoot = findContainingProtectedRoot(
-      canonicalDir,
-      protectedRoots,
-    );
-    if (protectedCanonicalRoot) {
-      warnSkipped(
-        `${canonicalDir} resolves inside protected root ${protectedCanonicalRoot}`,
-      );
-      return null;
-    }
-
-    return canonicalDir;
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : String(err ?? 'unknown error');
-    warn(`[od] codex generated_images allowlist mkdir failed: ${message}`);
-    return null;
-  }
-}
-
 export function resolveChatExtraAllowedDirs({
-  agentId,
   skillsDir,
   designSystemsDir,
   linkedDirs = [],
-  codexGeneratedImagesDir,
   existsSync = fs.existsSync,
 }: {
-  agentId?: string | null;
   skillsDir?: string | null;
   designSystemsDir?: string | null;
   linkedDirs?: Array<string | null | undefined>;
-  codexGeneratedImagesDir?: string | null;
   existsSync?: (path: string) => boolean;
 }): string[] {
-  const isCodex =
-    typeof agentId === 'string' && agentId.trim().toLowerCase() === 'codex';
-  const candidates = isCodex
-    ? [codexGeneratedImagesDir]
-    : [
-        skillsDir,
-        designSystemsDir,
-        ...(Array.isArray(linkedDirs) ? linkedDirs : []),
-      ];
+  const candidates = [
+    skillsDir,
+    designSystemsDir,
+    ...(Array.isArray(linkedDirs) ? linkedDirs : []),
+  ];
   return Array.from(
     new Set(
       candidates.filter(
@@ -776,29 +584,6 @@ export function resolveChatExtraAllowedDirs({
     ),
   );
 }
-
-export function resolveGrantedCodexImagegenOverride({
-  agentId,
-  metadata,
-  codexGeneratedImagesDir,
-  extraAllowedDirs = [],
-}: {
-  agentId?: string | null;
-  metadata?: unknown;
-  codexGeneratedImagesDir?: string | null;
-  extraAllowedDirs?: string[];
-}): string | null {
-  if (
-    typeof codexGeneratedImagesDir !== 'string' ||
-    codexGeneratedImagesDir.length === 0 ||
-    !Array.isArray(extraAllowedDirs) ||
-    !extraAllowedDirs.includes(codexGeneratedImagesDir)
-  ) {
-    return null;
-  }
-  return renderCodexImagegenOverride(agentId, metadata);
-}
-
 
 export function normalizeCommentAttachments(input) {
   if (!Array.isArray(input)) return [];
@@ -10117,7 +9902,6 @@ export async function startServer({
 
     const prompt = composeSystemPrompt({
       agentId,
-      includeCodexImagegenOverride: false,
       skillBody,
       skillName,
       skillMode,
@@ -10622,32 +10406,10 @@ export async function startServer({
     // no-project runs (packaged daemons / service launches do not start
     // their working directory from the workspace root).
     const effectiveCwd = cwd ?? PROJECT_ROOT;
-    let codexGeneratedImagesDir = resolveCodexGeneratedImagesDir(
-      agentId,
-      projectRecord?.metadata,
-      process.env,
-      os.homedir(),
-    );
-    if (codexGeneratedImagesDir) {
-      codexGeneratedImagesDir = validateCodexGeneratedImagesDir(
-        codexGeneratedImagesDir,
-        {
-          protectedDirs: [SKILLS_DIR, DESIGN_SYSTEMS_DIR, ...linkedDirs],
-        },
-      );
-    }
     const extraAllowedDirs = resolveChatExtraAllowedDirs({
-      agentId,
       skillsDir: SKILLS_DIR,
       designSystemsDir: DESIGN_SYSTEMS_DIR,
       linkedDirs,
-      codexGeneratedImagesDir,
-    });
-    const codexImagegenOverride = resolveGrantedCodexImagegenOverride({
-      agentId,
-      metadata: projectRecord?.metadata,
-      codexGeneratedImagesDir,
-      extraAllowedDirs,
     });
     const researchCommandContract = resolveResearchCommandContract(
       research,
@@ -10706,7 +10468,6 @@ export async function startServer({
       daemonSystemPrompt: includeStableInstructions ? daemonSystemPrompt : '',
       runtimeToolPrompt: includeStableInstructions ? runtimeToolPrompt : '',
       clientSystemPrompt: clientInstructionPrompt,
-      finalPromptOverride: codexImagegenOverride,
     });
     // Some models (notably claude-opus-4-7 with --include-partial-messages)
     // start their reply by echoing the top of the user message verbatim,
