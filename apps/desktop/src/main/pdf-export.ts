@@ -241,7 +241,7 @@ function printToPdfOptions(pageSize: PageSize): PrintToPdfOptions {
   };
 }
 
-function buildPrintableDocument(input: DesktopExportPdfInput): string {
+export function buildPrintableDocument(input: DesktopExportPdfInput): string {
   const source = injectBaseHref(input.html, input.baseHref);
   const withTitle = injectTitle(source, input.title);
   return input.deck ? injectPrintStylesheet(withTitle, DECK_PRINT_CSS) : withTitle;

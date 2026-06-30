@@ -154,12 +154,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
     devDependencies:
+      '@types/jsdom':
+        specifier: 28.0.3
+        version: 28.0.3
       '@types/node':
         specifier: 24.12.2
         version: 24.12.2
       electron:
         specifier: 41.3.0
         version: 41.3.0
+      jsdom:
+        specifier: 29.1.1
+        version: 29.1.1
       typescript:
         specifier: 6.0.3
         version: 6.0.3

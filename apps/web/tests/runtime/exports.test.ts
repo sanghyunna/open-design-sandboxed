@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installMockOpenDesignHost } from '@open-design/host/testing';
 import {
@@ -20,6 +23,67 @@ import {
 function mockResponse(headers: Record<string, string>): Response {
   return { headers: new Headers(headers) } as Response;
 }
+
+function selectorSpecificity(selector: string): number {
+  // rough but sufficient: a=ids, b=classes/attrs/pseudo-classes, c=type/pseudo-elements
+  const ids = (selector.match(/#[\w-]+/g) || []).length;
+  const classesAttrsPseudo =
+    (selector.match(/\.[\w-]+/g) || []).length +
+    (selector.match(/\[[^\]]+\]/g) || []).length +
+    (selector.match(/:(?!:)[\w-]+/g) || []).length; // single-colon pseudo-classes (incl. inside :not())
+  const types = (selector.match(/(^|[\s>+~(])[a-zA-Z][\w-]*/g) || []).length;
+  return ids * 10000 + classesAttrsPseudo * 100 + types;
+}
+
+function resolvedPrintDisplay(doc: Document, el: Element): string {
+  type Cand = { value: string; important: boolean; spec: number; order: number };
+  const cands: Cand[] = [];
+  let order = 0;
+  const STYLE_RULE = 1; // CSSRule.STYLE_RULE
+  const MEDIA_RULE = 4; // CSSRule.MEDIA_RULE
+  const visit = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules) as CSSRule[]) {
+      if (rule.type === MEDIA_RULE) {
+        const mr = rule as CSSMediaRule;
+        const m = mr.media.mediaText;
+        if (m === '' || m.includes('all') || m.includes('print') || m.includes('screen')) {
+          // print context: 'print' and 'all' apply; 'screen' rules also remain in the cascade
+          visit(mr.cssRules);
+        }
+        continue;
+      }
+      if (rule.type !== STYLE_RULE) continue;
+      const sr = rule as CSSStyleRule;
+      const value = sr.style.getPropertyValue('display');
+      if (!value) continue;
+      let matches = false;
+      try { matches = el.matches(sr.selectorText); } catch { matches = false; }
+      if (!matches) continue;
+      cands.push({
+        value,
+        important: sr.style.getPropertyPriority('display') === 'important',
+        spec: selectorSpecificity(sr.selectorText),
+        order: order++,
+      });
+    }
+  };
+  for (const sheet of Array.from(doc.styleSheets)) {
+    try { visit((sheet as CSSStyleSheet).cssRules); } catch { /* cross-origin guard, n/a here */ }
+  }
+  if (cands.length === 0) return '';
+  cands.sort((a, b) =>
+    a.important !== b.important ? (a.important ? 1 : -1)
+    : a.spec !== b.spec ? a.spec - b.spec
+    : a.order - b.order,
+  );
+  return cands[cands.length - 1]!.value;
+}
+
+const FORCE_REVEAL_DECK_HTML =
+  '<!doctype html><html><head><style>.slide:not(.active){display:none}</style></head><body>'
+  + '<section class="slide active">One</section>'
+  + '<section class="slide">Two</section>'
+  + '</body></html>';
 
 describe('archiveRootFromFilePath', () => {
   it('returns the top-level directory name when present', () => {
@@ -487,6 +551,18 @@ describe('sandboxed preview Blob exports', () => {
     expect(wrapper).toContain('page-break-after: always;');
   });
 
+  it('force-reveals inactive slides so a class-toggle deck prints every slide', async () => {
+    await exportAsPdf(FORCE_REVEAL_DECK_HTML, 'Force Reveal', { deck: true, sandboxedPreview: false });
+    expect(capturedBlob).toBeDefined();
+    const doc = await capturedBlob!.text();
+    const dom = new JSDOM(doc);
+    const inactive = dom.window.document.querySelectorAll('.slide')[1]!;
+    // Behavioral: under print the injected safety-net must beat the deck's
+    // `.slide:not(.active){display:none}` so the inactive slide is NOT hidden.
+    expect(resolvedPrintDisplay(dom.window.document, inactive)).not.toBe('none');
+    expect(resolvedPrintDisplay(dom.window.document, inactive)).toBe('flex');
+  });
+
   it('allows explicit trusted PDF opt-out without changing the secure default', async () => {
     await exportAsPdf('<main>Trusted local document</main>', 'Trusted PDF', {
       sandboxedPreview: false,
@@ -636,6 +712,21 @@ describe('sandboxed preview Blob exports', () => {
     expect(htmlArg).toContain('__odPrintReady');
     // No window.print() since the desktop bridge handles printing natively.
     expect(htmlArg).not.toContain('window.print()');
+  });
+});
+
+describe('DECK_PRINT_CSS copy identity', () => {
+  it('keeps the web and desktop injected deck print CSS byte-identical', () => {
+    const webSrc = readFileSync(
+      fileURLToPath(new URL('../../src/runtime/exports.ts', import.meta.url)), 'utf8');
+    const desktopSrc = readFileSync(
+      fileURLToPath(new URL('../../../desktop/src/main/pdf-export.ts', import.meta.url)), 'utf8');
+    const grab = (s: string) => {
+      const m = s.match(/const DECK_PRINT_CSS = `([\s\S]*?)`;/);
+      if (!m) throw new Error('DECK_PRINT_CSS block not found');
+      return m[1];
+    };
+    expect(grab(desktopSrc)).toBe(grab(webSrc));
   });
 });
 
