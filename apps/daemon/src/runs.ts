@@ -2,7 +2,6 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { normalizeMediaExecutionPolicyForRun } from './media-policy.js';
 import {
   normalizeRunToolBundleForRun,
   summarizeRunToolBundle,
@@ -64,7 +63,6 @@ export function createChatRunService({
           : null,
       pluginId:
         typeof meta.pluginId === 'string' && meta.pluginId ? meta.pluginId : null,
-      mediaExecution: normalizeMediaExecutionPolicyForRun(meta.mediaExecution),
       toolBundle: normalizeRunToolBundleForRun(meta.toolBundle),
       status: 'queued',
       createdAt: now,
@@ -158,7 +156,6 @@ export function createChatRunService({
     errorCode: run.errorCode ?? null,
     resumable: run.resumable ?? false,
     eventsLogPath: run.eventsLogPath ?? null,
-    mediaExecution: run.mediaExecution ?? normalizeMediaExecutionPolicyForRun(null),
     toolBundle: summarizeRunToolBundle(run.toolBundle),
   });
 
