@@ -1084,8 +1084,14 @@ const DECK_PRINT_CSS = `
     scroll-snap-type: none !important;
     transform: none !important;
   }
-  .slide, [data-screen-label], section.slide, .deck-slide, .ppt-slide {
+  .slide, [data-screen-label], section.slide, .deck-slide, .ppt-slide,
+  .slide:not(.active), section.slide:not(.active), [data-screen-label]:not(.active),
+  .deck-slide:not(.active), .ppt-slide:not(.active) {
     flex: none !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    inset: auto !important;
     width: 1920px !important;
     height: 1080px !important;
     min-height: 1080px !important;
