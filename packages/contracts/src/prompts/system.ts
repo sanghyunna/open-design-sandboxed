@@ -34,30 +34,8 @@ import type { ProjectMetadata, ProjectTemplate } from '../api/projects.js';
 import { OFFICIAL_DESIGNER_PROMPT } from './official-system.js';
 import { DISCOVERY_AND_PHILOSOPHY } from './discovery.js';
 import { DECK_FRAMEWORK_DIRECTIVE } from './deck-framework.js';
-import { MEDIA_GENERATION_CONTRACT } from './media-contract.js';
 
 export const BASE_SYSTEM_PROMPT = OFFICIAL_DESIGNER_PROMPT;
-const ELEVENLABS_VOICE_PROMPT_OPTION_LIMIT = 100;
-
-export interface AudioVoiceOption {
-  name: string;
-  voiceId: string;
-  category?: string | null;
-  labels?: Record<string, string> | null;
-}
-
-const ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX = 'ElevenLabs voice list could not be loaded';
-const PROMPT_SAFE_HTTP_STATUS_LABELS: Record<string, string> = {
-  '400': 'Bad Request',
-  '401': 'Unauthorized',
-  '403': 'Forbidden',
-  '404': 'Not Found',
-  '429': 'Too Many Requests',
-  '500': 'Internal Server Error',
-  '502': 'Bad Gateway',
-  '503': 'Service Unavailable',
-  '504': 'Gateway Timeout',
-};
 
 function renderUiLocalePrompt(locale: string | undefined): string {
   const normalized = locale?.trim();
@@ -71,7 +49,7 @@ function renderUiLocalePrompt(locale: string | undefined): string {
     '# UI locale override',
     '',
     `The Open Design UI locale for this run is \`${normalized}\` (${languageName}). All user-visible chat prose and generated UI controls must follow this locale, especially \`<question-form>\` titles, descriptions, labels, placeholders, helper text, and option labels. Keep machine-readable ids and object option \`value\` fields exact and unlocalized.`,
-    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Live artifact`, `Slide deck`, `Image`, `Video`, `HyperFrames`, `Audio`, `Other`. Do not translate, reorder, or rewrite those option labels.',
+    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Live artifact`, `Slide deck`, `Other`. Do not translate, reorder, or rewrite those option labels.',
   ];
   if (normalized === 'zh-CN') {
     lines.push(
@@ -116,36 +94,6 @@ function renderReadabilityPrompt(locale: string | undefined): string {
   return normalized === 'ko'
     ? `${READABILITY_RULE_BASE}\n${READABILITY_RULE_KOREAN}`
     : READABILITY_RULE_BASE;
-}
-
-function normalizePromptText(value: string): string {
-  return value
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export function formatElevenLabsVoiceOptionsErrorForPrompt(
-  error: string | undefined,
-): string | undefined {
-  const trimmed = normalizePromptText(error ?? '');
-  if (!trimmed) return undefined;
-
-  if (/no ElevenLabs API key/i.test(trimmed)) {
-    return `${ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX} because the ElevenLabs API key is missing. Tell the user to configure it in Settings or paste a voice id manually.`;
-  }
-
-  const statusMatch = trimmed.match(
-    /(?:\((\d{3})(?:\s+([^)]+))?\)|\b(\d{3})(?:\s+([A-Za-z][A-Za-z -]{0,40}))?\b)/,
-  );
-  if (statusMatch) {
-    const statusCode = statusMatch[1] ?? statusMatch[3];
-    const statusText = statusCode ? PROMPT_SAFE_HTTP_STATUS_LABELS[statusCode] ?? '' : '';
-    const suffix = statusText ? ` ${statusText}` : '';
-    return `${ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX} (${statusCode}${suffix}). Tell the user to retry the lookup or paste a voice id manually.`;
-  }
-
-  return `${ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX}. Tell the user to retry the lookup or paste a voice id manually.`;
 }
 
 export const SKIP_DISCOVERY_BRIEF_OVERRIDE = `# Automated project mode — skip discovery form
@@ -236,15 +184,6 @@ export interface ComposeInput {
   // contracts composer simply splices them in after the plugin block;
   // every block is already self-contained markdown.
   activeStageBlocks?: ReadonlyArray<string> | undefined;
-  // Provider voice choices fetched by the app before composing the
-  // prompt. Used for ElevenLabs speech discovery so the agent can
-  // render a select question-form instead of asking the user to paste
-  // raw ids.
-  audioVoiceOptions?: AudioVoiceOption[] | undefined;
-  // When voice discovery fails, surface the error reason so the agent
-  // can tell the user why the dropdown is unavailable instead of
-  // pretending there were simply no voices.
-  audioVoiceOptionsError?: string | undefined;
   // When set to 'plain', suppresses tool_calls so API/BYOK-mode models
   // only emit <artifact> blocks (they cannot execute tools).
   streamFormat?: string | undefined;
@@ -274,8 +213,6 @@ export function composeSystemPrompt({
   template,
   pluginBlock,
   activeStageBlocks,
-  audioVoiceOptions,
-  audioVoiceOptionsError,
   streamFormat,
   sessionMode,
   locale,
@@ -288,14 +225,6 @@ export function composeSystemPrompt({
   // wording later in the official base prompt.
   const parts: string[] = [];
   const activeDesignSystemBody = designSystemBody?.trim();
-  const isMediaSurfaceEarly =
-    skillMode === 'image' ||
-    skillMode === 'video' ||
-    skillMode === 'audio' ||
-    metadata?.kind === 'image' ||
-    metadata?.kind === 'video' ||
-    metadata?.kind === 'audio';
-
   // API/BYOK mode (streamFormat === 'plain'): no tools are wired through
   // to the model, but the discovery layer + base prompt below still tell
   // it to call TodoWrite/Read/Write/Edit/Bash/WebFetch. Without an
@@ -336,9 +265,7 @@ export function composeSystemPrompt({
   parts.push(renderReadabilityPrompt(locale));
   parts.push('\n\n---\n\n');
 
-  if (!isMediaSurfaceEarly) {
-    parts.push(DISCOVERY_AND_PHILOSOPHY, '\n\n---\n\n');
-  }
+  parts.push(DISCOVERY_AND_PHILOSOPHY, '\n\n---\n\n');
 
   parts.push('# Identity and workflow charter (background)\n\n', BASE_SYSTEM_PROMPT);
 
@@ -404,7 +331,7 @@ export function composeSystemPrompt({
     }
   }
 
-  const metaBlock = renderMetadataBlock(metadata, template, audioVoiceOptions, audioVoiceOptionsError);
+  const metaBlock = renderMetadataBlock(metadata, template);
   if (metaBlock) parts.push(metaBlock);
 
   // Decks have a load-bearing framework (nav, counter, scroll JS, print
@@ -442,10 +369,6 @@ export function composeSystemPrompt({
     parts.push(
       `\n\n---\n\n## If this brief is a slide deck / keynote / presentation\n\nThe user did not pre-select a "Slide deck" surface, but their request may still call for one. **If — and only if — the brief reads as slides, keynote, presentation, deck, PPT, or 讲解, follow the framework below.** Otherwise ignore everything in this section and continue with the freeform output you would have written anyway.\n\n${DECK_FRAMEWORK_DIRECTIVE}`,
     );
-  }
-
-  if (isMediaSurfaceEarly) {
-    parts.push(MEDIA_GENERATION_CONTRACT);
   }
 
   if (activeDesignSystemBody && activeDesignSystemBody.length > 0) {
@@ -499,8 +422,6 @@ Override artifact-first discovery rules below: do not emit a default discovery \
 function renderMetadataBlock(
   metadata: ProjectMetadata | undefined,
   template: ProjectTemplate | undefined,
-  audioVoiceOptions: AudioVoiceOption[] | undefined,
-  audioVoiceOptionsError: string | undefined,
 ): string {
   if (!metadata) return '';
   const lines: string[] = [];
@@ -588,95 +509,6 @@ function renderMetadataBlock(
       lines.push(`- **template**: ${metadata.templateLabel}`);
     }
   }
-  if (metadata.kind === 'image') {
-    lines.push(
-      `- **imageModel**: ${metadata.imageModel ?? '(unknown - ask: which image model to use)'}`,
-    );
-    lines.push(
-      `- **aspectRatio**: ${metadata.imageAspect ?? '(unknown - ask: 1:1, 16:9, 9:16, 4:3, 3:4)'}`,
-    );
-    if (metadata.imageStyle) {
-      lines.push(`- **styleNotes**: ${metadata.imageStyle}`);
-    }
-    if (metadata.promptTemplate && metadata.promptTemplate.prompt.trim().length > 0) {
-      lines.push(`- **referenceTemplate**: ${metadata.promptTemplate.title}`);
-    }
-    lines.push('');
-    lines.push(
-      'This is an **image** project. Plan the prompt carefully, then dispatch via the **media generation contract** using `"$OD_NODE_BIN" "$OD_BIN" media generate --surface image --model <imageModel>`. Do NOT emit `<artifact>` HTML for media surfaces.',
-    );
-  }
-  if (metadata.kind === 'video') {
-    lines.push(
-      `- **videoModel**: ${metadata.videoModel ?? '(unknown - ask: which video model to use)'}`,
-    );
-    lines.push(
-      `- **lengthSeconds**: ${typeof metadata.videoLength === 'number' ? metadata.videoLength : '(unknown - ask: 3s / 5s / 10s)'}`,
-    );
-    lines.push(
-      `- **aspectRatio**: ${metadata.videoAspect ?? '(unknown - ask: 16:9, 9:16, 1:1)'}`,
-    );
-    if (metadata.promptTemplate && metadata.promptTemplate.prompt.trim().length > 0) {
-      lines.push(`- **referenceTemplate**: ${metadata.promptTemplate.title}`);
-    }
-    lines.push('');
-    lines.push(
-      'This is a **video** project. Plan the shotlist and motion, then dispatch via the **media generation contract** using `"$OD_NODE_BIN" "$OD_BIN" media generate --surface video --model <videoModel> --length <seconds> --aspect <ratio>`. Do NOT emit `<artifact>` HTML.',
-    );
-    if (metadata.videoModel === 'hyperframes-html') {
-      lines.push(
-        'Special case: `hyperframes-html` is a local HTML-to-MP4 renderer, not a photoreal text-to-video model. Treat it like a motion design renderer, ask at most one clarifying question, then dispatch immediately.',
-      );
-    }
-  }
-  if (metadata.kind === 'audio') {
-    lines.push(
-      `- **audioKind**: ${metadata.audioKind ?? '(unknown - ask: music / speech / sfx)'}`,
-    );
-    lines.push(
-      `- **audioModel**: ${metadata.audioModel ?? '(unknown - ask: which audio model to use)'}`,
-    );
-    lines.push(
-      `- **durationSeconds**: ${typeof metadata.audioDuration === 'number' ? metadata.audioDuration : '(unknown - ask: target duration)'}`,
-    );
-    if (metadata.voice) {
-      lines.push(`- **voice**: ${metadata.voice}`);
-    } else if (metadata.audioKind === 'speech') {
-      lines.push('- **voice**: (unknown - ask: voice id / accent / pacing)');
-    }
-    const voiceOptions = shouldRenderElevenLabsVoiceOptions(metadata, audioVoiceOptions)
-      ? audioVoiceOptions ?? []
-      : [];
-    if (voiceOptions.length > 0) {
-      lines.push(
-        '- **ElevenLabs voice options**: Ask the user to choose from a dropdown select. The visible labels are voice descriptions; the selected value must be the exact `voice_id` passed to `--voice`. Do not ask the user to type an id.',
-      );
-      if (voiceOptions.length > ELEVENLABS_VOICE_PROMPT_OPTION_LIMIT) {
-        lines.push(`- **ElevenLabs voice options**: showing the first ${ELEVENLABS_VOICE_PROMPT_OPTION_LIMIT} of ${voiceOptions.length} available voices.`);
-      }
-      lines.push('');
-      lines.push('<question-form id="elevenlabs-voice" title="Choose an ElevenLabs voice">');
-      lines.push(JSON.stringify(renderElevenLabsVoiceQuestionForm(voiceOptions), null, 2));
-      lines.push('</question-form>');
-    } else {
-      const audioVoiceOptionsPromptError = formatElevenLabsVoiceOptionsErrorForPrompt(audioVoiceOptionsError);
-      if (audioVoiceOptionsPromptError) {
-        lines.push(
-          `- **ElevenLabs voice options**: ${audioVoiceOptionsPromptError}`,
-        );
-      }
-    }
-    if (metadata.audioKind === 'sfx') {
-      lines.push(
-        '- **SFX discovery**: Ask about the sound source/action, materials, intensity, acoustic space, timing/tail, loop/non-loop, and "avoid" constraints. Do not ask for language or voice for SFX.',
-      );
-    }
-    lines.push('');
-    lines.push(
-      'This is an **audio** project. Lock the content intent first, then dispatch via the **media generation contract** using `"$OD_NODE_BIN" "$OD_BIN" media generate --surface audio --audio-kind <kind> --model <audioModel> --duration <seconds>` and add `--voice <voice-id>` for speech when you have a provider-specific voice id. Do NOT emit `<artifact>` HTML.',
-    );
-  }
-
   if (metadata.inspirationDesignSystemIds && metadata.inspirationDesignSystemIds.length > 0) {
     lines.push(
       `- **inspirationDesignSystemIds**: ${metadata.inspirationDesignSystemIds.join(', ')} — the user picked these systems as *additional* inspiration alongside the primary one. Borrow palette accents, typographic personality, or component patterns from them; don't replace the primary system's tokens.`,
@@ -699,58 +531,6 @@ function renderMetadataBlock(
         ? ` — ${plugin.description.trim()}`
         : '';
       lines.push(`- ${title}${id ? ` (\`${id}\`)` : ''}${description}`);
-    }
-  }
-
-  // Curated prompt template reference for image/video projects. Inlined
-  // verbatim (with light truncation) so the agent can borrow structure,
-  // mood and phrasing without a separate fetch. The user may have edited
-  // the body before clicking Create — those edits land here and are now
-  // authoritative for the brief.
-  if (
-    (metadata.kind === 'image' || metadata.kind === 'video') &&
-    metadata.promptTemplate &&
-    metadata.promptTemplate.prompt.trim().length > 0
-  ) {
-    const tpl = metadata.promptTemplate;
-    lines.push('');
-    lines.push(`### Reference prompt template — "${tpl.title}"`);
-    const meta: string[] = [];
-    if (tpl.category) meta.push(`category: ${tpl.category}`);
-    if (tpl.model) meta.push(`suggested model: ${tpl.model}`);
-    if (tpl.aspect) meta.push(`aspect: ${tpl.aspect}`);
-    if (tpl.tags && tpl.tags.length > 0) {
-      meta.push(`tags: ${tpl.tags.join(', ')}`);
-    }
-    if (meta.length > 0) lines.push(meta.join(' · '));
-    if (tpl.summary) {
-      lines.push('');
-      lines.push(tpl.summary);
-    }
-    lines.push('');
-    lines.push(
-      'The user picked this template as inspiration. Treat it as a structural and stylistic reference: borrow composition, palette cues, lighting language, lens/motion direction, and the level of detail. Adapt the wording to the user\'s actual subject and brief — do NOT generate the template subject verbatim. If a field above is unknown the user wants you to follow the template\'s defaults.',
-    );
-    // Escape triple-backticks so a user who pastes ``` into the editable
-    // template body can't break out of the markdown fence below and inject
-    // free-form instructions into the agent's system prompt. Zero-width
-    // joiner between the backticks keeps the prompt human-readable while
-    // preventing the closing fence from matching prematurely.
-    const safe = tpl.prompt.replace(/```/g, '`\u200b`\u200b`');
-    const truncated =
-      safe.length > 4000
-        ? `${safe.slice(0, 4000)}\n… (truncated ${safe.length - 4000} chars)`
-        : safe;
-    lines.push('');
-    lines.push('```text');
-    lines.push(truncated);
-    lines.push('```');
-    if (tpl.source) {
-      const author = tpl.source.author ? ` by ${tpl.source.author}` : '';
-      lines.push('');
-      lines.push(
-        `Source: ${tpl.source.repo}${author} — license ${tpl.source.license}. Preserve attribution if you echo the template language directly.`,
-      );
     }
   }
 
@@ -778,65 +558,6 @@ function renderMetadataBlock(
   }
 
   return lines.join('\n');
-}
-
-function shouldRenderElevenLabsVoiceOptions(
-  metadata: ProjectMetadata,
-  audioVoiceOptions: AudioVoiceOption[] | undefined,
-): boolean {
-  return metadata.kind === 'audio'
-    && metadata.audioKind === 'speech'
-    && metadata.audioModel === 'elevenlabs-v3'
-    && !metadata.voice
-    && Array.isArray(audioVoiceOptions)
-    && audioVoiceOptions.length > 0;
-}
-
-function renderElevenLabsVoiceQuestionForm(voiceOptions: AudioVoiceOption[]): {
-  description: string;
-  questions: Array<{
-    id: string;
-    label: string;
-    type: 'select';
-    required: boolean;
-    placeholder: string;
-    help: string;
-    options: Array<{ label: string; value: string }>;
-  }>;
-  submitLabel: string;
-} {
-  const options = voiceOptions.slice(0, ELEVENLABS_VOICE_PROMPT_OPTION_LIMIT).map((option) => ({
-    label: formatElevenLabsVoiceLabel(option),
-    value: option.voiceId,
-  }));
-  return {
-    description:
-      'Pick a voice by description. The selected answer will be the exact voice_id passed to the renderer.',
-    questions: [
-      {
-        id: 'voice',
-        label: 'Voice',
-        type: 'select',
-        required: true,
-        placeholder: 'Choose a voice',
-        help: 'Select a voice description; the answer submits the matching Voice ID.',
-        options,
-      },
-    ],
-    submitLabel: 'Use voice',
-  };
-}
-
-function formatElevenLabsVoiceLabel(option: AudioVoiceOption): string {
-  const labels = option.labels && typeof option.labels === 'object'
-    ? Object.values(option.labels)
-        .map((value) => (typeof value === 'string' ? value.trim() : ''))
-        .filter(Boolean)
-    : [];
-  const bits = [...labels];
-  if (bits.length > 0) return `${option.name} — ${bits.join(' · ')}`;
-  const category = typeof option.category === 'string' ? option.category.trim() : '';
-  return category ? `${option.name} — ${category}` : option.name;
 }
 
 /**
