@@ -49,7 +49,6 @@ import {
   DEFAULT_NOTIFICATIONS,
   DEFAULT_ORBIT,
   KNOWN_PROVIDERS,
-  hasAnyConfiguredProvider,
   syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../state/config';

@@ -221,15 +221,6 @@ export interface LiveArtifactPreviewRequest {
   previewUrl: string;
 }
 
-export interface MediaProviderCredentials {
-  apiKey: string;
-  baseUrl: string;
-  model?: string;
-  apiKeyConfigured?: boolean;
-  apiKeyTail?: string;
-  source?: string;
-}
-
 export interface ApiProtocolConfig {
   apiKey: string;
   baseUrl: string;
@@ -391,7 +382,6 @@ export interface AppConfig {
   // least once (saved or skipped). Bootstrap skips the auto-popup when
   // this is set so refreshing the page doesn't re-prompt.
   onboardingCompleted?: boolean;
-  mediaProviders?: Record<string, MediaProviderCredentials>;
   composio?: ComposioSettings;
   // Per-CLI model picker state, keyed by agent id (e.g. `gemini`, `codex`).
   // Pre-existing configs without this field fall through to the agent's

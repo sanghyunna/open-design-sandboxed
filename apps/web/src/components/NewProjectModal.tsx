@@ -15,7 +15,6 @@ import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
 import { modalOverlay, modalContent } from '../motion';
 import type {
   DesignSystemSummary,
-  MediaProviderCredentials,
   ProjectTemplate,
   PromptTemplateSummary,
   SkillSummary,
@@ -36,7 +35,6 @@ interface Props {
   templates: ProjectTemplate[];
   onDeleteTemplate?: (id: string) => Promise<boolean>;
   promptTemplates: PromptTemplateSummary[];
-  mediaProviders?: Record<string, MediaProviderCredentials>;
   connectors?: ConnectorDetail[];
   connectorsLoading?: boolean;
   loading?: boolean;
@@ -73,7 +71,6 @@ function NewProjectModalBody({
   templates,
   onDeleteTemplate,
   promptTemplates,
-  mediaProviders,
   connectors,
   connectorsLoading,
   loading,
@@ -171,7 +168,6 @@ function NewProjectModalBody({
             templates={templates}
             {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
             promptTemplates={promptTemplates}
-            {...(mediaProviders ? { mediaProviders } : {})}
             {...(connectors ? { connectors } : {})}
             {...(typeof connectorsLoading === 'boolean' ? { connectorsLoading } : {})}
             loading={Boolean(loading) || creating}

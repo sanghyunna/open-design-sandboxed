@@ -776,7 +776,6 @@ export function EntryShell({
         templates={templates}
         {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
         promptTemplates={promptTemplates}
-        mediaProviders={config.mediaProviders}
         connectors={connectors}
         connectorsLoading={connectorsLoading}
         loading={skillsLoading}
