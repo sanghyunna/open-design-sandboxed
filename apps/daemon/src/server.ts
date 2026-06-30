@@ -18,7 +18,6 @@ import {
   composeSystemPrompt,
   renderCodexImagegenOverride,
   resolveCodexImagegenModelId,
-  resolveExclusiveSurface,
   shouldRenderCodexImagegenOverride,
 } from './prompts/system.js';
 import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
@@ -111,7 +110,6 @@ import {
   createPluginAssetCache,
   isCacheableExternalUrl,
 } from './plugin-asset-cache.js';
-import { defaultMediaExecutionPolicy, parseMediaExecutionPolicyInput } from './media-policy.js';
 import {
   applySandboxRuntimeEnv,
   ensureSandboxRuntimeDirs,
@@ -291,30 +289,9 @@ import { lintArtifact, renderFindingsForAgent } from './lint-artifact.js';
 import { loadCraftSections } from './craft.js';
 import { skillCwdAliasSegment, stageActiveSkill } from './cwd-aliases.js';
 import { buildDesktopPdfExportInput } from './pdf-export.js';
-import { generateMedia } from './media.js';
-import { listElevenLabsVoiceOptions } from './elevenlabs-voices.js';
 import { searchResearch, ResearchError } from './research/index.js';
 import { renderResearchCommandContract } from './prompts/research-contract.js';
 import { openBrowser } from './browser-open.js';
-import {
-  AUDIO_DURATIONS_SEC,
-  AUDIO_MODELS_BY_KIND,
-  IMAGE_MODELS,
-  MEDIA_ASPECTS,
-  MEDIA_PROVIDERS,
-  VIDEO_LENGTHS_SEC,
-  VIDEO_MODELS,
-} from './media-models.js';
-import { readMaskedConfig, writeConfig } from './media-config.js';
-import {
-  deleteMediaTask,
-  getMediaTask,
-  insertMediaTask,
-  listMediaTasksByProject,
-  listRecentMediaTasks,
-  reconcileMediaTasksOnBoot,
-  updateMediaTask,
-} from './media-tasks.js';
 import {
   MCP_TEMPLATES,
   buildAcpMcpServers,
@@ -590,9 +567,7 @@ export function resolveCodexGeneratedImagesDir(
   metadata,
   env = process.env,
   homeDir = os.homedir(),
-  mediaExecution: any = undefined,
 ) {
-  if (!shouldAllowCodexImagegenForMediaPolicy(metadata, mediaExecution)) return null;
   if (!shouldRenderCodexImagegenOverride(agentId, metadata)) return null;
   const rawCodexHome =
     typeof env?.CODEX_HOME === 'string' && env.CODEX_HOME.trim().length > 0
@@ -807,17 +782,12 @@ export function resolveGrantedCodexImagegenOverride({
   metadata,
   codexGeneratedImagesDir,
   extraAllowedDirs = [],
-  mediaExecution,
 }: {
   agentId?: string | null;
   metadata?: unknown;
   codexGeneratedImagesDir?: string | null;
   extraAllowedDirs?: string[];
-  mediaExecution?: unknown;
 }): string | null {
-  if (!shouldAllowCodexImagegenForMediaPolicy(metadata, mediaExecution)) {
-    return null;
-  }
   if (
     typeof codexGeneratedImagesDir !== 'string' ||
     codexGeneratedImagesDir.length === 0 ||
@@ -829,27 +799,6 @@ export function resolveGrantedCodexImagegenOverride({
   return renderCodexImagegenOverride(agentId, metadata);
 }
 
-function shouldAllowCodexImagegenForMediaPolicy(metadata, mediaExecution) {
-  const mode = mediaExecution?.mode ?? 'enabled';
-  if (mode !== 'enabled') return false;
-  if (
-    Array.isArray(mediaExecution?.allowedSurfaces) &&
-    mediaExecution.allowedSurfaces.length > 0 &&
-    !mediaExecution.allowedSurfaces.includes('image')
-  ) {
-    return false;
-  }
-  const model = resolveCodexImagegenModelId(metadata);
-  if (
-    model &&
-    Array.isArray(mediaExecution?.allowedModels) &&
-    mediaExecution.allowedModels.length > 0 &&
-    !mediaExecution.allowedModels.includes(model)
-  ) {
-    return false;
-  }
-  return true;
-}
 
 export function normalizeCommentAttachments(input) {
   if (!Array.isArray(input)) return [];
@@ -3788,124 +3737,9 @@ function sendMulterError(res, err) {
   return sendApiError(res, 500, 'INTERNAL_ERROR', 'upload failed');
 }
 
-const mediaTasks = new Map();
 const pluginShareTasks = new Map();
-const TASK_TTL_AFTER_DONE_MS = 10 * 60 * 1000;
-const MEDIA_TERMINAL_STATUSES = new Set(['done', 'failed', 'interrupted']);
+const PLUGIN_SHARE_TASK_TTL_AFTER_DONE_MS = 10 * 60 * 1000;
 const PLUGIN_SHARE_TERMINAL_STATUSES = new Set(['done', 'failed']);
-
-function hydrateMediaTask(row) {
-  const task = {
-    id: row.id,
-    projectId: row.projectId,
-    status: row.status,
-    surface: row.surface,
-    model: row.model,
-    progress: Array.isArray(row.progress) ? row.progress.slice() : [],
-    file: row.file ?? null,
-    error: row.error ?? null,
-    startedAt: row.startedAt,
-    endedAt: row.endedAt,
-    waiters: new Set(),
-  };
-  mediaTasks.set(task.id, task);
-  return task;
-}
-
-function getLiveMediaTask(db, taskId) {
-  const cached = mediaTasks.get(taskId);
-  if (cached) return cached;
-  const row = getMediaTask(db, taskId);
-  return row ? hydrateMediaTask(row) : null;
-}
-
-function createMediaTask(db, taskId, projectId, info = {}) {
-  const task = {
-    id: taskId,
-    projectId,
-    status: 'queued',
-    surface: info.surface,
-    model: info.model,
-    progress: [],
-    file: null,
-    error: null,
-    startedAt: Date.now(),
-    endedAt: null,
-    waiters: new Set(),
-  };
-  mediaTasks.set(taskId, task);
-  insertMediaTask(db, {
-    id: taskId,
-    projectId,
-    status: task.status,
-    surface: task.surface,
-    model: task.model,
-    progress: task.progress,
-    file: task.file,
-    error: task.error,
-    startedAt: task.startedAt,
-    endedAt: task.endedAt,
-  });
-  return task;
-}
-
-function persistMediaTask(db, task) {
-  updateMediaTask(db, task.id, {
-    status: task.status,
-    surface: task.surface,
-    model: task.model,
-    progress: task.progress,
-    file: task.file,
-    error: task.error,
-    startedAt: task.startedAt,
-    endedAt: task.endedAt,
-  });
-}
-
-function appendTaskProgress(db, task, line) {
-  task.progress.push(line);
-  persistMediaTask(db, task);
-  notifyTaskWaiters(db, task);
-}
-
-function notifyTaskWaiters(db, task) {
-  const wakers = Array.from(task.waiters);
-  for (const w of wakers) {
-    try {
-      w();
-    } catch {
-      // Never let one bad waiter block the rest.
-    }
-  }
-  if (
-    MEDIA_TERMINAL_STATUSES.has(task.status) &&
-    !task._gcScheduled
-  ) {
-    task._gcScheduled = true;
-    setTimeout(() => {
-      if (task.waiters.size === 0) {
-        mediaTasks.delete(task.id);
-        deleteMediaTask(db, task.id);
-      }
-    }, TASK_TTL_AFTER_DONE_MS).unref?.();
-  }
-}
-
-function mediaTaskSnapshot(task, since = 0) {
-  const snapshot = {
-    taskId: task.id,
-    status: task.status,
-    startedAt: task.startedAt,
-    endedAt: task.endedAt,
-    progress: task.progress.slice(since),
-    nextSince: task.progress.length,
-  };
-  if (task.status === 'done') snapshot.file = task.file;
-  if (task.status === 'failed' || task.status === 'interrupted') {
-    snapshot.error = task.error;
-  }
-  return snapshot;
-}
 
 function createPluginShareTask(taskId, projectId, info = {}) {
   const task = {
@@ -3949,7 +3783,7 @@ function notifyPluginShareTaskWaiters(task) {
       if (task.waiters.size === 0) {
         pluginShareTasks.delete(task.id);
       }
-    }, TASK_TTL_AFTER_DONE_MS).unref?.();
+    }, PLUGIN_SHARE_TASK_TTL_AFTER_DONE_MS).unref?.();
   }
 }
 
@@ -4770,19 +4604,6 @@ export async function startServer({
   if (reconciledStaleRuns > 0) {
     console.warn(`[critique] reconcileStaleRuns flipped ${reconciledStaleRuns} stale running row(s) to interrupted`);
   }
-  const mediaReconcile = reconcileMediaTasksOnBoot(db, {
-    terminalTtlMs: TASK_TTL_AFTER_DONE_MS,
-  });
-  if (mediaReconcile.interrupted > 0 || mediaReconcile.deleted > 0) {
-    console.warn(
-      `[media] reconcileMediaTasksOnBoot interrupted ${mediaReconcile.interrupted} task(s), ` +
-        `deleted ${mediaReconcile.deleted} expired terminal task(s)`,
-    );
-  }
-  mediaTasks.clear();
-  for (const row of listRecentMediaTasks(db, { terminalTtlMs: TASK_TTL_AFTER_DONE_MS })) {
-    hydrateMediaTask(row);
-  }
 
   if (process.env.OD_CODEX_DISABLE_PLUGINS === '1') {
     console.log('[od] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1');
@@ -5577,27 +5398,6 @@ export async function startServer({
     cloudflarePagesDeploymentMetadata,
     prepareDeployPreflight,
   };
-  const mediaDeps = {
-    MEDIA_PROVIDERS,
-    IMAGE_MODELS,
-    VIDEO_MODELS,
-    AUDIO_MODELS_BY_KIND,
-    MEDIA_ASPECTS,
-    VIDEO_LENGTHS_SEC,
-    AUDIO_DURATIONS_SEC,
-    readMaskedConfig,
-    writeConfig,
-    generateMedia,
-    mediaTasks,
-    createMediaTask: (taskId, projectId, info) => createMediaTask(db, taskId, projectId, info),
-    persistMediaTask: (task) => persistMediaTask(db, task),
-    appendTaskProgress: (task, line) => appendTaskProgress(db, task, line),
-    notifyTaskWaiters: (task) => notifyTaskWaiters(db, task),
-    getLiveMediaTask: (taskId) => getLiveMediaTask(db, taskId),
-    mediaTaskSnapshot,
-    listMediaTasksByProject,
-    listElevenLabsVoiceOptions,
-  };
   const appConfigDeps = { readAppConfig, writeAppConfig };
   const orbitDeps = { orbitService };
   const nativeDialogDeps = { openNativeFolderDialog };
@@ -5826,7 +5626,6 @@ export async function startServer({
     paths: pathDeps,
     ids: idDeps,
     auth: authDeps,
-    media: mediaDeps,
     appConfig: appConfigDeps,
     orbit: orbitDeps,
     nativeDialogs: nativeDialogDeps,
@@ -9738,41 +9537,6 @@ export async function startServer({
     }
   });
 
-  app.get('/api/media/models', (_req, res) => {
-    res.json({
-      providers: MEDIA_PROVIDERS,
-      image: IMAGE_MODELS,
-      video: VIDEO_MODELS,
-      audio: AUDIO_MODELS_BY_KIND,
-      aspects: MEDIA_ASPECTS,
-      videoLengthsSec: VIDEO_LENGTHS_SEC,
-      audioDurationsSec: AUDIO_DURATIONS_SEC,
-    });
-  });
-
-  app.get('/api/media/config', async (_req, res) => {
-    try {
-      const cfg = await readMaskedConfig(PROJECT_ROOT);
-      res.json(cfg);
-    } catch (err) {
-      res
-        .status(500)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
-  app.put('/api/media/config', async (req, res) => {
-    try {
-      const cfg = await writeConfig(PROJECT_ROOT, req.body);
-      res.json(cfg);
-    } catch (err) {
-      const status = typeof err?.status === 'number' ? err.status : 400;
-      res
-        .status(status)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
   app.get('/api/app-config', async (req, res) => {
     if (!isLocalSameOrigin(req, resolvedPort)) {
       return res.status(403).json({ error: 'cross-origin request rejected' });
@@ -9904,71 +9668,6 @@ export async function startServer({
     }
   });
 
-  app.post('/api/media/tasks/:id/wait', async (req, res) => {
-    if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    const taskId = req.params.id;
-    const task = getLiveMediaTask(db, taskId);
-    if (!task) return res.status(404).json({ error: 'task not found' });
-
-    const since = Number.isFinite(req.body?.since) ? Number(req.body.since) : 0;
-    const requestedTimeout = Number.isFinite(req.body?.timeoutMs)
-      ? Number(req.body.timeoutMs)
-      : 25_000;
-    const timeoutMs = Math.min(Math.max(requestedTimeout, 0), 25_000);
-
-    const respond = () => {
-      if (res.writableEnded) return;
-      res.json(mediaTaskSnapshot(task, since));
-    };
-
-    if (
-      MEDIA_TERMINAL_STATUSES.has(task.status) ||
-      task.progress.length > since
-    ) {
-      return respond();
-    }
-
-    let resolved = false;
-    const wake = () => {
-      if (resolved) return;
-      resolved = true;
-      task.waiters.delete(wake);
-      clearTimeout(timer);
-      respond();
-    };
-    task.waiters.add(wake);
-    const timer = setTimeout(wake, timeoutMs);
-    res.on('close', wake);
-  });
-
-  app.get('/api/projects/:id/media/tasks', (req, res) => {
-    if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    const projectId = req.params.id;
-    const includeDone =
-      req.query.includeDone === '1' || req.query.includeDone === 'true';
-    const tasks = listMediaTasksByProject(db, projectId, {
-      includeTerminal: includeDone,
-    }).map((t) => ({
-      taskId: t.id,
-      status: t.status,
-      startedAt: t.startedAt,
-      endedAt: t.endedAt,
-      elapsed: Math.round(((t.endedAt ?? Date.now()) - t.startedAt) / 1000),
-      surface: t.surface,
-      model: t.model,
-      progress: t.progress.slice(-3),
-      progressCount: t.progress.length,
-      ...(t.status === 'done' ? { file: t.file } : {}),
-      ...(t.status === 'failed' || t.status === 'interrupted' ? { error: t.error } : {}),
-    }));
-    tasks.sort((a, b) => b.startedAt - a.startedAt);
-    res.json({ tasks });
-  });
-
   // Multi-file upload that the chat composer uses for paste/drop/picker.
   // Files land flat in the project folder; the response carries the same
   // metadata as listFiles so the client can stage them as ChatAttachments
@@ -10030,7 +9729,6 @@ export async function startServer({
     sessionMode,
     connectedExternalMcp,
     appliedPluginSnapshotId,
-    mediaExecution,
   }) => {
     const project =
       typeof projectId === 'string' && projectId
@@ -10303,22 +10001,6 @@ export async function startServer({
       metadata?.kind === 'template' && typeof metadata.templateId === 'string'
         ? (getTemplate(db, metadata.templateId) ?? undefined)
         : undefined;
-    let audioVoiceOptions = [];
-    let audioVoiceOptionsError;
-    if (
-      metadata?.kind === 'audio' &&
-      metadata?.audioKind === 'speech' &&
-      metadata?.audioModel === 'elevenlabs-v3' &&
-      !metadata?.voice
-    ) {
-      try {
-        audioVoiceOptions = await listElevenLabsVoiceOptions(PROJECT_ROOT, { limit: 100 });
-      } catch (err) {
-        audioVoiceOptionsError = err && err.message ? err.message : String(err);
-        console.warn('[elevenlabs] voice option lookup failed:', audioVoiceOptionsError);
-      }
-    }
-
     // Thread the critique config plus the active design-system / skill data
     // into the composer when critique is enabled. Without this the spawned
     // child receives the legacy single-pass prompt and the parser waits for
@@ -10375,25 +10057,14 @@ export async function startServer({
     // panel addendum has to be suppressed here too: otherwise the model
     // is instructed to emit Critique Theater tags that no orchestrator
     // consumes.
-    const resolvedExclusiveSurface = resolveExclusiveSurface({
-      metadata,
-      skillMode,
-      skillModes: skillModes.size > 0 ? Array.from(skillModes) : undefined,
-    });
-    const isMediaSurface =
-      resolvedExclusiveSurface === 'image'
-      || resolvedExclusiveSurface === 'video'
-      || resolvedExclusiveSurface === 'audio';
     const isPlainAdapter = (streamFormat ?? 'plain') === 'plain';
     const critiqueShouldRun = critiqueEnabledForRun
       && critiqueBrand !== undefined
       && critiqueSkill !== undefined
-      && !isMediaSurface
       && isPlainAdapter;
     // Only thread the critique fields when the run is actually eligible;
-    // otherwise the composer's own internal eligibility check (cfg.enabled
-    // && brand && skill && !isMediaSurface) might still fire on
-    // non-plain adapters and we'd emit the panel for a run the orchestrator
+    // otherwise the composer's own internal eligibility check might still fire
+    // on non-plain adapters and we'd emit the panel for a run the orchestrator
     // skips. Gating the threading itself keeps composer + orchestrator in
     // exact lockstep regardless of which side enforces eligibility.
     let pluginBlock;
@@ -10464,8 +10135,6 @@ export async function startServer({
       memoryBody,
       metadata,
       template,
-      audioVoiceOptions,
-      audioVoiceOptionsError,
       // critiqueCfg.enabled is loaded from OD_CRITIQUE_ENABLED only, so a
       // run that the resolver enabled via phase / project / skill (env
       // unset) would have critiqueShouldRun = true while critiqueCfg.enabled
@@ -10480,7 +10149,6 @@ export async function startServer({
       critiqueSkill: critiqueShouldRun ? critiqueSkill : undefined,
       locale: typeof locale === 'string' ? locale : undefined,
       sessionMode: normalizeConversationSessionMode(sessionMode),
-      mediaExecution,
       streamFormat,
       connectedExternalMcp: Array.isArray(connectedExternalMcp)
         ? connectedExternalMcp
@@ -10898,7 +10566,6 @@ export async function startServer({
         locale,
         sessionMode: runSessionMode,
         connectedExternalMcp,
-        mediaExecution: run?.mediaExecution,
         // Plan §3.M2 / §3.V1 — forward the run's snapshot id so the
         // prompt composer can splice in `## Active stage` blocks.
         // Default ON; set OD_BUNDLED_ATOM_PROMPTS=0 to opt out.
@@ -10960,7 +10627,6 @@ export async function startServer({
       projectRecord?.metadata,
       process.env,
       os.homedir(),
-      run?.mediaExecution,
     );
     if (codexGeneratedImagesDir) {
       codexGeneratedImagesDir = validateCodexGeneratedImagesDir(
@@ -10982,7 +10648,6 @@ export async function startServer({
       metadata: projectRecord?.metadata,
       codexGeneratedImagesDir,
       extraAllowedDirs,
-      mediaExecution: run?.mediaExecution,
     });
     const researchCommandContract = resolveResearchCommandContract(
       research,
@@ -13397,7 +13062,6 @@ export async function startServer({
       assistantMessageId,
       clientRequestId: `orbit-${trigger}-${randomUUID()}`,
       agentId,
-      mediaExecution: defaultMediaExecutionPolicy(),
     });
     upsertMessage(db, conversationId, {
       id: `orbit-user-${run.id}`,
@@ -13519,10 +13183,6 @@ export async function startServer({
       return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
     }
     const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
-    const mediaExecution = parseMediaExecutionPolicyInput(requestBody.mediaExecution);
-    if (!mediaExecution.ok) {
-      return sendApiError(res, 400, 'BAD_REQUEST', mediaExecution.message);
-    }
     const toolBundle = parseRunToolBundleForRequest(requestBody.toolBundle);
     if (!toolBundle.ok) {
       return sendApiError(res, 400, 'BAD_REQUEST', toolBundle.message);
@@ -13588,7 +13248,6 @@ export async function startServer({
     }
     const meta = {
       ...requestBody,
-      mediaExecution: mediaExecution.policy,
       toolBundle: toolBundle.bundle,
     };
     if (resolvedSnapshot?.ok) {
@@ -14308,10 +13967,6 @@ export async function startServer({
       return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
     }
     const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
-    const mediaExecution = parseMediaExecutionPolicyInput(requestBody.mediaExecution);
-    if (!mediaExecution.ok) {
-      return sendApiError(res, 400, 'BAD_REQUEST', mediaExecution.message);
-    }
     const toolBundle = parseRunToolBundleForRequest(requestBody.toolBundle);
     if (!toolBundle.ok) {
       return sendApiError(res, 400, 'BAD_REQUEST', toolBundle.message);
@@ -14343,7 +13998,6 @@ export async function startServer({
     }
     const meta = {
       ...requestBody,
-      mediaExecution: mediaExecution.policy,
       toolBundle: toolBundle.bundle,
       ...(chatProject?.metadata ? { projectMetadata: chatProject.metadata } : {}),
     };
@@ -14579,7 +14233,6 @@ export async function startServer({
       assistantMessageId,
       clientRequestId: `routine-${trigger}-${randomUUID()}`,
       agentId,
-      mediaExecution: defaultMediaExecutionPolicy(),
       ...(resolvedRoutineSnapshot?.ok
         ? {
             appliedPluginSnapshotId: resolvedRoutineSnapshot.snapshotId,
@@ -14785,7 +14438,6 @@ export async function startServer({
     auth: authDeps,
     liveArtifacts: liveArtifactDeps,
     deploy: deployDeps,
-    media: mediaDeps,
     appConfig: appConfigDeps,
     orbit: orbitDeps,
     nativeDialogs: nativeDialogDeps,

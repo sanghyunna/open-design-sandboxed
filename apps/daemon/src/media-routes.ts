@@ -3,7 +3,7 @@ import type { Express } from 'express';
 import type { RouteDeps } from './server-context.js';
 import { proxyDispatcherRequestInit } from './connectionTest.js';
 
-export interface RegisterMediaRoutesDeps extends RouteDeps<'http' | 'paths' | 'media' | 'appConfig' | 'orbit' | 'nativeDialogs' | 'research'> {}
+export interface RegisterMediaRoutesDeps extends RouteDeps<'http' | 'paths' | 'appConfig' | 'orbit' | 'nativeDialogs' | 'research'> {}
 
 export type LegacyMediaRouteGrantDecision =
   | { ok: true; grant: { projectId: string } | null }
