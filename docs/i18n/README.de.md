@@ -165,7 +165,7 @@ Die Standard-Ausgabefläche. Einseitige HTML-Artefakte, die deine `DESIGN.md` le
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="Gamified app" /><br/>
-<sub><b>Mobile-App-Prototyp</b> — ein dreibildschirmiger, gamifizierter Flow mit XP-Bändern und Quest-Detail. Direkt an Cursor / Codex / Claude Code übergeben, um ihn in React/Next/Vue umzuwandeln.</sub>
+<sub><b>Mobile-App-Prototyp</b> — ein dreibildschirmiger, gamifizierter Flow mit XP-Bändern und Quest-Detail.</sub>
 </td>
 </tr>
 </table>
@@ -336,12 +336,12 @@ Node `~24`, pnpm `10.33.x`. Windows-Nutzer, siehe [`docs/windows-troubleshooting
 
 ### Ein vollständiger Workflow — vom Briefing zum Artefakt
 
-`brief → plugin → direction → design system → artifact → handoff → memory`
+`brief → plugin → direction → design system → artifact → engineering → memory`
 
 1. **Ein PM reicht ein Briefing ein.** Der Plugin-Picker bietet Landingpage · Pitch-Deck · Dashboard · Social-Post · PM-Spec · OKR-Scorecard…
 2. **Ein Designer (oder der Agent) legt die Richtung fest.** Keine Marke? Wähle aus 5 kuratierten Richtungen. Du hast eine Marke? Lege einen Screenshot / eine URL ab → der Agent verbindet GitHub, importiert Figma und kodifiziert eine wiederverwendbare `DESIGN.md`.
 3. **Der Agent gibt das erste `<artifact>` aus.** Plugin + Skill + `DESIGN.md` sind gebunden. Es streamt in einen Sandboxed iframe, an Ort und Stelle editierbar — nicht „von Grund auf neu generieren".
-4. **Übergabe an das Engineering.** Das Artefakt ist echtes HTML/CSS — lege es in Cursor, Codex oder Claude Code, um als Code weiterzubauen. Oder exportiere PPTX / PDF / MP4 direkt ins Marketing.
+4. **Weiter mit dem Engineering.** Das Artefakt ist echtes HTML/CSS und bereit als Implementierungsmaterial. Oder exportiere PPTX / PDF / MP4 direkt ins Marketing.
 5. **Open Design wird mit der Nutzung klüger.** Deine Screenshots, Schriften, Farbpaletten und bestätigten Artefakte sammeln sich als Voreinstellungen für die nächste Sitzung an. Weniger Nacharbeit, weniger Drift.
 
 ---

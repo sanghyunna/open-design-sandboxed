@@ -165,7 +165,7 @@ adapter 契約與 stream parser 位於 [`apps/daemon/src/agents.ts`](../../apps/
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="Gamified app" /><br/>
-<sub><b>行動應用程式原型</b>——一段三畫面的遊戲化流程，帶有 XP 緞帶與任務細節。可直接交給 Cursor / Codex / Claude Code 轉成 React/Next/Vue。</sub>
+<sub><b>行動應用程式原型</b>——一段三畫面的遊戲化流程，帶有 XP 緞帶與任務細節。</sub>
 </td>
 </tr>
 </table>
@@ -341,7 +341,7 @@ Node `~24`、pnpm `10.33.x`。Windows 使用者請參見 [`docs/windows-troubles
 1. **PM 提交一份需求。** 外掛選擇器會提供著陸頁 · pitch deck · 儀表板 · 社群貼文 · PM 規格 · OKR 計分卡…
 2. **設計師（或 agent）鎖定方向。** 沒有品牌？從 5 個精選方向中挑一個。已有品牌？放進一張截圖／URL → agent 會連接 GitHub、匯入 Figma，並編寫出一份可重複使用的 `DESIGN.md`。
 3. **agent 發出第一個 `<artifact>`。** 外掛 + skill + `DESIGN.md` 都已綁定。它會串流進沙箱化 iframe、可就地編輯——而不是「從頭重新生成」。
-4. **交接給工程團隊。** 這份 artifact 是真實的 HTML/CSS——把它丟進 Cursor、Codex 或 Claude Code，就能以程式碼繼續開發。或直接匯出 PPTX / PDF / MP4 給行銷團隊。
+4. **繼續進入工程實作。** 這份 artifact 是真實的 HTML/CSS，可作為實作素材使用。或直接匯出 PPTX / PDF / MP4 給行銷團隊。
 5. **Open Design 會隨著你的使用愈來愈聰明。** 你的截圖、字型、色票與確認過的 artifact 會累積成下一次工作階段的預設值。更少返工、更少偏移。
 
 ---

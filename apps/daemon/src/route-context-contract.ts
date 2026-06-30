@@ -4,7 +4,6 @@ import type { RegisterChatRoutesDeps } from './chat-routes.js';
 import type { RegisterDeployRoutesDeps, RegisterDeploymentCheckRoutesDeps } from './routes/deploy.js';
 import type { RegisterFinalizeRoutesDeps, RegisterImportRoutesDeps, RegisterProjectExportRoutesDeps } from './import-export-routes.js';
 import type { RegisterHandoffRoutesDeps } from './routes/handoff.js';
-import type { RegisterHostToolsRoutesDeps } from './routes/host-tools.js';
 import type { RegisterLiveArtifactRoutesDeps } from './routes/live-artifact.js';
 import type { RegisterMcpRoutesDeps } from './mcp-routes.js';
 import type { RegisterMediaRoutesDeps } from './media-routes.js';
@@ -21,7 +20,6 @@ type AllRegisteredRouteDeps =
   & RegisterDeploymentCheckRoutesDeps
   & RegisterFinalizeRoutesDeps
   & RegisterHandoffRoutesDeps
-  & RegisterHostToolsRoutesDeps
   & RegisterImportRoutesDeps
   & RegisterLiveArtifactRoutesDeps
   & RegisterMcpRoutesDeps

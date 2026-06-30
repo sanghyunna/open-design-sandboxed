@@ -1373,10 +1373,10 @@
 }
 
 /* Right-aligned project + file actions cluster in the Design Files tab row.
-   The former standalone chrome header was removed; settings / handoff /
-   avatar (rendered by ProjectView via the headerActions slot) and the
-   FileViewer present / share portal (which targets .ws-tabs-file-actions)
-   all live here now. .ws-tabs-bar's flex:1 pushes this to the right edge. */
+   The former standalone chrome header was removed; settings / avatar
+   (rendered by ProjectView via the headerActions slot) and the FileViewer
+   present / share portal (which targets .ws-tabs-file-actions) all live here
+   now. .ws-tabs-bar's flex:1 pushes this to the right edge. */
 .ws-tabs-actions {
   display: inline-flex;
   align-items: center;
@@ -1407,10 +1407,10 @@
   border-inline-start: 1px solid var(--border);
 }
 /* The Design Files row is 38px tall, so shrink the action cluster's buttons
-   (present / share / handoff / avatar) to sit comfortably within it without
-   touching the global chrome-action sizing used elsewhere. The `.app`
-   prefix matches the specificity of the global `.app .handoff-trigger` /
-   `.app .avatar-agent-trigger` rules these override. */
+   (present / share / avatar) to sit comfortably within it without touching
+   the global chrome-action sizing used elsewhere. The `.app` prefix matches
+   the specificity of the global `.app .avatar-agent-trigger` rule these
+   override. */
 .app .ws-tabs-actions .chrome-action {
   height: 28px;
   min-height: 28px;
@@ -1425,11 +1425,6 @@
   min-height: 28px;
   padding: 0;
   justify-content: center;
-}
-.app .ws-tabs-actions .handoff-trigger {
-  height: 28px;
-  min-height: 28px;
-  align-items: center;
 }
 .app .ws-tabs-actions .avatar-agent-trigger {
   height: 28px;

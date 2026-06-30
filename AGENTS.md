@@ -55,6 +55,11 @@ This file is the single source of truth for agents entering this repository. Rea
 - Ports are governed by `tools-dev` flags: `--daemon-port` and `--web-port`.
 - `tools-dev` exports `OD_PORT` for the web proxy target and `OD_WEB_PORT` for the web listener; do not use `NEXT_PORT`.
 
+## Windows portable build
+
+- When a user asks to build this workspace on Windows without specifying a package, run the project-root `build-portable.ps1`.
+- Treat package-scoped build commands as targeted validation only; do not substitute them for the portable build request.
+
 ## Root command boundary
 
 - Keep root scripts reserved for true repo-level checks and tools control-plane entrypoints: `pnpm guard`, `pnpm typecheck`, `pnpm tools-dev`, `pnpm tools-pack`, and `pnpm tools-serve`.
@@ -227,25 +232,16 @@ pnpm typecheck
 ```bash
 pnpm --filter @open-design/web typecheck
 pnpm --filter @open-design/web test
-pnpm --filter @open-design/web build
 pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/daemon build
-pnpm --filter @open-design/desktop build
-pnpm --filter @open-design/tools-dev build
-pnpm --filter @open-design/tools-pack build
-pnpm --filter @open-design/tools-serve build
 ```
 
 ```bash
-pnpm tools-pack mac build --to all
+powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 pnpm tools-pack mac install
 pnpm tools-pack mac cleanup
-pnpm tools-pack win build --to nsis
 pnpm tools-pack win install
 pnpm tools-pack win cleanup
-pnpm tools-pack linux build --to appimage
 pnpm tools-pack linux install
-pnpm tools-pack linux build --containerized
 ```
 
 # FAQ

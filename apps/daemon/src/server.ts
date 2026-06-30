@@ -459,7 +459,6 @@ import { LiveArtifactRefreshUnavailableError, refreshLiveArtifact } from './live
 import { LiveArtifactRefreshAbortError } from './live-artifacts/refresh.js';
 import { registerConnectorRoutes } from './connectors/routes.js';
 import { registerActiveContextRoutes } from './routes/active-context.js';
-import { registerHostToolsRoutes } from './routes/host-tools.js';
 import { registerMcpRoutes } from './mcp-routes.js';
 import { registerXaiRoutes } from './routes/xai.js';
 import { registerLiveArtifactRoutes } from './routes/live-artifact.js';
@@ -5676,13 +5675,6 @@ export async function startServer({
     db,
     http: httpDeps,
     projectStore: projectStoreDeps,
-  });
-  registerHostToolsRoutes(app, {
-    db,
-    http: httpDeps,
-    paths: pathDeps,
-    projectStore: projectStoreDeps,
-    projectFiles: projectFileDeps,
   });
   registerSocialShareRoutes(app, { http: httpDeps });
   registerProjectRoutes(app, {

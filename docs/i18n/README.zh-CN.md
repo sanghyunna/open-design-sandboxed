@@ -165,7 +165,7 @@ Open Design 是这样一种产物：Anthropic 随 Claude Design 推出的 **Agen
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="游戏化应用" /><br/>
-<sub><b>移动端应用原型</b>——三屏游戏化流程，含 XP 绶带和任务详情。可直接交付给 Cursor / Codex / Claude Code 转为 React/Next/Vue。</sub>
+<sub><b>移动端应用原型</b>——三屏游戏化流程，含 XP 绶带和任务详情。</sub>
 </td>
 </tr>
 </table>
@@ -341,7 +341,7 @@ Node `~24`，pnpm `10.33.x`。Windows 用户请参见 [`docs/windows-troubleshoo
 1. **PM 提交需求。** 插件选择器提供落地页 · 路演 Deck · 仪表盘 · 社交媒体帖 · PM 规范 · OKR 记分卡……
 2. **设计师（或 Agent）锁定方向。** 没有品牌？从 5 个精选方向中选择。有品牌？放入截图 / URL → Agent 连接 GitHub、导入 Figma、编纂可复用的 `DESIGN.md`。
 3. **Agent 输出首个 `<artifact>`。** 插件 + 技能 + `DESIGN.md` 已绑定。流式传输到沙箱 iframe 中，原地可编辑，不是"从头重新生成"。
-4. **交付给工程团队。** 工件是真实的 HTML/CSS——放入 Cursor、Codex 或 Claude Code 中继续作为代码开发。或直接导出 PPTX / PDF / MP4 交给营销团队。
+4. **继续进入工程实现。** 工件是真实的 HTML/CSS，可作为实现素材使用。或直接导出 PPTX / PDF / MP4 交给营销团队。
 5. **Open Design 越用越聪明。** 你的截图、字体、色板和已确认的工件会累积为下次会话的默认值。更少的重复劳动，更少的偏差。
 
 ---

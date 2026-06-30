@@ -165,7 +165,7 @@ Varsayılan çıktı yüzeyi. `DESIGN.md` dosyanızı okuyan ve yalıtılmış b
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="Gamified app" /><br/>
-<sub><b>Mobil uygulama prototipi</b> — XP şeritleri ve görev detayı olan üç ekranlı oyunlaştırılmış bir akış. React/Next/Vue'ya dönüştürmek için doğrudan Cursor / Codex / Claude Code'a devredin.</sub>
+<sub><b>Mobil uygulama prototipi</b> — XP şeritleri ve görev detayı olan üç ekranlı oyunlaştırılmış bir akış.</sub>
 </td>
 </tr>
 </table>
@@ -341,7 +341,7 @@ Node `~24`, pnpm `10.33.x`. Windows kullanıcıları, bkz. [`docs/windows-troubl
 1. **Bir PM özet gönderir.** Eklenti seçici şunları sunar: açılış sayfası · tanıtım destesi · pano · sosyal gönderi · PM spesifikasyonu · OKR puan kartı…
 2. **Bir tasarımcı (veya ajan) yönü kilitler.** Marka yok mu? 5 seçilmiş yönden birini seçin. Markanız var mı? Bir ekran görüntüsü / URL bırakın → ajan GitHub'a bağlanır, Figma'yı içe aktarır ve yeniden kullanılabilir bir `DESIGN.md` dosyasına kodlar.
 3. **Ajan ilk `<artifact>`'i yayar.** Eklenti + beceri + `DESIGN.md` bağlanır. Yalıtılmış bir iframe'e akar, yerinde düzenlenebilir — "sıfırdan yeniden üretmek" değil.
-4. **Mühendisliğe devredin.** Artifact gerçek HTML/CSS'tir — kod olarak inşa etmeye devam etmek için Cursor, Codex veya Claude Code'a bırakın. Veya doğrudan pazarlamaya PPTX / PDF / MP4 olarak dışa aktarın.
+4. **Mühendislikle devam edin.** Artifact gerçek HTML/CSS'tir ve uygulama materyali olarak kullanılmaya hazırdır. Veya doğrudan pazarlamaya PPTX / PDF / MP4 olarak dışa aktarın.
 5. **Open Design kullandıkça akıllanır.** Ekran görüntüleriniz, yazı tipleriniz, paletleriniz ve onaylanmış artifact'leriniz bir sonraki oturum için varsayılan olarak birikir. Daha az yeniden çalışma, daha az sapma.
 
 ---

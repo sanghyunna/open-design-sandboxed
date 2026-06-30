@@ -165,7 +165,7 @@ La surface de sortie par défaut. Des artefacts HTML d'une seule page qui lisent
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="Application gamifiée" /><br/>
-<sub><b>Prototype d'application mobile</b> — un parcours gamifié sur trois écrans avec rubans d'XP et détail de quête. Transmettez-le directement à Cursor / Codex / Claude Code pour le transformer en React/Next/Vue.</sub>
+<sub><b>Prototype d'application mobile</b> — un parcours gamifié sur trois écrans avec rubans d'XP et détail de quête.</sub>
 </td>
 </tr>
 </table>
@@ -341,7 +341,7 @@ Node `~24`, pnpm `10.33.x`. Utilisateurs de Windows, consultez [`docs/windows-tr
 1. **Un PM soumet un brief.** Le sélecteur de plugins propose landing page · pitch deck · tableau de bord · publication sociale · spec PM · tableau de scores OKR…
 2. **Un designer (ou l'agent) verrouille la direction.** Pas de marque ? Choisissez parmi 5 directions sélectionnées. Vous avez une marque ? Déposez une capture d'écran / une URL → l'agent se connecte à GitHub, importe Figma, et codifie un `DESIGN.md` réutilisable.
 3. **L'agent émet le premier `<artifact>`.** Plugin + skill + `DESIGN.md` sont liés. Il se diffuse en flux dans une iframe sandboxée, modifiable sur place — pas « régénérer à partir de zéro ».
-4. **Transmettez à l'ingénierie.** L'artefact est du véritable HTML/CSS — déposez-le dans Cursor, Codex ou Claude Code pour continuer à construire en code. Ou exportez en PPTX / PDF / MP4 directement vers le marketing.
+4. **Poursuivez avec l'ingénierie.** L'artefact est du véritable HTML/CSS, prêt à servir de matériau d'implémentation. Ou exportez en PPTX / PDF / MP4 directement vers le marketing.
 5. **Open Design devient plus intelligent à mesure que vous l'utilisez.** Vos captures d'écran, polices, palettes et artefacts confirmés s'accumulent comme valeurs par défaut pour la session suivante. Moins de retouches, moins de dérive.
 
 ---

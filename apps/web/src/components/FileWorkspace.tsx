@@ -193,7 +193,7 @@ interface Props {
   onLaunchTerminalAuth?: () => void;
   // Conversation id for the AMR promotion-card telemetry payload.
   conversationId?: string | null;
-  // Project-level actions (settings, handoff, avatar menu) rendered at the
+  // Project-level actions (settings, avatar menu) rendered at the
   // right end of the Design Files tab row. The former standalone chrome header
   // row was removed; these moved here alongside the FileViewer present/Share
   // portal that targets the same actions container.

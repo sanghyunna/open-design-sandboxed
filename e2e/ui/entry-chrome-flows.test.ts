@@ -245,27 +245,36 @@ test('[P1] design systems page is reachable from entry nav and supports search, 
 });
 
 test('[P2] entry chrome avoids horizontal overflow on compact desktop width', async ({ page }) => {
-  await page.setViewportSize({ width: 820, height: 900 });
-  await gotoEntryHome(page);
-  await expect(page.locator('.entry-main__topbar')).toBeVisible();
+  for (const width of [820, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoEntryHome(page);
+    await expect(page.locator('.entry-main__topbar')).toBeVisible();
 
-  const { pageOverflow, topbarOverflow } = await page.evaluate(() => {
-    const topbar = document.querySelector('.entry-main__topbar');
-    return {
-      pageOverflow: Math.max(
-        0,
-        document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      ),
-      topbarOverflow:
-        topbar instanceof HTMLElement
-          ? Math.max(0, topbar.scrollWidth - topbar.clientWidth)
-          : null,
-    };
-  });
+    const { pageOverflow, topbarOverflow, entryMainOverflow } = await page.evaluate(() => {
+      const topbar = document.querySelector('.entry-main__topbar');
+      const entryMain = document.querySelector('.entry-main');
+      return {
+        pageOverflow: Math.max(
+          0,
+          document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        ),
+        topbarOverflow:
+          topbar instanceof HTMLElement
+            ? Math.max(0, topbar.scrollWidth - topbar.clientWidth)
+            : null,
+        entryMainOverflow:
+          entryMain instanceof HTMLElement
+            ? Math.max(0, entryMain.scrollWidth - entryMain.clientWidth)
+            : null,
+      };
+    });
 
-  expect(topbarOverflow).not.toBeNull();
-  expect(topbarOverflow!).toBeLessThanOrEqual(2);
-  expect(pageOverflow).toBeLessThanOrEqual(2);
+    expect(topbarOverflow).not.toBeNull();
+    expect(entryMainOverflow).not.toBeNull();
+    expect(topbarOverflow!).toBeLessThanOrEqual(2);
+    expect(entryMainOverflow!).toBeLessThanOrEqual(2);
+    expect(pageOverflow).toBeLessThanOrEqual(2);
+  }
 });
 
 test('[P0] @critical entry execution pill opens the Local CLI and BYOK switcher from Home', async ({ page }) => {

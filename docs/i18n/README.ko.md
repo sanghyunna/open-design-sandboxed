@@ -165,7 +165,7 @@ Open Design가 무엇이고 무엇을 하는지 빠르게 살펴봅니다. **Hom
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="Gamified app" /><br/>
-<sub><b>모바일 앱 프로토타입</b> — XP 리본과 퀘스트 상세가 있는 3화면 게임화 흐름. Cursor / Codex / Claude Code로 곧바로 넘겨 React/Next/Vue로 전환하세요.</sub>
+<sub><b>모바일 앱 프로토타입</b> — XP 리본과 퀘스트 상세가 있는 3화면 게임화 흐름.</sub>
 </td>
 </tr>
 </table>
@@ -336,12 +336,12 @@ Node `~24`, pnpm `10.33.x`. Windows 사용자는 [`docs/windows-troubleshooting.
 
 ### 전체 워크플로 — 브리프에서 아티팩트까지
 
-`brief → plugin → direction → design system → artifact → handoff → memory`
+`brief → plugin → direction → design system → artifact → engineering → memory`
 
 1. **PM이 브리프를 제출합니다.** 플러그인 피커가 랜딩 페이지 · 피치 덱 · 대시보드 · 소셜 포스트 · PM 스펙 · OKR 스코어카드… 를 제안합니다.
 2. **디자이너(또는 에이전트)가 방향을 확정합니다.** 브랜드가 없나요? 엄선된 5가지 방향 중에서 고르세요. 브랜드가 있나요? 스크린샷 / URL을 넣으면 → 에이전트가 GitHub에 연결하고, Figma를 가져오고, 재사용 가능한 `DESIGN.md`로 코드화합니다.
 3. **에이전트가 첫 `<artifact>`를 내보냅니다.** 플러그인 + 스킬 + `DESIGN.md`가 바인딩됩니다. 그것은 샌드박스 iframe으로 스트리밍되어 그 자리에서 편집 가능합니다 — "처음부터 다시 생성"이 아닙니다.
-4. **엔지니어링으로 넘깁니다.** 아티팩트는 실제 HTML/CSS입니다 — Cursor, Codex, 또는 Claude Code에 넣어 코드로 계속 빌드하세요. 또는 PPTX / PDF / MP4를 마케팅으로 곧바로 내보내세요.
+4. **엔지니어링으로 이어갑니다.** 아티팩트는 실제 HTML/CSS이며 구현 자료로 사용할 수 있습니다. 또는 PPTX / PDF / MP4를 마케팅으로 곧바로 내보내세요.
 5. **Open Design는 사용할수록 더 똑똑해집니다.** 당신의 스크린샷, 폰트, 팔레트, 확정된 아티팩트가 다음 세션의 기본값으로 쌓입니다. 재작업도 줄고, 표류도 줄어듭니다.
 
 ---

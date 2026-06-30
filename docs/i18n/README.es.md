@@ -165,7 +165,7 @@ La superficie de salida por defecto. Artefactos HTML de una sola página que lee
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="App gamificada" /><br/>
-<sub><b>Prototipo de app móvil</b> — un flujo gamificado de tres pantallas con cintas de XP y detalle de misiones. Entrégalo directamente a Cursor / Codex / Claude Code para convertirlo en React/Next/Vue.</sub>
+<sub><b>Prototipo de app móvil</b> — un flujo gamificado de tres pantallas con cintas de XP y detalle de misiones.</sub>
 </td>
 </tr>
 </table>
@@ -341,7 +341,7 @@ Node `~24`, pnpm `10.33.x`. Usuarios de Windows, consulten [`docs/windows-troubl
 1. **Un PM envía un brief.** El selector de plugins ofrece landing page · pitch deck · dashboard · publicación social · spec de PM · scorecard de OKR…
 2. **Un diseñador (o el agente) fija la dirección.** ¿Sin marca? Elige entre 5 direcciones curadas. ¿Tienes una marca? Suelta una captura / URL → el agente conecta con GitHub, importa de Figma y codifica un `DESIGN.md` reutilizable.
 3. **El agente emite el primer `<artifact>`.** Plugin + skill + `DESIGN.md` quedan vinculados. Se transmite a un iframe en entorno aislado, editable en el sitio — no "regenerar desde cero".
-4. **Entrega a ingeniería.** El artefacto es HTML/CSS real — suéltalo en Cursor, Codex o Claude Code para seguir construyendo como código. O exporta PPTX / PDF / MP4 directamente a marketing.
+4. **Continúa con ingeniería.** El artefacto es HTML/CSS real, listo para usarse como material de implementación. O exporta PPTX / PDF / MP4 directamente a marketing.
 5. **Open Design se vuelve más inteligente conforme lo usas.** Tus capturas, fuentes, paletas y artefactos confirmados se acumulan como valores por defecto para la próxima sesión. Menos retrabajo, menos deriva.
 
 ---

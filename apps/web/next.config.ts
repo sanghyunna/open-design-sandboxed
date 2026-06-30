@@ -170,6 +170,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: WORKSPACE_ROOT,
   },
+  // The server/standalone runtime boots a traced Next.js server. Next.js 16
+  // defaults `experimental.preloadEntriesOnStart` to true, which eagerly
+  // require()s the entire standalone module tree at boot and blocks the event
+  // loop. On a cold packaged first launch that stall collides with Windows
+  // Defender's first-extract file scan, pushing the sidecar readiness probe
+  // past its timeout and hanging the splash. Disable eager preloading for the
+  // server output only; dev and static export keep Next.js's defaults.
+  ...(isServerOutput ? { experimental: { preloadEntriesOnStart: false } } : {}),
   ...(DEV_TSCONFIG_PATH ? { typescript: { tsconfigPath: DEV_TSCONFIG_PATH } } : {}),
   // Static exports keep Next.js's default `out/` output directory so static
   // hosts like Vercel can publish the generated site directly. Server runtimes

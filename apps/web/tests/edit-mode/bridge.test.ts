@@ -48,6 +48,15 @@ describe('manual edit bridge target normalization', () => {
     expect(isMeaningfulManualEditElement(script, { width: 80, height: 24 })).toBe(false);
   });
 
+  it('does not discover inline formatting leaves inside a text passage as separate targets', () => {
+    const dom = new JSDOM('<main><p data-od-source-path="path-0-0">Hello <strong data-od-source-path="path-0-0-0">world</strong></p></main>');
+    const paragraph = dom.window.document.querySelector('p')!;
+    const strong = dom.window.document.querySelector('strong')!;
+
+    expect(isMeaningfulManualEditElement(paragraph, { width: 120, height: 24 })).toBe(true);
+    expect(isMeaningfulManualEditElement(strong, { width: 60, height: 24 })).toBe(false);
+  });
+
   it('keeps source-mappable display:none targets available for the layers panel', async () => {
     const posts: Array<{ type?: string; targets?: Array<{ id: string; isHidden?: boolean }> }> = [];
     const dom = new JSDOM(
@@ -287,6 +296,39 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('omits inline formatting leaves from bulk target posts when a text passage owns them', async () => {
+    const posts: Array<{ type?: string; targets?: Array<{ id: string }> }> = [];
+    const dom = new JSDOM(
+      `<main><p data-od-source-path="path-0-0">Hello <strong data-od-source-path="path-0-0-0">world</strong></p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const paragraph = dom.window.document.querySelector('p')!;
+    const strong = dom.window.document.querySelector('strong')!;
+    paragraph.getBoundingClientRect = () => ({
+      x: 0, y: 0, width: 120, height: 24,
+      top: 0, right: 120, bottom: 24, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    strong.getBoundingClientRect = () => ({
+      x: 40, y: 0, width: 60, height: 24,
+      top: 0, right: 100, bottom: 24, left: 40,
+      toJSON: () => ({}),
+    } as DOMRect);
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; targets?: Array<{ id: string }> });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+
+    const targetsMessage = posts.find((message) => message.type === 'od-edit-targets');
+    expect(targetsMessage?.targets?.map((target) => target.id)).toEqual(['path-0-0']);
+
+    dom.window.close();
+  });
+
   it('acks live preview style patches by id and version', () => {
     const bridge = buildManualEditBridge(true);
 
@@ -455,7 +497,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('targets inline text leaves inside wrapper containers', () => {
+  it('targets the text passage when clicking inline formatting leaves', () => {
     const dom = new JSDOM(
       `<main><div data-od-id="wrapper" class="zh"><b data-od-source-path="path-0-0-0">Visible text</b></div></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
@@ -466,14 +508,14 @@ describe('manual edit bridge target normalization', () => {
 
     leaf.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(leaf.getAttribute('contenteditable')).toBe('true');
-    expect(wrapper.hasAttribute('contenteditable')).toBe(false);
+    expect(wrapper.getAttribute('contenteditable')).toBe('true');
+    expect(leaf.hasAttribute('contenteditable')).toBe(false);
     expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-select',
       target: expect.objectContaining({
-        id: 'path-0-0-0',
+        id: 'wrapper',
         kind: 'text',
-        tagName: 'b',
+        tagName: 'div',
       }),
     }, '*');
 
@@ -672,6 +714,70 @@ describe('manual edit bridge rich-text editing', () => {
     sel?.removeAllRanges();
     sel?.addRange(range);
   }
+
+  it('preserves a drag selection when entering rich-text edit mode', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy">Hello world</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+    const textNode = copy.firstChild!; // Text "Hello world"
+
+    selectTextRange(win, textNode, 0, 5); // "Hello"
+    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    const selection = win.getSelection();
+    expect(copy.getAttribute('contenteditable')).toBe('true');
+    expect(selection?.toString()).toBe('Hello');
+    expect(selection?.getRangeAt(0).collapsed).toBe(false);
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    expect(copy.innerHTML).toBe('<strong>Hello</strong> world');
+
+    dom.window.close();
+  });
+
+  it('uses the source-mapped ancestor when a drag selection ends on an inline child', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy"><span data-od-source-path="path-0-0">Hello</span> <span data-od-source-path="path-0-1">world</span></p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+    const spans = copy.querySelectorAll('span');
+    const firstText = spans[0]!.firstChild!;
+    const secondText = spans[1]!.firstChild!;
+
+    selectTextRange(win, firstText, 0, 5);
+    const range = win.getSelection()!.getRangeAt(0);
+    range.setEnd(secondText, 5);
+    spans[1]!.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    const selection = win.getSelection();
+    expect(copy.getAttribute('contenteditable')).toBe('true');
+    expect(spans[1]!.hasAttribute('contenteditable')).toBe(false);
+    expect(selection?.toString()).toBe('Hello world');
+    expect(selection?.getRangeAt(0).collapsed).toBe(false);
+
+    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'b',
+      ctrlKey: true,
+    }));
+
+    expect(copy.textContent).toBe('Hello world');
+    expect(copy.querySelector('strong')?.textContent).toBe('Hello world');
+
+    dom.window.close();
+  });
 
   it('unwraps only the selected slice inside an existing wrapper (Ctrl+B on "world")', () => {
     const dom = new JSDOM(

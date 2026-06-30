@@ -165,7 +165,7 @@ A superfície de saída padrão. Artefatos HTML de página única que leem seu `
 </td>
 <td width="50%" valign="top">
 <img src="../../docs/screenshots/skills/gamified-app.png" alt="App gamificado" /><br/>
-<sub><b>Protótipo de app mobile</b> — um fluxo gamificado de três telas com faixas de XP e detalhe de quest. Faça o handoff direto para Cursor / Codex / Claude Code para transformar em React/Next/Vue.</sub>
+<sub><b>Protótipo de app mobile</b> — um fluxo gamificado de três telas com faixas de XP e detalhe de quest.</sub>
 </td>
 </tr>
 </table>
@@ -336,12 +336,12 @@ Node `~24`, pnpm `10.33.x`. Usuários de Windows, veja [`docs/windows-troublesho
 
 ### Um fluxo de trabalho completo — do briefing ao artefato
 
-`briefing → plugin → direção → design system → artefato → handoff → memória`
+`briefing → plugin → direção → design system → artefato → engenharia → memória`
 
 1. **Um PM envia um briefing.** O seletor de plugins oferece landing page · pitch deck · dashboard · post de rede social · spec de PM · scorecard de OKR…
 2. **Um designer (ou o agente) trava a direção.** Sem marca? Escolha entre 5 direções curadas. Tem uma marca? Solte um screenshot / URL → o agente conecta o GitHub, importa do Figma e codifica um `DESIGN.md` reutilizável.
 3. **O agente emite o primeiro `<artifact>`.** Plugin + skill + `DESIGN.md` estão vinculados. Ele transmite para um iframe em sandbox, editável no lugar — não "regerar do zero".
-4. **Faça o handoff para a engenharia.** O artefato é HTML/CSS real — solte-o no Cursor, Codex ou Claude Code para continuar construindo como código. Ou exporte PPTX / PDF / MP4 direto para o marketing.
+4. **Continue com a engenharia.** O artefato é HTML/CSS real, pronto para servir como material de implementação. Ou exporte PPTX / PDF / MP4 direto para o marketing.
 5. **O Open Design fica mais inteligente conforme você usa.** Seus screenshots, fontes, paletas e artefatos confirmados se acumulam como padrões para a próxima sessão. Menos retrabalho, menos desvio.
 
 ---

@@ -83,9 +83,13 @@
   --selected: #2563eb;
   --selected-soft: rgba(37, 99, 235, 0.16);
 
-  --serif: 'Source Serif Pro', 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Times New Roman', serif;
-  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', 'Noto Sans', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Microsoft YaHei UI', 'Noto Sans', sans-serif;
+  --serif: var(--sans);
+  --mono: var(--sans);
+  --font: var(--sans);
+  --font-body: var(--sans);
+  --font-display: var(--sans);
+  --font-mono: var(--sans);
 
   --prose-font-size: 15px;
   --prose-line-height: 1.75;

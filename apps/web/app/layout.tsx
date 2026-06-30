@@ -4,6 +4,7 @@ import { I18nProvider } from '../src/i18n';
 import { AnalyticsProvider } from '../src/analytics/provider';
 import '../src/index.css';
 import '../src/styles/home/index.css';
+import '../src/styles/fonts.css';
 
 export const metadata: Metadata = {
   title: 'Open Design',

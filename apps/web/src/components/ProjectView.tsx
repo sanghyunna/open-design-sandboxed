@@ -166,7 +166,6 @@ import { filterImplicitProducedFiles } from '../produced-files';
 import { buildPptxExportPrompt } from '../lib/build-pptx-export-prompt';
 import { AvatarMenu } from './AvatarMenu';
 import { EntrySettingsMenu } from './EntrySettingsMenu';
-import { HandoffButton } from './HandoffButton';
 import { Icon } from './Icon';
 import { DesignSystemPicker } from './DesignSystemPicker';
 import { PluginDetailsModal } from './PluginDetailsModal';
@@ -1029,7 +1028,7 @@ export function ProjectView({
     tabs: [],
     active: null,
   });
-  // Artifact context for the header actions (settings gear, handoff) that live
+  // Artifact context for the header actions (settings gear) that live
   // in this workspace's header alongside FileViewer's present/share/download.
   // Mirrors the artifact_id / artifact_kind that FileViewer attaches, derived
   // from the currently-active file tab, so all artifact_header analytics carry
@@ -5883,33 +5882,23 @@ export function ProjectView({
           onLaunchTerminalAuth={handleLaunchAntigravityOauth}
           conversationId={activeConversationId}
           headerActions={(
-            <>
-              <HandoffButton
-                projectId={project.id}
-                projectName={project.name}
-                projectDir={projectDetail.resolvedDir}
-                agents={agents}
-                artifactId={headerArtifact.artifact_id}
-                artifactKind={headerArtifact.artifact_kind}
-              />
-              <EntrySettingsMenu
-                config={config}
-                onThemeChange={handleThemeChange}
-                onOpenSettings={onOpenSettings}
-                trackingPageName="artifact"
-                onTrackTriggerClick={() => {
-                  // Spec row 52: the settings gear in the artifact header.
-                  // Carry the active artifact so settings slices line up with
-                  // the rest of the artifact_header funnel.
-                  trackArtifactHeaderClick(analytics.track, {
-                    page_name: 'artifact',
-                    area: 'artifact_header',
-                    element: 'settings',
-                    ...headerArtifact,
-                  });
-                }}
-              />
-            </>
+            <EntrySettingsMenu
+              config={config}
+              onThemeChange={handleThemeChange}
+              onOpenSettings={onOpenSettings}
+              trackingPageName="artifact"
+              onTrackTriggerClick={() => {
+                // Spec row 52: the settings gear in the artifact header.
+                // Carry the active artifact so settings slices line up with
+                // the rest of the artifact_header funnel.
+                trackArtifactHeaderClick(analytics.track, {
+                  page_name: 'artifact',
+                  area: 'artifact_header',
+                  element: 'settings',
+                  ...headerArtifact,
+                });
+              }}
+            />
           )}
           questionForm={displayedQuestionForm}
           questionFormPreview={displayedQuestionFormPreview}

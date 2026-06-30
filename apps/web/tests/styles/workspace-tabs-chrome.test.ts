@@ -26,6 +26,16 @@ function ruleValue(block: string, property: string): string {
 }
 
 describe('workspace tabs chrome styles', () => {
+  it('lets the workspace shell inherit the viewport width without forcing horizontal page overflow', () => {
+    const shell = cssDeclarations(shellCss, '.workspace-shell');
+    const entryMain = cssDeclarations(entryLayoutCss, '.entry-main--scroll');
+
+    expect(ruleValue(shell, 'width')).toBe('100%');
+    expect(ruleValue(shell, 'max-width')).toBe('100%');
+    expect(shell).not.toContain('100vw');
+    expect(ruleValue(entryMain, 'overflow-x')).toBe('hidden');
+  });
+
   it('keeps only a small intentional inset before the first tab', () => {
     const chrome = cssDeclarations(shellCss, '.workspace-tabs-chrome.app-chrome-header');
     const traffic = cssDeclarations(shellCss, '.workspace-tabs-chrome .workspace-tabs-traffic');

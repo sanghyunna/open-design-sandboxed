@@ -274,7 +274,7 @@ test('[P1] design system picker searches and switches the single selected system
   expect(body.metadata?.inspirationDesignSystemIds).toBeUndefined();
 });
 
-test('[P2] project detail header keeps the title, design system picker, and execution controls aligned on one row', async ({ page }) => {
+test('[P2] project detail header keeps the title, design system picker, and settings control aligned on one row', async ({ page }) => {
   await page.goto('/');
   await createProject(page, 'Header controls stay pinned');
   await expectWorkspaceReady(page);
@@ -283,26 +283,22 @@ test('[P2] project detail header keeps the title, design system picker, and exec
   const title = page.getByTestId('project-title');
   const dsTrigger = page.getByTestId('project-ds-picker-trigger');
   const settingsButton = page.locator('.settings-icon-btn');
-  const handoffButton = page.getByRole('button', { name: /Choose hand-off target/i });
 
   await expect(title).toBeVisible();
   await expect(dsTrigger).toBeVisible();
   await expect(settingsButton).toBeVisible();
-  await expect(handoffButton).toBeVisible();
 
-  const [titleBox, dsBox, settingsBox, handoffBox] = await Promise.all([
+  const [titleBox, dsBox, settingsBox] = await Promise.all([
     title.boundingBox(),
     dsTrigger.boundingBox(),
     settingsButton.boundingBox(),
-    handoffButton.boundingBox(),
   ]);
 
   expect(titleBox).toBeTruthy();
   expect(dsBox).toBeTruthy();
   expect(settingsBox).toBeTruthy();
-  expect(handoffBox).toBeTruthy();
 
-  const yValues = [titleBox!.y, dsBox!.y, settingsBox!.y, handoffBox!.y];
+  const yValues = [titleBox!.y, dsBox!.y, settingsBox!.y];
   expect(Math.max(...yValues) - Math.min(...yValues)).toBeLessThan(24);
 });
 
@@ -538,27 +534,23 @@ test('[P1] project title rename persists after reload and ignores blank titles',
 });
 
 
-test('[P2] project header keeps the settings, handoff, and avatar controls pinned on compact desktop widths', async ({ page }) => {
+test('[P2] project header keeps the settings and avatar controls pinned on compact desktop widths', async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto('/');
   await createProject(page, 'Header controls stay pinned');
   await expectWorkspaceReady(page);
 
-  const handoffTrigger = page.getByTestId('handoff-trigger');
   const avatarTrigger = page.locator('.avatar-agent-trigger');
   await expect(page.getByTestId('project-title')).toBeVisible();
-  await expect(handoffTrigger).toBeVisible();
   await expect(avatarTrigger).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const root = document.documentElement;
-    const handoff = document.querySelector('[data-testid="handoff-trigger"]') as HTMLElement | null;
     const avatar = document.querySelector('.avatar-agent-trigger') as HTMLElement | null;
     const title = document.querySelector('[data-testid="project-title"]') as HTMLElement | null;
     const overflow = Math.max(0, root.scrollWidth - root.clientWidth);
     return {
       overflow,
-      handoffRight: handoff?.getBoundingClientRect().right ?? 0,
       avatarRight: avatar?.getBoundingClientRect().right ?? 0,
       titleRight: title?.getBoundingClientRect().right ?? 0,
       viewportWidth: window.innerWidth,
@@ -566,8 +558,7 @@ test('[P2] project header keeps the settings, handoff, and avatar controls pinne
   });
 
   expect(layout.overflow).toBeLessThanOrEqual(2);
-  expect(layout.handoffRight).toBeGreaterThan(layout.titleRight);
-  expect(layout.avatarRight).toBeGreaterThan(layout.handoffRight);
+  expect(layout.avatarRight).toBeGreaterThan(layout.titleRight);
   expect(layout.avatarRight).toBeLessThanOrEqual(layout.viewportWidth - 8);
 });
 
@@ -628,6 +619,50 @@ test('[P1] project detail workspace keeps design file tabs and preview controls 
 
   await viewModeTabs.getByRole('tab', { name: 'Preview' }).click();
   await expect(artifactPreview(page)).toBeVisible();
+});
+
+test('[P2] html artifact desktop preview does not leak scaled canvas width into app horizontal scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 850 });
+  await page.goto('/');
+  await createProject(page, 'Preview overflow structure');
+  await expectWorkspaceReady(page);
+
+  const uploadedName = await uploadTinyHtml(page, 'preview-overflow.html', '<!doctype html><html><body><main><h1>Preview Overflow Structure</h1><p>The app shell should not gain a horizontal scrollbar.</p></main></body></html>');
+  await openUploadedHtmlArtifactPreview(page, uploadedName);
+  await expect(artifactPreview(page)).toBeVisible();
+
+  await page.getByRole('button', { name: /^100%$/ }).click();
+  await page.getByRole('menuitem', { name: /^75%$/ }).click();
+
+  const overflow = await page.evaluate(() => {
+    const measure = (selector: string) => {
+      const element = document.querySelector(selector);
+      if (!(element instanceof HTMLElement)) return null;
+      return {
+        selector,
+        overflow: Math.max(0, element.scrollWidth - element.clientWidth),
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      };
+    };
+    return [
+      {
+        selector: 'document',
+        overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      },
+      measure('body'),
+      measure('#root'),
+      measure('.workspace-shell'),
+      measure('.viewer-body'),
+      measure('.preview-viewport-desktop'),
+      measure('.comment-preview-canvas'),
+    ].filter((item): item is NonNullable<typeof item> => item !== null);
+  });
+
+  const leaking = overflow.filter((item) => item.overflow > 2);
+  expect(leaking, JSON.stringify(overflow, null, 2)).toEqual([]);
 });
 
 test('[P0] project detail share menu copies the current share link for uploaded html artifacts', async ({ page }) => {

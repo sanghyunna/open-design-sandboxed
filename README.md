@@ -165,7 +165,7 @@ The default output surface. Single-page HTML artifacts that read your `DESIGN.md
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/skills/gamified-app.png" alt="Gamified app" /><br/>
-<sub><b>Mobile app prototype</b> — a three-screen gamified flow with XP ribbons and quest detail. Hand off straight to Cursor / Codex / Claude Code to turn into React/Next/Vue.</sub>
+<sub><b>Mobile app prototype</b> — a three-screen gamified flow with XP ribbons and quest detail, ready to use as source material for React/Next/Vue.</sub>
 </td>
 </tr>
 </table>
@@ -338,12 +338,12 @@ Node `~24`, pnpm `10.33.x`. Windows users, see [`docs/windows-troubleshooting.md
 
 ### A full workflow — from brief to artifact
 
-`brief → plugin → direction → design system → artifact → handoff → memory`
+`brief → plugin → direction → design system → artifact → engineering → memory`
 
 1. **A PM submits a brief.** The plugin picker offers landing page · pitch deck · dashboard · social post · PM spec · OKR scorecard…
 2. **A designer (or the agent) locks the direction.** No brand? Pick from 5 curated directions. Have a brand? Drop a screenshot / URL → the agent connects GitHub, imports Figma, and codifies a reusable `DESIGN.md`.
 3. **The agent emits the first `<artifact>`.** Plugin + skill + `DESIGN.md` are bound. It streams into a sandboxed iframe, editable in place — not "regenerate from scratch."
-4. **Hand off to engineering.** The artifact is real HTML/CSS — drop it into Cursor, Codex, or Claude Code to keep building as code. Or export PPTX / PDF / MP4 straight to marketing.
+4. **Continue with engineering.** The artifact is real HTML/CSS, ready to use as implementation source material. Or export PPTX / PDF / MP4 straight to marketing.
 5. **Open Design gets smarter as you use it.** Your screenshots, fonts, palettes, and confirmed artifacts accumulate as defaults for the next session. Less rework, less drift.
 
 ---

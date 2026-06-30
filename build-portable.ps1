@@ -4,6 +4,10 @@
 .SYNOPSIS
     Build the self-contained Windows portable zip of Open Design.
 
+    Agent note: this is the canonical Windows build entrypoint for this
+    workspace. If a user says "build" on Windows, run this script unless they
+    explicitly ask for package-scoped validation.
+
 .DESCRIPTION
     Produces a portable artifact that runs on a bare Windows x64 machine with NO
     npm / Node / git installed — only the two external agent CLIs (codex,
@@ -66,7 +70,7 @@
     Optional 7z compression level for the portable zip. Default: 5.
 
 .PARAMETER AppVersion
-    Packaged app version baked into the portable artifact. Default: 0.1.4 for
+    Packaged app version baked into the portable artifact. Default: 0.1.5 for
     the redesigned Windows release line.
 
 .EXAMPLE
@@ -81,7 +85,7 @@ param(
     [string]$To = "zip",
     [string]$DropDir = "D:\dev\open_design_port",
     [string]$PortableZipCompression,
-    [string]$AppVersion = "0.1.4"
+    [string]$AppVersion = "0.1.5"
 )
 
 $ErrorActionPreference = "Stop"
