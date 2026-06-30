@@ -456,10 +456,6 @@ function pluginFacetLabel(slug: string, fallback: string, t: ReturnType<typeof u
     case 'prototype': return t('homeHero.chip.prototype');
     case 'deck': return t('pluginsHome.facet.slides');
     case 'design-system': return t('entry.navDesignSystems');
-    case 'hyperframes': return t('homeHero.chip.hyperframes');
-    case 'image': return t('homeHero.chip.image');
-    case 'video': return t('homeHero.chip.video');
-    case 'audio': return t('homeHero.chip.audio');
     case 'public-link': return t('pluginsHome.facet.publicLink');
     case 'github-pr': return t('pluginsHome.facet.githubPr');
     case 'github-gist': return t('pluginsHome.facet.githubGist');
