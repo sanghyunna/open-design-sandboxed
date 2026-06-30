@@ -16,12 +16,10 @@ afterEach(() => {
 
 const AUTO_MATCH_TITLE = en['chat.designToolbox.action.auto-match.title'];
 const VISUAL_POLISH_TITLE = en['chat.designToolbox.action.visual-polish.title'];
-// The five non-featured actions surfaced inside the More → Design toolbox submenu.
+// The non-featured actions surfaced inside the More → Design toolbox submenu.
 const MOTION_TITLE = en['chat.designToolbox.action.motion.title'];
 const MOTION_POLISH_TITLE = en['chat.designToolbox.action.motion-polish.title'];
 const ANTI_AI_TITLE = en['chat.designToolbox.action.anti-ai-polish.title'];
-const IMAGE_GEN_TITLE = en['chat.designToolbox.action.image-gen.title'];
-const VIDEO_GEN_TITLE = en['chat.designToolbox.action.video-gen.title'];
 
 function skill(id: string, name: string, category = 'creative-direction'): SkillSummary {
   return {
@@ -107,13 +105,7 @@ describe('NextStepActions', () => {
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-toolbox'));
     const list = screen.getByTestId('next-step-toolbox-actions');
 
-    for (const title of [
-      MOTION_TITLE,
-      MOTION_POLISH_TITLE,
-      ANTI_AI_TITLE,
-      IMAGE_GEN_TITLE,
-      VIDEO_GEN_TITLE,
-    ]) {
+    for (const title of [MOTION_TITLE, MOTION_POLISH_TITLE, ANTI_AI_TITLE]) {
       expect(within(list).getByText(title)).toBeTruthy();
     }
 
@@ -132,11 +124,11 @@ describe('NextStepActions', () => {
     fireEvent.mouseEnter(screen.getByTestId('next-step-more-toolbox'));
     const list = screen.getByTestId('next-step-toolbox-actions');
 
-    fireEvent.change(within(list).getByRole('textbox'), { target: { value: 'image' } });
+    fireEvent.change(within(list).getByRole('textbox'), { target: { value: 'motion' } });
 
-    expect(within(list).getByText(IMAGE_GEN_TITLE)).toBeTruthy();
-    expect(within(list).getByText('Imagegen Frontend Web')).toBeTruthy();
-    expect(within(list).queryByText(MOTION_TITLE)).toBeNull();
+    expect(within(list).getByText(MOTION_TITLE)).toBeTruthy();
+    expect(within(list).getByText('Emil Kowalski Motion')).toBeTruthy();
+    expect(within(list).queryByText(ANTI_AI_TITLE)).toBeNull();
   });
 
   it('keeps an action visible when searching by its preferred skill id (parity with the composer matcher)', () => {
