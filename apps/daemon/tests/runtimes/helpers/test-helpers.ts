@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import {
   AGENT_DEFS,
   applyAgentLaunchEnv,
-  buildLiveArtifactsMcpServersForAgent,
+  buildConnectorsMcpServersForAgent,
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
   checkWindowsDirectExeCommandLineBudget,
@@ -28,7 +28,7 @@ export {
   assert,
   AGENT_DEFS,
   applyAgentLaunchEnv,
-  buildLiveArtifactsMcpServersForAgent,
+  buildConnectorsMcpServersForAgent,
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
   checkWindowsDirectExeCommandLineBudget,

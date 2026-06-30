@@ -251,10 +251,10 @@ const SUBCOMMAND_MAP = {
   agent: runAgent,
 };
 
-if (argv[0] === 'mcp' && argv[1] === 'live-artifacts') {
+if (argv[0] === 'mcp' && argv[1] === 'connectors') {
   try {
-    const { runLiveArtifactsMcpServer } = await import('./mcp-live-artifacts-server.js');
-    const { exitCode } = await runLiveArtifactsMcpServer();
+    const { runConnectorsMcpServer } = await import('./mcp-connectors-server.js');
+    const { exitCode } = await runConnectorsMcpServer();
     process.exit(exitCode);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

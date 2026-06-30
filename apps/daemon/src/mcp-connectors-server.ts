@@ -19,12 +19,6 @@ interface McpServerResult {
   exitCode: number;
 }
 
-const EMPTY_OBJECT_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {},
-} satisfies JsonObject;
-
 const CONNECTORS_LIST_INPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -33,60 +27,8 @@ const CONNECTORS_LIST_INPUT_SCHEMA = {
   },
 } satisfies JsonObject;
 
-const ARTIFACT_INPUT_SCHEMA = {
-  type: 'object',
-  additionalProperties: true,
-  description: 'LiveArtifactCreateInput/LiveArtifactUpdateInput JSON plus optional templateHtml and provenanceJson fields.',
-} satisfies JsonObject;
-
-export function createLiveArtifactsMcpTools(): McpTool[] {
+export function createConnectorsMcpTools(): McpTool[] {
   return [
-    {
-      name: 'live_artifacts_create',
-      description: 'Create a project-scoped live artifact through the daemon tool endpoint. POSIX equivalent: `"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts create --input artifact.json`.',
-      inputSchema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['input'],
-        properties: {
-          input: ARTIFACT_INPUT_SCHEMA,
-          templateHtml: { type: 'string' },
-          provenanceJson: { type: 'object', additionalProperties: true },
-        },
-      },
-    },
-    {
-      name: 'live_artifacts_list',
-      description: 'List compact project-scoped live artifacts through the daemon tool endpoint. POSIX equivalent: `"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts list --format compact`.',
-      inputSchema: EMPTY_OBJECT_SCHEMA,
-    },
-    {
-      name: 'live_artifacts_update',
-      description: 'Update a live artifact through the daemon tool endpoint. POSIX equivalent: `"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts update --artifact-id <id> --input artifact.json`.',
-      inputSchema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['artifactId', 'input'],
-        properties: {
-          artifactId: { type: 'string', minLength: 1 },
-          input: ARTIFACT_INPUT_SCHEMA,
-          templateHtml: { type: 'string' },
-          provenanceJson: { type: 'object', additionalProperties: true },
-        },
-      },
-    },
-    {
-      name: 'live_artifacts_refresh',
-      description: 'Refresh a live artifact through the daemon tool endpoint. POSIX equivalent: `"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts refresh --artifact-id <id>`.',
-      inputSchema: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['artifactId'],
-        properties: {
-          artifactId: { type: 'string', minLength: 1 },
-        },
-      },
-    },
     {
       name: 'connectors_list',
       description: 'List connector catalog and available read-only tools through the daemon tool endpoint. Use `{ "useCase": "personal_daily_digest" }` for curated daily-digest tools. POSIX equivalent: `"$OD_NODE_BIN" "$OD_BIN" tools connectors list --use-case personal_daily_digest --format compact` or fallback `"$OD_NODE_BIN" "$OD_BIN" tools connectors list --format compact`.',
@@ -161,33 +103,6 @@ async function requestJson(pathname: string, init: RequestInit = {}): Promise<un
 }
 
 async function callTool(name: string, args: JsonObject): Promise<unknown> {
-  if (name === 'live_artifacts_create') {
-    return await requestJson('/api/tools/live-artifacts/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        input: args.input ?? {},
-        ...(typeof args.templateHtml === 'string' ? { templateHtml: args.templateHtml } : {}),
-        ...(args.provenanceJson && typeof args.provenanceJson === 'object' && !Array.isArray(args.provenanceJson) ? { provenanceJson: args.provenanceJson } : {}),
-      }),
-    });
-  }
-  if (name === 'live_artifacts_list') {
-    return await requestJson('/api/tools/live-artifacts/list', { method: 'GET' });
-  }
-  if (name === 'live_artifacts_update') {
-    return await requestJson('/api/tools/live-artifacts/update', {
-      method: 'POST',
-      body: JSON.stringify({
-        artifactId: args.artifactId,
-        input: typeof args.input === 'object' && args.input ? args.input : {},
-        ...(typeof args.templateHtml === 'string' ? { templateHtml: args.templateHtml } : {}),
-        ...(args.provenanceJson && typeof args.provenanceJson === 'object' && !Array.isArray(args.provenanceJson) ? { provenanceJson: args.provenanceJson } : {}),
-      }),
-    });
-  }
-  if (name === 'live_artifacts_refresh') {
-    return await requestJson('/api/tools/live-artifacts/refresh', { method: 'POST', body: JSON.stringify({ artifactId: args.artifactId }) });
-  }
   if (name === 'connectors_list') {
     const useCase = args.useCase === 'personal_daily_digest' ? '?useCase=personal_daily_digest' : '';
     return await requestJson(`/api/tools/connectors/list${useCase}`, { method: 'GET' });
@@ -201,7 +116,7 @@ async function callTool(name: string, args: JsonObject): Promise<unknown> {
   throw new Error(`unknown MCP tool: ${name}`);
 }
 
-export async function handleLiveArtifactsMcpRequest(request: JsonRpcRequest): Promise<JsonObject | undefined> {
+export async function handleConnectorsMcpRequest(request: JsonRpcRequest): Promise<JsonObject | undefined> {
   const id = request.id ?? null;
   const method = request.method;
 
@@ -215,13 +130,13 @@ export async function handleLiveArtifactsMcpRequest(request: JsonRpcRequest): Pr
         result: {
           protocolVersion: '2025-03-26',
           capabilities: { tools: {} },
-          serverInfo: { name: 'open-design-live-artifacts', version: '0.1.0' },
+          serverInfo: { name: 'open-design-connectors', version: '0.1.0' },
         },
       };
     }
 
     if (method === 'tools/list') {
-      return { jsonrpc: '2.0', id, result: { tools: createLiveArtifactsMcpTools() } };
+      return { jsonrpc: '2.0', id, result: { tools: createConnectorsMcpTools() } };
     }
 
     if (method === 'tools/call') {
@@ -246,7 +161,7 @@ export async function handleLiveArtifactsMcpRequest(request: JsonRpcRequest): Pr
   }
 }
 
-export async function runLiveArtifactsMcpServer(): Promise<McpServerResult> {
+export async function runConnectorsMcpServer(): Promise<McpServerResult> {
   const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 
   for await (const line of rl) {
@@ -258,7 +173,7 @@ export async function runLiveArtifactsMcpServer(): Promise<McpServerResult> {
       process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error' } })}\n`);
       continue;
     }
-    const response = await handleLiveArtifactsMcpRequest(request);
+    const response = await handleConnectorsMcpRequest(request);
     if (response) process.stdout.write(`${JSON.stringify(response)}\n`);
   }
 

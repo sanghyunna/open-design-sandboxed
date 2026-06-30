@@ -31,7 +31,7 @@ export { resolveProjectRoot };
 import { createCommandInvocation } from '@open-design/platform';
 import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
 import {
-  buildLiveArtifactsMcpServersForAgent,
+  buildConnectorsMcpServersForAgent,
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
   checkWindowsDirectExeCommandLineBudget,
@@ -10834,7 +10834,7 @@ export async function startServer({
       design.runs.finish(run, status, code, signal);
       return false;
     };
-    const mcpServers = buildLiveArtifactsMcpServersForAgent(def, {
+    const mcpServers = buildConnectorsMcpServersForAgent(def, {
       enabled: Boolean(toolTokenGrant?.token),
       command: process.execPath,
       argsPrefix: [OD_BIN],

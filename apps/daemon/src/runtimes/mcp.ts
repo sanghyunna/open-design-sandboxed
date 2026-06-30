@@ -6,16 +6,16 @@ type McpOptions = {
   argsPrefix?: string[];
 };
 
-export function buildLiveArtifactsMcpServersForAgent(
+export function buildConnectorsMcpServersForAgent(
   def: RuntimeAgentDef,
   { enabled = true, command = 'od', argsPrefix = [] }: McpOptions = {},
 ) {
   if (!enabled || def?.mcpDiscovery !== 'mature-acp') return [];
   return [
     {
-      name: 'open-design-live-artifacts',
+      name: 'open-design-connectors',
       command,
-      args: [...argsPrefix, 'mcp', 'live-artifacts'],
+      args: [...argsPrefix, 'mcp', 'connectors'],
       env: [{ name: 'ELECTRON_RUN_AS_NODE', value: '1' }],
     },
   ];

@@ -370,7 +370,7 @@ function mergeAuthHeader(
 
 /**
  * Convert user-configured external MCP servers into the ACP `mcpServers`
- * shape that Hermes/Kimi accept (already in use by buildLiveArtifactsMcpServersForAgent).
+ * shape that Hermes/Kimi accept (already in use by buildConnectorsMcpServersForAgent).
  * SSE/HTTP servers are dropped — ACP currently models stdio only — but we
  * surface a warning so the UI can hint at it.
  */

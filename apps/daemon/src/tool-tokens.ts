@@ -3,10 +3,6 @@ import { createHash, randomBytes } from 'node:crypto';
 export const DEFAULT_TOOL_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 export const CHAT_TOOL_ENDPOINTS = [
-  '/api/tools/live-artifacts/create',
-  '/api/tools/live-artifacts/list',
-  '/api/tools/live-artifacts/refresh',
-  '/api/tools/live-artifacts/update',
   '/api/tools/connectors/list',
   '/api/tools/connectors/execute',
   '/api/tools/design-systems/read',
@@ -14,10 +10,6 @@ export const CHAT_TOOL_ENDPOINTS = [
 ] as const;
 
 export const CHAT_TOOL_OPERATIONS = [
-  'live-artifacts:create',
-  'live-artifacts:list',
-  'live-artifacts:refresh',
-  'live-artifacts:update',
   'connectors:list',
   'connectors:execute',
   'design-systems:read',
