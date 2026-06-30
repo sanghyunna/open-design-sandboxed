@@ -2032,9 +2032,8 @@ function resolveRunProjectKindForAnalytics({
 }) {
   if (typeof hintProjectKind === 'string') return hintProjectKind;
   if (projectMetadata?.importedFrom === 'design-system') return 'design_system';
-  // Pass videoModel so a HyperFrames project (kind=video + videoModel=
-  // hyperframes-html) is reported as project_kind=hyperframes, not generic
-  // video. The web-supplied `hintProjectKind` already encodes this when set.
+  // Let the contract helper apply any model-aware analytics mapping when
+  // metadata has more detail than the top-level kind.
   return projectKindToTracking(projectMetadata?.kind, projectMetadata?.videoModel);
 }
 
@@ -6575,9 +6574,7 @@ export async function startServer({
   // privilege to user-installed scenarios.
   //
   // Plan §3.O1 / §C-stage of plugin-driven-flow-plan: more than one
-  // bundled scenario may share a `taskKind` (e.g. `od-media-generation`
-  // also claims `new-generation` so the kind → scenario map can route
-  // image / video / audio projects to it). The pipeline-fallback
+  // bundled scenario may share a `taskKind`. The pipeline-fallback
   // resolver expects ONE scenario per taskKind, so this function
   // dedupes and prefers the canonical id `od-<taskKind>` as the
   // pipeline-fallback winner. Non-canonical scenarios still install

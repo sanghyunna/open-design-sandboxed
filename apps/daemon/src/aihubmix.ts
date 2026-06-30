@@ -111,13 +111,12 @@ export interface AIHubMixGeminiImageRequest {
  * return the decoded image bytes.
  *
  * gemini/imagen-family image models reject the OpenAI `/images/generations`
- * shape ("Unknown name prompt/n/size"), so both the in-chat tool
- * (`executeAIHubMixGenerateImage`) and the Home/New Project/CLI media renderer
- * (`renderAIHubMixImage`) route those models here. This helper owns the single
- * source of truth for the request body and the inline-image response parse;
- * `doFetch` lets each caller apply its own request-init wrapper (proxy
- * dispatcher, abort signal, redirect policy). Throws on a non-OK status or a
- * response without inline image data.
+ * shape ("Unknown name prompt/n/size"), so AIHubMix image callers route
+ * those models here. This helper owns the single source of truth for the
+ * request body and the inline-image response parse; `doFetch` lets each
+ * caller apply its own request-init wrapper (proxy dispatcher, abort signal,
+ * redirect policy). Throws on a non-OK status or a response without inline
+ * image data.
  */
 export async function aihubmixGeminiImageBytes(
   req: AIHubMixGeminiImageRequest,
@@ -281,11 +280,11 @@ export function parseAIHubMixCatalog(
   return out;
 }
 
-// Aspect → pixel size for the chat `generate_image` tool. Tuned for the
-// default model (gpt-image-1, which accepts 1024×1024 / 1536×1024 /
-// 1024×1536). The CLI/media renderer path uses media.ts's model-aware
-// `openaiSizeFor` instead; this conservative table keeps the tool call from
-// 400-ing on an unsupported size.
+// Aspect -> pixel size for AIHubMix image requests. Tuned for the default
+// model (gpt-image-1, which accepts 1024x1024 / 1536x1024 / 1024x1536).
+// The provider-specific renderer path uses media.ts's model-aware
+// `openaiSizeFor` instead; this conservative table keeps fallback requests
+// from 400-ing on an unsupported size.
 export const AIHUBMIX_IMAGE_ASPECT_TO_SIZE: Record<string, string> = {
   '1:1': '1024x1024',
   '16:9': '1536x1024',

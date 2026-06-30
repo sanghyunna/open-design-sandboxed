@@ -118,58 +118,6 @@ const HOME_PLUGINS = [
     },
   },
   {
-    id: 'od-media-generation',
-    title: 'Media generation',
-    version: '0.1.0',
-    trust: 'bundled',
-    sourceKind: 'bundled',
-    source: '/tmp/media-generation',
-    fsPath: '/tmp/media-generation',
-    capabilitiesGranted: ['prompt:inject'],
-    installedAt: 0,
-    updatedAt: 0,
-    manifest: {
-      name: 'od-media-generation',
-      title: 'Media generation',
-      version: '0.1.0',
-      description: 'Create image, video, and audio assets.',
-      od: {
-        kind: 'scenario',
-        taskKind: 'new-generation',
-        useCase: {
-          query: 'Create media.',
-        },
-        inputs: [],
-      },
-    },
-  },
-  {
-    id: 'example-hyperframes',
-    title: 'HyperFrames',
-    version: '0.1.0',
-    trust: 'bundled',
-    sourceKind: 'bundled',
-    source: '/tmp/example-hyperframes',
-    fsPath: '/tmp/example-hyperframes',
-    capabilitiesGranted: ['prompt:inject'],
-    installedAt: 0,
-    updatedAt: 0,
-    manifest: {
-      name: 'example-hyperframes',
-      title: 'HyperFrames',
-      version: '0.1.0',
-      description: 'Create HyperFrames motion content.',
-      od: {
-        kind: 'scenario',
-        taskKind: 'new-generation',
-        useCase: {
-          query: 'Create hyperframes media.',
-        },
-        inputs: [],
-      },
-    },
-  },
-  {
     id: 'image-template-notion-team-dashboard-live-artifact',
     title: 'Notion live artifact',
     version: '0.1.0',
@@ -229,38 +177,6 @@ const APPLY_RESPONSES: Record<string, unknown> = {
   },
 };
 
-const PROMPT_TEMPLATES = [
-  {
-    id: 'image-product',
-    surface: 'image',
-    title: 'Image product concept',
-    summary: 'A polished product image prompt.',
-    category: 'product',
-    model: 'gpt-image-2',
-    aspect: '16:9',
-    source: { repo: 'open-design/image-prompts', license: 'MIT' },
-  },
-  {
-    id: 'video-reveal',
-    surface: 'video',
-    title: 'Video reveal',
-    summary: 'A short reveal video prompt.',
-    category: 'product',
-    model: 'doubao-seedance-2-0-260128',
-    aspect: '16:9',
-    source: { repo: 'open-design/video-prompts', license: 'MIT' },
-  },
-  {
-    id: 'hyperframes-caption',
-    surface: 'video',
-    title: 'HyperFrames captions',
-    summary: 'A caption-led HyperFrames prompt.',
-    category: 'motion',
-    model: 'hyperframes-html',
-    aspect: '16:9',
-    source: { repo: 'heygen-com/hyperframes', license: 'MIT' },
-  },
-];
 
 async function waitForLoadingToClear(page: Page) {
   await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
@@ -343,7 +259,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ promptTemplates: PROMPT_TEMPLATES }),
+      body: JSON.stringify({ promptTemplates: [] }),
     });
   });
   await page.route('**/api/plugins', async (route) => {
@@ -370,7 +286,7 @@ test('[P2] home hero rail shows the current creation chips and More shortcuts', 
 
   await expect(page.getByTestId('entry-star-badge')).toContainText('51.6K');
   await expect(page.getByTestId('home-hero-type-tabs')).toBeVisible();
-  for (const id of ['prototype', 'live-artifact', 'deck', 'image', 'video', 'hyperframes', 'audio']) {
+  for (const id of ['prototype', 'live-artifact', 'deck']) {
     await expect(page.getByTestId(`home-hero-rail-${id}`)).toBeVisible();
   }
   await expect(page.getByTestId('home-hero-shortcuts-trigger')).toBeVisible();
@@ -383,7 +299,7 @@ test('[P2] home hero rail shows the current creation chips and More shortcuts', 
   }
 });
 
-test('[P1] home hero rail switches non-media modes without surfacing media-only footer options', async ({ page }) => {
+test('[P1] home hero rail switches surviving creation modes without stale footer options', async ({ page }) => {
   await gotoEntryHome(page);
 
   await expect(page.getByTestId('home-hero-type-tabs')).toBeVisible();
@@ -406,31 +322,6 @@ test('[P1] home hero rail switches non-media modes without surfacing media-only 
   await expect(page.getByTestId('home-hero-footer-option-duration')).toHaveCount(0);
   await expect(page.getByTestId('home-hero-footer-option-audioType')).toHaveCount(0);
   await clearActiveChip(page);
-});
-
-test('[P1] home hero rail exposes media footer options for image, video, hyperframes, and audio', async ({ page }) => {
-  await gotoEntryHome(page);
-
-  await expectChipSelection(page, 'image', 'Image');
-  await expect(page.getByTestId('home-hero-footer-option-ratio')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-resolution')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-duration')).toHaveCount(0);
-  await clearActiveChip(page);
-
-  await expectChipSelection(page, 'video', 'Video');
-  await expect(page.getByTestId('home-hero-footer-option-ratio')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-resolution')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-duration')).toBeVisible();
-  await clearActiveChip(page);
-
-  await expectChipSelection(page, 'hyperframes', 'HyperFrames');
-  await expect(page.getByTestId('home-hero-footer-option-ratio')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-duration')).toBeVisible();
-  await clearActiveChip(page);
-
-  await expectChipSelection(page, 'audio', 'Audio');
-  await expect(page.getByTestId('home-hero-footer-option-audioType')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-duration')).toBeVisible();
 });
 
 test('[P1] home hero example presets update the composer input for prototype and live artifact', async ({ page }) => {

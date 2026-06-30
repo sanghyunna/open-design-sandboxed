@@ -732,7 +732,7 @@ Override artifact-first discovery rules below: do not emit a default discovery \
 // completes, and meanwhile the model burns a turn pasting an
 // unreachable URL into the chat. By the time the user is back, our
 // daemon-issued Bearer is already in `.mcp.json` and the real tools
-// (`generate_image`, `models_explore`, …) are reachable on the next
+// (`models_explore`, …) are reachable on the next
 // turn — but the model doesn't know that and keeps escalating the
 // fake auth flow.
 //
@@ -762,7 +762,7 @@ function renderConnectedExternalMcpDirective(
     'The following external MCP servers are already authenticated for this run via an OAuth Bearer token the daemon injected into `.mcp.json`. You can call their real tools directly:\n\n',
     lines.join('\n'),
     '\n\n',
-    '**Do NOT call any tool whose name matches `mcp__<server>__authenticate` or `mcp__<server>__complete_authentication` for the servers above.** Those are synthetic fallback tools Claude Code exposes when its first HTTP connect briefly flipped the server into a needs-auth state. The flow they drive (a `localhost:<random>/callback` redirect) cannot complete in this environment, and the real tools (e.g. `generate_image`, `models_explore`, `balance`, …) are already reachable.\n\n',
+    '**Do NOT call any tool whose name matches `mcp__<server>__authenticate` or `mcp__<server>__complete_authentication` for the servers above.** Those are synthetic fallback tools Claude Code exposes when its first HTTP connect briefly flipped the server into a needs-auth state. The flow they drive (a `localhost:<random>/callback` redirect) cannot complete in this environment, and the real tools (e.g. `models_explore`, `balance`, …) are already reachable.\n\n',
     'If a real tool actually fails with an auth-related error, report the exact tool name and error text and stop — the user will reconnect the server in Settings → External MCP. Do not retry by invoking any `*_authenticate` tool.\n',
   ].join('');
 }
@@ -967,11 +967,10 @@ function derivePreflight(skillBody: string): string {
   if (/references\/themes\.md/.test(skillBody)) refs.push('`references/themes.md`');
   if (/references\/components\.md/.test(skillBody)) refs.push('`references/components.md`');
   if (/references\/checklist\.md/.test(skillBody)) refs.push('`references/checklist.md`');
-  // The hyperframes skill ships an html-in-canvas reference next to the
-  // VFX catalog blocks. The chat handler at server.ts:4138 routes through
-  // this composer (not the contracts copy), so the case must live here
-  // too — otherwise live agent runs miss the preflight directive even
-  // when the skill body explicitly lists the file.
+  // Some skills ship an html-in-canvas reference next to visual-system
+  // guidance. Keep the case here because the chat handler routes through
+  // this composer (not the contracts copy), so live agent runs still get
+  // the preflight directive when the skill body lists the file.
   if (/references\/html-in-canvas\.md|html-in-canvas\.md/.test(skillBody)) {
     refs.push('`references/html-in-canvas.md`');
   }
