@@ -23,17 +23,10 @@ import type { ProjectKind, ProjectMetadata } from '@open-design/contracts';
 import type { DefaultScenarioPluginId } from '@open-design/contracts';
 import type { IconName } from '../Icon';
 
-// Plugin ids the chip rail can dispatch to. Most chips route to a
-// `DefaultScenarioPluginId` so the same fallback table the daemon
-// uses for naked Home queries stays the source of truth. Specialised
-// chips (HyperFrames lives under `plugins/_official/examples/hyperframes/`
-// and surfaces as the `example-hyperframes` bundled plugin id) bypass
-// the default table by carrying their own plugin id directly. The
-// curated union keeps typo safety while letting the rail evolve
-// independently of the default-binding mapping.
-export type ChipScenarioPluginId =
-  | DefaultScenarioPluginId
-  | 'example-hyperframes';
+// Plugin ids the chip rail can dispatch to. Chips route to a
+// `DefaultScenarioPluginId`, keeping the daemon's fallback table the
+// source of truth for Home queries.
+export type ChipScenarioPluginId = DefaultScenarioPluginId;
 
 export type ChipAction =
   | {
@@ -112,18 +105,6 @@ export const HOME_HERO_CHIPS: ReadonlyArray<HomeHeroChip> = [
     },
   },
   {
-    id: 'hyperframes',
-    label: 'HyperFrames',
-    icon: 'orbit',
-    group: 'create',
-    hint: 'Author HTML-based motion: captions, audio-reactive visuals, scene transitions.',
-    // HyperFrames is its own bundled scenario (motion-graphics
-    // specialisation of Video). It surfaces in PluginsHomeSection's
-    // primary category list, so the rail picks it up too rather than
-    // hiding the specialised bucket behind the generic Video chip.
-    action: { kind: 'apply-scenario', pluginId: 'example-hyperframes', projectKind: 'video' },
-  },
-  {
     id: 'live-artifact',
     label: 'Live artifact',
     icon: 'refresh',
@@ -137,57 +118,6 @@ export const HOME_HERO_CHIPS: ReadonlyArray<HomeHeroChip> = [
         kind: 'prototype',
         intent: 'live-artifact',
         fidelity: 'high-fidelity',
-      },
-    },
-  },
-  {
-    id: 'image',
-    label: 'Image',
-    icon: 'image',
-    group: 'create',
-    action: {
-      kind: 'apply-scenario',
-      pluginId: 'od-media-generation',
-      projectKind: 'image',
-      inputs: {
-        mediaKind: 'image',
-        subject: 'a polished product concept',
-        style: 'cinematic, high-quality, on-brand',
-        aspect: '16:9',
-      },
-    },
-  },
-  {
-    id: 'video',
-    label: 'Video',
-    icon: 'play',
-    group: 'create',
-    action: {
-      kind: 'apply-scenario',
-      pluginId: 'od-media-generation',
-      projectKind: 'video',
-      inputs: {
-        mediaKind: 'video',
-        subject: 'a short product reveal',
-        style: 'cinematic, high-quality, on-brand',
-        aspect: '16:9',
-      },
-    },
-  },
-  {
-    id: 'audio',
-    label: 'Audio',
-    icon: 'mic',
-    group: 'create',
-    action: {
-      kind: 'apply-scenario',
-      pluginId: 'od-media-generation',
-      projectKind: 'audio',
-      inputs: {
-        mediaKind: 'audio',
-        subject: 'a concise audio identity for a product',
-        style: 'clear, polished, modern',
-        aspect: '16:9',
       },
     },
   },
