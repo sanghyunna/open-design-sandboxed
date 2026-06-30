@@ -146,13 +146,8 @@ vi.mock('../../src/state/config', async () => {
     mergeDaemonConfig: vi.fn(),
     saveConfig: vi.fn(),
     fetchDaemonConfig: vi.fn().mockResolvedValue({}),
-    fetchMediaProvidersFromDaemon: vi.fn().mockResolvedValue({
-      status: 'ok',
-      providers: null,
-    }),
     syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
-    syncMediaProvidersToDaemon: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -182,7 +177,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  mediaProviders: {},
   composio: {},
   agentModels: {},
   agentCliEnv: {},

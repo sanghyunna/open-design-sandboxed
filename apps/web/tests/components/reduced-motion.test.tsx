@@ -115,7 +115,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  mediaProviders: {},
   composio: {},
   agentModels: {},
   agentCliEnv: {},

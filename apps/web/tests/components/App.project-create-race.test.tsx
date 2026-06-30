@@ -254,7 +254,6 @@ const baseConfig: AppConfig = {
   designSystemId: null,
   onboardingCompleted: true,
   privacyDecisionAt: 1778244000000,
-  mediaProviders: {},
   composio: {},
   agentModels: {},
   agentCliEnv: {},

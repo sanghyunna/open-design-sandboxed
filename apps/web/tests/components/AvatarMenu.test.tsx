@@ -49,7 +49,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  mediaProviders: {},
   agentModels: { codex: { model: 'default', reasoning: 'default' } },
   agentCliEnv: {},
 };

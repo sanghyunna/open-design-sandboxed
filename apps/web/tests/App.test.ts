@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  shouldSyncMediaProvidersOnSave,
-} from '../src/App';
-import {
   buildPersistedConfig,
   isAutosaveDraftOnlyChange,
   persistComposioConfigChange,
@@ -48,16 +45,6 @@ describe('persistComposioConfigChange', () => {
         apiKeyTail: '_key',
       },
     });
-  });
-});
-
-describe('shouldSyncMediaProvidersOnSave', () => {
-  it('keeps bootstrap-style empty media maps from syncing by default', () => {
-    expect(shouldSyncMediaProvidersOnSave({})).toBe(false);
-  });
-
-  it('syncs an explicit empty media map when the user save should force a clear', () => {
-    expect(shouldSyncMediaProvidersOnSave({}, { force: true })).toBe(true);
   });
 });
 

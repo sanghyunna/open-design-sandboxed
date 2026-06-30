@@ -108,13 +108,11 @@ vi.mock('../../src/state/config', async () => {
     ...actual,
     fetchComposioConfigFromDaemon: vi.fn(),
     fetchDaemonConfig: vi.fn(),
-    fetchMediaProvidersFromDaemon: vi.fn(),
     loadConfig: vi.fn(),
     mergeDaemonConfig: vi.fn(actual.mergeDaemonConfig),
     saveConfig: vi.fn(),
     syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
-    syncMediaProvidersToDaemon: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -133,7 +131,6 @@ import { listProjects, listTemplates } from '../../src/state/projects';
 import {
   fetchComposioConfigFromDaemon,
   fetchDaemonConfig,
-  fetchMediaProvidersFromDaemon,
   loadConfig,
 } from '../../src/state/config';
 
@@ -164,7 +161,6 @@ const appConfig: AppConfig = {
   skillId: null,
   designSystemId: 'default',
   onboardingCompleted: true,
-  mediaProviders: {},
   composio: {},
   agentModels: {},
   agentCliEnv: {},
@@ -190,7 +186,6 @@ beforeEach(() => {
   vi.mocked(loadConfig).mockReturnValue({ ...appConfig });
   vi.mocked(fetchDaemonConfig).mockResolvedValue({ agentId: 'codex', designSystemId: 'default' });
   vi.mocked(fetchComposioConfigFromDaemon).mockReturnValue(new Promise(() => undefined));
-  vi.mocked(fetchMediaProvidersFromDaemon).mockReturnValue(new Promise(() => undefined));
 });
 
 afterEach(() => {

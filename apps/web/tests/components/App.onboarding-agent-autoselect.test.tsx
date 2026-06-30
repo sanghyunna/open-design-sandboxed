@@ -100,13 +100,8 @@ vi.mock('../../src/state/config', async () => {
     mergeDaemonConfig: vi.fn(actual.mergeDaemonConfig),
     saveConfig: vi.fn(),
     fetchDaemonConfig: vi.fn(),
-    fetchMediaProvidersFromDaemon: vi.fn().mockResolvedValue({
-      status: 'ok',
-      providers: null,
-    }),
     syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
-    syncMediaProvidersToDaemon: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -138,7 +133,6 @@ function firstRunConfig(): AppConfig {
     // First run: the user has NOT finished onboarding yet. Onboarding owns
     // the agent pick (AMR is the recommended default).
     onboardingCompleted: false,
-    mediaProviders: {},
     composio: {},
     agentModels: {},
     agentCliEnv: {},
