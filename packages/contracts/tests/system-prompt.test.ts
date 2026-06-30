@@ -99,10 +99,6 @@ describe('composeSystemPrompt', () => {
       'Prototype',
       'Live artifact',
       'Slide deck',
-      'Image',
-      'Video',
-      'HyperFrames',
-      'Audio',
       'Other',
     ]) {
       expect(prompt).toContain(`"${option}"`);
@@ -123,10 +119,6 @@ describe('composeSystemPrompt', () => {
       'Prototype',
       'Live artifact',
       'Slide deck',
-      'Image',
-      'Video',
-      'HyperFrames',
-      'Audio',
       'Other',
     ]) {
       expect(prompt).toContain(`"${option}"`);
@@ -180,17 +172,4 @@ describe('composeSystemPrompt', () => {
     }
   });
 
-  it('does not include the HTML discovery layer for media surfaces', () => {
-    const prompt = composeSystemPrompt({
-      metadata: {
-        kind: 'image',
-        imageModel: 'fal/imagen4',
-        imageAspect: '16:9',
-      } as any,
-    });
-
-    expect(prompt).not.toContain('# OD core directives');
-    expect(prompt).not.toContain('<question-form id="discovery"');
-    expect(prompt).toContain('## Media generation contract');
-  });
 });
