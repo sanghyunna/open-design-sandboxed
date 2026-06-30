@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { DECK_SKELETON_HTML } from '@open-design/contracts';
 import type { DOMWindow } from 'jsdom';
 
 const tasteEditorialExamplePath = fileURLToPath(
@@ -166,5 +167,33 @@ describe('design template deck navigation', () => {
 
     expect(counter?.textContent?.trim()).toBe('3 / 6');
     expect(win.document.documentElement.scrollLeft).toBe(2000);
+  });
+});
+
+describe('deck framework skeleton navigation', () => {
+  it('advances one slide for one ArrowRight keydown', () => {
+    const frameworkChromeMarker = '\n    </div>\n  </div>\n\n  <!-- Framework chrome';
+    const html = DECK_SKELETON_HTML.replace(
+      frameworkChromeMarker,
+      '\n      <section class="slide" data-screen-label="03"></section>' + frameworkChromeMarker,
+    );
+    const dom = new JSDOM(html, {
+      pretendToBeVisual: true,
+      runScripts: 'dangerously',
+      url: 'https://example.test/deck-framework.html',
+      virtualConsole: new VirtualConsole(),
+    });
+    const { window: win } = dom;
+
+    win.document.body.dispatchEvent(new win.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowRight',
+    }));
+
+    const slides = Array.from(win.document.querySelectorAll('.slide'));
+    const activeIndex = slides.findIndex((slide) => slide.classList.contains('active'));
+    expect(activeIndex).toBe(1);
+    expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
   });
 });
