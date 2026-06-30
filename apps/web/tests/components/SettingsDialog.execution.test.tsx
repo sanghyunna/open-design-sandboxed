@@ -629,7 +629,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'gemma3:4b',
         apiProviderBaseUrl: 'http://localhost:11434',
       }),
-      {},
     );
 
     await waitFor(() => {
@@ -689,7 +688,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'claude-sonnet-4-5',
         apiProviderBaseUrl: null,
       }),
-      {},
     );
   });
 
@@ -792,7 +790,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiVersion: '2024-10-21',
         apiProviderBaseUrl: null,
       }),
-      {},
     );
   });
 
@@ -2145,7 +2142,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
           codex: { CODEX_HOME: '~/.codex-team' },
         },
       }),
-      {},
     );
   });
 
@@ -2575,7 +2571,6 @@ describe('SettingsDialog notifications interactions', () => {
           desktopEnabled: false,
         },
       }),
-      {},
     );
   });
 
@@ -2793,7 +2788,6 @@ describe('SettingsDialog appearance interactions', () => {
           },
         },
       }),
-      {},
     );
   });
 
@@ -3028,7 +3022,6 @@ describe('SettingsDialog pets interactions', () => {
           }),
         }),
       }),
-      {},
     );
   });
 

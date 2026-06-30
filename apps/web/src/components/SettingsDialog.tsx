@@ -3887,22 +3887,6 @@ export function SettingsDialog({
                   />
                 </label>
               ) : null}
-              {apiProtocol === 'aihubmix' ? (
-                <label className="field">
-                  <span className="field-label">{t('settings.byokSpeechVoice')}</span>
-                  <select
-                    value={cfg.byokSpeechVoice ?? ''}
-                    onChange={(e) => updateApiConfig({ byokSpeechVoice: e.target.value })}
-                  >
-                    <option value="">alloy (default)</option>
-                    {['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].map((v) => (
-                      <option key={v} value={v}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
             </section>
           )}
             </>

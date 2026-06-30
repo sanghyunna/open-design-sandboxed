@@ -227,22 +227,6 @@ export interface ApiProtocolConfig {
   model: string;
   apiVersion?: string;
   apiProviderBaseUrl?: string | null;
-  /** SenseAudio BYOK only — default image model the daemon-side
-   *  `generate_image` tool uses when the LLM doesn't pass one. Carries
-   *  one of the SenseAudio image model ids (`senseaudio-image-2.0-260319`,
-   *  `senseaudio-image-1.0-260319`, `doubao-seedream-5-0-260128`). Stored
-   *  per-protocol so flipping between BYOK tabs doesn't reset the
-   *  SenseAudio image-model choice. */
-  byokImageModel?: string;
-  /** BYOK only — default video model the daemon-side `generate_video` tool
-   *  uses when the LLM doesn't pass one. Carries an `aihubmix-` prefixed
-   *  video model id. Stored per-protocol, like byokImageModel. */
-  byokVideoModel?: string;
-  /** BYOK only — default speech (TTS) model for the daemon-side generate_speech
-   *  tool (`aihubmix-` prefixed). Stored per-protocol, like byokImageModel. */
-  byokSpeechModel?: string;
-  /** BYOK only — default speech voice id for the generate_speech tool. */
-  byokSpeechVoice?: string;
 }
 
 // Per-CLI model + reasoning the user picked in the model menu. Each agent
@@ -357,17 +341,6 @@ export interface AppConfig {
   model: string;
   apiProtocol?: ApiProtocol;
   apiVersion?: string;
-  /** SenseAudio BYOK only — default image model for the daemon-side
-   *  generate_image tool. Mirrors apiProtocolConfigs.senseaudio.byokImageModel
-   *  so the active protocol's value lives at the top level (consistent
-   *  with how apiKey / baseUrl / model are projected onto AppConfig). */
-  byokImageModel?: string;
-  /** BYOK only — default video model for the daemon-side generate_video tool.
-   *  Mirrors apiProtocolConfigs.<protocol>.byokVideoModel onto AppConfig. */
-  byokVideoModel?: string;
-  /** BYOK only — default speech model + voice for the generate_speech tool. */
-  byokSpeechModel?: string;
-  byokSpeechVoice?: string;
   apiProtocolConfigs?: Partial<Record<ApiProtocol, ApiProtocolConfig>>;
   /** Internal config schema/migration version for localStorage upgrades. */
   configMigrationVersion?: number;

@@ -85,10 +85,9 @@ export const SUGGESTED_MODELS_BY_PROTOCOL: Record<ApiProtocol, readonly string[]
     // AIHubMix is an OpenAI-compatible aggregator that routes to OpenAI /
     // Anthropic / Gemini / DeepSeek by model name on its side. Listing the
     // headline cross-vendor checkpoints keeps the picker useful without
-    // pretending to enumerate the full catalogue — users can type any id
+    // pretending to enumerate the full catalogue - users can type any id
     // AIHubMix exposes (or fetch the full live list). gpt-5.5 leads as the
-    // default chat model (an OpenAI-family model keeps in-chat generate_image
-    // working through the OpenAI tool loop after protocol routing lands).
+    // default chat model.
     'gpt-5.5',
     'gpt-4o',
     'gpt-4o-mini',

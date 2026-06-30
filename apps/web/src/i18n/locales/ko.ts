@@ -304,7 +304,6 @@ export const ko: Dict = {
   'settings.azureModelFetchHint': 'Azure 리소스의 배포 이름을 입력하세요. Azure 배포는 자동으로 불러올 수 없습니다.',
   'settings.apiVersion': 'API 버전',
   'settings.byokVideoI2vHint': '이미지→비디오 모델: 참조 이미지가 필요합니다(지정하지 않으면 프로젝트의 최신 이미지를 자동 사용)',
-  'settings.byokSpeechVoice': '음성(보이스)',
   'settings.maxTokens': '최대 토큰 수 (선택 사항)',
   'settings.maxTokensHint': '응답 길이 상한입니다. 각 모델에는 기본값이 미리 조정되어 있으며(placeholder로 표시됨), 비워 두면 그 값을 사용하고 숫자를 입력하면 덮어씁니다.',
   'settings.apiHint': '요청은 로컬 daemon 프록시를 통해 설정한 Base URL로 전송됩니다. 키는 이 브라우저에만 저장되며 제공자 요청과 함께 전송됩니다.',

@@ -1257,7 +1257,7 @@ export function HomeView({
     // the snapshot would suppress the discovery flow even though
     // `onSubmit.pluginInputs` was stripped. Stripping only removes non-required
     // fields (`subject`/`style`/`aspect`/`mediaKind` stay), so the
-    // od-media-generation apply still validates.
+    // apply still validates.
     const submittedPluginInputs = submittedActive
       ? stripArtifactFooterInputs(submittedApplyInputs)
       : defaultInputs;

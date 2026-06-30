@@ -43,11 +43,9 @@ export async function streamMessage(
   history: ChatMessage[],
   signal: AbortSignal,
   handlers: StreamHandlers,
-  // Only the senseaudio / aihubmix branches read `context.projectId`
-  // today (so the daemon-side `generate_image` tool can write into the
-  // active project's folder). Other branches accept and ignore — keeping the
-  // signature uniform means the single call site in ProjectView passes
-  // the same shape regardless of protocol.
+  // BYOK proxy branches and the Anthropic proxy read `context.projectId` for
+  // project-scoped attachment handling. Other branches accept and ignore it
+  // so ProjectView can pass one uniform context shape.
   context?: ProxyContext,
 ): Promise<void> {
   // Prefer the explicit Settings protocol; keep the legacy heuristic as a

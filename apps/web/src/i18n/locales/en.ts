@@ -304,7 +304,6 @@ export const en: Dict = {
   'settings.azureModelFetchHint': 'Enter the deployment name from your Azure resource. Azure deployments can’t be fetched automatically.',
   'settings.apiVersion': 'API version',
   'settings.byokVideoI2vHint': 'Image-to-video model: a reference image is required (the newest project image is used automatically if you don’t pick one)',
-  'settings.byokSpeechVoice': 'Speech voice',
   'settings.maxTokens': 'Max tokens (optional)',
   'settings.maxTokensHint': 'Cap on the response length. Each model has a tuned default (shown as a placeholder); leave blank to use it, or enter a number to override.',
   'settings.apiHint': 'Stored only in this browser.',

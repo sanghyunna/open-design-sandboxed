@@ -2796,7 +2796,7 @@ function homeHeroChipTitle(chip: HomeHeroChip, t: ReturnType<typeof useT>): stri
 // Generic catch-all scenario routers are not real "example" templates: they
 // ship no concrete seed for the gallery, so keep them out of the example-prompt
 // presets.
-const EXAMPLE_PRESET_HIDDEN_PLUGIN_IDS = new Set<string>(['od-media-generation']);
+const EXAMPLE_PRESET_HIDDEN_PLUGIN_IDS = new Set<string>();
 
 export function homeHeroExamplePluginsForChip(
   chipId: string,

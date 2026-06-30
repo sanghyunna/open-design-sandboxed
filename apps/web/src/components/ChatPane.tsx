@@ -434,18 +434,6 @@ interface Props {
   // each user message — that satisfies §8 "show context inside the run
   // message" without forcing a separate side widget.
   activePluginSnapshot?: AppliedPluginSnapshot | null;
-  // SenseAudio BYOK only — wired straight through to ChatComposer for the
-  // in-composer image-model picker. Active protocol is read so the picker
-  // hides when the user is on any other BYOK tab (azure / openai / …).
-  byokApiProtocol?: AppConfig['apiProtocol'];
-  byokImageModel?: string;
-  onChangeByokImageModel?: (model: string) => void;
-  byokVideoModel?: string;
-  onChangeByokVideoModel?: (model: string) => void;
-  byokSpeechModel?: string;
-  onChangeByokSpeechModel?: (model: string) => void;
-  byokSpeechVoice?: string;
-  onChangeByokSpeechVoice?: (voice: string) => void;
   composerFooterAccessory?: ReactNode;
   // Slot rendered next to the composer's "+" menu (e.g. the working-dir pill).
   composerLeadingAccessory?: ReactNode;
@@ -588,15 +576,6 @@ export function ChatPane({
   researchAvailable,
   activePluginSnapshot,
   skills = [],
-  byokApiProtocol,
-  byokImageModel,
-  onChangeByokImageModel,
-  byokVideoModel,
-  onChangeByokVideoModel,
-  byokSpeechModel,
-  onChangeByokSpeechModel,
-  byokSpeechVoice,
-  onChangeByokSpeechVoice,
   composerLeadingAccessory,
   composerFooterAccessory,
   currentDesignSystemId,
@@ -1493,15 +1472,6 @@ export function ChatPane({
       onProjectMetadataChange={onProjectMetadataChange}
       activeWorkspaceContext={activeWorkspaceContext}
       workspaceContexts={workspaceContexts}
-      byokApiProtocol={byokApiProtocol}
-      byokImageModel={byokImageModel}
-      onChangeByokImageModel={onChangeByokImageModel}
-      byokVideoModel={byokVideoModel}
-      onChangeByokVideoModel={onChangeByokVideoModel}
-      byokSpeechModel={byokSpeechModel}
-      onChangeByokSpeechModel={onChangeByokSpeechModel}
-      byokSpeechVoice={byokSpeechVoice}
-      onChangeByokSpeechVoice={onChangeByokSpeechVoice}
       currentSkillId={currentSkillId}
       onProjectSkillChange={onProjectSkillChange}
       pinnedPluginId={activePluginSnapshot?.pluginId ?? null}
