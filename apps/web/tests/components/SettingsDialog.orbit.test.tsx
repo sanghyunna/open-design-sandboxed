@@ -88,7 +88,7 @@ const orbitTemplates = [
 
 const clipboardDescriptor = Object.getOwnPropertyDescriptor(window.navigator, 'clipboard');
 
-type OnPersist = (cfg: AppConfig, options?: { forceMediaProviderSync?: boolean }) => void | Promise<void>;
+type OnPersist = (cfg: AppConfig, options?: Record<string, unknown>) => void | Promise<void>;
 type OnClose = () => void;
 
 function renderOrbitSettings(
@@ -300,7 +300,6 @@ describe('SettingsDialog Orbit connector gate refresh', () => {
             templateSkillId: 'orbit-editorial',
           },
         }),
-        expect.any(Object),
       );
     });
   });

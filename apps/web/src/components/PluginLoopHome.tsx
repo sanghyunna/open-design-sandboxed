@@ -38,8 +38,7 @@ export interface PluginLoopSubmit {
   // Stage B of plugin-driven-flow-plan: when the user picked a Home
   // chip the rail tells the submit handler which `ProjectKind` to
   // stamp on the new project's metadata. The daemon-side default
-  // binding then resolves to the matching scenario plugin (image /
-  // video / audio → od-media-generation, others → od-new-generation).
+  // binding then resolves to the matching scenario plugin for that kind.
   // Null means the caller did not stamp an explicit kind. HomeView's
   // free-form fallback uses `other` and binds the hidden od-default
   // router plugin so the agent asks for the exact task type in-chat.

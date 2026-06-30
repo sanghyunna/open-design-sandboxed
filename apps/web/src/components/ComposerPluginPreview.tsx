@@ -37,14 +37,6 @@ function pluginKindLabel(
       return t('homeHero.chip.liveArtifact');
     case 'deck':
       return t('pluginsHome.facet.slides');
-    case 'image':
-      return t('homeHero.chip.image');
-    case 'video':
-      return t('homeHero.chip.video');
-    case 'hyperframes':
-      return t('homeHero.chip.hyperframes');
-    case 'audio':
-      return t('homeHero.chip.audio');
     default:
       return null;
   }

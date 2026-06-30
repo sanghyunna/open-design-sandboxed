@@ -49,12 +49,6 @@
       "tags": ["create", "video", "storyboard"]
     },
     {
-      "name": "create-hyperframes-launch",
-      "source": "./create-hyperframes-launch",
-      "version": "0.1.0",
-      "tags": ["create", "video", "hyperframes"]
-    },
-    {
       "name": "export-nextjs-handoff",
       "source": "./export-nextjs-handoff",
       "version": "0.1.0",

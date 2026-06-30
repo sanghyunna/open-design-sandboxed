@@ -22,9 +22,6 @@ describe('defaultScenarioPluginIdForKind', () => {
       prototype: 'example-web-prototype',
       deck:      'example-simple-deck',
       template:  'od-new-generation',
-      image:     'od-media-generation',
-      video:     'od-media-generation',
-      audio:     'od-media-generation',
       other:     'od-new-generation',
     };
     for (const [kind, pluginId] of Object.entries(expected)) {

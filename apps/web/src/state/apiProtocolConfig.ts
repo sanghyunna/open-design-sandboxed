@@ -45,10 +45,6 @@ function currentApiProtocolConfig(config: AppConfig): ApiProtocolConfig {
     model: config.model,
     apiVersion: config.apiVersion ?? '',
     apiProviderBaseUrl: config.apiProviderBaseUrl ?? null,
-    byokImageModel: config.byokImageModel ?? '',
-    byokVideoModel: config.byokVideoModel ?? '',
-    byokSpeechModel: config.byokSpeechModel ?? '',
-    byokSpeechVoice: config.byokSpeechVoice ?? '',
   };
 }
 
@@ -100,23 +96,6 @@ function applyApiProtocolConfig(
     model: apiConfig.model,
     apiProviderBaseUrl: apiConfig.apiProviderBaseUrl ?? null,
     apiVersion: protocol === 'azure' ? (apiConfig.apiVersion ?? '') : '',
-    // byokImageModel applies to the protocols that inject the daemon-side
-    // generate_image tool (SenseAudio, AIHubMix) — flipping to another BYOK
-    // tab shouldn't carry an image-model choice into, say, the OpenAI form.
-    // Mirrors the apiVersion guarding above.
-    byokImageModel:
-      protocol === 'senseaudio' || protocol === 'aihubmix'
-        ? (apiConfig.byokImageModel ?? '')
-        : '',
-    // byokVideoModel only applies to AIHubMix today (the only BYOK chat with a
-    // video-model picker; SenseAudio's video tool uses a fixed model).
-    byokVideoModel:
-      protocol === 'aihubmix' ? (apiConfig.byokVideoModel ?? '') : '',
-    // Speech model + voice also AIHubMix-only today.
-    byokSpeechModel:
-      protocol === 'aihubmix' ? (apiConfig.byokSpeechModel ?? '') : '',
-    byokSpeechVoice:
-      protocol === 'aihubmix' ? (apiConfig.byokSpeechVoice ?? '') : '',
   };
 }
 

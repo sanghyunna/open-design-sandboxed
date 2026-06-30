@@ -2776,10 +2776,6 @@ function homeHeroChipLabel(chipId: string, t: ReturnType<typeof useT>): string {
     case 'prototype': return t('homeHero.chip.prototype');
     case 'live-artifact': return t('homeHero.chip.liveArtifact');
     case 'deck': return t('homeHero.chip.deck');
-    case 'image': return t('homeHero.chip.image');
-    case 'video': return t('homeHero.chip.video');
-    case 'hyperframes': return t('homeHero.chip.hyperframes');
-    case 'audio': return t('homeHero.chip.audio');
     case 'create-plugin': return t('homeHero.chip.createPlugin');
     case 'figma': return t('homeHero.chip.figma');
     case 'template': return t('homeHero.chip.template');
@@ -2790,7 +2786,6 @@ function homeHeroChipLabel(chipId: string, t: ReturnType<typeof useT>): string {
 function homeHeroChipTitle(chip: HomeHeroChip, t: ReturnType<typeof useT>): string {
   switch (chip.id) {
     case 'live-artifact': return t('homeHero.chip.liveArtifactHint');
-    case 'hyperframes': return t('homeHero.chip.hyperframesHint');
     case 'create-plugin': return t('homeHero.chip.createPluginHint');
     case 'figma': return t('homeHero.chip.figmaHint');
     case 'template': return t('homeHero.chip.templateHint');
@@ -2799,13 +2794,9 @@ function homeHeroChipTitle(chip: HomeHeroChip, t: ReturnType<typeof useT>): stri
 }
 
 // Generic catch-all scenario routers are not real "example" templates: they
-// ship no concrete seed for the gallery and only exist as the silent default
-// binding a media surface carries (see scenario-defaults.ts). Keep them out of
-// the example-prompt presets so e.g. the "Media generation (default scenario)"
-// card never appears under the audio/image/video chips — and, because the
-// example card's selected state is keyed on the active plugin id, never shows
-// up pre-selected when a media mode is entered.
-const EXAMPLE_PRESET_HIDDEN_PLUGIN_IDS = new Set<string>(['od-media-generation']);
+// ship no concrete seed for the gallery, so keep them out of the example-prompt
+// presets.
+const EXAMPLE_PRESET_HIDDEN_PLUGIN_IDS = new Set<string>();
 
 export function homeHeroExamplePluginsForChip(
   chipId: string,
@@ -2824,9 +2815,6 @@ export function homeHeroExamplePluginsForChip(
     ))
     .sort((a, b) => comparePluginPresetOrder(a, b, chipId))
     .slice(0, 18);
-  if (chipId === 'image') {
-    return movePluginPresetToEnd(presets, 'example-hatch-pet');
-  }
   return presets;
 }
 
@@ -2847,20 +2835,6 @@ function comparePluginPresetOrder(
   return (a.title || a.id).localeCompare(b.title || b.id);
 }
 
-function movePluginPresetToEnd(
-  records: InstalledPluginRecord[],
-  pluginId: string,
-): InstalledPluginRecord[] {
-  const index = records.findIndex((record) => record.id === pluginId);
-  if (index < 0 || index === records.length - 1) return records;
-  const record = records[index]!;
-  return [
-    ...records.slice(0, index),
-    ...records.slice(index + 1),
-    record,
-  ];
-}
-
 export function pluginMatchesExampleChip(record: InstalledPluginRecord, chipId: string): boolean {
   const slugs = pluginRecordSlugs(record);
   const has = (...values: string[]) => values.some((value) => slugs.has(value));
@@ -2875,19 +2849,8 @@ export function pluginMatchesExampleChip(record: InstalledPluginRecord, chipId: 
       return has('prototype') || hasPart('web-prototype');
     case 'deck':
       return has('deck', 'slides', 'slide-deck') || hasPart('slide', 'deck');
-    case 'hyperframes':
-      return hasPart('hyperframes', 'hyperframe');
     case 'live-artifact':
       return has('live-artifact') || hasPart('live-artifact');
-    case 'image':
-      return (has('image') || hasPart('image-template')) && !hasPart('video', 'audio', 'live-artifact');
-    case 'video':
-      return (has('video') || hasPart('video-template')) && !hasPart('hyperframes', 'audio');
-    case 'audio':
-      // Exclude video / HyperFrames templates that merely carry an
-      // `audio-reactive` tag (substring-matched by hasPart('audio')): their
-      // home is the Video / HyperFrames chips, not the audio gallery.
-      return (has('audio') || hasPart('audio')) && !hasPart('video', 'hyperframes');
     default:
       return false;
   }
@@ -3059,10 +3022,6 @@ function pluginPresetArtifactLabel(chipId: string, _kind: PromptLocaleKind): str
   switch (chipId) {
     case 'prototype': return 'interactive prototype';
     case 'deck': return 'PPT slide deck';
-    case 'image': return 'image';
-    case 'video': return 'video';
-    case 'hyperframes': return 'HyperFrames motion video';
-    case 'audio': return 'audio clip';
     default: return 'design artifact';
   }
 }
@@ -3097,30 +3056,6 @@ const HOME_PROMPT_EXAMPLES: Record<Locale, Record<string, string[]>> = {
       "Design an investor pitch with market sizing, growth model, product advantage, and three-year forecast data",
       "Create a strategic business review deck covering quarterly performance, root causes, opportunities, and next actions",
     ],
-    image: [
-      "Generate a glassmorphism AI workspace poster with multi-screen collaboration, soft lighting, and a premium launch mood",
-      "Create an ecommerce hero image for new wireless headphones that highlights material detail, lifestyle context, and core benefits",
-      "Design a minimalist tech launch key visual with a clean composition, strong product focus, and restrained launch copy",
-      "Make a social teaser set for a product drop, including countdown, close-up detail, benefit reveal, and launch-day visual",
-    ],
-    video: [
-      "Make an 8-second product reveal film that moves from silhouette to close-up detail and ends on the brand mark",
-      "Generate an app feature demo video that follows the user journey, key states, and final outcome",
-      "Create a vertical brand opener with rhythmic typography, product close-ups, and a clean logo ending for short-form video",
-      "Turn a website into a 15-second social ad by extracting the hero claim, interaction highlights, and a clear CTA",
-    ],
-    hyperframes: [
-      "Build a captioned product launch short with title cards, feature shots, rhythmic transitions, and an ending CTA",
-      "Generate an audio-reactive data visualization where bars, particles, and titles respond to narration beats",
-      "Create a 3-second logo outro using line convergence, subtle elasticity, and the brand color system",
-      "Make an animated flight-route map showing city nodes, route growth, mileage data, and a final summary frame",
-    ],
-    audio: [
-      "Generate a product startup sound that feels light, trustworthy, slightly futuristic, and suitable for a desktop app launch",
-      "Create a 20-second podcast intro bed with a warm opening, clear pulse, and a clean handoff into voiceover",
-      "Make a seamless ambient loop for a meditation app using soft nature textures, low-frequency warmth, and calm pacing",
-      "Generate a branded notification sound set for success, reminder, and error states while keeping one sonic identity",
-    ],
   },  "ko": {
     prototype: [
       "명확한 히어로, 기능 스토리, 신뢰 지표, 체험판 CTA를 갖춘 AI CRM용 고전환 website를 디자인해 줘",
@@ -3134,40 +3069,12 @@ const HOME_PROMPT_EXAMPLES: Record<Locale, Record<string, string[]>> = {
       "시장 규모, 성장 모델, 제품 경쟁력, 3년 전망 데이터를 담은 투자자 피치를 디자인해 줘",
       "분기 실적, 근본 원인, 기회 요소, 다음 액션을 다루는 전략 비즈니스 리뷰 deck을 만들어 줘",
     ],
-    image: [
-      "멀티 스크린 협업, 부드러운 조명, 프리미엄한 출시 무드를 담은 글래스모피즘 AI 워크스페이스 포스터를 생성해 줘",
-      "소재 디테일, 라이프스타일 맥락, 핵심 혜택을 강조하는 신규 무선 헤드폰 이커머스 히어로 이미지를 만들어 줘",
-      "깔끔한 구성, 강한 제품 집중도, 절제된 카피를 살린 미니멀 테크 출시 키 비주얼을 디자인해 줘",
-      "카운트다운, 클로즈업 디테일, 혜택 공개, 출시 당일 비주얼을 담은 제품 출시 소셜 티저 세트를 만들어 줘",
-    ],
-    video: [
-      "실루엣에서 클로즈업 디테일로 이어지다 브랜드 마크로 마무리되는 8초 제품 공개 영상을 만들어 줘",
-      "사용자 여정, 핵심 상태, 최종 결과를 따라가는 app 기능 데모 영상을 생성해 줘",
-      "리듬감 있는 타이포그래피, 제품 클로즈업, 깔끔한 logo 엔딩을 담은 숏폼용 세로형 브랜드 오프너를 만들어 줘",
-      "히어로 메시지, 인터랙션 하이라이트, 명확한 CTA를 뽑아 website를 15초 소셜 광고로 만들어 줘",
-    ],
-    hyperframes: [
-      "타이틀 카드, 기능 컷, 리듬감 있는 트랜지션, 엔딩 CTA를 담은 자막형 제품 출시 숏폼을 만들어 줘",
-      "막대, 파티클, 타이틀이 내레이션 비트에 반응하는 오디오 반응형 데이터 시각화를 생성해 줘",
-      "라인 수렴, 은은한 탄성, 브랜드 컬러 시스템을 활용한 3초 logo 아웃트로를 만들어 줘",
-      "도시 노드, 노선 성장, 마일리지 데이터, 최종 요약 프레임을 보여주는 비행 경로 애니메이션 지도를 만들어 줘",
-    ],
-    audio: [
-      "가볍고 신뢰감 있으며 살짝 미래적인, 데스크톱 app 출시에 어울리는 제품 시작음을 생성해 줘",
-      "따뜻한 도입부, 또렷한 펄스, 보이스오버로 매끄럽게 이어지는 20초 팟캐스트 인트로 베드를 만들어 줘",
-      "부드러운 자연음 텍스처, 저주파의 따스함, 차분한 페이싱을 활용한 명상 app용 끊김 없는 앰비언트 루프를 만들어 줘",
-      "하나의 사운드 아이덴티티를 유지하면서 성공, 알림, 오류 상태를 위한 브랜드 알림음 세트를 생성해 줘",
-    ],
   },
 };
 
 export const HOME_PROMPT_EXAMPLE_CHIP_IDS = [
   'prototype',
   'deck',
-  'image',
-  'video',
-  'hyperframes',
-  'audio',
 ] as const;
 
 // Every supported locale must resolve its own localized example prompts; a
@@ -3188,14 +3095,6 @@ function briefForChipId(chipId: string): Record<string, string> {
       return { artifact_type: 'web prototype', audience: 'product evaluators', fidelity: 'high-fidelity' };
     case 'deck':
       return { artifact_type: 'pitch deck / presentation', audience: 'decision makers', slide_count: '10-15 pages' };
-    case 'image':
-      return { artifact_type: 'image', style: 'cinematic, high-quality, on-brand' };
-    case 'video':
-      return { artifact_type: 'video', style: 'cinematic, high-quality, on-brand' };
-    case 'hyperframes':
-      return { artifact_type: 'motion graphic / animated sequence', style: 'cinematic, polished transitions' };
-    case 'audio':
-      return { artifact_type: 'audio', style: 'professional, polished, brand-appropriate' };
     default:
       return { artifact_type: chipId };
   }

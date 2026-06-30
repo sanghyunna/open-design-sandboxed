@@ -38,12 +38,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { MEDIA_PROVIDERS } from './media-models.js';
 import { expandHomePrefix } from './home-expansion.js';
 import { resolveXAIBearer } from './xai-credentials.js';
 import { isSandboxModeEnabled } from './sandbox-mode.js';
 
-const PROVIDER_IDS = MEDIA_PROVIDERS.map((p) => p.id);
 type ProviderEntry = { apiKey?: string; baseUrl?: string; model?: string };
 type ProviderMap = Record<string, ProviderEntry>;
 type ModelAliasMap = Record<string, string>;
@@ -106,6 +104,8 @@ const ENV_KEYS: Record<string, string[]> = {
   tavily: ['OD_TAVILY_API_KEY', 'TAVILY_API_KEY'],
   leonardo: ['OD_LEONARDO_API_KEY', 'LEONARDO_API_KEY'],
 };
+
+const PROVIDER_IDS = Object.keys(ENV_KEYS);
 
 // Resolve an `OD_*_DIR` env override using the same semantics as
 // `resolveDataDir()` in server.ts: expandHomePrefix() handles the `~`,
@@ -420,76 +420,6 @@ export async function readMaskedConfig(projectRoot: string): Promise<MaskedConfi
   }
   const aliases = await readAliasMap(projectRoot);
   return { providers, aliases };
-}
-
-/**
- * Write the supplied {providerId: {apiKey, baseUrl}} map. Empty
- * apiKey deletes the entry. Unknown provider IDs are ignored. We
- * deliberately replace the whole map rather than merging so the
- * UI's "clear key" affordance just sends an empty string.
- *
- * Safety: if the incoming payload is empty but the on-disk config
- * currently has providers, we log a WARN to stderr. This catches
- * accidental wipes (e.g. a fresh-localStorage browser bootstrap
- * pushing `{providers: {}}` onto a daemon that had keys from a
- * previous session) without silently destroying the user's data.
- */
-export async function writeConfig(projectRoot: string, body: unknown) {
-  const incoming = isRecord(body) && isRecord(body.providers) ? body.providers : {};
-  const force = Boolean(isRecord(body) && body.force === true);
-  const prior = await readStored(projectRoot);
-  const next: ProviderMap = {};
-  for (const id of PROVIDER_IDS) {
-    const entry = incoming[id];
-    if (!isRecord(entry)) continue;
-    const incomingApiKey =
-      typeof entry.apiKey === 'string' && entry.apiKey.trim()
-        ? entry.apiKey.trim()
-        : '';
-    const preserveApiKey = entry.preserveApiKey === true;
-    const priorApiKey =
-      typeof prior[id]?.apiKey === 'string' && prior[id].apiKey.trim()
-        ? prior[id].apiKey.trim()
-        : '';
-    const apiKey = incomingApiKey || (preserveApiKey ? priorApiKey : '');
-    const baseUrl =
-      typeof entry.baseUrl === 'string' && entry.baseUrl.trim()
-        ? entry.baseUrl.trim()
-        : '';
-    const model =
-      typeof entry.model === 'string' && entry.model.trim()
-        ? entry.model.trim()
-        : '';
-    if (!apiKey && !baseUrl && !model) continue;
-    next[id] = {
-      apiKey,
-      baseUrl,
-      ...(model ? { model } : {}),
-    };
-  }
-  if (Object.keys(next).length === 0) {
-    const priorIds = Object.keys(prior).filter(
-      (id) => prior[id] && (prior[id].apiKey || prior[id].baseUrl),
-    );
-    if (priorIds.length > 0) {
-      if (!force) {
-        const err = new Error(
-          `refusing to wipe ${priorIds.length} configured provider(s) without force=true: ${priorIds.join(', ')}`,
-        ) as Error & { status: number };
-        err.status = 409;
-        throw err;
-      }
-      try {
-        console.error(
-          `[media-config] WARN: incoming PUT empty, would wipe ${priorIds.length} configured provider(s): ${priorIds.join(', ')}`,
-        );
-      } catch {
-        // best-effort logging only
-      }
-    }
-  }
-  await writeStored(projectRoot, next);
-  return readMaskedConfig(projectRoot);
 }
 
 /**

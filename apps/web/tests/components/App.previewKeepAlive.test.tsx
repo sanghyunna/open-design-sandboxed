@@ -8,7 +8,6 @@ import type { AppConfig, Project } from '../../src/types';
 import {
   fetchComposioConfigFromDaemon,
   fetchDaemonConfig,
-  fetchMediaProvidersFromDaemon,
   loadConfig,
   mergeDaemonConfig,
   saveConfig,
@@ -188,7 +187,6 @@ vi.mock('../../src/state/config', async () => {
     ...actual,
     fetchComposioConfigFromDaemon: vi.fn(),
     fetchDaemonConfig: vi.fn(),
-    fetchMediaProvidersFromDaemon: vi.fn(),
     loadConfig: vi.fn(),
     mergeDaemonConfig: vi.fn(),
     saveConfig: vi.fn(),
@@ -208,7 +206,6 @@ const mockedListProjects = vi.mocked(listProjects);
 const mockedListTemplates = vi.mocked(listTemplates);
 const mockedFetchComposioConfigFromDaemon = vi.mocked(fetchComposioConfigFromDaemon);
 const mockedFetchDaemonConfig = vi.mocked(fetchDaemonConfig);
-const mockedFetchMediaProvidersFromDaemon = vi.mocked(fetchMediaProvidersFromDaemon);
 const mockedLoadConfig = vi.mocked(loadConfig);
 const mockedMergeDaemonConfig = vi.mocked(mergeDaemonConfig);
 const mockedUseIframeKeepAlivePool = vi.mocked(useIframeKeepAlivePool);
@@ -226,7 +223,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  mediaProviders: {},
   agentModels: {},
   agentCliEnv: {},
   privacyDecisionAt: 1778244000000,
@@ -262,7 +258,6 @@ describe('App preview keep-alive invalidation', () => {
     mockedListTemplates.mockResolvedValue([]);
     mockedFetchDaemonConfig.mockResolvedValue({});
     mockedFetchComposioConfigFromDaemon.mockResolvedValue(null);
-    mockedFetchMediaProvidersFromDaemon.mockResolvedValue({ status: 'ok', providers: {} });
     mockedMergeDaemonConfig.mockImplementation((local) => local);
     mockedLoadConfig.mockReturnValue({ ...baseConfig });
     vi.stubGlobal(

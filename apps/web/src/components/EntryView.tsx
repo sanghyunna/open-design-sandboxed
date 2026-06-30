@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ConnectorDetail } from '@open-design/contracts';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
-import {
-  DEFAULT_AUDIO_MODEL,
-  DEFAULT_IMAGE_MODEL,
-  DEFAULT_VIDEO_MODEL,
-} from '../media/models';
 import type {
   AgentInfo,
   ApiProtocol,
@@ -118,7 +113,7 @@ interface Props {
   onOpenDesignSystem?: (id: string) => void;
   onDesignSystemsRefresh?: () => Promise<void> | void;
   onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
-  onOpenSettings: (section?: 'execution' | 'media' | 'composio' | 'orbit' | 'integrations' | 'mcpClient' | 'language' | 'appearance' | 'notifications' | 'pet' | 'projectLocations' | 'library' | 'about' | 'memory' | 'designSystems') => void;
+  onOpenSettings: (section?: 'execution' | 'composio' | 'orbit' | 'integrations' | 'mcpClient' | 'language' | 'appearance' | 'notifications' | 'pet' | 'projectLocations' | 'library' | 'about' | 'memory' | 'designSystems') => void;
   onCompleteOnboarding: () => void;
 }
 
@@ -406,20 +401,6 @@ export function metadataForSkill(skill: SkillSummary): ProjectMetadata {
         typeof skill.animations === 'boolean' ? skill.animations : false,
     };
   }
-  if (kind === 'image') {
-    return { kind, imageModel: DEFAULT_IMAGE_MODEL, imageAspect: '1:1' };
-  }
-  if (kind === 'video') {
-    return { kind, videoModel: DEFAULT_VIDEO_MODEL, videoAspect: '16:9', videoLength: 5 };
-  }
-  if (kind === 'audio') {
-    return {
-      kind,
-      audioKind: 'speech',
-      audioModel: DEFAULT_AUDIO_MODEL.speech,
-      audioDuration: 10,
-    };
-  }
   return { kind: 'other' };
 }
 
@@ -427,8 +408,5 @@ export function kindForSkill(skill: SkillSummary): ProjectKind {
   if (skill.mode === 'deck') return 'deck';
   if (skill.mode === 'prototype') return 'prototype';
   if (skill.mode === 'template') return 'template';
-  if (skill.mode === 'image' || skill.surface === 'image') return 'image';
-  if (skill.mode === 'video' || skill.surface === 'video') return 'video';
-  if (skill.mode === 'audio' || skill.surface === 'audio') return 'audio';
   return 'other';
 }

@@ -53,17 +53,12 @@ import { navigate, useRoute } from './router';
 import {
   fetchDaemonConfig,
   DEFAULT_PET,
-  fetchMediaProvidersFromDaemon,
-  hasAnyConfiguredProvider,
   fetchComposioConfigFromDaemon,
   loadConfig,
   mergeDaemonConfig,
-  mergeDaemonMediaProviders,
   saveConfig,
-  shouldSyncLocalMediaProvidersToDaemon,
   syncComposioConfigToDaemon,
   syncConfigToDaemon,
-  syncMediaProvidersToDaemon,
 } from './state/config';
 import { applyAppearanceToDocument } from './state/appearance';
 import {
@@ -141,12 +136,6 @@ const APP_CONFIG_CHANGED_EVENT = 'open-design:app-config-changed';
 const AMR_AGENT_ID = 'amr';
 const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
 
-export function shouldSyncMediaProvidersOnSave(
-  mediaProviders: AppConfig['mediaProviders'],
-  options?: { force?: boolean },
-): boolean {
-  return Boolean(options?.force) || hasAnyConfiguredProvider(mediaProviders);
-}
 
 function amrProfileForConfig(config: AppConfig): string | null {
   const profile = config.agentCliEnv?.[AMR_AGENT_ID]?.[AMR_PROFILE_ENV_KEY];
@@ -362,13 +351,6 @@ function AppInner() {
   const [appVersionInfo, setAppVersionInfo] = useState<AppVersionInfo | null>(
     null,
   );
-  const [daemonMediaProviders, setDaemonMediaProviders] = useState<
-    AppConfig['mediaProviders'] | null
-  >(null);
-  const [daemonMediaProvidersFetchState, setDaemonMediaProvidersFetchState] = useState<
-    'idle' | 'ok' | 'error'
-  >('idle');
-  const [mediaProvidersNotice, setMediaProvidersNotice] = useState<string | null>(null);
   // Per-resource loading flags. Each goes false the moment its own fetch
   // resolves so each entry-view tab can render as its data lands instead of
   // every tab waiting on the slowest endpoint (typically `/api/agents`,
@@ -729,12 +711,9 @@ function AppInner() {
         // the next render. latestPersistedConfigRef is kept in sync with
         // the rendered config and is safe to read here.
         const baseConfig = latestPersistedConfigRef.current;
-        const next = mergeDaemonMediaProviders(
-          clearStaleAmrModelChoiceOnProfileChange(
-            baseConfig,
-            mergeDaemonConfig(baseConfig, daemonConfig),
-          ),
-          null,
+        const next = clearStaleAmrModelChoiceOnProfileChange(
+          baseConfig,
+          mergeDaemonConfig(baseConfig, daemonConfig),
         );
         saveConfig(next);
         // Migrate localStorage prefs to daemon on first boot with the new
@@ -818,45 +797,15 @@ function AppInner() {
           setAppVersionInfo(info);
         });
 
-        void Promise.all([
-          fetchComposioConfigFromDaemon(),
-          fetchMediaProvidersFromDaemon(),
-        ]).then(([
-          daemonComposioConfig,
-          daemonMediaProvidersResult,
-        ]) => {
+        void fetchComposioConfigFromDaemon().then((daemonComposioConfig) => {
           if (cancelled) return;
-          const daemonMediaProvidersLoaded =
-            daemonMediaProvidersResult.status === 'ok'
-              ? daemonMediaProvidersResult.providers
-              : null;
-          setDaemonMediaProviders(daemonMediaProvidersLoaded);
-          setDaemonMediaProvidersFetchState(daemonMediaProvidersResult.status);
-          setMediaProvidersNotice(
-            daemonMediaProvidersResult.status === 'error'
-              ? t('settings.mediaProviderLoadError')
-              : null,
-          );
           const baseConfig = latestPersistedConfigRef.current;
-          const migratedLocalMediaProviders = shouldSyncLocalMediaProvidersToDaemon(
-            baseConfig.mediaProviders,
-            daemonMediaProvidersLoaded,
-          );
-          const next = mergeDaemonMediaProviders(baseConfig, daemonMediaProvidersLoaded);
+          const next = { ...baseConfig };
           const hasLocalComposioKey = Boolean(next.composio?.apiKey?.trim());
           if (!hasLocalComposioKey && daemonComposioConfig) {
             next.composio = daemonComposioConfig;
           }
           saveConfig(next);
-          if (
-            daemonMediaProvidersResult.status === 'ok' &&
-            migratedLocalMediaProviders &&
-            hasAnyConfiguredProvider(next.mediaProviders)
-          ) {
-            void syncMediaProvidersToDaemon(next.mediaProviders, {
-              daemonProviders: daemonMediaProvidersLoaded,
-            });
-          }
           void syncComposioConfigToDaemon(next.composio);
           latestPersistedConfigRef.current = next;
           setConfig(next);
@@ -985,25 +934,6 @@ function AppInner() {
     return ok;
   }, [refreshTemplates]);
 
-  const reloadMediaProvidersFromDaemon = useCallback(async () => {
-    const result = await fetchMediaProvidersFromDaemon();
-    if (result.status !== 'ok') {
-      setDaemonMediaProvidersFetchState('error');
-      setMediaProvidersNotice(
-        t('settings.mediaProviderLoadError'),
-      );
-      return null;
-    }
-    setDaemonMediaProviders(result.providers);
-    setDaemonMediaProvidersFetchState('ok');
-    setMediaProvidersNotice(null);
-    setConfig((prev) => {
-      const merged = mergeDaemonMediaProviders(prev, result.providers);
-      saveConfig(merged);
-      return merged;
-    });
-    return result.providers;
-  }, []);
 
   /**
    * Autosave-driven persistence path. The settings dialog calls this on
@@ -1016,7 +946,6 @@ function AppInner() {
    */
   const handleConfigPersist = useCallback(async (
     next: AppConfig,
-    options?: { forceMediaProviderSync?: boolean },
   ) => {
     // Strip the in-flight Composio secret before anything hits disk so
     // a half-typed key can't survive in localStorage. If the dialog is
@@ -1026,22 +955,8 @@ function AppInner() {
     latestPersistedConfigRef.current = persisted;
     saveConfig(persisted);
     setConfig(persisted);
-    const shouldSyncMediaProviders =
-      daemonMediaProvidersFetchState === 'ok'
-      && shouldSyncMediaProvidersOnSave(persisted.mediaProviders, {
-        force: options?.forceMediaProviderSync,
-      });
-    await Promise.all([
-      shouldSyncMediaProviders
-        ? syncMediaProvidersToDaemon(persisted.mediaProviders, {
-            force: options?.forceMediaProviderSync,
-            daemonProviders: daemonMediaProviders,
-            throwOnError: options?.forceMediaProviderSync,
-          })
-        : Promise.resolve(),
-      syncConfigToDaemon(persisted),
-    ]);
-  }, [daemonMediaProviders, daemonMediaProvidersFetchState]);
+    await Promise.all([syncConfigToDaemon(persisted)]);
+  }, []);
 
   /**
    * Explicit Composio API-key save. Called from the section-local
@@ -1260,7 +1175,7 @@ function AppInner() {
             area: 'new_project',
             project_source: 'create_button',
             project_id: null,
-            project_kind: projectKindToTracking(kind, input.metadata?.videoModel),
+            project_kind: projectKindToTracking(kind),
             fidelity,
             ...(input.pluginId ? { plugin_id: input.pluginId } : {}),
             ...(input.pluginType ? { plugin_type: input.pluginType } : {}),
@@ -1340,7 +1255,7 @@ function AppInner() {
           area: 'new_project',
           project_source: 'create_button',
           project_id: result.project.id,
-          project_kind: projectKindToTracking(kind, input.metadata?.videoModel),
+          project_kind: projectKindToTracking(kind),
           fidelity,
           ...(input.pluginId ? { plugin_id: input.pluginId } : {}),
           ...(input.pluginType ? { plugin_type: input.pluginType } : {}),
@@ -2096,10 +2011,6 @@ function AppInner() {
           onRefreshAgents={refreshAgents}
           onAmrLoginStatusChange={handleAmrLoginStatusChange}
           onSkillsRefresh={refreshSkills}
-          daemonMediaProviders={daemonMediaProviders}
-          daemonMediaProvidersFetchState={daemonMediaProvidersFetchState}
-          mediaProvidersNotice={mediaProvidersNotice}
-          onReloadMediaProviders={reloadMediaProvidersFromDaemon}
           onProjectsRefresh={refreshProjects}
           onSkillsChanged={handleSkillsChanged}
           onDesignSystemsChanged={handleDesignSystemsChanged}

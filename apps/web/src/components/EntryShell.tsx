@@ -207,31 +207,7 @@ function defaultPluginInputsForCreate(
     };
   }
 
-  if (pluginId !== 'od-media-generation') return null;
-  if (kind !== 'image' && kind !== 'video' && kind !== 'audio') return null;
-
-  const promptTemplate = input.metadata.promptTemplate;
-  const subject =
-    promptTemplate?.prompt?.trim()
-    || projectName
-    || promptTemplate?.title?.trim()
-    || `${kind} concept`;
-  const style =
-    promptTemplate?.summary?.trim()
-    || 'cinematic, high-quality, on-brand';
-  const aspect =
-    kind === 'image'
-      ? input.metadata.imageAspect
-      : kind === 'video'
-        ? input.metadata.videoAspect
-        : undefined;
-
-  return {
-    mediaKind: kind,
-    subject,
-    style,
-    ...(aspect ? { aspect } : {}),
-  };
+  return null;
 }
 
 interface Props {
@@ -529,10 +505,9 @@ export function EntryShell({
   //
   // Stage B of plugin-driven-flow-plan: the rail can stamp a
   // `projectKind` on the payload so the created project records the
-  // chosen surface (image / video / audio, etc.). Free-form Home
-  // submits now arrive with the hidden od-default router plugin and
-  // projectKind='other', so the agent asks for the exact task type
-  // before continuing.
+  // chosen artifact type. Free-form Home submits now arrive with the
+  // hidden od-default router plugin and projectKind='other', so the
+  // agent asks for the exact task type before continuing.
   function handlePluginLoopSubmit(payload: PluginLoopSubmit) {
     const head = payload.prompt.trim().split(/\s+/).slice(0, 8).join(' ');
     const firstAttachmentName = payload.attachments?.[0]?.name ?? '';
@@ -541,9 +516,16 @@ export function EntryShell({
       payload.pluginTitle && payload.pluginTitle.trim().length > 0
         ? payload.pluginTitle.trim()
         : fallbackName;
+    const requestedKind = payload.projectKind;
     const metadata: ProjectMetadata = {
       ...(payload.projectMetadata ?? {}),
-      kind: payload.projectKind ?? payload.projectMetadata?.kind ?? 'prototype',
+      kind:
+        requestedKind === 'prototype' ||
+        requestedKind === 'deck' ||
+        requestedKind === 'template' ||
+        requestedKind === 'other'
+          ? requestedKind
+          : payload.projectMetadata?.kind ?? 'prototype',
       nameSource: 'prompt',
       ...(payload.contextPlugins && payload.contextPlugins.length > 0
         ? { contextPlugins: payload.contextPlugins }
@@ -794,7 +776,6 @@ export function EntryShell({
         templates={templates}
         {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
         promptTemplates={promptTemplates}
-        mediaProviders={config.mediaProviders}
         connectors={connectors}
         connectorsLoading={connectorsLoading}
         loading={skillsLoading}

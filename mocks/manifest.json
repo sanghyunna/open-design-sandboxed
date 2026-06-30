@@ -1769,26 +1769,6 @@
       "anonymization_version": null
     },
     {
-      "trace_id": "71210cec-8df6-43ad-a769-2bac5abd29a7",
-      "sha256": "7cbc87d152dd761bfc1c5742a9b49b46dea5b39527101b133bb3420dd21c31fe",
-      "bytes": 12227,
-      "agent": "opencode",
-      "model": "opencode/big-pickle",
-      "outcome": "succeeded",
-      "tool_count": 5,
-      "duration_ms": 22137,
-      "skills": [
-        "video-hyperframes"
-      ],
-      "session_id": "c9a3e11b-ea5a-45ae-bcbd-5aab9ae204a3",
-      "user_input_preview": "sim quewro um video 16:9",
-      "multi_turn": true,
-      "captured_at": "2026-05-28T16:30:27.869Z",
-      "cli_version": null,
-      "protocol_version": null,
-      "anonymization_version": null
-    },
-    {
       "trace_id": "71ae54cb-ac92-4199-8524-de95f4eddb74",
       "sha256": "67422e98350d24c1fde9484092bee42419e5979211c86720fc7d42339884c9aa",
       "bytes": 29529,
@@ -2504,26 +2484,6 @@
       "user_input_preview": "the logo is to small the logo is to small",
       "multi_turn": true,
       "captured_at": "2026-05-26T13:23:24.552Z",
-      "cli_version": null,
-      "protocol_version": null,
-      "anonymization_version": null
-    },
-    {
-      "trace_id": "ad17d1ee-cc5d-4cee-9738-ea93fafa27ee",
-      "sha256": "04485bb328812272a166ec01368324226f89b2d66cdca02913f72d1fe4292312",
-      "bytes": 74147,
-      "agent": "opencode",
-      "model": "opencode/big-pickle",
-      "outcome": "succeeded",
-      "tool_count": 30,
-      "duration_ms": 256366,
-      "skills": [
-        "video-hyperframes"
-      ],
-      "session_id": "c9a3e11b-ea5a-45ae-bcbd-5aab9ae204a3",
-      "user_input_preview": "Continue the remaining unfinished tasks from the previous run. Do not redo completed work. Focus only on these unfinished todos: 1. [in_progress] Init HyperFrames scaffold via npx hyperframes init 2.",
-      "multi_turn": true,
-      "captured_at": "2026-05-28T16:31:17.472Z",
       "cli_version": null,
       "protocol_version": null,
       "anonymization_version": null
@@ -3589,14 +3549,14 @@
       "anonymization_version": null
     }
   ],
-  "total": 179,
-  "total_bytes": 4200634,
+  "total": 177,
+  "total_bytes": 4114260,
   "histograms": {
     "by_agent": {
       "codex": 38,
       "claude": 57,
       "gemini": 25,
-      "opencode": 41,
+      "opencode": 39,
       "cursor-agent": 11,
       "qwen": 2,
       "copilot": 2,
@@ -3604,7 +3564,7 @@
       "antigravity": 1
     },
     "by_outcome": {
-      "succeeded": 144,
+      "succeeded": 142,
       "failed": 35
     },
     "by_skill": {
@@ -3615,9 +3575,8 @@
       "magazine-web-ppt": 1,
       "brainstorming": 1,
       "penpot-flutter-design-source": 1,
-      "video-hyperframes": 2,
       "data-report": 1
     }
   },
-  "sessions_with_multi_turn": 35
+  "sessions_with_multi_turn": 34
 }

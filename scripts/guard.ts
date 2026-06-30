@@ -70,8 +70,8 @@ const residualAllowedExactPaths = new Set([
   "packages/registry-protocol/esbuild.config.mjs",
   "packages/sidecar/esbuild.config.mjs",
   "packages/sidecar-proto/esbuild.config.mjs",
-  // Maintainer utility scripts ported from the media branch. They are
-  // executed directly by Node and are not loaded by the app runtime.
+  // Maintainer utility scripts executed directly by Node and not loaded by the
+  // app runtime.
   "scripts/import-prompt-templates.mjs",
   "scripts/postinstall.mjs",
   // Checked-in bin shim so pnpm can link `od` before daemon dist output exists.
@@ -87,8 +87,6 @@ const residualAllowedExactPaths = new Set([
   // the CI environment and never pulled into the daemon/web TS build or bundle.
   "scripts/bake-plugin-previews.mjs",
   "scripts/scaffold-html-ppt-skills.mjs",
-  "scripts/sync-hyperframes-skill.mjs",
-  "scripts/verify-media-models.mjs",
   // AMR (vela) verifier: ad-hoc dev runner that imports the daemon's compiled
   // `dist/acp.js` and drives a real `vela agent run` against a live model.
   // Kept as .mjs so it can be invoked directly via Node without any transform.
@@ -121,8 +119,6 @@ const residualAllowedPathPrefixes = [
   "e2e/ui/reports/playwright-html-report/",
   "e2e/ui/reports/test-results/",
   "e2e/ui/test-results/",
-  // Vendored upstream HyperFrames helper scripts (design template).
-  "design-templates/hyperframes/scripts/",
   // Vendored upstream Last30Days runtime helper used by the engine (design template).
   "design-templates/last30days/scripts/lib/vendor/",
   // Vendored upstream html-ppt runtime assets (lewislulu/html-ppt-skill, design template).

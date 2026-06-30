@@ -671,7 +671,7 @@ export function DesignsTab({
 										toggleSelected(p.id);
 									} else {
 										// P0 ui_click area=list element=project_card.
-										const projectKind = projectKindToTracking(p.metadata?.kind, p.metadata?.videoModel);
+										const projectKind = projectKindToTracking(p.metadata?.kind);
 										trackProjectsListClick(analytics.track, {
 											page_name: "projects",
 											area: "list",
@@ -713,7 +713,7 @@ export function DesignsTab({
 												setMenuOpenId((cur) => {
 													const nextId = cur === p.id ? null : p.id;
 													if (nextId === p.id) {
-														const projectKind = projectKindToTracking(p.metadata?.kind, p.metadata?.videoModel);
+														const projectKind = projectKindToTracking(p.metadata?.kind);
 														trackProjectsListClick(analytics.track, {
 															page_name: "projects",
 															area: "list",
@@ -738,7 +738,7 @@ export function DesignsTab({
 												type="button"
 												role="menuitem"
 												onClick={() => {
-													const projectKind = projectKindToTracking(p.metadata?.kind, p.metadata?.videoModel);
+													const projectKind = projectKindToTracking(p.metadata?.kind);
 													trackProjectsMorePopoverClick(analytics.track, {
 														page_name: "projects",
 														area: "projects_more_popover",
@@ -758,7 +758,7 @@ export function DesignsTab({
 												role="menuitem"
 												className="danger"
 												onClick={() => {
-													const projectKind = projectKindToTracking(p.metadata?.kind, p.metadata?.videoModel);
+													const projectKind = projectKindToTracking(p.metadata?.kind);
 													trackProjectsMorePopoverClick(analytics.track, {
 														page_name: "projects",
 														area: "projects_more_popover",
@@ -1106,14 +1106,12 @@ function projectCover(
 	const entry = meta?.entryFile;
 	if (entry) {
 		const src = projectFileUrl(project.id, entry);
-		if (meta?.kind === "image") return { kind: "image", src, style, initial };
-		if (meta?.kind === "video") return { kind: "video", src, style, initial };
 		if (/\.html?$/i.test(entry)) return { kind: "html", src, style, initial };
 	}
 	return { kind: "fallback", style, initial };
 }
 
-type ProjectCategory = "prototype" | "live-artifact" | "slide" | "media";
+type ProjectCategory = "prototype" | "live-artifact" | "slide";
 
 function projectCategory(project: Project): ProjectCategory {
 	const meta = project.metadata;
@@ -1121,9 +1119,6 @@ function projectCategory(project: Project): ProjectCategory {
 		return "live-artifact";
 	}
 	if (meta?.kind === "deck") return "slide";
-	if (meta?.kind === "image" || meta?.kind === "video" || meta?.kind === "audio") {
-		return "media";
-	}
 	return "prototype";
 }
 
@@ -1134,9 +1129,7 @@ function ProjectTag({ category }: { category: ProjectCategory }) {
 			? t("designs.tagLiveArtifact")
 			: category === "slide"
 				? t("designs.tagSlide")
-				: category === "media"
-					? t("designs.tagMedia")
-					: t("designs.tagPrototype");
+				: t("designs.tagPrototype");
 	return (
 		<span className={`design-card-tag tag-${category}`}>{label}</span>
 	);

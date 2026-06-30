@@ -79,7 +79,6 @@ function renderEntryView(overrides: Partial<ComponentProps<typeof EntryView>> = 
         designSystemId: null,
         onboardingCompleted: true,
         composio: { apiKey: '', apiKeyConfigured: true, apiKeyTail: '1234' },
-        mediaProviders: {},
         agentModels: {},
         agentCliEnv: {},
       }}

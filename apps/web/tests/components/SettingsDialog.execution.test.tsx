@@ -109,7 +109,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  mediaProviders: {},
   agentModels: {},
   agentCliEnv: {},
 };
@@ -280,13 +279,9 @@ function renderLanguageSettingsDialog(initialLocale: Parameters<typeof I18nProvi
 async function waitForPersist(
   onPersist: ReturnType<typeof vi.fn>,
   expectedConfig: unknown,
-  expectedOptions: { forceMediaProviderSync?: boolean } = { forceMediaProviderSync: false },
 ) {
   await waitFor(() => {
-    expect(onPersist).toHaveBeenCalledWith(
-      expectedConfig,
-      expect.objectContaining(expectedOptions),
-    );
+    expect(onPersist).toHaveBeenCalledWith(expectedConfig);
   });
 }
 
@@ -634,7 +629,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'gemma3:4b',
         apiProviderBaseUrl: 'http://localhost:11434',
       }),
-      {},
     );
 
     await waitFor(() => {
@@ -694,7 +688,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'claude-sonnet-4-5',
         apiProviderBaseUrl: null,
       }),
-      {},
     );
   });
 
@@ -713,7 +706,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
     });
     expect(first.onPersist).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'sk-saved' }),
-      expect.any(Object),
     );
 
     cleanup();
@@ -798,7 +790,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiVersion: '2024-10-21',
         apiProviderBaseUrl: null,
       }),
-      {},
     );
   });
 
@@ -949,7 +940,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiProtocol: 'openai',
         model: 'account-ready-model',
       }),
-      {},
     );
   });
 
@@ -995,7 +985,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiProtocol: 'openai',
         model: 'gpt-4o',
       }),
-      {},
     );
   });
 
@@ -1265,7 +1254,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'gpt-4.1-custom',
         baseUrl: 'https://api.openai.com/v1',
       }),
-      {},
     );
   });
 
@@ -1817,7 +1805,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
         mode: 'daemon',
         agentId: 'codex',
       }),
-      {},
     );
   });
 
@@ -2155,7 +2142,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
           codex: { CODEX_HOME: '~/.codex-team' },
         },
       }),
-      {},
     );
   });
 
@@ -2224,279 +2210,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
 
 });
 
-
-describe('SettingsDialog media providers interactions', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('sorts configured providers ahead of unconfigured ones and shows configured badges', () => {
-    renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        mediaProviders: {
-          openai: { apiKey: 'sk-media', baseUrl: 'https://custom.openai.example/v1' },
-          minimax: { apiKey: 'mini-key', baseUrl: 'https://api.minimaxi.chat/v1' },
-        },
-      },
-      { initialSection: 'media' },
-    );
-
-    const names = Array.from(document.querySelectorAll('.media-provider-name')).map((node) =>
-      node.textContent?.trim(),
-    );
-    expect(names.slice(0, 2)).toEqual(['MiniMax', 'OpenAI']);
-  });
-
-  it('renders non-integrated providers in the coming-soon section without input fields', () => {
-    renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-
-    // Non-integrated providers (e.g. Fal.ai, Black Forest Labs) are shown in
-    // a separate "Coming soon" disclosure without editable inputs.
-    expect(screen.queryByLabelText('Black Forest Labs API key')).toBeNull();
-    expect(screen.queryByLabelText('Black Forest Labs Base URL')).toBeNull();
-    expect(document.querySelector('.media-provider-coming-soon')).toBeTruthy();
-    expect(screen.getByText('ComfyUI')).toBeTruthy();
-  });
-
-  it('renders ElevenLabs as an integrated media provider with enabled inputs', () => {
-    renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-
-    const apiKeyInput = screen.getByLabelText('ElevenLabs API key') as HTMLInputElement;
-    const baseUrlInput = screen.getByLabelText('ElevenLabs Base URL') as HTMLInputElement;
-    expect(apiKeyInput.disabled).toBe(false);
-    expect(baseUrlInput.disabled).toBe(false);
-  });
-
-  it('clears an existing provider config and removes it from the persisted payload', async () => {
-    const { onPersist } = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        mediaProviders: {
-          openai: { apiKey: 'sk-media', baseUrl: 'https://custom.openai.example/v1' },
-        },
-      },
-      { initialSection: 'media' },
-    );
-
-    // Issue #737 added a window.confirm guard on the Clear button so a
-    // stray click cannot wipe a saved API key. Auto-accept the prompt
-    // here so the test still exercises the cleared-payload path.
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    const clearButtons = screen.getAllByRole('button', { name: 'Clear' });
-    fireEvent.click(clearButtons[0]!);
-
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    expect((screen.getByLabelText('OpenAI API key') as HTMLInputElement).value).toBe('');
-    expect((screen.getByLabelText('OpenAI Base URL') as HTMLInputElement).value).toBe('');
-
-    await waitForPersist(
-      onPersist,
-      expect.objectContaining({
-        mediaProviders: {},
-      }),
-      { forceMediaProviderSync: true },
-    );
-
-    confirmSpy.mockRestore();
-  });
-
-  it('cancels Clear when the confirmation is dismissed (issue #737)', () => {
-    const { onPersist } = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        mediaProviders: {
-          openai: { apiKey: 'sk-media', baseUrl: 'https://custom.openai.example/v1' },
-        },
-      },
-      { initialSection: 'media' },
-    );
-
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const clearButtons = screen.getAllByRole('button', { name: 'Clear' });
-    fireEvent.click(clearButtons[0]!);
-
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    // Saved key + base URL must stay intact when the user dismisses
-    // the confirmation; without this guard a fat-fingered click on
-    // Clear would silently wipe the key. Autosave should never fire
-    // because nothing changed.
-    expect((screen.getByLabelText('OpenAI API key') as HTMLInputElement).value).toBe('sk-media');
-    expect((screen.getByLabelText('OpenAI Base URL') as HTMLInputElement).value).toBe(
-      'https://custom.openai.example/v1',
-    );
-    expect(onPersist).not.toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
-  });
-
-  it('supports persisting provider API key and base URL edits', async () => {
-    const { onPersist } = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-
-    fireEvent.change(screen.getByLabelText('FishAudio API key'), {
-      target: { value: 'fish-key' },
-    });
-    fireEvent.change(screen.getByLabelText('FishAudio Base URL'), {
-      target: { value: 'https://fish.example.com' },
-    });
-
-    await waitForPersist(
-      onPersist,
-      expect.objectContaining({
-        mediaProviders: expect.objectContaining({
-          fishaudio: {
-            apiKey: 'fish-key',
-            baseUrl: 'https://fish.example.com',
-            model: '',
-          },
-        }),
-      }),
-      { forceMediaProviderSync: true },
-    );
-  });
-
-  it('re-masks a replacement media provider API key until reveal is used again', () => {
-    renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        mediaProviders: {
-          openai: { apiKey: 'sk-media', baseUrl: 'https://api.openai.com/v1' },
-        },
-      },
-      { initialSection: 'media' },
-    );
-
-    const apiKeyInput = screen.getByLabelText('OpenAI API key') as HTMLInputElement;
-    expect(apiKeyInput.type).toBe('password');
-
-    fireEvent.click(screen.getByRole('button', { name: 'OpenAI Show key' }));
-    expect(apiKeyInput.type).toBe('text');
-
-    // Issue #737 added a window.confirm guard on Clear; jsdom's
-    // unimplemented confirm() returns undefined, which would cancel
-    // the clear and leave this test asserting the wrong reveal state.
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Clear' })[0]!);
-    expect(apiKeyInput.type).toBe('password');
-
-    fireEvent.change(apiKeyInput, { target: { value: 'sk-replacement' } });
-    expect(apiKeyInput.type).toBe('password');
-
-    fireEvent.click(screen.getByRole('button', { name: 'OpenAI Show key' }));
-    expect(apiKeyInput.type).toBe('text');
-
-    confirmSpy.mockRestore();
-  });
-
-  it('supports providers with a custom model override field', async () => {
-    const { onPersist } = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-
-    fireEvent.change(screen.getByLabelText('Nano Banana API key'), {
-      target: { value: 'banana-key' },
-    });
-    fireEvent.change(screen.getByLabelText('Nano Banana Base URL'), {
-      target: { value: 'https://gateway.example.com' },
-    });
-    fireEvent.change(screen.getByLabelText('Nano Banana model'), {
-      target: { value: 'gemini-3.1-flash-image-preview' },
-    });
-
-    await waitForPersist(
-      onPersist,
-      expect.objectContaining({
-        mediaProviders: expect.objectContaining({
-          nanobanana: {
-            apiKey: 'banana-key',
-            baseUrl: 'https://gateway.example.com',
-            model: 'gemini-3.1-flash-image-preview',
-          },
-        }),
-      }),
-      { forceMediaProviderSync: true },
-    );
-  });
-
-  it('catches unmount flush failures for pending media-provider autosaves', async () => {
-    const rejection = new Error('daemon unavailable');
-    const handleUnhandledRejection = vi.fn((event: PromiseRejectionEvent) => {
-      event.preventDefault();
-    });
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    try {
-      const { onPersist, unmount } = renderSettingsDialog(
-        { mode: 'daemon', agentId: 'codex' },
-        { initialSection: 'media' },
-      );
-      onPersist.mockRejectedValueOnce(rejection);
-
-      fireEvent.change(screen.getByLabelText('OpenAI API key'), {
-        target: { value: 'sk-unmount-media' },
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('Saving…')).toBeTruthy();
-      });
-      unmount();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(onPersist).toHaveBeenCalledWith(
-        expect.objectContaining({
-          mediaProviders: expect.objectContaining({
-            openai: expect.objectContaining({ apiKey: 'sk-unmount-media' }),
-          }),
-        }),
-        expect.objectContaining({ forceMediaProviderSync: true }),
-      );
-      expect(handleUnhandledRejection).not.toHaveBeenCalled();
-    } finally {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    }
-  });
-
-  it('closes media settings via the close button or backdrop', () => {
-    const first = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-
-    fireEvent.change(screen.getByLabelText('OpenAI API key'), {
-      target: { value: 'sk-unsaved-media' },
-    });
-    fireEvent.click(first.container.querySelector('.settings-close') as HTMLElement);
-    expect(first.onClose).toHaveBeenCalledTimes(1);
-
-    cleanup();
-
-    const second = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex' },
-      { initialSection: 'media' },
-    );
-    fireEvent.change(screen.getByLabelText('OpenAI API key'), {
-      target: { value: 'sk-unsaved-media-2' },
-    });
-    fireEvent.click(document.querySelector('.modal-backdrop') as HTMLElement);
-    expect(second.onClose).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe('SettingsDialog connectors interactions', () => {
   afterEach(() => {
@@ -2858,7 +2571,6 @@ describe('SettingsDialog notifications interactions', () => {
           desktopEnabled: false,
         },
       }),
-      {},
     );
   });
 
@@ -3010,7 +2722,6 @@ describe('SettingsDialog appearance interactions', () => {
         theme: 'system',
         accentColor: '#2563eb',
       }),
-      {},
     );
   });
 
@@ -3077,7 +2788,6 @@ describe('SettingsDialog appearance interactions', () => {
           },
         },
       }),
-      {},
     );
   });
 
@@ -3158,7 +2868,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#c96442',
       }),
-      {},
     );
   });
 
@@ -3175,7 +2884,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#059669',
       }),
-      {},
     );
 
     fireEvent.click(view.container.querySelector('.settings-close') as HTMLElement);
@@ -3199,7 +2907,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#059669',
       }),
-      {},
     );
 
     fireEvent.change(screen.getByLabelText('Custom color'), {
@@ -3212,7 +2919,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#123456',
       }),
-      {},
     );
   });
 
@@ -3316,7 +3022,6 @@ describe('SettingsDialog pets interactions', () => {
           }),
         }),
       }),
-      {},
     );
   });
 
@@ -3353,7 +3058,6 @@ describe('SettingsDialog pets interactions', () => {
           enabled: false,
         }),
       }),
-      {},
     );
   });
 
@@ -3463,7 +3167,6 @@ describe('SettingsDialog skills section', () => {
       expect.objectContaining({
         disabledSkills: ['blog-post'],
       }),
-      {},
     );
   });
 
@@ -3519,7 +3222,6 @@ describe('SettingsDialog design systems section', () => {
       expect.objectContaining({
         disabledDesignSystems: ['signal-green'],
       }),
-      {},
     );
   });
 

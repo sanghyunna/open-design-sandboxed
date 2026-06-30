@@ -14,9 +14,7 @@ export type DesignToolboxActionId =
   | 'motion'
   | 'motion-polish'
   | 'anti-ai-polish'
-  | 'visual-polish'
-  | 'image-gen'
-  | 'video-gen';
+  | 'visual-polish';
 
 export interface DesignToolboxAction {
   id: DesignToolboxActionId;
@@ -61,20 +59,6 @@ export const DESIGN_TOOLBOX_ACTIONS: DesignToolboxAction[] = [
     preferredSkillIds: ['impeccable-design-polish', 'frontend-design', 'creative-director', 'design-taste-frontend'],
     categoryHints: ['creative-direction', 'web-artifacts'],
     searchTerms: ['polish', 'critique', 'audit', 'harden', 'responsive', 'accessibility', '润色', '审稿', '交付'],
-  },
-  {
-    id: 'image-gen',
-    icon: 'image',
-    preferredSkillIds: ['imagegen-frontend-web', 'fal-generate', 'imagen', 'venice-image-generate', 'image-enhancer'],
-    categoryHints: ['image-generation'],
-    searchTerms: ['image', 'generate image', 'visual reference', 'moodboard', 'section image', '生图', '配图', '视觉参考'],
-  },
-  {
-    id: 'video-gen',
-    icon: 'play',
-    preferredSkillIds: ['video-hyperframes', 'sora', 'fal-video-edit', 'venice-video', 'replicate'],
-    categoryHints: ['video-generation'],
-    searchTerms: ['video', 'sora', 'remotion', 'hyperframes', 'storyboard', '生视频', '视频', '分镜'],
   },
 ];
 

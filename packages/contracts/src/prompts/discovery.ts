@@ -58,10 +58,6 @@ Default-router exception: when the Active plugin / Active skill is \`od-default\
         "Prototype",
         "Live artifact",
         "Slide deck",
-        "Image",
-        "Video",
-        "HyperFrames",
-        "Audio",
         "Other"
       ]
     },

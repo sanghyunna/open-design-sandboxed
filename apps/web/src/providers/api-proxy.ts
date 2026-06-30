@@ -12,23 +12,12 @@ import { parseSseFrame } from './sse';
 import { isAnthropicSupportedImagePath } from '../utils/apiProtocol';
 
 /**
- * Optional per-request context that some protocols thread into the
- * proxy body or use to prepare provider-native message payloads:
- *  - `projectId` lets the `generate_image` tool write into the active
- *    project's folder instead of a daemon-global cache, and lets the
- *    Anthropic proxy resolve image attachments into content blocks.
- *  - `byokImageModel` is the user's BYOK Settings default for the
- *    image tool. The LLM can still override per-call via the tool's
- *    `model` arg; this is just the fallback when it omits one.
- * Other protocols ignore unknown body fields, so callers are free to
- * pass this for every protocol.
+ * Optional per-request context threaded into provider proxy handling.
+ * `projectId` scopes attachment resolution to the active project; protocols
+ * that do not need it ignore the field.
  */
 export interface ProxyContext {
   projectId?: string;
-  byokImageModel?: string;
-  byokVideoModel?: string;
-  byokSpeechModel?: string;
-  byokSpeechVoice?: string;
 }
 
 export async function streamProxyEndpoint(
@@ -61,18 +50,6 @@ export async function streamProxyEndpoint(
         maxTokens: effectiveMaxTokens(cfg),
         apiVersion: cfg.apiVersion,
         ...(context?.projectId ? { projectId: context.projectId } : {}),
-        ...(context?.byokImageModel
-          ? { byokImageModel: context.byokImageModel }
-          : {}),
-        ...(context?.byokVideoModel
-          ? { byokVideoModel: context.byokVideoModel }
-          : {}),
-        ...(context?.byokSpeechModel
-          ? { byokSpeechModel: context.byokSpeechModel }
-          : {}),
-        ...(context?.byokSpeechVoice
-          ? { byokSpeechVoice: context.byokSpeechVoice }
-          : {}),
       }),
       signal,
     });

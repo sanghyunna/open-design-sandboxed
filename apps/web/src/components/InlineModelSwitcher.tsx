@@ -80,7 +80,6 @@ interface Props {
   onOpenSettings: (
     section?:
       | 'execution'
-      | 'media'
       | 'composio'
       | 'language'
       | 'appearance'

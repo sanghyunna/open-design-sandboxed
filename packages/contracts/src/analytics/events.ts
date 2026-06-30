@@ -97,17 +97,6 @@ export type TrackingProjectKind =
   | 'live_artifact'
   | 'slide_deck'
   | 'template'
-  | 'image'
-  | 'video'
-  // `hyperframes` is a `video` project rendered by the local HyperFrames
-  // HTML→MP4 engine (`videoModel === 'hyperframes-html'`). The product
-  // routes it as its own task type (a peer of Video, with its own Home
-  // chip), and its cost/latency/success profile differs sharply from AI
-  // video providers, so it is surfaced as a first-class project_kind
-  // rather than collapsed into generic `video`. `model_id` still carries
-  // `hyperframes-html` as a secondary anchor.
-  | 'hyperframes'
-  | 'audio'
   // `design_system` covers DS-as-project runs (creation + regeneration).
   // The dashboard reads it on run_created / run_finished to split the
   // DS generation funnel from regular artifact runs.
@@ -149,7 +138,6 @@ export type TrackingNewProjectTab =
   | 'live_artifact'
   | 'slide_deck'
   | 'from_template'
-  | 'media'
   | 'other';
 
 export type TrackingFidelity =
@@ -865,19 +853,11 @@ export type TrackingDesignSystemSelectionMode =
   | 'default'
   | 'none';
 
-// Project kind values for the picker's target project. Wider than
-// `TrackingProjectKind`'s prototype-side enum because the picker
-// shows up in slide / image / video / audio / live-artifact composers
-// too. `unknown` covers picker views with no project locked in.
+// Project kind values for the picker's target project. `unknown` covers
+// picker views with no project locked in.
 export type TrackingDesignSystemApplyTargetKind =
   | 'prototype'
   | 'slide_deck'
-  | 'image'
-  | 'video'
-  // HyperFrames projects can be a DS-apply target too; keep this in lockstep
-  // with `TrackingProjectKind` so the picker reports them distinctly.
-  | 'hyperframes'
-  | 'audio'
   | 'live_artifact'
   | 'unknown';
 
@@ -1115,7 +1095,7 @@ export interface HomeChatComposerClickProps {
     // "user opened the file picker" across both surfaces.
     | 'attachment'
     // Local-storage / working-dir picker under the home composer; `task_chip`
-    // is the task-type rail (原型 / 幻灯片 / HyperFrames / 视频 / …).
+    // is the task-type rail (原型 / 幻灯片 / …).
     | 'working_dir'
     | 'working_dir_clear'
     // The × on the active plugin chip above the composer (mirrors
@@ -1145,8 +1125,8 @@ export interface HomeChatComposerClickProps {
   // For `plus_pick` / `plus_add`: which kind of resource (and its id on pick).
   resource_kind?: 'connector' | 'plugin' | 'mcp';
   resource_id?: string;
-  // For plugin / action / task chips, the specific id (e.g. `prototype`,
-  // `from_figma`, `hyperframes`).
+  // For plugin / action / task chips, the specific id (e.g. prototype,
+  // from_figma).
   chip_id?: string;
   // For `subcategory_chip`: the picked sub-category slug ('all' on 全部).
   subcategory?: string;
@@ -1698,7 +1678,7 @@ export interface NextStepActionClickProps {
 // rendered in the right-hand panel before generation starts). The form body
 // is model-generated JSON, so chips are question options, not fixed UI:
 //   - `task_type_chip`: a pick on the `taskType` radio (Prototype / Live
-//     artifact / Slide deck / Image / Video / HyperFrames / Audio / Other).
+//     artifact / Slide deck / Template / Design system / Other).
 //   - `brand_bg_chip`: a pick on the `brand` radio (pick_direction /
 //     brand_spec / reference_match).
 //   - `skip`: the Skip button or the auto-continue countdown elapsing
@@ -2915,18 +2895,9 @@ export function sessionModeToTracking(
   return mode === 'design' ? 'design' : 'ask';
 }
 
-// Code `ProjectKind` from packages/contracts/src/api/projects.ts:
-//   'prototype' | 'deck' | 'template' | 'other' | 'image' | 'video' | 'audio'
-// Discriminates HyperFrames from generic AI video. A HyperFrames project is
-// stored as `kind: 'video'` with `metadata.videoModel === 'hyperframes-html'`
-// (the local HTML→MP4 renderer); callers pass that videoModel through so the
-// analytics layer can split it out into its own `project_kind`. See the
-// `'hyperframes'` member docblock on `TrackingProjectKind`.
-const HYPERFRAMES_VIDEO_MODEL = 'hyperframes-html';
-
 export function projectKindToTracking(
   kind: string | null | undefined,
-  videoModel?: string | null,
+  _videoModel?: string | null,
 ): TrackingProjectKind | null {
   switch (kind) {
     case 'prototype':
@@ -2937,14 +2908,6 @@ export function projectKindToTracking(
       return 'template';
     case 'other':
       return 'other';
-    case 'image':
-      return 'image';
-    case 'video':
-      // HyperFrames rides on the `video` kind; the local-render engine is the
-      // only thing that distinguishes it, so route on videoModel here.
-      return videoModel === HYPERFRAMES_VIDEO_MODEL ? 'hyperframes' : 'video';
-    case 'audio':
-      return 'audio';
     case 'live-artifact':
     case 'live_artifact':
       return 'live_artifact';
@@ -2953,8 +2916,6 @@ export function projectKindToTracking(
   }
 }
 
-// Code `CreateTab` from apps/web/src/components/NewProjectPanel.tsx:
-//   'prototype' | 'live-artifact' | 'deck' | 'template' | 'image' | 'video' | 'audio' | 'other'
 export function createTabToTracking(tab: string): TrackingNewProjectTab {
   switch (tab) {
     case 'prototype':
@@ -2965,10 +2926,6 @@ export function createTabToTracking(tab: string): TrackingNewProjectTab {
       return 'from_template';
     case 'live-artifact':
       return 'live_artifact';
-    case 'image':
-    case 'video':
-    case 'audio':
-      return 'media';
     case 'other':
       return 'other';
     default:
@@ -3346,8 +3303,8 @@ export function designSystemModuleSlug(
 }
 
 // Normalizes a question-form option value or form id into a snake_case
-// tracking token: "Live artifact" → "live_artifact", "HyperFrames" →
-// "hyperframes", "task-type" → "task_type". Values that slug to nothing
+// tracking token: Live artifact → live_artifact, Slide deck →
+// slide_deck, task-type → task_type. Values that slug to nothing
 // (e.g. fully localized non-latin labels) collapse to 'unknown'.
 export function questionsFormTrackingId(
   raw: string | null | undefined,

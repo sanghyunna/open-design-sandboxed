@@ -9,7 +9,6 @@ import {
   resolveModelAlias,
   resolveProviderConfig,
   seedProviderIfMissing,
-  writeConfig,
 } from '../src/media-config.js';
 
 const TEST_NANOBANANA_BASE_URL = 'https://nano-banana-gateway.example.test';
@@ -236,32 +235,6 @@ describe('media-config OpenAI auth-file fallback', () => {
     delete process.env.OD_NANOBANANA_API_KEY;
   });
 
-  it('preserves a stored apiKey when writeConfig updates only non-secret fields', async () => {
-    await writeStoredMediaConfig({
-      providers: {
-        openai: {
-          apiKey: 'stored-openai-key',
-          baseUrl: 'https://before.example/v1',
-        },
-      },
-    });
-
-    await writeConfig(projectRoot, {
-      providers: {
-        openai: {
-          preserveApiKey: true,
-          baseUrl: 'https://after.example/v1',
-        },
-      },
-      force: true,
-    });
-
-    await expect(resolveProviderConfig(projectRoot, 'openai')).resolves.toEqual({
-      apiKey: 'stored-openai-key',
-      baseUrl: 'https://after.example/v1',
-    });
-  });
-
   describe('OD_MEDIA_CONFIG_DIR / OD_DATA_DIR storage routing', () => {
     let overrideRoot: string;
     let originalMediaConfigDir: string | undefined;
@@ -410,46 +383,6 @@ describe('media-config OpenAI auth-file fallback', () => {
       } finally {
         await rm(dataDir, { recursive: true, force: true });
       }
-    });
-
-    it('writeConfig creates the override directory tree on first write', async () => {
-      // Reproduces the actual user-reported failure mode: the override
-      // directory does not exist yet (first launch on a read-only
-      // install root), so writeConfig must mkdir -p before writing.
-      // Without recursive mkdir + a writable override, this would
-      // surface as ENOENT/EROFS to PUT /api/media/config.
-      const target = path.join(overrideRoot, 'nested', 'inner');
-      process.env.OD_MEDIA_CONFIG_DIR = target;
-
-      await writeConfig(projectRoot, {
-        providers: {
-          openai: {
-            apiKey: 'fresh-write-key',
-            baseUrl: 'https://fresh.test/v1',
-          },
-        },
-      });
-
-      // File materialised at the override path.
-      const onDisk = await readFile(
-        path.join(target, 'media-config.json'),
-        'utf8',
-      );
-      expect(JSON.parse(onDisk)).toEqual({
-        providers: {
-          openai: {
-            apiKey: 'fresh-write-key',
-            baseUrl: 'https://fresh.test/v1',
-          },
-        },
-      });
-
-      // And resolveProviderConfig reads it back correctly.
-      const resolved = await resolveProviderConfig(projectRoot, 'openai');
-      expect(resolved).toEqual({
-        apiKey: 'fresh-write-key',
-        baseUrl: 'https://fresh.test/v1',
-      });
     });
 
     // Round 3 review feedback on PR #530.
@@ -888,34 +821,6 @@ describe('media-config model alias resolution (issue #1277)', () => {
     expect(masked.aliases.stored).toEqual({});
   });
 
-  it('writeConfig preserves aliases when a Settings-style provider PUT lands', async () => {
-    // The Settings UI in its current shape writes providers only.
-    // Without alias preservation, every provider edit would wipe the
-    // user's aliases. This pins the regression so a future refactor
-    // that touches writeStored has to keep both fields.
-    await writeStoredMediaConfig({
-      providers: {},
-      aliases: { 'doubao-seedream-3-0-t2i-250415': 'doubao-seedream-5-0' },
-    });
-    await writeConfig(projectRoot, {
-      providers: {
-        openai: { apiKey: 'sk-key', baseUrl: '' },
-      },
-    });
-    const onDisk = JSON.parse(
-      await readFile(
-        path.join(projectRoot, '.od', 'media-config.json'),
-        'utf8',
-      ),
-    );
-    expect(onDisk.providers.openai).toMatchObject({ apiKey: 'sk-key' });
-    expect(onDisk.aliases).toEqual({
-      'doubao-seedream-3-0-t2i-250415': 'doubao-seedream-5-0',
-    });
-    expect(
-      await resolveModelAlias(projectRoot, 'doubao-seedream-3-0-t2i-250415'),
-    ).toBe('doubao-seedream-5-0');
-  });
 });
 
 describe('seedProviderIfMissing', () => {

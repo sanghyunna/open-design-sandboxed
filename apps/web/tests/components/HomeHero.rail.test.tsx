@@ -134,20 +134,18 @@ describe('HomeHero intent rail', () => {
 
   it('forwards the matching chip descriptor when clicked', () => {
     const { onPickChip } = renderHero();
-    fireEvent.click(screen.getByTestId('home-hero-rail-image'));
+    fireEvent.click(screen.getByTestId('home-hero-rail-deck'));
     expect(onPickChip).toHaveBeenCalledTimes(1);
-    expect(onPickChip).toHaveBeenCalledWith(findChip('image'));
+    expect(onPickChip).toHaveBeenCalledWith(findChip('deck'));
   });
-
   it('moves the active creation chip into the composer and hides the tab row', () => {
-    renderHero({ activeChipId: 'video' });
+    renderHero({ activeChipId: 'deck' });
     expect(screen.queryByTestId('home-hero-type-tabs')).toBeNull();
-    expect(screen.queryByTestId('home-hero-rail-video')).toBeNull();
+    expect(screen.queryByTestId('home-hero-rail-deck')).toBeNull();
     const node = screen.getByTestId('home-hero-active-type-chip');
-    expect(node.getAttribute('data-chip-id')).toBe('video');
-    expect(node.textContent).toContain('Video');
+    expect(node.getAttribute('data-chip-id')).toBe('deck');
+    expect(node.textContent).toContain('Slide deck');
   });
-
   it('lets the active creation chip be removed from the composer', () => {
     const { onClearActiveChip } = renderHero({ activeChipId: 'prototype' });
     fireEvent.click(screen.getByTestId('home-hero-active-type-chip'));
@@ -155,10 +153,10 @@ describe('HomeHero intent rail', () => {
   });
 
   it('uses the active creation chip as the only clear control for a chip-bound plugin', () => {
-    const activePlugin = makePlugin('example-image-a', 'image', 'Product image');
+    const activePlugin = makePlugin('example-deck-a', 'deck', 'Investor deck');
     renderHero({
-      activeChipId: 'image',
-      activePluginTitle: 'Product image',
+      activeChipId: 'deck',
+      activePluginTitle: 'Investor deck',
       activePluginRecord: activePlugin,
       showActivePluginChip: true,
     });
@@ -167,13 +165,12 @@ describe('HomeHero intent rail', () => {
     expect(screen.getByTestId('home-hero-active-type-chip')).toBeTruthy();
     expect(screen.queryByLabelText('Clear active plugin')).toBeNull();
   });
-
   it('keeps the active plugin clear control when no creation chip is active', () => {
-    const activePlugin = makePlugin('example-image-a', 'image', 'Product image');
+    const activePlugin = makePlugin('example-deck-a', 'deck', 'Investor deck');
     const onClearActivePlugin = vi.fn();
     renderHero({
       activeChipId: null,
-      activePluginTitle: 'Product image',
+      activePluginTitle: 'Investor deck',
       activePluginRecord: activePlugin,
       onClearActivePlugin,
       showActivePluginChip: true,
@@ -184,7 +181,6 @@ describe('HomeHero intent rail', () => {
 
     expect(onClearActivePlugin).toHaveBeenCalledTimes(1);
   });
-
   it('shows prompt examples below the composer for the selected tab', () => {
     const onPromptChange = vi.fn();
     renderHero({ activeChipId: 'deck', onPromptChange });
@@ -204,10 +200,10 @@ describe('HomeHero intent rail', () => {
 
   it('shows matching plugin presets in the example prompt area for the selected tab', () => {
     const deckPlugin = makePlugin('example-deck-a', 'deck', 'Investor deck');
-    const imagePlugin = makePlugin('example-image-a', 'image', 'Product image');
+    const prototypePlugin = makePlugin('example-prototype-a', 'prototype', 'Product prototype');
     const { onPickExamplePlugin } = renderHero({
       activeChipId: 'deck',
-      pluginOptions: [deckPlugin, imagePlugin],
+      pluginOptions: [deckPlugin, prototypePlugin],
     });
 
     const presets = screen.getAllByTestId('home-hero-plugin-preset');
@@ -223,7 +219,6 @@ describe('HomeHero intent rail', () => {
       'Create with a focused brief using Investor deck',
     );
   });
-
   it('orders curated example presets first for the selected artifact type', () => {
     const ordinaryDeck = makePlugin('example-ordinary-deck', 'deck', 'Ordinary deck');
     const capsule = makePlugin(
@@ -250,111 +245,29 @@ describe('HomeHero intent rail', () => {
   });
 
   it('keeps curated presets even when they rely on fallback prompt text', () => {
-    const otakuDance = makePlugin(
-      'image-template-infographic-otaku-dance-choreography-breakdown-gokurakujodo-16-panels',
-      'image',
-      'Infographic - Otaku Dance Choreography Breakdown (Gokuraku Jodo, 16 Panels)',
-      ['image-template'],
+    const creativeMode = makePlugin(
+      'example-html-ppt-zhangzara-creative-mode',
+      'deck',
+      'Html Ppt Zhangzara Creative Mode',
+      ['deck'],
       { query: null },
     );
-    const ordinaryImage = makePlugin(
-      'image-template-ordinary',
-      'image',
-      'Ordinary image',
-      ['image-template'],
+    const ordinaryDeck = makePlugin(
+      'example-ordinary-deck',
+      'deck',
+      'Ordinary deck',
+      ['deck'],
     );
     renderHero({
-      activeChipId: 'image',
-      pluginOptions: [ordinaryImage, otakuDance],
+      activeChipId: 'deck',
+      pluginOptions: [ordinaryDeck, creativeMode],
     });
 
     const presets = screen.getAllByTestId('home-hero-plugin-preset');
     expect(presets[0]?.getAttribute('data-plugin-id')).toBe(
-      'image-template-infographic-otaku-dance-choreography-breakdown-gokurakujodo-16-panels',
+      'example-html-ppt-zhangzara-creative-mode',
     );
   });
-
-  it('keeps Hatch Pet at the end of the image example presets', () => {
-    const hatchPet = makePlugin('example-hatch-pet', 'image', 'Hatch Pet');
-    const imagePoster = makePlugin('image-template-poster', 'image', 'Image Poster');
-    const stoneInfographic = makePlugin('image-template-stone', 'image', 'Stone Infographic');
-    renderHero({
-      activeChipId: 'image',
-      pluginOptions: [hatchPet, imagePoster, stoneInfographic],
-    });
-
-    const presets = screen.getAllByTestId('home-hero-plugin-preset');
-    expect(presets.map((preset) => preset.textContent)).toEqual([
-      expect.stringContaining('Image Poster'),
-      expect.stringContaining('Stone Infographic'),
-      expect.stringContaining('Hatch Pet'),
-    ]);
-  });
-
-  it('moves live artifact presets out of Image and into Live artifact examples', () => {
-    const imagePoster = makePlugin('image-template-poster', 'image', 'Image Poster');
-    const liveDashboard = makePlugin(
-      'example-live-dashboard',
-      'prototype',
-      'Live Dashboard',
-      ['live-dashboard'],
-    );
-    const notionDashboard = makePlugin(
-      'image-template-notion-team-dashboard-live-artifact',
-      'image',
-      'Notion-style Team Dashboard (Live Artifact)',
-      ['live-artifact'],
-    );
-    const socialTracker = makePlugin(
-      'example-social-media-matrix-tracker-template',
-      'template',
-      'Social Media Matrix Tracker Template',
-      ['live-artifacts'],
-    );
-    const tradingDashboard = makePlugin(
-      'example-trading-analysis-dashboard-template',
-      'template',
-      'Trading Analysis Dashboard Template',
-      ['live-artifacts'],
-    );
-    const liveArtifact = makePlugin(
-      'example-live-artifact',
-      'prototype',
-      'Live Artifact',
-      ['live-artifact'],
-    );
-    renderHero({
-      activeChipId: 'image',
-      pluginOptions: [imagePoster, liveDashboard, notionDashboard],
-    });
-
-    let presets = screen.getAllByTestId('home-hero-plugin-preset');
-    expect(presets).toHaveLength(1);
-    expect(presets[0]?.textContent).toContain('Image Poster');
-
-    cleanup();
-    renderHero({
-      activeChipId: 'live-artifact',
-      pluginOptions: [
-        imagePoster,
-        liveArtifact,
-        tradingDashboard,
-        notionDashboard,
-        socialTracker,
-        liveDashboard,
-      ],
-    });
-
-    presets = screen.getAllByTestId('home-hero-plugin-preset');
-    expect(presets.map((preset) => preset.getAttribute('data-plugin-id'))).toEqual([
-      'example-live-dashboard',
-      'image-template-notion-team-dashboard-live-artifact',
-      'example-social-media-matrix-tracker-template',
-      'example-trading-analysis-dashboard-template',
-      'example-live-artifact',
-    ]);
-  });
-
   it('disables every visible chip while a plugin apply is in flight', () => {
     renderHero({ pendingPluginId: 'od-figma-migration', pendingChipId: 'figma' });
     for (const chip of HOME_HERO_CHIPS.filter((item) => item.group === 'create')) {
@@ -395,16 +308,6 @@ describe('HomeHero intent rail', () => {
     expect(findChip('template')?.action).toMatchObject({ kind: 'open-template-picker' });
   });
 
-  it('media chips route to od-media-generation with the matching project kind', () => {
-    expect(findChip('image')?.action).toMatchObject({
-      kind: 'apply-scenario',
-      pluginId: 'od-media-generation',
-      projectKind: 'image',
-    });
-    expect(findChip('video')?.action).toMatchObject({ pluginId: 'od-media-generation', projectKind: 'video' });
-    expect(findChip('audio')?.action).toMatchObject({ pluginId: 'od-media-generation', projectKind: 'audio' });
-  });
-
   it('prototype and slide-deck chips route to their specialised bundled scenario plugin', () => {
     // Prototype now binds to web-prototype's seed template instead of
     // the generic od-new-generation router. Same for Slide deck →
@@ -414,15 +317,7 @@ describe('HomeHero intent rail', () => {
     expect(findChip('deck')?.action).toMatchObject({ pluginId: 'example-simple-deck', projectKind: 'deck' });
   });
 
-  it('specialised category chips route to their bundled scenario plugin', () => {
-    // HyperFrames is the motion-graphics specialisation of Video,
-    // surfaced as a separate chip so users can target it directly
-    // instead of routing through the generic Video chip.
-    expect(findChip('hyperframes')?.action).toMatchObject({
-      kind: 'apply-scenario',
-      pluginId: 'example-hyperframes',
-      projectKind: 'video',
-    });
+  it('live artifact chip routes to its bundled scenario plugin', () => {
     expect(findChip('live-artifact')?.action).toMatchObject({
       kind: 'apply-scenario',
       pluginId: 'example-live-artifact',
