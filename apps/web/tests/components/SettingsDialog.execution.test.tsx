@@ -279,13 +279,9 @@ function renderLanguageSettingsDialog(initialLocale: Parameters<typeof I18nProvi
 async function waitForPersist(
   onPersist: ReturnType<typeof vi.fn>,
   expectedConfig: unknown,
-  expectedOptions: Record<string, unknown> = {},
 ) {
   await waitFor(() => {
-    expect(onPersist).toHaveBeenCalledWith(
-      expectedConfig,
-      expect.objectContaining(expectedOptions),
-    );
+    expect(onPersist).toHaveBeenCalledWith(expectedConfig);
   });
 }
 
@@ -712,7 +708,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
     });
     expect(first.onPersist).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'sk-saved' }),
-      expect.any(Object),
     );
 
     cleanup();
@@ -948,7 +943,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiProtocol: 'openai',
         model: 'account-ready-model',
       }),
-      {},
     );
   });
 
@@ -994,7 +988,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         apiProtocol: 'openai',
         model: 'gpt-4o',
       }),
-      {},
     );
   });
 
@@ -1264,7 +1257,6 @@ describe('SettingsDialog execution settings BYOK interactions', () => {
         model: 'gpt-4.1-custom',
         baseUrl: 'https://api.openai.com/v1',
       }),
-      {},
     );
   });
 
@@ -1816,7 +1808,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
         mode: 'daemon',
         agentId: 'codex',
       }),
-      {},
     );
   });
 
@@ -2736,7 +2727,6 @@ describe('SettingsDialog appearance interactions', () => {
         theme: 'system',
         accentColor: '#2563eb',
       }),
-      {},
     );
   });
 
@@ -2884,7 +2874,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#c96442',
       }),
-      {},
     );
   });
 
@@ -2901,7 +2890,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#059669',
       }),
-      {},
     );
 
     fireEvent.click(view.container.querySelector('.settings-close') as HTMLElement);
@@ -2925,7 +2913,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#059669',
       }),
-      {},
     );
 
     fireEvent.change(screen.getByLabelText('Custom color'), {
@@ -2938,7 +2925,6 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         accentColor: '#123456',
       }),
-      {},
     );
   });
 
@@ -3079,7 +3065,6 @@ describe('SettingsDialog pets interactions', () => {
           enabled: false,
         }),
       }),
-      {},
     );
   });
 
@@ -3189,7 +3174,6 @@ describe('SettingsDialog skills section', () => {
       expect.objectContaining({
         disabledSkills: ['blog-post'],
       }),
-      {},
     );
   });
 
@@ -3245,7 +3229,6 @@ describe('SettingsDialog design systems section', () => {
       expect.objectContaining({
         disabledDesignSystems: ['signal-green'],
       }),
-      {},
     );
   });
 

@@ -300,7 +300,6 @@ describe('SettingsDialog Orbit connector gate refresh', () => {
             templateSkillId: 'orbit-editorial',
           },
         }),
-        expect.any(Object),
       );
     });
   });
