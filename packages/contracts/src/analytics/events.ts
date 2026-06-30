@@ -1095,7 +1095,7 @@ export interface HomeChatComposerClickProps {
     // "user opened the file picker" across both surfaces.
     | 'attachment'
     // Local-storage / working-dir picker under the home composer; `task_chip`
-    // is the task-type rail (原型 / 幻灯片 / HyperFrames / 视频 / …).
+    // is the task-type rail (原型 / 幻灯片 / …).
     | 'working_dir'
     | 'working_dir_clear'
     // The × on the active plugin chip above the composer (mirrors
@@ -1125,8 +1125,8 @@ export interface HomeChatComposerClickProps {
   // For `plus_pick` / `plus_add`: which kind of resource (and its id on pick).
   resource_kind?: 'connector' | 'plugin' | 'mcp';
   resource_id?: string;
-  // For plugin / action / task chips, the specific id (e.g. `prototype`,
-  // `from_figma`, `hyperframes`).
+  // For plugin / action / task chips, the specific id (e.g. prototype,
+  // from_figma).
   chip_id?: string;
   // For `subcategory_chip`: the picked sub-category slug ('all' on 全部).
   subcategory?: string;
@@ -1678,7 +1678,7 @@ export interface NextStepActionClickProps {
 // rendered in the right-hand panel before generation starts). The form body
 // is model-generated JSON, so chips are question options, not fixed UI:
 //   - `task_type_chip`: a pick on the `taskType` radio (Prototype / Live
-//     artifact / Slide deck / Image / Video / HyperFrames / Audio / Other).
+//     artifact / Slide deck / Template / Design system / Other).
 //   - `brand_bg_chip`: a pick on the `brand` radio (pick_direction /
 //     brand_spec / reference_match).
 //   - `skip`: the Skip button or the auto-continue countdown elapsing
@@ -3303,8 +3303,8 @@ export function designSystemModuleSlug(
 }
 
 // Normalizes a question-form option value or form id into a snake_case
-// tracking token: "Live artifact" → "live_artifact", "HyperFrames" →
-// "hyperframes", "task-type" → "task_type". Values that slug to nothing
+// tracking token: Live artifact → live_artifact, Slide deck →
+// slide_deck, task-type → task_type. Values that slug to nothing
 // (e.g. fully localized non-latin labels) collapse to 'unknown'.
 export function questionsFormTrackingId(
   raw: string | null | undefined,
