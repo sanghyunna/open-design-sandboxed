@@ -205,12 +205,20 @@ describe('ExamplesTab', () => {
   it('narrows by surface, type, and scenario filter pills', () => {
     renderExamples();
 
-    fireEvent.click(within(filterRow('Surface')).getByRole('tab', { name: /Image1/ }));
-    expect(screen.getByTestId('example-card-hero-image')).toBeTruthy();
-    expect(screen.queryByTestId('example-card-live-dashboard')).toBeNull();
+    const surface = within(filterRow('Surface'));
+    expect(surface.getByRole('tab', { name: /All7/ })).toBeTruthy();
+    expect(surface.getByRole('tab', { name: /Web5/ })).toBeTruthy();
+    expect(surface.queryByRole('tab', { name: /Image/ })).toBeNull();
+    expect(surface.queryByRole('tab', { name: /Video/ })).toBeNull();
+    expect(surface.queryByRole('tab', { name: /Audio/ })).toBeNull();
 
-    fireEvent.click(within(filterRow('Surface')).getByRole('tab', { name: /All7/ }));
-    fireEvent.click(within(filterRow('Type')).getByRole('tab', { name: /Prototypes · Mobile1/ }));
+    fireEvent.click(surface.getByRole('tab', { name: /Web5/ }));
+    expect(screen.getByTestId('example-card-live-dashboard')).toBeTruthy();
+    expect(screen.queryByTestId('example-card-hero-image')).toBeNull();
+    expect(screen.queryByTestId('example-card-launch-video')).toBeNull();
+
+    fireEvent.click(surface.getByRole('tab', { name: /All7/ }));
+    fireEvent.click(within(filterRow('Type')).getByRole('tab', { name: /Prototypes.*Mobile1/ }));
     expect(screen.getByTestId('example-card-mobile-checkout')).toBeTruthy();
     expect(screen.queryByTestId('example-card-live-dashboard')).toBeNull();
 
@@ -221,7 +229,6 @@ describe('ExamplesTab', () => {
     expect(screen.getByTestId('example-card-launch-video')).toBeTruthy();
     expect(screen.queryByTestId('example-card-live-dashboard')).toBeNull();
   });
-
   it('filters Docs & templates examples and uses the selected template prompt', () => {
     const { onUsePrompt } = renderExamples();
 
