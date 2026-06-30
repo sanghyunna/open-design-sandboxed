@@ -97,17 +97,6 @@ export type TrackingProjectKind =
   | 'live_artifact'
   | 'slide_deck'
   | 'template'
-  | 'image'
-  | 'video'
-  // `hyperframes` is a `video` project rendered by the local HyperFrames
-  // HTML→MP4 engine (`videoModel === 'hyperframes-html'`). The product
-  // routes it as its own task type (a peer of Video, with its own Home
-  // chip), and its cost/latency/success profile differs sharply from AI
-  // video providers, so it is surfaced as a first-class project_kind
-  // rather than collapsed into generic `video`. `model_id` still carries
-  // `hyperframes-html` as a secondary anchor.
-  | 'hyperframes'
-  | 'audio'
   // `design_system` covers DS-as-project runs (creation + regeneration).
   // The dashboard reads it on run_created / run_finished to split the
   // DS generation funnel from regular artifact runs.
@@ -149,7 +138,6 @@ export type TrackingNewProjectTab =
   | 'live_artifact'
   | 'slide_deck'
   | 'from_template'
-  | 'media'
   | 'other';
 
 export type TrackingFidelity =
@@ -199,9 +187,6 @@ export type TrackingFeedbackProviderId =
 export type TrackingArtifactKind =
   | 'html'
   | 'markdown'
-  | 'image'
-  | 'video'
-  | 'audio'
   | 'doc'
   | 'unknown';
 
@@ -210,7 +195,6 @@ export type TrackingExportFormat =
   | 'pptx'
   | 'zip'
   | 'html'
-  | 'image'
   | 'markdown'
   | 'template'
   | 'share_link'
@@ -404,9 +388,6 @@ export type TrackingDesignSystemSource =
   | 'unknown';
 
 export type TrackingFileType =
-  | 'image'
-  | 'video'
-  | 'audio'
   | 'pdf'
   | 'zip'
   | 'folder'
@@ -865,19 +846,11 @@ export type TrackingDesignSystemSelectionMode =
   | 'default'
   | 'none';
 
-// Project kind values for the picker's target project. Wider than
-// `TrackingProjectKind`'s prototype-side enum because the picker
-// shows up in slide / image / video / audio / live-artifact composers
-// too. `unknown` covers picker views with no project locked in.
+// Project kind values for the picker's target project. `unknown` covers
+// picker views with no project locked in.
 export type TrackingDesignSystemApplyTargetKind =
   | 'prototype'
   | 'slide_deck'
-  | 'image'
-  | 'video'
-  // HyperFrames projects can be a DS-apply target too; keep this in lockstep
-  // with `TrackingProjectKind` so the picker reports them distinctly.
-  | 'hyperframes'
-  | 'audio'
   | 'live_artifact'
   | 'unknown';
 
@@ -1451,7 +1424,6 @@ export interface PluginDetailModalSharePopoverClickProps {
     | 'pdf'
     | 'zip'
     | 'html'
-    | 'image'
     | 'open_in_new_tab';
   plugin_id?: string;
   plugin_type?: string;
@@ -2915,18 +2887,9 @@ export function sessionModeToTracking(
   return mode === 'design' ? 'design' : 'ask';
 }
 
-// Code `ProjectKind` from packages/contracts/src/api/projects.ts:
-//   'prototype' | 'deck' | 'template' | 'other' | 'image' | 'video' | 'audio'
-// Discriminates HyperFrames from generic AI video. A HyperFrames project is
-// stored as `kind: 'video'` with `metadata.videoModel === 'hyperframes-html'`
-// (the local HTML→MP4 renderer); callers pass that videoModel through so the
-// analytics layer can split it out into its own `project_kind`. See the
-// `'hyperframes'` member docblock on `TrackingProjectKind`.
-const HYPERFRAMES_VIDEO_MODEL = 'hyperframes-html';
-
 export function projectKindToTracking(
   kind: string | null | undefined,
-  videoModel?: string | null,
+  _videoModel?: string | null,
 ): TrackingProjectKind | null {
   switch (kind) {
     case 'prototype':
@@ -2937,14 +2900,6 @@ export function projectKindToTracking(
       return 'template';
     case 'other':
       return 'other';
-    case 'image':
-      return 'image';
-    case 'video':
-      // HyperFrames rides on the `video` kind; the local-render engine is the
-      // only thing that distinguishes it, so route on videoModel here.
-      return videoModel === HYPERFRAMES_VIDEO_MODEL ? 'hyperframes' : 'video';
-    case 'audio':
-      return 'audio';
     case 'live-artifact':
     case 'live_artifact':
       return 'live_artifact';
@@ -2953,8 +2908,6 @@ export function projectKindToTracking(
   }
 }
 
-// Code `CreateTab` from apps/web/src/components/NewProjectPanel.tsx:
-//   'prototype' | 'live-artifact' | 'deck' | 'template' | 'image' | 'video' | 'audio' | 'other'
 export function createTabToTracking(tab: string): TrackingNewProjectTab {
   switch (tab) {
     case 'prototype':
@@ -2965,10 +2918,6 @@ export function createTabToTracking(tab: string): TrackingNewProjectTab {
       return 'from_template';
     case 'live-artifact':
       return 'live_artifact';
-    case 'image':
-    case 'video':
-    case 'audio':
-      return 'media';
     case 'other':
       return 'other';
     default:
@@ -3149,10 +3098,6 @@ export function artifactKindToTracking(args: {
     return 'html';
   }
   if (rendererId === 'markdown') return 'markdown';
-  if (rendererId === 'svg') return 'image';
-  if (fileKind === 'image' || fileKind === 'sketch') return 'image';
-  if (fileKind === 'video') return 'video';
-  if (fileKind === 'audio') return 'audio';
   if (
     fileKind === 'pdf' ||
     fileKind === 'document' ||
@@ -3182,9 +3127,6 @@ export function fileTypeToTracking(args: {
   if (args.isFolder) return 'folder';
   if (args.isZip) return 'zip';
   const m = args.mime ?? '';
-  if (m.startsWith('image/')) return 'image';
-  if (m.startsWith('video/')) return 'video';
-  if (m.startsWith('audio/')) return 'audio';
   if (m === 'application/pdf') return 'pdf';
   return 'other';
 }

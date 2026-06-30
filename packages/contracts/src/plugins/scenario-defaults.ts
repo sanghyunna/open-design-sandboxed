@@ -18,8 +18,7 @@
 //
 // Generic / catch-all kinds (template, other) keep od-new-generation,
 // which runs discovery → plan → generate → critique without a
-// surface-specific seed. Media kinds keep od-media-generation, which
-// dispatches through the media contract instead of emitting HTML.
+// surface-specific seed.
 
 import type { ProjectKind, ProjectMetadata } from '../api/projects.js';
 import type { AppliedPluginSnapshot } from './apply.js';
@@ -39,7 +38,6 @@ export type TaskKind = AppliedPluginSnapshot['taskKind'];
 export type DefaultScenarioPluginId =
   | 'od-default'
   | 'od-new-generation'
-  | 'od-media-generation'
   | 'od-plugin-authoring'
   | 'od-figma-migration'
   | 'od-code-migration'
@@ -61,9 +59,6 @@ export const DEFAULT_SCENARIO_PLUGIN_BY_KIND: Record<ProjectKind, DefaultScenari
   // "headline + subtitle + absolute footer" collision).
   deck:      'example-simple-deck',
   template:  'od-new-generation',
-  image:     'od-media-generation',
-  video:     'od-media-generation',
-  audio:     'od-media-generation',
   other:     'od-new-generation',
 };
 

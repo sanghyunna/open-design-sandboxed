@@ -9,7 +9,6 @@ import type {
 } from './comments';
 import type { ResearchOptions } from './research';
 import type { RunContextSelection } from './context.js';
-import type { MediaExecutionPolicy } from './media.js';
 import type { AppliedPluginSnapshot } from '../plugins/apply.js';
 import type { McpAuthMode, McpServerConfig, McpTransport } from './mcp';
 
@@ -45,12 +44,6 @@ export interface ChatRequest {
   research?: ResearchOptions;
   context?: RunContextSelection;
   appliedPluginSnapshotId?: string | null;
-  /**
-   * Run-scoped media execution policy. Omitted means current Open Design
-   * behavior: media generation is enabled and OD may execute its configured
-   * local providers.
-   */
-  mediaExecution?: MediaExecutionPolicy;
   /**
    * Run-scoped tool bundle supplied by an external orchestrator.
    * These servers are made available only to the spawned agent for this run
@@ -117,9 +110,6 @@ export interface ChatAnalyticsHints {
     | 'live_artifact'
     | 'slide_deck'
     | 'template'
-    | 'image'
-    | 'video'
-    | 'audio'
     | 'design_system'
     | 'other';
   designSystemRunContext?: ChatAnalyticsDesignSystemRunContext;
@@ -171,7 +161,6 @@ export interface McpRunCreateRequest {
   pluginId?: string;
   model?: string;
   pluginInputs?: Record<string, unknown>;
-  mediaExecution?: MediaExecutionPolicy;
   toolBundle?: RunScopedToolBundle;
 }
 
@@ -267,8 +256,6 @@ export interface ChatRunStatusResponse {
    *  the SSE stream to (see runs.ts `runsLogDir`). Null when the
    *  daemon was launched without event persistence configured. */
   eventsLogPath?: string | null;
-  /** Present on daemon run status responses that know the effective run policy. */
-  mediaExecution?: MediaExecutionPolicy;
   /** Run-scoped tool bundle summary with secrets and command details redacted. */
   toolBundle?: RunScopedToolBundleSummary;
 }
