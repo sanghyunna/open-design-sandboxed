@@ -55,7 +55,6 @@
     "example",
     "first-party",
     "template",
-    "live-artifacts",
     "web",
     "desktop",
     "trading-analysis-dashboard-template",
@@ -77,7 +76,7 @@
     "taskKind": "new-generation",
     "mode": "template",
     "platform": "desktop",
-    "scenario": "live-artifacts",
+    "scenario": "finance",
     "surface": "web",
     "preview": {
       "type": "html",
@@ -115,8 +114,7 @@
         {
           "id": "generate",
           "atoms": [
-            "file-write",
-            "live-artifact"
+            "file-write"
           ]
         }
       ]

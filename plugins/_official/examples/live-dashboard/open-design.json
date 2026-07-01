@@ -64,8 +64,7 @@
     "ops-dashboard",
     "team-workspace-dashboard",
     "untitled",
-    "notion",
-    "live-artifact-dashboard"
+    "notion"
   ],
   "compat": {
     "agentSkills": [
@@ -185,8 +184,7 @@
         {
           "id": "generate",
           "atoms": [
-            "file-write",
-            "live-artifact"
+            "file-write"
           ]
         }
       ]

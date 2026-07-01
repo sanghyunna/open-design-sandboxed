@@ -55,7 +55,6 @@
     "example",
     "first-party",
     "template",
-    "live-artifacts",
     "web",
     "desktop",
     "social-media-matrix-tracker",
@@ -82,7 +81,7 @@
     "taskKind": "new-generation",
     "mode": "template",
     "platform": "desktop",
-    "scenario": "live-artifacts",
+    "scenario": "creator",
     "surface": "web",
     "preview": {
       "type": "html",
@@ -120,8 +119,7 @@
         {
           "id": "generate",
           "atoms": [
-            "file-write",
-            "live-artifact"
+            "file-write"
           ]
         }
       ]
