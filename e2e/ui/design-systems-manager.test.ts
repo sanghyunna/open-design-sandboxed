@@ -127,14 +127,6 @@ async function routeDesignSystemsManager(
       });
       return;
     }
-    if (path === '/api/media/config' && method === 'GET') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"providers":{}}' });
-      return;
-    }
-    if (path === '/api/media/config' && method === 'PUT') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
-      return;
-    }
     if (path === '/api/skills') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"skills":[]}' });
       return;

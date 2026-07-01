@@ -1,6 +1,6 @@
 import { playwrightUiScenarios } from '../../resources/playwright.ts';
 
-export type ScenarioKind = 'prototype' | 'deck' | 'hyperframes' | 'image' | 'audio' | 'template' | 'workspace';
+export type ScenarioKind = 'prototype' | 'deck' | 'template' | 'workspace';
 
 export interface MockArtifactScenario {
   identifier: string;
@@ -40,19 +40,12 @@ export interface UiScenario {
     | 'deck-pagination-per-file-isolated'
     | 'uploaded-image-renders-in-preview'
     | 'python-source-preview'
-    | 'hyperframes-project-routing'
-    | 'image-project-routing'
-    | 'video-project-routing'
-    | 'audio-project-routing'
     | 'plugin-create-import';
   automated: boolean;
   description: string;
   create: {
     projectName: string;
-    tab?: 'prototype' | 'deck' | 'template' | 'media' | 'other';
-    mediaSurface?: 'image' | 'video' | 'audio';
-    videoModel?: string;
-    audioKind?: 'speech' | 'sfx';
+    tab?: 'prototype' | 'deck' | 'template' | 'other';
   };
   prompt: string;
   secondaryPrompt?: string;

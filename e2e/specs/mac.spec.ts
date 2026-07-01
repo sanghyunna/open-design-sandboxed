@@ -820,36 +820,6 @@ desktopMacDescribe('mac desktop settings smoke', () => {
     expect(clickCapture.href).toBe('/api/projects/' + seeded.projectId + '/raw/desktop-open.html?v=0&r=0');
   }, 45_000);
 
-  test('opens the Media providers section from the desktop shell and shows provider controls', async () => {
-    await seedDesktopConfig(desktop, {
-      mode: 'api',
-      apiKey: 'sk-test',
-      baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o',
-      apiProtocol: 'openai',
-      apiProviderBaseUrl: 'https://api.openai.com/v1',
-      agentId: null,
-      skillId: null,
-      designSystemId: null,
-      onboardingCompleted: true,
-      mediaProviders: {},
-      agentModels: {},
-      theme: 'system',
-    }, 'model');
-
-    await desktop.openSettings();
-    await openDesktopSettingsSection(desktop, 'Media providers');
-
-    await waitFor(async () => {
-      const snapshot = await readDesktopMediaSnapshot(desktop);
-      expect(snapshot.dialogOpen).toBe(true);
-      expect(snapshot.heading).toBe('Media providers');
-      expect(snapshot.sectionTitle).toBe('Media providers');
-      expect(snapshot.providerCardCount).toBeGreaterThan(0);
-      expect(snapshot.reloadVisible).toBe(true);
-    });
-  }, 45_000);
-
   test('opens the About section from the desktop shell and renders version details or the offline placeholder', async () => {
     await seedDesktopConfig(desktop, {
       mode: 'api',
@@ -1056,14 +1026,6 @@ type DesktopConnectorsSnapshot = {
   sectionTitle: string | null;
 };
 
-type DesktopMediaSnapshot = {
-  dialogOpen: boolean;
-  heading: string | null;
-  providerCardCount: number;
-  reloadVisible: boolean;
-  sectionTitle: string | null;
-};
-
 type DesktopAboutSnapshot = {
   aboutListVisible: boolean;
   dialogOpen: boolean;
@@ -1263,25 +1225,6 @@ async function readDesktopConnectorsSnapshot(
         gateVisible: Boolean(document.querySelector('[data-testid="connector-gate"]')),
         gridVisible: Boolean(document.querySelector('[data-testid="connector-grid-wrap"]')),
         heading: document.querySelector('[role="dialog"] h2')?.textContent?.trim() ?? null,
-        sectionTitle,
-      };
-    })()
-  `);
-}
-
-async function readDesktopMediaSnapshot(
-  desktop: DesktopHarness,
-): Promise<DesktopMediaSnapshot> {
-  return await desktop.eval<DesktopMediaSnapshot>(`
-    (() => {
-      const sectionTitle = document.querySelector('.settings-section .section-head h3')
-        ?.textContent?.trim() ?? null;
-      return {
-        dialogOpen: Boolean(document.querySelector('[role="dialog"]')),
-        heading: document.querySelector('[role="dialog"] h2')?.textContent?.trim() ?? null,
-        providerCardCount: document.querySelectorAll('.settings-provider-card').length,
-        reloadVisible: Boolean(Array.from(document.querySelectorAll('button'))
-          .find((node) => node.textContent?.trim() === 'Reload from daemon')),
         sectionTitle,
       };
     })()

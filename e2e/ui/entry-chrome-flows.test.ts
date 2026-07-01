@@ -21,13 +21,13 @@ const STARTER_PLUGINS = [
     inputs: [{ name: 'topic', type: 'string', default: 'quarterly review' }],
   }),
   makeStarterPlugin({
-    id: 'hyperframes-video',
-    title: 'Hyperframes Video',
-    mode: 'video',
+    id: 'report-writer',
+    title: 'Report Writer',
+    mode: 'report',
     featured: true,
-    tags: ['hyperframes'],
-    query: 'Create a {{topic}} video.',
-    inputs: [{ name: 'topic', type: 'string', default: 'product teaser' }],
+    tags: ['report'],
+    query: 'Draft a {{topic}} report.',
+    inputs: [{ name: 'topic', type: 'string', default: 'market scan' }],
   }),
   makeStarterPlugin({
     id: 'figma-importer',
@@ -94,10 +94,7 @@ test('[P0] @critical entry chrome exposes the primary home creation surface and 
   await expect(createTabs).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-prototype')).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-deck')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-image')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-video')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-hyperframes')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-audio')).toBeVisible();
+  await expect(page.getByTestId('home-hero-rail-report')).toBeVisible();
 
   // The pet picker rail was removed; pet adoption now lives in
   // Settings → Pet exclusively. Make sure no rail leaks back into the
@@ -550,19 +547,19 @@ test('[P2] home starters search and facet filters narrow the visible gallery', a
   await expect(page.locator('[data-plugin-id="deck-writer"]')).toBeVisible();
   await expect(page.locator('[data-plugin-id="figma-importer"]')).toHaveCount(0);
   await expect(page.locator('[data-plugin-id="localized-plugin"]')).toHaveCount(0);
-  await expect(page.locator('[data-plugin-id="hyperframes-video"]')).toHaveCount(0);
+  await expect(page.locator('[data-plugin-id="report-writer"]')).toHaveCount(0);
 
   await page.getByTestId('plugins-home-pill-category-all').click();
   await expect(page.locator('[data-plugin-id="figma-importer"]')).toBeVisible();
   await expect(page.locator('[data-plugin-id="localized-plugin"]')).toBeVisible();
-  await expect(page.locator('[data-plugin-id="hyperframes-video"]')).toBeVisible();
+  await expect(page.locator('[data-plugin-id="report-writer"]')).toBeVisible();
   await expect(page.locator('[data-plugin-id="deck-writer"]')).toBeVisible();
 
   const search = page.getByTestId('plugins-home-search');
   await search.fill('Deck Writer');
   await expect(page.locator('[data-plugin-id="deck-writer"]')).toBeVisible();
   await expect(page.locator('[data-plugin-id="localized-plugin"]')).toHaveCount(0);
-  await expect(page.locator('[data-plugin-id="hyperframes-video"]')).toHaveCount(0);
+  await expect(page.locator('[data-plugin-id="report-writer"]')).toHaveCount(0);
   await page.getByTestId('plugins-home-search-clear').click();
   await expect(page.locator('[data-plugin-id="localized-plugin"]')).toBeVisible();
 });

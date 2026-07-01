@@ -113,14 +113,6 @@ async function routeBootstrapApis(
       });
       return;
     }
-    if (path === '/api/media/config') {
-      if (method === 'GET') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: '{"providers":{}}' });
-        return;
-      }
-      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
-      return;
-    }
     if (path === '/api/skills') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"skills":[]}' });
       return;

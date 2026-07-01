@@ -41,22 +41,6 @@ const CONNECTORS = [
   },
 ];
 
-const IMAGE_TEMPLATE = {
-  id: 'editorial-poster',
-  surface: 'image',
-  title: 'Editorial Poster',
-  summary: 'A punchy launch poster for a product announcement.',
-  category: 'Marketing',
-  tags: ['poster', 'launch'],
-  model: 'gpt-image-1',
-  aspect: '4:5',
-  source: {
-    repo: 'open-design/test-prompts',
-    license: 'MIT',
-    author: 'Open Design QA',
-  },
-};
-
 async function readSavedConfig(page: Page) {
   return page.evaluate((key) => {
     const raw = window.localStorage.getItem(key);
@@ -93,69 +77,6 @@ test.beforeEach(async ({ page }) => {
     },
   ]);
 });
-
-test('[P1] prompt template retry preserves the edited body in project metadata', async ({ page }) => {
-  let detailRequests = 0;
-  await page.route('**/api/prompt-templates', async (route) => {
-    await route.fulfill({ json: { promptTemplates: [IMAGE_TEMPLATE] } });
-  });
-  await page.route('**/api/prompt-templates/image/editorial-poster', async (route) => {
-    detailRequests += 1;
-    if (detailRequests === 1) {
-      await route.fulfill({ status: 500, body: 'template unavailable' });
-      return;
-    }
-    await route.fulfill({
-      json: {
-        promptTemplate: {
-          ...IMAGE_TEMPLATE,
-          prompt: 'Original poster prompt with dramatic type and product photography.',
-        },
-      },
-    });
-  });
-
-  await gotoEntryHome(page);
-  await ensureRailOpen(page);
-  await page.getByTestId('entry-nav-new-project').click();
-  await expect(page.getByTestId('new-project-modal')).toBeVisible();
-  await expect(page.getByTestId('new-project-panel')).toBeVisible();
-  await page.getByTestId('new-project-tab-media').click();
-  await page.getByTestId('new-project-media-surface-image').click();
-  await page.getByTestId('new-project-name').fill('Prompt template retry metadata');
-
-  await page.getByTestId('prompt-template-trigger').click();
-  await page.getByTestId('prompt-template-search').fill('poster');
-  await page.getByRole('option', { name: /Editorial Poster/i }).click();
-
-  await expect(page.getByTestId('prompt-template-error')).toBeVisible();
-  await page.getByTestId('prompt-template-retry').click();
-  await expect(page.getByTestId('prompt-template-error')).toHaveCount(0);
-  await expect(page.getByTestId('prompt-template-body')).toContainText('Original poster prompt');
-
-  await page.getByTestId('prompt-template-body').fill('');
-  await expect(page.getByTestId('prompt-template-empty-hint')).toBeVisible();
-  await page.getByTestId('prompt-template-body').fill(
-    'Edited QA prompt: bold poster, one hero product, crisp headline.',
-  );
-  await expect(page.getByTestId('create-project')).toBeEnabled();
-  const createResponsePromise = page.waitForResponse((response) =>
-    response.url().endsWith('/api/projects') &&
-    response.request().method() === 'POST',
-  );
-  await page.getByTestId('create-project').click();
-  const createResponse = await createResponsePromise;
-  expect(createResponse.ok(), await createResponse.text()).toBeTruthy();
-
-  const project = await fetchCurrentProject(page);
-  expect(project.metadata?.promptTemplate).toMatchObject({
-    id: 'editorial-poster',
-    surface: 'image',
-    title: 'Editorial Poster',
-    prompt: 'Edited QA prompt: bold poster, one hero product, crisp headline.',
-  });
-});
-
 
 test('[P2] connectors search supports empty results and keyboard-closeable details', async ({ page }) => {
   await routeConnectors(page, CONNECTORS);
@@ -376,27 +297,4 @@ async function routeComposioConfig(
 
 function connectorCard(scope: Page | Locator, id: string) {
   return scope.locator(`article.connector-card[data-connector-id="${id}"]`);
-}
-
-async function fetchCurrentProject(page: Page) {
-  await expect(page).toHaveURL(/\/projects\/[^/]+/);
-  const url = new URL(page.url());
-  const [, projectId] = url.pathname.match(/\/projects\/([^/]+)/) ?? [];
-  expect(projectId).toBeTruthy();
-
-  const response = await page.request.get(`/api/projects/${projectId}`);
-  expect(response.ok()).toBeTruthy();
-  const body = (await response.json()) as {
-    project: {
-      metadata?: {
-        promptTemplate?: {
-          id: string;
-          surface: string;
-          title: string;
-          prompt: string;
-        };
-      };
-    };
-  };
-  return body.project;
 }

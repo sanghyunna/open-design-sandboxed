@@ -23,9 +23,6 @@ const APP_OWNED_SCENARIO_FLOWS = new Set([
 const CRITICAL_SCENARIO_IDS = new Set([
   'prototype-basic',
   'deck-basic',
-  'hyperframes-basic',
-  'image-basic',
-  'video-basic',
   'conversation-persistence',
   'file-mention',
   'deep-link-preview',
@@ -125,47 +122,6 @@ for (const entry of automatedUiScenarios().filter(
       // gallery card the test clicks actually renders.
       await page.route('**/api/design-templates', async (route) => {
         await route.fulfill({ json: { designTemplates: [exampleSummary] } });
-      });
-    }
-
-    if (entry.flow === 'hyperframes-project-routing') {
-      await page.route('**/api/skills', async (route) => {
-        await route.fulfill({
-          json: {
-            skills: [
-              {
-                id: 'video-shortform',
-                name: 'Video shortform',
-                description: 'Shortform video skill',
-                mode: 'video',
-                surface: 'video',
-                previewType: 'video',
-                designSystemRequired: false,
-                defaultFor: [],
-                triggers: [],
-                upstream: null,
-                hasBody: true,
-                examplePrompt: '',
-                aggregatesExamples: false,
-              },
-              {
-                id: 'hyperframes',
-                name: 'HyperFrames',
-                description: 'HTML-in-canvas video',
-                mode: 'video',
-                surface: 'video',
-                previewType: 'video',
-                designSystemRequired: false,
-                defaultFor: [],
-                triggers: [],
-                upstream: null,
-                hasBody: true,
-                examplePrompt: '',
-                aggregatesExamples: false,
-              },
-            ],
-          },
-        });
       });
     }
 
@@ -315,22 +271,6 @@ for (const entry of automatedUiScenarios().filter(
 
     if (entry.flow === 'example-use-prompt') {
       await runExampleUsePromptFlow(page, entry);
-      return;
-    }
-    if (entry.flow === 'hyperframes-project-routing') {
-      await runHyperframesProjectRoutingFlow(page, entry);
-      return;
-    }
-    if (entry.flow === 'image-project-routing') {
-      await runImageProjectRoutingFlow(page, entry);
-      return;
-    }
-    if (entry.flow === 'video-project-routing') {
-      await runVideoProjectRoutingFlow(page, entry);
-      return;
-    }
-    if (entry.flow === 'audio-project-routing') {
-      await runAudioProjectRoutingFlow(page, entry);
       return;
     }
     await createProject(page, entry);
@@ -575,10 +515,6 @@ async function routeMockAgents(page: Page) {
 function scenarioPriority(entry: UiScenario): 'P0' | 'P1' | 'P2' {
   switch (entry.flow) {
     case 'example-use-prompt':
-    case 'hyperframes-project-routing':
-    case 'image-project-routing':
-    case 'video-project-routing':
-    case 'audio-project-routing':
     case 'conversation-persistence':
     case 'file-upload-send':
     case 'conversation-delete-recovery':
@@ -799,19 +735,9 @@ function isCreateRunResponse(resp: Response): boolean {
   return url.pathname === '/api/runs' && resp.request().method() === 'POST';
 }
 
-function isCreateProjectResponse(resp: Response): boolean {
-  const url = new URL(resp.url());
-  return url.pathname === '/api/projects' && resp.request().method() === 'POST';
-}
-
 function isCreateRunRequest(request: Request): boolean {
   const url = new URL(request.url());
   return url.pathname === '/api/runs' && request.method() === 'POST';
-}
-
-function isCreateProjectRequest(request: Request): boolean {
-  const url = new URL(request.url());
-  return url.pathname === '/api/projects' && request.method() === 'POST';
 }
 
 async function runExampleUsePromptFlow(
@@ -834,133 +760,6 @@ async function runExampleUsePromptFlow(
   await expect(page.getByTestId('project-title')).toContainText('Warm Utility Example');
   await expect(page.getByTestId('project-meta')).toContainText('Warm Utility Example');
 }
-
-async function runHyperframesProjectRoutingFlow(
-  page: Page,
-  entry: UiScenario,
-) {
-  await createProjectNameOnly(page, entry);
-
-  const createProjectRequest = page.waitForRequest(isCreateProjectRequest);
-  const createProjectResponse = page.waitForResponse(isCreateProjectResponse);
-  await page.getByTestId('create-project').click();
-
-  const request = await createProjectRequest;
-  const body = request.postDataJSON() as {
-    skillId?: string;
-    metadata?: {
-      kind?: string;
-      videoModel?: string;
-    };
-  };
-  expect(body.skillId).toBe('hyperframes');
-  expect(body.metadata?.kind).toBe('video');
-  expect(body.metadata?.videoModel).toBe('hyperframes-html');
-
-  const response = await createProjectResponse;
-  expect(response.ok(), `${response.status()} ${await response.text()}`).toBeTruthy();
-
-  await expectWorkspaceReady(page);
-  await sendPrompt(page, entry.prompt);
-  const { projectId } = await getCurrentProjectContext(page);
-  await expect(tabBySuffix(page, entry.mockArtifact!.fileName)).toBeVisible();
-  await expectProjectFileToContain(page, projectId, entry.mockArtifact!.fileName, entry.mockArtifact!.heading);
-  await expectScenarioProjectState(page, entry, projectId);
-}
-
-async function runImageProjectRoutingFlow(
-  page: Page,
-  entry: UiScenario,
-) {
-  await createProjectNameOnly(page, entry);
-
-  const createProjectRequest = page.waitForRequest(isCreateProjectRequest);
-  const createProjectResponse = page.waitForResponse(isCreateProjectResponse);
-  await page.getByTestId('create-project').click();
-
-  const request = await createProjectRequest;
-  const body = request.postDataJSON() as {
-    metadata?: {
-      kind?: string;
-    };
-  };
-  expect(body.metadata?.kind).toBe('image');
-
-  const response = await createProjectResponse;
-  expect(response.ok(), `${response.status()} ${await response.text()}`).toBeTruthy();
-
-  await expectWorkspaceReady(page);
-  const { projectId } = await getCurrentProjectContext(page);
-  await expectScenarioProjectState(page, entry, projectId);
-}
-
-async function runVideoProjectRoutingFlow(
-  page: Page,
-  entry: UiScenario,
-) {
-  await createProjectNameOnly(page, entry);
-
-  const createProjectRequest = page.waitForRequest(isCreateProjectRequest);
-  const createProjectResponse = page.waitForResponse(isCreateProjectResponse);
-  await page.getByTestId('create-project').click();
-
-  const request = await createProjectRequest;
-  const body = request.postDataJSON() as {
-    metadata?: {
-      kind?: string;
-      videoModel?: string;
-      videoAspect?: string;
-      videoLength?: number;
-    };
-  };
-  expect(body.metadata?.kind).toBe('video');
-  expect(body.metadata?.videoModel).toBeTruthy();
-  expect(body.metadata?.videoAspect).toBe('16:9');
-  expect(body.metadata?.videoLength).toBe(5);
-
-  const response = await createProjectResponse;
-  expect(response.ok()).toBeTruthy();
-
-  await expectWorkspaceReady(page);
-  const { projectId } = await getCurrentProjectContext(page);
-  await expectScenarioProjectState(page, entry, projectId);
-}
-
-async function runAudioProjectRoutingFlow(
-  page: Page,
-  entry: UiScenario,
-) {
-  await createProjectNameOnly(page, entry);
-
-  const createProjectRequest = page.waitForRequest(isCreateProjectRequest);
-  const createProjectResponse = page.waitForResponse(isCreateProjectResponse);
-  await page.getByTestId('create-project').click();
-
-  const request = await createProjectRequest;
-  const body = request.postDataJSON() as {
-    metadata?: {
-      kind?: string;
-      audioKind?: string;
-      audioDuration?: number;
-    };
-  };
-  expect(body.metadata?.kind).toBe('audio');
-  expect(body.metadata?.audioKind).toBe('sfx');
-  expect(typeof body.metadata?.audioDuration).toBe('number');
-  expect((body.metadata?.audioDuration ?? 0)).toBeGreaterThan(0);
-
-  const response = await createProjectResponse;
-  expect(response.ok()).toBeTruthy();
-
-  await expectWorkspaceReady(page);
-  const { projectId } = await getCurrentProjectContext(page);
-  const project = await fetchProjectFromApi(page, projectId);
-  await expectScenarioProjectState(page, entry, projectId);
-  const metadata = project.metadata as Record<string, unknown> | undefined;
-  expect(metadata?.audioDuration).toBe(body.metadata?.audioDuration);
-}
-
-
 
 async function runQuestionFormSelectionLimitFlow(
   page: Page,
@@ -1211,16 +1010,6 @@ async function createProjectNameOnly(
   await expect(page.getByTestId('new-project-panel')).toBeVisible();
   if (entry.create.tab) {
     await page.getByTestId(`new-project-tab-${entry.create.tab}`).click();
-  }
-  if (entry.create.tab === 'media' && entry.create.mediaSurface) {
-    await page.getByTestId(`new-project-media-surface-${entry.create.mediaSurface}`).click();
-  }
-  if (entry.create.tab === 'media' && entry.create.mediaSurface === 'video' && entry.create.videoModel) {
-    await page.getByTestId('model-picker-trigger').click();
-    await page.getByTestId(`model-picker-option-${entry.create.videoModel}`).click();
-  }
-  if (entry.create.tab === 'media' && entry.create.mediaSurface === 'audio' && entry.create.audioKind === 'sfx') {
-    await page.getByRole('button', { name: 'SFX' }).click();
   }
   await page.getByTestId('new-project-name').fill(entry.create.projectName);
 }
