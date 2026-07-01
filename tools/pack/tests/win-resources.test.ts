@@ -52,9 +52,6 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
   await writeFile(join(workspaceRoot, "assets", "community-pets", "clippit", "spritesheet.webp"), "clippit-sheet\n", "utf8");
   await writeFile(join(workspaceRoot, "assets", "community-pets", "dario", "pet.json"), "{\"name\":\"dario\"}\n", "utf8");
   await writeFile(join(workspaceRoot, "assets", "community-pets", "dario", "spritesheet.webp"), "dario-sheet\n", "utf8");
-  await mkdir(join(workspaceRoot, "prompt-templates", "image"), {
-    recursive: true,
-  });
   await mkdir(join(workspaceRoot, "data", "plugin-previews"), {
     recursive: true,
   });

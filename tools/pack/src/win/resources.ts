@@ -11,7 +11,7 @@ import {
 } from "../vela-cli.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
-const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 8;
+const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 9;
 
 async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<string> {
   const velaCliBin = await resolveOptionalVelaCliBinary({
@@ -32,7 +32,6 @@ async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<strin
     pluginOfficial: await hashPath(join(config.workspaceRoot, "plugins", "_official")),
     pluginPreviews: await hashPath(join(config.workspaceRoot, "data", "plugin-previews")),
     pluginRegistry: await hashPath(join(config.workspaceRoot, "plugins", "registry")),
-    promptTemplates: await hashPath(join(config.workspaceRoot, "prompt-templates")),
     portable: config.portable,
     schemaVersion: RESOURCE_TREE_CACHE_SCHEMA_VERSION,
     skills: await hashPath(join(config.workspaceRoot, "skills")),

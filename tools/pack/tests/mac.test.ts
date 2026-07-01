@@ -167,7 +167,6 @@ describe("copyResourceTree", () => {
         "plugins/registry",
         "assets/frames",
         "assets/community-pets",
-        "prompt-templates",
         "data/plugin-previews",
       ];
 

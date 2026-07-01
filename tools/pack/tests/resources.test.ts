@@ -21,12 +21,6 @@ describe("copyBundledResourceTrees", () => {
     const resourceRoot = join(root, "resources");
 
     try {
-      const promptTemplatePath = join(
-        workspaceRoot,
-        "prompt-templates",
-        "image",
-        "sample.json",
-      );
       const designTemplatePath = join(
         workspaceRoot,
         "design-templates",
@@ -60,7 +54,7 @@ describe("copyBundledResourceTrees", () => {
       // skills-and-design-templates.md) added a separate top-level
       // `design-templates/` tree that copyBundledResourceTrees now also
       // bundles. Create it in the fixture so the recursive copy does not
-      // fail with ENOENT before reaching the prompt-templates assertion.
+      // fail with ENOENT.
       await mkdir(join(workspaceRoot, "design-templates", "orbit-general"), {
         recursive: true,
       });
@@ -84,13 +78,9 @@ describe("copyBundledResourceTrees", () => {
       await mkdir(join(workspaceRoot, "assets", "community-pets", "clippit"), {
         recursive: true,
       });
-      await mkdir(join(workspaceRoot, "prompt-templates", "image"), {
-        recursive: true,
-      });
       await mkdir(join(workspaceRoot, "data", "plugin-previews"), {
         recursive: true,
       });
-      await writeFile(promptTemplatePath, "{\"id\":\"sample\"}\n", "utf8");
       await writeFile(
         join(workspaceRoot, "data", "plugin-previews", "manifest.json"),
         "{\"previews\":{}}\n",
@@ -109,12 +99,6 @@ describe("copyBundledResourceTrees", () => {
 
       await copyBundledResourceTrees({ workspaceRoot, resourceRoot });
 
-      await expect(
-        readFile(
-          join(resourceRoot, "prompt-templates", "image", "sample.json"),
-          "utf8",
-        ),
-      ).resolves.toBe("{\"id\":\"sample\"}\n");
       // The baked plugin-preview manifest must land under data/plugin-previews so
       // the packaged daemon can map plugins to their R2 clips; without it the
       // gallery silently falls back to live iframes.
@@ -180,7 +164,6 @@ describe("copyBundledResourceTrees", () => {
       await mkdir(join(workspaceRoot, "assets", "frames"), { recursive: true });
       await mkdir(join(workspaceRoot, "assets", "community-pets", "clippit"), { recursive: true });
       await mkdir(join(workspaceRoot, "assets", "community-pets", "dario"), { recursive: true });
-      await mkdir(join(workspaceRoot, "prompt-templates", "image"), { recursive: true });
       await mkdir(join(workspaceRoot, "data", "plugin-previews"), { recursive: true });
 
       await writeFile(join(workspaceRoot, "assets", "community-pets", "clippit", "pet.json"), "{\"name\":\"clippit\"}\n", "utf8");
@@ -195,7 +178,6 @@ describe("copyBundledResourceTrees", () => {
         "dario-sheet\n",
         "utf8",
       );
-      await writeFile(join(workspaceRoot, "prompt-templates", "image", "sample.json"), "{\"id\":\"sample\"}\n", "utf8");
       await writeFile(join(workspaceRoot, "data", "plugin-previews", "manifest.json"), "{\"previews\":{}}\n", "utf8");
       await writeFile(join(workspaceRoot, "design-templates", "orbit-general", "SKILL.md"), "# Orbit General\n", "utf8");
       await writeFile(join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"), "{\"id\":\"sample\"}\n", "utf8");
