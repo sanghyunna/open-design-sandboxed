@@ -67,7 +67,7 @@ my-plugin/
       "stages": [
         { "id": "discovery", "atoms": ["discovery-question-form"] },
         { "id": "plan", "atoms": ["direction-picker", "todo-write"] },
-        { "id": "generate", "atoms": ["file-write", "live-artifact"] },
+        { "id": "generate", "atoms": ["file-write"] },
         {
           "id": "critique",
           "atoms": ["critique-theater"],
@@ -92,7 +92,7 @@ Use one primary lane. Put the lane in `tags`, `od.scenario`, or `od.mode` so sea
 | Lane | Use when | Typical `taskKind` | Useful atoms |
 | --- | --- | --- | --- |
 | `import` | Bring external sources into OD | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
-| `create` | Generate a new artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `live-artifact`, `media-image`, `media-video`, `media-audio`, `critique-theater` |
+| `create` | Generate a new artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | Convert an accepted artifact to a downstream format | `tune-collab` or `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
 | `share` | Publish or send an artifact to collaborators | `tune-collab` | `file-read`, `handoff`, `connector` |
 | `deploy` | Ship an artifact to hosted infrastructure | `code-migration` or `tune-collab` | `file-read`, `build-test`, `handoff`, `connector` |
@@ -107,14 +107,12 @@ Use `od.mode` for the main output surface:
 | --- | --- |
 | `prototype` | Interactive single-page web artifact |
 | `deck` | Slide deck artifact |
-| `live-artifact` | Dashboard, report, calculator, simulator, or other live UI |
-| `image` | Generated image, storyboard frame, poster, ad, or visual asset |
-| `video` | Video prompt, storyboard, rendered clip, or motion package |
-| `hyperframes` | HyperFrames-ready HTML motion composition |
-| `audio` | Voice, music, sonic branding, or sound-design asset |
+| `report` | Evidence-backed analytical or research report |
+| `document` | Structured Markdown or HTML document |
+| `dashboard` | Connector-backed monitoring or analysis dashboard |
 | `design-system` | Reusable brand or interface system |
-
-HyperFrames plugins may use `od.mode: "video"` plus a `hyperframes` tag when they should appear beside video tooling, or `od.mode: "hyperframes"` when the distinction matters more than the broad video bucket.
+| `template` | Reusable starter, layout, or artifact template |
+| `other` | Narrow custom output that does not fit the current modes |
 
 ## 5. `SKILL.md` Authoring Rules
 

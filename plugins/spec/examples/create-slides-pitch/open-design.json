@@ -11,9 +11,18 @@
     "url": "https://github.com/nexu-io/open-design"
   },
   "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/spec/examples/create-slides-pitch",
-  "tags": ["create", "deck", "slides", "pitch"],
+  "tags": [
+    "create",
+    "deck",
+    "slides",
+    "pitch"
+  ],
   "compat": {
-    "agentSkills": [{ "path": "./SKILL.md" }]
+    "agentSkills": [
+      {
+        "path": "./SKILL.md"
+      }
+    ]
   },
   "od": {
     "kind": "skill",
@@ -38,23 +47,70 @@
       ]
     },
     "context": {
-      "skills": [{ "path": "./SKILL.md" }],
-      "craft": ["typography", "color", "anti-ai-slop"],
-      "assets": ["./example.html"],
-      "atoms": ["todo-write", "critique-theater", "handoff"]
+      "skills": [
+        {
+          "path": "./SKILL.md"
+        }
+      ],
+      "craft": [
+        "typography",
+        "color",
+        "anti-ai-slop"
+      ],
+      "assets": [
+        "./example.html"
+      ],
+      "atoms": [
+        "todo-write",
+        "critique-theater",
+        "handoff"
+      ]
     },
     "pipeline": {
       "stages": [
-        { "id": "plan", "atoms": ["todo-write"] },
-        { "id": "generate", "atoms": ["file-write", "live-artifact"] },
-        { "id": "critique", "atoms": ["critique-theater"] },
-        { "id": "handoff", "atoms": ["handoff"] }
+        {
+          "id": "plan",
+          "atoms": [
+            "todo-write"
+          ]
+        },
+        {
+          "id": "generate",
+          "atoms": [
+            "file-write"
+          ]
+        },
+        {
+          "id": "critique",
+          "atoms": [
+            "critique-theater"
+          ]
+        },
+        {
+          "id": "handoff",
+          "atoms": [
+            "handoff"
+          ]
+        }
       ]
     },
     "inputs": [
-      { "name": "company", "type": "string", "required": true, "label": "Company" },
-      { "name": "ask", "type": "string", "default": "$2.5M seed", "label": "Ask" }
+      {
+        "name": "company",
+        "type": "string",
+        "required": true,
+        "label": "Company"
+      },
+      {
+        "name": "ask",
+        "type": "string",
+        "default": "$2.5M seed",
+        "label": "Ask"
+      }
     ],
-    "capabilities": ["prompt:inject", "fs:write"]
+    "capabilities": [
+      "prompt:inject",
+      "fs:write"
+    ]
   }
 }

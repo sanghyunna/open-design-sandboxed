@@ -20,7 +20,7 @@ Reviewer 应检查：
 - `open-design.json` 声明 `specVersion` 和插件 `version`。
 - `open-design.json` 没有复制 skill 正文。
 - 插件主类清晰：import、create、export、share、deploy、refine 或 extend。
-- create 插件的输出模式清晰：prototype、deck、live-artifact、image、video、hyperframes、audio 或 design-system。
+- create 插件的输出模式清晰：prototype、deck、report/document、connector-backed dashboard、design-system、template 或 other。
 - capabilities 是最小必要集合。
 - 对外可见的操作有用户确认。
 - 视觉类示例包含 preview 或具体输出。

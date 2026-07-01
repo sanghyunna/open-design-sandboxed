@@ -28,7 +28,7 @@ Open Design 插件遵循和 Agent Skills 兼容的可移植形态：一个包含
 工作流主类：
 
 - Import - Figma、GitHub、代码文件夹、URL、截图、PDF、PPTX、Framer、Webflow。
-- Create - 原型、幻灯片、live artifact、图像资产、视频 prompt、HyperFrames composition、音频资产。
+- Create - 原型、幻灯片、报告或文档 artifact、connector-backed dashboard、design system、template，以及其他 HTML 或 Markdown artifact。
 - Export - PPTX、PDF、HTML、ZIP、Markdown、Figma handoff、Next.js、React、Vue、Svelte、Astro、Angular、Tailwind。
 - Share - 公共链接、GitHub PR、Gist、Slack、Discord、Notion、Linear、Jira。
 - Deploy - Vercel、Cloudflare Pages、Netlify、GitHub Pages、Fly.io、Render。

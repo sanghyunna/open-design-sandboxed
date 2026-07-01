@@ -56,7 +56,7 @@ od plugin install https://github.com/owner/repo
 [![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/owner/repo)
 ```
 
-- Use a GitHub topic and README keywords that match the plugin's lane, such as `open-design-plugin`, `agent-skill`, `prototype`, `deck`, `hyperframes`, or `design-system`.
+- Use a GitHub topic and README keywords that match the plugin's lane, such as `open-design-plugin`, `agent-skill`, `prototype`, `deck`, `report`, `dashboard`, or `design-system`.
 
 Do not assume skills.sh is the canonical storage location. Treat GitHub as source of truth and skills.sh as a discovery and install surface.
 

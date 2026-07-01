@@ -67,7 +67,7 @@ my-plugin/
       "stages": [
         { "id": "discovery", "atoms": ["discovery-question-form"] },
         { "id": "plan", "atoms": ["direction-picker", "todo-write"] },
-        { "id": "generate", "atoms": ["file-write", "live-artifact"] },
+        { "id": "generate", "atoms": ["file-write"] },
         {
           "id": "critique",
           "atoms": ["critique-theater"],
@@ -92,7 +92,7 @@ my-plugin/
 | 主类 | 适用场景 | 常见 `taskKind` | 常用 atoms |
 | --- | --- | --- | --- |
 | `import` | 把外部来源带入 OD | `figma-migration` 或 `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
-| `create` | 生成新 artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `live-artifact`, `media-image`, `media-video`, `media-audio`, `critique-theater` |
+| `create` | 生成新 artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | 把已接受 artifact 转换为下游格式 | `tune-collab` 或 `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
 | `share` | 发布或发送 artifact 给协作者 | `tune-collab` | `file-read`, `handoff`, `connector` |
 | `deploy` | 把 artifact 部署到托管基础设施 | `code-migration` 或 `tune-collab` | `file-read`, `build-test`, `handoff`, `connector` |
@@ -107,14 +107,12 @@ my-plugin/
 | --- | --- |
 | `prototype` | 交互式单页 Web artifact |
 | `deck` | 幻灯片 deck artifact |
-| `live-artifact` | Dashboard、report、calculator、simulator 或其他 live UI |
-| `image` | 生成图像、storyboard frame、poster、ad 或视觉资产 |
-| `video` | 视频 prompt、storyboard、渲染 clip 或 motion package |
-| `hyperframes` | HyperFrames-ready HTML motion composition |
-| `audio` | 语音、音乐、声音品牌或 sound-design asset |
+| `report` | 有证据支撑的分析或研究报告 |
+| `document` | 结构化 Markdown 或 HTML 文档 |
+| `dashboard` | connector-backed monitoring 或分析 dashboard |
 | `design-system` | 可复用品牌或界面系统 |
-
-HyperFrames 插件可以使用 `od.mode: "video"` 加 `hyperframes` tag，让它出现在视频工具旁；也可以使用 `od.mode: "hyperframes"`，当区分 HyperFrames 比归入广义 video 更重要时使用。
+| `template` | 可复用 starter、layout 或 artifact template |
+| `other` | 不适合当前模式的窄范围自定义输出 |
 
 ## 5. `SKILL.md` 作者规则
 

@@ -28,7 +28,7 @@ Chinese mirrors:
 Workflow lanes:
 
 - Import - Figma, GitHub, code folders, URLs, screenshots, PDFs, PPTX, Framer, Webflow.
-- Create - prototypes, slide decks, live artifacts, image assets, video prompts, HyperFrames compositions, audio assets.
+- Create - prototypes, slide decks, report or document artifacts, connector-backed dashboards, design systems, templates, and other HTML or Markdown artifacts.
 - Export - PPTX, PDF, HTML, ZIP, Markdown, Figma handoff, Next.js, React, Vue, Svelte, Astro, Angular, Tailwind.
 - Share - public links, GitHub PRs, Gists, Slack, Discord, Notion, Linear, Jira.
 - Deploy - Vercel, Cloudflare Pages, Netlify, GitHub Pages, Fly.io, Render.

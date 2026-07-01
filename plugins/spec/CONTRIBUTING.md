@@ -20,7 +20,7 @@ Reviewers should check:
 - `open-design.json` declares `specVersion` and a plugin `version`.
 - `open-design.json` does not duplicate the skill body.
 - The plugin lane is clear: import, create, export, share, deploy, refine, or extend.
-- The output mode is clear for create plugins: prototype, deck, live-artifact, image, video, hyperframes, audio, or design-system.
+- The output mode is clear for create plugins: prototype, deck, report/document, connector-backed dashboard, design-system, template, or other.
 - Capabilities are minimal.
 - Externally visible actions are guarded by user confirmation.
 - Visual examples include a preview or concrete output.

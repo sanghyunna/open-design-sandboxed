@@ -56,7 +56,7 @@ od plugin install https://github.com/owner/repo
 [![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/owner/repo)
 ```
 
-- 使用与插件主类匹配的 GitHub topic 和 README 关键词，例如 `open-design-plugin`、`agent-skill`、`prototype`、`deck`、`hyperframes`、`design-system`。
+- 使用与插件主类匹配的 GitHub topic 和 README 关键词，例如 `open-design-plugin`、`agent-skill`、`prototype`、`deck`、`report`、`dashboard`、`design-system`。
 
 不要把 skills.sh 视为 canonical 存储位置。GitHub 是 source of truth，skills.sh 是发现和安装表面。
 
