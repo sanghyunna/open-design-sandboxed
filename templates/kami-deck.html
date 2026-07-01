@@ -527,6 +527,7 @@
         try { localStorage.setItem(STORE, String(idx)); } catch (_) {}
       }
       function onKey(e) {
+        if (e.defaultPrevented) return;
         var t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(idx + 1); }
