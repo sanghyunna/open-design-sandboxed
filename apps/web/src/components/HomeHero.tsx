@@ -905,7 +905,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     onPickExamplePlugin(record, chipId, promptText);
   }
 
-  // The task-type rail (原型 / 幻灯片 / HyperFrames / 视频 / …). Records which
+  // The task-type rail (原型 / 幻灯片 / 报告 / …). Records which
   // task type the user picked before delegating to the host's chip handler.
   function handlePickTaskChip(chip: HomeHeroChip) {
     trackHomeChatComposerClick(analytics.track, {

@@ -72,7 +72,6 @@ const residualAllowedExactPaths = new Set([
   "packages/sidecar-proto/esbuild.config.mjs",
   // Maintainer utility scripts executed directly by Node and not loaded by the
   // app runtime.
-  "scripts/import-prompt-templates.mjs",
   "scripts/postinstall.mjs",
   // Checked-in bin shim so pnpm can link `od` before daemon dist output exists.
   "apps/daemon/bin/od.mjs",
