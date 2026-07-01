@@ -99,7 +99,6 @@ async function startTestApp(projectRoot: string): Promise<TestApp> {
     OD_BIN: '',
     PROJECT_ROOT: projectRoot,
     PROJECTS_DIR: '',
-    PROMPT_TEMPLATES_DIR: '',
     RUNTIME_DATA_DIR: '',
     RUNTIME_DATA_DIR_CANONICAL: '',
     SKILLS_DIR: '',

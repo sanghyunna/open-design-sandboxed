@@ -119,7 +119,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId="clay"
         templates={[]}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -137,7 +136,6 @@ describe('NewProjectPanel design system defaults', () => {
         designSystems={designSystems}
         defaultDesignSystemId="clay"
         templates={[]}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -167,7 +165,6 @@ describe('NewProjectPanel design system defaults', () => {
         designSystems={designSystems}
         defaultDesignSystemId="clay"
         templates={[]}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -188,7 +185,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId="clay"
         templates={[]}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -228,7 +224,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId={null}
         templates={[]}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -258,7 +253,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId="clay"
         templates={[]}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -293,7 +287,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId="clay"
         templates={[]}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={emptyOnCreate}
       />,
     );
@@ -313,7 +306,6 @@ describe('NewProjectPanel design system defaults', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={templateOnCreate}
       />,
     );
@@ -353,7 +345,6 @@ describe('NewProjectPanel working directory picker', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -391,7 +382,6 @@ describe('NewProjectPanel working directory picker', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={onCreate}
       />,
     );
@@ -428,7 +418,6 @@ describe('NewProjectPanel working directory picker', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -454,7 +443,6 @@ describe('NewProjectPanel folder import feedback', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={vi.fn()}
         onImportClaudeDesign={onImportClaudeDesign}
       />,
@@ -488,7 +476,6 @@ describe('NewProjectPanel folder import feedback', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
         onCreate={vi.fn()}
         onImportFolder={onImportFolder}
       />,
@@ -518,7 +505,6 @@ describe('NewProjectPanel template deletion', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={onDelete}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -543,7 +529,6 @@ describe('NewProjectPanel template deletion', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={onDelete}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -566,7 +551,6 @@ describe('NewProjectPanel template deletion', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={onDelete}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );
@@ -593,7 +577,6 @@ describe('NewProjectPanel template deletion', () => {
         defaultDesignSystemId="clay"
         templates={templates}
         onDeleteTemplate={onDelete}
-        promptTemplates={[]}
         onCreate={vi.fn()}
       />,
     );

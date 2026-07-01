@@ -924,7 +924,7 @@ function AvailablePluginsPanel({
               }}
               onChange={(event) => setSourceFilter(event.target.value)}
             >
-              <option value="all">{t('promptTemplates.allSources')}</option>
+              <option value="all">{t('common.all')}</option>
               {sourceOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}

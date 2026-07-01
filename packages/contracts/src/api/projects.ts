@@ -11,8 +11,6 @@ export type ProjectKind =
   | 'template'
   | 'other';
 
-export type MediaAspect = '1:1' | '16:9' | '9:16' | '4:3' | '3:4';
-
 export type ProjectPlatform =
   | 'auto'
   | 'responsive'
@@ -35,31 +33,6 @@ export interface ProjectStatusInfo {
   value: ProjectDisplayStatus;
   updatedAt?: number;
   runId?: string;
-}
-
-export interface PromptTemplateMetadataSource {
-  repo: string;
-  license: string;
-  author?: string;
-  url?: string;
-}
-
-// Subset of a curated PromptTemplate kept on the project so the agent can
-// reference it on every turn without re-reading the gallery file. The
-// `prompt` field is the (possibly user-edited) body — when the user tunes
-// it in the New Project panel before clicking Create, those edits land
-// here and become authoritative for the system prompt.
-export interface PromptTemplateMetadata {
-  id: string;
-  surface: 'image' | 'video';
-  title: string;
-  prompt: string;
-  summary?: string;
-  category?: string;
-  tags?: string[];
-  model?: string;
-  aspect?: MediaAspect;
-  source?: PromptTemplateMetadataSource;
 }
 
 export type DesignSystemReviewDecision = 'looks-good' | 'needs-work';
@@ -129,10 +102,6 @@ export interface ProjectMetadata {
   // where the user wanted the project to live without granting write access
   // to that path; actual filesystem roots still use baseDir/import flows.
   userWorkingDir?: string;
-  // Curated prompt template the user picked in the image/video tab of the
-  // New Project panel. Treated by the system-prompt composer as a stylistic
-  // and structural reference for the generation request.
-  promptTemplate?: PromptTemplateMetadata;
   // Absolute paths to local code folders the agent can read via --add-dir.
   linkedDirs?: string[];
   // Batch/API-created projects can opt out of the initial discovery form so

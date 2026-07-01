@@ -67,7 +67,6 @@ import type {
   Project,
   ProjectMetadata,
   ProjectTemplate,
-  PromptTemplateSummary,
   ProviderModelOption,
   ProviderModelsResponse,
   SkillSummary,
@@ -217,7 +216,6 @@ interface Props {
   projects: Project[];
   templates: ProjectTemplate[];
   onDeleteTemplate?: (id: string) => Promise<boolean>;
-  promptTemplates: PromptTemplateSummary[];
   defaultDesignSystemId: string | null;
   connectors: ConnectorDetail[];
   connectorsLoading: boolean;
@@ -342,7 +340,6 @@ export function EntryShell({
   projects,
   templates,
   onDeleteTemplate,
-  promptTemplates,
   defaultDesignSystemId,
   connectors,
   connectorsLoading,
@@ -686,7 +683,6 @@ export function EntryShell({
                 skills={skills}
                 skillsLoading={skillsLoading}
                 connectors={connectors}
-                promptTemplates={promptTemplates}
               />
             </div>
             <div data-testid="entry-view-projects" data-active={view === 'projects' ? 'true' : 'false'} {...inactiveViewProps(view === 'projects')}>
@@ -772,7 +768,6 @@ export function EntryShell({
         defaultDesignSystemId={defaultDesignSystemId}
         templates={templates}
         {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
-        promptTemplates={promptTemplates}
         loading={skillsLoading}
         onCreate={handleCreate}
         onImportClaudeDesign={onImportClaudeDesign}

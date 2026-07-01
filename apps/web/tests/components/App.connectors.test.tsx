@@ -19,7 +19,6 @@ import {
   fetchAgentsStream,
   fetchAppVersionInfo,
   fetchDesignSystems,
-  fetchPromptTemplates,
   fetchSkills,
 } from '../../src/providers/registry';
 import { listProjects, listTemplates } from '../../src/state/projects';
@@ -140,7 +139,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAgentsStream: vi.fn(),
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
   };
 });
@@ -176,7 +174,6 @@ const mockedDaemonIsLive = vi.mocked(daemonIsLive);
 const mockedFetchAgentsStream = vi.mocked(fetchAgentsStream);
 const mockedFetchAppVersionInfo = vi.mocked(fetchAppVersionInfo);
 const mockedFetchDesignSystems = vi.mocked(fetchDesignSystems);
-const mockedFetchPromptTemplates = vi.mocked(fetchPromptTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
 const mockedListProjects = vi.mocked(listProjects);
 const mockedListTemplates = vi.mocked(listTemplates);
@@ -212,7 +209,6 @@ describe('App connectors settings flows', () => {
     mockedFetchAgentsStream.mockResolvedValue([]);
     mockedFetchSkills.mockResolvedValue([]);
     mockedFetchDesignSystems.mockResolvedValue([]);
-    mockedFetchPromptTemplates.mockResolvedValue([]);
     mockedFetchAppVersionInfo.mockResolvedValue(null);
     mockedListProjects.mockResolvedValue([]);
     mockedListTemplates.mockResolvedValue([]);

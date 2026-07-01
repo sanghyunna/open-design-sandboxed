@@ -12,7 +12,6 @@ import type {
   ProjectKind,
   ProjectMetadata,
   ProjectTemplate,
-  PromptTemplateSummary,
   ProviderModelOption,
   SkillSummary,
 } from '../types';
@@ -46,7 +45,6 @@ interface Props {
   projects: Project[];
   templates: ProjectTemplate[];
   onDeleteTemplate: (id: string) => Promise<boolean>;
-  promptTemplates: PromptTemplateSummary[];
   defaultDesignSystemId: string | null;
   agents: AgentInfo[];
   // Forwarded to EntryShell → OnboardingView so the AMR cloud card can show a
@@ -83,7 +81,6 @@ interface Props {
   skillsLoading?: boolean;
   designSystemsLoading?: boolean;
   projectsLoading?: boolean;
-  promptTemplatesLoading?: boolean;
   onCreateProject: (
     input: CreateInput & {
       pendingPrompt?: string;
@@ -216,7 +213,6 @@ export function EntryView({
   projects,
   templates,
   onDeleteTemplate,
-  promptTemplates,
   defaultDesignSystemId,
   agents,
   agentsLoading,
@@ -237,7 +233,6 @@ export function EntryView({
   skillsLoading = false,
   designSystemsLoading = false,
   projectsLoading = false,
-  promptTemplatesLoading: _promptTemplatesLoading = false,
   onCreateProject,
   onCreatePluginShareProject,
   onImportClaudeDesign,
@@ -327,7 +322,6 @@ export function EntryView({
       projects={projects}
       templates={templates}
       onDeleteTemplate={onDeleteTemplate}
-      promptTemplates={promptTemplates}
       defaultDesignSystemId={defaultDesignSystemId}
       connectors={connectors}
       connectorsLoading={connectorsLoading}

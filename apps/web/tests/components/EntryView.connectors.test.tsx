@@ -64,7 +64,6 @@ function renderEntryView(overrides: Partial<ComponentProps<typeof EntryView>> = 
       projects={[]}
       templates={[]}
       onDeleteTemplate={vi.fn()}
-      promptTemplates={[]}
       defaultDesignSystemId={null}
       agents={[]}
       config={{

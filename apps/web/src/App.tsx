@@ -36,7 +36,6 @@ import {
   fetchAgentsStream,
   fetchDesignSystems,
   fetchDesignTemplates,
-  fetchPromptTemplates,
   fetchSkills,
   uploadProjectFiles,
   replaceProjectWorkingDir,
@@ -102,7 +101,6 @@ import type {
   Project,
   ProjectTemplate,
   ProviderModelOption,
-  PromptTemplateSummary,
   SkillSummary,
 } from './types';
 
@@ -344,9 +342,6 @@ function AppInner() {
   const projectListRequestGenerationRef = useRef(0);
   const latestAppliedProjectListGenerationRef = useRef(0);
   const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
-  const [promptTemplates, setPromptTemplates] = useState<
-    PromptTemplateSummary[]
-  >([]);
   const [appVersionInfo, setAppVersionInfo] = useState<AppVersionInfo | null>(
     null,
   );
@@ -359,7 +354,6 @@ function AppInner() {
   const [skillsLoading, setSkillsLoading] = useState(true);
   const [dsLoading, setDsLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(true);
-  const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(true);
   const [startupDeferredReady, setStartupDeferredReady] = useState(false);
   // Goes true once the daemon-persisted config (agentId/designSystemId/etc.)
   // has merged into local state. Auto-selection effects below wait on this
@@ -671,7 +665,6 @@ function AppInner() {
         setSkillsLoading(false);
         setDsLoading(false);
         setProjectsLoading(false);
-        setPromptTemplatesLoading(false);
         setDaemonConfigLoaded(true);
         setStartupDeferredReady(true);
         // Composio hydration also depends on the daemon. With no daemon
@@ -783,12 +776,6 @@ function AppInner() {
         void listTemplates().then((list) => {
           if (cancelled) return;
           setTemplates(list);
-        });
-
-        void fetchPromptTemplates({ signal: deferredAbort.signal }).then((list) => {
-          if (cancelled) return;
-          setPromptTemplates(list);
-          setPromptTemplatesLoading(false);
         });
 
         void fetchAppVersionInfo({ signal: deferredAbort.signal }).then((info) => {
@@ -1145,10 +1132,6 @@ function AppInner() {
       // to "None" for every kind now, and the user expects that to land
       // as a no-design-system project rather than silently inheriting the
       // workspace default.
-      const derivedPendingPrompt =
-      input.pendingPrompt ??
-      (input.metadata?.promptTemplate?.prompt?.trim() || undefined);
-
       const kind = input.metadata?.kind ?? null;
       const fidelity = fidelityToTracking(input.metadata?.fidelity ?? null);
       const creationSource: 'blank' | 'template' | 'zip' | 'folder' =
@@ -1157,7 +1140,7 @@ function AppInner() {
         name: input.name,
         skillId: input.skillId,
         designSystemId: input.designSystemId,
-        pendingPrompt: derivedPendingPrompt,
+        pendingPrompt: input.pendingPrompt,
         metadata: input.metadata,
         ...(input.conversationMode ? { conversationMode: input.conversationMode } : {}),
         ...(input.pluginId ? { pluginId: input.pluginId } : {}),
@@ -1270,7 +1253,7 @@ function AppInner() {
       if (
         !workingDirHandoffFailed &&
         input.autoSendFirstMessage &&
-        (derivedPendingPrompt !== undefined || firstMessageAttachments.length > 0)
+        (input.pendingPrompt !== undefined || firstMessageAttachments.length > 0)
       ) {
         try {
           window.sessionStorage.setItem(
@@ -1909,7 +1892,6 @@ function AppInner() {
         projects={projects}
         templates={templates}
         onDeleteTemplate={handleDeleteTemplate}
-        promptTemplates={promptTemplates}
         defaultDesignSystemId={config.designSystemId}
         agents={agents}
         agentsLoading={agentsLoading}
@@ -1930,7 +1912,6 @@ function AppInner() {
         skillsLoading={skillsLoading}
         designSystemsLoading={dsLoading}
         projectsLoading={projectsLoading}
-        promptTemplatesLoading={promptTemplatesLoading}
         onCreateProject={handleCreateProject}
         onCreatePluginShareProject={handleCreatePluginShareProject}
         onImportClaudeDesign={handleImportClaudeDesign}

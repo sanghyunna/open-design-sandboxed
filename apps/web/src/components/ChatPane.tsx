@@ -1875,7 +1875,7 @@ export function ChatPane({
                               className="ghost chat-error-retry"
                               onClick={() => onRetry(retryAssistant)}
                             >
-                              {t('promptTemplates.retry')}
+                              {t('preview.retry')}
                             </button>
                           ) : null}
                         </>

@@ -47,8 +47,6 @@ import type {
   DesignSystemTokenContractRebuildJobResponse,
   Project,
   ProjectDeploymentsResponse,
-  PromptTemplateDetail,
-  PromptTemplateSummary,
   ProjectFile,
   ProjectFolder,
   RenameProjectFileResponse,
@@ -734,33 +732,6 @@ async function readImportError(resp: Response): Promise<SkillImportError> {
         ? error
         : payload?.message ?? `Import failed (${resp.status}).`,
   };
-}
-
-export async function fetchPromptTemplates(options?: { signal?: AbortSignal }): Promise<PromptTemplateSummary[]> {
-  try {
-    const resp = await fetch('/api/prompt-templates', { signal: options?.signal });
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as { promptTemplates: PromptTemplateSummary[] };
-    return json.promptTemplates ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function fetchPromptTemplate(
-  surface: 'image' | 'video',
-  id: string,
-): Promise<PromptTemplateDetail | null> {
-  try {
-    const resp = await fetch(
-      `/api/prompt-templates/${encodeURIComponent(surface)}/${encodeURIComponent(id)}`,
-    );
-    if (!resp.ok) return null;
-    const json = (await resp.json()) as { promptTemplate: PromptTemplateDetail };
-    return json.promptTemplate ?? null;
-  } catch {
-    return null;
-  }
 }
 
 export async function daemonIsLive(): Promise<boolean> {

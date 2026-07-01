@@ -74,7 +74,6 @@ describe('NewProjectModal layout', () => {
         designSystems={designSystems}
         defaultDesignSystemId={null}
         templates={[]}
-        promptTemplates={[]}
         onCreate={() => {}}
         onClose={() => {}}
       />,
@@ -104,7 +103,6 @@ describe('NewProjectModal layout', () => {
         designSystems={designSystems}
         defaultDesignSystemId={null}
         templates={[]}
-        promptTemplates={[]}
         onCreate={onCreate}
         onClose={onClose}
       />,
@@ -141,7 +139,6 @@ describe('NewProjectModal layout', () => {
         designSystems={designSystems}
         defaultDesignSystemId={null}
         templates={[]}
-        promptTemplates={[]}
         onCreate={() => {}}
         onImportFolderResponse={onImportFolderResponse}
         onClose={() => {}}
@@ -179,7 +176,6 @@ describe('NewProjectModal template deletion plumbing', () => {
         designSystems={designSystems}
         defaultDesignSystemId="clay"
         templates={templates}
-        promptTemplates={[]}
         onDeleteTemplate={onDelete}
         onCreate={() => {}}
         onClose={() => {}}

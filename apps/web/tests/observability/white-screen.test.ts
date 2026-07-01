@@ -72,7 +72,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
     fetchDesignTemplates: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
   };
 });
@@ -124,7 +123,6 @@ import {
   fetchAppVersionInfo,
   fetchDesignSystems,
   fetchDesignTemplates,
-  fetchPromptTemplates,
   fetchSkills,
 } from '../../src/providers/registry';
 import { listProjects, listTemplates } from '../../src/state/projects';
@@ -179,7 +177,6 @@ beforeEach(() => {
   vi.mocked(fetchSkills).mockResolvedValue([]);
   vi.mocked(fetchDesignSystems).mockResolvedValue([]);
   vi.mocked(fetchDesignTemplates).mockRejectedValue(new Error('deferred templates failed'));
-  vi.mocked(fetchPromptTemplates).mockRejectedValue(new Error('deferred prompts failed'));
   vi.mocked(fetchAppVersionInfo).mockRejectedValue(new Error('deferred version failed'));
   vi.mocked(listProjects).mockResolvedValue([]);
   vi.mocked(listTemplates).mockReturnValue(new Promise(() => undefined));
@@ -216,7 +213,6 @@ describe('observability/white-screen', () => {
     expect(screen.getByTestId('selected-agent').textContent).toBe('codex');
     expect(fetchAgentsStream).not.toHaveBeenCalled();
     expect(fetchDesignTemplates).not.toHaveBeenCalled();
-    expect(fetchPromptTemplates).not.toHaveBeenCalled();
     expect(fetchAppVersionInfo).not.toHaveBeenCalled();
   });
 

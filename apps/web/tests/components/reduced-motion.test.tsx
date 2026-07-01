@@ -21,7 +21,6 @@ import {
   fetchAgents,
   fetchAppVersionInfo,
   fetchDesignSystems,
-  fetchPromptTemplates,
   fetchSkills,
 } from '../../src/providers/registry';
 import { listProjects, listTemplates } from '../../src/state/projects';
@@ -70,7 +69,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAgents: vi.fn(),
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
   };
 });
@@ -125,7 +123,6 @@ beforeEach(() => {
   vi.mocked(fetchAgents).mockResolvedValue([]);
   vi.mocked(fetchSkills).mockResolvedValue([]);
   vi.mocked(fetchDesignSystems).mockResolvedValue([]);
-  vi.mocked(fetchPromptTemplates).mockResolvedValue([]);
   vi.mocked(fetchAppVersionInfo).mockResolvedValue(null);
   vi.mocked(listProjects).mockResolvedValue([]);
   vi.mocked(listTemplates).mockResolvedValue([]);

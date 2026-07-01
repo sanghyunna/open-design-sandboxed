@@ -49,7 +49,6 @@ import type {
   DesignSystemSummary,
   Project,
   ProjectMetadata,
-  PromptTemplateSummary,
   SkillSummary,
 } from '../types';
 import { inlineMentionToken, mentionTokenPresent } from '../utils/inlineMentions';
@@ -189,14 +188,12 @@ interface Props {
   skills?: SkillSummary[];
   skillsLoading?: boolean;
   connectors?: ConnectorDetail[];
-  promptTemplates?: PromptTemplateSummary[];
   executionSwitcher?: ReactNode;
 }
 
 const EMPTY_DESIGN_SYSTEMS: DesignSystemSummary[] = [];
 const EMPTY_SKILLS: SkillSummary[] = [];
 const EMPTY_CONNECTORS: ConnectorDetail[] = [];
-const EMPTY_PROMPT_TEMPLATES: PromptTemplateSummary[] = [];
 
 export function HomeView({
   isActive = true,
@@ -215,7 +212,6 @@ export function HomeView({
   skills = EMPTY_SKILLS,
   skillsLoading = false,
   connectors = EMPTY_CONNECTORS,
-  promptTemplates = EMPTY_PROMPT_TEMPLATES,
   executionSwitcher,
 }: Props) {
   const { locale, t } = useI18n();

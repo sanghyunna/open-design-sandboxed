@@ -23,7 +23,6 @@ import { importGitHubDesignSystemProject } from '../design-system-github-import.
 import { importShadcnDesignSystemProject } from '../design-system-shadcn-import.js';
 import { renderDesignSystemPreview } from '../design-system-preview.js';
 import { renderDesignSystemShowcase } from '../design-system-showcase.js';
-import { listPromptTemplates, readPromptTemplate } from '../prompt-templates.js';
 import { readAppConfig, DEFAULT_ENABLED_AGENT_IDS } from '../app-config.js';
 import { installFromTarget, uninstallById } from '../library-install.js';
 import type { RouteDeps } from '../server-context.js';
@@ -47,7 +46,6 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
     USER_DESIGN_TEMPLATES_DIR,
     SKILLS_DIR,
     USER_SKILLS_DIR,
-    PROMPT_TEMPLATES_DIR,
     BUNDLED_PETS_DIR,
   } = ctx.paths;
   const {
@@ -368,32 +366,6 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
     next();
   });
 
-  app.get('/api/prompt-templates', async (_req, res) => {
-    try {
-      const templates = await listPromptTemplates(PROMPT_TEMPLATES_DIR);
-      res.json({
-        promptTemplates: templates.map(({ prompt: _prompt, ...rest }) => rest),
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  app.get('/api/prompt-templates/:surface/:id', async (req, res) => {
-    try {
-      const tpl = await readPromptTemplate(
-        PROMPT_TEMPLATES_DIR,
-        req.params.surface,
-        req.params.id,
-      );
-      if (!tpl)
-        return res.status(404).json({ error: 'prompt template not found' });
-      res.json({ promptTemplate: tpl });
-    } catch (err: any) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
   // Showcase HTML for a design system — palette swatches, typography
   // samples, sample components, and the full DESIGN.md rendered as prose.
   // Built at request time from the on-disk DESIGN.md so any update to the
@@ -419,10 +391,9 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
   // Resolution order:
   //   1. Derived id (`<parent>:<child>`):
   //      <parentDir>/examples/<child>.html — pre-baked single-file sample.
-  //      Subfolder layouts (e.g. live-artifact's
-  //      `examples/<name>/template.html`) are intentionally not served:
-  //      they still contain `{{data.x}}` placeholders that only the
-  //      daemon-side renderer fills in, and serving the raw template
+  //      Subfolder layouts such as `examples/<name>/template.html` are
+  //      intentionally not served: they can still contain `{{data.x}}`
+  //      placeholders that only a renderer fills in, and serving the raw template
   //      would render visible placeholder braces in the gallery.
   //   2. <skillDir>/example.html — fully-baked static example (preferred)
   //   3. <skillDir>/assets/template.html  +
@@ -434,7 +405,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
   //   4. <skillDir>/assets/template.html — raw template, no content slides
   //   5. <skillDir>/assets/index.html — generic fallback
   //   6. First .html in <skillDir>/examples/ — used as a friendly fallback
-  //      so a skill that aggregates examples (like live-artifact) still has
+  //      so a skill that aggregates examples still has
   //      a real preview on its parent card instead of returning 404.
   app.get('/api/skills/:id/example', async (req, res) => {
     try {
@@ -513,7 +484,7 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       }
 
       // Friendly fallback for skills that aggregate examples in a sibling
-      // `examples/` folder (e.g. live-artifact). The parent card would
+      // `examples/` folder. The parent card would
       // otherwise 404 even though plenty of perfectly valid samples ship
       // alongside SKILL.md; pick the first .html file alphabetically so
       // direct URL access (e.g. deep links) shows something representative.

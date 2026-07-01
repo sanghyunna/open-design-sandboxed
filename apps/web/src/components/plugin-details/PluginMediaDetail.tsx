@@ -192,7 +192,7 @@ export function PluginMediaDetail({
         <section className="plugin-media-sidebar__prompt">
           <header className="plugin-media-sidebar__prompt-head">
             <span className="plugin-media-sidebar__prompt-label">
-              {t('promptTemplates.promptLabel')}
+              {t('pluginsView.promptBody')}
             </span>
             <button
               type="button"
@@ -201,8 +201,8 @@ export function PluginMediaDetail({
             >
               <Icon name={copied ? 'check' : 'copy'} size={12} />
               {copied
-                ? t('promptTemplates.copyDone')
-                : t('promptTemplates.copyPrompt')}
+                ? t('chat.copyDone')
+                : t('chat.copyPrompt')}
             </button>
           </header>
           <pre className="plugin-media-sidebar__prompt-body">{query}</pre>

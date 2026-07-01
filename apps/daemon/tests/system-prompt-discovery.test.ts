@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeSystemPrompt } from '../src/prompts/system.js';
 
-describe('composeSystemPrompt — metadata.promptTemplate', () => {
+describe('composeSystemPrompt discovery controls', () => {
   it('pins the API batch-mode discovery skip before the normal discovery rules', () => {
     const out = composeSystemPrompt({
       metadata: {

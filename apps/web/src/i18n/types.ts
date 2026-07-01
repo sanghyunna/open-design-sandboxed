@@ -918,6 +918,7 @@ export interface Dict {
   'pluginsView.availableEmptyInstalled': string;
   'pluginsView.availableEmptyFiltered': string;
   'pluginsView.availableEmptyNoSources': string;
+  'pluginsView.promptBody': string;
   'pluginsView.installing': string;
   'pluginsView.install': string;
   'pluginsView.sourcesTitle': string;
@@ -1555,40 +1556,10 @@ export interface Dict {
   'newproj.connectorsCountOne': string;
   'newproj.connectorsCountMany': string;
   'newproj.connectorsManage': string;
-  'newproj.promptTemplateLabel': string;
-  'newproj.promptTemplateNoneTitle': string;
-  'newproj.promptTemplateNoneSub': string;
-  'newproj.promptTemplateRefSub': string;
-  'newproj.promptTemplateSearch': string;
-  'newproj.promptTemplateEmpty': string;
-  'newproj.promptTemplateBodyLabel': string;
-  'newproj.promptTemplateOptimizeHint': string;
-  'newproj.promptTemplateBodyEmpty': string;
   'newproj.deleteTemplateTitle': string;
   'newproj.deleteTemplateConfirm': string;
   'newproj.deleteTemplateConfirmCta': string;
   'newproj.deleteTemplateError': string;
-
-  // Prompt templates
-  'promptTemplates.searchPlaceholder': string;
-  'promptTemplates.countLabel': string;
-  'promptTemplates.emptyImage': string;
-  'promptTemplates.emptyVideo': string;
-  'promptTemplates.emptyNoMatch': string;
-  'promptTemplates.attributionFooter': string;
-  'promptTemplates.openPreviewTitle': string;
-  'promptTemplates.sourcePrefix': string;
-  'promptTemplates.fetchError': string;
-  'promptTemplates.promptLabel': string;
-  'promptTemplates.copyPrompt': string;
-  'promptTemplates.copyDone': string;
-  'promptTemplates.modelHint': string;
-  'promptTemplates.openSource': string;
-  'promptTemplates.openFullscreen': string;
-  'promptTemplates.closeFullscreen': string;
-  'promptTemplates.allSources': string;
-  'promptTemplates.sourceFilterAria': string;
-  'promptTemplates.retry': string;
 
   // Designs tab
   'designs.subRecent': string;

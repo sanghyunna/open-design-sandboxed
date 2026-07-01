@@ -88,7 +88,6 @@ describe('GET /api/agents respects enabledAgentIds', () => {
             OD_BIN: path.join(tempRoot, 'od'),
             PROJECT_ROOT: tempRoot,
             PROJECTS_DIR: path.join(tempRoot, 'projects'),
-            PROMPT_TEMPLATES_DIR: path.join(tempRoot, 'prompt-templates'),
             RUNTIME_DATA_DIR: dataDir,
             RUNTIME_DATA_DIR_CANONICAL: dataDir,
             SKILLS_DIR: path.join(tempRoot, 'skills'),

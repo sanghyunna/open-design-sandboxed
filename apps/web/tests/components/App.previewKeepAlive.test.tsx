@@ -20,7 +20,6 @@ import {
   fetchAppVersionInfo,
   fetchDesignSystems,
   fetchDesignTemplates,
-  fetchPromptTemplates,
   fetchSkills,
 } from '../../src/providers/registry';
 import { listProjects, listTemplates } from '../../src/state/projects';
@@ -163,7 +162,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
     fetchDesignTemplates: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
   };
 });
@@ -200,7 +198,6 @@ const mockedFetchAgents = vi.mocked(fetchAgents);
 const mockedFetchAppVersionInfo = vi.mocked(fetchAppVersionInfo);
 const mockedFetchDesignSystems = vi.mocked(fetchDesignSystems);
 const mockedFetchDesignTemplates = vi.mocked(fetchDesignTemplates);
-const mockedFetchPromptTemplates = vi.mocked(fetchPromptTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
 const mockedListProjects = vi.mocked(listProjects);
 const mockedListTemplates = vi.mocked(listTemplates);
@@ -252,7 +249,6 @@ describe('App preview keep-alive invalidation', () => {
     mockedFetchSkills.mockResolvedValue([]);
     mockedFetchDesignTemplates.mockResolvedValue([]);
     mockedFetchDesignSystems.mockResolvedValue([]);
-    mockedFetchPromptTemplates.mockResolvedValue([]);
     mockedFetchAppVersionInfo.mockResolvedValue(null);
     mockedListProjects.mockResolvedValue([project]);
     mockedListTemplates.mockResolvedValue([]);
