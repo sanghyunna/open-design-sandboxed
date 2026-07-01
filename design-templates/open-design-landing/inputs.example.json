@@ -178,7 +178,7 @@
     },
     "cards": [
       { "badge": "Deck",     "num": "Nº 01", "year": "2026", "title": "Magazine Decks",     "body": "Editorial-grade slide decks with <code class='code-inline sm'>guizang-ppt</code>. Magazine layout, WebGL hero.", "href": "https://github.com/nexu-io/open-design/tree/main/skills/guizang-ppt" },
-      { "badge": "Media",    "num": "Nº 02", "year": "2026", "title": "Synthetic Matter",   "body": "Gpt-image-2 + Seedance + HyperFrames. Image, video, audio — same chat surface as code.",                       "href": "https://github.com/nexu-io/open-design/tree/main/skills/hyperframes" },
+      { "badge": "Media",    "num": "Nº 02", "year": "2026", "title": "Synthetic Matter",   "body": "Design systems, templates, and live artifacts from the same chat surface as code.",                       "href": "https://github.com/nexu-io/open-design/tree/main/design-templates" },
       { "badge": "Loop",     "num": "Nº 03", "year": "2026", "title": "Prompt Choreography","body": "The interactive question form pops before a single pixel is improvised. 30s of radios beats 30min of redirects.","href": "https://github.com/nexu-io/open-design/tree/main/skills/design-brief" },
       { "badge": "Critique", "num": "Nº 04", "year": "2026", "title": "Visual Reasoning",   "body": "5-dim self-critique gates every artifact: philosophy · hierarchy · execution · specificity · restraint.",       "href": "https://github.com/nexu-io/open-design/tree/main/skills/critique" },
       { "badge": "Runtime",  "num": "Nº 05", "year": "2026", "title": "Soft Systems",       "body": "Sandboxed iframe preview. Streaming todos. Real-cwd filesystem. Adaptive loops between human and machine.",      "href": "https://github.com/nexu-io/open-design/tree/main/apps/daemon" }
@@ -257,7 +257,7 @@
       { "glyph_svg": "<rect x='6' y='6' width='4' height='18'/><rect x='14' y='6' width='4' height='18'/><rect x='22' y='6' width='4' height='18'/><rect x='30' y='6' width='4' height='18'/>", "name": "multica-ai",   "role": "Daemon",     "href": "https://github.com/multica-ai/multica" },
       { "glyph_svg": "<circle cx='15' cy='15' r='9'/><path d='M15 6v18M6 15h18'/>",        "name": "open-codesign", "role": "UX",         "href": "https://github.com/OpenCoworkAI/open-codesign" },
       { "glyph_svg": "<path d='M5 8l9 7-9 7M20 24h18'/>",                                  "name": "Devin CLI",     "role": "Terminal",   "href": "https://devin.ai/terminal" },
-      { "glyph_svg": "<rect x='4' y='5' width='22' height='18'/><rect x='14' y='9' width='22' height='18'/>", "name": "hyperframes",   "role": "Frames",     "href": "https://github.com/heygen-com/hyperframes" }
+      { "glyph_svg": "<rect x='4' y='5' width='22' height='18'/><rect x='14' y='9' width='22' height='18'/>", "name": "html-frames",   "role": "Frames",     "href": "https://github.com/nexu-io/html-anything" }
     ],
     "read_more_label": "Read more stories",
     "read_more_href": "https://github.com/nexu-io/open-design"
@@ -335,7 +335,7 @@
         { "label": "31 Skills",    "href": "https://github.com/nexu-io/open-design/tree/main/skills" },
         { "label": "72 Systems",   "href": "https://github.com/nexu-io/open-design/tree/main/design-systems" },
         { "label": "5 Directions", "href": "https://github.com/nexu-io/open-design/tree/main/design-systems" },
-        { "label": "5 Frames",     "href": "https://github.com/nexu-io/open-design/tree/main/skills/hyperframes" }
+        { "label": "5 Frames",     "href": "https://github.com/nexu-io/open-design/tree/main/design-templates" }
       ]},
       { "title": "Connect", "links": [
         { "label": "GitHub",       "href": "https://github.com/nexu-io/open-design" },
