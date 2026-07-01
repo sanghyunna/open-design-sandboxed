@@ -99,7 +99,7 @@ export async function runDesignSystemGenerator(
           assets: ['./DESIGN.md'],
         },
         pipeline: {
-          stages: [{ id: 'generate', atoms: ['file-write', 'live-artifact'] }],
+          stages: [{ id: 'generate', atoms: ['file-write'] }],
         },
         capabilities: ['prompt:inject', 'fs:write'],
       },

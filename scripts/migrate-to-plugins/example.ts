@@ -141,7 +141,7 @@ export async function runExampleGenerator(opts: ExampleGeneratorOptions): Promis
           assets: exampleFile.assets,
         },
         pipeline: {
-          stages: [{ id: 'generate', atoms: ['file-write', 'live-artifact'] }],
+          stages: [{ id: 'generate', atoms: ['file-write'] }],
         },
         capabilities: ['prompt:inject', 'fs:write'],
       },

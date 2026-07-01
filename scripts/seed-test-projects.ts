@@ -214,13 +214,13 @@ const COMMUNITY_PLUGINS: SeedFixture[] = [
       'Run the community pitch slides plugin for a founder fundraising narrative.',
   },
   {
-    skillId: 'create-live-artifact-ops',
+    skillId: 'create-connector-dashboard-ops',
     sourceKind: 'community-plugin',
-    pluginId: 'create-live-artifact-ops',
+    pluginId: 'create-connector-dashboard-ops',
     kind: 'prototype',
-    name: 'Community plugin — live ops artifact',
+    name: 'Community plugin — connector ops dashboard',
     pendingPrompt:
-      'Run the community live artifact plugin for a refreshable customer success command center.',
+      'Run the community connector dashboard plugin for a customer success command center with seeded data fallback.',
   },
 ];
 
