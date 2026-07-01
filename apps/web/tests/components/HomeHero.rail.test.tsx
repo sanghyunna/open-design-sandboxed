@@ -308,13 +308,18 @@ describe('HomeHero intent rail', () => {
     expect(findChip('template')?.action).toMatchObject({ kind: 'open-template-picker' });
   });
 
-  it('prototype and slide-deck chips route to their specialised bundled scenario plugin', () => {
+  it('creation chips route to their specialised bundled scenario plugins', () => {
     // Prototype now binds to web-prototype's seed template instead of
     // the generic od-new-generation router. Same for Slide deck →
     // simple-deck. See packages/contracts/src/plugins/scenario-defaults.ts
     // for the rationale (battle-tested seed + layouts + checklist).
     expect(findChip('prototype')?.action).toMatchObject({ pluginId: 'example-web-prototype', projectKind: 'prototype' });
     expect(findChip('deck')?.action).toMatchObject({ pluginId: 'example-simple-deck', projectKind: 'deck' });
+    expect(findChip('report')?.action).toMatchObject({
+      pluginId: 'example-report',
+      projectKind: 'prototype',
+      projectMetadata: { kind: 'prototype', intent: 'report' },
+    });
   });
 
 });

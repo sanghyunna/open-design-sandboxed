@@ -188,6 +188,34 @@ describe('Phase 2C CLI wrappers', () => {
     expect(conversationBody.conversation.title).toBe('Follow-up');
   });
 
+  it('creates report projects through the CLI with the same report plugin fallback as the API', async () => {
+    const created = await runCli(
+      ['project', 'create', '--name', 'CLI Report', '--metadata-json', '-', '--json'],
+      { input: JSON.stringify({ kind: 'prototype', intent: 'report' }) },
+    );
+    const body = JSON.parse(created.stdout) as {
+      appliedPluginSnapshotId?: string;
+      project: {
+        id: string;
+        name: string;
+        appliedPluginSnapshotId?: string;
+        metadata?: { kind?: string; intent?: string };
+      };
+    };
+
+    expect(body.project.name).toBe('CLI Report');
+    expect(body.project.metadata).toMatchObject({ kind: 'prototype', intent: 'report' });
+    expect(body.appliedPluginSnapshotId).toBeTruthy();
+    expect(body.project.appliedPluginSnapshotId).toBe(body.appliedPluginSnapshotId);
+
+    const snapshotResp = await fetch(
+      `${baseUrl}/api/applied-plugins/${encodeURIComponent(body.appliedPluginSnapshotId!)}`,
+    );
+    expect(snapshotResp.status).toBe(200);
+    const snapshot = (await snapshotResp.json()) as { pluginId?: string };
+    expect(snapshot.pluginId).toBe('example-report');
+  });
+
   it('imports through CLI project import commands when desktop import auth gate is active', async () => {
     const folder = makeFolder();
     await writeFile(path.join(folder, 'index.html'), '<!doctype html>');

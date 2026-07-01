@@ -157,6 +157,40 @@ describe('GET /api/projects/:id resolvedDir', () => {
     expect(body.project.metadata?.skipDiscoveryBrief).toBe(true);
   });
 
+  it('POST /api/projects binds report-intent projects to the report scenario plugin', async () => {
+    const projectId = `proj-report-fallback-${Date.now()}`;
+    const createResp = await fetch(`${baseUrl}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: projectId,
+        name: 'Report fixture',
+        skillId: null,
+        designSystemId: null,
+        metadata: { kind: 'prototype', intent: 'report' },
+      }),
+    });
+    expect(createResp.status).toBe(200);
+    const body = (await createResp.json()) as {
+      appliedPluginSnapshotId?: string;
+      project: {
+        appliedPluginSnapshotId?: string;
+        metadata?: { kind?: string; intent?: string };
+      };
+    };
+
+    expect(body.project.metadata).toMatchObject({ kind: 'prototype', intent: 'report' });
+    expect(body.appliedPluginSnapshotId).toBeTruthy();
+    expect(body.project.appliedPluginSnapshotId).toBe(body.appliedPluginSnapshotId);
+
+    const snapshotResp = await fetch(
+      `${baseUrl}/api/applied-plugins/${encodeURIComponent(body.appliedPluginSnapshotId!)}`,
+    );
+    expect(snapshotResp.status).toBe(200);
+    const snapshot = (await snapshotResp.json()) as { pluginId?: string };
+    expect(snapshot.pluginId).toBe('example-report');
+  });
+
   it('forks a seeded conversation through a selected message', async () => {
     const projectId = `proj-conv-fork-${Date.now()}`;
     const createProjectResp = await fetch(`${baseUrl}/api/projects`, {
