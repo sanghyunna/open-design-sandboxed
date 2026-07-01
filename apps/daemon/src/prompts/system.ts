@@ -71,7 +71,7 @@ function renderUiLocalePrompt(locale: string | undefined): string {
     '',
     `The Open Design UI locale for this run is \`${normalized}\` (${languageName}). All user-visible chat prose and generated UI controls must follow this locale, especially \`<question-form>\` titles, descriptions, labels, placeholders, helper text, and option labels. Keep machine-readable ids and object option \`value\` fields exact and unlocalized.`,
     `The artifacts you generate must also be in ${languageName}: every piece of user-visible copy in the HTML/React/page/deck you produce — headings, body text, navigation, button and link labels, captions, alt text, and form fields — is written in this language by default. This holds even when a chosen template, plugin, or design system ships its reference/example content in another language: treat that copy as a layout and style reference and translate/adapt it into ${languageName}, do not ship its wording verbatim. Keep brand names, code, and technical identifiers as-is, and honor an explicit user request for a different output language.`,
-    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Live artifact`, `Slide deck`, `Other`. Do not translate, reorder, or rewrite those option labels.',
+    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Slide deck`, `Other`. Do not translate, reorder, or rewrite those option labels.',
   ];
   if (normalized === 'zh-CN') {
     lines.push(
@@ -830,15 +830,6 @@ function renderMetadataBlock(
       '- **includeOsWidgets**: true — add platform-native OS home-screen / lock-screen / quick-access widget surfaces where relevant. These are outside-the-app widgets (for example iOS WidgetKit, Android home screen widget, Live Activity/lock screen, tablet glance panel), not in-app cards. Include realistic widget sizes and direct quick actions for the domain.',
     );
   }
-  if (metadata.intent === 'live-artifact') {
-    lines.push(
-      '- **intent**: live-artifact — the user chose New live artifact. The first output should be a live artifact/dashboard/report, not a one-off static mockup. Prefer the `live-artifact` skill workflow when available, keep source data compact, and register through the daemon live-artifact tool path once that wrapper/tooling is available.',
-    );
-    lines.push(
-      '- **connector-source rule**: if the user names a connector/source (for example Notion) and daemon connector tools are available, list connectors before asking where the data comes from. When the named connector is `connected`, use its read-only tools and ask follow-up questions only for missing topic/page/database details, multiple equally plausible matches, or an unconnected/missing connector.',
-    );
-  }
-
   if (metadata.kind === 'prototype') {
     lines.push(
       `- **fidelity**: ${metadata.fidelity ?? '(unknown — ask: wireframe vs high-fidelity)'}`,

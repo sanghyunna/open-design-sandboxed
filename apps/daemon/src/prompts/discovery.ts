@@ -56,7 +56,6 @@ Default-router exception: when the Active plugin / Active skill is \`od-default\
       "required": true,
       "options": [
         "Prototype",
-        "Live artifact",
         "Slide deck",
         "Other"
       ]

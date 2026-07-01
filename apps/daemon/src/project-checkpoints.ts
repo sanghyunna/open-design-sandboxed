@@ -40,7 +40,6 @@ import {
 } from './db.js';
 import { isIgnoredProjectDirName } from './project-ignored-dirs.js';
 import { resolveProjectDir } from './projects.js';
-import { LIVE_ARTIFACTS_DIR_NAME } from './live-artifacts/store.js';
 
 type SqliteDb = any;
 type ProjectRecord = { id: string; metadata?: unknown };
@@ -1111,7 +1110,7 @@ async function removeEmptyDirs(dirs: string[], rootReal: string): Promise<void> 
 }
 
 function shouldSkipDirectory(name: string): boolean {
-  if (name === LIVE_ARTIFACTS_DIR_NAME) return false;
+  if (name === '.live-artifacts') return false;
   const lower = name.toLowerCase();
   return isIgnoredProjectDirName(name) ||
     TRANSIENT_DOT_DIRS.has(lower) ||
