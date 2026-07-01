@@ -102,11 +102,7 @@
         {
           "id": "generate",
           "atoms": [
-            "file-write",
-            "media-image",
-            "media-video",
-            "media-audio",
-            "live-artifact"
+            "file-write"
           ]
         },
         {
@@ -141,12 +137,9 @@
                 "title": "Task type",
                 "enum": [
                   "prototype",
-                  "live-artifact",
                   "deck",
-                  "image",
-                  "video",
-                  "hyperframes",
-                  "audio",
+                  "report",
+                  "template",
                   "other"
                 ]
               }
@@ -159,9 +152,6 @@
       "prompt:inject",
       "pipeline:*",
       "genui:choice",
-      "media:image",
-      "media:video",
-      "media:audio",
       "fs:write"
     ],
     "useCase": {

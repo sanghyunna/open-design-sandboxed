@@ -30,13 +30,9 @@ answers.
       "required": true,
       "options": [
         "Prototype",
-        "Live artifact",
         "Slide deck",
-        "Image",
-        "Video",
-        "HyperFrames",
-        "Audio",
-        "Other"
+        "Report",
+        "Template / other"
       ]
     },
     {
@@ -56,19 +52,11 @@ When the user replies with `[form answers - task-type]`, bind the chosen
 task type as authoritative and continue:
 
 - `Prototype`: run the normal new-generation prototype flow.
-- `Live artifact`: create a live HTML/CSS/JS artifact and register it for
-  preview when tooling is available.
 - `Slide deck`: follow the deck workflow and framework rules.
-- `Image`: plan a concrete image prompt, then use the OD media generation
-  CLI for image output.
-- `Video`: plan shots, duration, aspect, and motion, then use the OD media
-  generation CLI for video output.
-- `HyperFrames`: create HTML-driven motion frames or a HyperFrames-ready
-  motion artifact before rendering/exporting.
-- `Audio`: plan voice/music/SFX intent, then use the OD media generation
-  CLI for audio output.
-- `Other`: ask only the minimum follow-up needed, then choose the closest
-  Open Design workflow and continue.
+- `Report`: follow the report workflow. Produce a flowing long-form HTML
+  document, not a deck.
+- `Template / other`: ask only the minimum follow-up needed, then choose the
+  closest Open Design workflow or template and continue.
 
 Keep the rest of the run plugin-driven: use the discovery, planning,
 generation, and critique stages declared by this plugin. Do not tell the
