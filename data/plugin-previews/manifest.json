@@ -442,34 +442,6 @@
       "holdMs": 2500,
       "hash": "dbaa9abe10bf0ab0"
     },
-    "example-orbit-general": {
-      "video": "example-orbit-general.ecd707b783f5f171.mp4",
-      "poster": "example-orbit-general.ecd707b783f5f171.poster.jpg",
-      "durationMs": 7500,
-      "holdMs": 2500,
-      "hash": "ecd707b783f5f171"
-    },
-    "example-orbit-gmail": {
-      "video": "example-orbit-gmail.b15b249debd3e546.mp4",
-      "poster": "example-orbit-gmail.b15b249debd3e546.poster.jpg",
-      "durationMs": 2047,
-      "holdMs": 2500,
-      "hash": "b15b249debd3e546"
-    },
-    "example-orbit-linear": {
-      "video": "example-orbit-linear.87ecc2178b587342.mp4",
-      "poster": "example-orbit-linear.87ecc2178b587342.poster.jpg",
-      "durationMs": 847,
-      "holdMs": 2500,
-      "hash": "87ecc2178b587342"
-    },
-    "example-orbit-notion": {
-      "video": "example-orbit-notion.16a3236a5478b92f.mp4",
-      "poster": "example-orbit-notion.16a3236a5478b92f.poster.jpg",
-      "durationMs": 353,
-      "holdMs": 2500,
-      "hash": "16a3236a5478b92f"
-    },
     "example-pm-spec": {
       "video": "example-pm-spec.6ef0265fe7bc7647.mp4",
       "poster": "example-pm-spec.6ef0265fe7bc7647.poster.jpg",
