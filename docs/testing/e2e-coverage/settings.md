@@ -4,7 +4,6 @@
 
 - Execution mode 页面
 - Memory 页面
-- Automations / Orbit 页面
 - Language 页面
 - Pets 页面
 - API protocol 迁移与切换回归
@@ -13,15 +12,12 @@
 ## 对应测试文件
 
 - `e2e/ui/settings-api-protocol.test.ts`
-- `e2e/ui/settings-media-providers.test.ts`
 - `e2e/ui/settings-memory-routines.test.ts`
 - `e2e/tests/localized-content.test.ts`
 - `apps/web/tests/components/App.connectors.test.tsx`
-- `apps/web/tests/components/App.mediaProviders.test.tsx`
 - `apps/web/tests/components/MemorySection.test.tsx`
 - `apps/web/tests/components/SettingsDialog.test.ts`
 - `apps/web/tests/components/SettingsDialog.execution.test.tsx`
-- `apps/web/tests/components/SettingsDialog.orbit.test.tsx`
 
 ## 已自动化
 
@@ -47,17 +43,6 @@
 | SET-018 | Configure execution 页面里的 `CLAUDE_CONFIG_DIR`、`CODEX_HOME` 可保存进配置 | `SettingsDialog.execution.test.tsx`, `SettingsDialog.test.ts` |
 | SET-019 | daemon offline 时 `Local CLI` 模式不可选，并展示 offline 文案 | `SettingsDialog.execution.test.tsx` |
 | SET-020 | Local CLI 保存后，首页左下角执行状态 pill 会联动展示当前 agent 与版本 | `settings-api-protocol.test.ts` |
-| SET-021 | Media providers 会按 `已配置优先 -> Integrated 优先 -> 名称排序` 稳定展示，已配置 provider 会显示 `Configured` badge | `SettingsDialog.execution.test.tsx` |
-| SET-022 | Unsupported media providers 会以禁用行展示，不允许编辑当前不支持的 provider 配置 | `SettingsDialog.execution.test.tsx` |
-| SET-023 | Media providers 支持保存 API key / Base URL / 自定义 model，并在 `Clear` 后从保存 payload 中移除对应 provider | `SettingsDialog.execution.test.tsx` |
-| SET-024 | Media providers 支持右上角关闭按钮和遮罩关闭，关闭入口不会误触额外保存动作 | `SettingsDialog.execution.test.tsx` |
-| SET-025 | App 启动时如果本地已有已配置的 media providers，且 daemon 在线，会自动把配置同步到 daemon | `App.mediaProviders.test.tsx` |
-| SET-026 | Settings 保存 media providers 后，会以 `force: true` 触发 daemon 同步，并把 `onboardingCompleted` 一并落盘 | `App.mediaProviders.test.tsx` |
-| SET-027 | Media providers 页面支持从 daemon load error 回退到 browser-saved state，并可通过 `Reload from daemon` 拉回 saved marker / tail / base URL | `SettingsDialog.media.test.tsx`, `settings-media-providers.test.ts` |
-| SET-028 | Media providers 的 reload 成功会展示短暂 `Reloaded` flash，失败时展示 sticky error，且 reload 不会覆盖 saved-marker 行上的本地 pending edit | `SettingsDialog.media.test.tsx`, `config.test.ts` |
-| SET-029 | Media providers 支持 marker-only saved state：replace placeholder、saved tail badge、clear，以及 custom-model provider 清理时连同 `model` 一起移除 | `SettingsDialog.media.test.tsx` |
-| SET-030 | 真实 settings media flow 支持 provider 输入自动保存，并在关闭后重新打开设置时稳定回显 | `settings-media-providers.test.ts` |
-| SET-090 | Settings 中保存的 media provider 配置会被 New Project 的 Media model picker 跨页面消费：provider badge 从 `Integrated` 升级为 `Configured` | `settings-media-providers.test.ts`, `NewProjectPanel.media.test.tsx` |
 | SET-031 | Connectors 页面会展示已保存的 Composio key 尾号、替换占位文案、帮助说明和 `Get API Key` 外链 | `SettingsDialog.execution.test.tsx` |
 | SET-032 | Connectors 页面支持替换已保存的 Composio key，并在未保存时展示 pending 提示 | `SettingsDialog.execution.test.tsx` |
 | SET-033 | Connectors 页面支持清空已保存的 Composio key，并在保存 payload 中移除保存态标记 | `SettingsDialog.execution.test.tsx` |
@@ -101,9 +86,6 @@
 | SET-071 | BYOK 页面 `Test` 按钮只有必填字段可用后才允许测试，并会展示 provider 连接测试结果 | `SettingsDialog.execution.test.tsx` |
 | SET-072 | Local CLI 页面 `Test` 按钮会使用当前选中的已安装 agent 发起连接测试，并展示 agent 响应结果 | `SettingsDialog.execution.test.tsx` |
 | SET-073 | Appearance 支持 preset accent color 和自定义色值，切换时实时预览并自动保存 `accentColor` | `SettingsDialog.execution.test.tsx` |
-| SET-074 | Orbit 页面在没有可用 connector 时锁定 Run / 开关 / 时间 / 模板控件，并通过 gate CTA 跳转到 Connectors | `SettingsDialog.orbit.test.tsx` |
-| SET-075 | Orbit 页面在 connector 可用后支持切换 daily summary、修改 run time、切换 prompt template，并自动保存 schedule 配置 | `SettingsDialog.orbit.test.tsx` |
-| SET-076 | Orbit 页面展示最近一次运行收据、统计计数、live artifact 入口，并支持复制 markdown 结果 | `SettingsDialog.orbit.test.tsx` |
 | SET-077 | Memory 页面默认展示新的三分区 source tabs：`Add manually / Learn from chats / Import from apps`，并保留手动新增入口 | `settings-memory-routines.test.ts` |
 | SET-078 | Memory 页面会展示 `Saved memory` 统计、type filters、extractions 管理按钮和 `Memory tree` 结构摘要 | `settings-memory-routines.test.ts`, `MemorySection.test.tsx` |
 | SET-079 | 手动新建 memory 后，条目会立即出现，并在关闭后重开设置时继续可见 | `settings-memory-routines.test.ts`, `MemorySection.test.tsx` |
@@ -122,7 +104,6 @@
 
 | ID | 场景 | 原因 |
 | --- | --- | --- |
-| SET-C03 | Media providers 配置被下游图片/视频/音频生成请求实际消费的端到端回归 | New Project 的 model picker 已覆盖跨页面 `Configured` 消费，但真正的生成请求链路还没补 |
 | SET-C05 | MCP server 的 Cursor deeplink / 多平台路径差异（macOS/Linux/Windows） | 适合自动化，但需要更细的环境 mock 或浏览器 scheme 行为校验，适合后续补 |
 | SET-C06 | Notifications 在 ProjectView 中收到真实任务完成事件后，是否按 success/failure 正确播放声音和发送桌面通知 | 适合自动化，但需要结合流式消息完成态和窗口焦点状态做更完整联动断言 |
 | SET-C07 | `theme=system` 时在系统亮/暗偏好切换下，页面是否通过 `matchMedia` 或宿主环境同步实时跟随 | 适合自动化，但要先确认当前实现是否真的监听系统主题变化 |

@@ -73,7 +73,7 @@ OD's core unit is not "one prompt, one output" — it is a **long-running design
 
 Concretely, this spec promotes the existing "first-party atoms" from a flat capability list into an **atomic pipeline that plugins assemble**:
 
-- **Atom (§10):** a named capability exposed by the OD daemon and first-party tools (discovery-question-form, direction-picker, todo-write, file-read/write, research-search, media-image, live-artifact, critique-theater, etc.).
+- **Atom (§10):** a named capability exposed by the OD daemon and first-party tools (discovery-question-form, direction-picker, todo-write, file-read/write, research-search, connector, critique-theater, etc.), plus deliverable families such as report, prototype, deck, and template.
 - **Pipeline (§5 / §10.1):** the plugin uses `od.pipeline` to compose atoms into ordered stages. The spec ships a default reference pipeline of `discovery → plan → generate → critique`; plugins can add, reorder, or loop over any stage.
 - **Devloop (§10.2):** when a stage is marked `repeat: true` with an `until` termination condition (critique score, user confirmation, preview load success, etc.), the agent automatically iterates on the previous artifact until the condition holds or the user explicitly cancels.
 - **Generative UI (§10.3):** when a stage needs human-in-the-loop input (information, authorization, direction picking, optimization confirmation), the agent triggers a surface that the plugin **declares ahead of time** in its manifest's `od.genui.surfaces[]`. The daemon broadcasts the request through OD's native event stream, which can also be projected into AG-UI canonical events for external clients. Once the user answers, the daemon writes the answer back to the project; the surface's `persist` field decides whether the answer is remembered at run / conversation / project tier so that multi-turn chats do not pester the user with the same question twice.
@@ -286,7 +286,7 @@ Rules of authorship:
       "stages": [
         { "id": "discovery",  "atoms": ["discovery-question-form"] },
         { "id": "plan",       "atoms": ["direction-picker", "todo-write"] },
-        { "id": "generate",   "atoms": ["file-write", "live-artifact"] },
+        { "id": "generate",   "atoms": ["file-write"] },
         { "id": "critique",   "atoms": ["critique-theater"], "repeat": true,
           "until": "critique.score>=4 || iterations>=3" }
       ]
@@ -320,11 +320,11 @@ Rules of authorship:
           }
         },
         {
-          "id": "media-spend-approval",
+          "id": "connector-export-approval",
           "kind": "confirmation",
           "persist": "run",
-          "trigger": { "atom": "media-image" },
-          "capabilitiesRequired": ["mcp"]
+          "trigger": { "atom": "connector" },
+          "capabilitiesRequired": ["connector:slack"]
         }
       ]
     },
@@ -760,9 +760,7 @@ Promote what already exists in [`apps/daemon/src/prompts/system.ts`](../apps/dae
 | `todo-write` | same | TodoWrite-driven plan | all |
 | `file-read` / `file-write` / `file-edit` | code-agent native | File ops | all |
 | `research-search` | `od research search` ([`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)) | Tavily web research | new-generation |
-| `media-image` / `media-video` / `media-audio` | `od media generate` | Media generation with provider config | new-generation, tune-collab |
-| `live-artifact` | MCP `mcp__live-artifacts__*` | Create/refresh live artifacts | all |
-| `connector` | MCP `mcp__connectors__*` | Composio connectors | all |
+| `connector` | `od tools connectors` / `od mcp connectors` | Composio connector tool calls through the daemon gate | new-generation, tune-collab |
 | `critique-theater` | `system.ts` critique addendum | 5-dim panel critique; devloop convergence signal | all |
 | `code-import` *(planned)* | tbd: repo handle ingestion | Clone / read existing repo, extract design-relevant structure | code-migration |
 | `design-extract` *(planned)* | tbd | Extract design tokens from source code / Figma / screenshot | code-migration, figma-migration |
@@ -804,7 +802,7 @@ The pipeline is declarative; the agent does not read pipeline JSON directly. The
 A stage's `repeat: true` flag promotes single-step execution into a **loop**:
 
 1. The agent completes the stage once.
-2. The daemon evaluates the stage's `until` condition by reading the most recent critique-theater output, the `live-artifact` preview state, the user's response, or a built-in `iterations >= N` counter.
+2. The daemon evaluates the stage's `until` condition by reading the most recent critique-theater output, the artifact preview state, the user's response, or a built-in `iterations >= N` counter.
 3. Condition unmet → re-enter the stage with the previous round's artifact as input. Condition met → advance to the next stage.
 4. The user can break out anytime via `od run respond <runId> --json '{"action":"break-loop"}'` or the UI "Stop refining" button.
 
@@ -827,9 +825,9 @@ The product rule is: **agent/plugin output is data; OD owns the renderer.** A pl
 
 | `kind` | Purpose | Default render | Likely trigger atom | Default `persist` |
 | --- | --- | --- | --- | --- |
-| `form` | Collect structured info (audience, brand, target, resolution, etc.) | JSON-Schema–driven form rendered from `schema` | `discovery-question-form`, `media-image`, any atom needing parameters | `conversation` |
+| `form` | Collect structured info (audience, brand, target, resolution, etc.) | JSON-Schema–driven form rendered from `schema` | `discovery-question-form`, `research-search`, any atom needing parameters | `conversation` |
 | `choice` | Pick one of N options (direction, headline, version) | Card grid or radio list | `direction-picker`, `critique-theater` | `conversation` |
-| `confirmation` | Two-way confirm (continue / cancel, approve / reject) | Inline Yes/No buttons | High-cost atoms such as `media-image` or `subprocess`-class hooks | `run` |
+| `confirmation` | Two-way confirm (continue / cancel, approve / reject) | Inline Yes/No buttons | High-cost atoms such as `connector` or `subprocess`-class hooks | `run` |
 | `oauth-prompt` | Launch third-party OAuth (Figma, Notion, Slack, etc.) | Modal + guidance copy | Connector / MCP authorization | `project` |
 
 Each surface carries the following v1 fields:
@@ -1274,7 +1272,7 @@ The CLI (`od …`) is **the canonical agent-facing API** for Open Design. Plugin
 | --------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
 | HTTP (`/api/*`)       | Desktop web app, internal tooling, the CLI's own use  | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts)      |
 | **CLI (`od …`)**      | **Code agents shelling out, scripts, CI**             | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)            |
-| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp` and `od mcp live-artifacts` (existing)                  |
+| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp` and `od mcp connectors`                                 |
 
 When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and tested in CI; breaking changes follow a major-version bump of the `od` bin.
 
@@ -1415,11 +1413,9 @@ od config get|set|list|unset  [--key ...] [--value ...]     # backed by media-co
 
 ```
 od research search ...
-od media generate  ...
-od tools live-artifacts ...
 od tools connectors  ...
 od mcp                       # stdio MCP server
-od mcp live-artifacts        # specialized MCP server
+od mcp connectors            # connector MCP server
 ```
 
 ### 12.3 Output conventions
@@ -1481,7 +1477,7 @@ This sequence works identically locally, in CI, in a Docker sidecar, or driven f
 
 ### 12.6 What this means for the existing CLI
 
-Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `od` (start daemon + open web UI) remains unchanged. Existing `od media`, `od research`, `od tools`, `od mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
+Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `od` (start daemon + open web UI) remains unchanged. Existing `od research`, `od tools connectors`, and `od mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
 
 > **Implementation rule:** if a code agent can do something through the desktop UI, it MUST be doable through `od …` with the same arguments and equivalent output. No silent UI-only capabilities.
 
@@ -2041,7 +2037,7 @@ The four "core agent-native design problems" the OD product targets, restated to
 | --- | --- | --- | --- | --- | --- |
 | 1 | Figma migration | `figma-migration` | yes (§1, §10 atoms reserved) | **partial** — `figma-extract` and `token-map` are `(planned)` in §10; pipeline shape and provenance are ready | Need to implement the two `(planned)` atoms; everything else (DS injection, GenUI OAuth, devloop, snapshot) is already in v1 |
 | 2 | Existing-codebase refresh | `code-migration` | yes (§1, §10, §20.3) | **not in v1** — `code-import` / `rewrite-plan` / `patch-edit` / `diff-review` all `(planned)`; `build-test` evaluator is §20.2 | Need the §20.3 stricter contract end-to-end (target stack, token mapping, component mapping, patch safety, build evidence) |
-| 3 | 0→1 design (prototype, deck, interactive video) | `new-generation` | yes (§1 default reference pipeline) | **shipped in v1** — every required atom (`discovery-question-form`, `direction-picker`, `todo-write`, `live-artifact`, `media-image/video/audio`, `critique-theater`) is already implemented | Optional: lift §20.2 `visual-diff` / `brand-consistency-check` into Phase 2 so critique gains an objective signal |
+| 3 | 0→1 design (prototype, deck, report, template) | `new-generation` | yes (§1 default reference pipeline) | **shipped in v1** — every required atom (`discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `connector`, `critique-theater`) is already implemented | Optional: lift §20.2 `visual-diff` / `brand-consistency-check` into Phase 2 so critique gains an objective signal |
 | 4 | Design → deliverable production code | `tune-collab` (handoff side) | partial (§20.3 explicitly post-v1) | **not in v1** — v1 caps at `handoffKind: 'design-only' \| 'implementation-plan' \| 'patch'`; `'deployable-app'` is post-v1 | Either land §20.3 in full, or formalize the §14.3 OD ↔ external code-agent handoff as the v1 production-code path |
 
 Reading rule: **scenario 3 is the only one v1 fully covers natively**. Scenarios 1 and 2 have correct contracts and naming reserved by v1 but require additional atom implementations; scenario 4 is explicitly post-v1 and leans on §14.3 in the meantime.
@@ -2118,10 +2114,10 @@ What v1 explicitly does **not** solve, listed once so it is unambiguous:
 
 **What v1 already gives you for free (this is the v1 native scenario):**
 
-- All required atoms are already implemented: `discovery-question-form`, `direction-picker`, `todo-write`, `live-artifact`, `media-image` / `media-video` / `media-audio`, `critique-theater`. See §10 atom table.
+- All required atoms are already implemented: `discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `connector`, `critique-theater`. See §10 atom table.
 - The default reference pipeline `discovery → plan → generate → critique` matches the typical `new-generation` flow; plugins do not have to declare `od.pipeline` to get a working pipeline.
 - All four GenUI built-in surface kinds (`form` / `choice` / `confirmation` / `oauth-prompt`) target this scenario directly.
-- Live preview through `live-artifact` and the `od files watch` CLI primitive (§12) means hot reloading and CLI co-watching both work in v1.
+- File-backed previews and the `od files` CLI primitives (§12) mean generated prototypes, reports, decks, and templates can be inspected and consumed in v1.
 
 **Single optional improvement worth pulling forward:**
 
@@ -2246,7 +2242,7 @@ Manifest sketch:
     "pipeline": { "stages": [
       { "id": "discovery", "atoms": ["discovery-question-form"] },
       { "id": "extract",   "atoms": ["todo-write", "file-write"] },
-      { "id": "generate",  "atoms": ["file-write", "live-artifact"] },
+      { "id": "generate",  "atoms": ["file-write"] },
       { "id": "critique",  "atoms": ["critique-theater"],
         "repeat": true, "until": "critique.score>=4 || iterations>=3" }
     ]},
@@ -2256,7 +2252,7 @@ Manifest sketch:
 }
 ```
 
-The accompanying `SKILL.md` teaches the agent the procedure: "Figma URL in → call `figma-rest.get_file` → walk node tree → read DESIGN.md from active design system → emit HTML in cwd preserving Figma layout but rebinding tokens to DESIGN.md → live-artifact preview → critique loop." No first-party `figma-extract` or `token-map` needed; those atoms would only flatten the SKILL.md instructions into a reusable prompt fragment.
+The accompanying `SKILL.md` teaches the agent the procedure: "Figma URL in → call `figma-rest.get_file` → walk node tree → read DESIGN.md from active design system → emit HTML in cwd preserving Figma layout but rebinding tokens to DESIGN.md → preview the generated file → critique loop." No first-party `figma-extract` or `token-map` needed; those atoms would only flatten the SKILL.md instructions into a reusable prompt fragment.
 
 #### 22.3.2 Existing-codebase refresh without first-party `code-import` / `rewrite-plan` / `build-test`
 
@@ -2351,7 +2347,7 @@ Today §5's `od.kind` enum lists `'atom'` but never defines an atom plugin's sha
 
 - An atom plugin is a folder with `open-design.json` (`od.kind: 'atom'`) plus `SKILL.md`.
 - The `SKILL.md` body is the atom's prompt fragment, injected by the daemon assembler when a stage references the atom by id.
-- Optional `od.context.mcp[]` declares MCP tools the atom uses (e.g. `live-artifact`, `connector`).
+- Optional `od.context.mcp[]` declares MCP tools the atom uses (e.g. `connector`).
 - Optional `od.atom.untilSignals[]` declares the named signal variables this atom emits, contributing to the `until` vocabulary in §10.1. This is how patch 1 also lifts §22.4's limit 1: each atom owns its own signals (e.g. `build-test` declares `build.passing` and `tests.passing`), and the `until` evaluator looks them up against the active stage's atoms instead of a hard-coded list.
 - Optional `od.atom.toolGating[]` declares which agent-side tools (file-read/write/edit, bash) the atom expects to be available.
 

@@ -167,7 +167,7 @@ v2 isn't promised. It's the direction if v1 lands.
 
 The newer Automations direction is tracked in
 [`specs/current/automation-self-evolution.md`](../specs/current/automation-self-evolution.md).
-It folds routines, scheduled connector digests, live-artifact refreshes, Orbit,
+It folds routines, scheduled connector digests, artifact review checks,
 memory extraction, skill creation, token compression, and design-system
 extraction into one Automation template model.
 

@@ -73,7 +73,7 @@ OD 的核心不是「一次 prompt 一次输出」，而是 **long-running desig
 
 围绕这一点，spec 把已有的「一方 atoms」从扁平的 capability 列表升级为**可被插件组装的原子管线**：
 
-- **Atom（§10）**：OD daemon 与 first-party tools 暴露的具名能力（discovery-question-form、direction-picker、todo-write、file-read/write、research-search、media-image、live-artifact、critique-theater 等）。
+- **Atom（§10）**：OD daemon 与 first-party tools 暴露的具名能力（discovery-question-form、direction-picker、todo-write、file-read/write、research-search、connector、critique-theater 等），以及 report、prototype、deck、template 等交付物类型。
 - **Pipeline（§5 / §10.1）**：插件通过 `od.pipeline` 把若干 atoms 组装成有序 stages；spec 默认提供一条「discovery → plan → generate → critique」的 reference pipeline，插件可以增删、重排或循环其中任何一步。
 - **Devloop（§10.2）**：当一条 stage 标记 `repeat: true` 并附带 `until` 终止条件（critique score、用户确认、preview 加载成功等）时，agent 基于上一轮 artifact 自动进入下一轮，直到条件满足或显式取消。
 - **Generative UI（§10.3）**：pipeline 的某个 stage 需要人类介入（提供信息、授权、方向选择、优化确认）时，agent 触发插件预先在 manifest `od.genui.surfaces[]` 中**声明**过的 surface；daemon 通过 OD 原生事件流广播给所有协作面（web / desktop / CLI / 其他 code agent），并可投影成 AG-UI canonical events 供外部 client 使用。用户回应后 daemon 把答案写回 project，run 继续。Surface 的 `persist` 字段决定答案在 run / conversation / project 三个层级中哪个层级被记住，让多轮对话不会反复打扰用户。
@@ -285,7 +285,7 @@ my-plugin/
       "stages": [
         { "id": "discovery",  "atoms": ["discovery-question-form"] },
         { "id": "plan",       "atoms": ["direction-picker", "todo-write"] },
-        { "id": "generate",   "atoms": ["file-write", "live-artifact"] },
+        { "id": "generate",   "atoms": ["file-write"] },
         { "id": "critique",   "atoms": ["critique-theater"], "repeat": true,
           "until": "critique.score>=4 || iterations>=3" }
       ]
@@ -319,11 +319,11 @@ my-plugin/
           }
         },
         {
-          "id": "media-spend-approval",
+          "id": "connector-export-approval",
           "kind": "confirmation",
           "persist": "run",
-          "trigger": { "atom": "media-image" },
-          "capabilitiesRequired": ["mcp"]
+          "trigger": { "atom": "connector" },
+          "capabilitiesRequired": ["connector:slack"]
         }
       ]
     },
@@ -756,9 +756,7 @@ UI 上的 capability gate 是 modal + checklist；headless / CI / 第三方 code
 | `todo-write` | 同上 | TodoWrite 驱动的计划 | all |
 | `file-read` / `file-write` / `file-edit` | code-agent native | 文件操作 | all |
 | `research-search` | `od research search`（[`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)） | Tavily web research | new-generation |
-| `media-image` / `media-video` / `media-audio` | `od media generate` | 带 provider config 的媒体生成 | new-generation, tune-collab |
-| `live-artifact` | MCP `mcp__live-artifacts__*` | 创建/刷新 live artifacts | all |
-| `connector` | MCP `mcp__connectors__*` | Composio connectors | all |
+| `connector` | `od tools connectors` / `od mcp connectors` | 通过 daemon gate 调用 Composio connector tools | new-generation, tune-collab |
 | `critique-theater` | `system.ts` critique addendum | 5 维 panel critique；devloop 收敛信号 | all |
 | `code-import` *(planned)* | tbd: repo handle ingestion | clone / read 已有 repo，抽取设计相关结构 | code-migration |
 | `design-extract` *(planned)* | tbd | 从源代码 / Figma / 截图抽取 design tokens | code-migration, figma-migration |
@@ -800,7 +798,7 @@ Pipeline 是声明式的；agent 不直接读 pipeline JSON。daemon 把每个 s
 Stage 的 `repeat: true` 标志将单步执行升级为**循环**：
 
 1. agent 完成 stage 一次。
-2. daemon 评估 stage 的 `until` 条件——读取最近一轮 critique-theater 输出、`live-artifact` preview 状态、用户回复，或一个内置 `iterations >= N` 计数器。
+2. daemon 评估 stage 的 `until` 条件——读取最近一轮 critique-theater 输出、artifact preview 状态、用户回复，或一个内置 `iterations >= N` 计数器。
 3. 条件未满足 → 回到 stage 起点，把上一轮 artifact 作为 input 再跑一次；条件满足 → 进入下一 stage。
 4. 用户通过 `od run respond <runId> --json '{"action":"break-loop"}'` 或 UI 中的「Stop refining」按钮可以随时打断。
 
@@ -823,9 +821,9 @@ OD 接受 [CopilotKit / AG-UI 协议](https://github.com/CopilotKit/CopilotKit) 
 
 | `kind` | 用途 | 默认渲染 | 触发方 atom（可选） | 默认 `persist` |
 | --- | --- | --- | --- | --- |
-| `form` | 收集结构化信息（受众、品牌、目标、分辨率等） | 用 `schema` 渲染 JSON-Schema 驱动的表单 | `discovery-question-form`、`media-image` 等需要参数的 atom | `conversation` |
+| `form` | 收集结构化信息（受众、品牌、目标、分辨率等） | 用 `schema` 渲染 JSON-Schema 驱动的表单 | `discovery-question-form`、`research-search` 等需要参数的 atom | `conversation` |
 | `choice` | 让用户在 N 个选项里挑一个（方向、命题、版本） | 卡片网格或单选列表 | `direction-picker`、`critique-theater` | `conversation` |
-| `confirmation` | 二选一确认（继续 / 取消、批准 / 拒绝） | 行内 Yes/No 按钮 | 任何高代价 atom，例如 `media-image`、`subprocess` 类 hook | `run` |
+| `confirmation` | 二选一确认（继续 / 取消、批准 / 拒绝） | 行内 Yes/No 按钮 | 任何高代价 atom，例如 `connector`、`subprocess` 类 hook | `run` |
 | `oauth-prompt` | 拉起第三方 OAuth（Figma、Notion、Slack 等） | 弹窗 + 引导文案 | connector / MCP 的鉴权需要 | `project` |
 
 每个 surface 有以下 v1 字段：
@@ -1269,7 +1267,7 @@ CLI（`od …`）是 **Open Design 面向 agent 的 canonical API**。Plugin ver
 | --- | --- | --- |
 | HTTP (`/api/*`) | Desktop web app、internal tooling、CLI 自身使用 | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts) |
 | **CLI (`od …`)** | **Code agents shelling out、scripts、CI** | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) |
-| MCP stdio | MCP-aware agents（Claude Code、Cursor 等） | `od mcp` 与 `od mcp live-artifacts`（现有） |
+| MCP stdio | MCP-aware agents（Claude Code、Cursor 等） | `od mcp` 与 `od mcp connectors` |
 
 当新能力发布时，CLI subcommand 是 primary contract。HTTP route 用于支撑 CLI；MCP server 把一组精选 CLI subcommands 暴露为 tools。版本策略：subcommand names、argument names、`--json` schemas 由 `packages/contracts` 管理并在 CI 中测试；breaking changes 跟随 `od` bin 的 major-version bump。
 
@@ -1410,11 +1408,9 @@ od config get|set|list|unset  [--key ...] [--value ...]     # backed by media-co
 
 ```
 od research search ...
-od media generate  ...
-od tools live-artifacts ...
 od tools connectors  ...
 od mcp                       # stdio MCP server
-od mcp live-artifacts        # specialized MCP server
+od mcp connectors            # connector MCP server
 ```
 
 ### 12.3 输出约定
@@ -1476,7 +1472,7 @@ od files read "$PID" index.html > out.html
 
 ### 12.6 对现有 CLI 的含义
 
-上面每个 group 都是对 [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) 的增量。当前默认 `od`（启动 daemon + 打开 web UI）保持不变。现有 `od media`、`od research`、`od tools`、`od mcp` 命令保持当前 contract。新增 groups 是对 `apps/daemon/src/server.ts` 中既有 desktop UI endpoints 的包装（project create/list、run start/watch、file upload/list/read），再加上 §11.5 的新插件/marketplace/atoms endpoints。
+上面每个 group 都是对 [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) 的增量。当前默认 `od`（启动 daemon + 打开 web UI）保持不变。现有 `od research`、`od tools connectors`、`od mcp` 命令保持当前 contract。新增 groups 是对 `apps/daemon/src/server.ts` 中既有 desktop UI endpoints 的包装（project create/list、run start/watch、file upload/list/read），再加上 §11.5 的新插件/marketplace/atoms endpoints。
 
 > **Implementation rule:** 如果 code agent 能通过 desktop UI 做某件事，它就必须能通过 `od …` 用相同参数和等价输出完成。不能有 silent UI-only capabilities。
 
@@ -2033,7 +2029,7 @@ Evaluator 结果应该先作为 run events 落库；稳定后，再在 artifact 
 | --- | --- | --- | --- | --- | --- |
 | 1 | Figma 迁移 | `figma-migration` | 是（§1，§10 atom 占位） | **部分** —— `figma-extract` / `token-map` 在 §10 标 `(planned)`；pipeline shape 与 provenance 已就绪 | 需要补这两个 `(planned)` atom；其他（DS 注入、GenUI OAuth、devloop、snapshot）v1 已经具备 |
 | 2 | 存量代码库刷新 | `code-migration` | 是（§1、§10、§20.3） | **v1 不交付** —— `code-import` / `rewrite-plan` / `patch-edit` / `diff-review` 全部 `(planned)`；`build-test` evaluator 在 §20.2 | 需要 §20.3 整套契约（target stack / token mapping / component mapping / patch safety / build evidence） |
-| 3 | 0→1 设计（原型 / PPT / 交互式视频） | `new-generation` | 是（§1 默认 reference pipeline） | **v1 已交付** —— 所需的 `discovery-question-form`、`direction-picker`、`todo-write`、`live-artifact`、`media-image/video/audio`、`critique-theater` 全部 implemented | 可选：把 §20.2 的 `visual-diff` / `brand-consistency-check` 提前到 Phase 2，让 critique 有客观信号 |
+| 3 | 0→1 设计（prototype / deck / report / template） | `new-generation` | 是（§1 默认 reference pipeline） | **v1 已交付** —— 所需的 `discovery-question-form`、`direction-picker`、`todo-write`、`file-read` / `file-write`、`research-search`、`connector`、`critique-theater` 全部 implemented | 可选：把 §20.2 的 `visual-diff` / `brand-consistency-check` 提前到 Phase 2，让 critique 有客观信号 |
 | 4 | 设计 → 可交付业务代码 | `tune-collab`（handoff 侧） | 部分（§20.3 显式 post-v1） | **v1 不交付** —— v1 的 `handoffKind` 上限是 `'design-only' \| 'implementation-plan' \| 'patch'`；`'deployable-app'` 是 post-v1 | 要么完整落 §20.3，要么把 §14.3 的 OD ↔ 外部 code-agent 接力正式化为 v1 的"设计→生产代码"路径 |
 
 阅读规则：**只有场景 3 在 v1 完全 native 命中**。场景 1、2 的契约和命名 v1 已经预留，但需要补 atom 实现；场景 4 显式 post-v1，过渡期靠 §14.3。
@@ -2110,10 +2106,10 @@ v1 显式**不解决**的部分（一次性写明，避免歧义）：
 
 **v1 已经免费给到的（这是 v1 native 命中的场景）：**
 
-- 所有依赖 atom 已 implemented：`discovery-question-form`、`direction-picker`、`todo-write`、`live-artifact`、`media-image` / `media-video` / `media-audio`、`critique-theater`。见 §10 atom 表。
+- 所有依赖 atom 已 implemented：`discovery-question-form`、`direction-picker`、`todo-write`、`file-read` / `file-write`、`research-search`、`connector`、`critique-theater`。见 §10 atom 表。
 - 默认 reference pipeline `discovery → plan → generate → critique` 与典型 `new-generation` 流程一致；plugin 不需要声明 `od.pipeline` 也能拿到一条工作 pipeline。
 - 四个 GenUI 内置 surface kind（`form` / `choice` / `confirmation` / `oauth-prompt`）都直接服务这个场景。
-- `live-artifact` 的 live preview 与 `od files watch`（§12）合在一起，让 hot reload 和 CLI co-watch 在 v1 都能跑通。
+- 基于文件的 preview 与 `od files` CLI primitives（§12）合在一起，让生成的 prototypes、reports、decks、templates 在 v1 都能检查和消费。
 
 **唯一值得提前的优化：**
 
@@ -2238,7 +2234,7 @@ manifest 草图：
     "pipeline": { "stages": [
       { "id": "discovery", "atoms": ["discovery-question-form"] },
       { "id": "extract",   "atoms": ["todo-write", "file-write"] },
-      { "id": "generate",  "atoms": ["file-write", "live-artifact"] },
+      { "id": "generate",  "atoms": ["file-write"] },
       { "id": "critique",  "atoms": ["critique-theater"],
         "repeat": true, "until": "critique.score>=4 || iterations>=3" }
     ]},
@@ -2248,7 +2244,7 @@ manifest 草图：
 }
 ```
 
-配套 SKILL.md 教 agent："收到 figma URL → 调 `figma-rest.get_file` → 遍历 node tree → 读 active design system 的 DESIGN.md → 在 cwd 里写 HTML，保留 figma 布局但用 DESIGN.md 的 token → live-artifact 预览 → critique 循环"。**不需要等 OD 实现 `figma-extract` / `token-map`**；它们只是把 SKILL.md 的指令压成可复用的 prompt fragment。
+配套 SKILL.md 教 agent："收到 figma URL → 调 `figma-rest.get_file` → 遍历 node tree → 读 active design system 的 DESIGN.md → 在 cwd 里写 HTML，保留 figma 布局但用 DESIGN.md 的 token → 预览生成文件 → critique 循环"。**不需要等 OD 实现 `figma-extract` / `token-map`**；它们只是把 SKILL.md 的指令压成可复用的 prompt fragment。
 
 #### 22.3.2 不依赖一方 `code-import` / `rewrite-plan` / `build-test` 的代码库刷新 plugin
 
@@ -2343,7 +2339,7 @@ C 类是 v1 已交付的那一半；A 类的第一批也已经移动。截至本
 
 - atom plugin 是带 `open-design.json`（`od.kind: 'atom'`）+ `SKILL.md` 的目录。
 - `SKILL.md` 正文就是该 atom 的 prompt fragment；当某个 stage 用 id 引用了该 atom，daemon assembler 把它注入。
-- 可选的 `od.context.mcp[]` 声明该 atom 用到的 MCP tool（如 `live-artifact`、`connector`）。
+- 可选的 `od.context.mcp[]` 声明该 atom 用到的 MCP tool（如 `connector`）。
 - 可选的 `od.atom.untilSignals[]` 声明该 atom 发出的命名信号变量，贡献到 §10.1 的 `until` 词汇表。这正是 patch 1 同时放开 §22.4 limit 1 的方式：每个 atom 自带信号（例如 `build-test` 声明 `build.passing` 和 `tests.passing`），`until` 求值器对照当前 stage 的 atoms 而非硬编码列表来查表。
 - 可选的 `od.atom.toolGating[]` 声明该 atom 期望可用的 agent 端工具（file-read/write/edit、bash）。
 

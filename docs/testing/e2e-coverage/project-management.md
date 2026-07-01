@@ -17,7 +17,6 @@
 
 | ID | 场景 | 来源 |
 | --- | --- | --- |
-| PM-001 | Prototype、live artifact、deck、image 标签切换正确，且草稿内容会保留 | `project-management-flows.test.ts` |
 | PM-002 | 多选 design system 时，会正确保存主系统和 inspiration metadata | `project-management-flows.test.ts` |
 | PM-003 | 单选 design system 时，搜索后可以切换目标系统 | `project-management-flows.test.ts` |
 | PM-004 | 项目标题重命名后刷新仍保留，空白标题不会覆盖原值 | `project-management-flows.test.ts` |
