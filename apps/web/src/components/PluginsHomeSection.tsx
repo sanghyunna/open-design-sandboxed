@@ -1,9 +1,8 @@
 // Plugins discovery section on Home.
 //
 // Renders an artifact-kind bar over the plugin catalog: Prototype ·
-// Slides · Image · Video · HyperFrames · Audio. Prototype, Slides,
-// Image, and Video can reveal scene buckets from the user-prompt
-// taxonomy; HyperFrames and Audio stay flat. A small Saved chip
+// Slides. Both can reveal scene buckets from the user-prompt
+// taxonomy. A small Saved chip
 // sits orthogonal to the rows for quick access to user-saved picks.
 //
 // The category list is curated — finer metadata (surface, role tags,

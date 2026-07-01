@@ -3,14 +3,12 @@
 // The Home starter grid is organized around the artifact a user wants
 // to make first:
 //
-//   Prototype · Slides · Image · Video · HyperFrames · Audio
+//   Prototype · Slides
 //
-// Prototype, Slides, Image, and Video have enough bundled templates to
-// deserve a second row. Those child buckets follow the Feishu prompt
-// taxonomy from the user-query analysis doc: business dashboards, app
-// prototypes, landing pages, pitch decks, training decks, brand visuals,
-// video/motion generation, and adjacent scene clusters. HyperFrames and
-// Audio stay flat because their catalog slices are intentionally small.
+// Prototype and Slides have enough bundled templates to deserve a second
+// row. Those child buckets follow the Feishu prompt taxonomy from the
+// user-query analysis doc: business dashboards, app prototypes, landing
+// pages, pitch decks, and training decks.
 //
 // Counts in each category reflect the catalog *as a whole*, not the
 // post-filter slice. We deliberately avoid recomputing counts after
@@ -110,27 +108,6 @@ function byAnySlug(...slugs: string[]): (record: InstalledPluginRecord) => boole
   return (record) => hasAnySlug(record, slugs);
 }
 
-function matchesAny(record: InstalledPluginRecord, tests: Array<(record: InstalledPluginRecord) => boolean>): boolean {
-  return tests.some((test) => test(record));
-}
-
-const HYPERFRAMES_TESTS = [
-  byAnySlug(
-    'hyperframes',
-    'html-video',
-    'video-composition',
-    'interactive-video',
-  ),
-];
-
-function isHyperFramesPlugin(record: InstalledPluginRecord): boolean {
-  return matchesAny(record, HYPERFRAMES_TESTS);
-}
-
-function isVideoPlugin(record: InstalledPluginRecord): boolean {
-  return byMode('video')(record) && !isHyperFramesPlugin(record);
-}
-
 // Curated artifact-kind list. Keep this aligned with the Home creation
 // intents and the app's artifact product types.
 const PRIMARY_CATEGORIES: readonly CategoryDef[] = [
@@ -145,30 +122,6 @@ const PRIMARY_CATEGORIES: readonly CategoryDef[] = [
     label: 'Slides',
     starterPrompt: 'Create an Open Design plugin that generates a polished slide deck from a narrative brief.',
     test: byMode('deck'),
-  },
-  {
-    slug: 'image',
-    label: 'Image',
-    starterPrompt: 'Create an Open Design plugin that generates image assets from structured creative direction.',
-    test: byMode('image'),
-  },
-  {
-    slug: 'video',
-    label: 'Video',
-    starterPrompt: 'Create an Open Design plugin that generates video prompts, storyboards, or render-ready motion artifacts.',
-    test: isVideoPlugin,
-  },
-  {
-    slug: 'hyperframes',
-    label: 'HyperFrames',
-    starterPrompt: 'Create an Open Design plugin that generates a HyperFrames-ready motion composition.',
-    test: isHyperFramesPlugin,
-  },
-  {
-    slug: 'audio',
-    label: 'Audio',
-    starterPrompt: 'Create an Open Design plugin that generates audio, voice, or sound-design assets from a brief.',
-    test: byMode('audio'),
   },
 ];
 
@@ -216,9 +169,7 @@ function orderSubcategoriesForDisplay(parent: string, options: FacetOption[]): F
     .map((entry) => entry.option);
 }
 
-// Scene child buckets based on the Feishu prompt taxonomy. HyperFrames
-// and Audio intentionally have no children, so selecting them keeps the
-// section flat.
+// Scene child buckets based on the Feishu prompt taxonomy.
 //
 // NOTE: array order here is matching precedence (see SUBCATEGORY_DISPLAY_ORDER
 // above), NOT the on-screen order. Keep it stable.
@@ -442,120 +393,6 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
       'creator-portfolio',
       'xhs',
       'design-studio-deck',
-    ),
-  },
-  {
-    parent: 'image',
-    slug: 'ui-product-mockups',
-    label: 'UI / product mockups',
-    starterPrompt: 'Create an Open Design image plugin for product UI mockups, game UI, product cards, or interface showcases.',
-    test: byAnySlug(
-      'app-web-design',
-      'game-ui',
-      'ui',
-      'hud',
-      'app-showcase',
-      'product',
-      'mockup',
-    ),
-  },
-  {
-    parent: 'image',
-    slug: 'brand-visuals',
-    label: 'Brand / logo',
-    starterPrompt: 'Create an Open Design image plugin for logos, brand visuals, typography-led posters, or visual systems.',
-    test: byAnySlug('logo', 'brand', 'typography', 'poster', 'key-art', 'cover-art'),
-  },
-  {
-    parent: 'image',
-    slug: 'storyboards-motion-refs',
-    label: 'Storyboards',
-    starterPrompt: 'Create an Open Design image plugin for storyboards, choreography breakdowns, pose references, or motion planning sheets.',
-    test: byAnySlug('storyboard', 'dance', 'choreography', 'pose-reference', 'video-reference', 'sequence'),
-  },
-  {
-    parent: 'image',
-    slug: 'social-content',
-    label: 'Social / content',
-    starterPrompt: 'Create an Open Design image plugin for social posts, infographics, explainers, or content graphics.',
-    test: byAnySlug('social-media-post', 'infographic', 'explainer', 'social', 'collage'),
-  },
-  {
-    parent: 'image',
-    slug: 'avatar-portrait',
-    label: 'Avatar / portrait',
-    starterPrompt: 'Create an Open Design image plugin for avatars, portraits, identity photos, or character headshots.',
-    test: byAnySlug('profile-avatar', 'portrait', 'selfie', 'identity'),
-  },
-  {
-    parent: 'image',
-    slug: 'illustration-style',
-    label: 'Illustration / style',
-    starterPrompt: 'Create an Open Design image plugin for illustrations, anime, fantasy scenes, 3D renders, or style-transfer prompts.',
-    test: byAnySlug(
-      'illustration',
-      'anime',
-      'fantasy',
-      '3d-render',
-      'cinematic',
-      'crayon',
-      'style-transfer',
-      'nature',
-    ),
-  },
-  {
-    parent: 'video',
-    slug: 'motion-effects',
-    label: 'Motion / effects',
-    starterPrompt: 'Create an Open Design video plugin for motion graphics, VFX, title frames, animation, or logo/outro sequences.',
-    test: byAnySlug(
-      'motion-graphics',
-      'vfx',
-      'frame',
-      'kinetic-typography',
-      'logo',
-      'outro',
-      'title',
-      'transition',
-      'animation',
-    ),
-  },
-  {
-    parent: 'video',
-    slug: 'social-short-form',
-    label: 'Social / short form',
-    starterPrompt: 'Create an Open Design video plugin for short-form social clips, vertical video, TikTok-style captions, or dance trends.',
-    test: byAnySlug('short-form', 'vertical', 'tiktok', 'social-meme', 'dance', 'k-pop', 'karaoke', 'captions'),
-  },
-  {
-    parent: 'video',
-    slug: 'marketing-product',
-    label: 'Marketing / product',
-    starterPrompt: 'Create an Open Design video plugin for product promos, advertising, brand sizzle reels, or marketing cuts.',
-    test: byAnySlug('marketing', 'product', 'advertising', 'product-promo', 'saas', 'website-to-video', 'brand'),
-  },
-  {
-    parent: 'video',
-    slug: 'data-explainers',
-    label: 'Data / explainers',
-    starterPrompt: 'Create an Open Design video plugin for data explainers, animated charts, maps, diagrams, or flow walkthroughs.',
-    test: byAnySlug('data', 'chart', 'flowchart', 'diagram', 'map', 'route', 'infographic'),
-  },
-  {
-    parent: 'video',
-    slug: 'cinematic-story',
-    label: 'Cinematic / story',
-    starterPrompt: 'Create an Open Design video plugin for cinematic scenes, story sequences, anime/action shots, or fantasy clips.',
-    test: byAnySlug(
-      'cinematic',
-      'fantasy',
-      'action',
-      'anime',
-      'game-cinematic',
-      'cyberpunk',
-      'nature',
-      'cinematic-romance',
-      'combat',
     ),
   },
 ];

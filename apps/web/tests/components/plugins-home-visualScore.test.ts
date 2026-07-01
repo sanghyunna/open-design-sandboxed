@@ -1,8 +1,8 @@
 // Visual-appeal ranking contract for the plugins-home gallery.
 //
 // The home grid relies on `sortByVisualAppeal` (and the underlying
-// `pluginVisualScore`) to surface cinematic decks / image / video
-// templates above plain scenario plugins. These tests lock the
+// `pluginVisualScore`) to surface rich-preview plugins above plain
+// scenario plugins. These tests lock the
 // ordering so the first viewport keeps leading with rich previews
 // instead of regressing back to alphabetical bundled noise.
 
@@ -60,7 +60,7 @@ describe('pluginVisualScore', () => {
     expect(pluginVisualScore(lead)).toBeGreaterThan(pluginVisualScore(later));
   });
 
-  it('ranks media-rich plugins above plain scenarios', () => {
+  it('ranks rich-preview plugins above plain scenarios', () => {
     const text = fixture({ id: 'text' });
     const deckHtml = fixture({
       id: 'deck',
@@ -122,7 +122,7 @@ describe('sortByVisualAppeal', () => {
     expect(sorted[sorted.length - 1]).toBe('plain');
   });
 
-  it('puts curated home picks before generic featured media', () => {
+  it('puts curated home picks before generic featured previews', () => {
     const records = [
       fixture({
         id: 'featured-video',
@@ -145,7 +145,7 @@ describe('sortByVisualAppeal', () => {
   it('keeps numeric featured rank ahead of media bonuses', () => {
     const records = [
       fixture({
-        id: 'hyperframes',
+        id: 'motion-preview',
         od: {
           surface: 'video',
           mode: 'video',
@@ -165,7 +165,7 @@ describe('sortByVisualAppeal', () => {
       fixture({ id: 'kami', od: { mode: 'deck', featured: 0.06 } }),
     ];
     const sorted = sortByVisualAppeal(records).map((r) => r.id);
-    expect(sorted).toEqual(['guizang', 'huashu', 'kami', 'hyperframes']);
+    expect(sorted).toEqual(['guizang', 'huashu', 'kami', 'motion-preview']);
   });
 
   it('keeps the original list reference unchanged (returns a new array)', () => {

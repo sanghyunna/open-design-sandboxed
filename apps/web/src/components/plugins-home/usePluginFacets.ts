@@ -1,9 +1,8 @@
 // Faceted categorisation hook for the Plugins home section.
 //
 // Two-level starter model: the top row is the artifact kind
-// (Prototype / Slides / Image / Video / HyperFrames / Audio). Prototype,
-// Slides, Image, and Video expose scene buckets from the prompt-taxonomy
-// analysis; HyperFrames and Audio stay flat.
+// (Prototype / Slides). Both expose scene buckets from the
+// prompt-taxonomy analysis.
 //
 // A small "Saved" toggle sits orthogonally to the category row —
 // when active it overrides the category selection and just shows
@@ -73,7 +72,7 @@ export function usePluginFacets({
   // are not user-facing on the home grid; the original section already
   // filtered them out and we preserve that contract. We immediately
   // sort by visual-appeal score so the first viewport leads with the
-  // cinematic decks / image / video templates rather than alphabetical
+  // cinematic decks and rich-preview templates rather than alphabetical
   // bundled noise. Featured plugins get a +1000 score boost inside the
   // sort so curator picks stay anchored to the front of every category view.
   const visiblePlugins = useMemo(

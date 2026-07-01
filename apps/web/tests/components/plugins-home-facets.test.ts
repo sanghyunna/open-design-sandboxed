@@ -44,18 +44,6 @@ describe('extractCategories', () => {
   it('maps generation modes to artifact-kind primary tabs', () => {
     expect(extractCategories(fixture({ id: 'prototype', od: { mode: 'prototype' } }))).toEqual(['prototype']);
     expect(extractCategories(fixture({ id: 'deck', od: { mode: 'deck' } }))).toEqual(['deck']);
-    expect(extractCategories(fixture({ id: 'image', od: { mode: 'image' } }))).toEqual(['image']);
-    expect(extractCategories(fixture({ id: 'video', od: { mode: 'video' } }))).toEqual(['video']);
-    expect(extractCategories(fixture({ id: 'audio', od: { mode: 'audio' } }))).toEqual(['audio']);
-  });
-
-  it('splits HyperFrames from the broader video mode', () => {
-    expect(
-      extractCategories(fixture({ id: 'hf', tags: ['hyperframes'], od: { mode: 'video' } })),
-    ).toEqual(['hyperframes']);
-    expect(
-      extractCategories(fixture({ id: 'composition', tags: ['video-composition'], od: { mode: 'video' } })),
-    ).toEqual(['hyperframes']);
   });
 
   it('keeps non-artifact workflow and design-system plugins out of primary tabs', () => {
@@ -91,23 +79,6 @@ describe('extractSubcategories', () => {
     expect(extractSubcategories(fixture({ id: 'creative', tags: ['zhangzara'], od: { mode: 'deck' } }))).toEqual(['creative-decks']);
   });
 
-  it('maps image templates to visual-scene buckets', () => {
-    expect(extractSubcategories(fixture({ id: 'ui', tags: ['app-web-design'], od: { mode: 'image' } }))).toEqual(['ui-product-mockups']);
-    expect(extractSubcategories(fixture({ id: 'brand', tags: ['typography'], od: { mode: 'image' } }))).toEqual(['brand-visuals']);
-    expect(extractSubcategories(fixture({ id: 'storyboard', tags: ['storyboard'], od: { mode: 'image' } }))).toEqual(['storyboards-motion-refs']);
-    expect(extractSubcategories(fixture({ id: 'social', tags: ['social-media-post'], od: { mode: 'image' } }))).toEqual(['social-content']);
-    expect(extractSubcategories(fixture({ id: 'portrait', tags: ['profile-avatar'], od: { mode: 'image' } }))).toEqual(['avatar-portrait']);
-    expect(extractSubcategories(fixture({ id: 'illustration', tags: ['illustration'], od: { mode: 'image' } }))).toEqual(['illustration-style']);
-  });
-
-  it('maps non-HyperFrames video templates to scene buckets', () => {
-    expect(extractSubcategories(fixture({ id: 'motion', tags: ['motion-graphics'], od: { mode: 'video' } }))).toEqual(['motion-effects']);
-    expect(extractSubcategories(fixture({ id: 'social', tags: ['short-form'], od: { mode: 'video' } }))).toEqual(['social-short-form']);
-    expect(extractSubcategories(fixture({ id: 'marketing', tags: ['product-promo'], od: { mode: 'video' } }))).toEqual(['marketing-product']);
-    expect(extractSubcategories(fixture({ id: 'data', tags: ['flowchart'], od: { mode: 'video' } }))).toEqual(['data-explainers']);
-    expect(extractSubcategories(fixture({ id: 'cinema', tags: ['cinematic'], od: { mode: 'video' } }))).toEqual(['cinematic-story']);
-  });
-
   // Regression: the rail/catalog display order (SUBCATEGORY_DISPLAY_ORDER) must
   // NOT change which bucket an overlapping-tag plugin lands in. Bucketing is
   // decided by SUBCATEGORIES matching precedence, which stays stable even
@@ -134,11 +105,6 @@ describe('extractSubcategories', () => {
       extractSubcategories(fixture({ id: 'pitch-mkt', tags: ['pitch-deck', 'marketing'], od: { mode: 'deck' } })),
     ).toEqual(['pitch-business']);
   });
-
-  it('keeps HyperFrames and Audio flat with no second-level buckets', () => {
-    expect(extractSubcategories(fixture({ id: 'hf', tags: ['hyperframes'], od: { mode: 'video' } }))).toEqual([]);
-    expect(extractSubcategories(fixture({ id: 'audio', od: { mode: 'audio' } }))).toEqual([]);
-  });
 });
 
 describe('buildFacetCatalog', () => {
@@ -146,20 +112,12 @@ describe('buildFacetCatalog', () => {
     const catalog = buildFacetCatalog([
       fixture({ id: 'prototype', tags: ['dashboard'], od: { mode: 'prototype' } }),
       fixture({ id: 'deck', tags: ['pitch-deck'], od: { mode: 'deck' } }),
-      fixture({ id: 'image', tags: ['profile-avatar'], od: { mode: 'image' } }),
-      fixture({ id: 'video', tags: ['cinematic'], od: { mode: 'video' } }),
-      fixture({ id: 'hf', tags: ['hyperframes'], od: { mode: 'video' } }),
-      fixture({ id: 'audio', od: { mode: 'audio' } }),
       fixture({ id: 'design-system', od: { mode: 'design-system' } }),
     ]);
 
     expect(catalog.category.map((o) => [o.slug, o.count])).toEqual([
       ['prototype', 1],
       ['deck', 1],
-      ['image', 1],
-      ['video', 1],
-      ['hyperframes', 1],
-      ['audio', 1],
     ]);
     // Display order (SUBCATEGORY_DISPLAY_ORDER) — distinct from the matching
     // precedence encoded by the SUBCATEGORIES array order.
@@ -179,24 +137,7 @@ describe('buildFacetCatalog', () => {
       'reports-briefings',
       'product-sales',
     ]);
-    expect((catalog.subcategory.image ?? []).map((o) => o.slug)).toEqual([
-      'ui-product-mockups',
-      'brand-visuals',
-      'storyboards-motion-refs',
-      'social-content',
-      'avatar-portrait',
-      'illustration-style',
-    ]);
-    expect((catalog.subcategory.video ?? []).map((o) => o.slug)).toEqual([
-      'motion-effects',
-      'social-short-form',
-      'marketing-product',
-      'data-explainers',
-      'cinematic-story',
-    ]);
     expect(catalog.subcategory['live-artifact']).toBeUndefined();
-    expect(catalog.subcategory.hyperframes).toBeUndefined();
-    expect(catalog.subcategory.audio).toBeUndefined();
   });
 });
 
@@ -205,10 +146,6 @@ describe('applyFacetSelection', () => {
     fixture({ id: 'prototype-dashboard', tags: ['dashboard'], od: { mode: 'prototype' } }),
     fixture({ id: 'prototype-app', tags: ['mobile-app'], od: { mode: 'prototype' } }),
     fixture({ id: 'deck', tags: ['pitch-deck'], od: { mode: 'deck' } }),
-    fixture({ id: 'image', tags: ['profile-avatar'], od: { mode: 'image' } }),
-    fixture({ id: 'video', tags: ['cinematic'], od: { mode: 'video' } }),
-    fixture({ id: 'hf', tags: ['hyperframes'], od: { mode: 'video' } }),
-    fixture({ id: 'audio', od: { mode: 'audio' } }),
   ];
 
   it('returns everything when no category is selected', () => {
@@ -218,10 +155,6 @@ describe('applyFacetSelection', () => {
       'prototype-dashboard',
       'prototype-app',
       'deck',
-      'image',
-      'video',
-      'hf',
-      'audio',
     ]);
   });
 
@@ -230,11 +163,8 @@ describe('applyFacetSelection', () => {
       applyFacetSelection(plugins, { category: 'prototype', subcategory: null }).map((p) => p.id),
     ).toEqual(['prototype-dashboard', 'prototype-app']);
     expect(
-      applyFacetSelection(plugins, { category: 'hyperframes', subcategory: null }).map((p) => p.id),
-    ).toEqual(['hf']);
-    expect(
-      applyFacetSelection(plugins, { category: 'video', subcategory: null }).map((p) => p.id),
-    ).toEqual(['video']);
+      applyFacetSelection(plugins, { category: 'deck', subcategory: null }).map((p) => p.id),
+    ).toEqual(['deck']);
   });
 
   it('filters by the selected scene bucket inside the selected artifact kind', () => {
