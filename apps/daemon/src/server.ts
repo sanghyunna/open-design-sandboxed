@@ -294,7 +294,6 @@ import {
   FinalizeUpstreamError,
   isFinalizeProviderProtocol,
 } from './finalize-design.js';
-import { listPromptTemplates, readPromptTemplate } from './prompt-templates.js';
 import { buildDocumentPreview } from './document-preview.js';
 import { lintArtifact, renderFindingsForAgent } from './lint-artifact.js';
 import { loadCraftSections } from './craft.js';
@@ -1142,11 +1141,6 @@ const BUNDLED_PETS_DIR = resolveDaemonResourceDir(
   'community-pets',
   path.join(PROJECT_ROOT, 'assets', 'community-pets'),
 );
-const PROMPT_TEMPLATES_DIR = resolveDaemonResourceDir(
-  DAEMON_RESOURCE_ROOT,
-  'prompt-templates',
-  path.join(PROJECT_ROOT, 'prompt-templates'),
-);
 const BUNDLED_PLUGINS_DIR = resolveDaemonResourceDir(
   DAEMON_RESOURCE_ROOT,
   path.join('plugins', '_official'),
@@ -1968,9 +1962,7 @@ function resolveRunProjectKindForAnalytics({
 }) {
   if (typeof hintProjectKind === 'string') return hintProjectKind;
   if (projectMetadata?.importedFrom === 'design-system') return 'design_system';
-  // Let the contract helper apply any model-aware analytics mapping when
-  // metadata has more detail than the top-level kind.
-  return projectKindToTracking(projectMetadata?.kind, projectMetadata?.videoModel);
+  return projectKindToTracking(projectMetadata?.kind);
 }
 
 export function __forTestResolveRunProjectKindForAnalytics(args) {
@@ -4923,7 +4915,6 @@ export async function startServer({
     USER_DESIGN_TEMPLATES_DIR,
     SKILLS_DIR,
     USER_SKILLS_DIR,
-    PROMPT_TEMPLATES_DIR,
     BUNDLED_PETS_DIR,
     OD_BIN,
   };
@@ -7655,32 +7646,6 @@ export async function startServer({
     }
   });
 
-  app.get('/api/prompt-templates', async (_req, res) => {
-    try {
-      const templates = await listPromptTemplates(PROMPT_TEMPLATES_DIR);
-      res.json({
-        promptTemplates: templates.map(({ prompt: _prompt, ...rest }) => rest),
-      });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
-  app.get('/api/prompt-templates/:surface/:id', async (req, res) => {
-    try {
-      const tpl = await readPromptTemplate(
-        PROMPT_TEMPLATES_DIR,
-        req.params.surface,
-        req.params.id,
-      );
-      if (!tpl)
-        return res.status(404).json({ error: 'prompt template not found' });
-      res.json({ promptTemplate: tpl });
-    } catch (err) {
-      res.status(500).json({ error: String(err) });
-    }
-  });
-
   // Showcase HTML for a design system — palette swatches, typography
   // samples, sample components, and the full DESIGN.md rendered as prose.
   // Built at request time from the on-disk DESIGN.md so any update to the
@@ -7722,10 +7687,9 @@ export async function startServer({
   // Resolution order:
   //   1. Derived id (`<parent>:<child>`):
   //      <parentDir>/examples/<child>.html — pre-baked single-file sample.
-  //      Subfolder layouts (e.g. live-artifact's
-  //      `examples/<name>/template.html`) are intentionally not served:
-  //      they still contain `{{data.x}}` placeholders that only the
-  //      daemon-side renderer fills in, and serving the raw template
+  //      Subfolder layouts such as `examples/<name>/template.html` are
+  //      intentionally not served: they can still contain `{{data.x}}`
+  //      placeholders that only a renderer fills in, and serving the raw template
   //      would render visible placeholder braces in the gallery.
   //   2. <skillDir>/example.html — fully-baked static example (preferred)
   //   3. <skillDir>/assets/template.html  +
@@ -7737,7 +7701,7 @@ export async function startServer({
   //   4. <skillDir>/assets/template.html — raw template, no content slides
   //   5. <skillDir>/assets/index.html — generic fallback
   //   6. First .html in <skillDir>/examples/ — used as a friendly fallback
-  //      so a skill that aggregates examples (like live-artifact) still has
+  //      so a skill that aggregates examples still has
   //      a real preview on its parent card instead of returning 404.
   app.get('/api/skills/:id/example', async (req, res) => {
     try {
@@ -7812,7 +7776,7 @@ export async function startServer({
       }
 
       // Friendly fallback for skills that aggregate examples in a sibling
-      // `examples/` folder (e.g. live-artifact). The parent card would
+      // `examples/` folder. The parent card would
       // otherwise 404 even though plenty of perfectly valid samples ship
       // alongside SKILL.md; pick the first .html file alphabetically so
       // direct URL access (e.g. deep links) shows something representative.
