@@ -20,7 +20,7 @@ import {
   isRefreshEligibleConnectorToolSafety,
   type ConnectorCatalogDefinition,
 } from '../src/connectors/catalog.js';
-import type { BoundedJsonObject } from '../src/live-artifacts/schema.js';
+import type { BoundedJsonObject } from '../src/connectors/bounded-json.js';
 import { listConnectorTools } from '../src/tools/connectors.js';
 
 function externalConnector(overrides: Partial<ConnectorCatalogDefinition> = {}): ConnectorCatalogDefinition {

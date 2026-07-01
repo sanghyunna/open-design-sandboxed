@@ -4,7 +4,7 @@ import type {
   MemoryEntrySummary,
 } from '@open-design/contracts';
 
-import type { BoundedJsonObject, BoundedJsonValue } from './live-artifacts/schema.js';
+import type { BoundedJsonObject, BoundedJsonValue } from './connectors/bounded-json.js';
 import { extractWithLLM, suggestWithLLM } from './memory-llm.js';
 import { type ConnectorDetail, type ConnectorToolDetail } from './connectors/catalog.js';
 import {

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { BoundedJsonObject, BoundedJsonValue } from '../live-artifacts/schema.js';
+import type { BoundedJsonObject, BoundedJsonValue } from './bounded-json.js';
 import { defineConnectorTool, type ConnectorCatalogDefinition, type ConnectorCatalogToolDefinition } from './catalog.js';
 import { deleteComposioAuthConfigId, readComposioConfig, setComposioAuthConfigId } from './composio-config.js';
 import { COMPOSIO_CURATION_OVERLAY } from './composio-curation.js';

@@ -3,7 +3,7 @@ import net from 'node:net';
 import type { Express, Request, RequestHandler, Response } from 'express';
 
 import { checkConnectorAccess, type ToolTokenGrant } from '../tool-tokens.js';
-import { validateBoundedJsonObject } from '../live-artifacts/schema.js';
+import { validateBoundedJsonObject } from './bounded-json.js';
 import { executeConnectorTool, listConnectorTools } from '../tools/connectors.js';
 import { readComposioConfig, readPublicComposioConfig, writeComposioConfig } from './composio-config.js';
 import type { ConnectorToolUseCase } from './catalog.js';

@@ -1,4 +1,4 @@
-import type { BoundedJsonObject, BoundedJsonValue } from '../live-artifacts/schema.js';
+import type { BoundedJsonObject, BoundedJsonValue } from './bounded-json.js';
 
 export type ConnectorStatus = 'available' | 'connected' | 'error' | 'disabled';
 export type ConnectorToolSideEffect = 'read' | 'write' | 'destructive' | 'unknown';

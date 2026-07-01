@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { BoundedJsonObject, BoundedJsonValue } from '../live-artifacts/schema.js';
+import type { BoundedJsonObject, BoundedJsonValue } from './bounded-json.js';
 
 import {
   classifyConnectorToolSafety,
