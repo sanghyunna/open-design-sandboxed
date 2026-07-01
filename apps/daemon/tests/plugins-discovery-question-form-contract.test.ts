@@ -18,7 +18,7 @@ describe('bundled discovery-question-form atom prompt contract', () => {
 
     expect(stages.map((stage) => stage.id)).toEqual(['discovery', 'generate']);
     expect(stages[0]?.atoms).toContain('discovery-question-form');
-    expect(stages[1]?.atoms).toEqual(['file-write', 'live-artifact']);
+    expect(stages[1]?.atoms).toEqual(['file-write']);
   });
 
   it('teaches agents to emit the wrapped question-form renderer contract', async () => {

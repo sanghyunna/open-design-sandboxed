@@ -89,7 +89,6 @@ async function startTestApp(projectRoot: string): Promise<TestApp> {
     requireLocalDaemonRequest: () => true,
     resolvedPortRef,
     sendApiError: () => undefined,
-    sendLiveArtifactRouteError: () => undefined,
     sendMulterError: () => undefined,
   };
   const pathDeps = {
@@ -655,7 +654,6 @@ describe('xai-routes — cross-origin guard', () => {
       requireLocalDaemonRequest: () => false,
       resolvedPortRef,
       sendApiError: () => undefined,
-      sendLiveArtifactRouteError: () => undefined,
       sendMulterError: () => undefined,
     };
     const pathDeps = { PROJECT_ROOT: projectRoot } as any;

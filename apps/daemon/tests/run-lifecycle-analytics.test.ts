@@ -154,17 +154,14 @@ describe('run retry analytics helpers', () => {
       userVisibleOutputSeen: false,
       toolCallSeen: false,
       artifactWriteSeen: false,
-      liveArtifactSeen: false,
     });
 
     expect(__forTestScanRunEventsForRetrySideEffects([
       { event: 'agent', data: { type: 'text_delta', delta: 'hello' } },
       { event: 'agent', data: { type: 'tool_use', id: 't1', name: 'Read', input: {} } },
-      { event: 'agent', data: { type: 'live_artifact' } },
     ])).toMatchObject({
       userVisibleOutputSeen: true,
       toolCallSeen: true,
-      liveArtifactSeen: true,
     });
   });
 

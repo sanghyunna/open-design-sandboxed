@@ -45,7 +45,6 @@ describe('run diagnostics', () => {
       user_visible_output_seen: false,
       tool_call_seen: false,
       artifact_write_seen: false,
-      live_artifact_seen: false,
     });
   });
 
@@ -73,7 +72,6 @@ describe('run diagnostics', () => {
       user_visible_output_seen: false,
       tool_call_seen: false,
       artifact_write_seen: false,
-      live_artifact_seen: false,
     });
   });
 
@@ -98,7 +96,6 @@ describe('run diagnostics', () => {
       user_visible_output_seen: false,
       tool_call_seen: false,
       artifact_write_seen: false,
-      live_artifact_seen: false,
     });
   });
 
@@ -124,7 +121,6 @@ describe('run diagnostics', () => {
       exitCode: null,
       signal: 'SIGTERM',
       firstTokenSeen: true,
-      liveArtifactSeen: true,
     });
 
     expect(result).toMatchObject({
@@ -136,7 +132,6 @@ describe('run diagnostics', () => {
       user_visible_output_seen: true,
       tool_call_seen: true,
       artifact_write_seen: true,
-      live_artifact_seen: true,
     });
   });
 });

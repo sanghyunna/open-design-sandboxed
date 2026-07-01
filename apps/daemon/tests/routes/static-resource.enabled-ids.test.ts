@@ -78,7 +78,6 @@ describe('GET /api/agents respects enabledAgentIds', () => {
             },
             sendApiError: (res: express.Response, status: number, code: string, message: string) =>
               res.status(status).json({ error: message, code }),
-            sendLiveArtifactRouteError: () => undefined,
             sendMulterError: () => undefined,
           },
           paths: {

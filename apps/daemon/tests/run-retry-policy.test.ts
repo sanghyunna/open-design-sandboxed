@@ -162,7 +162,7 @@ describe('decideSafeRunRetry', () => {
     });
   });
 
-  it('suppresses retries after user-visible output, tools, artifact writes, or live artifacts', () => {
+  it('suppresses retries after user-visible output, tools, or artifact writes', () => {
     expect(decide({ sideEffects: { userVisibleOutputSeen: true } })).toMatchObject({
       shouldRetry: false,
       retrySuppressedReason: 'user_visible_output_seen',
@@ -174,10 +174,6 @@ describe('decideSafeRunRetry', () => {
     expect(decide({ sideEffects: { artifactWriteSeen: true } })).toMatchObject({
       shouldRetry: false,
       retrySuppressedReason: 'artifact_write_seen',
-    });
-    expect(decide({ sideEffects: { liveArtifactSeen: true } })).toMatchObject({
-      shouldRetry: false,
-      retrySuppressedReason: 'live_artifact_seen',
     });
   });
 

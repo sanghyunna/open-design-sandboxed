@@ -35,7 +35,6 @@ describe('static resource mutation routes', () => {
             },
             sendApiError: (res: express.Response, status: number, code: string, message: string) =>
               res.status(status).json({ error: message, code }),
-            sendLiveArtifactRouteError: () => undefined,
             sendMulterError: () => undefined,
           },
           paths: {
@@ -198,7 +197,6 @@ describe('design system import catalog lookup', () => {
             },
             sendApiError: (res: express.Response, status: number, code: string, message: string) =>
               res.status(status).json({ error: message, code }),
-            sendLiveArtifactRouteError: () => undefined,
             sendMulterError: () => undefined,
           },
           paths: {
