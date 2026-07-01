@@ -40,7 +40,6 @@ export interface RunDiagnosticsAnalytics {
   user_visible_output_seen: boolean;
   tool_call_seen: boolean;
   artifact_write_seen: boolean;
-  live_artifact_seen: boolean;
 }
 
 export interface StreamTailSummary {
@@ -148,7 +147,6 @@ export function summarizeRunDiagnosticsForAnalytics(args: {
   emptyOutputFailure?: boolean;
   firstTokenSeen?: boolean;
   artifactWriteSeen?: boolean;
-  liveArtifactSeen?: boolean;
 }): RunDiagnosticsAnalytics {
   const events = args.events ?? [];
   let stderr = '';
@@ -156,7 +154,6 @@ export function summarizeRunDiagnosticsForAnalytics(args: {
   let userVisibleOutputSeen = false;
   let toolCallSeen = false;
   let artifactWriteSeen = args.artifactWriteSeen === true;
-  let liveArtifactSeen = args.liveArtifactSeen === true;
   let recordedCloseReason: RunCloseReason | null = null;
   for (const event of events) {
     if (event.event === 'stderr') {
@@ -179,9 +176,6 @@ export function summarizeRunDiagnosticsForAnalytics(args: {
     }
     if (data.type === 'tool_use') toolCallSeen = true;
     if (data.type === 'artifact') artifactWriteSeen = true;
-    if (data.type === 'live_artifact' || event.event === 'live_artifact') {
-      liveArtifactSeen = true;
-    }
     if (
       event.event === 'diagnostic' &&
       data.type === 'runtime_close' &&
@@ -236,6 +230,5 @@ export function summarizeRunDiagnosticsForAnalytics(args: {
     user_visible_output_seen: userVisibleOutputSeen,
     tool_call_seen: toolCallSeen,
     artifact_write_seen: artifactWriteSeen,
-    live_artifact_seen: liveArtifactSeen,
   };
 }
