@@ -2066,7 +2066,7 @@ function OnboardingChoiceCard({
   variant,
   onClick,
 }: {
-  icon: 'orbit' | 'hammer' | 'sliders' | 'github' | 'upload' | 'sparkles';
+  icon: 'hammer' | 'sliders' | 'github' | 'upload' | 'sparkles';
   agentIconId?: string;
   title: string;
   body: string;

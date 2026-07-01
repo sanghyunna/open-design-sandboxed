@@ -1,6 +1,6 @@
-// RoutineService — multi-routine scheduler. Generalizes the single-routine
-// pattern in OrbitService: a list of user-defined routines, each with its
-// own schedule, that fires the registered run handler. Schedule kinds
+// RoutineService — multi-routine scheduler. Manages a list of user-defined
+// routines, each with its own schedule, that fires the registered run handler.
+// Schedule kinds
 // covered: hourly (every hour at minute M), daily (HH:MM in timezone),
 // weekdays (Mon-Fri at HH:MM in timezone), weekly (one weekday at HH:MM in
 // timezone). The run handler (wired by server.ts) is responsible for

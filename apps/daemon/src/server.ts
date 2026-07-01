@@ -317,8 +317,6 @@ import {
   setToken,
 } from './mcp-tokens.js';
 import { agentCliEnvForAgent, DEFAULT_ENABLED_AGENT_IDS, readAppConfig, readPluginEnvKnobs, writeAppConfig } from './app-config.js';
-import { OrbitService, formatLocalProjectTimestamp, renderOrbitTemplateSystemPrompt } from './orbit.js';
-import { extractOrbitAgentFinalExplanation } from './orbit-agent-summary.js';
 import {
   RoutineService,
   validateSchedule as validateRoutineSchedule,
@@ -1339,8 +1337,7 @@ const USER_DESIGN_TEMPLATES_DIR = path.join(RUNTIME_DATA_DIR, 'design-templates'
 // id without knowing which surface it came from. SKILL_ROOTS drives
 // Settings → Skills; DESIGN_TEMPLATE_ROOTS drives the EntryView Templates
 // gallery; ALL_SKILL_LIKE_ROOTS spans both for chat run system-prompt
-// composition and the orbit template resolver, where stored project ids
-// can resolve to either root after the split.
+// composition where stored project ids can resolve to either root after the split.
 const SKILL_ROOTS = [USER_SKILLS_DIR, SKILLS_DIR];
 const DESIGN_TEMPLATE_ROOTS = [USER_DESIGN_TEMPLATES_DIR, DESIGN_TEMPLATES_DIR];
 const ALL_SKILL_LIKE_ROOTS = [
@@ -1354,7 +1351,6 @@ for (const dir of [USER_SKILLS_DIR, USER_DESIGN_SYSTEMS_DIR, USER_DESIGN_TEMPLAT
   fs.mkdirSync(dir, { recursive: true });
 }
 fs.mkdirSync(CRITIQUE_ARTIFACTS_DIR, { recursive: true });
-const orbitService = new OrbitService(RUNTIME_DATA_DIR);
 const designSystemGenerationJobs = createDesignSystemGenerationJobStore({
   root: USER_DESIGN_SYSTEMS_DIR,
 });
@@ -3876,10 +3872,10 @@ export async function startServer({
     return listSkills(DESIGN_TEMPLATE_ROOTS);
   }
 
-  // Spans both roots so chat run system-prompt composition and the orbit
-  // template resolver can resolve a stored project.skillId regardless of
-  // which surface created the project after the skills/design-templates
-  // split. Keep in sync with SKILL_ROOTS + DESIGN_TEMPLATE_ROOTS above.
+  // Spans both roots so chat run system-prompt composition can resolve a
+  // stored project.skillId regardless of which surface created the project
+  // after the skills/design-templates split. Keep in sync with
+  // SKILL_ROOTS + DESIGN_TEMPLATE_ROOTS above.
   async function listAllSkillLikeEntries() {
     return listSkills(ALL_SKILL_LIKE_ROOTS);
   }
@@ -4289,7 +4285,6 @@ export async function startServer({
   // hits a populated cache even if /api/agents hasn't been called yet.
   void readAppConfig(RUNTIME_DATA_DIR)
     .then((config) => {
-      orbitService.configure(config.orbit);
       return detectAgents(config.agentCliEnv ?? {}, {
         enabledAgentIds: config.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
       });
@@ -5010,7 +5005,6 @@ export async function startServer({
     prepareDeployPreflight,
   };
   const appConfigDeps = { readAppConfig, writeAppConfig };
-  const orbitDeps = { orbitService };
   const nativeDialogDeps = { openNativeFolderDialog };
   const researchDeps = { searchResearch, ResearchError };
   const authDeps = {
@@ -5215,7 +5209,6 @@ export async function startServer({
     ids: idDeps,
     auth: authDeps,
     appConfig: appConfigDeps,
-    orbit: orbitDeps,
     nativeDialogs: nativeDialogDeps,
     projectStore: projectStoreDeps,
     projectFiles: projectFileDeps,
@@ -8839,35 +8832,7 @@ export async function startServer({
     }
     try {
       const config = await writeAppConfig(RUNTIME_DATA_DIR, req.body);
-      orbitService.configure(config.orbit);
       res.json({ config });
-    } catch (err) {
-      res
-        .status(500)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
-  app.get('/api/orbit/status', async (req, res) => {
-    if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    try {
-      res.json(await orbitService.status());
-    } catch (err) {
-      res
-        .status(500)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
-  app.post('/api/orbit/run', async (req, res) => {
-    if (!isLocalSameOrigin(req, resolvedPort)) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    try {
-      const locale = typeof req.body?.locale === 'string' ? req.body.locale : null;
-      res.json(await orbitService.start('manual', { locale }));
     } catch (err) {
       res
         .status(500)
@@ -12252,162 +12217,6 @@ export async function startServer({
     }
   };
 
-  orbitService.setRunHandler(async ({
-    trigger,
-    startedAt,
-    prompt,
-    systemPrompt,
-    template,
-  }) => {
-    // Each Orbit run gets its own project so the conversation, messages, and
-    // live artifact are isolated. The handler does the synchronous prep here
-    // (insert project/conversation/run rows, kick off the chat run) and
-    // returns immediately with the new project id; the daemon endpoint
-    // resolves the HTTP request with that id so the client can navigate to
-    // the new project before the agent has finished. Anything that depends
-    // on the agent's final status (live artifact discovery, lastRun summary
-    // metadata) lives inside the `completion` promise.
-    const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
-    let agentId = typeof appConfig.agentId === 'string' && appConfig.agentId
-      ? appConfig.agentId
-      : null;
-    if (!agentId) {
-      const agents = await detectAgents(appConfig.agentCliEnv ?? {}, {
-        enabledAgentIds: appConfig.enabledAgentIds ?? DEFAULT_ENABLED_AGENT_IDS,
-      }).catch(() => []);
-      agentId = agents.find((agent) => agent.available)?.id ?? null;
-    }
-    if (!agentId) throw new Error('No available agent is configured for Orbit. Choose an agent in Settings first.');
-
-    const now = Date.now();
-    const projectId = `orbit-${randomUUID()}`;
-    const conversationId = `orbit-conv-${randomUUID()}`;
-    const assistantMessageId = `orbit-assistant-${randomUUID()}`;
-    const projectName = `Orbit · ${formatLocalProjectTimestamp(startedAt)}`;
-
-    const orbitDesignSystemId = template?.designSystemRequired === false
-      ? null
-      : appConfig.designSystemId ?? null;
-
-    insertProject(db, {
-      id: projectId,
-      name: projectName,
-      skillId: 'live-artifact',
-      designSystemId: orbitDesignSystemId,
-      pendingPrompt: null,
-      metadata: { kind: 'orbit', trigger },
-      createdAt: now,
-      updatedAt: now,
-    });
-    insertConversation(db, {
-      id: conversationId,
-      projectId,
-      title: projectName,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    const run = design.runs.create({
-      projectId,
-      conversationId,
-      assistantMessageId,
-      clientRequestId: `orbit-${trigger}-${randomUUID()}`,
-      agentId,
-    });
-    upsertMessage(db, conversationId, {
-      id: `orbit-user-${run.id}`,
-      role: 'user',
-      content: prompt,
-    });
-    upsertMessage(db, conversationId, {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      agentId,
-      agentName: getAgentDef(agentId)?.name ?? agentId,
-      runId: run.id,
-      runStatus: 'queued',
-      startedAt: now,
-    });
-
-    if (template?.dir) {
-      const cwd = await ensureProject(PROJECTS_DIR, projectId);
-      const result = await stageActiveSkill(
-        cwd,
-        skillCwdAliasSegment(template.dir),
-        template.dir,
-        (msg) => console.warn(msg),
-      );
-      if (!result.staged) {
-        console.warn(
-          `[od] orbit template skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to prompt-embedded instructions`,
-        );
-      }
-    }
-
-    const modelPrefs = appConfig.agentModels?.[agentId] ?? {};
-    await prepareCheckpointedRunStart({
-      db,
-      runs: design.runs,
-      run,
-      checkpoints: checkpointService,
-    });
-    design.runs.start(run, () => startChatRun({
-      agentId,
-      projectId,
-      conversationId: run.conversationId,
-      assistantMessageId: run.assistantMessageId,
-      clientRequestId: run.clientRequestId,
-      skillId: 'live-artifact',
-      designSystemId: orbitDesignSystemId,
-      model: modelPrefs.model ?? null,
-      reasoning: modelPrefs.reasoning ?? null,
-      message: prompt,
-      systemPrompt: [
-        renderOrbitTemplateSystemPrompt(template),
-        systemPrompt,
-        'You are Orbit, an autonomous activity-summary agent inside Open Design.',
-        'You must discover connectors and connector tools yourself through the OD CLI; the daemon has not chosen tools for you.',
-        'You must create and register a Live Artifact as the final deliverable. Do not merely describe what you would do.',
-        'Do not ask follow-up questions, do not emit <question-form>, and do not wait for user input. This run is unattended; pick reasonable defaults and complete the artifact.',
-        'Keep connector credentials and OD_TOOL_TOKEN private; never print or persist secrets.',
-      ].join('\n'),
-    }, run));
-
-    const completion = (async () => {
-      const finalStatus = await design.runs.wait(run);
-      db.prepare(
-        `UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`,
-      ).run(finalStatus.status, Date.now(), assistantMessageId);
-      const status = finalStatus.status;
-      return {
-        agentRunId: run.id,
-        status,
-        summary: extractOrbitAgentFinalExplanation(run.events) ?? `Agent ${finalStatus.status}.`,
-      };
-    })();
-
-    return { projectId, agentRunId: run.id, completion };
-  });
-
-  orbitService.setTemplateResolver(async (skillId) => {
-    // Orbit templates (live-artifact, etc.) live under design-templates after
-    // the split, but earlier projects may still point at functional-skill
-    // ids for the same purpose — search both roots so a stored project id
-    // keeps resolving through one or the other.
-    const skills = await listAllSkillLikeEntries();
-    const skill = findSkillById(skills, skillId);
-    if (!skill || skill.scenario !== 'orbit') return null;
-    return {
-      id: skill.id,
-      name: skill.name,
-      examplePrompt: skill.examplePrompt,
-      dir: skill.dir,
-      body: skill.body,
-      designSystemRequired: skill.designSystemRequired !== false,
-    };
-  });
-
   function runToolBundleDeliveryTargetForProject(projectId, metadata) {
     if (typeof projectId !== 'string' || !projectId || !isSafeId(projectId)) {
       return 'none';
@@ -13682,7 +13491,6 @@ export async function startServer({
     auth: authDeps,
     deploy: deployDeps,
     appConfig: appConfigDeps,
-    orbit: orbitDeps,
     nativeDialogs: nativeDialogDeps,
     research: researchDeps,
     mcp: { pendingAuth: mcpPendingAuth, daemonUrlRef },
@@ -13744,7 +13552,6 @@ export async function startServer({
     let daemonShutdownStarted = false;
     const cleanupDaemonBackgroundWork = () => {
       composioConnectorProvider.stopCatalogRefreshLoop();
-      orbitService.stop();
       routineService?.stop();
     };
     const shutdownDaemonRuns = async () => {

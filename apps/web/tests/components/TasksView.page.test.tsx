@@ -107,7 +107,7 @@ describe('TasksView page shell', () => {
     expect(await screen.findByRole('heading', { name: 'Automations' })).toBeTruthy();
     expect(
       screen.getByText(
-        'Plan recurring conversations for project work, Orbit digests, and live artifacts.',
+        'Plan recurring conversations for project work, routines, and live artifacts.',
       ),
     ).toBeTruthy();
     expect(screen.getByTestId('automations-new')).toBeTruthy();
@@ -119,7 +119,7 @@ describe('TasksView page shell', () => {
       expect(summary.textContent ?? '').toContain('Active');
       expect(summary.textContent ?? '').toContain('1');
       expect(summary.textContent ?? '').toContain('Paused');
-      expect(summary.textContent ?? '').toContain('8');
+      expect(summary.textContent ?? '').toContain('4');
       expect(summary.textContent ?? '').toContain('Templates');
     });
   });
@@ -166,7 +166,7 @@ describe('TasksView page shell', () => {
     fireEvent.click(within(tabs).getByRole('tab', { name: /^All/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Daily connector digest/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Refresh project memory/i })).toBeTruthy();
     });
   });
 
@@ -574,16 +574,16 @@ describe('TasksView page shell', () => {
 
     const tabs = await screen.findByRole('tablist', { name: 'Template filters' });
     const allTab = within(tabs).getByRole('tab', { name: /^All/i });
-    const orbitTab = within(tabs).getByRole('tab', { name: /Orbit/i });
+    const memoryTab = within(tabs).getByRole('tab', { name: /Memory/i });
 
     expect(allTab.getAttribute('aria-selected')).toBe('true');
-    expect(orbitTab.getAttribute('aria-selected')).toBe('false');
+    expect(memoryTab.getAttribute('aria-selected')).toBe('false');
 
-    fireEvent.click(orbitTab);
+    fireEvent.click(memoryTab);
 
     await waitFor(() => {
       expect(allTab.getAttribute('aria-selected')).toBe('false');
-      expect(orbitTab.getAttribute('aria-selected')).toBe('true');
+      expect(memoryTab.getAttribute('aria-selected')).toBe('true');
     });
   });
 });

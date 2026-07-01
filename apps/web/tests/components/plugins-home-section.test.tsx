@@ -171,7 +171,6 @@ describe('PluginsHomeSection (category bar)', () => {
     expect(screen.getByTestId('plugins-home-chip-saved').textContent).toContain('Saved');
     expect(screen.getByTestId('plugins-home-pill-category-all')).toBeTruthy();
     expect(screen.getByTestId('plugins-home-pill-category-prototype')).toBeTruthy();
-    expect(screen.getByTestId('plugins-home-pill-category-live-artifact')).toBeTruthy();
     expect(screen.getByTestId('plugins-home-pill-category-deck')).toBeTruthy();
     expect(screen.getByTestId('plugins-home-pill-category-image')).toBeTruthy();
     expect(screen.getByTestId('plugins-home-pill-category-video')).toBeTruthy();
@@ -197,21 +196,6 @@ describe('PluginsHomeSection (category bar)', () => {
     fireEvent.click(screen.getByTestId('plugins-home-pill-category-hyperframes'));
     expect(pluginIds()).toEqual(['hyperframes-composition']);
     expect(screen.queryByTestId('plugins-home-row-subcategory-hyperframes')).toBeNull();
-  });
-
-  it('groups Live Artifact as its own flat Community category', () => {
-    renderSection();
-
-    fireEvent.click(screen.getByTestId('plugins-home-pill-category-live-artifact'));
-
-    expect(pluginIds()).toEqual([
-      'example-live-dashboard',
-      'image-template-notion-team-dashboard-live-artifact',
-      'example-social-media-matrix-tracker-template',
-      'example-trading-analysis-dashboard-template',
-      'example-live-artifact',
-    ]);
-    expect(screen.queryByTestId('plugins-home-row-subcategory-live-artifact')).toBeNull();
   });
 
   it('keeps sparse subcategories as real filters without adding contribution cards', () => {

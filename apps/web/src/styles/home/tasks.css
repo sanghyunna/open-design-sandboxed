@@ -750,10 +750,7 @@
   color: var(--text-muted);
 }
 
-.automation-template-card.is-orbit .automation-template-card__icon {
-  background: color-mix(in srgb, #d77757 20%, var(--bg-subtle));
-  color: color-mix(in srgb, #f2a282 82%, var(--text-strong));
-}.automation-template-card__body {
+.automation-template-card__body {
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -1407,10 +1404,7 @@
   color: var(--text-muted);
 }
 
-.automation-template-option__icon.is-orbit {
-  background: color-mix(in srgb, #d77757 18%, var(--bg-subtle));
-  color: #f2a282;
-}.automation-template-option__body,
+.automation-template-option__body,
 .automation-popover__body {
   display: flex;
   flex-direction: column;

@@ -190,16 +190,16 @@ describe('TasksView analytics', () => {
     render(<TasksView />);
     const tabs = await screen.findByRole('tablist', { name: 'Template filters' });
 
-    fireEvent.click(within(tabs).getByRole('tab', { name: /Orbit/i }));
-    expect(lastClick()).toMatchObject({ element: 'filter_tab', filter_id: 'orbit' });
+    fireEvent.click(within(tabs).getByRole('tab', { name: /Memory/i }));
+    expect(lastClick()).toMatchObject({ element: 'filter_tab', filter_id: 'memory' });
   });
 
   it('tracks a template card click with its template_kind', async () => {
     mockFetch();
     render(<TasksView />);
-    // Fallback orbit template ("Daily connector digest") is always rendered.
-    fireEvent.click(await screen.findByRole('button', { name: /Daily connector digest/i }));
+    // Memory refresh template is always rendered as a static template.
+    fireEvent.click(await screen.findByRole('button', { name: /Refresh project memory/i }));
 
-    expect(lastClick()).toMatchObject({ element: 'type_card', template_kind: 'orbit' });
+    expect(lastClick()).toMatchObject({ element: 'type_card', template_kind: 'routine' });
   });
 });

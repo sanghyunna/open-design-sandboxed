@@ -1268,7 +1268,7 @@ export interface AutomationsClickProps {
     | 'crystallize'
     | 'proposal_apply'
     | 'proposal_reject';
-  type_id?: 'orbit' | 'routines' | 'schedules';
+  type_id?: 'routines' | 'schedules';
   // filter_id mirrors the template category tabs actually rendered in the
   // Automations tab; the legacy run-status values stay for forward-compat.
   filter_id?:
@@ -1276,7 +1276,6 @@ export interface AutomationsClickProps {
     | 'scheduled'
     | 'running'
     | 'done'
-    | 'orbit'
     | 'routine'
     | 'memory'
     | 'design-system'
@@ -1286,7 +1285,7 @@ export interface AutomationsClickProps {
     | 'release'
     | 'quality';
   // Kind of the template whose card was clicked (element=type_card).
-  template_kind?: 'orbit' | 'routine';
+  template_kind?: 'routine';
 }
 
 // PLUGINS
@@ -1994,7 +1993,6 @@ export type TrackingSettingsArea =
   | 'design_review'
   | 'external_mcp'
   | 'connectors'
-  | 'orbit'
   | 'mcp_server'
   | 'language'
   | 'appearance'
@@ -3060,8 +3058,6 @@ export function settingsSectionToTracking(
       return 'external_mcp';
     case 'mcp_server':
       return 'mcp_server';
-    case 'orbit':
-      return 'orbit';
     case 'skills':
       return 'skills';
     case 'designSystems':

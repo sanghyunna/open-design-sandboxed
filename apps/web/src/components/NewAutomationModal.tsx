@@ -222,7 +222,7 @@ function buildSchedule(form: FormState): RoutineSchedule {
   return { kind: form.kind, time: form.time, timezone: form.timezone };
 }
 
-export type AutomationTemplateKind = 'routine' | 'orbit';
+export type AutomationTemplateKind = 'routine';
 
 export type AutomationTemplate = {
   id: string;
@@ -1158,7 +1158,6 @@ function clampMinute(value: number): number {
   return Math.max(0, Math.min(59, Math.round(value)));
 }
 
-function kindLabel(kind: AutomationTemplateKind): string {
-  if (kind === 'orbit') return 'Orbit';
+function kindLabel(_kind: AutomationTemplateKind): string {
   return 'Automation';
 }

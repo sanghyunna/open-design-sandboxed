@@ -16,7 +16,6 @@ export * from './api/handoff.js';
 export * from './api/bounded-json.js';
 export * from './api/mcp.js';
 export * from './api/memory.js';
-export * from './api/orbit.js';
 export * from './api/providerModels.js';
 export * from './api/projects.js';
 export * from './api/proxy.js';

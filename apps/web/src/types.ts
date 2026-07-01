@@ -36,8 +36,6 @@ import type {
   DesignSystemTokenContractRebuildJobRequest,
   DesignSystemTokenContractRebuildJobResponse,
   MediaAspect,
-  OrbitRunSummary,
-  OrbitStatusResponse,
   ProjectDeploymentsResponse,
   ProviderTestRequest,
   PersistedAgentEvent,
@@ -85,8 +83,6 @@ export type {
   CloudflarePagesDeploymentInfo,
   CloudflarePagesZonesResponse,
   ChatCommentSelectionKind,
-  OrbitRunSummary,
-  OrbitStatusResponse,
   ProjectLocation,
   PreviewCommentMember,
   PreviewAnnotationStyle,
@@ -240,14 +236,6 @@ export interface NotificationsConfig {
   desktopEnabled: boolean;
 }
 
-export interface OrbitConfig {
-  enabled: boolean;
-  /** Local 24-hour clock time in HH:mm format. */
-  time: string;
-  /** Optional skill id from the examples gallery where scenario === "orbit". */
-  templateSkillId?: string | null;
-}
-
 export interface PetConfig {
   // True once the user has explicitly picked a pet (built-in or custom).
   // Until then, the entry view shows an "adopt" callout to drive discovery.
@@ -302,9 +290,6 @@ export interface AppConfig {
   // configs that pre-date the feature land at `undefined`, which the loader
   // normalizes to a safe default (everything off).
   notifications?: NotificationsConfig;
-  // Daily connector activity digest. When enabled, the daemon runs this once
-  // per day at the configured local time; defaults to 08:00.
-  orbit?: OrbitConfig;
   // IDs of skills/design-systems the user has explicitly disabled.
   disabledSkills?: string[];
   disabledDesignSystems?: string[];

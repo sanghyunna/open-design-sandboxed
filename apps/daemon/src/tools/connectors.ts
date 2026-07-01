@@ -63,8 +63,8 @@ const AGENT_CONNECTOR_TOOL_HYDRATION_LIMIT = 1000;
 
 export async function listConnectorTools(context: ConnectorToolContext & { useCase?: ConnectorToolUseCase }): Promise<Awaited<ReturnType<ConnectorService['listConnectors']>>> {
   const service = context.service ?? connectorService;
-  // Agent-facing tool discovery sits on the hot path for unattended Orbit
-  // runs. Do not call provider discovery here: Composio toolkit discovery can
+  // Agent-facing tool discovery sits on the hot path for unattended runs.
+  // Do not call provider discovery here: Composio toolkit discovery can
   // cold-start slowly and leave the agent with no data before its shell
   // timeout. Static definitions plus locally persisted connection status are
   // enough to expose the approved read-only tool surface, and execution still

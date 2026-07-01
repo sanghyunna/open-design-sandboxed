@@ -3,7 +3,7 @@ import type { Express } from 'express';
 import type { RouteDeps } from './server-context.js';
 import { proxyDispatcherRequestInit } from './connectionTest.js';
 
-export interface RegisterMediaRoutesDeps extends RouteDeps<'http' | 'paths' | 'appConfig' | 'orbit' | 'nativeDialogs' | 'research'> {}
+export interface RegisterMediaRoutesDeps extends RouteDeps<'http' | 'paths' | 'appConfig' | 'nativeDialogs' | 'research'> {}
 
 export type LegacyMediaRouteGrantDecision =
   | { ok: true; grant: { projectId: string } | null }
@@ -51,7 +51,6 @@ export function registerMediaRoutes(app: Express, ctx: RegisterMediaRoutesDeps) 
   const { isLocalSameOrigin, resolvedPortRef } = ctx.http;
   const { PROJECT_ROOT, RUNTIME_DATA_DIR } = ctx.paths;
   const { readAppConfig, writeAppConfig } = ctx.appConfig;
-  const { orbitService } = ctx.orbit;
   const { openNativeFolderDialog } = ctx.nativeDialogs;
   const { searchResearch, ResearchError } = ctx.research;
   const getResolvedPort = () => resolvedPortRef.current;
@@ -76,7 +75,6 @@ export function registerMediaRoutes(app: Express, ctx: RegisterMediaRoutesDeps) 
     }
     try {
       const config = await writeAppConfig(RUNTIME_DATA_DIR, req.body);
-      orbitService.configure(config.orbit);
       res.json({ config });
     } catch (err: any) {
       res
@@ -130,33 +128,6 @@ export function registerMediaRoutes(app: Express, ctx: RegisterMediaRoutesDeps) 
       /** @type {import('@open-design/contracts').RecentLinkedDirsResponse} */
       const body = { dirs: existing };
       res.json(body);
-    } catch (err: any) {
-      res
-        .status(500)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
-  app.get('/api/orbit/status', async (req, res) => {
-    if (!isLocalSameOrigin(req, getResolvedPort())) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    try {
-      res.json(await orbitService.status());
-    } catch (err: any) {
-      res
-        .status(500)
-        .json({ error: String(err && err.message ? err.message : err) });
-    }
-  });
-
-  app.post('/api/orbit/run', async (req, res) => {
-    if (!isLocalSameOrigin(req, getResolvedPort())) {
-      return res.status(403).json({ error: 'cross-origin request rejected' });
-    }
-    try {
-      const locale = typeof req.body?.locale === 'string' ? req.body.locale : null;
-      res.json(await orbitService.start('manual', { locale }));
     } catch (err: any) {
       res
         .status(500)

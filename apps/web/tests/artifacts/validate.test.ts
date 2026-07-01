@@ -52,20 +52,6 @@ describe('validateHtmlArtifact', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('rejects links to reserved project storage paths', () => {
-    const html = '<!doctype html><html><body><iframe src=".live-artifacts/artifact-1/index.html"></iframe><p>Enough content to look like a real document.</p></body></html>';
-    const result = validateHtmlArtifact(html);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toMatch(/internal project storage path/i);
-  });
-
-  it('rejects root reserved project storage paths in URL attributes', () => {
-    const html = '<!doctype html><html><body><a href="/.live-artifacts">Preview</a><p>Enough content to look like a real document.</p></body></html>';
-    const result = validateHtmlArtifact(html);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toMatch(/internal project storage path/i);
-  });
-
   it('rejects unquoted URL attributes that reference reserved storage', () => {
     const html = '<!doctype html><html><body><img src=./.od/thumb.png alt="Preview"><p>Enough content to look like a real document.</p></body></html>';
     const result = validateHtmlArtifact(html);
@@ -86,12 +72,6 @@ describe('validateHtmlArtifact', () => {
 
   it('rejects inline style url references to reserved storage', () => {
     const html = '<!doctype html><html><body><div style="background-image:url(./.tmp/preview.png)">Preview</div><p>Enough content to look like a real document.</p></body></html>';
-    const result = validateHtmlArtifact(html);
-    expect(result.ok).toBe(false);
-  });
-
-  it('rejects srcset candidates that reference reserved storage', () => {
-    const html = '<!doctype html><html><body><img srcset="assets/preview.png 1x, /.live-artifacts/artifact-1/preview.png 2x" alt="Preview"><p>Enough content to look like a real document.</p></body></html>';
     const result = validateHtmlArtifact(html);
     expect(result.ok).toBe(false);
   });

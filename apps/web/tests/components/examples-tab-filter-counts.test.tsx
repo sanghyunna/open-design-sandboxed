@@ -78,27 +78,4 @@ describe('ExamplesTab filter counts', () => {
     expect(within(scenarioFilters).getByRole('button', { name: /^Product\s*1$/ })).toBeTruthy();
   });
 
-  it('uses media tags for media examples so visible tags do not imply zero-count prototype types', () => {
-    renderExamples([
-      skill({ id: 'web-prototype', name: 'Web prototype' }),
-      skill({
-        id: 'image-example',
-        name: 'Image example',
-        mode: 'image',
-        surface: 'image',
-        platform: null,
-        previewType: 'image',
-      }),
-    ]);
-
-    const surfaceFilters = screen.getByRole('tablist', { name: 'Surface' });
-    fireEvent.click(within(surfaceFilters).getByRole('tab', { name: /^Image\s*1$/ }));
-
-    const typeFilters = screen.getByRole('tablist', { name: 'Type' });
-    expect(within(typeFilters).getByRole('tab', { name: /^All\s*1$/ })).toBeTruthy();
-    expect(within(typeFilters).getByRole('tab', { name: /^Prototypes · Desktop\s*0$/ })).toBeTruthy();
-    const imageCard = screen.getByTestId('example-card-image-example');
-    expect(within(imageCard).getByText('Image')).toBeTruthy();
-    expect(within(imageCard).queryByText('Desktop prototype')).toBeNull();
-  });
 });

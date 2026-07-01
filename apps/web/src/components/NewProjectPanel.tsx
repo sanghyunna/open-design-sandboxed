@@ -276,32 +276,7 @@ export function NewProjectPanel({
     tab === 'deck' ||
     tab === 'template' ||
     tab === 'other';
-  // Orbit briefings ship their own complete visual language baked into
-  // example.html and explicitly opt out of DESIGN.md injection via
-  // `od.design_system.requires: false`. Hide the picker only for those
-  // Orbit scenario skills; the general prototype creation surface should
-  // still honor the user's configured default design system even when a
-  // non-Orbit default skill does not require one.
-  const tabDefaultSkillForcesNoDs = useMemo(() => {
-    const tabSkillId = ((): string | null => {
-      if (tab === 'prototype') {
-        const list = skills.filter((s) => s.mode === 'prototype');
-        return list.find((s) => s.defaultFor.includes('prototype'))?.id
-          ?? list[0]?.id ?? null;
-      }
-      if (tab === 'deck') {
-        const list = skills.filter((s) => s.mode === 'deck');
-        return list.find((s) => s.defaultFor.includes('deck'))?.id
-          ?? list[0]?.id ?? null;
-      }
-      return null;
-    })();
-    if (!tabSkillId) return false;
-    const s = skills.find((x) => x.id === tabSkillId);
-    return s
-      ? s.scenario === 'orbit' && s.designSystemRequired === false
-      : false;
-  }, [tab, skills]);
+  const tabDefaultSkillForcesNoDs = false;
   const showDesignSystemPicker =
     tabSupportsDesignSystem && !tabDefaultSkillForcesNoDs;
 

@@ -1,4 +1,4 @@
-// Automations tab: one surface for scheduled routines and Orbit-style digests.
+// Automations tab: one surface for scheduled routines and live artifact templates.
 // The daemon still stores these as routines;
 // the UI presents them as scheduled agent conversations.
 
@@ -80,17 +80,6 @@ function buildStaticTemplates(t: TranslateFn): ReadonlyArray<AutomationTemplate>
         'Inspect recent generated artifacts, review feedback, and accepted revisions. Identify patterns that should become design-system tokens, component rules, examples, or anti-patterns. Draft precise updates to DESIGN.md and call out anything that needs human approval.',
     },
     {
-      id: 'orbit-dashboard',
-      category: 'orbit',
-      kind: 'routine',
-      icon: 'orbit',
-      title: t('automations.tpl.orbitDashboard.title'),
-      description: t('automations.tpl.orbitDashboard.desc'),
-      defaultName: 'Connector activity dashboard',
-      prompt:
-        'Use the selected connectors to build or refresh a live dashboard of recent activity. Group by people, projects, decisions, risks, and follow-ups. Prefer connected read-only tools, cite sources, and keep the dashboard refreshable.',
-    },
-    {
       id: 'release-notes',
       category: 'release',
       kind: 'routine',
@@ -115,24 +104,9 @@ function buildStaticTemplates(t: TranslateFn): ReadonlyArray<AutomationTemplate>
   ];
 }
 
-function fallbackOrbitTemplate(t: TranslateFn): AutomationTemplate {
-  return {
-    id: 'orbit-daily',
-    category: 'orbit',
-    kind: 'orbit',
-    icon: 'orbit',
-    title: t('automations.tpl.orbitDaily.title'),
-    description: t('automations.tpl.orbitDaily.desc'),
-    defaultName: 'Daily connector digest',
-    prompt:
-      'Survey every connected integration and produce a daily digest of what changed in the last 24 hours. Group the result by people, projects, decisions, and follow-ups. Save the output as a live artifact named `daily_digest.md` and update it in place on each run.',
-  };
-}
-
 function templateFilters(t: TranslateFn): ReadonlyArray<{ id: TemplateFilter; label: string }> {
   return [
     { id: 'all', label: t('automations.filterAll') },
-    { id: 'orbit', label: t('automations.filterOrbit') },
     { id: 'memory', label: t('automations.filterMemory') },
     { id: 'design-system', label: t('automations.filterDesignSystems') },
     { id: 'skills', label: t('automations.filterSkills') },
@@ -184,20 +158,6 @@ function statusLabel(status: RoutineRun['status'], t: TranslateFn): string {
 
 function StatusPill({ status, t }: { status: RoutineRun['status']; t: TranslateFn }) {
   return <span className={`automation-status is-${status}`}>{statusLabel(status, t)}</span>;
-}
-
-function templateFromSkill(skill: SkillSummary, kind: AutomationTemplateKind): AutomationTemplate {
-  return {
-    id: `skill-${skill.id}`,
-    category: 'orbit',
-    kind,
-    icon: 'orbit',
-    title: skill.name,
-    description: skill.description || skill.id,
-    defaultName: skill.name,
-    prompt: skill.examplePrompt || skill.description || `Run ${skill.name}.`,
-    skillId: skill.id,
-  };
 }
 
 function automationTemplateCategory(template: ContractAutomationTemplate): string {
@@ -276,36 +236,26 @@ function dedupeTemplates(templates: AutomationTemplate[]): AutomationTemplate[] 
 }
 
 function buildAutomationTemplates(
-  designTemplates: SkillSummary[],
+  _designTemplates: SkillSummary[],
   automationCatalog: ContractAutomationTemplate[],
   t: TranslateFn,
 ): AutomationTemplate[] {
-  const orbit = designTemplates
-    .filter((skill) => skill.scenario === 'orbit')
-    .map((skill) => templateFromSkill(skill, 'orbit'));
-
   return dedupeTemplates([
     ...automationCatalog.map(templateFromAutomationCatalog),
-    ...(orbit.length > 0 ? orbit : [fallbackOrbitTemplate(t)]),
     ...buildStaticTemplates(t),
   ]);
 }
 
 function filterTemplates(templates: AutomationTemplate[], filter: TemplateFilter) {
   if (filter === 'all') return templates;
-  if (filter === 'orbit') {
-    return templates.filter((template) => template.kind === filter);
-  }
   return templates.filter((template) => template.category === filter);
 }
 
-function kindLabel(kind: AutomationTemplateKind, t: TranslateFn): string {
-  if (kind === 'orbit') return t('automations.kindOrbit');
+function kindLabel(_kind: AutomationTemplateKind, t: TranslateFn): string {
   return t('automations.kindAutomation');
 }
 
-function kindIcon(kind: AutomationTemplateKind): IconName {
-  if (kind === 'orbit') return 'orbit';
+function kindIcon(_kind: AutomationTemplateKind): IconName {
   return 'history';
 }
 

@@ -950,7 +950,7 @@ export function isAllowedChildWindowUrl(url: string): boolean {
     // `<a target="_blank" href="/api/...">` resolves to `od://app/...`
     // in packaged builds, falls through `setWindowOpenHandler` to
     // `{ action: "deny" }`, and the click is silently dropped — that
-    // was the Orbit "Open artifact" no-op reported in #911. Allowing
+    // was the "Open artifact" no-op reported in #911. Allowing
     // `od:` here lets Electron open the link in a child BrowserWindow
     // that inherits the same protocol registration + preload, so the
     // live artifact preview renders normally. Dev mode is unaffected:

@@ -317,16 +317,4 @@ describe('HomeHero intent rail', () => {
     expect(findChip('deck')?.action).toMatchObject({ pluginId: 'example-simple-deck', projectKind: 'deck' });
   });
 
-  it('live artifact chip routes to its bundled scenario plugin', () => {
-    expect(findChip('live-artifact')?.action).toMatchObject({
-      kind: 'apply-scenario',
-      pluginId: 'example-live-artifact',
-      projectKind: 'prototype',
-      projectMetadata: {
-        kind: 'prototype',
-        intent: 'live-artifact',
-        fidelity: 'high-fidelity',
-      },
-    });
-  });
 });

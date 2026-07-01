@@ -4,7 +4,6 @@ import type {
   ApiProtocol,
   AppConfig,
   NotificationsConfig,
-  OrbitConfig,
   PetConfig,
 } from '../types';
 import { resolveFixedOriginBaseUrl } from './apiProtocols';
@@ -45,16 +44,6 @@ export const DEFAULT_PET: PetConfig = {
   },
 };
 
-export const DEFAULT_ORBIT: OrbitConfig = {
-  enabled: false,
-  time: '08:00',
-  // Ship with the general-purpose Orbit briefing skill pre-selected so a
-  // fresh install runs against a real adaptive template instead of the
-  // bare built-in prompt. Users can clear it from Settings → Orbit to fall
-  // back to the built-in prompt or pick another scenario === 'orbit' skill.
-  templateSkillId: 'orbit-general',
-};
-
 export const DEFAULT_CONFIG: AppConfig = {
   mode: 'daemon',
   apiKey: '',
@@ -79,7 +68,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   agentCliEnv: {},
   pet: DEFAULT_PET,
   notifications: DEFAULT_NOTIFICATIONS,
-  orbit: DEFAULT_ORBIT,
   projectLocations: [],
   defaultProjectLocationId: 'default',
   enabledAgentIds: ['codex', 'cursor-agent'],
@@ -332,21 +320,6 @@ function normalizeNotifications(
   return { ...DEFAULT_NOTIFICATIONS, ...(input ?? {}) };
 }
 
-function normalizeOrbit(input: Partial<OrbitConfig> | undefined): OrbitConfig {
-  const time = typeof input?.time === 'string' && isValidOrbitTime(input.time)
-    ? input.time
-    : DEFAULT_ORBIT.time;
-  return { ...DEFAULT_ORBIT, ...(input ?? {}), time };
-}
-
-function isValidOrbitTime(time: string): boolean {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!match) return false;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
-}
-
 function inferApiProtocol(model: string, baseUrl: string): ApiProtocol {
   try {
     const normalized = (baseUrl || '').toLowerCase();
@@ -379,7 +352,6 @@ export function loadConfig(): AppConfig {
         ...DEFAULT_CONFIG,
         pet: normalizePet(DEFAULT_PET),
         notifications: normalizeNotifications(DEFAULT_NOTIFICATIONS),
-        orbit: normalizeOrbit(DEFAULT_ORBIT),
       };
     }
     const parsed = JSON.parse(raw) as Partial<AppConfig>;
@@ -404,7 +376,6 @@ export function loadConfig(): AppConfig {
       accentColor: normalizeAccentColor(parsed.accentColor) ?? DEFAULT_CONFIG.accentColor,
       pet: normalizePet(parsed.pet),
       notifications: normalizeNotifications(parsed.notifications),
-      orbit: normalizeOrbit(parsed.orbit),
     };
 
     if (parsed.configMigrationVersion !== CONFIG_MIGRATION_VERSION) {
@@ -449,7 +420,6 @@ export function loadConfig(): AppConfig {
       ...DEFAULT_CONFIG,
       pet: normalizePet(DEFAULT_PET),
       notifications: normalizeNotifications(DEFAULT_NOTIFICATIONS),
-      orbit: normalizeOrbit(DEFAULT_ORBIT),
     };
   }
 }
@@ -558,9 +528,6 @@ export function mergeDaemonConfig(
   if (daemonConfig.disabledDesignSystems !== undefined) {
     next.disabledDesignSystems = daemonConfig.disabledDesignSystems;
   }
-  if (daemonConfig.orbit !== undefined) {
-    next.orbit = normalizeOrbit(daemonConfig.orbit);
-  }
   if (daemonConfig.installationId !== undefined) {
     next.installationId = daemonConfig.installationId;
   }
@@ -617,7 +584,6 @@ export async function syncConfigToDaemon(
     designSystemId: config.designSystemId,
     disabledSkills: config.disabledSkills,
     disabledDesignSystems: config.disabledDesignSystems,
-    orbit: normalizeOrbit(config.orbit),
     installationId: config.installationId,
     telemetry: config.telemetry,
     privacyDecisionAt: config.privacyDecisionAt,

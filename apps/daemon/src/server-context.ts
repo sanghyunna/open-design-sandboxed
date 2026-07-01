@@ -41,9 +41,9 @@ export interface ResourceDeps {
   // surface only sees rendering-catalogue entries.
   listAllDesignTemplates: () => Promise<Array<SkillInfo & { source?: string }>>;
   // Spans both functional skills and design templates so cross-surface
-  // resolvers (chat run system prompt, orbit template resolver,
-  // /api/skills/:id/example, /api/skills/:id/assets/*) keep working when
-  // a stored project.skillId points at either root.
+  // resolvers (chat run system prompt, /api/skills/:id/example,
+  // /api/skills/:id/assets/*) keep working when a stored project.skillId
+  // points at either root.
   listAllSkillLikeEntries: () => Promise<Array<SkillInfo & { source?: string }>>;
   mimeFor: (filePath: string) => string;
 }
@@ -99,7 +99,6 @@ export interface ServerContext {
   deploy: any;
   media: any;
   appConfig: any;
-  orbit: any;
   nativeDialogs: any;
   research: any;
   mcp: any;

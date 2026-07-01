@@ -21,7 +21,6 @@ import { Icon } from './Icon';
 export type EntrySettingsSection =
   | 'execution'
   | 'composio'
-  | 'orbit'
   | 'integrations'
   | 'mcpClient'
   | 'language'

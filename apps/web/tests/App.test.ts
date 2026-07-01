@@ -122,17 +122,17 @@ describe('resolveSettingsCloseConfig', () => {
         {
           ...baseConfig,
           onboardingCompleted: false,
-          orbit: { enabled: false, time: '09:00', templateSkillId: 'stale-template' },
+          accentColor: '#aaaaaa',
         },
         {
           ...baseConfig,
           onboardingCompleted: false,
-          orbit: { enabled: true, time: '11:30', templateSkillId: 'fresh-template' },
+          accentColor: '#bbbbbb',
         },
       ),
     ).toMatchObject({
       onboardingCompleted: true,
-      orbit: { enabled: true, time: '11:30', templateSkillId: 'fresh-template' },
+      accentColor: '#bbbbbb',
     });
   });
 });

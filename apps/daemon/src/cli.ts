@@ -6472,7 +6472,7 @@ async function runVersion(args) {
 // pipeline to surface plugin-system regressions.
 //
 // `od config get/set/list/unset` — wraps GET/PUT /api/app-config so a
-// code agent can flip provider keys / orbit settings / pet config
+// code agent can flip provider keys / agent settings / pet config
 // without leaving the terminal. JSON values pass through unchanged;
 // scalar strings/numbers/booleans are coerced.
 // ---------------------------------------------------------------------------
