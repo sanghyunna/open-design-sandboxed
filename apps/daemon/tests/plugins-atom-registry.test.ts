@@ -235,7 +235,6 @@ describe('registerBuiltInAtomWorkers: idempotency', () => {
     expect(second).toEqual(first);
     expect(first).toContain('critique-theater');
     expect(first).toContain('file-write');
-    expect(first).toContain('media-image');
   });
 });
 

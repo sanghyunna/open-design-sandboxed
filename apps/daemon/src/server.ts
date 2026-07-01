@@ -1,4 +1,18 @@
 // @ts-nocheck
+
+// Generic local project-name timestamp formatter. Previously exported by the
+// removed orbit.ts, but still used by the routines/automations project-naming
+// path, so it is re-homed here after the Orbit feature removal.
+function formatLocalProjectTimestamp(iso: string): string {
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
 import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@open-design/sidecar-proto';
 import express from 'express';
 import multer from 'multer';
