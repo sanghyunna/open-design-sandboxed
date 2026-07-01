@@ -11,6 +11,7 @@ const tasteEditorialExamplePath = fileURLToPath(
 const simpleDeckExamplePath = fileURLToPath(
   new URL('../../../../design-templates/simple-deck/example.html', import.meta.url),
 );
+const kamiDeckTemplatePath = fileURLToPath(new URL('../../../../templates/kami-deck.html', import.meta.url));
 
 function setupTasteEditorialDeck() {
   const html = readFileSync(tasteEditorialExamplePath, 'utf8');
@@ -181,6 +182,30 @@ describe('deck framework skeleton navigation', () => {
       pretendToBeVisual: true,
       runScripts: 'dangerously',
       url: 'https://example.test/deck-framework.html',
+      virtualConsole: new VirtualConsole(),
+    });
+    const { window: win } = dom;
+
+    win.document.body.dispatchEvent(new win.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowRight',
+    }));
+
+    const slides = Array.from(win.document.querySelectorAll('.slide'));
+    const activeIndex = slides.findIndex((slide) => slide.classList.contains('active'));
+    expect(activeIndex).toBe(1);
+    expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
+  });
+});
+
+describe('kami deck template navigation', () => {
+  it('advances one slide for one ArrowRight keydown', () => {
+    const html = readFileSync(kamiDeckTemplatePath, 'utf8');
+    const dom = new JSDOM(html, {
+      pretendToBeVisual: true,
+      runScripts: 'dangerously',
+      url: 'https://example.test/kami-deck.html',
       virtualConsole: new VirtualConsole(),
     });
     const { window: win } = dom;
