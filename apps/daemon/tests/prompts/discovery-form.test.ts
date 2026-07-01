@@ -32,10 +32,9 @@ describe('discovery.ts task-type form (single-shot brief)', () => {
     expect(DISCOVERY_AND_PHILOSOPHY).toContain('"value": "reference_match"');
   });
 
-  it('keeps the four canonical task-type options', () => {
+  it('keeps the canonical task-type options', () => {
     const options = [
       'Prototype',
-      'Live artifact',
       'Slide deck',
       'Other',
     ];

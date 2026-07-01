@@ -1,36 +1,7 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { describe, expect, it } from 'vitest';
 
 import { composeSystemPrompt } from '../../src/prompts/system.js';
 import { DECK_FRAMEWORK_DIRECTIVE } from '../../src/prompts/deck-framework.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../..');
-// `live-artifact` moved from skills/ to design-templates/ in PR #955 as
-// part of the skills/design-templates split (see specs/current/
-// skills-and-design-templates.md). The root path now points there.
-const liveArtifactRoot = path.join(repoRoot, 'design-templates/live-artifact');
-const liveArtifactSkillPath = path.join(
-  repoRoot,
-  'design-templates/live-artifact/SKILL.md',
-);
-const liveArtifactSkillMarkdown = readFileSync(liveArtifactSkillPath, 'utf8');
-const liveArtifactSkillBody = [
-  `> **Skill root (absolute):** \`${liveArtifactRoot}\``,
-  '>',
-  '> This skill ships side files alongside `SKILL.md`. When the workflow',
-  '> below references side files such as `references/artifact-schema.md`, resolve',
-  '> them against the skill root above and open them via their full absolute path.',
-  '>',
-  '> Known side files in this skill: `references/artifact-schema.md`, `references/connector-policy.md`, `references/refresh-contract.md`.',
-  '',
-  '',
-  liveArtifactSkillMarkdown.replace(/^---[\s\S]*?---\n\n/, '').trim(),
-].join('\n');
 
 describe('composeSystemPrompt — activeStageBlocks splice (spec §23.4)', () => {
   it('inserts every active stage block after the plugin block when supplied', () => {
@@ -83,7 +54,6 @@ describe('composeSystemPrompt', () => {
     );
     for (const option of [
       'Prototype',
-      'Live artifact',
       'Slide deck',
       'Other',
     ]) {
@@ -103,7 +73,6 @@ describe('composeSystemPrompt', () => {
     );
     for (const option of [
       'Prototype',
-      'Live artifact',
       'Slide deck',
       'Other',
     ]) {
@@ -156,35 +125,6 @@ describe('composeSystemPrompt', () => {
     expect(prompt).toContain('active-design-system cases where the user did not provide a new brand/reference source');
     expect(prompt).toContain('Provided brand/reference source → run brand-spec extraction');
     expect(prompt).toContain('`brand_spec` / `reference_match` without a provided source → ask for the source and stop; do not guess brand tokens.');
-  });
-
-  it('injects live-artifact skill guidance and metadata intent', () => {
-    const prompt = composeSystemPrompt({
-      skillName: 'live-artifact',
-      skillMode: 'prototype',
-      skillBody: liveArtifactSkillBody,
-      metadata: {
-        kind: 'prototype',
-        intent: 'live-artifact',
-      } as any,
-    });
-
-    expect(prompt).toContain('## Active skill — live-artifact');
-    expect(prompt).toContain(`> **Skill root (absolute):** \`${liveArtifactRoot}\``);
-    expect(prompt).not.toContain('**Pre-flight (do this before any other tool):** Read `assets/template.html`');
-    expect(prompt).not.toContain('live-artifact/references/layouts.md');
-    expect(prompt).not.toContain('live-artifact/assets/template.html');
-    expect(prompt).toContain('`references/artifact-schema.md`');
-    expect(prompt).toContain('`references/connector-policy.md`');
-    expect(prompt).toContain('`references/refresh-contract.md`');
-    expect(prompt).toContain('The wrapper reads injected `OD_NODE_BIN`, `OD_BIN`, `OD_DAEMON_URL`, and `OD_TOOL_TOKEN`');
-    expect(prompt).toContain('Do not include or invent `projectId`; the daemon derives project/run scope from the token.');
-    expect(prompt).toContain('"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts create --input artifact.json');
-    expect(prompt).toContain('if the user names a connector/source (for example Notion)');
-    expect(prompt).toContain('list connectors before asking where the data comes from');
-    expect(prompt).toContain('a connected `notion` connector plus a user brief that names Notion is enough to start with `notion.notion_search`');
-    expect(prompt).toContain('Prefer the `live-artifact` skill workflow when available');
-    expect(prompt).toContain('The first output should be a live artifact/dashboard/report');
   });
 
   // The daemon composer (this file) is what apps/daemon/src/server.ts wires

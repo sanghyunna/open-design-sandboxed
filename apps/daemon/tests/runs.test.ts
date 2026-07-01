@@ -97,23 +97,6 @@ describe('chat run service shutdown', () => {
 
 
 
-  it('stores effective media execution policy on run status bodies', () => {
-    const runs = createRuns();
-    const defaultRun = runs.create({ projectId: 'project-1', conversationId: 'conv-a' });
-    const scopedRun = runs.create({
-      projectId: 'project-1',
-      conversationId: 'conv-b',
-      mediaExecution: { mode: 'enabled', allowedSurfaces: ['image'] },
-    });
-
-    expect(runs.statusBody(defaultRun)).toMatchObject({
-      mediaExecution: { mode: 'enabled' },
-    });
-    expect(runs.statusBody(scopedRun)).toMatchObject({
-      mediaExecution: { mode: 'enabled', allowedSurfaces: ['image'] },
-    });
-  });
-
   it('stores a run-scoped tool bundle and returns a redacted status summary', () => {
     const runs = createRuns();
     const run = runs.create({

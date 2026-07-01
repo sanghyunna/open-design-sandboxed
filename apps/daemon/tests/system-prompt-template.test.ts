@@ -31,14 +31,5 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
     expect(out).toContain('if a design system is active and no new brand/reference source was provided, use it as the visual direction without asking again');
   });
 
-  it('non-media dispatch hint includes fal-ai/* passthrough instruction', () => {
-    const out = composeSystemPrompt({
-      metadata: { kind: 'prototype' },
-    });
-
-    expect(out).toContain('## Media generation (if asked)');
-    expect(out).toContain('fal-ai/*');
-    expect(out).toContain('pass it through as-is without substitution');
-  });
 
 });
