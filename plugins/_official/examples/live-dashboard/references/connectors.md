@@ -1,6 +1,6 @@
 # Connectors
 
-`live-dashboard` is a **Live Artifact**. The values it shows are not
+`live-dashboard` is a connector-backed dashboard template. The values it shows are not
 hard-coded — they are polled from a connector at runtime. The OD daemon
 (0.4.0+) ships a Composio connector catalog and a `connectors.json`
 contract that artifacts emit alongside `index.html`.
@@ -9,33 +9,7 @@ When `inputs.connector === mock` (or the daemon cannot resolve the
 configured connector), the artifact falls back to seeded sample data.
 This keeps screenshots, the picker preview, and offline use working.
 
-> **Status — relationship to `skills/live-artifact/`.**
->
-> The canonical, currently-shipping live-artifact contract lives in
-> [`skills/live-artifact/SKILL.md`](../../live-artifact/SKILL.md): it is
-> *file-shaped* (`artifact.json` + `template.html` + `data.json` +
-> `provenance.json`) and *CLI-shaped* on the agent side (the agent calls
-> `"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts {create,update}` and
-> `tools connectors {list,execute}` rather than HTTP). The renderer is
-> scalar-only `html_template_v1` (`apps/daemon/src/live-artifacts/render.ts`).
->
-> `live-dashboard` is a **complementary** browser-runtime variant: the
-> artifact is rendered as a single self-contained HTML page, and the
-> live behaviors (refresh-on-open, manual Refresh, auto-refresh, stale
-> pill) run in-page rather than at template-render time. Polling
-> therefore needs an HTTP shape, which is what the rest of this file
-> describes (`POST /api/od/connectors/poll`).
->
-> Treat the HTTP shape below as a **forward-looking proposal** that
-> sits alongside the file/CLI contract: the daemon does not yet expose
-> `POST /api/od/connectors/poll` (`apps/daemon/src/server.ts` /
-> `apps/daemon/src/live-artifacts/`), so out-of-the-box the artifact
-> renders against the seeded sample data and the Refresh button only
-> tweens the fixture. When the daemon-team route lands, only
-> `seedNextChange()` in the template needs to be replaced with the
-> `poll()` helper documented here — the `connectors.json` shape is
-> already a usable declarative source-of-truth that downstream tooling
-> (the live-artifact CLI, MCP wrappers, audit logs) can read today.
+The retired live-artifacts CLI/runtime is not part of this contract. Emit a self-contained `index.html` plus `connectors.json`; keep connector credentials behind the daemon.
 
 ---
 
