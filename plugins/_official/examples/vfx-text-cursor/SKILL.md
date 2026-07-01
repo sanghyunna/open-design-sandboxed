@@ -17,8 +17,8 @@ example_name: "VFX 光标 · 开场金句"
 example_format: markdown
 example_tagline: "逐字揭示 + chromatic 拖光"
 example_desc: "光标打字 hot pink + cyan 像散, 视频开场用"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · vfx-text-cursor"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · vfx-text-cursor"
 od:
   mode: video
   surface: video
@@ -37,7 +37,7 @@ od:
 ---
 
 【模板: VFX 文字光标 (Text Cursor)】
-【意图】视频开场/Hero 帧 —— 光标在画布上"打字", 文字逐字浮现, 后面拖着彩色像散尾迹 + 定向光斑。Inspired by hyperframes vfx-text-cursor。
+【意图】视频开场/Hero 帧 —— 光标在画布上"打字", 文字逐字浮现, 后面拖着彩色像散尾迹 + 定向光斑。Inspired by html-frames vfx-text-cursor。
 
 【画布】1920×1080, 背景 `#06070a` 暗哑黑 或 `#0a0d12` (有暖偏蓝); 加微妙 vignette。
 

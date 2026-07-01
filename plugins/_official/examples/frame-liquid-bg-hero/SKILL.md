@@ -16,8 +16,8 @@ example_name: "流体背景 Hero · 金句"
 example_format: markdown
 example_tagline: "Aurora Violet 流体"
 example_desc: "多层 radial-gradient 呼吸背景 + difference 文字"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · vfx-liquid-background"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · vfx-liquid-background"
 od:
   mode: video
   surface: video
@@ -35,7 +35,7 @@ od:
 ---
 
 【模板: 流体背景 Hero】
-【意图】可作为视频片头帧、SaaS landing 顶部 hero、海报底图。WebGL 流体感, 但用 CSS / canvas 退化绘制, 确保单文件可双击打开。Inspired by hyperframes vfx-liquid-background。
+【意图】可作为视频片头帧、SaaS landing 顶部 hero、海报底图。WebGL 流体感, 但用 CSS / canvas 退化绘制, 确保单文件可双击打开。Inspired by html-frames vfx-liquid-background。
 
 【画布】1920×1080 (横) 或 1080×1920 (竖), 二选一。背景占满。
 

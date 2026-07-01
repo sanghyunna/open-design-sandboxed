@@ -16,8 +16,8 @@ example_name: "X 帖子卡 · AlchainHust 金句"
 example_format: markdown
 example_tagline: "X dark mode + 互动数据"
 example_desc: "一条金句推文 + 12.3K likes / 1.2K reposts + 蓝勾"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · x-post"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · x-post"
 od:
   mode: prototype
   surface: web
@@ -36,7 +36,7 @@ od:
 ---
 
 【模板: X (Twitter) 帖子卡】
-【意图】把一段推文内容 (或用户的金句) 渲染成一张拟真度极高的 X 帖子卡片, 用于视频叠加、推特发图、知识沉淀。Inspired by hyperframes x-post。
+【意图】把一段推文内容 (或用户的金句) 渲染成一张拟真度极高的 X 帖子卡片, 用于视频叠加、推特发图、知识沉淀。Inspired by html-frames x-post。
 
 【画布】1280×720 或 1080×1080, 暗背景 `#0f1419` 或亮背景 `#ffffff` (按 X 主题); 卡片居中, 阴影柔和。
 

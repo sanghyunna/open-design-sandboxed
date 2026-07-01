@@ -16,8 +16,8 @@ example_name: "Spotify Now Playing · Lo-Fi"
 example_format: markdown
 example_tagline: "Spotify 经典 dark 卡"
 example_desc: "Lo-Fi Beats · Chillhop 进度条 1:24 / 3:42 + 控制行"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · spotify-card"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · spotify-card"
 od:
   mode: prototype
   surface: web
@@ -36,7 +36,7 @@ od:
 ---
 
 【模板: Spotify Now-Playing 卡】
-【意图】把一首歌、一段播客、或一段个人介绍渲染成 Spotify 正在播放卡, 适合 video overlay / 个人 about page / 创作者 hero。Inspired by hyperframes spotify-card。
+【意图】把一首歌、一段播客、或一段个人介绍渲染成 Spotify 正在播放卡, 适合 video overlay / 个人 about page / 创作者 hero。Inspired by html-frames spotify-card。
 
 【画布】两个尺寸:
 - 横版视频叠加: 1280×720, 卡片居中或左下角浮动。

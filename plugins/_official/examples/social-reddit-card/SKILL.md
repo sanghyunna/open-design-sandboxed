@@ -16,8 +16,8 @@ example_name: "Reddit 帖子 · r/programming"
 example_format: markdown
 example_tagline: "Reddit dark mode + vote rail"
 example_desc: "一条 AITA 风格故事 + 12.3k upvotes + 1.2k comments"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · reddit-post"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · reddit-post"
 od:
   mode: prototype
   surface: web
@@ -36,7 +36,7 @@ od:
 ---
 
 【模板: Reddit 帖子卡】
-【意图】把一段故事 / 提问 / 段子, 渲染成 Reddit 帖子卡片, 用于视频叠加、社媒故事分享。Inspired by hyperframes reddit-post。
+【意图】把一段故事 / 提问 / 段子, 渲染成 Reddit 帖子卡片, 用于视频叠加、社媒故事分享。Inspired by html-frames reddit-post。
 
 【画布】1280×720 (视频叠加) 或 800×600 (单卡分享); 背景透明或暗色 `#0b1416`。
 

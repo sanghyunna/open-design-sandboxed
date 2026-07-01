@@ -16,8 +16,8 @@ example_name: "胶片漏光 · REEL 03"
 example_format: markdown
 example_tagline: "暖橙漏光 + 35mm 颗粒"
 example_desc: "2.39:1 letterbox + 衬线斜体大字 + 胶片齿孔"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · light-leak"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · light-leak"
 od:
   mode: video
   surface: video
@@ -35,7 +35,7 @@ od:
 ---
 
 【模板: 胶片漏光电影帧】
-【意图】纪录片 / 个人短片 / 视频章节卡的开场单帧 —— 暖橙漏光 + 35mm 颗粒 + 衬线大字, 古典胶片质感。Inspired by hyperframes light-leak。
+【意图】纪录片 / 个人短片 / 视频章节卡的开场单帧 —— 暖橙漏光 + 35mm 颗粒 + 衬线大字, 古典胶片质感。Inspired by html-frames light-leak。
 
 【画布】
 - **2.39:1 letterbox** (推荐): 1920×800, 上下黑边各 140px (`#000`)。

@@ -112,8 +112,7 @@
         {
           "id": "generate",
           "atoms": [
-            "file-write",
-            "live-artifact"
+            "file-write"
           ]
         }
       ]

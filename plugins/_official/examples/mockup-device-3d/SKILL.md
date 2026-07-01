@@ -16,8 +16,8 @@ example_name: "iPhone × MacBook 立体展架"
 example_format: markdown
 example_tagline: "HTML-in-Canvas 设备秀"
 example_desc: "iPhone 屏幕 + MacBook 屏幕都嵌入真实 UI 内容, 玻璃镜头折射"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · vfx-iphone-device"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · vfx-iphone-device"
 od:
   mode: prototype
   surface: web
@@ -36,7 +36,7 @@ od:
 ---
 
 【模板: 设备 3D 展架 (Device 3D Showcase / HTML-in-Canvas)】
-【意图】产品发布、App 演示、设计稿展示。把用户提供的 UI 内容真实渲染到 iPhone / MacBook "屏幕"里, 周围用 CSS 3D transform 模拟 GLTF 模型的玻璃 / 高光 / 折射。Inspired by hyperframes vfx-iphone-device。
+【意图】产品发布、App 演示、设计稿展示。把用户提供的 UI 内容真实渲染到 iPhone / MacBook "屏幕"里, 周围用 CSS 3D transform 模拟 GLTF 模型的玻璃 / 高光 / 折射。Inspired by html-frames vfx-iphone-device。
 
 【硬性构图】
 - **画布**: 1920×1080, 暖灰渐变背景 `radial-gradient(#1a1a1f → #0a0a0f)`, 底部反射地面 (mirror gradient)。

@@ -16,8 +16,8 @@ example_name: "macOS 通知 · 新功能发布"
 example_format: markdown
 example_tagline: "Big Sur 磨砂玻璃 banner"
 example_desc: "App icon + 标题 + 双行正文, 视频角落叠加用"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · macos-notification"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · macos-notification"
 od:
   mode: video
   surface: video
@@ -35,7 +35,7 @@ od:
 ---
 
 【模板: macOS 通知横幅】
-【意图】把一段公告 / 消息 / 提示渲染成 macOS Big Sur+ 风格的通知横幅, 适合视频角落叠加、产品发布预告、社媒图。Inspired by hyperframes macos-notification。
+【意图】把一段公告 / 消息 / 提示渲染成 macOS Big Sur+ 风格的通知横幅, 适合视频角落叠加、产品发布预告、社媒图。Inspired by html-frames macos-notification。
 
 【画布】两种用法:
 - 视频叠加 1920×1080, 通知放右上角, 周围透明。

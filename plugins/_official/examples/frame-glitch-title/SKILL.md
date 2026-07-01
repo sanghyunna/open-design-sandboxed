@@ -17,8 +17,8 @@ example_name: "故障标题 · SIGNAL_LOST"
 example_format: markdown
 example_tagline: "cyan / magenta 像散 + CRT 扫描线"
 example_desc: "巨大标题 + 数据腐败伪影 + 角落 ASCII 噪点 chunks"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · glitch"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · glitch"
 od:
   mode: video
   surface: video
@@ -37,7 +37,7 @@ od:
 ---
 
 【模板: 故障艺术标题帧 (Glitch Title)】
-【意图】单帧 hero / 视频转场 / cyberpunk 风格标题。Inspired by hyperframes glitch。
+【意图】单帧 hero / 视频转场 / cyberpunk 风格标题。Inspired by html-frames glitch。
 
 【画布】1920×1080, 背景 `#070708` 近黑或 CRT 暗灰 `#0d0e10`; 加 56px 网格 (透明 5%) + scanlines 横线 (透明 8%, 2px 间隔)。
 

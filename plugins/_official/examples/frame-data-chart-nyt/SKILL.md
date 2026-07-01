@@ -16,8 +16,8 @@ example_name: "NYT 风折线图 · 全球用户量"
 example_format: markdown
 example_tagline: "编辑级图表 + 错峰揭示"
 example_desc: "8 年周活跃用户折线 + NYT red accent + 注释 mono"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · data-chart"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · data-chart"
 od:
   mode: video
   surface: video
@@ -35,7 +35,7 @@ od:
 ---
 
 【模板: NYT 风数据图表帧】
-【意图】把一段数据 (CSV / JSON / 一句结论) 做成《纽约时报》专栏感的单帧/动画图表, 适合视频片段或推特卡。Inspired by hyperframes data-chart。
+【意图】把一段数据 (CSV / JSON / 一句结论) 做成《纽约时报》专栏感的单帧/动画图表, 适合视频片段或推特卡。Inspired by html-frames data-chart。
 
 【画布】1920×1080, 暖白底 `#f7f5ee` 或墨黑底 `#0e0e0e` 二选一; 文字色和背景相反。
 

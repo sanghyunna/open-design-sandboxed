@@ -16,8 +16,8 @@ example_name: "便利贴流程图 · 用户 onboarding"
 example_format: markdown
 example_tagline: "SVG 曲线 + 4 色便利贴"
 example_desc: "6 节点 onboarding 流程, 手写体 + 白板纸底"
-example_source_url: "https://hyperframes.heygen.com/catalog"
-example_source_label: "hyperframes · flowchart"
+example_source_url: "https://github.com/nexu-io/html-anything"
+example_source_label: "html-frames · flowchart"
 od:
   mode: video
   surface: video
@@ -35,7 +35,7 @@ od:
 ---
 
 【模板: 便利贴流程图帧 (Sticky Flowchart)】
-【意图】把一个流程 / 系统 / 工作流画成"白板 + 便利贴"的样子, 适合 onboarding 视频、运营流程说明、系统架构讲解。Inspired by hyperframes flowchart。
+【意图】把一个流程 / 系统 / 工作流画成"白板 + 便利贴"的样子, 适合 onboarding 视频、运营流程说明、系统架构讲解。Inspired by html-frames flowchart。
 
 【画布】1920×1080。背景: 米黄白板纸 `#f4ede1` 或冷灰白板 `#f0f2f4`; 加非常浅的 hex grid `rgba(0,0,0,0.04)` 让它有白板感。
 
