@@ -25,22 +25,16 @@
       "tags": ["create", "prototype", "dashboard"]
     },
     {
+      "name": "create-connector-dashboard-ops",
+      "source": "./create-connector-dashboard-ops",
+      "version": "0.1.0",
+      "tags": ["create", "prototype", "dashboard", "connector"]
+    },
+    {
       "name": "create-slides-pitch",
       "source": "./create-slides-pitch",
       "version": "0.1.0",
       "tags": ["create", "deck", "slides"]
-    },
-    {
-      "name": "create-image-campaign",
-      "source": "./create-image-campaign",
-      "version": "0.1.0",
-      "tags": ["create", "image", "campaign"]
-    },
-    {
-      "name": "create-video-storyboard",
-      "source": "./create-video-storyboard",
-      "version": "0.1.0",
-      "tags": ["create", "video", "storyboard"]
     },
     {
       "name": "export-nextjs-handoff",
