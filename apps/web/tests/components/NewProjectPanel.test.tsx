@@ -249,42 +249,6 @@ describe('NewProjectPanel design system defaults', () => {
     );
   });
 
-  it('saves live artifact creation with prototype kind, live-artifact intent, and locked high fidelity', () => {
-    const onCreate = vi.fn();
-    render(
-      <NewProjectPanel
-        skills={skills}
-        designSystems={designSystems}
-        defaultDesignSystemId="clay"
-        templates={[]}
-        onDeleteTemplate={vi.fn()}
-        promptTemplates={[]}
-        onCreate={onCreate}
-        connectors={[]}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Live artifact' }));
-    fireEvent.change(screen.getByTestId('new-project-name'), {
-      target: { value: 'Realtime artifact payload' },
-    });
-    // Live artifact hides the fidelity picker — wireframe live artifacts
-    // don't make sense, so the surface is locked to high-fidelity.
-    expect(screen.queryByRole('button', { name: 'Wireframe' })).toBeNull();
-    fireEvent.click(screen.getByTestId('create-project'));
-
-    expect(onCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Realtime artifact payload',
-        metadata: expect.objectContaining({
-          kind: 'prototype',
-          intent: 'live-artifact',
-          fidelity: 'high-fidelity',
-        }),
-      }),
-    );
-  });
-
   it('saves deck creation with speaker notes metadata when the toggle is enabled', () => {
     const onCreate = vi.fn();
     render(

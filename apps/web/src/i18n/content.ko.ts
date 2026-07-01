@@ -1170,7 +1170,6 @@ export const KO_PROMPT_TEMPLATE_TAGS: Record<string, string> = {
   'linear-style': 'Linear 스타일',
   'liquid': '리퀴드',
   'liquid-glass': '리퀴드 글래스',
-  'live-artifact': '라이브 아티팩트',
   'logo': '로고',
   'lyubu': 'lyubu',
   'macbook': '맥북',
@@ -1285,11 +1284,6 @@ export const KO_PROMPT_TEMPLATE_COPY: Record<string, Partial<Pick<PromptTemplate
     title: '하이브리드 스타일의 모모타로 설명 슬라이드',
     summary:
       '이라스토야(Irasutoya) 일러스트의 단순하고 따뜻한 미감과 일본 정부 슬라이드 특유의 높은 정보 밀도를 결합한 프롬프트입니다.',
-  },
-  'notion-team-dashboard-live-artifact': {
-    title: 'Notion 스타일 팀 대시보드 (라이브 아티팩트)',
-    summary:
-      '단일 화면 Notion 네이티브 팀 대시보드 목업 — KPI 그리드, 7일 스파크라인, 활동 피드, 연결된 데이터베이스 작업 테이블로 구성됩니다. 라이브 아티팩트 스킬의 시각적 동반 자료로, 새로고침 가능/커넥터 기반 실행 시 함께 사용하거나, 정적 목업으로 단독 사용할 수 있습니다.',
   },
   'profile-avatar-anime-girl-to-cinematic-photo': {
     title: '프로필 / 아바타 - 애니메이션 소녀를 시네마틱 사진으로',

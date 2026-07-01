@@ -47,10 +47,8 @@ function renderPanel(files: ProjectFile[]) {
     <DesignFilesPanel
       projectId="test-project"
       files={files}
-      liveArtifacts={[]}
       onRefreshFiles={vi.fn()}
       onOpenFile={vi.fn()}
-      onOpenLiveArtifact={vi.fn()}
       onRenameFile={vi.fn()}
       onDeleteFile={vi.fn()}
       onDeleteFiles={vi.fn()}

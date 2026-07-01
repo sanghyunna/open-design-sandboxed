@@ -4,7 +4,7 @@ import type { Locator, Page, Request, Route } from '@playwright/test';
 import { routeAgents } from '../lib/playwright/mock-factory.js';
 
 const STORAGE_KEY = 'open-design:config';
-const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible, [data-testid="live-artifact-preview-frame"]:visible';
+const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 
 const AGENTS = [
   {
@@ -58,7 +58,6 @@ const DESIGN_SYSTEMS = [
 
 const TAB_SKILLS = [
   skillSummary('prototype-skill', 'Prototype Skill', 'prototype', 'web', ['prototype']),
-  skillSummary('live-artifact', 'live-artifact', 'prototype', 'web', []),
   skillSummary('deck-skill', 'Deck Skill', 'deck', 'web', ['deck']),
   skillSummary('image-skill', 'Image Skill', 'image', 'image', ['image']),
 ];
@@ -141,14 +140,6 @@ test('[P1] new project tabs switch visible form sections and preserve drafts', a
   await expect(page.getByTestId('design-system-trigger')).toBeVisible();
   await expect(page.getByText('Fidelity', { exact: true })).toBeVisible();
   await page.getByTestId('new-project-name').fill('Prototype draft survives');
-
-  await page.getByTestId('new-project-tab-live-artifact').click();
-  await expect(page.getByTestId('new-project-tab-live-artifact')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('.newproj-title')).toContainText('New live artifact');
-  await expect(page.locator('.newproj-title')).toContainText('Beta');
-  await expect(page.getByTestId('design-system-picker')).toHaveCount(0);
-  await expect(page.getByTestId('new-project-connectors')).toBeVisible();
-  await expect(page.getByTestId('create-project')).toContainText('Create live artifact');
 
   await page.getByTestId('new-project-tab-deck').click();
   await expect(page.getByTestId('new-project-tab-deck')).toHaveAttribute('aria-selected', 'true');
@@ -950,9 +941,6 @@ test('[P2] projects sub tabs switch between Recent and Your designs ordering', a
     }
     await route.continue();
   });
-  await page.route('**/api/live-artifacts?projectId=*', async (route) => {
-    await route.fulfill({ json: { liveArtifacts: [] } });
-  });
 
   await page.goto('/projects');
   await expectDesignsView(page);
@@ -1134,9 +1122,6 @@ test('[P2] projects page shows the no-results state and recovers when search is 
     }
     await route.continue();
   });
-  await page.route('**/api/live-artifacts?projectId=*', async (route) => {
-    await route.fulfill({ json: { liveArtifacts: [] } });
-  });
 
   await page.goto('/projects');
   await expectDesignsView(page);
@@ -1168,9 +1153,6 @@ test('[P2] projects grid overflow menu closes on outside click and Escape', asyn
       return;
     }
     await route.continue();
-  });
-  await page.route('**/api/live-artifacts?projectId=*', async (route) => {
-    await route.fulfill({ json: { liveArtifacts: [] } });
   });
 
   await page.goto('/projects');
@@ -1239,9 +1221,6 @@ test('[P2] projects kanban view groups cards into status columns', async ({ page
     }
     await route.continue();
   });
-  await page.route('**/api/live-artifacts?projectId=*', async (route) => {
-    await route.fulfill({ json: { liveArtifacts: [] } });
-  });
 
   await page.goto('/projects');
   await expectDesignsView(page);
@@ -1264,94 +1243,6 @@ test('[P2] projects kanban view groups cards into status columns', async ({ page
   );
 });
 
-test('[P1] projects page shows live artifact cards, supports search, and opens the live artifact project', async ({ page }) => {
-  const liveProject = makeProjectsTabProject({
-    id: 'proj-live',
-    name: 'Orbit Daily Digest',
-    createdAt: Date.now() - 60_000,
-    updatedAt: Date.now() - 30_000,
-    skillId: 'live-artifact',
-    metadata: { kind: 'orbit', intent: 'live-artifact' },
-    status: { value: 'succeeded' },
-  });
-  const regularProject = makeProjectsTabProject({
-    id: 'proj-regular',
-    name: 'Regular Prototype',
-    createdAt: Date.now() - 120_000,
-    updatedAt: Date.now() - 90_000,
-  });
-  const liveArtifact = {
-    id: 'artifact-1',
-    projectId: 'proj-live',
-    title: 'Orbit Daily Digest — 2026-05-15',
-    slug: 'orbit-daily-digest',
-    status: 'ready',
-    refreshStatus: 'succeeded',
-    pinned: false,
-    hasDocument: true,
-    updatedAt: new Date(Date.now() - 20_000).toISOString(),
-    createdAt: new Date(Date.now() - 50_000).toISOString(),
-    preview: {
-      kind: 'rendered',
-      url: '',
-    },
-  };
-
-  await page.route('**/api/projects', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ json: { projects: [liveProject, regularProject] } });
-      return;
-    }
-    await route.continue();
-  });
-  await page.route('**/api/projects/proj-live', async (route) => {
-    await route.fulfill({ json: { project: liveProject } });
-  });
-  await page.route('**/api/projects/proj-live/files', async (route) => {
-    await route.fulfill({ json: { files: [] } });
-  });
-  await page.route('**/api/live-artifacts?projectId=*', async (route) => {
-    const url = new URL(route.request().url());
-    const projectId = url.searchParams.get('projectId');
-    await route.fulfill({
-      json: {
-        liveArtifacts: projectId === 'proj-live' ? [liveArtifact] : [],
-      },
-    });
-  });
-  await page.route('**/api/live-artifacts/artifact-1', async (route) => {
-    await route.fulfill({ json: { liveArtifact } });
-  });
-  await page.route('**/api/live-artifacts/artifact-1/refreshes?projectId=*', async (route) => {
-    await route.fulfill({ json: { refreshes: [] } });
-  });
-  await page.route('**/api/live-artifacts/artifact-1/preview?projectId=*', async (route) => {
-    await route.fulfill({
-      status: 200,
-      headers: { 'content-type': 'text/html' },
-      body: '<!doctype html><html><body><h1>Orbit Daily Digest</h1></body></html>',
-    });
-  });
-
-  await page.goto('/projects');
-  await expectDesignsView(page);
-
-  const liveCard = page.locator('.live-artifact-card', {
-    has: page.locator('.design-card-name', { hasText: 'Orbit Daily Digest' }),
-  });
-  await expect(liveCard).toBeVisible();
-  await expect(liveCard).toContainText(/Live Artifact/i);
-  await expect(liveCard).toContainText(/LIVE|Refreshed/i);
-
-  const search = page.locator('.tab-panel-toolbar .toolbar-search input');
-  await search.fill('digest');
-  await expect(liveCard).toBeVisible();
-  await expect(homeDesignCard(page, 'Regular Prototype')).toHaveCount(0);
-
-  await liveCard.click();
-  await expect(page).toHaveURL(/\/projects\/proj-live\/files\/live%3Aartifact-1$/);
-  await expect(page.getByTestId('project-title')).toContainText('Orbit Daily Digest');
-});
 
 test('[P2] change pet opens pet settings and updates the custom companion draft', async ({ page }) => {
   await seedAdoptedPet(page);

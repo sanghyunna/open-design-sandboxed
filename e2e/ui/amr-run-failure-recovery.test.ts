@@ -18,7 +18,7 @@ import {
 } from '@/playwright/amr';
 
 let codexRuntime: Awaited<ReturnType<typeof createFakeAgentRuntimes>>['codex'];
-const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible, [data-testid="live-artifact-preview-frame"]:visible';
+const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 
 test.describe.configure({ mode: 'serial' });
 

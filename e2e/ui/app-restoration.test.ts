@@ -6,7 +6,7 @@ import type { UiScenario } from '@/playwright/resources';
 import { T } from '@/timeouts';
 
 const STORAGE_KEY = 'open-design:config';
-const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible, [data-testid="live-artifact-preview-frame"]:visible';
+const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 
 test.describe.configure({ timeout: 30_000 });
 
@@ -2252,7 +2252,6 @@ async function routeMockAgents(page: Page) {
 async function createEmptyProject(page: Page, name: string): Promise<string> {
   await gotoEntryHome(page);
   await openNewProjectModal(page);
-  await page.getByTestId('new-project-tab-live-artifact').click();
   await page.getByTestId('new-project-name').fill(name);
   await page.getByTestId('create-project').click();
   await expect(page).toHaveURL(/\/projects\//);

@@ -9,10 +9,9 @@ import {
   trackProjectsMorePopoverClick,
 } from "../analytics/events";
 import { useT } from "../i18n";
-import { deleteLiveArtifact, fetchLiveArtifacts, fetchProjectFiles, liveArtifactPreviewUrl, projectFileUrl } from "../providers/registry";
+import { fetchProjectFiles, projectFileUrl } from "../providers/registry";
 import type {
 	DesignSystemSummary,
-	LiveArtifactSummary,
 	Project,
 	ProjectDisplayStatus,
 	ProjectFile,
@@ -21,21 +20,12 @@ import type {
 import { AnimatePresence } from "motion/react";
 import { Icon } from "./Icon";
 import { isDesignSystemProject, isPublishedDesignSystemProject } from "./design-system-project";
-import { LiveArtifactBadges } from "./LiveArtifactBadges";
 import { Toast } from "./Toast";
 
 type SubTab = "recent" | "yours";
 type ViewMode = "grid" | "kanban";
 
-type DesignListItem =
-	| { type: "project"; project: Project; updatedAt: number; createdAt: number }
-	| {
-			type: "live-artifact";
-			project: Project;
-			liveArtifact: LiveArtifactSummary;
-			updatedAt: number;
-			createdAt: number;
-	  };
+type DesignListItem = { type: "project"; project: Project; updatedAt: number; createdAt: number };
 
 const DESIGNS_VIEW_STORAGE_KEY = "od:designs:view";
 
@@ -66,7 +56,6 @@ interface Props {
 	skills: SkillSummary[];
 	designSystems: DesignSystemSummary[];
 	onOpen: (id: string) => void;
-	onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
 	onDelete: (id: string) => Promise<boolean | void> | boolean | void;
 	onRename?: (id: string, name: string) => void;
 	onNewProject?: () => void;
@@ -77,7 +66,6 @@ export function DesignsTab({
 	skills,
 	designSystems,
 	onOpen,
-	onOpenLiveArtifact,
 	onDelete,
 	onRename,
 	onNewProject,
@@ -96,9 +84,6 @@ export function DesignsTab({
 	}, [analytics.track]);
 	const [filter, setFilter] = useState("");
 	const [sub, setSub] = useState<SubTab>("recent");
-	const [liveArtifactsByProject, setLiveArtifactsByProject] = useState<
-		Record<string, LiveArtifactSummary[]>
-	>({});
 	const [coverByProject, setCoverByProject] = useState<
 		Record<string, { kind: "html" | "image" | "video" | "logo"; name: string } | null>
 	>({});
@@ -127,29 +112,6 @@ export function DesignsTab({
 			return "grid";
 		}
 	});
-
-	useEffect(() => {
-		let cancelled = false;
-		const projectIds = projects.map((project) => project.id);
-		if (projectIds.length === 0) {
-			setLiveArtifactsByProject({});
-			return;
-		}
-
-		void Promise.all(
-			projectIds.map(
-				async (projectId) =>
-					[projectId, await fetchLiveArtifacts(projectId)] as const,
-			),
-		).then((entries) => {
-			if (cancelled) return;
-			setLiveArtifactsByProject(Object.fromEntries(entries));
-		});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [projects]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -262,31 +224,12 @@ export function DesignsTab({
 	const filtered = useMemo(() => {
 		const q = filter.trim().toLowerCase();
 		let list: DesignListItem[] = projects
-			.filter(
-				(project) =>
-					!shouldHideProjectCard(
-						project,
-						liveArtifactsByProject[project.id] ?? [],
-					),
-			)
 			.map((project) => ({
 				type: "project",
 				project,
 				updatedAt: project.updatedAt,
 				createdAt: project.createdAt,
 			}));
-
-		const liveItems = projects.flatMap((project) =>
-			(liveArtifactsByProject[project.id] ?? []).map((liveArtifact) => ({
-				type: "live-artifact" as const,
-				project,
-				liveArtifact,
-				updatedAt: Date.parse(liveArtifact.updatedAt) || project.updatedAt,
-				createdAt: Date.parse(liveArtifact.createdAt) || project.createdAt,
-			})),
-		);
-
-		list = [...list, ...liveItems];
 
 		if (sub === "recent") {
 			list = [...list].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -297,14 +240,8 @@ export function DesignsTab({
 		}
 
 		if (!q) return list;
-		return list.filter((item) => {
-			if (item.project.name.toLowerCase().includes(q)) return true;
-			return (
-				item.type === "live-artifact" &&
-				item.liveArtifact.title.toLowerCase().includes(q)
-			);
-		});
-	}, [projects, liveArtifactsByProject, filter, sub]);
+		return list.filter((item) => item.project.name.toLowerCase().includes(q));
+	}, [projects, filter, sub]);
 
 	const filteredProjects = useMemo(
 		() =>
@@ -388,27 +325,6 @@ export function DesignsTab({
 			},
 		});
 	};
-	const handleDeleteLiveArtifact = async (
-		projectId: string,
-		artifact: LiveArtifactSummary,
-	) => {
-		setConfirmTarget({
-			title: t("common.delete"),
-			message: `${t("common.delete")} "${artifact.title}"?`,
-			confirmLabel: t("designs.menuDelete"),
-			onConfirm: async () => {
-				const ok = await deleteLiveArtifact(projectId, artifact.id);
-				if (!ok) return;
-				setLiveArtifactsByProject((current) => ({
-					...current,
-					[projectId]: (current[projectId] ?? []).filter(
-						(candidate) => candidate.id !== artifact.id,
-					),
-				}));
-			},
-		});
-	};
-
 	return (
 		<div
 			className={`tab-panel${view === "kanban" ? " design-kanban-view" : ""}`}
@@ -585,76 +501,6 @@ export function DesignsTab({
 						const p = item.project;
 						const skill = skillName(p.skillId);
 						const ds = dsName(p.designSystemId);
-						if (item.type === "live-artifact") {
-							const artifact = item.liveArtifact;
-							const title = liveArtifactCardTitle(p, artifact);
-							const metaLead = liveArtifactCardMetaLead(p, artifact);
-							return (
-								<div
-									key={`live:${artifact.id}`}
-									className={`design-card live-artifact-card status-${artifact.status} refresh-${artifact.refreshStatus}`}
-									role="button"
-									tabIndex={0}
-									onClick={() => onOpenLiveArtifact(p.id, artifact.id)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											onOpenLiveArtifact(p.id, artifact.id);
-										}
-									}}
-								>
-									<button
-										type="button"
-										className="design-card-close"
-										title={t("common.delete")}
-										aria-label={`${t("common.delete")} ${artifact.title}`}
-										onClick={(e) => {
-											e.stopPropagation();
-											void handleDeleteLiveArtifact(p.id, artifact);
-										}}
-									>
-										<Icon name="close" size={12} />
-									</button>
-									<div
-										className="design-card-thumb live-artifact-thumb"
-										aria-hidden
-									>
-										<iframe
-											className="thumb-iframe"
-											src={liveArtifactPreviewUrl(p.id, artifact.id)}
-											title=""
-											loading="lazy"
-											sandbox="allow-scripts"
-											tabIndex={-1}
-										/>
-									</div>
-									<div className="design-card-meta-block">
-										<ProjectTag category="live-artifact" />
-										<LiveArtifactBadges
-											className="design-card-badges"
-											status={artifact.status}
-											refreshStatus={artifact.refreshStatus}
-										/>
-										<div className="design-card-name" title={title}>
-											{title}
-										</div>
-										<div className="design-card-meta">
-											<span className="ds">{metaLead}</span>
-											{" · "}
-											{artifactStatusLabel(
-												artifact.status,
-												artifact.refreshStatus,
-												t,
-											)}
-											{" · "}
-											{relativeTime(item.updatedAt, t)}
-										</div>
-									</div>
-								</div>
-							);
-						}
-
-						const liveCount = liveArtifactsByProject[p.id]?.length ?? 0;
 						const status = p.status?.value ?? "not_started";
 						const cover = projectCover(p, coverByProject[p.id] ?? null);
 						const isSelected = selected.has(p.id);
@@ -798,11 +644,6 @@ export function DesignsTab({
 									) : (
 										<span className="project-thumb-glyph">{cover.initial}</span>
 									)}
-									{liveCount > 0 ? (
-										<span className="design-live-count">
-											{t("designs.liveCount", { n: liveCount })}
-										</span>
-									) : null}
 								</div>
 								<div className="design-card-meta-block">
 									<div className="design-card-tag-row">
@@ -1038,42 +879,6 @@ function relativeTime(ts: number, t: ReturnType<typeof useT>): string {
 	return new Date(ts).toLocaleDateString();
 }
 
-function artifactStatusLabel(
-	status: LiveArtifactSummary["status"],
-	refreshStatus: LiveArtifactSummary["refreshStatus"],
-	t: ReturnType<typeof useT>,
-): string {
-	if (status === "archived") return t("designs.statusArchived");
-	if (status === "error") return t("designs.statusError");
-	if (refreshStatus === "running") return t("designs.statusRefreshing");
-	if (refreshStatus === "failed") return t("designs.statusRefreshFailed");
-	if (refreshStatus === "succeeded") return t("designs.statusRefreshed");
-	return t("designs.statusLive");
-}
-
-function shouldHideProjectCard(project: Project, liveArtifacts: LiveArtifactSummary[]): boolean {
-  if (liveArtifacts.length === 0) return false;
-  return project.skillId === 'live-artifact' && isOrbitProject(project);
-}
-
-function liveArtifactCardTitle(project: Project, liveArtifact: LiveArtifactSummary): string {
-  return isCollapsedOrbitArtifactProject(project) ? project.name : liveArtifact.title;
-}
-
-function liveArtifactCardMetaLead(project: Project, liveArtifact: LiveArtifactSummary): string {
-  return isCollapsedOrbitArtifactProject(project) ? liveArtifact.title : project.name;
-}
-
-function isCollapsedOrbitArtifactProject(project: Project): boolean {
-  return project.skillId === 'live-artifact' && isOrbitProject(project);
-}
-
-function isOrbitProject(project: Project): boolean {
-  const metadata = project.metadata as { kind?: unknown } | undefined;
-  return metadata?.kind === 'orbit';
-}
-
-
 function projectCover(
 	project: Project,
 	override: { kind: "html" | "image" | "video" | "logo"; name: string } | null,
@@ -1111,13 +916,10 @@ function projectCover(
 	return { kind: "fallback", style, initial };
 }
 
-type ProjectCategory = "prototype" | "live-artifact" | "slide";
+type ProjectCategory = "prototype" | "slide";
 
 function projectCategory(project: Project): ProjectCategory {
 	const meta = project.metadata;
-	if (meta?.intent === "live-artifact" || project.skillId === "live-artifact") {
-		return "live-artifact";
-	}
 	if (meta?.kind === "deck") return "slide";
 	return "prototype";
 }
@@ -1125,9 +927,7 @@ function projectCategory(project: Project): ProjectCategory {
 function ProjectTag({ category }: { category: ProjectCategory }) {
 	const t = useT();
 	const label =
-		category === "live-artifact"
-			? t("designs.tagLiveArtifact")
-			: category === "slide"
+		category === "slide"
 				? t("designs.tagSlide")
 				: t("designs.tagPrototype");
 	return (

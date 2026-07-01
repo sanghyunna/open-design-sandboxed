@@ -26,7 +26,7 @@ import type { ChatSessionMode } from '@open-design/contracts';
 // conversation (the Side Chat workspace tab).
 //
 // ProjectView owns the primary conversation's send/stream loop. That loop is
-// deeply entangled with queueing, plugin snapshots, live-artifact parsing,
+// deeply entangled with queueing, plugin snapshots,
 // design-system auditing, notifications, and route sync — extracting it wholesale
 // would gut ProjectView. Instead this hook reuses the SAME daemon primitive the
 // primary loop runs on (`streamViaDaemon`) plus the SAME persistence helpers
@@ -34,8 +34,7 @@ import type { ChatSessionMode } from '@open-design/contracts';
 // ("chat 和我们已有的 chat 对齐即可"): create a run against the conversation, stream
 // deltas into the live assistant message, push tool/status events, persist, and
 // finalize on done / error / stop. It deliberately omits the primary loop's
-// extras (no live-artifact viewer wiring, no queueing) because a side chat is a
-// lightweight scratch conversation.
+// extras (no queueing) because a side chat is a lightweight scratch conversation.
 // ---------------------------------------------------------------------------
 
 function isTerminalRunStatus(status: ChatMessage['runStatus']): boolean {

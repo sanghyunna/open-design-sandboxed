@@ -95,7 +95,6 @@ function renderEntryView(overrides: Partial<ComponentProps<typeof EntryView>> = 
       onCreatePluginShareProject={vi.fn()}
       onImportClaudeDesign={vi.fn()}
       onOpenProject={vi.fn()}
-      onOpenLiveArtifact={vi.fn()}
       onDeleteProject={vi.fn()}
       onRenameProject={vi.fn()}
       onChangeDefaultDesignSystem={vi.fn()}

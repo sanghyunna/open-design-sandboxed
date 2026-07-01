@@ -20,7 +20,7 @@ rather than a code change.
   "stages": [
     { "id": "discovery", "atoms": ["discovery-question-form"] },
     { "id": "plan",      "atoms": ["direction-picker", "todo-write"] },
-    { "id": "generate",  "atoms": ["file-write", "live-artifact"] },
+    { "id": "generate",  "atoms": ["file-write"] },
     {
       "id": "critique", "atoms": ["critique-theater"],
       "repeat": true,

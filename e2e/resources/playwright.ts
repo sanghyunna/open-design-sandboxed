@@ -179,28 +179,6 @@ export const playwrightUiScenarios: UiScenario[] = [
     ],
   },
   {
-    id: 'live-artifact-basic',
-    title: 'Live artifact project routes through its modal tab with the expected metadata',
-    kind: 'prototype',
-    flow: 'live-artifact-project-routing',
-    automated: true,
-    description:
-      'Covers the current live artifact creation path: create a project from New project → Live artifact and verify the project metadata persists prototype kind, live-artifact intent, and locked high-fidelity rendering.',
-    create: {
-      projectName: 'Live artifact automation smoke',
-      tab: 'live-artifact',
-    },
-    prompt: 'Create a data-connected live artifact prompt',
-    expectedProjectMetadata: {
-      kind: 'prototype',
-      intent: 'live-artifact',
-      fidelity: 'high-fidelity',
-    },
-    notes: [
-      'Keeps this smoke focused on create-time routing and metadata instead of connector execution.',
-    ],
-  },
-  {
     id: 'comment-attachment-flow',
     title: 'Preview comments attach to chat and send as structured context',
     kind: 'prototype',

@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` is complete, hand-built, and uses realistic social analytics labels/values.
-- Skill frontmatter uses `od.mode: template` and `od.scenario: live-artifacts`.
+- Skill frontmatter uses `od.mode: template`.
 - Template supports dark/light switching without broken contrast.
 - Core charts expose hover tooltip with explicit dimension + value.
 - Line charts support pin point + drag range statistics.

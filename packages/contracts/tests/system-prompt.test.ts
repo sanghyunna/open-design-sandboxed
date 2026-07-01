@@ -97,7 +97,6 @@ describe('composeSystemPrompt', () => {
     );
     for (const option of [
       'Prototype',
-      'Live artifact',
       'Slide deck',
       'Other',
     ]) {
@@ -117,7 +116,6 @@ describe('composeSystemPrompt', () => {
     );
     for (const option of [
       'Prototype',
-      'Live artifact',
       'Slide deck',
       'Other',
     ]) {

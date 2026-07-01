@@ -105,7 +105,6 @@ interface Props {
   onImportFolder?: (baseDir: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string) => void;
-  onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
   onDeleteProject: (id: string) => void;
   onRenameProject: (id: string, name: string) => void;
   onChangeDefaultDesignSystem: (id: string) => void;
@@ -245,7 +244,6 @@ export function EntryView({
   onImportFolder,
   onImportFolderResponse,
   onOpenProject,
-  onOpenLiveArtifact,
   onDeleteProject,
   onRenameProject,
   onChangeDefaultDesignSystem,
@@ -358,7 +356,6 @@ export function EntryView({
       {...(onImportFolder ? { onImportFolder } : {})}
       {...(onImportFolderResponse ? { onImportFolderResponse } : {})}
       onOpenProject={onOpenProject}
-      onOpenLiveArtifact={onOpenLiveArtifact}
       onDeleteProject={onDeleteProject}
       onRenameProject={onRenameProject}
       onChangeDefaultDesignSystem={onChangeDefaultDesignSystem}

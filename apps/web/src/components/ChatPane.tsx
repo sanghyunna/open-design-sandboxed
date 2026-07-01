@@ -3347,7 +3347,7 @@ function workspaceContextOpenTarget(item: WorkspaceContextItem): string | null {
   if (item.tabId) return item.tabId;
   if (item.kind === 'design-files') return WORKSPACE_DESIGN_FILES_TAB;
   if (item.kind === 'design-system') return WORKSPACE_DESIGN_SYSTEM_TAB;
-  if (item.kind === 'file' || item.kind === 'live-artifact') {
+  if (item.kind === 'file') {
     return item.path ?? item.label;
   }
   return null;
@@ -3386,8 +3386,6 @@ function workspaceContextKindLabel(kind: WorkspaceContextItem['kind']): string {
       return 'Terminal';
     case 'side-chat':
       return 'Side chat';
-    case 'live-artifact':
-      return 'Live artifact';
     case 'file':
     default:
       return 'File';

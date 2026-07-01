@@ -309,65 +309,10 @@ function emitSuccess(artifact, isChunked, includeThinking) {
 }
 
 async function emitOrbitRun() {
-  const artifact = await createOrbitLiveArtifact();
-  const text = 'Orbit fake digest registered live artifact ' + artifact.id + ' for project ' + artifact.projectId + '.';
+  const text = 'Orbit fake digest completed.';
   emitSuccess(text, false);
   process.exitCode = 0;
   exitSoon(0);
-}
-
-async function createOrbitLiveArtifact() {
-  const baseUrl = process.env.OD_DAEMON_URL;
-  const token = process.env.OD_TOOL_TOKEN;
-  if (!baseUrl || !token) {
-    throw new Error('Orbit fake run requires OD_DAEMON_URL and OD_TOOL_TOKEN');
-  }
-  const url = new URL('/api/tools/live-artifacts/create', baseUrl);
-  const payload = {
-    input: {
-      title: 'Orbit Daily Digest',
-      slug: 'orbit-daily-digest',
-      preview: { type: 'html', entry: 'index.html' },
-      document: {
-        format: 'html_template_v1',
-        templatePath: 'template.html',
-        generatedPreviewPath: 'index.html',
-        dataPath: 'data.json',
-        dataJson: {
-          headline: 'Orbit daily digest',
-          takeaway1: 'Fake connector activity was summarized through the daemon Orbit path.',
-          takeaway2: 'The live artifact tool token was accepted.',
-          takeaway3: 'The digest can be opened and previewed from the Orbit project.',
-          checked: 'fake activity feed and fake task updates',
-        },
-      },
-    },
-    templateHtml: '<!doctype html><html><body><main><h1>{{data.headline}}</h1><ul><li>{{data.takeaway1}}</li><li>{{data.takeaway2}}</li><li>{{data.takeaway3}}</li></ul><p>{{data.checked}}</p></main></body></html>',
-    provenanceJson: {
-      generatedAt: new Date().toISOString(),
-      generatedBy: 'agent',
-      sources: [{ label: 'Fake Orbit e2e data', type: 'derived' }],
-    },
-  };
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      authorization: 'Bearer ' + token,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-  const text = await response.text();
-  let body = {};
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    body = { raw: text };
-  }
-  if (!response.ok || !body.artifact) {
-    throw new Error('Orbit live artifact create failed: HTTP ' + response.status + ' ' + text.slice(0, 500));
-  }
-  return body.artifact;
 }
 
 function failUnhandled(error) {

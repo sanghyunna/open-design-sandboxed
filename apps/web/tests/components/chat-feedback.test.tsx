@@ -77,23 +77,6 @@ function completedEditAssistant(
   });
 }
 
-function completedLiveArtifactAssistant(
-  input: Partial<ChatMessage> = {},
-): ChatMessage {
-  return completedAssistant({
-    events: [
-      {
-        kind: 'live_artifact',
-        action: 'updated',
-        projectId: 'project-1',
-        artifactId: 'live-1',
-        title: 'Ricky Dental Poster',
-        refreshStatus: 'idle',
-      },
-    ],
-    ...input,
-  });
-}
 
 function renderChatPane({
   messages,
@@ -180,14 +163,6 @@ describe('chat assistant feedback', () => {
   it('shows feedback after completed artifact edits without newly produced files', () => {
     renderChatPane({
       messages: [completedEditAssistant()],
-    });
-
-    expect(screen.getByRole('group', { name: 'Feedback' })).toBeTruthy();
-  });
-
-  it('shows feedback after completed live artifact updates', () => {
-    renderChatPane({
-      messages: [completedLiveArtifactAssistant()],
     });
 
     expect(screen.getByRole('group', { name: 'Feedback' })).toBeTruthy();

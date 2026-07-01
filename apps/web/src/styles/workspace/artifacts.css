@@ -2124,30 +2124,6 @@
   flex-direction: column;
 }
 
-/* ============================================================
-   NEW PROJECT PANEL — design standards
-   This block applies to every tab inside `.newproj` (prototype,
-   live-artifact, slide deck, template, media, other). Pickers and
-   options added to new tabs should slot into these rules instead
-   of inventing local variants.
-
-   Heights
-     text input ............ 30px   (.newproj-name)
-     dropdown trigger ...... 38px   (.newproj-section .ds-picker-trigger)
-     compact toggle ........ 36px   (.compact-toggle)
-     popover item .......... 38px   (.ds-picker-item)
-
-   Color rules — neutral only. The orange accent is reserved for
-   the Create CTA. Nothing else inside `.newproj` should pull from
-   `var(--accent)` / `--accent-tint` / `--accent-soft`.
-     hover bg .............. var(--bg-subtle)
-     focused input ......... border var(--text) + 8% black halo
-                             (.entry-side input:focus)
-     active border ......... var(--border-strong)
-     active mark ........... var(--text)
-     segmented control ..... mirror .subtab-pill (gray rounded
-                             container + white raised active button)
-   ============================================================ */
 .newproj {
   display: flex;
   flex-direction: column;
@@ -2933,7 +2909,6 @@
   line-height: 1.45;
 }
 
-/* -------- New project · connectors section (live-artifact tab) ----- */
 .newproj-connectors { gap: 8px; }
 .newproj-connectors-head {
   display: flex;

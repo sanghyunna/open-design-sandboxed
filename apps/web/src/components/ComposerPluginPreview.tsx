@@ -33,8 +33,6 @@ function pluginKindLabel(
   switch (slug) {
     case 'prototype':
       return t('homeHero.chip.prototype');
-    case 'live-artifact':
-      return t('homeHero.chip.liveArtifact');
     case 'deck':
       return t('pluginsHome.facet.slides');
     default:

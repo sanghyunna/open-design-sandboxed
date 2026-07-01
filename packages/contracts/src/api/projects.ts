@@ -84,7 +84,7 @@ export interface DesignSystemReviewEntry {
 
 export interface ProjectMetadata {
   kind: ProjectKind;
-  intent?: 'live-artifact';
+  intent?: 'report';
   fidelity?: 'wireframe' | 'high-fidelity';
   speakerNotes?: boolean;
   slideCount?: string;

@@ -52,7 +52,7 @@ web-prototype/
 
 Choose one kebab-case artifact slug before composing the page. Use `assets/template.html` as the seed for the final artifact HTML.
 
-Do not write a project-root HTML draft with file-write before emitting the final `<artifact>`. The live-artifact output is the canonical HTML file for this generation turn; an extra `index.html`, `cast.html`, or brief-derived draft can be stranded beside it as an orphan.
+Do not write a project-root HTML draft with file-write before emitting the final `<artifact>`. The artifact output is the canonical HTML file for this generation turn; an extra `index.html`, `cast.html`, or brief-derived draft can be stranded beside it as an orphan.
 
 Replace the six `:root` variables with the active design system's tokens. Replace the page `<title>` and the topnav brand.
 

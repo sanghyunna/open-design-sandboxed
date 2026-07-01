@@ -90,7 +90,6 @@ import type {
 } from './state/projects';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
 import { useI18n } from './i18n';
-import { liveArtifactTabId } from './types';
 import type {
   AgentInfo,
   AgentModelChoice,
@@ -1459,10 +1458,6 @@ function AppInner() {
     };
   }, [config.pet?.enabled, daemonLive, projects]);
 
-  const handleOpenLiveArtifact = useCallback((projectId: string, artifactId: string) => {
-    navigate({ kind: 'project', projectId, fileName: liveArtifactTabId(artifactId) });
-  }, []);
-
   const handleDeleteProject = useCallback(async (id: string) => {
     const ok = await deleteProjectApi(id);
     if (!ok) return false;
@@ -1942,7 +1937,6 @@ function AppInner() {
         onImportFolder={handleImportFolder}
         onImportFolderResponse={handleImportFolderResponse}
         onOpenProject={handleOpenProject}
-        onOpenLiveArtifact={handleOpenLiveArtifact}
         onDeleteProject={handleDeleteProject}
         onRenameProject={handleRenameProject}
         onChangeDefaultDesignSystem={handleChangeDefaultDesignSystem}

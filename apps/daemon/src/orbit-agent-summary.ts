@@ -1,6 +1,3 @@
-const NO_LIVE_ARTIFACT_SUMMARY =
-  'Agent succeeded but did not register a live artifact for this Orbit run.';
-
 const MAX_FINAL_EXPLANATION_CHARS = 2_000;
 
 interface RunEventRecord {
@@ -29,11 +26,4 @@ export function extractOrbitAgentFinalExplanation(events: readonly RunEventRecor
   if (!text) return null;
   if (text.length <= MAX_FINAL_EXPLANATION_CHARS) return text;
   return `${text.slice(0, MAX_FINAL_EXPLANATION_CHARS).trimEnd()}...`;
-}
-
-export function buildOrbitNoLiveArtifactSummary(events: readonly RunEventRecord[]): string {
-  const explanation = extractOrbitAgentFinalExplanation(events);
-  return explanation
-    ? `${NO_LIVE_ARTIFACT_SUMMARY}\n\n${explanation}`
-    : NO_LIVE_ARTIFACT_SUMMARY;
 }

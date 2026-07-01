@@ -753,14 +753,7 @@
 .automation-template-card.is-orbit .automation-template-card__icon {
   background: color-mix(in srgb, #d77757 20%, var(--bg-subtle));
   color: color-mix(in srgb, #f2a282 82%, var(--text-strong));
-}
-
-.automation-template-card.is-live-artifact .automation-template-card__icon {
-  background: color-mix(in srgb, #54ba78 18%, var(--bg-subtle));
-  color: color-mix(in srgb, #79dfa0 82%, var(--text-strong));
-}
-
-.automation-template-card__body {
+}.automation-template-card__body {
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -1417,14 +1410,7 @@
 .automation-template-option__icon.is-orbit {
   background: color-mix(in srgb, #d77757 18%, var(--bg-subtle));
   color: #f2a282;
-}
-
-.automation-template-option__icon.is-live-artifact {
-  background: color-mix(in srgb, #54ba78 18%, var(--bg-subtle));
-  color: #79dfa0;
-}
-
-.automation-template-option__body,
+}.automation-template-option__body,
 .automation-popover__body {
   display: flex;
   flex-direction: column;

@@ -61,7 +61,7 @@ const INITIAL: Omit<DesignMdState, 'refresh'> = {
  * @param refreshKey — bumps from the caller cause `compute()` to re-run
  *   without an explicit `refresh()` call. Round 7 (mrcfps @ line 131):
  *   ProjectView wires this to a counter that ticks on file-changed SSE
- *   events, live_artifact* events, and the streaming-completion edge so
+ *   events and the streaming-completion edge so
  *   the staleness chip stays in sync with the underlying mtimes /
  *   conversation updatedAt as the user keeps working post-finalize.
  *   Defaults to 0 so call sites that don't need invalidation can omit it.

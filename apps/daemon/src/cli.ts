@@ -274,19 +274,6 @@ await (async () => {
     return;
   }
 
-  if (argv[0] === 'tools' && argv[1] === 'live-artifacts') {
-    import('./tools-live-artifacts-cli.js')
-      .then(({ runLiveArtifactsToolCli }) => runLiveArtifactsToolCli(argv.slice(2)))
-      .then(({ exitCode }) => {
-        process.exitCode = exitCode;
-      })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-        process.exitCode = 1;
-      });
-    return;
-  }
   if (argv[0] === 'tools' && argv[1] === 'connectors') {
     import('./tools-connectors-cli.js')
       .then(({ runConnectorsToolCli }) => runConnectorsToolCli(argv.slice(2)))
@@ -322,9 +309,6 @@ function printRootHelp() {
   od [--port <n>] [--host <addr>] [--no-open]
       Start the local daemon and open the web UI.
 
-  od tools live-artifacts <create|list|update|refresh> [options]
-      Manage live artifacts through daemon wrapper commands.
-
   od artifacts create --name <path> --input <file> [--project <id-or-name>]
       Create a normal project artifact through the local daemon.
 
@@ -333,9 +317,6 @@ function printRootHelp() {
 
   od tools design-systems read --path <manifest-declared-path>
       Read active design-system pull-layer files through daemon wrapper commands.
-
-  od mcp live-artifacts
-      Start the MCP server exposing live-artifact and connector tools.
 
   od research search --query <text> [--max-sources 5] [--daemon-url <url>]
       Run agent-callable Tavily research through the local daemon.

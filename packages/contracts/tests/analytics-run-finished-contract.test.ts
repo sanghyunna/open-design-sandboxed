@@ -86,7 +86,6 @@ describe('analytics run_finished contract', () => {
         user_visible_output_seen: true,
         tool_call_seen: true,
         artifact_write_seen: false,
-        live_artifact_seen: false,
         retry_attempt_count: 1,
         retry_final_result: 'success',
       },

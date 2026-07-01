@@ -45,9 +45,6 @@ import type {
   DesignSystemSummary,
   DesignSystemTokenContractRebuildJobRequest,
   DesignSystemTokenContractRebuildJobResponse,
-  LiveArtifact,
-  LiveArtifactRefreshLogEntry,
-  LiveArtifactSummary,
   Project,
   ProjectDeploymentsResponse,
   PromptTemplateDetail,
@@ -1384,146 +1381,6 @@ export async function deleteProjectFolder(
   }
 }
 
-export async function fetchLiveArtifacts(projectId: string): Promise<LiveArtifactSummary[]> {
-  try {
-    const resp = await fetch(`/api/live-artifacts?projectId=${encodeURIComponent(projectId)}`);
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as {
-      artifacts?: LiveArtifactSummary[];
-      liveArtifacts?: LiveArtifactSummary[];
-    };
-    return json.liveArtifacts ?? json.artifacts ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function fetchLiveArtifact(
-  projectId: string,
-  artifactId: string,
-): Promise<LiveArtifact | null> {
-  try {
-    const resp = await fetch(liveArtifactDetailUrl(projectId, artifactId));
-    if (!resp.ok) return null;
-    const json = (await resp.json()) as {
-      artifact?: LiveArtifact;
-      liveArtifact?: LiveArtifact;
-    };
-    return json.liveArtifact ?? json.artifact ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export interface LiveArtifactRefreshResult {
-  artifact: LiveArtifact;
-  refresh: {
-    id: string;
-    status: 'succeeded';
-    refreshedSourceCount: number;
-  };
-}
-
-export class LiveArtifactRefreshError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = 'LiveArtifactRefreshError';
-  }
-}
-
-export async function refreshLiveArtifact(
-  projectId: string,
-  artifactId: string,
-): Promise<LiveArtifactRefreshResult> {
-  let resp: Response;
-  try {
-    resp = await fetch(
-      `/api/live-artifacts/${encodeURIComponent(artifactId)}/refresh?projectId=${encodeURIComponent(projectId)}`,
-      { method: 'POST' },
-    );
-  } catch (error) {
-    throw new LiveArtifactRefreshError(
-      error instanceof Error ? error.message : 'Refresh request failed.',
-      0,
-    );
-  }
-
-  if (!resp.ok) {
-    const errorBody = await readApiErrorBody(resp);
-    throw new LiveArtifactRefreshError(errorBody.message, resp.status, errorBody.code);
-  }
-
-  return (await resp.json()) as LiveArtifactRefreshResult;
-}
-
-export async function fetchLiveArtifactRefreshes(
-  projectId: string,
-  artifactId: string,
-): Promise<LiveArtifactRefreshLogEntry[]> {
-  try {
-    const resp = await fetch(
-      `/api/live-artifacts/${encodeURIComponent(artifactId)}/refreshes?projectId=${encodeURIComponent(projectId)}`,
-    );
-    if (!resp.ok) return [];
-    const json = (await resp.json()) as { refreshes?: LiveArtifactRefreshLogEntry[] };
-    return json.refreshes ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function updateLiveArtifact(
-  projectId: string,
-  artifactId: string,
-  input: Pick<LiveArtifact, 'title' | 'status' | 'pinned' | 'preview'> & {
-    slug?: string;
-    document?: LiveArtifact['document'];
-  },
-): Promise<LiveArtifact> {
-  let resp: Response;
-  try {
-    resp = await fetch(
-      `/api/live-artifacts/${encodeURIComponent(artifactId)}?projectId=${encodeURIComponent(projectId)}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      },
-    );
-  } catch (error) {
-    throw new LiveArtifactRefreshError(
-      error instanceof Error ? error.message : 'Update request failed.',
-      0,
-    );
-  }
-
-  if (!resp.ok) {
-    const errorBody = await readApiErrorBody(resp);
-    throw new LiveArtifactRefreshError(errorBody.message, resp.status, errorBody.code);
-  }
-
-  const json = (await resp.json()) as { artifact?: LiveArtifact; liveArtifact?: LiveArtifact };
-  const artifact = json.liveArtifact ?? json.artifact;
-  if (!artifact) throw new LiveArtifactRefreshError('Update response did not include a live artifact.', resp.status);
-  return artifact;
-}
-
-export async function deleteLiveArtifact(projectId: string, artifactId: string): Promise<boolean> {
-  try {
-    const resp = await fetch(
-      `/api/live-artifacts/${encodeURIComponent(artifactId)}?projectId=${encodeURIComponent(projectId)}`,
-      { method: 'DELETE' },
-    );
-    return resp.ok;
-  } catch {
-    return false;
-  }
-}
-
 async function readApiErrorBody(resp: Response): Promise<{ message: string; code?: string }> {
   try {
     const json = (await resp.json()) as { error?: { code?: string; message?: string }; message?: string };
@@ -1534,31 +1391,6 @@ async function readApiErrorBody(resp: Response): Promise<{ message: string; code
     };
   } catch {
     return { message: `Request failed (${resp.status}).` };
-  }
-}
-
-export function liveArtifactDetailUrl(projectId: string, artifactId: string): string {
-  return `/api/live-artifacts/${encodeURIComponent(artifactId)}?projectId=${encodeURIComponent(projectId)}`;
-}
-
-export type LiveArtifactPreviewVariant = 'rendered' | 'template' | 'rendered-source';
-
-export function liveArtifactPreviewUrl(projectId: string, artifactId: string, variant: LiveArtifactPreviewVariant = 'rendered'): string {
-  const variantQuery = variant === 'rendered' ? '' : `&variant=${encodeURIComponent(variant)}`;
-  return `/api/live-artifacts/${encodeURIComponent(artifactId)}/preview?projectId=${encodeURIComponent(projectId)}${variantQuery}`;
-}
-
-export async function fetchLiveArtifactCode(
-  projectId: string,
-  artifactId: string,
-  variant: Exclude<LiveArtifactPreviewVariant, 'rendered'>,
-): Promise<string | null> {
-  try {
-    const resp = await fetch(liveArtifactPreviewUrl(projectId, artifactId, variant), { cache: 'no-store' });
-    if (!resp.ok) return null;
-    return await resp.text();
-  } catch {
-    return null;
   }
 }
 

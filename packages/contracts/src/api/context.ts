@@ -13,8 +13,7 @@ export type WorkspaceContextKind =
   | 'folder'
   | 'browser'
   | 'terminal'
-  | 'side-chat'
-  | 'live-artifact';
+  | 'side-chat';
 
 export interface WorkspaceContextItem {
   id: string;

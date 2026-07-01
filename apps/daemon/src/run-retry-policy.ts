@@ -26,7 +26,6 @@ export interface RunRetrySideEffectState {
   userVisibleOutputSeen?: boolean;
   toolCallSeen?: boolean;
   artifactWriteSeen?: boolean;
-  liveArtifactSeen?: boolean;
 }
 
 export interface RunRetryPolicyInput {
@@ -126,7 +125,6 @@ export function decideSafeRunRetry(
   if (sideEffects.userVisibleOutputSeen) return suppress('user_visible_output_seen');
   if (sideEffects.toolCallSeen) return suppress('tool_call_seen');
   if (sideEffects.artifactWriteSeen) return suppress('artifact_write_seen');
-  if (sideEffects.liveArtifactSeen) return suppress('live_artifact_seen');
 
   return {
     ...base,

@@ -107,7 +107,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('ui_kits/app/index.html'),
           workspaceFile('preview/brand-assets.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -140,7 +139,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('context/source-context.md')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         streaming
@@ -173,7 +171,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('preview/colors-primary.html'),
           workspaceFile('ui_kits/app/index.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         streaming
@@ -205,7 +202,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('assets/logo.svg'),
           workspaceFile('preview/brand-assets.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -231,7 +227,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('DESIGN.md'), workspaceFile('preview/colors.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -257,7 +252,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('context/source-context.md'),
           workspaceFile('preview/colors.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -295,7 +289,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('context/source-context.md'),
           workspaceFile('preview/colors.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -339,7 +332,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('context/github/acme-product/files/src/components/Button.tsx'),
           workspaceFile('preview/colors.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -376,7 +368,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('DESIGN.md'), workspaceFile('preview/colors.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -415,7 +406,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('context/github/acme-product.md'),
           workspaceFile('preview/colors.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -448,7 +438,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('context/github/acme-product.md'),
           workspaceFile('preview/colors.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -482,7 +471,6 @@ describe('FileWorkspace design-system project surface', () => {
           workspaceFile('preview/typography-specimens.html'),
           workspaceFile('preview/colors-primary.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -513,7 +501,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('DESIGN.md'), workspaceFile('preview/colors.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -551,7 +538,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('DESIGN.md'), workspaceFile('preview/colors.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -580,7 +566,6 @@ describe('FileWorkspace design-system project surface', () => {
         projectId="ds-acme"
         projectKind="prototype"
         files={[workspaceFile('DESIGN.md'), workspaceFile('preview/colors.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}

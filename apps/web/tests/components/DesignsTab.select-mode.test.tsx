@@ -7,11 +7,7 @@ import { DesignsTab } from '../../src/components/DesignsTab';
 import type { Project } from '../../src/types';
 
 vi.mock('../../src/providers/registry', () => ({
-  deleteLiveArtifact: vi.fn(),
-  fetchLiveArtifacts: vi.fn(async () => []),
   fetchProjectFiles: vi.fn(async () => []),
-  liveArtifactPreviewUrl: (projectId: string, artifactId: string) =>
-    `/api/projects/${projectId}/live-artifacts/${artifactId}/preview`,
   projectFileUrl: (projectId: string, fileName: string) =>
     `/api/projects/${projectId}/files/${fileName}`,
 }));
@@ -56,7 +52,6 @@ describe('DesignsTab select mode', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,
@@ -76,7 +71,6 @@ describe('DesignsTab select mode', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,
@@ -109,7 +103,6 @@ describe('DesignsTab select mode', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={onDelete}
         onRename={vi.fn()}
       />,
@@ -168,7 +161,6 @@ describe('DesignsTab select mode', () => {
           skills={[]}
           designSystems={[]}
           onOpen={vi.fn()}
-          onOpenLiveArtifact={vi.fn()}
           onDelete={onDelete}
           onRename={vi.fn()}
         />,
@@ -217,7 +209,6 @@ describe('DesignsTab select mode', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,
@@ -243,7 +234,6 @@ describe('DesignsTab select mode', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,

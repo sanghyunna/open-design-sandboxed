@@ -44,13 +44,12 @@ export interface UiScenario {
     | 'image-project-routing'
     | 'video-project-routing'
     | 'audio-project-routing'
-    | 'live-artifact-project-routing'
     | 'plugin-create-import';
   automated: boolean;
   description: string;
   create: {
     projectName: string;
-    tab?: 'prototype' | 'live-artifact' | 'deck' | 'template' | 'media' | 'other';
+    tab?: 'prototype' | 'deck' | 'template' | 'media' | 'other';
     mediaSurface?: 'image' | 'video' | 'audio';
     videoModel?: string;
     audioKind?: 'speech' | 'sfx';

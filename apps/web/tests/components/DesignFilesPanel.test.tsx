@@ -68,10 +68,8 @@ function renderPanel(
     <DesignFilesPanel
       projectId="test-project"
       files={files}
-      liveArtifacts={[]}
       onRefreshFiles={vi.fn()}
       onOpenFile={onOpenFile}
-      onOpenLiveArtifact={vi.fn()}
       onRenameFile={vi.fn()}
       onDeleteFile={vi.fn()}
       onDeleteFiles={onDeleteFiles}
@@ -399,12 +397,10 @@ describe('DesignFilesPanel directory navigation', () => {
             file({ name: 'assets/logo.png', kind: 'image' }),
             file({ name: 'top.html', kind: 'html' }),
           ]}
-          liveArtifacts={[]}
           navState={nav}
           onNavStateChange={(state) => { saved = state; }}
           onRefreshFiles={vi.fn()}
           onOpenFile={vi.fn()}
-          onOpenLiveArtifact={vi.fn()}
           onRenameFile={vi.fn()}
           onDeleteFile={vi.fn()}
           onDeleteFiles={vi.fn()}
@@ -463,10 +459,8 @@ describe('DesignFilesPanel directory navigation', () => {
         <DesignFilesPanel
           projectId="test-project"
           files={files}
-          liveArtifacts={[]}
           onRefreshFiles={vi.fn()}
           onOpenFile={vi.fn()}
-          onOpenLiveArtifact={vi.fn()}
           onRenameFile={vi.fn()}
           onDeleteFile={vi.fn()}
           onDeleteFiles={vi.fn()}

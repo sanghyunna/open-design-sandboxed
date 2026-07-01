@@ -4412,9 +4412,6 @@ function OrbitSection({
   const nextRunLabel = status?.nextRunAt ? new Date(status.nextRunAt).toLocaleString() : null;
   const lastRunAbs = lastRun ? new Date(lastRun.completedAt).toLocaleString() : null;
   const lastRunRel = formatRelative(lastRun?.completedAt, t);
-  const liveArtifactHref = lastRun?.artifactId && lastRun?.artifactProjectId
-    ? `/api/live-artifacts/${encodeURIComponent(lastRun.artifactId)}/preview?projectId=${encodeURIComponent(lastRun.artifactProjectId)}`
-    : null;
   const isBusy = running || Boolean(status?.running);
 
   const copyMarkdown = async () => {
@@ -4922,25 +4919,19 @@ function OrbitSection({
 
       {/* ---------- 5. LIVE ARTIFACT STRIP ---------- */}
       {lastRun ? (
-        <div
-          className={`orbit-artifact-strip${liveArtifactHref ? '' : ' is-legacy'}`}
-        >
+        <div className="orbit-artifact-strip is-legacy">
           <div className="orbit-artifact-strip-icon" aria-hidden="true">
             <Icon name="file-code" size={18} />
           </div>
           <div className="orbit-artifact-strip-copy">
             <span className="orbit-artifact-strip-kicker">
-              {liveArtifactHref
-                ? t('settings.orbit.artifactKickerLive')
-                : t('settings.orbit.artifactKickerLegacy')}
+              {t('settings.orbit.artifactKickerLegacy')}
             </span>
             <span className="orbit-artifact-strip-title">
               {t('settings.orbit.artifactTitle')}
             </span>
             <span className="orbit-artifact-strip-meta">
-              {liveArtifactHref
-                ? t('settings.orbit.artifactMetaLive')
-                : t('settings.orbit.artifactMetaLegacy')}
+              {t('settings.orbit.artifactMetaLegacy')}
             </span>
           </div>
           <div className="orbit-artifact-strip-actions">
@@ -4963,17 +4954,6 @@ function OrbitSection({
                   </>
                 )}
               </button>
-            ) : null}
-            {liveArtifactHref ? (
-              <a
-                className="orbit-artifact-open"
-                href={liveArtifactHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span>{t('settings.orbit.openArtifact')}</span>
-                <Icon name="external-link" size={13} />
-              </a>
             ) : null}
           </div>
           {lastRun.markdown ? (

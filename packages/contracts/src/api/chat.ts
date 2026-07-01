@@ -107,7 +107,6 @@ export interface ChatAnalyticsHints {
   entryFrom?: ChatAnalyticsEntryFrom;
   projectKind?:
     | 'prototype'
-    | 'live_artifact'
     | 'slide_deck'
     | 'template'
     | 'design_system'
@@ -314,24 +313,6 @@ export type PersistedAgentEvent =
   | { kind: 'status'; label: string; detail?: string; code?: string }
   | { kind: 'text'; text: string }
   | { kind: 'thinking'; text: string }
-  | {
-      kind: 'live_artifact';
-      action: 'created' | 'updated' | 'deleted';
-      projectId: string;
-      artifactId: string;
-      title: string;
-      refreshStatus?: string;
-    }
-  | {
-      kind: 'live_artifact_refresh';
-      phase: 'started' | 'succeeded' | 'failed';
-      projectId: string;
-      artifactId: string;
-      refreshId?: string;
-      title?: string;
-      refreshedSourceCount?: number;
-      error?: string;
-    }
   | { kind: 'tool_use'; id: string; name: string; input: unknown }
   | { kind: 'tool_result'; toolUseId: string; content: string; isError: boolean }
   | { kind: 'usage'; inputTokens?: number; outputTokens?: number; costUsd?: number; durationMs?: number }

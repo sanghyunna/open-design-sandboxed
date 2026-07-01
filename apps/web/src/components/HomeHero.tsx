@@ -2774,7 +2774,7 @@ function ShortcutsMenu({
 function homeHeroChipLabel(chipId: string, t: ReturnType<typeof useT>): string {
   switch (chipId) {
     case 'prototype': return t('homeHero.chip.prototype');
-    case 'live-artifact': return t('homeHero.chip.liveArtifact');
+    case 'report': return t('homeHero.chip.report');
     case 'deck': return t('homeHero.chip.deck');
     case 'create-plugin': return t('homeHero.chip.createPlugin');
     case 'figma': return t('homeHero.chip.figma');
@@ -2785,7 +2785,7 @@ function homeHeroChipLabel(chipId: string, t: ReturnType<typeof useT>): string {
 
 function homeHeroChipTitle(chip: HomeHeroChip, t: ReturnType<typeof useT>): string {
   switch (chip.id) {
-    case 'live-artifact': return t('homeHero.chip.liveArtifactHint');
+    case 'report': return t('homeHero.chip.reportHint');
     case 'create-plugin': return t('homeHero.chip.createPluginHint');
     case 'figma': return t('homeHero.chip.figmaHint');
     case 'template': return t('homeHero.chip.templateHint');
@@ -2849,8 +2849,8 @@ export function pluginMatchesExampleChip(record: InstalledPluginRecord, chipId: 
       return has('prototype') || hasPart('web-prototype');
     case 'deck':
       return has('deck', 'slides', 'slide-deck') || hasPart('slide', 'deck');
-    case 'live-artifact':
-      return has('live-artifact') || hasPart('live-artifact');
+    case 'report':
+      return has('report') || hasPart('report');
     default:
       return false;
   }

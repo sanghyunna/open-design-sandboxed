@@ -7,7 +7,6 @@ describe('projectKindToTracking', () => {
     expect(projectKindToTracking('prototype')).toBe('prototype');
     expect(projectKindToTracking('deck')).toBe('slide_deck');
     expect(projectKindToTracking('template')).toBe('template');
-    expect(projectKindToTracking('live-artifact')).toBe('live_artifact');
     expect(projectKindToTracking('other')).toBe('other');
     expect(projectKindToTracking(null)).toBeNull();
     expect(projectKindToTracking('bogus')).toBeNull();

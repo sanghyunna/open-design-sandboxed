@@ -27,7 +27,6 @@ triggers:
 od:
   mode: template
   platform: desktop
-  scenario: live-artifacts
   preview:
     type: html
     entry: index.html

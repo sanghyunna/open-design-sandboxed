@@ -461,13 +461,10 @@ function projectCover(
   return { kind: 'fallback', style, initial };
 }
 
-type ProjectCategory = 'prototype' | 'live-artifact' | 'slide';
+type ProjectCategory = 'prototype' | 'slide';
 
 function projectCategory(project: Project): ProjectCategory {
   const meta = project.metadata;
-  if (meta?.intent === 'live-artifact' || project.skillId === 'live-artifact') {
-    return 'live-artifact';
-  }
   if (meta?.kind === 'deck') return 'slide';
   return 'prototype';
 }
@@ -475,9 +472,7 @@ function projectCategory(project: Project): ProjectCategory {
 function ProjectTag({ category }: { category: ProjectCategory }) {
   const t = useT();
   const label =
-    category === 'live-artifact'
-      ? t('designs.tagLiveArtifact')
-      : category === 'slide'
+    category === 'slide'
         ? t('designs.tagSlide')
         : t('designs.tagPrototype');
   return <span className={`design-card-tag tag-${category}`}>{label}</span>;

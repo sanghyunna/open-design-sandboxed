@@ -9,7 +9,6 @@ export interface HttpDeps {
   requireLocalDaemonRequest: (...args: any[]) => any;
   resolvedPortRef: { current: number };
   sendApiError: (...args: any[]) => any;
-  sendLiveArtifactRouteError: (...args: any[]) => any;
   sendMulterError: (...args: any[]) => any;
 }
 
@@ -97,7 +96,6 @@ export interface ServerContext {
   artifacts: any;
   documents: any;
   auth: any;
-  liveArtifacts: any;
   deploy: any;
   media: any;
   appConfig: any;

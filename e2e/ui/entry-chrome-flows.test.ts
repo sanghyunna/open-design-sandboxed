@@ -93,7 +93,6 @@ test('[P0] @critical entry chrome exposes the primary home creation surface and 
   const createTabs = page.getByTestId('home-hero-type-tabs');
   await expect(createTabs).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-prototype')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-live-artifact')).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-deck')).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-image')).toBeVisible();
   await expect(page.getByTestId('home-hero-rail-video')).toBeVisible();

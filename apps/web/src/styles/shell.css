@@ -801,12 +801,7 @@
 }
 @media (max-width: 720px) {
   .app-chrome-content { display: none; }
-}
-.viewer.is-tab-present .viewer-toolbar,
-.viewer.is-tab-present .live-artifact-refresh-notice {
-  display: none;
-}
-.viewer.is-tab-present .viewer-body {
+}.viewer.is-tab-present .viewer-body {
   inset: 0;
 }
 .viewer .present-exit-btn {
@@ -829,16 +824,7 @@
 .viewer .present-exit-btn:hover {
   background: var(--bg-subtle);
   color: var(--text);
-}
-.live-artifact-preview-frame-host {
-  width: 100%;
-  height: 100%;
-  background: var(--bg);
-}
-.live-artifact-preview-frame-host:fullscreen {
-  background: var(--bg);
-}
-.project-target-platforms,
+}.project-target-platforms,
 .project-feature-chips {
   display: inline-flex;
   align-items: center;

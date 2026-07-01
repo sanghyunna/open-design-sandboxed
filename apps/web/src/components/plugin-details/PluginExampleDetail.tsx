@@ -65,9 +65,7 @@ export function PluginExampleDetail({
         setHtml(undefined);
       } else {
         // unavailable: the plugin's manifest declares no shipped
-        // preview entry (or the daemon 404s on its /preview path —
-        // common for bundled plugins like example-live-artifact whose
-        // manifest references an example file that doesn't ship).
+        // preview entry (or the daemon 404s on its /preview path).
         // Forward to PreviewModal as a typed unavailable view so it
         // renders the calm "no shipped preview" placeholder instead
         // of the misleading "Couldn't load this example." error. The

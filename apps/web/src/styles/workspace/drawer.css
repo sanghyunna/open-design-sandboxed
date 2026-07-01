@@ -348,7 +348,6 @@
   }
 }
 
-
 /* Keep the connector details drawer inside the embedded connectors panel.
    The shared drawer remains full-viewport elsewhere, but embedded usage
    needs an in-panel overlay so it does not stack above the settings modal. */
@@ -733,15 +732,7 @@
   background: var(--bg-panel);
   border-color: rgba(35, 72, 184, 0.18);
 }
-.design-card.featured .design-card-thumb::after { display: none; }
-
-.live-artifact-card {
-  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
-}
-.live-artifact-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 48%, var(--border-strong));
-}
-.project-thumb::before,
+.design-card.featured .design-card-thumb::after { display: none; }.project-thumb::before,
 .project-thumb::after {
   display: none;
 }
@@ -797,84 +788,7 @@
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
-}
-.live-artifact-thumb {
-  background:
-    radial-gradient(circle at 32% 28%, rgba(116, 92, 255, 0.18), transparent 36%),
-    linear-gradient(135deg, rgba(66, 153, 225, 0.16), rgba(116, 92, 255, 0.12));
-}
-.live-artifact-thumb::before,
-.live-artifact-thumb::after {
-  display: none;
-}
-.live-artifact-thumb-glyph {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  background: var(--bg-panel);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
-  box-shadow: var(--shadow-xs);
-  font-size: 18px;
-  line-height: 1;
-}
-.design-card-badges,
-.live-artifact-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  min-height: 18px;
-}
-.live-artifact-badge,
-.design-live-count {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  padding: 2px 7px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1.2;
-  background: var(--bg-panel);
-}
-.live-artifact-badge.live {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
-  background: color-mix(in srgb, var(--accent) 9%, var(--bg-panel));
-}
-.live-artifact-badge.refreshing {
-  color: #1d4ed8;
-  border-color: rgba(29, 78, 216, 0.22);
-  background: rgba(29, 78, 216, 0.08);
-}
-.live-artifact-badge.refresh-failed {
-  color: #b42318;
-  border-color: rgba(180, 35, 24, 0.22);
-  background: rgba(180, 35, 24, 0.08);
-}
-.live-artifact-badge.archived {
-  color: var(--text-muted);
-  border-color: var(--border-strong);
-  background: var(--bg-subtle);
-}
-.live-artifact-badges.compact {
-  display: inline-flex;
-  gap: 4px;
-  min-height: 0;
-  vertical-align: middle;
-}
-.live-artifact-badges.compact .live-artifact-badge {
-  padding: 1px 5px;
-  font-size: 9px;
-  line-height: 1.25;
-}
-.design-live-count {
+}.design-live-count {
   position: absolute;
   right: 10px;
   bottom: 10px;
@@ -1452,15 +1366,7 @@
   min-width: 0;
   color: var(--text-muted);
   transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
-}
-.ws-tab.live-artifact-tab {
-  /* Wide enough to hold the icon, a truncated title, the status badges
-     (LIVE + REFRESH FAILED) and the close button without any of them
-     spilling onto the neighbouring tab. The title yields space first
-     (see .ws-tab-text override below), so the badges stay fully legible. */
-  max-width: 260px;
-}
-.ws-tab:hover { background: var(--bg-subtle); color: var(--text); }
+}.ws-tab:hover { background: var(--bg-subtle); color: var(--text); }
 .ws-tab.draggable { cursor: grab; }
 .ws-tab.dragging {
   cursor: grabbing;
@@ -1541,34 +1447,7 @@
   content: "/";
   margin-right: 5px;
   color: color-mix(in srgb, var(--text-faint) 72%, transparent);
-}
-.ws-tab.live-artifact-tab .ws-tab-label {
-  max-width: none;
-}
-/* The title is the lowest-priority element in a live-artifact tab: when the
-   tab is squeezed, collapse the title (it stays available via the tab tooltip)
-   before clipping the status badges or pushing the close button out. */
-.ws-tab.live-artifact-tab .ws-tab-text {
-  flex-shrink: 100;
-}
-.ws-live-artifact-badges {
-  /* Shrink (and clip) as a last resort instead of overflowing the tab box.
-     Previously flex:0 0 auto + overflow:visible let long badge combinations
-     (e.g. LIVE + REFRESH FAILED, or longer locales) bleed the badges and the
-     close button onto the adjacent tab. */
-  flex: 0 1 auto;
-  flex-wrap: nowrap;
-  min-width: 0;
-  max-width: none;
-  overflow: hidden;
-}
-.ws-live-artifact-badges .live-artifact-badge:not(.live):not(.refreshing):not(.refresh-failed):not(.archived) {
-  display: none;
-}
-.ws-live-artifact-badges:has(.refreshing) .live-artifact-badge.live {
-  display: none;
-}
-.ws-tab-close {
+}.ws-tab-close {
   flex: 0 0 auto;
   border: none;
   background: transparent;
@@ -1741,7 +1620,6 @@
   margin: 0 0 24px 0;
   letter-spacing: -0.01em;
 }
-
 
 .designs-empty-cta {
   display: inline-flex;

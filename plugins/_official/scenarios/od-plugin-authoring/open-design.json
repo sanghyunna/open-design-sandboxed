@@ -94,8 +94,7 @@
         {
           "id": "generate-plugin",
           "atoms": [
-            "file-write",
-            "live-artifact"
+            "file-write"
           ]
         },
         {

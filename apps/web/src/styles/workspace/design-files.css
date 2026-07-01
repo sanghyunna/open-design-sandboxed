@@ -311,11 +311,7 @@
   color: inherit;
   position: relative;
   transition: background 120ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-.df-row-live-artifact {
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-}
-.df-row-plugin-folder {
+}.df-row-plugin-folder {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, auto);
   cursor: default;
 }

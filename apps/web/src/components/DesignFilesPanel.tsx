@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
 import { projectFileUrl, projectRawUrl } from '../providers/registry';
 import { buildSrcdoc } from '../runtime/srcdoc';
-import type { LiveArtifactWorkspaceEntry, ProjectFile, ProjectFileKind, ProjectFolder } from '../types';
+import type { ProjectFile, ProjectFileKind, ProjectFolder } from '../types';
 import {
   createFileSystemReadError,
   FILE_SYSTEM_READ_ERROR_MESSAGE,
@@ -15,7 +15,6 @@ import { selectInitialDesignPreviewFile } from './design-files/designArtifacts';
 import type { PluginFolderAgentAction } from './design-files/pluginFolderActions';
 import { getPluginFolderCandidates } from './design-files/pluginFolders';
 import { Icon } from './Icon';
-import { LiveArtifactBadges } from './LiveArtifactBadges';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 type TranslateFn = (key: keyof Dict, vars?: Record<string, string | number>) => string;
@@ -45,10 +44,8 @@ interface Props {
   // with a matching path prefix exists, so empty (user-created or imported)
   // folders would vanish from the tree.
   folders?: ProjectFolder[];
-  liveArtifacts: LiveArtifactWorkspaceEntry[];
   onRefreshFiles: () => Promise<void> | void;
   onOpenFile: (name: string) => void;
-  onOpenLiveArtifact: (tabId: LiveArtifactWorkspaceEntry['tabId']) => void;
   onRenameFile: (from: string, to: string) => Promise<ProjectFile | null> | ProjectFile | null;
   onDeleteFile: (name: string) => void;
   onDeleteFiles: (names: string[]) => Promise<void> | void;
@@ -263,9 +260,7 @@ export function DesignFilesPanel({
   running = false,
   files,
   folders,
-  liveArtifacts,
   onOpenFile,
-  onOpenLiveArtifact,
   onRenameFile,
   onDeleteFile,
   onDeleteFiles,
@@ -946,7 +941,7 @@ export function DesignFilesPanel({
               </div>
             </div>
           ) : null}
-          {files.length === 0 && liveArtifacts.length === 0 && (folders?.length ?? 0) === 0 ? (
+          {files.length === 0 && (folders?.length ?? 0) === 0 ? (
             <div className="df-empty" data-testid="design-files-empty">
               <div className="df-empty-pill">
                 <span className="df-empty-title">
@@ -966,41 +961,6 @@ export function DesignFilesPanel({
             </div>
           ) : (
             <>
-              {liveArtifacts.length > 0 ? (
-                <div className="df-section" key="live-artifacts">
-                  <div className="df-section-label">{t('designFiles.sectionLiveArtifacts')}</div>
-                  {liveArtifacts.map((artifact) => (
-                    <button
-                      key={artifact.artifactId}
-                      type="button"
-                      data-testid={`design-file-row-${artifact.tabId}`}
-                      className="df-row df-row-live-artifact"
-                      onDoubleClick={() => onOpenLiveArtifact(artifact.tabId)}
-                      onClick={() => onOpenLiveArtifact(artifact.tabId)}
-                    >
-                      <span className="df-row-icon" data-kind="live-artifact" aria-hidden>
-                        ◉
-                      </span>
-                      <span className="df-row-name-wrap">
-                        <span className="df-row-name" title={artifact.title}>
-                          {artifact.title}
-                        </span>
-                        <span className="df-row-sub">
-                          <span>{t('designFiles.kindLiveArtifact')}</span>
-                          <LiveArtifactBadges
-                            compact
-                            status={artifact.status}
-                            refreshStatus={artifact.refreshStatus}
-                          />
-                        </span>
-                      </span>
-                      <span className="df-row-time">
-                        {relativeTime(Date.parse(artifact.updatedAt) || Date.now(), t)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
               {pluginFolders.length > 0 ? (
                 <div className="df-section" key="plugin-folders">
                   <div className="df-section-label">

@@ -34,11 +34,11 @@ describe('defaultScenarioPluginIdForKind', () => {
     expect(defaultScenarioPluginIdForKind(undefined)).toBeNull();
   });
 
-  it('routes live-artifact intent to the dedicated bundled live artifact scenario', () => {
+  it('routes report intent to the dedicated bundled report scenario', () => {
     expect(defaultScenarioPluginIdForProjectMetadata({
       kind: 'prototype',
-      intent: 'live-artifact',
-    })).toBe('example-live-artifact');
+      intent: 'report',
+    })).toBe('example-report');
     expect(defaultScenarioPluginIdForProjectMetadata({ kind: 'prototype' }))
       .toBe('example-web-prototype');
     expect(defaultScenarioPluginIdForProjectMetadata(undefined)).toBeNull();

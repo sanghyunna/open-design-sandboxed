@@ -31,12 +31,6 @@
       "tags": ["create", "deck", "slides"]
     },
     {
-      "name": "create-live-artifact-ops",
-      "source": "./create-live-artifact-ops",
-      "version": "0.1.0",
-      "tags": ["create", "live-artifact", "dashboard"]
-    },
-    {
       "name": "create-image-campaign",
       "source": "./create-image-campaign",
       "version": "0.1.0",

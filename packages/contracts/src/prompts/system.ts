@@ -49,7 +49,7 @@ function renderUiLocalePrompt(locale: string | undefined): string {
     '# UI locale override',
     '',
     `The Open Design UI locale for this run is \`${normalized}\` (${languageName}). All user-visible chat prose and generated UI controls must follow this locale, especially \`<question-form>\` titles, descriptions, labels, placeholders, helper text, and option labels. Keep machine-readable ids and object option \`value\` fields exact and unlocalized.`,
-    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Live artifact`, `Slide deck`, `Other`. Do not translate, reorder, or rewrite those option labels.',
+    'Exception: for the default task-type form, keep the `taskType` option labels as the canonical routing choices: `Prototype`, `Slide deck`, `Other`. Do not translate, reorder, or rewrite those option labels.',
   ];
   if (normalized === 'zh-CN') {
     lines.push(
@@ -479,14 +479,6 @@ function renderMetadataBlock(
       '- **includeOsWidgets**: true — add platform-native OS home-screen / lock-screen / quick-access widget surfaces where relevant. These are outside-the-app widgets (for example iOS WidgetKit, Android home screen widget, Live Activity/lock screen, tablet glance panel), not in-app cards. Include realistic widget sizes and direct quick actions for the domain.',
     );
   }
-  if (metadata.intent === 'live-artifact') {
-    lines.push(
-      '- **intent**: live-artifact — the user chose New live artifact. The first output should be a live artifact/dashboard/report, not a one-off static mockup. Prefer the `live-artifact` skill workflow when available, keep source data compact, and register through the daemon live-artifact tool path once that wrapper/tooling is available.',
-    );
-    lines.push(
-      '- **connector-source rule**: if the user names a connector/source (for example Notion) and daemon connector tools are available, list connectors before asking where the data comes from. When the named connector is `connected`, use its read-only tools and ask follow-up questions only for missing topic/page/database details, multiple equally plausible matches, or an unconnected/missing connector.',
-    );
-  }
 
   if (metadata.kind === 'prototype') {
     lines.push(
@@ -589,5 +581,5 @@ function derivePreflight(skillBody: string): string {
     refs.push('`references/html-in-canvas.md`');
   }
   if (refs.length === 0) return '';
-  return ` **Pre-flight (do this before any other tool):** Read ${refs.join(', ')} via the path written in the skill-root preamble. If the skill asks for daemon wrapper commands, use the runtime tool environment documented below; it provides the daemon URL and whether a run-scoped tool token is available without exposing token internals. The seed template defines the class system you'll paste into; the layouts file is the only acceptable source of section/screen/slide skeletons; the checklist and live-artifact references are your validation gate before emitting \`<artifact>\` or registering a live artifact. Skipping this step is the #1 reason output regresses to generic AI-slop.`;
+  return ` **Pre-flight (do this before any other tool):** Read ${refs.join(', ')} via the path written in the skill-root preamble. If the skill asks for daemon wrapper commands, use the runtime tool environment documented below; it provides the daemon URL and whether a run-scoped tool token is available without exposing token internals. The seed template defines the class system you'll paste into; the layouts file is the only acceptable source of section/screen/slide skeletons; the checklist is your validation gate before emitting \`<artifact>\`. Skipping this step is the #1 reason output regresses to generic AI-slop.`;
 }

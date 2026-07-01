@@ -9,7 +9,6 @@ import {
   trackNewProjectModalSurfaceView,
   trackNewProjectModalTabClick,
 } from '../analytics/events';
-import type { ConnectorDetail } from '@open-design/contracts';
 import type {
   TrackingDesignSystemApplyTargetKind,
   TrackingDesignSystemOrigin,
@@ -84,7 +83,7 @@ const DESIGN_PLATFORMS: Array<{
   },
 ];
 
-export type CreateTab = 'prototype' | 'live-artifact' | 'deck' | 'template' | 'other';
+export type CreateTab = 'prototype' | 'deck' | 'template' | 'other';
 
 export interface CreateInput {
   name: string;
@@ -118,16 +117,12 @@ interface Props {
   // host-owned project identifiers and forwards them here so App-level
   // state can refresh through the daemon API.
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
-  connectors?: ConnectorDetail[];
-  connectorsLoading?: boolean;
-  onOpenConnectorsTab?: () => void;
   loading?: boolean;
   initialTab?: CreateTab;
 }
 
 const TAB_LABEL_KEYS: Record<CreateTab, keyof Dict> = {
   prototype: 'newproj.tabPrototype',
-  'live-artifact': 'newproj.tabLiveArtifact',
   deck: 'newproj.tabDeck',
   template: 'newproj.tabTemplate',
   other: 'newproj.tabOther',
@@ -142,8 +137,6 @@ function newProjectTabToApplyKind(
       return 'prototype';
     case 'deck':
       return 'slide_deck';
-    case 'live-artifact':
-      return 'live_artifact';
     case 'template':
     case 'other':
       return 'unknown';
@@ -218,9 +211,6 @@ export function NewProjectPanel({
   onImportClaudeDesign,
   onImportFolder,
   onImportFolderResponse,
-  connectors,
-  connectorsLoading = false,
-  onOpenConnectorsTab,
   loading = false,
   initialTab = 'prototype',
 }: Props) {
@@ -294,7 +284,7 @@ export function NewProjectPanel({
   // non-Orbit default skill does not require one.
   const tabDefaultSkillForcesNoDs = useMemo(() => {
     const tabSkillId = ((): string | null => {
-      if (tab === 'prototype' || tab === 'live-artifact') {
+      if (tab === 'prototype') {
         const list = skills.filter((s) => s.mode === 'prototype');
         return list.find((s) => s.defaultFor.includes('prototype'))?.id
           ?? list[0]?.id ?? null;
@@ -385,19 +375,6 @@ export function NewProjectPanel({
       const list = skills.filter((s) => s.mode === 'prototype');
       return list.find((s) => s.defaultFor.includes('prototype'))?.id
         ?? list[0]?.id
-        ?? null;
-    }
-    if (tab === 'live-artifact') {
-      const exact = skills.find((s) => s.id === 'live-artifact' || s.name === 'live-artifact');
-      if (exact) return exact.id;
-      const hinted = skills.find((s) => {
-        const haystack = `${s.id} ${s.name} ${s.description} ${s.triggers.join(' ')}`.toLowerCase();
-        return haystack.includes('live artifact') || haystack.includes('live-artifact');
-      });
-      if (hinted) return hinted.id;
-      const prototypes = skills.filter((s) => s.mode === 'prototype');
-      return prototypes.find((s) => s.defaultFor.includes('prototype'))?.id
-        ?? prototypes[0]?.id
         ?? null;
     }
     if (tab === 'deck') {
@@ -656,12 +633,6 @@ export function NewProjectPanel({
       <div className="newproj-body">
         <h3 className="newproj-title">
           <span className="newproj-title-text">{titleForTab(tab, t)}</span>
-          {tab === 'live-artifact' ? (
-            // "Beta" is an internationally adopted brand-style status marker;
-            // intentionally not run through t() (consistent with short product
-            // status pills that read the same across our supported locales).
-            <span className="newproj-title-badge" aria-label="Beta feature">Beta</span>
-          ) : null}
         </h3>
 
         <div className="newproj-name-row">
@@ -722,11 +693,11 @@ export function NewProjectPanel({
 
 
 
-        {tab === 'prototype' || tab === 'live-artifact' || tab === 'template' || tab === 'other' ? (
+        {tab === 'prototype' || tab === 'template' || tab === 'other' ? (
           <PlatformPicker value={platformTargets} onChange={setPlatformTargets} />
         ) : null}
 
-        {tab === 'prototype' || tab === 'live-artifact' || tab === 'template' || tab === 'other' ? (
+        {tab === 'prototype' || tab === 'template' || tab === 'other' ? (
           <SurfaceOptions
             includeLandingPage={includeLandingPage}
             includeOsWidgets={includeOsWidgets}
@@ -735,18 +706,8 @@ export function NewProjectPanel({
           />
         ) : null}
 
-        {/* Live artifact always renders at high fidelity — its whole point
-            is data-bound polished UI, so the wireframe option is hidden. */}
         {tab === 'prototype' ? (
           <FidelityPicker value={fidelity} onChange={setFidelity} />
-        ) : null}
-
-        {tab === 'live-artifact' ? (
-          <ConnectorsSection
-            connectors={connectors}
-            loading={connectorsLoading}
-            onOpenConnectorsTab={onOpenConnectorsTab}
-          />
         ) : null}
 
         {tab === 'deck' ? (
@@ -793,8 +754,6 @@ export function NewProjectPanel({
           <span>
             {tab === 'template'
               ? t('newproj.createFromTemplate')
-              : tab === 'live-artifact'
-                ? t('newproj.createLiveArtifact')
               : t('newproj.create')}
           </span>
         </button>
@@ -1074,108 +1033,6 @@ function FidelityPicker({
           variant="high-fidelity"
         />
       </div>
-    </div>
-  );
-}
-
-/* ============================================================
-   Connectors section (live-artifact only).
-   - Lists configured connectors as compact chips so the user can
-     see at a glance what data sources this artifact can pull from.
-   - When no connector is configured (or the list hasn't loaded yet
-     and ended up empty), shows a guidance card that, on click, opens
-     the Settings → Connectors surface (the new home of the catalog).
-   ============================================================ */
-function ConnectorsSection({
-  connectors,
-  loading,
-  onOpenConnectorsTab,
-}: {
-  connectors?: ConnectorDetail[];
-  loading: boolean;
-  onOpenConnectorsTab?: () => void;
-}) {
-  const t = useT();
-  const configured = useMemo(
-    () => (connectors ?? []).filter((c) => c.status === 'connected'),
-    [connectors],
-  );
-  const hasConfigured = configured.length > 0;
-
-  if (loading && !connectors) {
-    return (
-      <div className="newproj-section newproj-connectors">
-        <label className="newproj-label">{t('newproj.connectorsLabel')}</label>
-        <Skeleton height={56} width="100%" radius={8} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="newproj-section newproj-connectors"
-      data-testid="new-project-connectors"
-    >
-      <div className="newproj-connectors-head">
-        <label className="newproj-label">{t('newproj.connectorsLabel')}</label>
-        {hasConfigured ? (
-          <button
-            type="button"
-            className="newproj-connectors-manage"
-            onClick={() => onOpenConnectorsTab?.()}
-            data-testid="new-project-connectors-manage"
-          >
-            {t('newproj.connectorsManage')}
-          </button>
-        ) : null}
-      </div>
-
-      {hasConfigured ? (
-        <>
-          <span className="newproj-connectors-hint">
-            {configured.length === 1
-              ? t('newproj.connectorsCountOne', { n: configured.length })
-              : t('newproj.connectorsCountMany', { n: configured.length })}
-            <span aria-hidden> · </span>
-            {t('newproj.connectorsHint')}
-          </span>
-          <ul className="newproj-connectors-list" aria-label={t('newproj.connectorsLabel')}>
-            {configured.map((c) => (
-              <li
-                key={c.id}
-                className="newproj-connector-chip"
-                title={c.name}
-              >
-                <span className="newproj-connector-dot" aria-hidden />
-                <span className="newproj-connector-name">{c.name}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <button
-          type="button"
-          className="newproj-connectors-empty"
-          onClick={() => onOpenConnectorsTab?.()}
-          data-testid="new-project-connectors-empty"
-          aria-label={t('newproj.connectorsEmptyCta')}
-        >
-          <span className="newproj-connectors-empty-icon" aria-hidden>
-            <Icon name="link" size={14} />
-          </span>
-          <span className="newproj-connectors-empty-text">
-            <span className="newproj-connectors-empty-title">
-              {t('newproj.connectorsEmptyTitle')}
-            </span>
-            <span className="newproj-connectors-empty-body">
-              {t('newproj.connectorsEmptyBody')}
-            </span>
-            <span className="newproj-connectors-empty-cta">
-              {t('newproj.connectorsEmptyCta')}
-            </span>
-          </span>
-        </button>
-      )}
     </div>
   );
 }
@@ -2106,8 +1963,7 @@ function buildMetadata(input: {
   templates: ProjectTemplate[];
   inspirationIds: string[];
 }): ProjectMetadata {
-  const kind: ProjectKind =
-    input.tab === 'live-artifact' ? 'prototype' : input.tab;
+  const kind: ProjectKind = input.tab;
   const selectedPlatforms = normalizeSelectedPlatforms(input.platformTargets);
   const concreteTargets = platformTargetsFor(selectedPlatforms);
   const canIncludeOsWidgets = platformTargetsSupportOsWidgets(concreteTargets);
@@ -2123,14 +1979,11 @@ function buildMetadata(input: {
   const inspirations = input.inspirationIds.length > 0
     ? { inspirationDesignSystemIds: input.inspirationIds }
     : {};
-  if (input.tab === 'prototype' || input.tab === 'live-artifact') {
+  if (input.tab === 'prototype') {
     return {
       kind,
       ...base,
-      // Live artifact is locked to high fidelity (the picker is hidden in
-      // the panel) — wireframe live artifacts don't make sense.
-      fidelity: input.tab === 'live-artifact' ? 'high-fidelity' : input.fidelity,
-      ...(input.tab === 'live-artifact' ? { intent: 'live-artifact' as const } : {}),
+      fidelity: input.fidelity,
       ...inspirations,
     };
   }
@@ -2213,8 +2066,6 @@ function titleForTab(
   switch (tab) {
     case 'prototype':
       return t('newproj.titlePrototype');
-    case 'live-artifact':
-      return t('newproj.titleLiveArtifact');
     case 'deck':
       return t('newproj.titleDeck');
     case 'template':

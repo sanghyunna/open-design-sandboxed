@@ -2067,7 +2067,6 @@ export function DesignSystemDetailView({
                 projectId={workspaceProjectId}
                 projectKind="prototype"
                 files={workspaceProjectFiles}
-                liveArtifacts={[]}
                 onRefreshFiles={() => {
                   void refreshDesignSystemWorkspace(workspaceProjectId);
                 }}

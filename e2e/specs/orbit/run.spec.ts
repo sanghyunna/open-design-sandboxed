@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 import { createFakeAgentRuntimes } from '@/fake-agents';
-import { listLiveArtifacts, readLiveArtifactPreview } from '@/vitest/live-artifacts';
 import { readOrbitStatus, startOrbitRun, waitForOrbitSummary } from '@/vitest/orbit';
 import { readRun, waitForRunStatus } from '@/vitest/runs';
 import { createSmokeSuite } from '@/vitest/smoke-suite';
@@ -74,26 +73,10 @@ describe('orbit run spec', () => {
       expect(summary?.markdown).toContain('Orbit Agent');
 
       const project = await requestJson<ProjectResponse>(webUrl, `/api/projects/${encodeURIComponent(orbit.projectId)}`);
-      expect(project.project.skillId).toBe('live-artifact');
       expect(project.project.metadata?.kind).toBe('orbit');
       expect(project.project.metadata?.trigger).toBe('manual');
 
-      const artifacts = await listLiveArtifacts(webUrl, orbit.projectId);
-      const artifact = artifacts.find((candidate) => candidate.id === summary?.artifactId);
-      expect(artifact).toEqual(expect.objectContaining({
-        createdByRunId: orbit.agentRunId,
-        projectId: orbit.projectId,
-        refreshStatus: 'idle',
-        status: 'active',
-        title: 'Orbit Daily Digest',
-      }));
-
-      const preview = await readLiveArtifactPreview(webUrl, orbit.projectId, artifact?.id ?? '');
-      expect(preview).toContain('Orbit daily digest');
-      expect(preview).toContain('Fake connector activity');
-
       await suite.report.json('summary.json', {
-        artifact,
         namespace: suite.namespace,
         orbit: finalOrbit,
         project: project.project,

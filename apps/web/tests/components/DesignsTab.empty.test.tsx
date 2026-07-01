@@ -6,11 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { DesignsTab } from '../../src/components/DesignsTab';
 
 vi.mock('../../src/providers/registry', () => ({
-  deleteLiveArtifact: vi.fn(),
-  fetchLiveArtifacts: vi.fn(async () => []),
   fetchProjectFiles: vi.fn(async () => []),
-  liveArtifactPreviewUrl: (projectId: string, artifactId: string) =>
-    `/api/projects/${projectId}/live-artifacts/${artifactId}/preview`,
   projectFileUrl: (projectId: string, fileName: string) =>
     `/api/projects/${projectId}/files/${fileName}`,
 }));
@@ -46,7 +42,6 @@ describe('DesignsTab empty state', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
         onNewProject={onNewProject}
@@ -73,7 +68,6 @@ describe('DesignsTab empty state', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,
@@ -103,7 +97,6 @@ describe('DesignsTab empty state', () => {
         skills={[]}
         designSystems={[]}
         onOpen={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDelete={vi.fn()}
         onRename={vi.fn()}
       />,

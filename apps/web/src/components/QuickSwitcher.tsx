@@ -316,8 +316,6 @@ function workspaceContextKindLabel(kind: WorkspaceContextItem['kind']): string {
       return 'Terminal';
     case 'side-chat':
       return 'Side chat';
-    case 'live-artifact':
-      return 'Live artifact';
     case 'file':
     default:
       return 'File';

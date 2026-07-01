@@ -1,36 +1,5 @@
-import type { LiveArtifactRefreshStatus } from '../api/live-artifacts.js';
 import type { SseErrorPayload } from '../errors.js';
 import type { SseTransportEvent } from './common.js';
-
-export type LiveArtifactSseAction = 'created' | 'updated' | 'deleted';
-export type LiveArtifactRefreshSsePhase = 'started' | 'succeeded' | 'failed';
-
-export interface LiveArtifactSsePayload {
-  type: 'live_artifact';
-  action: LiveArtifactSseAction;
-  projectId: string;
-  artifactId: string;
-  title: string;
-  /**
-   * Refresh lifecycle state of the artifact at emit time. Typed against the
-   * canonical `LiveArtifactRefreshStatus` enum used by the REST API so that
-   * SSE consumers (web, CLI) can switch on the same union members without
-   * widening to `string`. Optional because the daemon may omit the field on
-   * legacy events; consumers must still null-check before narrowing.
-   */
-  refreshStatus?: LiveArtifactRefreshStatus;
-}
-
-export interface LiveArtifactRefreshSsePayload {
-  type: 'live_artifact_refresh';
-  phase: LiveArtifactRefreshSsePhase;
-  projectId: string;
-  artifactId: string;
-  refreshId?: string;
-  title?: string;
-  refreshedSourceCount?: number;
-  error?: string;
-}
 
 /**
  * Emitted by the daemon on `/api/projects/:id/events` when a new
@@ -83,8 +52,6 @@ export type DaemonAgentPayload =
   | { type: 'text_delta'; delta: string }
   | { type: 'thinking_delta'; delta: string }
   | { type: 'thinking_start' }
-  | LiveArtifactSsePayload
-  | LiveArtifactRefreshSsePayload
   | { type: 'tool_use'; id: string; name: string; input: unknown }
   /**
    * Live-only incremental tool-input fragment, emitted while the model is still

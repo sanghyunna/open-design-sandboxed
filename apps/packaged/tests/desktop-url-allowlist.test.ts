@@ -55,13 +55,7 @@ describe('isHttpUrl', () => {
 });
 
 describe('isAllowedChildWindowUrl (issue #911)', () => {
-  it('allows the packaged od:// scheme so live artifact previews open in a child BrowserWindow', () => {
-    // The flagship #911 case: the Orbit panel's "Open artifact"
-    // button is an `<a target="_blank" href="/api/live-artifacts/.../preview?projectId=...">`.
-    // In packaged builds the renderer lives at `od://app/`, so that
-    // relative href resolves to `od://app/api/live-artifacts/.../preview?projectId=...`
-    // by the time `setWindowOpenHandler` sees it.
-    expect(isAllowedChildWindowUrl('od://app/api/live-artifacts/abc/preview?projectId=p1')).toBe(true);
+  it('allows the packaged od:// scheme for child window routing', () => {
     expect(isAllowedChildWindowUrl('od://app/')).toBe(true);
   });
 

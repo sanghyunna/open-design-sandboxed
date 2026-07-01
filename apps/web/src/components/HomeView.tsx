@@ -1626,7 +1626,7 @@ export function shouldShowActivePluginChip(active: ActivePlugin | null): boolean
 function homeHeroChipLabelForId(chipId: string, t: ReturnType<typeof useI18n>['t']): string {
   switch (chipId) {
     case 'prototype': return t('homeHero.chip.prototype');
-    case 'live-artifact': return t('homeHero.chip.liveArtifact');
+    case 'report': return t('homeHero.chip.report');
     case 'deck': return t('homeHero.chip.deck');
     case 'create-plugin': return t('homeHero.chip.createPlugin');
     case 'figma': return t('homeHero.chip.figma');

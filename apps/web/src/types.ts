@@ -35,14 +35,6 @@ import type {
   DesignSystemTokenContractRebuildDecision,
   DesignSystemTokenContractRebuildJobRequest,
   DesignSystemTokenContractRebuildJobResponse,
-  LiveArtifact,
-  LiveArtifactDetailResponse,
-  LiveArtifactListResponse,
-  LiveArtifactPreview,
-  LiveArtifactRefreshLogEntry,
-  LiveArtifactRefreshStatus,
-  LiveArtifactStatus,
-  LiveArtifactSummary,
   MediaAspect,
   OrbitRunSummary,
   OrbitStatusResponse,
@@ -105,27 +97,13 @@ export type {
 export type ExecMode = 'daemon' | 'api';
 export type ApiProtocol = 'anthropic' | 'openai' | 'azure' | 'google' | 'ollama' | 'senseaudio' | 'aihubmix';
 
-export type LiveArtifactTabId = `live:${string}`;
 // Tab ids are arbitrary strings; the template-literal members below are
 // conventions FileWorkspace's `.ws-body` switch keys off (`live:` → live
 // artifact viewer, `chat:` → Side Chat tab). See `SideChatTabId` below.
 export type ProjectWorkspaceTabId =
   | string
-  | LiveArtifactTabId
   | SideChatTabId
   | TerminalTabId;
-
-export function liveArtifactTabId(artifactId: string): LiveArtifactTabId {
-  return `live:${artifactId}`;
-}
-
-export function isLiveArtifactTabId(tabId: string): tabId is LiveArtifactTabId {
-  return tabId.startsWith('live:') && tabId.length > 'live:'.length;
-}
-
-export function liveArtifactIdFromTabId(tabId: LiveArtifactTabId): string {
-  return tabId.slice('live:'.length);
-}
 
 // Side Chat tab convention. A `chat:<conversationId>` tab mounts a secondary
 // ChatPane bound to that conversation (Stage 2), mirroring the `live:` scheme
@@ -163,12 +141,6 @@ export function terminalIdFromTabId(tabId: TerminalTabId): string {
   return tabId.slice('terminal:'.length);
 }
 
-export type LiveArtifactViewerTab =
-  | 'preview'
-  | 'code'
-  | 'data'
-  | 'refresh-history';
-
 export interface ProjectFileWorkspaceEntry {
   kind: 'file';
   tabId: string;
@@ -176,50 +148,7 @@ export interface ProjectFileWorkspaceEntry {
   file: ProjectFile;
 }
 
-export interface LiveArtifactWorkspaceEntry {
-  kind: 'live-artifact';
-  tabId: LiveArtifactTabId;
-  artifactId: string;
-  projectId: string;
-  title: string;
-  slug: string;
-  status: LiveArtifactStatus;
-  refreshStatus: LiveArtifactRefreshStatus;
-  pinned: boolean;
-  preview: LiveArtifactPreview;
-  hasDocument: boolean;
-  updatedAt: string;
-  lastRefreshedAt?: string;
-}
-
-export type ProjectWorkspaceEntry = ProjectFileWorkspaceEntry | LiveArtifactWorkspaceEntry;
-
-export function liveArtifactSummaryToWorkspaceEntry(
-  liveArtifact: LiveArtifactSummary,
-): LiveArtifactWorkspaceEntry {
-  const entry: LiveArtifactWorkspaceEntry = {
-    kind: 'live-artifact',
-    tabId: liveArtifactTabId(liveArtifact.id),
-    artifactId: liveArtifact.id,
-    projectId: liveArtifact.projectId,
-    title: liveArtifact.title,
-    slug: liveArtifact.slug,
-    status: liveArtifact.status,
-    refreshStatus: liveArtifact.refreshStatus,
-    pinned: liveArtifact.pinned,
-    preview: liveArtifact.preview,
-    hasDocument: liveArtifact.hasDocument,
-    updatedAt: liveArtifact.updatedAt,
-  };
-  if (liveArtifact.lastRefreshedAt) entry.lastRefreshedAt = liveArtifact.lastRefreshedAt;
-  return entry;
-}
-
-export interface LiveArtifactPreviewRequest {
-  projectId: string;
-  artifactId: string;
-  previewUrl: string;
-}
+export type ProjectWorkspaceEntry = ProjectFileWorkspaceEntry;
 
 export interface ApiProtocolConfig {
   apiKey: string;
@@ -408,11 +337,6 @@ export interface ComposioSettings {
 
 export type AgentEvent = PersistedAgentEvent;
 
-export interface LiveArtifactEventItem {
-  id: number;
-  event: Extract<AgentEvent, { kind: 'live_artifact' | 'live_artifact_refresh' }>;
-}
-
 export type ChatMessageFeedbackChange =
   | ({
       rating: ChatMessageFeedbackRating;
@@ -511,13 +435,6 @@ export type {
   DesignSystemTokenContractRebuildDecision,
   DesignSystemTokenContractRebuildJobRequest,
   DesignSystemTokenContractRebuildJobResponse,
-  LiveArtifact,
-  LiveArtifactDetailResponse,
-  LiveArtifactListResponse,
-  LiveArtifactRefreshLogEntry,
-  LiveArtifactRefreshStatus,
-  LiveArtifactStatus,
-  LiveArtifactSummary,
   MediaAspect,
   ProjectDeploymentsResponse,
   Project,

@@ -1,7 +1,5 @@
 import { useEffect, useRef } from 'react';
 import type {
-  LiveArtifactRefreshSsePayload,
-  LiveArtifactSsePayload,
   ProjectConversationCreatedSsePayload,
 } from '@open-design/contracts';
 export interface ProjectFileChangeEvent {
@@ -16,12 +14,9 @@ export interface ProjectFileChangeEvent {
 // guidance on contract/protocol seams).
 export type ProjectConversationCreatedEvent = ProjectConversationCreatedSsePayload;
 
-export type ProjectLiveArtifactEvent = LiveArtifactSsePayload | LiveArtifactRefreshSsePayload;
-
 export type ProjectEvent =
   | ProjectFileChangeEvent
-  | ProjectConversationCreatedEvent
-  | ProjectLiveArtifactEvent;
+  | ProjectConversationCreatedEvent;
 
 export interface ProjectEventsConnectionOptions {
   /** Test seam: substitute a mock EventSource constructor. */
@@ -97,22 +92,6 @@ export function createProjectEventsConnection(
         }
       }
     });
-    const handleLiveArtifactEvent = (evt: Event) => {
-      try {
-        const data = JSON.parse((evt as MessageEvent).data) as ProjectLiveArtifactEvent;
-        onChange(data);
-      } catch (err) {
-        if (
-          typeof process !== 'undefined' &&
-          process.env?.NODE_ENV === 'development'
-        ) {
-          // eslint-disable-next-line no-console
-          console.warn('[project-events] malformed live-artifact payload', err);
-        }
-      }
-    };
-    es.addEventListener('live_artifact', handleLiveArtifactEvent);
-    es.addEventListener('live_artifact_refresh', handleLiveArtifactEvent);
     es.addEventListener('conversation-created', (evt) => {
       try {
         const data = JSON.parse(

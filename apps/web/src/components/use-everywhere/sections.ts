@@ -229,11 +229,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         language: 'bash',
         body: 'curl -s http://127.0.0.1:7456/api/mcp/install-info | jq',
       },
-      {
-        label: 'Live-artifacts MCP variant (read & refresh dashboards)',
-        language: 'bash',
-        body: 'od mcp live-artifacts',
-      },
     ],
     footer:
       'In the Open Design app, open Settings → Integrations to copy a ' +

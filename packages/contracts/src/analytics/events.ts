@@ -94,7 +94,6 @@ export type TrackingSettingsPage = 'settings';
 
 export type TrackingProjectKind =
   | 'prototype'
-  | 'live_artifact'
   | 'slide_deck'
   | 'template'
   // `design_system` covers DS-as-project runs (creation + regeneration).
@@ -132,10 +131,9 @@ export interface AmrEntryAttribution {
   occurredAt: string;
 }
 
-// The six tabs inside the New project modal (CSV row 7 tab_name).
+// The tabs inside the New project modal (CSV row 7 tab_name).
 export type TrackingNewProjectTab =
   | 'prototype'
-  | 'live_artifact'
   | 'slide_deck'
   | 'from_template'
   | 'other';
@@ -301,8 +299,7 @@ export type TrackingRunRetrySuppressedReason =
   | 'cancel_requested'
   | 'user_visible_output_seen'
   | 'tool_call_seen'
-  | 'artifact_write_seen'
-  | 'live_artifact_seen';
+  | 'artifact_write_seen';
 export type TrackingRunDiagnosticSource =
   | 'error_event'
   | 'stderr'
@@ -858,7 +855,6 @@ export type TrackingDesignSystemSelectionMode =
 export type TrackingDesignSystemApplyTargetKind =
   | 'prototype'
   | 'slide_deck'
-  | 'live_artifact'
   | 'unknown';
 
 // Entry from for the run_created / run_finished DS variant. Distinct
@@ -1272,7 +1268,7 @@ export interface AutomationsClickProps {
     | 'crystallize'
     | 'proposal_apply'
     | 'proposal_reject';
-  type_id?: 'orbit' | 'routines' | 'schedules' | 'live_artifacts';
+  type_id?: 'orbit' | 'routines' | 'schedules';
   // filter_id mirrors the template category tabs actually rendered in the
   // Automations tab; the legacy run-status values stay for forward-compat.
   filter_id?:
@@ -1281,7 +1277,6 @@ export interface AutomationsClickProps {
     | 'running'
     | 'done'
     | 'orbit'
-    | 'live-artifact'
     | 'routine'
     | 'memory'
     | 'design-system'
@@ -1291,7 +1286,7 @@ export interface AutomationsClickProps {
     | 'release'
     | 'quality';
   // Kind of the template whose card was clicked (element=type_card).
-  template_kind?: 'orbit' | 'live-artifact' | 'routine';
+  template_kind?: 'orbit' | 'routine';
 }
 
 // PLUGINS
@@ -1677,8 +1672,8 @@ export interface NextStepActionClickProps {
 // Studio Questions tab discovery form (the agent-emitted <question-form>
 // rendered in the right-hand panel before generation starts). The form body
 // is model-generated JSON, so chips are question options, not fixed UI:
-//   - `task_type_chip`: a pick on the `taskType` radio (Prototype / Live
-//     artifact / Slide deck / Template / Design system / Other).
+//   - `task_type_chip`: a pick on the `taskType` radio (Prototype /
+//     Slide deck / Template / Design system / Other).
 //   - `brand_bg_chip`: a pick on the `brand` radio (pick_direction /
 //     brand_spec / reference_match).
 //   - `skip`: the Skip button or the auto-continue countdown elapsing
@@ -1686,7 +1681,7 @@ export interface NextStepActionClickProps {
 //     made, so skip also carries the counts.
 //   - `submit`: the Continue CTA (or the form's own submit).
 // `chip_id` / `form_id` are normalized via `questionsFormTrackingId`
-// ("Live artifact" → "live_artifact"; non-latin localized labels → "unknown").
+// (localized labels that slug to nothing become "unknown").
 export interface QuestionsFormClickProps {
   page_name: 'chat_panel';
   area: 'questions_form';
@@ -2513,7 +2508,6 @@ export interface RunFinishedProps extends Omit<RunCreatedProps, 'area'> {
   user_visible_output_seen?: boolean;
   tool_call_seen?: boolean;
   artifact_write_seen?: boolean;
-  live_artifact_seen?: boolean;
   artifact_count: number;
   // True when the run raised a `<question-form>` clarification. Such runs
   // are intent-clarification turns (the agent stops to ask the user a question)
@@ -2908,9 +2902,6 @@ export function projectKindToTracking(
       return 'template';
     case 'other':
       return 'other';
-    case 'live-artifact':
-    case 'live_artifact':
-      return 'live_artifact';
     default:
       return null;
   }
@@ -2924,8 +2915,6 @@ export function createTabToTracking(tab: string): TrackingNewProjectTab {
       return 'slide_deck';
     case 'template':
       return 'from_template';
-    case 'live-artifact':
-      return 'live_artifact';
     case 'other':
       return 'other';
     default:
@@ -3303,9 +3292,8 @@ export function designSystemModuleSlug(
 }
 
 // Normalizes a question-form option value or form id into a snake_case
-// tracking token: Live artifact → live_artifact, Slide deck →
-// slide_deck, task-type → task_type. Values that slug to nothing
-// (e.g. fully localized non-latin labels) collapse to 'unknown'.
+// tracking token: Slide deck -> slide_deck, task-type -> task_type.
+// Values that slug to nothing collapse to 'unknown'.
 export function questionsFormTrackingId(
   raw: string | null | undefined,
 ): string {

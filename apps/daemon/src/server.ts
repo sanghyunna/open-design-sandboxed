@@ -318,7 +318,7 @@ import {
 } from './mcp-tokens.js';
 import { agentCliEnvForAgent, DEFAULT_ENABLED_AGENT_IDS, readAppConfig, readPluginEnvKnobs, writeAppConfig } from './app-config.js';
 import { OrbitService, formatLocalProjectTimestamp, renderOrbitTemplateSystemPrompt } from './orbit.js';
-import { buildOrbitNoLiveArtifactSummary } from './orbit-agent-summary.js';
+import { extractOrbitAgentFinalExplanation } from './orbit-agent-summary.js';
 import {
   RoutineService,
   validateSchedule as validateRoutineSchedule,
@@ -416,26 +416,10 @@ import {
   persistCapturedAgentSession,
   resolveAgentResumeContext,
 } from './agent-session-resume.js';
-import {
-  createLiveArtifact,
-  deleteLiveArtifact,
-  ensureLiveArtifactPreview,
-  getLiveArtifact,
-  LiveArtifactRefreshLockError,
-  LiveArtifactStoreValidationError,
-  listLiveArtifacts,
-  listLiveArtifactRefreshLogEntries,
-  readLiveArtifactCode,
-  recoverStaleLiveArtifactRefreshes,
-  updateLiveArtifact,
-} from './live-artifacts/store.js';
-import { LiveArtifactRefreshUnavailableError, refreshLiveArtifact } from './live-artifacts/refresh-service.js';
-import { LiveArtifactRefreshAbortError } from './live-artifacts/refresh.js';
 import { registerConnectorRoutes } from './connectors/routes.js';
 import { registerActiveContextRoutes } from './routes/active-context.js';
 import { registerMcpRoutes } from './mcp-routes.js';
 import { registerXaiRoutes } from './routes/xai.js';
-import { registerLiveArtifactRoutes } from './routes/live-artifact.js';
 import { registerDesignSystemToolRoutes } from './routes/design-system-tool.js';
 import { registerDeployRoutes, registerDeploymentCheckRoutes } from './routes/deploy.js';
 import { registerMediaRoutes } from './media-routes.js';
@@ -453,7 +437,7 @@ import { registerStaticResourceRoutes } from './routes/static-resource.js';
 import { registerRoutineRoutes, routineDbRowToContract } from './routes/routine.js';
 import { installRouteRegistrationGuard } from './route-registration-guard.js';
 import { assertServerContextSatisfiesRoutes } from './route-context-contract.js';
-import { configureConnectorCredentialStore, connectorService, ConnectorServiceError, FileConnectorCredentialStore } from './connectors/service.js';
+import { configureConnectorCredentialStore, connectorService, FileConnectorCredentialStore } from './connectors/service.js';
 import { composioConnectorProvider } from './connectors/composio.js';
 import { configureComposioConfigStore } from './connectors/composio-config.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './tool-tokens.js';
@@ -1456,12 +1440,8 @@ async function refreshAndPersistToken(dataDir, serverId, current) {
 
 const activeChatAgentEventSinks = new Map();
 const activeProjectEventSinks = new Map();
-// Per-chat-run handles, keyed by runId. Lets non-stream side effects
-// (live-artifact create, project events) reach back into the chat
-// run's local state — currently used by the artifact quiet-period
-// shortcut (#1451) so a successful artifact registration can shorten
-// the inactivity watchdog without the chat path having to poll a
-// store.
+// Per-chat-run handles, keyed by runId. Lets non-stream side effects reach
+// back into the chat run's local state.
 const activeChatRunHandles = new Map();
 
 function emitChatAgentEvent(runId, payload) {
@@ -1476,57 +1456,9 @@ function emitChatAgentEvent(runId, payload) {
 // driving a full fake-agent e2e for every invariant.
 export const __forTestChatRunHandles = activeChatRunHandles;
 
-export function __forTestEmitLiveArtifactEvent(
-  grant: { runId?: string; projectId?: string },
-  action: 'created' | 'updated' | 'deleted',
-  artifact: { id: string; projectId?: string; title?: string; refreshStatus?: string },
-) {
-  return emitLiveArtifactEvent(grant, action, artifact);
-}
-
-function emitLiveArtifactEvent(grant, action, artifact) {
-  if (!artifact?.id) return false;
-  const payload = {
-    type: 'live_artifact',
-    action,
-    projectId: artifact.projectId ?? grant.projectId,
-    artifactId: artifact.id,
-    title: artifact.title ?? artifact.id,
-    refreshStatus: artifact.refreshStatus,
-  };
-  let emitted = emitProjectEvent(payload.projectId, payload);
-  if (grant?.runId) emitted = emitChatAgentEvent(grant.runId, payload) || emitted;
-  // After the deliverable exists, switch the chat run into a shorter
-  // "quiet period" watchdog: agents sometimes keep their child process
-  // alive after a successful artifact write (post-write reasoning, log
-  // flushes, claude-code stream-json's idle stdin) and the 10-minute
-  // default leaves the UI parked on Working until the watchdog fires
-  // an unrelated "stalled" error. See #1451.
-  if (action === 'created' && grant?.runId) {
-    const handle = activeChatRunHandles.get(grant.runId);
-    if (handle?.noteArtifactRegistered) {
-      try { handle.noteArtifactRegistered(); } catch {}
-    }
-  }
-  return emitted;
-}
-
-function emitLiveArtifactRefreshEvent(grant, payload) {
-  if (!payload?.artifactId) return false;
-  const event = {
-    type: 'live_artifact_refresh',
-    projectId: grant.projectId,
-    ...payload,
-  };
-  let emitted = emitProjectEvent(grant.projectId, event);
-  if (grant?.runId) emitted = emitChatAgentEvent(grant.runId, event) || emitted;
-  return emitted;
-}
-
 // Broadcast an event to every SSE subscriber currently watching the given
 // project's `/api/projects/:id/events` stream. The payload's `type` field
-// becomes the SSE event name (see project-routes.ts). Used for live-artifact
-// events and `conversation-created` events emitted by routine runs (#1361).
+// becomes the SSE event name (see project-routes.ts).
 function emitProjectEvent(projectId, payload) {
   const sinks = activeProjectEventSinks.get(projectId);
   if (!sinks || sinks.size === 0) return false;
@@ -1659,7 +1591,6 @@ const WORKSPACE_CONTEXT_KINDS = new Set([
   'browser',
   'terminal',
   'side-chat',
-  'live-artifact',
 ]);
 
 function normalizeWorkspaceContextItems(items) {
@@ -1825,11 +1756,6 @@ function renderWorkspaceContextToolHints(items) {
   if (kinds.has('file') || kinds.has('folder') || kinds.has('design-files')) {
     hints.push(
       '- File and Design Files tabs: use project-relative paths exactly as shown. Read before editing, and keep generated screenshots/briefs/assets in Design Files when the user asks to capture or extract references.',
-    );
-  }
-  if (kinds.has('live-artifact')) {
-    hints.push(
-      '- Live artifact tabs: treat the selected live artifact as the preview target. Inspect or modify its source files rather than editing generated runtime output when possible.',
     );
   }
   return hints.join('\n');
@@ -2066,7 +1992,6 @@ function scanRunEventsForRetrySideEffects(events) {
     userVisibleOutputSeen: false,
     toolCallSeen: false,
     artifactWriteSeen: false,
-    liveArtifactSeen: false,
   };
   for (const rec of Array.isArray(events) ? events : []) {
     if (rec?.event === 'stdout') {
@@ -2083,9 +2008,6 @@ function scanRunEventsForRetrySideEffects(events) {
     }
     if (data.type === 'tool_use') sideEffects.toolCallSeen = true;
     if (data.type === 'artifact') sideEffects.artifactWriteSeen = true;
-    if (data.type === 'live_artifact' || rec.event === 'live_artifact') {
-      sideEffects.liveArtifactSeen = true;
-    }
   }
   if (
     countNewHtmlArtifacts(events) > 0 ||
@@ -2437,30 +2359,6 @@ function daemonAgentPayloadToPersistedAgentEvent(data) {
     return { kind: 'thinking', text: data.delta };
   }
   if (type === 'thinking_start') return { kind: 'status', label: 'thinking' };
-  if (type === 'live_artifact') {
-    return {
-      kind: 'live_artifact',
-      action: data.action,
-      projectId: data.projectId,
-      artifactId: data.artifactId,
-      title: data.title,
-      ...(data.refreshStatus ? { refreshStatus: data.refreshStatus } : {}),
-    };
-  }
-  if (type === 'live_artifact_refresh') {
-    return {
-      kind: 'live_artifact_refresh',
-      phase: data.phase,
-      projectId: data.projectId,
-      artifactId: data.artifactId,
-      ...(data.refreshId ? { refreshId: data.refreshId } : {}),
-      ...(data.title ? { title: data.title } : {}),
-      ...(typeof data.refreshedSourceCount === 'number'
-        ? { refreshedSourceCount: data.refreshedSourceCount }
-        : {}),
-      ...(data.error ? { error: data.error } : {}),
-    };
-  }
   if (type === 'tool_use' && typeof data.id === 'string' && typeof data.name === 'string') {
     return { kind: 'tool_use', id: data.id, name: data.name, input: normalizePersistedToolInput(data.input) };
   }
@@ -2962,34 +2860,6 @@ function sanitizeArchiveFilename(raw) {
   return cleaned;
 }
 
-function sendLiveArtifactRouteError(res, err) {
-  if (err instanceof LiveArtifactStoreValidationError) {
-    return sendApiError(res, 400, 'LIVE_ARTIFACT_INVALID', err.message, {
-      details: { kind: 'validation', issues: err.issues },
-    });
-  }
-  if (err instanceof LiveArtifactRefreshLockError) {
-    return sendApiError(res, 409, 'REFRESH_LOCKED', err.message, {
-      details: { artifactId: err.artifactId },
-    });
-  }
-  if (err instanceof LiveArtifactRefreshUnavailableError) {
-    return sendApiError(res, 400, 'LIVE_ARTIFACT_REFRESH_UNAVAILABLE', err.message);
-  }
-  if (err instanceof LiveArtifactRefreshAbortError) {
-    return sendApiError(res, err.kind === 'cancelled' ? 499 : 504, 'LIVE_ARTIFACT_REFRESH_TIMEOUT', err.message, {
-      details: { kind: err.kind, timeoutMs: err.timeoutMs ?? null, step: err.step ?? null },
-    });
-  }
-  if (err instanceof ConnectorServiceError) {
-    return sendApiError(res, err.status, err.code, err.message, err.details === undefined ? {} : { details: err.details });
-  }
-  if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
-    return sendApiError(res, 404, 'LIVE_ARTIFACT_NOT_FOUND', 'live artifact not found');
-  }
-  return sendApiError(res, 500, 'LIVE_ARTIFACT_STORAGE_FAILED', String(err));
-}
-
 function normalizeLocalAuthority(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -3220,36 +3090,6 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function setLiveArtifactPreviewHeaders(res) {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader(
-    'Content-Security-Policy',
-    [
-      "default-src 'none'",
-      "base-uri 'none'",
-      "script-src 'none'",
-      "object-src 'none'",
-      "connect-src 'none'",
-      "form-action 'none'",
-      "frame-ancestors 'self'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      "style-src 'unsafe-inline'",
-      'sandbox allow-same-origin',
-    ].join('; '),
-  );
-}
-
-function setLiveArtifactCodeHeaders(res) {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
 }
 
 function bearerTokenFromRequest(req) {
@@ -3755,11 +3595,8 @@ export interface StartServerOptions {
 
 const DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 24 * 60 * 60 * 1000;
-// After a successful live-artifact registration the daemon switches the
-// chat-run inactivity watchdog from the long pre-artifact ceiling
-// (DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS) down to a much shorter
-// "quiet period" — the deliverable exists, so further silence almost
-// always means the agent is winding down or hanging. See #1451.
+// Reserved post-artifact quiet-period window. No producer currently flips the
+// matching run-watchdog flag, so runs use the standard inactivity timeout.
 const DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS = 60 * 1000;
 
 function resolveChatRunInactivityTimeoutMs() {
@@ -4302,11 +4139,6 @@ export async function startServer({
   // Health/version remain open for monitoring probes.
   // Non-browser clients (no Origin header) are always allowed.
   app.use('/api', (req, res, next) => {
-    // Live artifact previews have stricter local-daemon validation and
-    // loopback CORS handling on the route itself. Let that middleware produce
-    // the structured error shape and preflight headers for preview embeds.
-    if (/^\/live-artifacts\/[^/]+\/preview$/.test(req.path)) return next();
-
     const origin = req.headers.origin;
     // Non-browser client → allow.
     if (origin == null || origin === '') return next();
@@ -4463,10 +4295,6 @@ export async function startServer({
       });
     })
     .catch(() => detectAgents({}, { enabledAgentIds: DEFAULT_ENABLED_AGENT_IDS }).catch(() => {}));
-
-  await recoverStaleLiveArtifactRefreshes({ projectsRoot: PROJECTS_DIR }).catch((error) => {
-    console.warn('[od] Failed to recover stale live artifact refreshes:', error);
-  });
 
   if (fs.existsSync(STATIC_DIR)) {
     app.use(express.static(STATIC_DIR));
@@ -5069,7 +4897,6 @@ export async function startServer({
   const httpDeps = {
     sendApiError,
     sendMulterError,
-    sendLiveArtifactRouteError,
     createSseResponse,
     requireLocalDaemonRequest,
     isLocalSameOrigin,
@@ -5186,21 +5013,6 @@ export async function startServer({
   const orbitDeps = { orbitService };
   const nativeDialogDeps = { openNativeFolderDialog };
   const researchDeps = { searchResearch, ResearchError };
-  const liveArtifactDeps = {
-    createLiveArtifact,
-    listLiveArtifacts,
-    updateLiveArtifact,
-    refreshLiveArtifact,
-    emitLiveArtifactEvent,
-    emitLiveArtifactRefreshEvent,
-    readLiveArtifactCode,
-    setLiveArtifactCodeHeaders,
-    ensureLiveArtifactPreview,
-    setLiveArtifactPreviewHeaders,
-    getLiveArtifact,
-    listLiveArtifactRefreshLogEntries,
-    deleteLiveArtifact,
-  };
   const authDeps = {
     authorizeToolRequest,
     consumedImportNonces,
@@ -5334,14 +5146,6 @@ export async function startServer({
     paths: pathDeps,
     node: nodeDeps,
     artifacts: artifactDeps,
-  });
-  registerLiveArtifactRoutes(app, {
-    db,
-    http: httpDeps,
-    paths: pathDeps,
-    auth: authDeps,
-    liveArtifacts: liveArtifactDeps,
-    projectStore: projectStoreDeps,
   });
   registerDesignSystemToolRoutes(app, {
     auth: authDeps,
@@ -8135,310 +7939,6 @@ export async function startServer({
     }
   });
 
-  app.get('/api/live-artifacts', async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const artifacts = await listLiveArtifacts({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-      });
-      res.json({ artifacts });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.options('/api/live-artifacts/:artifactId/preview', requireLocalDaemonRequest, (_req, res) => {
-    res.status(204).end();
-  });
-
-  app.get('/api/live-artifacts/:artifactId/preview', requireLocalDaemonRequest, async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const variant = typeof req.query.variant === 'string' ? req.query.variant : 'rendered';
-      if (variant === 'template' || variant === 'rendered-source') {
-        const html = await readLiveArtifactCode({
-          projectsRoot: PROJECTS_DIR,
-          projectId,
-          artifactId: req.params.artifactId,
-          variant: variant === 'template' ? 'template' : 'rendered',
-        });
-        setLiveArtifactCodeHeaders(res);
-        return res.status(200).send(html);
-      }
-      if (variant !== 'rendered') {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'variant must be rendered, template, or rendered-source');
-      }
-
-      const record = await ensureLiveArtifactPreview({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      setLiveArtifactPreviewHeaders(res);
-      res.status(200).send(record.html);
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.get('/api/live-artifacts/:artifactId', async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const record = await getLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      res.json({ artifact: record.artifact });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.get('/api/live-artifacts/:artifactId/refreshes', async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const refreshes = await listLiveArtifactRefreshLogEntries({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      res.json({ refreshes });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.post('/api/tools/live-artifacts/create', async (req, res) => {
-    try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:create');
-      if (!toolGrant) return;
-      const { projectId, input, templateHtml, provenanceJson, createdByRunId } = req.body || {};
-      if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
-      }
-      if (requestRunOverride(createdByRunId, toolGrant.runId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'createdByRunId is derived from the tool token', {
-          details: { suppliedRunId: createdByRunId },
-        });
-      }
-
-      const record = await createLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId: toolGrant.projectId,
-        input: input ?? {},
-        templateHtml,
-        provenanceJson,
-        createdByRunId: toolGrant.runId,
-      });
-      emitLiveArtifactEvent(toolGrant, 'created', record.artifact);
-      res.json({ artifact: record.artifact });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.get('/api/tools/live-artifacts/list', async (req, res) => {
-    try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:list');
-      if (!toolGrant) return;
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
-      }
-
-      const artifacts = await listLiveArtifacts({
-        projectsRoot: PROJECTS_DIR,
-        projectId: toolGrant.projectId,
-      });
-      res.json({ artifacts });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.post('/api/tools/live-artifacts/update', async (req, res) => {
-    try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:update');
-      if (!toolGrant) return;
-      const { projectId, artifactId, input, templateHtml, provenanceJson } = req.body || {};
-      if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
-      }
-      if (typeof artifactId !== 'string' || artifactId.length === 0) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'artifactId is required');
-      }
-
-      const record = await updateLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId: toolGrant.projectId,
-        artifactId,
-        input: input ?? {},
-        templateHtml,
-        provenanceJson,
-      });
-      emitLiveArtifactEvent(toolGrant, 'updated', record.artifact);
-      res.json({ artifact: record.artifact });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.post('/api/tools/live-artifacts/refresh', async (req, res) => {
-    try {
-      const toolGrant = authorizeToolRequest(req, res, 'live-artifacts:refresh');
-      if (!toolGrant) return;
-      const { projectId, artifactId } = req.body || {};
-      if (requestProjectOverride(projectId, toolGrant.projectId)) {
-        return sendApiError(res, 403, 'FORBIDDEN', 'projectId is derived from the tool token', {
-          details: { suppliedProjectId: projectId },
-        });
-      }
-      if (typeof artifactId !== 'string' || artifactId.length === 0) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'artifactId is required');
-      }
-
-      let result;
-      try {
-        result = await refreshLiveArtifact({
-          projectsRoot: PROJECTS_DIR,
-          projectId: toolGrant.projectId,
-          artifactId,
-          onStarted: ({ refreshId }) => {
-            emitLiveArtifactRefreshEvent(toolGrant, { phase: 'started', artifactId, refreshId });
-          },
-        });
-      } catch (refreshErr) {
-        emitLiveArtifactRefreshEvent(toolGrant, {
-          phase: 'failed',
-          artifactId,
-          error: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
-        });
-        throw refreshErr;
-      }
-      emitLiveArtifactRefreshEvent(toolGrant, {
-        phase: 'succeeded',
-        artifactId,
-        refreshId: result.refresh.id,
-        title: result.artifact.title,
-        refreshedSourceCount: result.refresh.refreshedSourceCount,
-      });
-      res.json(result);
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.patch('/api/live-artifacts/:artifactId', async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const record = await updateLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-        input: req.body ?? {},
-      });
-      emitLiveArtifactEvent({ projectId }, 'updated', record.artifact);
-      res.json({ artifact: record.artifact });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.delete('/api/live-artifacts/:artifactId', async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      const existing = await getLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      await deleteLiveArtifact({
-        projectsRoot: PROJECTS_DIR,
-        projectId,
-        artifactId: req.params.artifactId,
-      });
-      updateProject(db, projectId, {});
-      emitLiveArtifactEvent({ projectId }, 'deleted', existing.artifact);
-      res.json({ ok: true });
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
-  app.options('/api/live-artifacts/:artifactId/refresh', requireLocalDaemonRequest, (_req, res) => {
-    res.status(204).end();
-  });
-
-  app.post('/api/live-artifacts/:artifactId/refresh', requireLocalDaemonRequest, async (req, res) => {
-    try {
-      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
-      if (!projectId) {
-        return sendApiError(res, 400, 'BAD_REQUEST', 'projectId query parameter is required');
-      }
-
-      let result;
-      try {
-        result = await refreshLiveArtifact({
-          projectsRoot: PROJECTS_DIR,
-          projectId,
-          artifactId: req.params.artifactId,
-          onStarted: ({ refreshId }) => {
-            emitLiveArtifactRefreshEvent({ projectId }, { phase: 'started', artifactId: req.params.artifactId, refreshId });
-          },
-        });
-      } catch (refreshErr) {
-        emitLiveArtifactRefreshEvent({ projectId }, {
-          phase: 'failed',
-          artifactId: req.params.artifactId,
-          error: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
-        });
-        throw refreshErr;
-      }
-      emitLiveArtifactRefreshEvent({ projectId }, {
-        phase: 'succeeded',
-        artifactId: req.params.artifactId,
-        refreshId: result.refresh.id,
-        title: result.artifact.title,
-        refreshedSourceCount: result.refresh.refreshedSourceCount,
-      });
-      res.json(result);
-    } catch (err) {
-      sendLiveArtifactRouteError(res, err);
-    }
-  });
-
   app.use('/artifacts', express.static(ARTIFACTS_DIR));
 
   // ---- Deploy --------------------------------------------------------------
@@ -10782,7 +10282,7 @@ export async function startServer({
       // continuing, otherwise the freshly minted id we passed via --session-id.
       //
       // Gate on a real *committed* boundary this attempt, not merely on bytes
-      // having reached the UI. A completed tool_use / artifact / live-artifact
+      // having reached the UI. A completed tool_use / artifact
       // corresponds to a block the agent has committed to its session (Claude
       // commits a tool_use block before running the tool), so `--resume` has
       // something concrete to pick up. We deliberately EXCLUDE
@@ -10799,8 +10299,7 @@ export async function startServer({
       // are the only reliable resume boundary.
       const committedWorkSeen = !!(
         sideEffects.toolCallSeen ||
-        sideEffects.artifactWriteSeen ||
-        sideEffects.liveArtifactSeen
+        sideEffects.artifactWriteSeen
       );
       const liveSessionId = agentResumeCtx.isResuming
         ? agentResumeCtx.resumeSessionId
@@ -11293,11 +10792,7 @@ export async function startServer({
     let childStdoutSeen = false;
     let lastAgentEventPhase = 'spawn pending';
     let lastToolResultChars = 0;
-    // Becomes true once any live-artifact create has been registered for
-    // this run. Subsequent watchdog scheduling uses the shorter quiet
-    // period, and a watchdog trip after this point is treated as
-    // "agent finished the deliverable and went idle" rather than
-    // "agent stalled with nothing to show" (issue #1451).
+    // Reserved run-watchdog flag: no producer currently flips it; the run uses the standard inactivity timeout.
     let artifactRegistered = false;
     // Only daemon-initiated quiet-period termination should be treated
     // as `succeeded` in the close handler. A later unrelated SIGTERM /
@@ -12570,9 +12065,7 @@ export async function startServer({
         acpCleanCompletion,
         artifactQuietShutdownRequested,
         turnCompletedCleanly: !!run.turnCompletedCleanly,
-        artifactProducedThisRun:
-          runArtifactSideEffects.artifactWriteSeen ||
-          runArtifactSideEffects.liveArtifactSeen,
+        artifactProducedThisRun: runArtifactSideEffects.artifactWriteSeen,
       });
       // Skip the close-handler failure emit when the run is already
       // terminal: the inactivity watchdog (failForInactivity) finishes the
@@ -12886,18 +12379,11 @@ export async function startServer({
       db.prepare(
         `UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`,
       ).run(finalStatus.status, Date.now(), assistantMessageId);
-      const artifacts = await listLiveArtifacts({ projectsRoot: PROJECTS_DIR, projectId });
-      const artifact = artifacts.find((candidate) => candidate.createdByRunId === run.id);
-      const status = finalStatus.status === 'succeeded' && !artifact ? 'failed' : finalStatus.status;
+      const status = finalStatus.status;
       return {
         agentRunId: run.id,
         status,
-        ...(artifact?.id ? { artifactId: artifact.id, artifactProjectId: projectId } : {}),
-        summary: artifact?.id
-          ? `Agent ${finalStatus.status} and registered live artifact ${artifact.title}.`
-          : finalStatus.status === 'succeeded'
-            ? buildOrbitNoLiveArtifactSummary(run.events)
-            : `Agent ${finalStatus.status} but did not register a live artifact for this Orbit run.`,
+        summary: extractOrbitAgentFinalExplanation(run.events) ?? `Agent ${finalStatus.status}.`,
       };
     })();
 
@@ -14194,7 +13680,6 @@ export async function startServer({
     artifacts: artifactDeps,
     documents: { buildDocumentPreview },
     auth: authDeps,
-    liveArtifacts: liveArtifactDeps,
     deploy: deployDeps,
     appConfig: appConfigDeps,
     orbit: orbitDeps,

@@ -218,10 +218,8 @@ function renderDesignFilesPanel(overrides: Partial<React.ComponentProps<typeof D
   const props: React.ComponentProps<typeof DesignFilesPanel> = {
     projectId: 'project-1',
     files: [],
-    liveArtifacts: [],
     onRefreshFiles: vi.fn(),
     onOpenFile: vi.fn(),
-    onOpenLiveArtifact: vi.fn(),
     onRenameFile: vi.fn(),
     onDeleteFile: vi.fn(),
     onDeleteFiles: vi.fn(),
@@ -259,7 +257,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -279,7 +276,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[baseFile()]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -337,7 +333,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[baseFile({ name: 'uploaded.png', path: 'uploaded.png' })]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -369,7 +364,6 @@ describe('FileWorkspace upload input', () => {
         workspaceFile('assets/logo.png'),
         workspaceFile('top.html'),
       ],
-      liveArtifacts: [],
       onRefreshFiles: vi.fn(),
       isDeck: false,
       tabsState: { tabs: [], active: null },
@@ -415,7 +409,6 @@ describe('FileWorkspace upload input', () => {
       projectId: 'project-a',
       projectKind: 'prototype',
       files: [],
-      liveArtifacts: [],
       onRefreshFiles: vi.fn(),
       isDeck: false,
       tabsState: { tabs: [], active: null },
@@ -473,7 +466,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[baseFile({ name: 'retry.png', path: 'retry.png' })]}
-        liveArtifacts={[]}
         onRefreshFiles={onRefreshFiles}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -533,7 +525,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -554,7 +545,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -579,7 +569,6 @@ describe('FileWorkspace upload input', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -605,7 +594,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectKind="prototype"
         resolvedDir="/tmp/open-design/project-1"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -628,7 +616,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectKind="prototype"
         resolvedDir="/tmp/open-design/project-1"
         files={[workspaceFile('cover.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -654,7 +641,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -675,7 +661,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -723,7 +708,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -767,7 +751,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html'), workspaceFile('notes.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -802,7 +785,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -830,7 +812,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('analysis.html'), workspaceFile('notes.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['analysis.html', 'notes.html'], active: 'notes.html' }}
@@ -857,7 +838,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('analysis.html'), workspaceFile('notes.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['analysis.html', 'notes.html'], active: 'analysis.html' }}
@@ -915,7 +895,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['cover.html'], active: 'cover.html', browserTabs }}
@@ -949,7 +928,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html'), workspaceFile('landing.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['cover.html'], active: '__browser__:1', browserTabs }}
@@ -978,7 +956,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html'), workspaceFile('landing.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['cover.html'], active: '__browser__:1', browserTabs }}
@@ -1004,7 +981,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['cover.html'], active: 'cover.html' }}
@@ -1036,7 +1012,6 @@ describe('FileWorkspace launcher tab creation', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('Web Prototype mutuals-v2.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1068,10 +1043,8 @@ describe('DesignFilesPanel plugin folders', () => {
           workspaceFile('generated-plugin/SKILL.md'),
           workspaceFile('generated-plugin/examples/demo.md'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         onOpenFile={vi.fn()}
-        onOpenLiveArtifact={vi.fn()}
         onDeleteFile={vi.fn()}
         onDeleteFiles={vi.fn()}
         onRenameFile={vi.fn()}
@@ -1128,7 +1101,6 @@ describe('FileWorkspace tab reordering', () => {
           workspaceFile('notes.md'),
           workspaceFile('summary.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1168,7 +1140,6 @@ describe('FileWorkspace tab reordering', () => {
           workspaceFile('notes.md'),
           workspaceFile('summary.html'),
         ]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1203,7 +1174,6 @@ describe('FileWorkspace tab reordering', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('analysis.html'), workspaceFile('notes.md')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1232,7 +1202,6 @@ describe('FileWorkspace tab reordering', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('analysis.html'), workspaceFile('notes.md')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1288,7 +1257,6 @@ describe('FileWorkspace Questions tab', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -1305,7 +1273,6 @@ describe('FileWorkspace Questions tab', () => {
       projectId: 'project-1',
       projectKind: 'prototype',
       files: [],
-      liveArtifacts: [],
       onRefreshFiles: vi.fn(),
       isDeck: false,
       tabsState: { tabs: [], active: null },
@@ -1537,7 +1504,6 @@ describe('FileWorkspace sketch save', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[file]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: ['test.sketch.json'], active: 'test.sketch.json' }}
@@ -1584,7 +1550,6 @@ describe('FileWorkspace add-module menu', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -1622,7 +1587,6 @@ describe('FileWorkspace add-module menu', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[workspaceFile('cover.html')]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1664,7 +1628,6 @@ describe('FileWorkspace add-module menu', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{ tabs: [], active: null }}
@@ -1717,7 +1680,6 @@ describe('FileWorkspace add-module menu', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1753,7 +1715,6 @@ describe('FileWorkspace add-module menu', () => {
         projectId="project-1"
         projectKind="prototype"
         files={[]}
-        liveArtifacts={[]}
         onRefreshFiles={vi.fn()}
         isDeck={false}
         tabsState={{
@@ -1811,7 +1772,6 @@ describe('FileWorkspace empty-project generation contract', () => {
           projectId="project-1"
           projectKind="prototype"
           files={[]}
-          liveArtifacts={[]}
           onRefreshFiles={vi.fn()}
           isDeck={false}
           streaming={runStatus === 'running'}

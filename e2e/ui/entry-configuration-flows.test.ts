@@ -156,32 +156,6 @@ test('[P1] prompt template retry preserves the edited body in project metadata',
   });
 });
 
-test('[P1] live artifact empty connector CTA opens the gated connector setup path', async ({ page }) => {
-  await routeConnectors(page, []);
-  await routeComposioConfig(page, { configured: false, apiKeyTail: '' });
-
-  await gotoEntryHome(page);
-  await ensureRailOpen(page);
-  await page.getByTestId('entry-nav-new-project').click();
-  await expect(page.getByTestId('new-project-modal')).toBeVisible();
-  await expect(page.getByTestId('new-project-panel')).toBeVisible();
-  await page.getByTestId('new-project-tab-live-artifact').click();
-  await expect(page.getByTestId('new-project-connectors')).toBeVisible();
-
-  // The empty CTA now opens Integrations → Connectors directly. The Composio
-  // API key field sits at the top of the section; the catalog (and its gate)
-  // sits below it.
-  await page.getByTestId('new-project-connectors-empty').click();
-  await expect(page.getByTestId('new-project-modal')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Integrations' })).toBeVisible();
-  await expect(page.getByTestId('integrations-tab-connectors')).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  await expect(page.getByPlaceholder('Paste Composio API key')).toBeVisible();
-  await expect(page.getByTestId('connector-gate')).toBeVisible();
-  await expect(page.getByTestId('connectors-search-input')).toBeDisabled();
-});
 
 test('[P2] connectors search supports empty results and keyboard-closeable details', async ({ page }) => {
   await routeConnectors(page, CONNECTORS);

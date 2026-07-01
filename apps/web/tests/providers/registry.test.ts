@@ -230,7 +230,7 @@ describe('fetchSkillExample', () => {
 // { unavailable: true, kind: 'html' } per #897 so the modal renders a
 // calm "no shipped preview" placeholder instead of "Couldn't load this
 // example. The example HTML failed to fetch." Plugins lacked the
-// symmetric treatment, so bundled plugins like `example-live-artifact`
+// symmetric treatment, so bundled plugins like `example-deck`
 // surfaced the misleading error from the Home Community grid even
 // though the catalog simply ships no example HTML for that plugin.
 describe('fetchPluginPreviewHtml', () => {
@@ -246,10 +246,10 @@ describe('fetchPluginPreviewHtml', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      fetchPluginPreviewHtml('example-live-artifact'),
+      fetchPluginPreviewHtml('example-deck'),
     ).resolves.toEqual({ unavailable: true, kind: 'html' });
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/example-live-artifact/preview',
+      '/api/plugins/example-deck/preview',
     );
   });
 
@@ -260,7 +260,7 @@ describe('fetchPluginPreviewHtml', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      fetchPluginPreviewHtml('example-live-artifact'),
+      fetchPluginPreviewHtml('example-deck'),
     ).resolves.toEqual({ error: 'HTTP 500' });
   });
 
@@ -272,7 +272,7 @@ describe('fetchPluginPreviewHtml', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      fetchPluginPreviewHtml('example-live-artifact'),
+      fetchPluginPreviewHtml('example-deck'),
     ).resolves.toEqual({ html: '<html><body>preview</body></html>' });
   });
 });
@@ -290,10 +290,10 @@ describe('fetchPluginExampleHtml', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      fetchPluginExampleHtml('example-live-artifact', 'index'),
+      fetchPluginExampleHtml('example-deck', 'index'),
     ).resolves.toEqual({ unavailable: true, kind: 'html' });
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/plugins/example-live-artifact/example/index',
+      '/api/plugins/example-deck/example/index',
     );
   });
 
@@ -304,7 +304,7 @@ describe('fetchPluginExampleHtml', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
-      fetchPluginExampleHtml('example-live-artifact', 'index'),
+      fetchPluginExampleHtml('example-deck', 'index'),
     ).resolves.toEqual({ error: 'HTTP 500' });
   });
 });

@@ -2721,8 +2721,6 @@ function workspaceContextKindLabel(kind: WorkspaceContextItem['kind']): string {
       return 'Terminal';
     case 'side-chat':
       return 'Side chat';
-    case 'live-artifact':
-      return 'Live artifact';
     case 'file':
     default:
       return 'File';
@@ -4034,8 +4032,6 @@ function designToolboxWorkspaceKindLabel(
       return t('chat.designToolbox.context.terminal');
     case 'side-chat':
       return t('chat.designToolbox.context.sideChat');
-    case 'live-artifact':
-      return t('chat.designToolbox.context.liveArtifact');
     case 'file':
     default:
       return t('chat.designToolbox.context.file');

@@ -89,61 +89,6 @@ const HOME_PLUGINS = [
       },
     },
   },
-  {
-    id: 'example-live-artifact',
-    title: 'Live Artifact',
-    version: '0.1.0',
-    trust: 'bundled',
-    sourceKind: 'bundled',
-    source: '/tmp/live-artifact',
-    fsPath: '/tmp/live-artifact',
-    capabilitiesGranted: ['prompt:inject'],
-    installedAt: 0,
-    updatedAt: 0,
-    manifest: {
-      name: 'example-live-artifact',
-      title: 'Live Artifact',
-      version: '0.1.0',
-      description: 'Create refreshable, auditable Open Design artifacts.',
-      od: {
-        kind: 'scenario',
-        taskKind: 'new-generation',
-        mode: 'prototype',
-        scenario: 'live',
-        useCase: {
-          query:
-            'Create refreshable, auditable Open Design artifacts backed by connector or local data.',
-        },
-      },
-    },
-  },
-  {
-    id: 'image-template-notion-team-dashboard-live-artifact',
-    title: 'Notion live artifact',
-    version: '0.1.0',
-    trust: 'bundled',
-    sourceKind: 'bundled',
-    source: '/tmp/notion-live-artifact',
-    fsPath: '/tmp/notion-live-artifact',
-    capabilitiesGranted: ['prompt:inject'],
-    installedAt: 0,
-    updatedAt: 0,
-    manifest: {
-      name: 'image-template-notion-team-dashboard-live-artifact',
-      title: 'Notion live artifact',
-      version: '0.1.0',
-      description: 'Create a live Notion dashboard artifact.',
-      od: {
-        kind: 'scenario',
-        taskKind: 'new-generation',
-        mode: 'image',
-        surface: 'image',
-        useCase: {
-          query: 'Create a refreshable Notion dashboard live artifact.',
-        },
-      },
-    },
-  },
 ];
 
 const APPLY_RESPONSES: Record<string, unknown> = {
@@ -286,7 +231,7 @@ test('[P2] home hero rail shows the current creation chips and More shortcuts', 
 
   await expect(page.getByTestId('entry-star-badge')).toContainText('51.6K');
   await expect(page.getByTestId('home-hero-type-tabs')).toBeVisible();
-  for (const id of ['prototype', 'live-artifact', 'deck']) {
+  for (const id of ['prototype', 'deck']) {
     await expect(page.getByTestId(`home-hero-rail-${id}`)).toBeVisible();
   }
   await expect(page.getByTestId('home-hero-shortcuts-trigger')).toBeVisible();
@@ -312,11 +257,6 @@ test('[P1] home hero rail switches surviving creation modes without stale footer
   await expect(page.getByTestId('home-hero-footer-option-audioType')).toHaveCount(0);
   await clearActiveChip(page);
 
-  await expectChipSelection(page, 'live-artifact', 'Live artifact');
-  await expect(page.getByTestId('home-hero-footer-option-duration')).toHaveCount(0);
-  await expect(page.getByTestId('home-hero-footer-option-audioType')).toHaveCount(0);
-  await clearActiveChip(page);
-
   await expectChipSelection(page, 'deck', 'Slide deck');
   await expect(page.getByTestId('home-hero-footer-option-designSystem')).toBeVisible();
   await expect(page.getByTestId('home-hero-footer-option-duration')).toHaveCount(0);
@@ -324,7 +264,7 @@ test('[P1] home hero rail switches surviving creation modes without stale footer
   await clearActiveChip(page);
 });
 
-test('[P1] home hero example presets update the composer input for prototype and live artifact', async ({ page }) => {
+test('[P1] home hero example presets update the composer input for prototype', async ({ page }) => {
   await gotoEntryHome(page);
 
   const input = page.getByTestId('home-hero-input');
@@ -339,13 +279,6 @@ test('[P1] home hero example presets update the composer input for prototype and
     'Build a high-fidelity web prototype for product evaluators using the active project design system from the bundled web prototype seed.',
   );
 
-  await clearActiveChip(page);
-  await page.getByTestId('home-hero-rail-live-artifact').click();
-  await expect(page.getByTestId('home-hero-plugin-presets')).toBeVisible();
-  await page
-    .locator('[data-testid="home-hero-plugin-preset"][data-plugin-id="image-template-notion-team-dashboard-live-artifact"]')
-    .click();
-  await expect(input).toHaveText('Create a refreshable Notion dashboard live artifact.');
 });
 
 test('[P1] home hero deck example preset updates the composer input', async ({ page }) => {
@@ -379,7 +312,6 @@ test('[P2] clearing the active hero chip restores the rail and clears preset chr
   await expect(page.getByTestId('home-hero-footer-option-ratio')).toHaveCount(0);
   await expect(page.getByTestId('home-hero-footer-option-duration')).toHaveCount(0);
   await expect(page.getByTestId('home-hero-type-tabs')).toBeVisible();
-  await expect(page.getByTestId('home-hero-rail-live-artifact')).toBeVisible();
 });
 
 test('[P1] after clearing one mode, selecting another example updates the composer without leaking prior mode state', async ({ page }) => {
@@ -397,33 +329,6 @@ test('[P1] after clearing one mode, selecting another example updates the compos
   );
 
   await clearActiveChip(page);
-
-  await page.getByTestId('home-hero-rail-live-artifact').click();
-  await expect(page.getByTestId('home-hero-active-type-chip')).toBeVisible();
-  await expect(page.getByTestId('home-hero-plugin-presets')).toBeVisible();
-  await expect(page.getByTestId('home-hero-footer-option-designSystem')).toHaveCount(0);
-  await page
-    .locator('[data-testid="home-hero-plugin-preset"][data-plugin-id="image-template-notion-team-dashboard-live-artifact"]')
-    .click();
-  await expect(input).toHaveText('Create a refreshable Notion dashboard live artifact.');
-});
-
-test('[P1] selecting another example updates the composer input', async ({ page }) => {
-  await gotoEntryHome(page);
-
-  const input = page.getByTestId('home-hero-input');
-
-  await page.getByTestId('home-hero-rail-live-artifact').click();
-  await expect(page.getByTestId('home-hero-plugin-presets')).toBeVisible();
-  await page
-    .locator('[data-testid="home-hero-plugin-preset"][data-plugin-id="image-template-notion-team-dashboard-live-artifact"]')
-    .click();
-  await expect(input).toHaveText('Create a refreshable Notion dashboard live artifact.');
-
-  await page
-    .locator('[data-testid="home-hero-plugin-preset"][data-plugin-id="example-live-artifact"]')
-    .click();
-  await expect(input).toHaveText('Create refreshable, auditable Open Design artifacts backed by connector or local data.');
 });
 
 async function expectChipSelection(page: Page, chipId: string, _label: string) {

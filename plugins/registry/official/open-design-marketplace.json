@@ -6788,39 +6788,6 @@
       "taskKind": "new-generation"
     },
     {
-      "name": "open-design/example-live-artifact",
-      "title": "Live Artifact",
-      "version": "0.1.0",
-      "source": "github:nexu-io/open-design@main/plugins/_official/examples/live-artifact",
-      "publisher": {
-        "id": "open-design",
-        "url": "https://open-design.ai"
-      },
-      "capabilitiesSummary": [
-        "prompt:inject",
-        "fs:write"
-      ],
-      "description": "Create refreshable, auditable Open Design artifacts backed by connector or local data.\nTrigger when the user asks for live dashboards, refreshable reports, synced views, or reusable data-backed artifacts.",
-      "tags": [
-        "example",
-        "first-party",
-        "prototype",
-        "live",
-        "web",
-        "live-artifact",
-        "live-dashboard",
-        "refreshable-dashboard",
-        "live-report",
-        "refreshable-report",
-        "synced-view",
-        "untitled"
-      ],
-      "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/live-artifact",
-      "license": "MIT",
-      "mode": "prototype",
-      "taskKind": "new-generation"
-    },
-    {
       "name": "open-design/example-live-dashboard",
       "title": "Live Dashboard",
       "version": "0.1.0",
@@ -6847,8 +6814,7 @@
         "ops-dashboard",
         "team-workspace-dashboard",
         "untitled",
-        "notion",
-        "live-artifact-dashboard"
+        "notion"
       ],
       "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/live-dashboard",
       "license": "MIT",
@@ -7464,6 +7430,33 @@
       "taskKind": "new-generation"
     },
     {
+      "name": "open-design/example-report",
+      "title": "Report",
+      "version": "0.1.0",
+      "source": "github:nexu-io/open-design@main/plugins/_official/examples/example-report",
+      "publisher": {
+        "id": "open-design",
+        "url": "https://open-design.ai"
+      },
+      "capabilitiesSummary": [
+        "prompt:inject",
+        "fs:write"
+      ],
+      "description": "Flexible long-form report document for any business or technical topic, with a title block, executive summary, body sections, tables, chart blocks, and appendix.",
+      "tags": [
+        "example",
+        "first-party",
+        "report",
+        "document",
+        "web",
+        "untitled"
+      ],
+      "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/example-report",
+      "license": "MIT",
+      "mode": "prototype",
+      "taskKind": "new-generation"
+    },
+    {
       "name": "open-design/example-resume-modern",
       "title": "Modern Resume",
       "version": "0.1.0",
@@ -7646,7 +7639,6 @@
         "example",
         "first-party",
         "template",
-        "live-artifacts",
         "web",
         "desktop",
         "social-media-matrix-tracker",
@@ -7871,7 +7863,6 @@
         "example",
         "first-party",
         "template",
-        "live-artifacts",
         "web",
         "desktop",
         "trading-analysis-dashboard-template",
@@ -8638,33 +8629,6 @@
       ],
       "homepage": "https://github.com/YouMind-OpenLab/awesome-gpt-image-2",
       "license": "CC-BY-4.0",
-      "mode": "image",
-      "taskKind": "new-generation"
-    },
-    {
-      "name": "open-design/image-template-notion-team-dashboard-live-artifact",
-      "title": "Notion-style Team Dashboard (Live Artifact)",
-      "version": "0.1.0",
-      "source": "github:nexu-io/open-design@main/plugins/_official/image-templates/notion-team-dashboard-live-artifact",
-      "publisher": {
-        "id": "open-design",
-        "url": "https://open-design.ai"
-      },
-      "capabilitiesSummary": [
-        "prompt:inject",
-        "media:image-generate"
-      ],
-      "description": "Single-screen Notion-native team dashboard mockup — KPI grid, 7-day sparkline, activity feed, and linked-database task table. Visual companion to the live-artifact skill; pair with it for refreshable / connector-backed runs, or use standalone as a still mockup.",
-      "tags": [
-        "image-template",
-        "first-party",
-        "image",
-        "live-artifact",
-        "app-showcase",
-        "chart"
-      ],
-      "homepage": "https://github.com/joeylee12629-star/open-design",
-      "license": "Apache-2.0",
       "mode": "image",
       "taskKind": "new-generation"
     },

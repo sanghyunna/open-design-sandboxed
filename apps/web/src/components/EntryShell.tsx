@@ -275,7 +275,6 @@ interface Props {
   onImportFolder?: (baseDir: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string) => void;
-  onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
   onDeleteProject: (id: string) => Promise<boolean | void> | boolean | void;
   onRenameProject: (id: string, name: string) => void;
   onChangeDefaultDesignSystem: (id: string) => void;
@@ -372,7 +371,6 @@ export function EntryShell({
   onImportFolder,
   onImportFolderResponse,
   onOpenProject,
-  onOpenLiveArtifact,
   onDeleteProject,
   onRenameProject,
   onChangeDefaultDesignSystem,
@@ -704,7 +702,6 @@ export function EntryShell({
                     skills={skills}
                     designSystems={designSystems}
                     onOpen={onOpenProject}
-                    onOpenLiveArtifact={onOpenLiveArtifact}
                     onDelete={onDeleteProject}
                     onRename={onRenameProject}
                     onNewProject={() => openNewProject()}
@@ -776,17 +773,11 @@ export function EntryShell({
         templates={templates}
         {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
         promptTemplates={promptTemplates}
-        connectors={connectors}
-        connectorsLoading={connectorsLoading}
         loading={skillsLoading}
         onCreate={handleCreate}
         onImportClaudeDesign={onImportClaudeDesign}
         {...(onImportFolder ? { onImportFolder } : {})}
         {...(onImportFolderResponse ? { onImportFolderResponse } : {})}
-        onOpenConnectorsTab={() => {
-          setNewProjectOpen(false);
-          openIntegrationTab('connectors');
-        }}
         onClose={() => setNewProjectOpen(false)}
       />
     </div>

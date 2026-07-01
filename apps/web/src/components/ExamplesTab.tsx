@@ -27,8 +27,7 @@ type ModeFilter =
   | 'prototype-mobile'
   | 'deck'
   | 'document'
-  | 'orbit'
-  | 'live';
+  | 'orbit';
 type SurfaceFilter = 'all' | 'web';
 type ScenarioFilter = string;
 
@@ -44,7 +43,6 @@ const MODE_PILLS: { value: ModeFilter; labelKey: keyof Dict }[] = [
   { value: 'deck', labelKey: 'examples.modeDeck' },
   { value: 'document', labelKey: 'examples.modeDocument' },
   { value: 'orbit', labelKey: 'examples.modeOrbit' },
-  { value: 'live', labelKey: 'examples.modeLive' },
 ];
 
 const SCENARIO_LABEL_KEY: Record<string, keyof Dict> = {
@@ -94,12 +92,6 @@ function matchesMode(skill: SkillSummary, filter: ModeFilter): boolean {
     return skill.mode === 'prototype' && skill.platform === 'mobile';
   if (filter === 'document') return skill.mode === 'template';
   if (filter === 'orbit') return skill.scenario === 'orbit';
-  // Live artifacts ride on the prototype mode but want their own bucket so
-  // refreshable / connector-backed samples are easy to find without
-  // scrolling through every desktop prototype. The parent live-artifact
-  // skill and every derived `live-artifact:<example>` card share the
-  // `live` scenario, so they all light up here together.
-  if (filter === 'live') return skill.scenario === 'live';
   return true;
 }
 
@@ -119,9 +111,8 @@ function quotePrompt(locale: string, text: string): string {
 export function ExamplesTab({ skills: rawSkills, onUsePrompt }: Props) {
   const { locale, t } = useI18n();
   // Skills tagged `aggregatesExamples: true` are containers whose preview
-  // would just duplicate one of their derived `<parent>:<child>` cards
-  // (e.g. live-artifact ships a sample gallery under `examples/`). Drop
-  // them up front so every count, filter, and rendered card downstream
+  // would just duplicate one of their derived `<parent>:<child>` cards.
+  // Drop them up front so every count, filter, and rendered card downstream
   // sees only the user-facing entries. The full listing is still passed
   // through for `findSkillById` lookups elsewhere in the app.
   // Deduplicate by skill.id to prevent duplicate cards (issue #2889).
@@ -275,7 +266,6 @@ export function ExamplesTab({ skills: rawSkills, onUsePrompt }: Props) {
       deck: 0,
       document: 0,
       orbit: 0,
-      live: 0,
     };
     for (const s of surfaceScoped) {
       if (matchesMode(s, 'prototype-desktop')) c['prototype-desktop']++;
@@ -283,7 +273,6 @@ export function ExamplesTab({ skills: rawSkills, onUsePrompt }: Props) {
       if (matchesMode(s, 'deck')) c.deck++;
       if (matchesMode(s, 'document')) c.document++;
       if (matchesMode(s, 'orbit')) c.orbit++;
-      if (matchesMode(s, 'live')) c.live++;
     }
     return c;
   }, [skills, surfaceFilter]);

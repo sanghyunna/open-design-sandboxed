@@ -42,7 +42,6 @@ import {
   fetchDesignSystem,
   fetchDesignTemplate,
   fetchProjectDesignSystemPackageAudit,
-  fetchLiveArtifacts,
   fetchProjectFiles,
   fetchSkill,
   patchPreviewCommentStatus,
@@ -102,7 +101,6 @@ import {
   buildDesignSystemPackageAuditRepairPrompt,
   summarizeDesignSystemPackageAudit,
 } from '../runtime/design-system-package-audit';
-import { isLiveArtifactTabId, liveArtifactTabId } from '../types';
 import {
   DESIGN_SYSTEM_WORKSPACE_DISPLAY_TITLE,
   isDesignSystemWorkspacePrompt,
@@ -147,8 +145,6 @@ import type {
   PreviewCommentTarget,
   ProjectFile,
   ProjectTemplate,
-  LiveArtifactEventItem,
-  LiveArtifactSummary,
   SkillSummary,
 } from '../types';
 import { historyWithApiAttachmentContext } from '../api-attachment-context';
@@ -334,7 +330,6 @@ interface QueuedChatSendUpdate {
   meta?: ChatSendMeta;
 }
 
-let liveArtifactEventSequence = 0;
 const CHAT_PANEL_WIDTH_STORAGE_KEY = 'open-design.project.chatPanelWidth';
 const DEFAULT_CHAT_PANEL_WIDTH = 460;
 const MIN_CHAT_PANEL_WIDTH = 345;
@@ -645,15 +640,6 @@ function workspaceContextItemsEqual(
   return a.every((item, index) => workspaceContextItemEqual(item, b[index] ?? null));
 }
 
-function appendLiveArtifactEventItem(
-  prev: LiveArtifactEventItem[],
-  event: LiveArtifactEventItem['event'],
-): LiveArtifactEventItem[] {
-  liveArtifactEventSequence += 1;
-  const next = [...prev, { id: liveArtifactEventSequence, event }];
-  return next.length > 50 ? next.slice(next.length - 50) : next;
-}
-
 export function projectSplitClassName(workspaceFocused: boolean): string {
   return workspaceFocused ? 'split split-focus' : 'split';
 }
@@ -704,31 +690,6 @@ function applySplitChatPanelWidth(
   split.style.setProperty('--project-chat-panel-width', `${width}px`);
   split.style.gridTemplateColumns =
     `${width}px ${SPLIT_RESIZE_HANDLE_WIDTH}px ${workspacePanelTrack}`;
-}
-
-function projectEventToAgentEvent(evt: ProjectEvent): LiveArtifactEventItem['event'] | null {
-  if (evt.type === 'file-changed') return null;
-  if (evt.type === 'conversation-created') return null;
-  if (evt.type === 'live_artifact') {
-    return {
-      kind: 'live_artifact',
-      action: evt.action,
-      projectId: evt.projectId,
-      artifactId: evt.artifactId,
-      title: evt.title,
-      refreshStatus: evt.refreshStatus,
-    };
-  }
-  return {
-    kind: 'live_artifact_refresh',
-    phase: evt.phase,
-    projectId: evt.projectId,
-    artifactId: evt.artifactId,
-    refreshId: evt.refreshId,
-    title: evt.title,
-    refreshedSourceCount: evt.refreshedSourceCount,
-    error: evt.error,
-  };
 }
 
 export function ProjectView({
@@ -873,18 +834,15 @@ export function ProjectView({
   // of silently sitting on the old tree for the few seconds the scan takes.
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
   const projectFilesRef = useRef<ProjectFile[]>([]);
-  const [liveArtifacts, setLiveArtifacts] = useState<LiveArtifactSummary[]>([]);
-  const [liveArtifactEvents, setLiveArtifactEvents] = useState<LiveArtifactEventItem[]>([]);
   const [workspaceFocused, setWorkspaceFocused] = useState(false);
   const [commentInspectorActive, setCommentInspectorActive] = useState(false);
   const commentInspectorPortalId = useId();
   const leftInspectorActive = commentInspectorActive;
-  // PR #974 round 7 (mrcfps @ useDesignMdState.ts:131): counter that
-  // bumps on file-changed SSE events, live_artifact* events, and the
-  // chat streaming-completion edge so the staleness chip stays in sync
-  // with the underlying mtimes / conversation updatedAt as the user
-  // keeps working post-finalize. The hook treats it as a dep and
-  // recomputes whenever it changes.
+  // PR #974 round 7 (mrcfps @ useDesignMdState.ts:131): counter that bumps on
+  // file-changed SSE events and the chat streaming-completion edge so the
+  // staleness chip stays in sync with the underlying mtimes / conversation
+  // updatedAt as the user keeps working post-finalize. The hook treats it as a
+  // dep and recomputes whenever it changes.
   const [designMdRefreshKey, setDesignMdRefreshKey] = useState(0);
   // ----- Continue in CLI / Finalize design package wiring (#451) -----
   // The toast surface is shared between Finalize errors and the
@@ -1610,16 +1568,9 @@ export function ProjectView({
     [project.id],
   );
 
-  const refreshLiveArtifacts = useCallback(async (): Promise<LiveArtifactSummary[]> => {
-    const next = await fetchLiveArtifacts(project.id);
-    setLiveArtifacts(next);
-    return next;
-  }, [project.id]);
-
   const refreshWorkspaceItems = useCallback(async (): Promise<ProjectFile[]> => {
-    const [nextFiles] = await Promise.all([refreshProjectFiles(), refreshLiveArtifacts()]);
-    return nextFiles;
-  }, [refreshLiveArtifacts, refreshProjectFiles]);
+    return refreshProjectFiles();
+  }, [refreshProjectFiles]);
 
   useEffect(() => {
     if (!tabsLoadedRef.current) return;
@@ -1863,15 +1814,7 @@ export function ProjectView({
       })();
       return;
     }
-    const agentEvent = projectEventToAgentEvent(evt);
-    if (!agentEvent) return;
-    setLiveArtifactEvents((prev) => appendLiveArtifactEventItem(prev, agentEvent));
-    void refreshLiveArtifacts();
-    onProjectsRefresh();
-    // Live artifact events come from chat-turn-emitted artifacts; they
-    // also imply the conversation transcript changed.
-    setDesignMdRefreshKey((n) => n + 1);
-  }, [coalescedFileChangedRefresh, iframeKeepAlivePool, onProjectsRefresh, refreshLiveArtifacts, project.id]);
+  }, [coalescedFileChangedRefresh, iframeKeepAlivePool, project.id]);
   useProjectFileEvents(project.id, daemonLive, handleProjectEvent);
 
   const activePromptContextSignature = useMemo(() => {
@@ -1935,7 +1878,6 @@ export function ProjectView({
     const target = openTabsState.active && (
       openTabsState.tabs.includes(openTabsState.active)
       || projectFileNames.has(openTabsState.active)
-      || isLiveArtifactTabId(openTabsState.active)
     )
       ? openTabsState.active
       : null;
@@ -2375,9 +2317,7 @@ export function ProjectView({
         setFailedMessagesConversationId(null);
       }
       const availableFiles = new Set(nextFiles.map((file) => file.name));
-      const nextTabs = openTabsState.tabs.filter(
-        (name) => availableFiles.has(name) || isLiveArtifactTabId(name),
-      );
+      const nextTabs = openTabsState.tabs.filter((name) => availableFiles.has(name));
       const active =
         openTabsState.active && nextTabs.includes(openTabsState.active)
           ? openTabsState.active
@@ -3233,20 +3173,6 @@ export function ProjectView({
       const pushEvent = (ev: AgentEvent) => {
         textBuffer.flush();
         updateAssistant((prev) => ({ ...prev, events: [...(prev.events ?? []), ev] }));
-        if (ev.kind === 'live_artifact') {
-          setLiveArtifactEvents((prev) => appendLiveArtifactEventItem(prev, ev));
-          void refreshLiveArtifacts().then(() => {
-            if (ev.action !== 'deleted') requestOpenFile(liveArtifactTabId(ev.artifactId));
-          });
-          onProjectsRefresh();
-          return;
-        }
-        if (ev.kind === 'live_artifact_refresh') {
-          setLiveArtifactEvents((prev) => appendLiveArtifactEventItem(prev, ev));
-          void refreshLiveArtifacts();
-          onProjectsRefresh();
-          return;
-        }
         persistAssistantSoon();
         persistAssistantSoon();
         // Track Write tool invocations so we can auto-open the destination
@@ -3761,7 +3687,6 @@ export function ProjectView({
       project.name,
       projectFiles,
       refreshProjectFiles,
-      refreshLiveArtifacts,
       requestOpenFile,
       persistMessage,
       persistMessageById,
@@ -5664,7 +5589,6 @@ export function ProjectView({
           reloading={false}
           resolvedDir={projectDetail.resolvedDir}
           files={projectFiles}
-          liveArtifacts={liveArtifacts}
           filesRefreshKey={filesRefresh}
           onRefreshFiles={() => {
             void refreshWorkspaceItems();
@@ -5678,7 +5602,6 @@ export function ProjectView({
           shareRequest={shareRequest}
           downloadRequest={downloadRequest}
           slideNavRequest={slideNavRequest}
-          liveArtifactEvents={liveArtifactEvents}
           designSystemActivityEvents={designSystemActivityEvents}
           tabsState={openTabsState}
           onTabsStateChange={persistTabsState}

@@ -40,14 +40,6 @@ const CURATED_PROTOTYPE_PLUGIN_IDS = [
   'example-doc-kami-parchment',
 ] as const;
 
-export const CURATED_LIVE_ARTIFACT_PLUGIN_IDS = [
-  'example-live-dashboard',
-  'image-template-notion-team-dashboard-live-artifact',
-  'example-social-media-matrix-tracker-template',
-  'example-trading-analysis-dashboard-template',
-  'example-live-artifact',
-] as const;
-
 const CURATED_DECK_PLUGIN_IDS = [
   'example-html-ppt-zhangzara-creative-mode',
   'example-html-ppt-zhangzara-scatterbrain',
@@ -82,7 +74,6 @@ const CURATED_HYPERFRAMES_PLUGIN_IDS = [
 
 export const CURATED_PLUGIN_IDS_BY_CHIP = {
   prototype: CURATED_PROTOTYPE_PLUGIN_IDS,
-  'live-artifact': CURATED_LIVE_ARTIFACT_PLUGIN_IDS,
   deck: CURATED_DECK_PLUGIN_IDS,
   image: CURATED_IMAGE_PLUGIN_IDS,
   video: CURATED_VIDEO_PLUGIN_IDS,
@@ -91,7 +82,6 @@ export const CURATED_PLUGIN_IDS_BY_CHIP = {
 
 const CURATED_GLOBAL_IDS = [
   ...CURATED_PROTOTYPE_PLUGIN_IDS,
-  ...CURATED_LIVE_ARTIFACT_PLUGIN_IDS,
   ...CURATED_DECK_PLUGIN_IDS,
   ...CURATED_IMAGE_PLUGIN_IDS,
   ...CURATED_VIDEO_PLUGIN_IDS,

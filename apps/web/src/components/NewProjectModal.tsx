@@ -2,15 +2,13 @@
 //
 // Triggered by the "+" button on the entry nav rail. Reuses the
 // existing NewProjectPanel surface so all of the per-kind tabs
-// (prototype / live-artifact / deck / template / image / video /
-// audio / other) and their connector / template / design-system
+// (prototype / deck / template / other) and their template / design-system
 // pickers carry over without duplication. The modal closes itself
 // when the panel calls onCreate and it completes (success path) or when the user
 // clicks the backdrop / Esc.
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { ConnectorDetail } from '@open-design/contracts';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
 import { modalOverlay, modalContent } from '../motion';
 import type {
@@ -35,8 +33,6 @@ interface Props {
   templates: ProjectTemplate[];
   onDeleteTemplate?: (id: string) => Promise<boolean>;
   promptTemplates: PromptTemplateSummary[];
-  connectors?: ConnectorDetail[];
-  connectorsLoading?: boolean;
   loading?: boolean;
   onCreate: (input: CreateInput & { requestId?: string }) => Promise<boolean> | boolean | void;
   onImportClaudeDesign?: (
@@ -44,7 +40,6 @@ interface Props {
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
-  onOpenConnectorsTab?: () => void;
   onClose: () => void;
   initialTab?: CreateTab;
 }
@@ -71,14 +66,11 @@ function NewProjectModalBody({
   templates,
   onDeleteTemplate,
   promptTemplates,
-  connectors,
-  connectorsLoading,
   loading,
   onCreate,
   onImportClaudeDesign,
   onImportFolder,
   onImportFolderResponse,
-  onOpenConnectorsTab,
   onClose,
   initialTab,
 }: Omit<Props, 'open'>) {
@@ -168,8 +160,6 @@ function NewProjectModalBody({
             templates={templates}
             {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
             promptTemplates={promptTemplates}
-            {...(connectors ? { connectors } : {})}
-            {...(typeof connectorsLoading === 'boolean' ? { connectorsLoading } : {})}
             loading={Boolean(loading) || creating}
             onCreate={(input) => {
               void handleCreate(input);
@@ -177,7 +167,6 @@ function NewProjectModalBody({
             {...(onImportClaudeDesign ? { onImportClaudeDesign } : {})}
             {...(onImportFolder ? { onImportFolder } : {})}
             {...(onImportFolderResponse ? { onImportFolderResponse } : {})}
-            {...(onOpenConnectorsTab ? { onOpenConnectorsTab } : {})}
             {...(initialTab ? { initialTab } : {})}
           />
           {creating ? (

@@ -9,9 +9,8 @@ import type {
 } from './api/automations';
 import type { ConnectorDetail } from './api/connectors';
 import type { ProjectFile } from './api/files';
-import type { LiveArtifact, LiveArtifactCreateInput, LiveArtifactUpdateInput } from './api/live-artifacts';
 import type { HealthResponse } from './api/registry';
-import type { ApiErrorResponse, ApiValidationErrorDetails } from './errors';
+import type { ApiErrorResponse } from './errors';
 import type { ChatSseEvent } from './sse/chat';
 import type { ProxySseEvent } from './sse/proxy';
 
@@ -53,26 +52,6 @@ export const exampleApiErrorResponse: ApiErrorResponse = {
   error: {
     code: 'BAD_REQUEST',
     message: 'Missing message',
-    retryable: false,
-  },
-};
-
-const exampleLiveArtifactValidationDetails: ApiValidationErrorDetails = {
-  kind: 'validation',
-  issues: [
-    {
-      path: 'document.templatePath',
-      message: 'Live artifact templates must be stored at template.html.',
-      code: 'INVALID_TEMPLATE_PATH',
-    },
-  ],
-};
-
-export const exampleLiveArtifactValidationErrorResponse: ApiErrorResponse = {
-  error: {
-    code: 'LIVE_ARTIFACT_INVALID',
-    message: 'Live artifact validation failed',
-    details: exampleLiveArtifactValidationDetails,
     retryable: false,
   },
 };
@@ -176,55 +155,6 @@ export const exampleAutomationSourceIngestionResponse: AutomationSourceIngestion
   packet: exampleAutomationContentPacket,
   compressionReport: exampleAutomationCompressionReport,
   proposals: [exampleAutomationEvolutionProposal],
-};
-
-export const exampleLiveArtifact: LiveArtifact = {
-  schemaVersion: 1,
-  id: 'live_artifact_1',
-  projectId: 'project_1',
-  createdByRunId: 'run_1',
-  title: 'Launch Metrics',
-  slug: 'launch-metrics',
-  status: 'active',
-  pinned: false,
-  preview: { type: 'html', entry: 'index.html' },
-  refreshStatus: 'idle',
-  createdAt: '2026-04-29T12:00:00.000Z',
-  updatedAt: '2026-04-29T12:00:00.000Z',
-  document: {
-    format: 'html_template_v1',
-    templatePath: 'template.html',
-    generatedPreviewPath: 'index.html',
-    dataPath: 'data.json',
-    dataJson: {
-      title: 'Launch Metrics',
-      metrics: [{ label: 'Signups', value: 1280, delta: '+12%' }],
-    },
-  },
-};
-
-export const exampleLiveArtifactCreateInput: LiveArtifactCreateInput = {
-  title: 'Launch Metrics',
-  slug: 'launch-metrics',
-  pinned: false,
-  status: 'active',
-  preview: { type: 'html', entry: 'index.html' },
-  document: {
-    format: 'html_template_v1',
-    templatePath: 'template.html',
-    generatedPreviewPath: 'index.html',
-    dataPath: 'data.json',
-    dataJson: {
-      title: 'Launch Metrics',
-      metrics: [{ label: 'Signups', value: 1280, delta: '+12%' }],
-    },
-  },
-};
-
-export const exampleLiveArtifactUpdateInput: LiveArtifactUpdateInput = {
-  title: 'Launch Metrics Dashboard',
-  pinned: true,
-  preview: { type: 'html', entry: 'index.html' },
 };
 
 export const exampleConnectorDetail: ConnectorDetail = {

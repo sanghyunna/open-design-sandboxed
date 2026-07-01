@@ -530,13 +530,7 @@
   color: #2348b8;
   background: #e8efff;
   border-color: rgba(35, 72, 184, 0.18);
-}
-.design-card-tag.tag-live-artifact {
-  color: #6d4ff5;
-  background: rgba(116, 92, 255, 0.12);
-  border-color: rgba(116, 92, 255, 0.28);
-}
-.design-card-tag.tag-slide {
+}.design-card-tag.tag-slide {
   color: #b15e00;
   background: rgba(255, 159, 64, 0.14);
   border-color: rgba(255, 159, 64, 0.32);

@@ -46,10 +46,6 @@ import {
   isSideChatTabId,
   isTerminalTabId,
   terminalIdFromTabId,
-  liveArtifactSummaryToWorkspaceEntry,
-  type LiveArtifactSummary,
-  type LiveArtifactEventItem,
-  type LiveArtifactWorkspaceEntry,
   type OpenTabsState,
   type ProjectBrowserWorkspaceTab,
   type PreviewComment,
@@ -67,14 +63,13 @@ import { DesignBrowserPanel, labelFromUrl, type BrowserPageInfo } from './Design
 import type { PluginFolderAgentAction } from './design-files/pluginFolderActions';
 import { designSystemGithubEvidenceState, repoConnectCopy } from './design-system-github-evidence';
 import { APP_CHROME_FILE_ACTIONS_ID } from './AppChromeHeader';
-import { FileViewer, LiveArtifactViewer } from './FileViewer';
+import { FileViewer } from './FileViewer';
 import { Icon, type IconName } from './Icon';
 import { Toast } from './Toast';
 import { TabLauncherMenu } from './workspace/TabLauncherMenu';
 import { buildLauncherActions, type LauncherContext } from './workspace/tab-launcher';
 import { SideChatTab, type ActiveConversationChatState } from './workspace/SideChatTab';
 import { TerminalViewer } from './workspace/TerminalViewer';
-import { LiveArtifactBadges } from './LiveArtifactBadges';
 import { MissingBrandFontsBanner } from './MissingBrandFontsBanner';
 import { PasteTextDialog } from './PasteTextDialog';
 import { QuestionsPanel } from './QuestionsPanel';
@@ -102,7 +97,6 @@ interface Props {
    * the Design Files panel's "copy absolute path" action. */
   resolvedDir?: string | null;
   files: ProjectFile[];
-  liveArtifacts: LiveArtifactSummary[];
   filesRefreshKey?: number;
   onRefreshFiles: () => Promise<void> | void;
   isDeck: boolean;
@@ -121,7 +115,6 @@ interface Props {
   // `shareRequest`: the named file is activated (if open) and the matching
   // FileViewer consumes the nonce to navigate.
   slideNavRequest?: { name: string; slideIndex: number; nonce: number } | null;
-  liveArtifactEvents?: LiveArtifactEventItem[];
   designSystemActivityEvents?: AgentEvent[];
   // Persisted set of open tabs + active tab. Owned by ProjectView so the
   // daemon's SQLite store can hold the source of truth and survive reloads.
@@ -357,7 +350,6 @@ export function FileWorkspace({
   reloading,
   resolvedDir,
   files,
-  liveArtifacts,
   filesRefreshKey = 0,
   onRefreshFiles,
   isDeck,
@@ -369,7 +361,6 @@ export function FileWorkspace({
   shareRequest,
   downloadRequest,
   slideNavRequest,
-  liveArtifactEvents = [],
   designSystemActivityEvents = [],
   tabsState,
   onTabsStateChange,
@@ -528,15 +519,7 @@ export function FileWorkspace({
   // the live set at BROWSER_KEEPALIVE_CAP and unmount the rest.
   const [liveBrowserTabIds, setLiveBrowserTabIds] = useState<string[]>([]);
 
-  const visibleFiles = useMemo(
-    () => files.filter((file) => !isLiveArtifactImplementationPath(file.name)),
-    [files],
-  );
-
-  const liveArtifactEntries = useMemo(
-    () => liveArtifacts.map(liveArtifactSummaryToWorkspaceEntry),
-    [liveArtifacts],
-  );
+  const visibleFiles = files;
 
   const refreshProjectFolders = useCallback(async (): Promise<ProjectFolder[]> => {
     const next = await fetchProjectFolders(projectId);
@@ -556,14 +539,13 @@ export function FileWorkspace({
     };
   }, [projectId]);
 
-  // True when the Design Files tab has nothing to attach: no files, no live
-  // artifacts, no folders. Mirrors DesignFilesPanel's own empty-state gate so
-  // the "Design files" composer context and the empty placeholder agree on
-  // when the tab is actually empty. Reused below to suppress the auto-attached
-  // workspace context for a brand-new/empty project.
+  // True when the Design Files tab has nothing to attach: no files, no folders.
+  // Mirrors DesignFilesPanel's own empty-state gate so the "Design files"
+  // composer context and the empty placeholder agree on when the tab is
+  // actually empty. Reused below to suppress the auto-attached workspace
+  // context for a brand-new/empty project.
   const designFilesTabIsEmpty =
     visibleFiles.length === 0
-    && liveArtifactEntries.length === 0
     && projectFolders.length === 0;
 
   // Pull the persisted active tab in when the parent's hydration completes
@@ -1453,16 +1435,6 @@ export function FileWorkspace({
     return null;
   }, [activeTab, visibleFiles, sketches]);
 
-  const activeLiveArtifact = useMemo<LiveArtifactWorkspaceEntry | null>(() => {
-    if (
-      activeTab === DESIGN_FILES_TAB
-      || activeTab === DESIGN_SYSTEM_TAB
-      || activeTab === QUESTIONS_TAB
-      || isBrowserTabId(activeTab)
-    ) return null;
-    return liveArtifactEntries.find((entry) => entry.tabId === activeTab) ?? null;
-  }, [activeTab, liveArtifactEntries]);
-
   const activeWorkspaceContext = useMemo<WorkspaceContextItem | null>(() => {
     if (activeTab === DESIGN_SYSTEM_TAB && designSystemProject) {
       return {
@@ -1519,15 +1491,6 @@ export function FileWorkspace({
         tabId: activeTab,
       };
     }
-    if (activeLiveArtifact) {
-      return {
-        id: `live-artifact:${activeLiveArtifact.artifactId}`,
-        kind: 'live-artifact',
-        label: activeLiveArtifact.title,
-        tabId: activeLiveArtifact.tabId,
-        path: activeLiveArtifact.slug,
-      };
-    }
     if (activeFile) {
       const filePath = activeFile.path ?? activeFile.name;
       return {
@@ -1542,7 +1505,6 @@ export function FileWorkspace({
     return null;
   }, [
     activeFile,
-    activeLiveArtifact,
     activeTab,
     browserTabs,
     conversations,
@@ -1618,7 +1580,6 @@ export function FileWorkspace({
     });
 
     const filesByName = new Map(visibleFiles.map((file) => [file.name, file] as const));
-    const liveByTabId = new Map(liveArtifactEntries.map((entry) => [entry.tabId, entry] as const));
     const terminalTabNames = tabNames.filter(isTerminalTabId);
 
     for (const entry of orderedWorkspaceTabs) {
@@ -1662,18 +1623,6 @@ export function FileWorkspace({
         continue;
       }
 
-      const liveArtifact = liveByTabId.get(name as LiveArtifactWorkspaceEntry['tabId']);
-      if (liveArtifact) {
-        push({
-          id: `live-artifact:${liveArtifact.artifactId}`,
-          kind: 'live-artifact',
-          label: liveArtifact.title,
-          tabId: liveArtifact.tabId,
-          path: liveArtifact.slug,
-        });
-        continue;
-      }
-
       const file = filesByName.get(name);
       if (file || (isSketchName(name) && sketches[name])) {
         const filePath = file?.path ?? file?.name ?? name;
@@ -1693,7 +1642,6 @@ export function FileWorkspace({
     browserTabs,
     conversations,
     designSystemProject,
-    liveArtifactEntries,
     orderedWorkspaceTabs,
     resolvedDir,
     sketches,
@@ -1890,8 +1838,7 @@ export function FileWorkspace({
               sketchEntry && (sketchEntry.dirty || !sketchEntry.persisted) ? ' •' : '';
             const isPending = sketchEntry && !sketchEntry.persisted;
             const onDisk = visibleFiles.find((f) => f.name === name);
-            const liveArtifact = liveArtifactEntries.find((entry) => entry.tabId === name);
-            const kind = liveArtifact ? 'live-artifact' : onDisk?.kind ?? (isSketchName(name) ? 'sketch' : 'text');
+            const kind = onDisk?.kind ?? (isSketchName(name) ? 'sketch' : 'text');
             const isTerminal = isTerminalTabId(name);
             const isSideChat = isSideChatTabId(name);
             // Terminal and side-chat tabs are not files: give them a friendly
@@ -1910,7 +1857,7 @@ export function FileWorkspace({
               );
               label = conv?.title?.trim() || t('workspace.sideChatDefaultTitle');
             } else {
-              label = `${liveArtifact?.title ?? name}${dirtyMark}`;
+              label = `${name}${dirtyMark}`;
             }
             const iconNameOverride: IconName | undefined = isTerminal
               ? 'terminal'
@@ -1928,7 +1875,6 @@ export function FileWorkspace({
                 }
                 onClose={() => closeTab(name)}
                 kind={kind}
-                liveArtifact={liveArtifact}
                 draggable={persistedTabs.includes(name)}
                 dragging={draggedTabName === name}
                 dragOverEdge={
@@ -2113,13 +2059,11 @@ export function FileWorkspace({
             running={Boolean(streaming)}
             files={visibleFiles}
             folders={projectFolders}
-            liveArtifacts={liveArtifactEntries}
             onRefreshFiles={onRefreshFiles}
             onCurrentDirChange={setUploadDir}
             navState={designFilesNavRef.current}
             onNavStateChange={onDesignFilesNavStateChange}
             onOpenFile={openFile}
-            onOpenLiveArtifact={(tabId) => openFile(tabId)}
             onRenameFile={handleRename}
             onDeleteFile={(name) => {
               trackFileManagerClick(analytics.track, {
@@ -2215,13 +2159,6 @@ export function FileWorkspace({
             terminalId={terminalIdFromTabId(activeTab)}
             onClose={() => closeTab(activeTab)}
             onSessionIdChange={handleTerminalSessionChange}
-          />
-        ) : activeLiveArtifact ? (
-          <LiveArtifactViewer
-            projectId={projectId}
-            liveArtifact={activeLiveArtifact}
-            liveArtifactEvents={liveArtifactEvents}
-            onRefreshArtifacts={onRefreshFiles}
           />
         ) : activeFile ? (
           <FileViewer
@@ -3671,7 +3608,6 @@ function Tab({
   closable = true,
   kind,
   iconNameOverride,
-  liveArtifact,
   draggable = false,
   dragging = false,
   dragOverEdge,
@@ -3688,10 +3624,9 @@ function Tab({
   onActivate: () => void;
   onClose?: () => void;
   closable?: boolean;
-  kind?: ProjectFile['kind'] | 'live-artifact' | 'browser';
+  kind?: ProjectFile['kind'] | 'browser';
   /** Force a specific icon (e.g. non-file tabs like terminal:<id> / chat:<id>). */
   iconNameOverride?: IconName;
-  liveArtifact?: LiveArtifactWorkspaceEntry;
   draggable?: boolean;
   dragging?: boolean;
   dragOverEdge?: TabDropEdge | null;
@@ -3709,7 +3644,6 @@ function Tab({
       className={[
         'ws-tab',
         meta ? 'has-meta' : '',
-        kind === 'live-artifact' ? 'live-artifact-tab' : '',
         active ? 'active' : '',
         draggable ? 'draggable' : '',
         dragging ? 'dragging' : '',
@@ -3742,14 +3676,6 @@ function Tab({
         <span className="ws-tab-label">{label}</span>
         {meta ? <span className="ws-tab-meta">{meta}</span> : null}
       </span>
-      {liveArtifact ? (
-        <LiveArtifactBadges
-          compact
-          className="ws-live-artifact-badges"
-          status={liveArtifact.status}
-          refreshStatus={liveArtifact.refreshStatus}
-        />
-      ) : null}
       {closable && onClose ? (
         <button
           type="button"
@@ -3814,7 +3740,6 @@ function kindIconName(
   | 'file'
   | null {
   if (kind === 'browser') return 'globe';
-  if (kind === 'live-artifact') return 'file-code';
   if (kind === 'html') return 'file-code';
   if (kind === 'image') return 'image';
   if (kind === 'sketch') return 'pencil';
@@ -3932,13 +3857,4 @@ function isSketchName(name: string): boolean {
 
 function sameFileName(a: string, b: string): boolean {
   return a === b || a.toLocaleLowerCase() === b.toLocaleLowerCase();
-}
-
-function isLiveArtifactImplementationPath(name: string): boolean {
-  if (name === '.live-artifacts') return true;
-  if (!name.startsWith('.live-artifacts/')) return false;
-  // Live artifacts are exposed through virtual tree nodes only. In
-  // particular, keep implementation-only snapshot and tile files hidden even
-  // if a generic project-files endpoint returns them in older daemon builds.
-  return true;
 }

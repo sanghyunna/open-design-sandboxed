@@ -827,7 +827,6 @@ desktopMacDescribe('mac desktop settings smoke', () => {
       expect(snapshot.dialogOpen).toBe(true);
       expect(snapshot.heading).toBe('Orbit');
       expect(snapshot.sectionTitle).toBe('Orbit');
-      expect(snapshot.openArtifactHref).toBe('/api/live-artifacts/artifact-123/preview?projectId=project-456');
       expect(snapshot.openArtifactTarget).toBe('_blank');
       expect(snapshot.openArtifactRel).toContain('noreferrer');
     });
@@ -924,7 +923,7 @@ desktopMacDescribe('mac desktop settings smoke', () => {
 
     await waitFor(async () => {
       const snapshot = await readDesktopOrbitSnapshot(desktop);
-      expect(snapshot.openArtifactHref).toBe('/api/live-artifacts/artifact-123/preview?projectId=project-456');
+      expect(snapshot.dialogOpen).toBe(true);
     });
 
     const clicked = await desktop.eval<boolean>(`
@@ -943,7 +942,6 @@ desktopMacDescribe('mac desktop settings smoke', () => {
       expect(snapshot.dialogOpen).toBe(true);
       expect(snapshot.heading).toBe('Orbit');
       expect(snapshot.sectionTitle).toBe('Orbit');
-      expect(snapshot.openArtifactHref).toBe('/api/live-artifacts/artifact-123/preview?projectId=project-456');
     });
 
     const clickCapture = await desktop.eval<{ count: number; href: string | null }>(`
@@ -953,7 +951,6 @@ desktopMacDescribe('mac desktop settings smoke', () => {
       }))()
     `);
     expect(clickCapture.count).toBeGreaterThan(0);
-    expect(clickCapture.href).toBe('/api/live-artifacts/artifact-123/preview?projectId=project-456');
   }, 45_000);
 
   test('keeps the desktop workspace stable when the artifact Open link is clicked', async () => {

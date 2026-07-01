@@ -62,8 +62,8 @@ export const API_ERROR_CODES = [
   // (e.g. pitch-deck `Name to confirm` / `$X.XM`) in an HTML/deck artifact
   // body at write time, so the file cannot be published. The caller should
   // supply the missing facts and retry rather than republishing the same
-  // body. Returned by `POST /api/projects/:id/files` (and the
-  // `tools live-artifacts create` path) as a 422.
+  // body. Returned by `POST /api/projects/:id/files` or related agent
+  // tool endpoints as a 422.
   'ARTIFACT_PUBLICATION_BLOCKED',
   'UPSTREAM_UNAVAILABLE',
   'RATE_LIMITED',
@@ -79,7 +79,7 @@ export const API_ERROR_CODES = [
   'TOOL_TOKEN_EXPIRED',
   'TOOL_ENDPOINT_DENIED',
   'TOOL_OPERATION_DENIED',
-  // Live artifact validation, storage, preview, and refresh failures.
+  // Legacy artifact validation, storage, preview, and refresh failures.
   'LIVE_ARTIFACT_NOT_FOUND',
   'LIVE_ARTIFACT_INVALID',
   'LIVE_ARTIFACT_STORAGE_FAILED',

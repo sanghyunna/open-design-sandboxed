@@ -21,7 +21,7 @@ reads both before producing the HTML artifact.
   "stages": [
     { "id": "extract",  "atoms": ["figma-extract"] },
     { "id": "tokens",   "atoms": ["token-map"] },
-    { "id": "generate", "atoms": ["file-write", "live-artifact"] },
+    { "id": "generate", "atoms": ["file-write"] },
     {
       "id": "critique", "atoms": ["critique-theater"],
       "repeat": true,

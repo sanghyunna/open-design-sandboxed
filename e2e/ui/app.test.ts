@@ -10,7 +10,7 @@ import { automatedUiScenarios } from '@/playwright/resources';
 import type { UiScenario } from '@/playwright/resources';
 
 const STORAGE_KEY = 'open-design:config';
-const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible, [data-testid="live-artifact-preview-frame"]:visible';
+const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 const APP_OWNED_SCENARIO_FLOWS = new Set([
   'design-files-upload',
   'design-files-delete',
@@ -26,7 +26,6 @@ const CRITICAL_SCENARIO_IDS = new Set([
   'hyperframes-basic',
   'image-basic',
   'video-basic',
-  'live-artifact-basic',
   'conversation-persistence',
   'file-mention',
   'deep-link-preview',
@@ -334,10 +333,6 @@ for (const entry of automatedUiScenarios().filter(
       await runAudioProjectRoutingFlow(page, entry);
       return;
     }
-    if (entry.flow === 'live-artifact-project-routing') {
-      await runLiveArtifactProjectRoutingFlow(page, entry);
-      return;
-    }
     await createProject(page, entry);
     await expectWorkspaceReady(page);
 
@@ -584,7 +579,6 @@ function scenarioPriority(entry: UiScenario): 'P0' | 'P1' | 'P2' {
     case 'image-project-routing':
     case 'video-project-routing':
     case 'audio-project-routing':
-    case 'live-artifact-project-routing':
     case 'conversation-persistence':
     case 'file-upload-send':
     case 'conversation-delete-recovery':
@@ -966,35 +960,6 @@ async function runAudioProjectRoutingFlow(
   expect(metadata?.audioDuration).toBe(body.metadata?.audioDuration);
 }
 
-async function runLiveArtifactProjectRoutingFlow(
-  page: Page,
-  entry: UiScenario,
-) {
-  await createProjectNameOnly(page, entry);
-
-  const createProjectRequest = page.waitForRequest(isCreateProjectRequest);
-  const createProjectResponse = page.waitForResponse(isCreateProjectResponse);
-  await page.getByTestId('create-project').click();
-
-  const request = await createProjectRequest;
-  const body = request.postDataJSON() as {
-    metadata?: {
-      kind?: string;
-      intent?: string;
-      fidelity?: string;
-    };
-  };
-  expect(body.metadata?.kind).toBe('prototype');
-  expect(body.metadata?.intent).toBe('live-artifact');
-  expect(body.metadata?.fidelity).toBe('high-fidelity');
-
-  const response = await createProjectResponse;
-  expect(response.ok()).toBeTruthy();
-
-  await expectWorkspaceReady(page);
-  const { projectId } = await getCurrentProjectContext(page);
-  await expectScenarioProjectState(page, entry, projectId);
-}
 
 
 async function runQuestionFormSelectionLimitFlow(
