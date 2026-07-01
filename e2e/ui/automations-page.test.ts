@@ -164,7 +164,6 @@ test.describe('Automations page', () => {
 
     const view = await gotoAutomations(page);
 
-    await expect(view.getByText('Plan recurring conversations for project work, Orbit digests, and live artifacts.')).toBeVisible();
     await expect(view.getByLabel('Automation summary')).toContainText('Active');
     await expect(view.getByLabel('Automation summary')).toContainText('Paused');
     await expect(view.getByLabel('Automation summary')).toContainText('Templates');
@@ -1061,10 +1060,6 @@ test.describe('Automations page', () => {
     const tabs = view.getByRole('tablist', { name: 'Template filters' });
 
     await expect(view.getByText(/Refresh project memory from recent work\./i)).toBeVisible();
-
-    await tabs.getByRole('tab', { name: /Orbit/i }).click();
-    await expect(view.getByRole('status')).toHaveCount(0);
-    await expect(view.getByText(/Refresh project memory from recent work\./i)).toHaveCount(0);
 
     await tabs.getByRole('tab', { name: /Memory/i }).click();
     await expect(view.getByText(/Refresh project memory from recent work\./i)).toBeVisible();

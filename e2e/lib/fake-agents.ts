@@ -176,11 +176,6 @@ async function emitRun(promptText) {
   const isChunked = promptText.includes('Create a chunked deterministic smoke artifact');
   const isFollowUp = promptText.includes('Create a follow-up deterministic smoke artifact');
   const isDefaultSmoke = promptText.includes('Create a deterministic smoke artifact');
-  const isOrbit = promptText.includes("Create today's Orbit daily digest as a Live Artifact.");
-  if (isOrbit) {
-    await emitOrbitRun();
-    return;
-  }
   const isRuntime = promptText.match(/Fake runtime smoke for ([a-z0-9-]+)/i);
   const runtimeId = isRuntime ? isRuntime[1] : agentId;
   const heading = isDelayed ? 'Delayed Daemon Smoke' : isChunked ? 'Chunked Daemon Smoke' : isFollowUp ? 'Follow-up Daemon Smoke' : isDefaultSmoke ? 'Real Daemon Smoke' : 'Fake Agent Runtime ' + runtimeId;
@@ -306,13 +301,6 @@ function emitSuccess(artifact, isChunked, includeThinking) {
     default:
       process.stdout.write(artifact + '\\n');
   }
-}
-
-async function emitOrbitRun() {
-  const text = 'Orbit fake digest completed.';
-  emitSuccess(text, false);
-  process.exitCode = 0;
-  exitSoon(0);
 }
 
 function failUnhandled(error) {
