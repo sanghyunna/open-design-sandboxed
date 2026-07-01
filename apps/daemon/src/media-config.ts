@@ -1,7 +1,7 @@
 // Per-provider credentials for the media dispatcher.
 //
-// The frontend Settings dialog pushes API keys here via PUT
-// /api/media/config; the daemon persists them to .od/media-config.json
+// Media settings APIs push API keys here; the daemon persists them to
+// .od/media-config.json
 // and reads them at generation time. Environment variables override the
 // stored values so power users can keep keys out of the workspace
 // folder altogether (`OD_OPENAI_API_KEY=… node daemon/cli.js`).
@@ -244,9 +244,8 @@ export async function resolveModelAlias(
 }
 
 /**
- * Read the merged alias map (env + stored). Exposed for the
- * `/api/media/config` GET endpoint so the Settings UI can display
- * which aliases are active and where they came from.
+ * Read the merged alias map (env + stored) so settings surfaces can
+ * display which aliases are active and where they came from.
  */
 export async function readAliasMap(
   projectRoot: string,

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // @ts-nocheck
+import { readFileSync } from 'node:fs';
 import { runDaemonCliStartup, startDaemonRuntime } from './daemon-startup.js';
 import { splitResearchSubcommand } from './research/cli-args.js';
 import { resolveDaemonUrl } from './daemon-url.js';
@@ -4340,10 +4341,8 @@ function normalizeChatSessionModeFlag(value) {
 
 function safeReadJsonFile(p) {
   try {
-    const fs = (require ? require('node:fs') : null);
-    if (!fs) return null;
-    if (p === '-') return JSON.parse(fs.readFileSync(0, 'utf8'));
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
+    if (p === '-') return JSON.parse(readFileSync(0, 'utf8'));
+    return JSON.parse(readFileSync(p, 'utf8'));
   } catch {
     return null;
   }

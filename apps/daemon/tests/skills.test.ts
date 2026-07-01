@@ -23,13 +23,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../..');
 const skillsRoot = path.join(repoRoot, 'skills');
-// `live-artifact`, `dcf-valuation`, `x-research`, and `last30days` were
-// reclassified as design templates under the Phase 0 split (see
-// specs/current/skills-and-design-templates.md). The body/preamble
-// expectations below still apply, but they now read from the design
-// templates root rather than skills/.
+// Design-template catalog entries read from the design-templates root rather
+// than skills/.
 const designTemplatesRoot = path.join(repoRoot, 'design-templates');
-const liveArtifactRoot = path.join(designTemplatesRoot, 'live-artifact');
+const dashboardRoot = path.join(designTemplatesRoot, 'dashboard');
 
 type SkillCatalogEntry = {
   id: string;
@@ -180,32 +177,24 @@ describe('listSkills', () => {
     }
   });
 
-  it('includes the built-in live-artifact skill catalog entry', async () => {
+  it('includes a built-in design template catalog entry', async () => {
     const skills = await listSkills(designTemplatesRoot);
-    const skill = skills.find((entry: { id: string }) => entry.id === 'live-artifact');
+    const skill = skills.find((entry: { id: string }) => entry.id === 'dashboard');
 
-    if (!skill) throw new Error('live-artifact skill not found');
+    if (!skill) throw new Error('dashboard skill not found');
     expect(skill).toMatchObject({
-      id: 'live-artifact',
-      name: 'live-artifact',
+      id: 'dashboard',
+      name: 'dashboard',
       mode: 'prototype',
       previewType: 'html',
     });
     expect(skill.triggers.length).toBeGreaterThan(0);
-    const liveArtifactAlias = `${SKILLS_CWD_ALIAS}/${skillCwdAliasSegment(liveArtifactRoot)}`;
-    expect(skill.body).toContain(`> **Skill root (absolute fallback):** \`${liveArtifactRoot}\``);
-    expect(skill.body).toContain(`${liveArtifactAlias}/`);
-    expect(skill.body).toContain('references/artifact-schema.md');
-    expect(skill.body).toContain('references/connector-policy.md');
-    expect(skill.body).toContain('references/refresh-contract.md');
-    expect(skill.body).toContain(`${liveArtifactAlias}/references/artifact-schema.md`);
-    expect(skill.body).not.toContain(`${liveArtifactAlias}/assets/template.html`);
-    expect(skill.body).not.toContain(`${liveArtifactAlias}/references/layouts.md`);
-    expect(skill.body).toContain('"$OD_NODE_BIN" "$OD_BIN" tools live-artifacts create --input artifact.json');
-    expect(skill.body).toContain('do not ask “where should the data come from?” before checking daemon connector tools');
-    expect(skill.body).toContain('notion.notion_search');
-    expect(skill.body).toContain('`OD_DAEMON_URL`');
-    expect(skill.body).toContain('`OD_TOOL_TOKEN`');
+    expect(skill.triggers).toContain('dashboard');
+    const dashboardAlias = `${SKILLS_CWD_ALIAS}/${skillCwdAliasSegment(dashboardRoot)}`;
+    expect(skill.body).toContain(`> **Skill root (absolute fallback):** \`${dashboardRoot}\``);
+    expect(skill.body).toContain(`${dashboardAlias}/`);
+    expect(skill.body).toContain('Produce a single-screen admin / analytics dashboard.');
+    expect(skill.body).toContain('<artifact identifier="dashboard-slug" type="text/html" title="Dashboard Title">');
   });
 
   it('includes the agent-browser skill as an external CLI integration', async () => {

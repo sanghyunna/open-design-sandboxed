@@ -288,8 +288,8 @@ export async function listSkills(
         });
 
         // Surface every example sitting next to a SKILL.md as its own card
-        // so a single skill (e.g. live-artifact) can ship a small gallery
-        // of hand-crafted samples without needing one SKILL.md per sample.
+        // so a single skill can ship a small gallery of hand-crafted samples
+        // without needing one SKILL.md per sample.
         // Each derived card inherits the parent's mode/platform/surface/
         // scenario so existing TYPE/SURFACE filters keep working; the
         // synthetic id `<parent>:<child>` lets `/api/skills/:id/example`
@@ -376,9 +376,9 @@ function isAbsenceError(err: unknown): boolean {
 //
 //   `examples/<name>.html` — pre-baked, self-contained sample.
 //
-// We deliberately do not surface the subfolder layout (e.g. live-artifact's
-// `examples/<name>/template.html` + `data.json`) because those templates
-// still hold `{{data.x}}` placeholders that only the daemon-side renderer
+// We deliberately do not surface subfolder layouts such as
+// `examples/<name>/template.html` + `data.json` because those templates
+// still hold `{{data.x}}` placeholders that only a renderer
 // fills in. Showing the raw template would render visible placeholder
 // braces in the gallery — worse than not surfacing the example at all.
 // To ship a subfolder-style example, place the baked output beside the

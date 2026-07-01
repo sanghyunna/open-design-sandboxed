@@ -4,7 +4,7 @@
 // FIRST_PARTY_ATOMS gets at least a permissive worker so the
 // registry-driven pipeline runner stays at parity with the v1 stub
 // for atoms whose real work happens entirely inside the agent CLI
-// (file-write, todo-write, media-image, …) — the daemon has no
+// (file-write, todo-write, connector, …) — the daemon has no
 // independent ground truth to observe there and shipping a real
 // watcher would force the agent into a fixed protocol we explicitly
 // kept out of scope.

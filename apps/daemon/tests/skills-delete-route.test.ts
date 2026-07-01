@@ -108,10 +108,10 @@ describe('DELETE /api/skills/:id', () => {
   });
 
   it('refuses to delete a built-in skill', async () => {
-    // `live-artifact` ships under the repo's design-templates root and is
+    // `dashboard` ships under the repo's design-templates root and is
     // surfaced with `source: 'built-in'`; the handler must reject it
     // regardless of the resolution path.
-    const resp = await fetch(`${baseUrl}/api/skills/live-artifact`, { method: 'DELETE' });
+    const resp = await fetch(`${baseUrl}/api/skills/dashboard`, { method: 'DELETE' });
     // The id may not even appear under the user/built-in skill roots
     // (functional-only) — in that case the route returns 404 without
     // falling through to a built-in deletion. uninstallById returns 403

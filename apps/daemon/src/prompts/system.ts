@@ -136,32 +136,6 @@ type ProjectMetadata = {
   examplePrompt?: boolean | null;
   examplePromptTitle?: string | null;
   examplePromptBrief?: Record<string, string> | null;
-  imageModel?: string | null;
-  imageAspect?: string | null;
-  imageStyle?: string | null;
-  videoModel?: string | null;
-  videoLength?: number | null;
-  videoAspect?: string | null;
-  audioKind?: string | null;
-  audioModel?: string | null;
-  audioDuration?: number | null;
-  voice?: string | null;
-  promptTemplate?: {
-    id?: string | null;
-    title?: string | null;
-    prompt?: string | null;
-    summary?: string | null;
-    category?: string | null;
-    tags?: string[] | null;
-    model?: string | null;
-    aspect?: string | null;
-    source?: {
-      repo?: string | null;
-      license?: string | null;
-      author?: string | null;
-      url?: string | null;
-    } | null;
-  } | null;
   contextPlugins?: Array<{
     id?: string | null;
     title?: string | null;

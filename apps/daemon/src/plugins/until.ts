@@ -5,7 +5,7 @@
 //   critique.score         number  — last critique-theater dim score (0..5)
 //   iterations             number  — completed devloop iterations on this stage
 //   user.confirmed         boolean — last `confirmation` surface answer
-//   preview.ok             boolean — last `live-artifact` preview load result
+//   preview.ok             boolean — last preview load result
 //
 // Comparison operators: == != >= <= > < (booleans support ==/!= only).
 // Boolean literals: true / false. Number literals: any JSON number.

@@ -83,7 +83,7 @@ describe('message event persistence', () => {
     insertConversation(db, {
       id: 'conv-1',
       projectId: 'proj-1',
-      title: 'HyperFrames run',
+      title: 'Design run',
       createdAt: now,
       updatedAt: now,
     });
@@ -102,7 +102,7 @@ describe('message event persistence', () => {
       kind: 'tool_use',
       id: 'tool-1',
       name: 'Bash',
-      input: { command: 'od media generate' },
+      input: { command: 'od run start' },
     });
     appendMessageAgentEvent(db, 'assistant-1', { kind: 'text', text: 'done.' });
 
@@ -114,7 +114,7 @@ describe('message event persistence', () => {
         kind: 'tool_use',
         id: 'tool-1',
         name: 'Bash',
-        input: { command: 'od media generate' },
+        input: { command: 'od run start' },
       },
       { kind: 'text', text: 'done.' },
     ]);

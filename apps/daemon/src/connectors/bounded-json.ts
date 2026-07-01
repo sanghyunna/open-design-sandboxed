@@ -1,7 +1,6 @@
 /**
  * Generic bounded-JSON value/object types + validators, owned by the connectors feature.
- * Relocated out of the removed live-artifacts schema module; connectors and memory-connectors
- * depend on these to bound connector tool input/output JSON.
+ * Connectors and memory-connectors depend on these to bound tool input/output JSON.
  */
 export type BoundedJsonValue = null | boolean | number | string | BoundedJsonValue[] | { [key: string]: BoundedJsonValue };
 
@@ -43,7 +42,7 @@ const FORBIDDEN_JSON_KEYS = new Set([
 function fail<T>(issues: BoundedJsonValidationIssue[]): BoundedJsonValidationResult<T> {
   return {
     ok: false,
-    error: issues[0]?.message ?? 'Live artifact validation failed',
+    error: issues[0]?.message ?? 'Bounded JSON validation failed',
     issues,
   };
 }
