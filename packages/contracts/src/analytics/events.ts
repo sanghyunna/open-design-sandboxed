@@ -2889,7 +2889,6 @@ export function sessionModeToTracking(
 
 export function projectKindToTracking(
   kind: string | null | undefined,
-  _videoModel?: string | null,
 ): TrackingProjectKind | null {
   switch (kind) {
     case 'prototype':

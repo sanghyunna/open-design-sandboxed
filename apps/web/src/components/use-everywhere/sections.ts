@@ -91,24 +91,12 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       'whether you launched it via `pnpm tools-dev` or as a packaged app.',
     bullets: [
       '`od` (no args) — boots the daemon and opens the web UI.',
-      '`od media generate ...` — produce image / video / audio bytes through the unified media protocol.',
       '`od project create` + `od run start` — create a project, send a message, and stream the run.',
       '`od plugin install <source>` / `od plugin apply <id>` — install and apply community plugins.',
       '`od skills list` / `od design-systems list` — inspect what is available locally.',
       '`od status` / `od doctor` — verify daemon health and detect agent CLIs on your PATH.',
     ],
     snippets: [
-      {
-        label: 'Generate an image (delegates to the configured media provider)',
-        language: 'bash',
-        body:
-          'od media generate \\\n' +
-          '  --surface image \\\n' +
-          '  --model gpt-image-1 \\\n' +
-          '  --aspect 1:1 \\\n' +
-          '  --prompt "Editorial product shot, soft daylight, muted palette" \\\n' +
-          '  --output ./out/hero.png',
-      },
       {
         label: 'Use the CLI from a source checkout',
         language: 'bash',

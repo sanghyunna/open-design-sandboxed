@@ -1022,8 +1022,8 @@
 }
 
 /* Design systems gallery — masonry-style cards with lazy showcase iframes
-   serving as thumbnails. The grid mirrors the prompt-templates and example
-   gallery surfaces so the three browse tabs feel uniform. */
+   serving as thumbnails. The grid mirrors the example gallery surface so
+   browse tabs feel uniform. */
 .ds-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

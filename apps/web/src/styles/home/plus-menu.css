@@ -277,8 +277,7 @@
   font-weight: 600;
   color: var(--text-strong);
 }
-/* Plugin kind (Prototype / Slides / Image / Video / Audio / HyperFrames /
-   Live artifact) — same taxonomy as the home Community chips. */
+/* Plugin kind badge shown in the hover preview. */
 .plus-menu__preview-kind {
   flex: 0 0 auto;
   padding: 1px 7px;

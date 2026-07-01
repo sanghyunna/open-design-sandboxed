@@ -14,7 +14,6 @@ import { modalOverlay, modalContent } from '../motion';
 import type {
   DesignSystemSummary,
   ProjectTemplate,
-  PromptTemplateSummary,
   SkillSummary,
 } from '../types';
 import { Icon } from './Icon';
@@ -32,7 +31,6 @@ interface Props {
   defaultDesignSystemId: string | null;
   templates: ProjectTemplate[];
   onDeleteTemplate?: (id: string) => Promise<boolean>;
-  promptTemplates: PromptTemplateSummary[];
   loading?: boolean;
   onCreate: (input: CreateInput & { requestId?: string }) => Promise<boolean> | boolean | void;
   onImportClaudeDesign?: (
@@ -65,7 +63,6 @@ function NewProjectModalBody({
   defaultDesignSystemId,
   templates,
   onDeleteTemplate,
-  promptTemplates,
   loading,
   onCreate,
   onImportClaudeDesign,
@@ -159,7 +156,6 @@ function NewProjectModalBody({
             defaultDesignSystemId={defaultDesignSystemId}
             templates={templates}
             {...(onDeleteTemplate ? { onDeleteTemplate } : {})}
-            promptTemplates={promptTemplates}
             loading={Boolean(loading) || creating}
             onCreate={(input) => {
               void handleCreate(input);
