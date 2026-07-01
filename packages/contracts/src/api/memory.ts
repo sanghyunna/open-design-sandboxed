@@ -182,7 +182,7 @@ export interface MemoryConfigResponse {
 // User-supplied override for the LLM extraction model. When `null`/absent,
 // the daemon falls back to its auto-pick: ANTHROPIC_API_KEY env var →
 // OPENAI_API_KEY env var → the OpenAI key configured under Settings →
-// Media providers. When set, every field is honored verbatim.
+// Provider config. When set, every field is honored verbatim.
 //
 // Fields are deliberately optional past `provider` so the daemon can fall
 // back per-field to environment defaults when the user hasn't typed them

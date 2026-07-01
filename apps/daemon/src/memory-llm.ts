@@ -32,7 +32,7 @@
 //   4. ANTHROPIC_API_KEY env → Claude Haiku 4.5 (legacy fallback)
 //   5. OPENAI_API_KEY env    → gpt-4o-mini
 //   6. media-config OpenAI BYOK → gpt-4o-mini
-//      (the key the user already typed into Settings → Media providers;
+//      (the key the user already typed into Settings → provider config;
 //       reuses an existing credential so Local-CLI users don't have to
 //       paste it twice just to get LLM-side memory extraction)
 //   7. nothing               → record a 'skipped: no-provider' attempt
@@ -413,7 +413,7 @@ async function pickProvider(projectRoot, dataDir, chatAgentId, chatProvider, cha
       };
     }
     // Secondary fallback for openai-compatible CLIs: the user already
-    // typed an OpenAI key under Settings → Media providers, so we can
+    // typed an OpenAI key under Settings → provider config, so we can
     // borrow it for memory extraction without making them paste it
     // twice. We do NOT try this for anthropic/google chats because the
     // media-config table only has openai-shaped credentials today.

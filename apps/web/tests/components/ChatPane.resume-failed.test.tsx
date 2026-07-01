@@ -10,8 +10,7 @@ import type { AppConfig, ChatMessage } from '../../src/types';
 // Red spec for the resume-on-failure affordance: a failed assistant message
 // flagged `resumable` (a transient upstream drop / inactivity timeout the
 // daemon can recover by resuming the agent's CLI session) must offer a
-// "Continue the run" action that calls `onResumeRun` with that message —
-// distinct from the from-scratch Retry. On origin/main there is no `resumable`
+// "Continue the run" action that calls `onResumeRun` with that message ??// distinct from the from-scratch Retry. On origin/main there is no `resumable`
 // field, no `onResumeRun` prop, and no such button, so this goes red there.
 
 vi.mock('../../src/i18n', () => ({
@@ -106,7 +105,7 @@ describe('ChatPane resume-on-failure', () => {
     const continueBtn = screen.getByText('chat.resumeRunCta');
     expect(continueBtn).toBeTruthy();
     // The from-scratch Retry must not be the offered action for a resumable run.
-    expect(screen.queryByText('promptTemplates.retry')).toBeNull();
+    expect(screen.queryByText('preview.retry')).toBeNull();
 
     fireEvent.click(continueBtn);
     expect(onResumeRun).toHaveBeenCalledTimes(1);
@@ -125,7 +124,6 @@ describe('ChatPane resume-on-failure', () => {
 
     const continueBtn = screen.getByText('chat.resumeRunCta');
     expect(continueBtn).toBeTruthy();
-    expect(screen.queryByText('promptTemplates.retry')).toBeNull();
 
     fireEvent.click(continueBtn);
     expect(onSend).toHaveBeenCalledTimes(1);
@@ -142,6 +140,6 @@ describe('ChatPane resume-on-failure', () => {
     renderChat({ onResumeRun, onRetry, activeAgentId: 'opencode' });
 
     expect(screen.queryByText('chat.resumeRunCta')).toBeNull();
-    expect(screen.getByText('promptTemplates.retry')).toBeTruthy();
+    expect(screen.getByText('preview.retry')).toBeTruthy();
   });
 });

@@ -20,7 +20,6 @@ import {
   fetchAppVersionInfo,
   fetchDesignSystems,
   fetchDesignTemplates,
-  fetchPromptTemplates,
   fetchSkills,
   replaceProjectWorkingDir,
   uploadProjectFiles,
@@ -179,7 +178,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
     fetchDesignTemplates: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
     replaceProjectWorkingDir: vi.fn(),
     uploadProjectFiles: vi.fn(),
@@ -222,7 +220,6 @@ const mockedFetchAgentsStream = vi.mocked(fetchAgentsStream);
 const mockedFetchAppVersionInfo = vi.mocked(fetchAppVersionInfo);
 const mockedFetchDesignSystems = vi.mocked(fetchDesignSystems);
 const mockedFetchDesignTemplates = vi.mocked(fetchDesignTemplates);
-const mockedFetchPromptTemplates = vi.mocked(fetchPromptTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
 const mockedUploadProjectFiles = vi.mocked(uploadProjectFiles);
 const mockedReplaceProjectWorkingDir = vi.mocked(replaceProjectWorkingDir);
@@ -295,7 +292,6 @@ describe('App project creation routing', () => {
     mockedFetchSkills.mockResolvedValue([]);
     mockedFetchDesignTemplates.mockResolvedValue([]);
     mockedFetchDesignSystems.mockResolvedValue([]);
-    mockedFetchPromptTemplates.mockResolvedValue([]);
     mockedFetchAppVersionInfo.mockResolvedValue(null);
     mockedListTemplates.mockResolvedValue([]);
     mockedFetchDaemonConfig.mockResolvedValue({});

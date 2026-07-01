@@ -11,7 +11,6 @@ import {
   fetchAgentsStream,
   fetchAppVersionInfo,
   fetchDesignSystems,
-  fetchPromptTemplates,
   fetchSkills,
 } from '../../src/providers/registry';
 import { fetchAmrModels } from '../../src/providers/daemon';
@@ -61,7 +60,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchAgentsStream: vi.fn(),
     fetchAppVersionInfo: vi.fn(),
     fetchDesignSystems: vi.fn(),
-    fetchPromptTemplates: vi.fn(),
     fetchSkills: vi.fn(),
   };
 });
@@ -109,7 +107,6 @@ const mockedDaemonIsLive = vi.mocked(daemonIsLive);
 const mockedFetchAgentsStream = vi.mocked(fetchAgentsStream);
 const mockedFetchAppVersionInfo = vi.mocked(fetchAppVersionInfo);
 const mockedFetchDesignSystems = vi.mocked(fetchDesignSystems);
-const mockedFetchPromptTemplates = vi.mocked(fetchPromptTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
 const mockedFetchAmrModels = vi.mocked(fetchAmrModels);
 const mockedListProjects = vi.mocked(listProjects);
@@ -159,7 +156,6 @@ describe('App first-run agent auto-select', () => {
     mockedFetchAgentsStream.mockResolvedValue([...claudeOnly]);
     mockedFetchSkills.mockResolvedValue([]);
     mockedFetchDesignSystems.mockResolvedValue([]);
-    mockedFetchPromptTemplates.mockResolvedValue([]);
     mockedFetchAppVersionInfo.mockResolvedValue(null);
     mockedListProjects.mockResolvedValue([]);
     mockedListTemplates.mockResolvedValue([]);
