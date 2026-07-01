@@ -54,6 +54,7 @@ import { useProjectFileEvents, type ProjectEvent } from '../providers/project-ev
 import { useCoalescedCallback } from '../hooks/useCoalescedCallback';
 import {
   composeSystemPrompt,
+  type ComposeInput,
   type MemorySystemPromptResponse,
   type ResearchOptions,
 } from '@open-design/contracts';
@@ -597,6 +598,26 @@ function clearDesignSystemAuditAutoRepair(projectId: string): void {
 
 function isDesignSystemWorkspaceMetadata(metadata: ProjectMetadata | undefined): boolean {
   return metadata?.importedFrom === 'design-system';
+}
+
+// `SkillSummary['mode']` still carries legacy `'image' | 'video' | 'audio'`
+// skill-category values (marketplace skills that happen to generate media
+// assets), but the v0.2.0 media-subsystem removal dropped those as valid
+// `ComposeInput['skillMode']` prompt-composition surfaces — only
+// prototype/deck/template/design-system participate in system-prompt
+// branching now (see apps/daemon/src/prompts/system.ts). Narrow here so a
+// media-category skill composes as if no skillMode were set, instead of
+// leaking a stale surface value into the composer.
+function toComposeSkillMode(mode: SkillSummary['mode'] | undefined): ComposeInput['skillMode'] {
+  switch (mode) {
+    case 'prototype':
+    case 'deck':
+    case 'template':
+    case 'design-system':
+      return mode;
+    default:
+      return undefined;
+  }
 }
 
 function isStoredChatAttachment(value: unknown): value is ChatAttachment {
@@ -1913,7 +1934,7 @@ export function ProjectView({
   ): Promise<string> => {
     let skillBody: string | undefined;
     let skillName: string | undefined;
-    let skillMode: SkillSummary['mode'] | undefined;
+    let skillMode: ComposeInput['skillMode'];
     let designSystemBody: string | undefined;
     let designSystemTitle: string | undefined;
 
@@ -1925,7 +1946,7 @@ export function ProjectView({
         skills.find((s) => s.id === project.skillId) ??
         designTemplates.find((s) => s.id === project.skillId);
       skillName = summary?.name;
-      skillMode = summary?.mode;
+      skillMode = toComposeSkillMode(summary?.mode);
       const cached = skillCache.current.get(project.skillId);
       if (cached !== undefined) {
         skillBody = cached;

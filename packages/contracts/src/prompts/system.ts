@@ -151,9 +151,6 @@ export interface ComposeInput {
     | 'deck'
     | 'template'
     | 'design-system'
-    | 'image'
-    | 'video'
-    | 'audio'
     | undefined;
   designSystemBody?: string | undefined;
   designSystemTitle?: string | undefined;
