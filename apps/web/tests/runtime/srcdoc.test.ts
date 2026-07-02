@@ -89,14 +89,23 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain('.replace(/@font-face\\s*\\{[^}]*\\}/gi,');
   });
 
-  it('forces Pretendard inside srcdoc previews while preserving icon fonts', () => {
+  it('does not force Pretendard onto artifact content - previews must render the font the artifact itself declares', () => {
+    // Regression coverage: a prior commit (7dd214fe) bundled Pretendard for
+    // the app's own UI chrome (apps/web/src/styles/fonts.css, see
+    // tests/styles/default-background.test.ts) but also wired the same
+    // override into buildSrcdoc, which builds the artifact PREVIEW iframe -
+    // scope creep that silently replaced every generated deck/design's own
+    // font choice with the app's UI font, deck-wide, via an
+    // `!important` rule. A user explicitly asked for the artifact's own
+    // font (whatever the agent chose for that design) to survive into both
+    // the live preview and PDF export; forcing Pretendard here broke that
+    // for every artifact regardless of what font it actually declared.
     const srcdoc = buildSrcdoc('<main style="font-family: Inter">Hero</main>');
 
-    expect(srcdoc).toContain('data-od-pretendard-font');
-    expect(srcdoc).toContain("format('woff2')");
-    expect(srcdoc).not.toContain('woff2-variations');
-    expect(srcdoc).toContain("body *:not([class^='ri-']):not([class*=' ri-'])");
-    expect(srcdoc).toContain("font-family: 'Pretendard', sans-serif !important;");
+    expect(srcdoc).not.toContain('data-od-pretendard-font');
+    expect(srcdoc).not.toContain('PretendardVariable');
+    expect(srcdoc).not.toContain("font-family: 'Pretendard', sans-serif !important;");
+    expect(srcdoc).toContain('font-family: Inter');
   });
 
   it('prunes hidden snapshot clone nodes before rasterizing decks', () => {
