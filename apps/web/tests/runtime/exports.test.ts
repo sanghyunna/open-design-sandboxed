@@ -35,7 +35,7 @@ function selectorSpecificity(selector: string): number {
   return ids * 10000 + classesAttrsPseudo * 100 + types;
 }
 
-function resolvedPrintDisplay(doc: Document, el: Element): string {
+function resolvedPrintProperty(doc: Document, el: Element, property: string): string {
   type Cand = { value: string; important: boolean; spec: number; order: number };
   const cands: Cand[] = [];
   let order = 0;
@@ -54,14 +54,14 @@ function resolvedPrintDisplay(doc: Document, el: Element): string {
       }
       if (rule.type !== STYLE_RULE) continue;
       const sr = rule as CSSStyleRule;
-      const value = sr.style.getPropertyValue('display');
+      const value = sr.style.getPropertyValue(property);
       if (!value) continue;
       let matches = false;
       try { matches = el.matches(sr.selectorText); } catch { matches = false; }
       if (!matches) continue;
       cands.push({
         value,
-        important: sr.style.getPropertyPriority('display') === 'important',
+        important: sr.style.getPropertyPriority(property) === 'important',
         spec: selectorSpecificity(sr.selectorText),
         order: order++,
       });
@@ -79,8 +79,25 @@ function resolvedPrintDisplay(doc: Document, el: Element): string {
   return cands[cands.length - 1]!.value;
 }
 
+function resolvedPrintDisplay(doc: Document, el: Element): string {
+  return resolvedPrintProperty(doc, el, 'display');
+}
+
 const FORCE_REVEAL_DECK_HTML =
   '<!doctype html><html><head><style>.slide:not(.active){display:none}</style></head><body>'
+  + '<section class="slide active">One</section>'
+  + '<section class="slide">Two</section>'
+  + '</body></html>';
+
+// Mirrors the deck framework's actual screen-mode contract
+// (apps/daemon/src/prompts/deck-framework.ts): only the currently-active
+// slide gets flex-direction: column, via a zero-specificity :where()
+// selector so per-slide variants can still override it without !important.
+const FLEX_COLUMN_DECK_HTML =
+  '<!doctype html><html><head><style>'
+  + '.slide:not(.active){display:none}'
+  + ':where(.slide.active){display:flex;flex-direction:column}'
+  + '</style></head><body>'
   + '<section class="slide active">One</section>'
   + '<section class="slide">Two</section>'
   + '</body></html>';
@@ -561,6 +578,24 @@ describe('sandboxed preview Blob exports', () => {
     // `.slide:not(.active){display:none}` so the inactive slide is NOT hidden.
     expect(resolvedPrintDisplay(dom.window.document, inactive)).not.toBe('none');
     expect(resolvedPrintDisplay(dom.window.document, inactive)).toBe('flex');
+  });
+
+  it('keeps inactive slides in a column layout under print, not the flex row default', async () => {
+    await exportAsPdf(FLEX_COLUMN_DECK_HTML, 'Flex Direction', { deck: true, sandboxedPreview: false });
+    expect(capturedBlob).toBeDefined();
+    const doc = await capturedBlob!.text();
+    const dom = new JSDOM(doc);
+    const slides = dom.window.document.querySelectorAll('.slide');
+    const active = slides[0]!;
+    const inactive = slides[1]!;
+    // The deck's own screen-mode rule only targets .slide.active, so it
+    // gives the originally-active slide flex-direction: column for free.
+    expect(resolvedPrintProperty(dom.window.document, active, 'flex-direction')).toBe('column');
+    // Without the injected safety net, the force-revealed inactive slide
+    // has no rule supplying flex-direction under print and falls back to
+    // the flexbox default 'row', smashing its vertical content sideways
+    // (see apps/desktop/src/main/pdf-export.ts's DECK_PRINT_CSS comment).
+    expect(resolvedPrintProperty(dom.window.document, inactive, 'flex-direction')).toBe('column');
   });
 
   it('allows explicit trusted PDF opt-out without changing the secure default', async () => {

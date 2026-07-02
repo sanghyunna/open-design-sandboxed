@@ -53,6 +53,25 @@ const DECK_PRINT_CSS = `
     overflow: hidden !important;
   }
   .slide:last-child, [data-screen-label]:last-child { page-break-after: auto; break-after: auto; }
+  /* Zero-specificity restore of the deck framework's screen-mode default
+     (:where(.slide.active) { flex-direction: column; ... }). The rule
+     above forces display:flex on EVERY slide (not just .active) so all of
+     them render for the multi-page PDF. Without this, only the slide that
+     happened to carry .active at generation time gets flex-direction:
+     column; every other slide falls back to the flexbox default row,
+     turning its vertical stack into a horizontal smash. :where() keeps
+     this at zero specificity so a per-slide variant that legitimately
+     wants a different flex-direction/justify-content still wins, exactly
+     like it already does on screen.
+     Framework decks embed their own copy of this fix (see
+     apps/daemon/src/prompts/deck-framework.ts), but this export-time
+     stylesheet is injected last and wins the cascade regardless, so it
+     alone is enough to fix PDF export for decks generated before that fix
+     landed too. */
+  :where(.slide, [data-screen-label], section.slide, .deck-slide, .ppt-slide) {
+    flex-direction: column;
+    justify-content: center;
+  }
   .deck-counter, .deck-hint, .deck-nav,
   [aria-label="Previous slide"], [aria-label="Next slide"] {
     display: none !important;

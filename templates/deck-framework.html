@@ -142,6 +142,17 @@
         page-break-after: always;
         break-after: page;
       }
+      /* Zero-specificity restore of the screen-mode default
+         (:where(.slide.active) { flex-direction: column; ... }), which
+         above us forces display:flex on EVERY slide (not just .active) so
+         all of them render for the multi-page PDF. Without this, only the
+         slide that happened to carry .active gets flex-direction: column;
+         every other slide falls back to the flexbox default row, turning
+         its vertical stack into a horizontal smash. :where() keeps this at
+         zero specificity so a per-slide variant that legitimately wants a
+         different flex-direction/justify-content still wins, exactly like
+         it already does on screen. */
+      :where(.slide) { flex-direction: column; justify-content: center; }
       .slide:last-child { page-break-after: auto; break-after: auto; }
       .deck-counter, .deck-hint { display: none !important; }
     }
