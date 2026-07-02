@@ -2125,17 +2125,30 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
     try { window.dispatchEvent(new Event('resize')); }
     catch (_) {}
   }
-  // Aggressively nudge during the first second so the deck catches the
-  // iframe's first non-zero size; bail out early once the iframe reports a
-  // real width. Without this loop, fixed-canvas decks render at scale(0).
+  // Aggressively nudge while the iframe's own viewport settles so the
+  // deck's own fit() (bound to the native 'resize' event) recomputes
+  // against a real size instead of the 0x0 it sees on first paint.
+  // Both width AND height must be non-zero before layout counts as
+  // settled: an ancestor panel can resolve the iframe's width from a
+  // flex/grid track before its height finishes stretching, and
+  // checking width alone lets this loop stop while height is still 0 -
+  // fit() then falls back to scale(1) translated off-screen, and with
+  // no further resize event the deck stays stuck on a blank/shell-color
+  // frame. Two phases: fast nudges for the common case (~1s), then
+  // slower nudges for slower nested layouts (~10s more) before giving up.
   function chaseFirstLayout(){
     var attempts = 0;
+    var settledAt = -1;
+    function ready(){ return window.innerWidth > 0 && window.innerHeight > 0; }
     function tick(){
       attempts += 1;
-      var w = window.innerWidth;
       nudgeResize();
-      if (w > 0 && attempts >= 2) return; // one extra nudge after first non-zero
-      if (attempts < 30) setTimeout(tick, 50);
+      if (ready()) {
+        if (settledAt < 0) settledAt = attempts;
+        if (attempts - settledAt >= 2) return; // two extra nudges after the first fully-sized frame
+      }
+      if (attempts >= 60) return;
+      setTimeout(tick, attempts < 20 ? 50 : 250);
     }
     tick();
   }
