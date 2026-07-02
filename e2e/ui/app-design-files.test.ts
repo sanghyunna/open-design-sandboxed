@@ -599,6 +599,42 @@ async function runDesignFilesTabPersistenceFlow(page: Page) {
   await expectProjectFilesToIncludeSuffixes(page, projectId, ['first-tab.png', 'second-tab.png']);
 }
 
+// Regression coverage for a deck/board preview rendering as a blank frame
+// in the default desktop viewport: every layout-establishing rule for
+// `.preview-viewport` in core.css was scoped `:not(.preview-viewport-desktop)`,
+// so the desktop variant had no explicit height. With every descendant down
+// to the srcdoc iframe positioned absolutely, the container had no in-flow
+// content to size itself by and collapsed to 0 height - not just briefly,
+// but permanently, since nothing else in the layout ever changed to fix it.
+// The iframe itself then rendered at 0x0 on screen, regardless of its
+// internal content, and slide/board decks whose own sizing script reads
+// `window.innerHeight` from inside the iframe fell back to a broken
+// off-screen transform. See apps/web/src/styles/viewer/core.css.
+test('[P1]@regression preview-desktop-viewport-height: html preview iframe renders at a non-zero height', async ({ page }) => {
+  await routeMockAgents(page);
+  await gotoEntryHome(page);
+  await openNewProjectModal(page);
+  await page.getByTestId('new-project-name').fill('Preview Height Regression');
+  await page.getByTestId('create-project').click();
+  await expectWorkspaceReady(page);
+
+  const { projectId } = await getCurrentProjectContext(page);
+  await seedHtmlArtifact(
+    page,
+    projectId,
+    'preview-height.html',
+    '<!doctype html><html><body><h1>Height check</h1></body></html>',
+  );
+  await page.reload();
+  await openDesignFile(page, 'preview-height.html');
+
+  const frame = page.getByTestId('artifact-preview-frame');
+  await expect(frame).toBeVisible();
+  await expect
+    .poll(async () => (await frame.boundingBox())?.height ?? 0, { timeout: T.medium })
+    .toBeGreaterThan(0);
+});
+
 function homeDesignCard(page: Page, name: string): Locator {
   return page.locator('.design-card', {
     has: page.locator('.design-card-name', { hasText: name }),

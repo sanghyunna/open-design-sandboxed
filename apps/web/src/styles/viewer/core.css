@@ -517,6 +517,21 @@
   --comment-side-dock-stacked-height: 220px;
   --comment-side-dock-stacked-rail-height: 48px;
 }
+/* The desktop viewport has no dedicated layout rule below (every rule that
+   sets a real display/height is scoped `:not(.preview-viewport-desktop)`),
+   so this block-level container was sizing itself from its own content -
+   and every descendant down to the srcdoc iframe is positioned absolutely
+   (`.comment-preview-canvas` needs a definite-height ancestor for its own
+   `height: 100%` to resolve against; `.comment-frame-clip` and the iframe
+   stack are `position: absolute; inset: 0`, which needs the same). With no
+   in-flow content, height resolved to 0 - not just at first paint, but
+   permanently, since nothing later changes the input. Slide/board decks
+   that depend on `window.innerHeight` inside the iframe (their `fit()`
+   sizing) rendered nothing but the shell background as a result. */
+.preview-viewport-desktop {
+  height: 100%;
+  min-height: 0;
+}
 .comment-preview-layer-with-side-dock {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--comment-side-dock-width);
