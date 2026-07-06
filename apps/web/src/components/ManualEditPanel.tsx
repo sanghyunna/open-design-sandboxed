@@ -504,6 +504,7 @@ const PX_STYLE_PROPS = new Set<keyof ManualEditStyles>([
   'border', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
   'borderRadius',
 ]);
+const NON_NEGATIVE_PX_STYLE_PROPS = new Set<keyof ManualEditStyles>(['width', 'height', 'minHeight']);
 const COLOR_STYLE_PROPS = new Set<keyof ManualEditStyles>(['color', 'backgroundColor', 'borderColor']);
 const SELECT_STYLE_OPTIONS: Partial<Record<keyof ManualEditStyles, ReadonlyArray<string>>> = {
   fontFamily: FONT_OPTS.map((option) => option.value),
@@ -531,6 +532,9 @@ export function normalizeManualEditStyles(
     if (PX_STYLE_PROPS.has(rawKey)) {
       const px = normalizePxValue(value);
       if (!px) return { ok: false, error: `${styleLabel(rawKey)} must be a number or px value.` };
+      if (NON_NEGATIVE_PX_STYLE_PROPS.has(rawKey) && parseFloat(px) < 0) {
+        return { ok: false, error: `${styleLabel(rawKey)} cannot be negative.` };
+      }
       normalized[rawKey] = px;
       continue;
     }

@@ -280,6 +280,26 @@ describe('ManualEditPanel', () => {
     });
   });
 
+  it('rejects negative width, height, and minHeight', () => {
+    expect(normalizeManualEditStyles({ width: '-10px' }, { layoutEnabled: true })).toEqual({
+      ok: false,
+      error: 'width cannot be negative.',
+    });
+    expect(normalizeManualEditStyles({ height: '-1' }, { layoutEnabled: true })).toEqual({
+      ok: false,
+      error: 'height cannot be negative.',
+    });
+    expect(normalizeManualEditStyles({ minHeight: '-4px' }, { layoutEnabled: true })).toEqual({
+      ok: false,
+      error: 'min height cannot be negative.',
+    });
+    // Negative values stay valid for props where they are legitimate CSS (e.g. margin).
+    expect(normalizeManualEditStyles({ marginLeft: '-4px' }, { layoutEnabled: true })).toEqual({
+      ok: true,
+      styles: { marginLeft: '-4px' },
+    });
+  });
+
   it('treats empty values as inline style clears', () => {
     expect(normalizeManualEditStyles({ fontSize: '', color: '' }, { layoutEnabled: true })).toEqual({
       ok: true,
