@@ -330,115 +330,11 @@ export function buildManualEditBridge(enabled: boolean): string {
       sel.addRange(range);
     } catch (e) {}
   }
-  var richFormatKeys = { b: 'strong', i: 'em', u: 'u' };
-  function ancestorOfType(node, tagName, boundary){
-    var current = node && node.nodeType === 1 ? node : (node ? node.parentNode : null);
-    while (current && current !== boundary && current !== document.body) {
-      if (current.tagName && current.tagName.toLowerCase() === tagName) return current;
-      current = current.parentNode;
-    }
-    if (current && current === boundary && current.tagName && current.tagName.toLowerCase() === tagName) return current;
-    return null;
-  }
-  function unwrapMatchingDescendants(root, tagName){
-    // Flatten any same-tag elements inside a fragment so re-wrapping a selection
-    // that spans a partially-formatted boundary does not produce nested tags.
-    var matches = root.querySelectorAll ? Array.prototype.slice.call(root.querySelectorAll(tagName)) : [];
-    for (var i = 0; i < matches.length; i++) {
-      var node = matches[i];
-      var parent = node.parentNode;
-      if (!parent) continue;
-      while (node.firstChild) parent.insertBefore(node.firstChild, node);
-      parent.removeChild(node);
-    }
-  }
-  function selectNodes(first, last){
-    if (!first || !last) return;
-    try {
-      var sel = window.getSelection();
-      var range = document.createRange();
-      range.setStartBefore(first);
-      range.setEndAfter(last);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } catch (e) {}
-  }
-  function wrapSelectionRange(range, tagName){
-    try {
-      var wrapper = document.createElement(tagName);
-      var contents = range.extractContents();
-      unwrapMatchingDescendants(contents, tagName);
-      wrapper.appendChild(contents);
-      range.insertNode(wrapper);
-      var sel = window.getSelection();
-      var next = document.createRange();
-      next.selectNodeContents(wrapper);
-      sel.removeAllRanges();
-      sel.addRange(next);
-    } catch (e) {}
-  }
-  // Unwrap only the SELECTED slice of an existing inline wrapper, splitting the
-  // wrapper into a still-formatted lead, the unformatted selection, and a
-  // still-formatted trail. The trailing slice is extracted first so splitting
-  // off the lead does not invalidate the live selection's start offset.
-  function fragmentHasContent(frag){
-    for (var i = 0; i < frag.childNodes.length; i++) {
-      var node = frag.childNodes[i];
-      if (node.nodeType === 1) return true;
-      if (node.nodeType === 3 && (node.textContent || '').length > 0) return true;
-    }
-    return false;
-  }
-  function unwrapSelectionWithin(wrapper, range, tagName){
-    var parent = wrapper.parentNode;
-    if (!parent) return;
-    try {
-      var afterRange = document.createRange();
-      afterRange.setStart(range.endContainer, range.endOffset);
-      afterRange.setEnd(wrapper, wrapper.childNodes.length);
-      var afterFrag = afterRange.extractContents();
-      var beforeRange = document.createRange();
-      beforeRange.setStart(wrapper, 0);
-      beforeRange.setEnd(range.startContainer, range.startOffset);
-      var beforeFrag = beforeRange.extractContents();
-      var out = document.createDocumentFragment();
-      // Empty boundary slices (the zero-length text node a Range split leaves at
-      // an edge) must not resurrect an empty <tag></tag>.
-      if (fragmentHasContent(beforeFrag)) {
-        var lead = document.createElement(tagName);
-        lead.appendChild(beforeFrag);
-        out.appendChild(lead);
-      }
-      var firstNode = null;
-      var lastNode = null;
-      while (wrapper.firstChild) {
-        var child = wrapper.firstChild;
-        if (!firstNode) firstNode = child;
-        lastNode = child;
-        out.appendChild(child);
-      }
-      if (fragmentHasContent(afterFrag)) {
-        var trail = document.createElement(tagName);
-        trail.appendChild(afterFrag);
-        out.appendChild(trail);
-      }
-      parent.replaceChild(out, wrapper);
-      selectNodes(firstNode, lastNode);
-    } catch (e) {}
-  }
-  // Toggle an inline-format tag around the current selection. Wraps the selected
-  // Range when it is not already inside that tag; otherwise unwraps only the
-  // selected slice (leaving the unselected remainder formatted). Uses the
-  // Selection/Range API rather than the deprecated document.execCommand.
-  function toggleInlineFormat(tagName, boundary){
-    var sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    var range = sel.getRangeAt(0);
-    if (range.collapsed) return;
-    var existing = ancestorOfType(range.commonAncestorContainer, tagName, boundary);
-    if (existing) unwrapSelectionWithin(existing, range, tagName);
-    else wrapSelectionRange(range, tagName);
-  }
+  // execCommand is deprecated, but it is the only formatting path integrated
+  // with the browser's native undo manager: raw Range/DOM surgery on a live
+  // focused contenteditable corrupts that undo stack (Ctrl+Z stops undoing
+  // anything at or before the surgery point for the rest of the session).
+  var richFormatCommands = { b: 'bold', i: 'italic', u: 'underline' };
   function selectedRangeWithin(el){
     try {
       var range = currentSelectedRange();
@@ -474,6 +370,9 @@ export function buildManualEditBridge(enabled: boolean): string {
     clearSelectedTarget();
     el.setAttribute('contenteditable', rich ? 'true' : 'plaintext-only');
     el.setAttribute('data-od-editing', 'true');
+    // Chromium's execCommand defaults to inline style spans; turning this off
+    // once per session makes B/I/U emit <b>/<i>/<u> tags instead.
+    if (rich) { try { document.execCommand('styleWithCSS', false, 'false'); } catch (e) {} }
     try { el.focus(); } catch (e) {}
     if (!restoreSelectionRange(selectedRange)) placeCaretFromClick(clickEvent, el);
     function finish(commit){
@@ -516,10 +415,10 @@ export function buildManualEditBridge(enabled: boolean): string {
     function onBlur(){ finish(true); }
     function onKey(ev){
       if (rich && (ev.ctrlKey || ev.metaKey) && !ev.altKey) {
-        var formatTag = richFormatKeys[(ev.key || '').toLowerCase()];
-        if (formatTag) {
+        var formatCommand = richFormatCommands[(ev.key || '').toLowerCase()];
+        if (formatCommand) {
           ev.preventDefault();
-          toggleInlineFormat(formatTag, el);
+          try { document.execCommand(formatCommand); } catch (e) {}
           return;
         }
       }
@@ -630,6 +529,21 @@ export function buildManualEditBridge(enabled: boolean): string {
     var el = closestTarget(ev);
     if (!el) return;
     postHoverTarget(el);
+  }, true);
+  // Keydown never bubbles out of this cross-document iframe to the host's
+  // window-level undo/redo shortcut, so forward Ctrl/Cmd+Z (and Ctrl+Y) here.
+  // Skip this while an inline edit session is open (data-od-editing) so the
+  // browser's native contenteditable undo keeps priority over typing there.
+  document.addEventListener('keydown', function(ev){
+    if (!enabled) return;
+    if (document.querySelector('[data-od-editing="true"]')) return;
+    if (!(ev.ctrlKey || ev.metaKey)) return;
+    var key = (ev.key || '').toLowerCase();
+    var isUndo = key === 'z' && !ev.shiftKey;
+    var isRedo = (key === 'z' && ev.shiftKey) || (key === 'y' && !ev.shiftKey);
+    if (!isUndo && !isRedo) return;
+    ev.preventDefault();
+    window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
   }, true);
   window.addEventListener('resize', postTargets);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
