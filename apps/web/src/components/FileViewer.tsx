@@ -810,6 +810,21 @@ export function cancelManualEditPendingStyleSnapshot(
   return { ...pending, styles: nextStyles };
 }
 
+// flushManualEditStyleSave leaves the pending ref pointing at the styles
+// object that was just saved until after the save resolves (so a failed save
+// can retry it). That means an id match alone no longer proves a *newer*
+// edit arrived while reconcileManualEditStyleSave's save was in flight — only
+// a different `.styles` reference does. Styles keys returned here are ones a
+// reconcile repair must skip, since the user has already moved past them.
+export function manualEditSupersededStyleKeys(
+  pending: ManualEditPendingStyleSave | null,
+  id: string,
+  savedStyles: Partial<ManualEditStyles>,
+): Partial<ManualEditStyles> {
+  if (pending?.id !== id || pending.styles === savedStyles) return {};
+  return pending.styles;
+}
+
 function usePreviewCanvasSize<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [size, setSize] = useState<PreviewCanvasSize | undefined>(undefined);
@@ -4871,9 +4886,7 @@ function HtmlViewer({
       return;
     }
     const sourceStyles = readManualEditStyles(savedSource, id);
-    const supersededStyles = manualEditPendingStyleRef.current?.id === id
-      ? manualEditPendingStyleRef.current.styles
-      : {};
+    const supersededStyles = manualEditSupersededStyleKeys(manualEditPendingStyleRef.current, id, savedStyles);
     const repairStyles: Partial<ManualEditStyles> = {};
     for (const key of Object.keys(savedStyles) as Array<keyof ManualEditStyles>) {
       if (Object.prototype.hasOwnProperty.call(supersededStyles, key)) continue;

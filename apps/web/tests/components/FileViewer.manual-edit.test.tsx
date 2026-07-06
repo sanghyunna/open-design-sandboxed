@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FileViewer,
   cancelManualEditPendingStyleSnapshot,
+  manualEditSupersededStyleKeys,
 } from '../../src/components/FileViewer';
 import { emptyManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
 import type { ProjectFile } from '../../src/types';
@@ -109,6 +110,30 @@ describe('FileViewer manual edit regressions', () => {
       styles: { fontSize: '4px' },
     };
     expect(cancelManualEditPendingStyleSnapshot(otherTargetPending, 'cta', ['fontSize'])).toBe(otherTargetPending);
+  });
+
+  it('does not treat the entry a save just persisted as superseding its own keys', () => {
+    // flushManualEditStyleSave leaves the pending ref pointing at the exact
+    // styles object it saved until the save resolves (needed so a failed
+    // save can be retried). reconcileManualEditStyleSave must not mistake
+    // that for "a newer edit arrived" — id-equality alone isn't enough once
+    // the ref stays populated during the save.
+    const savedStyles = { width: '120px' };
+    const justSavedPending = { id: 'hero', label: 'Style: Hero', version: 1, styles: savedStyles };
+    expect(manualEditSupersededStyleKeys(justSavedPending, 'hero', savedStyles)).toEqual({});
+  });
+
+  it('treats a newer unsaved pending edit for the same target as superseding the old saved keys', () => {
+    const savedStyles = { width: '120px' };
+    const newerStyles = { width: '140px' };
+    const newerPending = { id: 'hero', label: 'Style: Hero', version: 2, styles: newerStyles };
+    expect(manualEditSupersededStyleKeys(newerPending, 'hero', savedStyles)).toBe(newerStyles);
+  });
+
+  it('treats no pending entry, or a pending entry for a different target, as nothing superseded', () => {
+    expect(manualEditSupersededStyleKeys(null, 'hero', { width: '120px' })).toEqual({});
+    const otherTargetPending = { id: 'cta', label: 'Style: CTA', version: 1, styles: { width: '90px' } };
+    expect(manualEditSupersededStyleKeys(otherTargetPending, 'hero', { width: '120px' })).toEqual({});
   });
 
   it('opens edit mode with a clean canvas and no docked panel', async () => {

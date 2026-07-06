@@ -352,14 +352,21 @@ describe('FileViewer preview scale', () => {
       outerHtml: '',
     };
     const canvasSize = { width: 1200, height: 1000 };
+    // Matches the 'offsets tablet and mobile overlays to the centered
+    // viewport card' test above: mobile at this canvas size is scale 1,
+    // offsetX 405, offsetY 24.
     const transform = previewOverlayTransform('mobile', 1, canvasSize);
-    expect(transform.offsetX).toBeGreaterThan(0);
+    expect(transform).toEqual({ scale: 1, offsetX: 405, offsetY: 24 });
 
+    // Exact expected values with the offset applied (left/top for BOTH would
+    // land at the pre-fix, offset-less position — {122, 20} for the panel
+    // and {80, 24} for the icon — if either offsetX or offsetY were dropped,
+    // so this discriminates a regression on either axis or either element.
     const panelStyle = manualEditFloatingPanelStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
-    expect(panelStyle.left).toBeGreaterThanOrEqual(transform.offsetX);
+    expect(panelStyle).toEqual({ left: 527, top: 44, width: 320, maxHeight: 380 });
 
     const iconStyle = manualEditHoverIconStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
-    expect(iconStyle.top).toBeGreaterThanOrEqual(transform.offsetY);
+    expect(iconStyle).toEqual({ left: 485, top: 48, width: 26, height: 26 });
   });
 });
 

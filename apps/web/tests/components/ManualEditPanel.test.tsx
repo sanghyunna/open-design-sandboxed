@@ -298,6 +298,11 @@ describe('ManualEditPanel', () => {
       ok: true,
       styles: { marginLeft: '-4px' },
     });
+    // Zero is not negative — the guard must not tighten to <= 0.
+    expect(normalizeManualEditStyles({ width: '0', height: '0px', minHeight: '0' }, { layoutEnabled: true })).toEqual({
+      ok: true,
+      styles: { width: '0px', height: '0px', minHeight: '0px' },
+    });
   });
 
   it('treats empty values as inline style clears', () => {
