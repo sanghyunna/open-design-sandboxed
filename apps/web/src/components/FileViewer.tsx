@@ -3687,7 +3687,6 @@ function HtmlViewer({
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
-  const manualEditStyleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
   const sourceRef = useRef<string | null>(source);
   const sourceFileKeyRef = useRef<string | null>(null);
@@ -4503,7 +4502,6 @@ function HtmlViewer({
     setManualEditUndone([]);
     setManualEditError(null);
     manualEditPendingStyleRef.current = null;
-    clearManualEditStyleTimer();
   }, [file.name]);
 
   // Selecting a new file or turning inspect/comment-inspect off resets the panel target.
@@ -4752,10 +4750,6 @@ function HtmlViewer({
       selectedManualEditTargetIdRef.current = null;
       setManualEditError(null);
       manualEditPendingStyleRef.current = null;
-      if (manualEditStyleTimerRef.current) {
-        clearTimeout(manualEditStyleTimerRef.current);
-        manualEditStyleTimerRef.current = null;
-      }
       return;
     }
     function onMessage(ev: MessageEvent) {
@@ -4877,17 +4871,10 @@ function HtmlViewer({
     setManualEditError('Saved styles differed from the active preview. Reconciled the selected target from source.');
   }
 
-  function clearManualEditStyleTimer() {
-    if (!manualEditStyleTimerRef.current) return;
-    clearTimeout(manualEditStyleTimerRef.current);
-    manualEditStyleTimerRef.current = null;
-  }
-
   function cancelManualEditPendingStyles(id: string, keys: Array<keyof ManualEditStyles>) {
     const nextPending = cancelManualEditPendingStyleSnapshot(manualEditPendingStyleRef.current, id, keys);
     if (!nextPending) {
       manualEditPendingStyleRef.current = null;
-      clearManualEditStyleTimer();
       return;
     }
     manualEditPendingStyleRef.current = nextPending;
@@ -4921,7 +4908,6 @@ function HtmlViewer({
   function cancelManualEditStyleDraft() {
     const pending = manualEditPendingStyleRef.current;
     if (!pending) return;
-    clearManualEditStyleTimer();
     manualEditPendingStyleRef.current = null;
     const base = sourceRef.current ?? '';
     const target = pending.id === '__body__'
@@ -5068,7 +5054,6 @@ function HtmlViewer({
       } else if (patch.kind === 'remove-element') {
         if (manualEditPendingStyleRef.current?.id === patch.id) {
           manualEditPendingStyleRef.current = null;
-          clearManualEditStyleTimer();
         }
         selectedManualEditTargetIdRef.current = null;
         setSelectedManualEditTarget(null);
