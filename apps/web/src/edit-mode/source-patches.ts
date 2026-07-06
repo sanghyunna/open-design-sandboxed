@@ -270,6 +270,13 @@ function isSafeUrlValue(value: string): boolean {
   return SAFE_URL_SCHEMES.has((schemeMatch[1] ?? '').toLowerCase());
 }
 
+// Chromium's execCommand('bold'/'italic') (the edit bridge's formatting path;
+// see bridge.ts) produces `<b>`/`<i>`, but this app's canonical inline markup
+// is `<strong>`/`<em>`. Rename on save so the two stay equivalent everywhere
+// else that reads saved source (both tags are already in the allowlist, so
+// this is a rename, not a behavior change).
+const CANONICAL_TAG_RENAMES: Record<string, string> = { b: 'strong', i: 'em' };
+
 // Light, dependency-free normalization for rich-text inner HTML. The goal is
 // clean inline markup; blocking obvious script injection is a bonus rather than a
 // hardened security boundary. We allowlist inline-formatting tags, unwrap unknown
@@ -279,16 +286,19 @@ function isSafeUrlValue(value: string): boolean {
 function sanitizeInlineHtml(doc: Document, html: string): string {
   const template = doc.createElement('template');
   template.innerHTML = html;
-  // Pre-order (parents before children) so unwrapping a parent still lets the
-  // surviving children get visited in the same static snapshot.
+  // Pre-order (parents before children) so unwrapping/renaming a parent still
+  // lets the surviving children get visited in the same static snapshot.
   const elements = Array.from(template.content.querySelectorAll('*'));
-  for (const el of elements) {
-    const tag = el.tagName.toLowerCase();
+  for (const original of elements) {
+    const tag = original.tagName.toLowerCase();
     if (tag === 'script' || tag === 'style') {
-      el.remove();
+      original.remove();
       continue;
     }
-    if (!INLINE_HTML_ALLOWED_TAGS.has(tag)) {
+    const canonicalTag = CANONICAL_TAG_RENAMES[tag];
+    const el = canonicalTag ? renameElement(original, canonicalTag) : original;
+    const finalTag = el.tagName.toLowerCase();
+    if (!INLINE_HTML_ALLOWED_TAGS.has(finalTag)) {
       unwrapElement(el);
       continue;
     }
@@ -304,6 +314,18 @@ function sanitizeInlineHtml(doc: Document, html: string): string {
     }
   }
   return template.innerHTML;
+}
+
+// Swap an element's tag name in place: create the replacement, move over
+// attributes and children (same nodes, so already-visited descendants in the
+// caller's element snapshot stay attached and correctly parented), then swap
+// it into the original's spot.
+function renameElement(el: Element, tagName: string): Element {
+  const replacement = el.ownerDocument.createElement(tagName);
+  for (const attr of Array.from(el.attributes)) replacement.setAttribute(attr.name, attr.value);
+  while (el.firstChild) replacement.appendChild(el.firstChild);
+  el.replaceWith(replacement);
+  return replacement;
 }
 
 function unwrapElement(el: Element): void {
