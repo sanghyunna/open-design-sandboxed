@@ -637,8 +637,9 @@ export function previewOverlayTransform(
   viewport: PreviewViewportId,
   previewScale: number,
   canvasSize?: PreviewCanvasSize,
+  options?: PreviewScaleOptions,
 ): PreviewOverlayTransform {
-  const scale = effectivePreviewScale(viewport, previewScale, canvasSize);
+  const scale = effectivePreviewScale(viewport, previewScale, canvasSize, options);
   if (viewport === 'desktop') return { scale, offsetX: 0, offsetY: 0 };
   const preset = PREVIEW_VIEWPORT_PRESETS.find((item) => item.id === viewport);
   const pad = 24;
@@ -732,10 +733,12 @@ function pickLatestShareDeployment(
     .sort(compareDeploymentsByNewest)[0] ?? null;
 }
 
-function manualEditFloatingPanelStyle(
+export function manualEditFloatingPanelStyle(
   target: ManualEditTarget,
   previewScale: number,
   canvasSize: PreviewCanvasSize | undefined,
+  offsetX = 0,
+  offsetY = 0,
 ): CSSProperties {
   const scale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
   const panelWidth = 320;
@@ -744,9 +747,9 @@ function manualEditFloatingPanelStyle(
   const canvasWidth = canvasSize?.width ?? 1200;
   const canvasHeight = canvasSize?.height ?? 800;
   const panelHeight = Math.min(preferredPanelHeight, Math.max(260, canvasHeight - pad * 2));
-  const targetLeft = target.rect.x * scale;
-  const targetTop = target.rect.y * scale;
-  const targetRight = (target.rect.x + target.rect.width) * scale;
+  const targetLeft = offsetX + target.rect.x * scale;
+  const targetTop = offsetY + target.rect.y * scale;
+  const targetRight = offsetX + (target.rect.x + target.rect.width) * scale;
   let left = targetRight + pad;
   if (left + panelWidth > canvasWidth - pad) {
     left = Math.max(pad, targetLeft - panelWidth - pad);
@@ -770,18 +773,20 @@ function manualEditFloatingPanelStyle(
 // hovered element, just inside its bounds so moving the cursor from the
 // element onto the icon does not drop the hover. Uses the same iframe→canvas
 // coordinate basis as the floating inspector panel.
-function manualEditHoverIconStyle(
+export function manualEditHoverIconStyle(
   target: ManualEditTarget,
   previewScale: number,
   canvasSize: PreviewCanvasSize | undefined,
+  offsetX = 0,
+  offsetY = 0,
 ): CSSProperties {
   const scale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
   const iconSize = 26;
   const inset = 4;
   const canvasWidth = canvasSize?.width ?? 1200;
   const canvasHeight = canvasSize?.height ?? 800;
-  const targetTop = target.rect.y * scale;
-  const targetRight = (target.rect.x + target.rect.width) * scale;
+  const targetTop = offsetY + target.rect.y * scale;
+  const targetRight = offsetX + (target.rect.x + target.rect.width) * scale;
   const left = Math.max(
     inset,
     Math.min(targetRight - iconSize - inset, canvasWidth - iconSize - inset),
@@ -3954,6 +3959,12 @@ function HtmlViewer({
     offsetX: 0,
     offsetY: 0,
   };
+  const manualEditOverlayTransform = previewOverlayTransform(
+    previewViewport,
+    previewScale,
+    boardPreviewCanvasSize,
+    boardPreviewScaleOptions,
+  );
   const shareRef = useRef<HTMLDivElement | null>(null);
   const [chromeActionsHost, setChromeActionsHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -6643,6 +6654,8 @@ function HtmlViewer({
               selectedManualEditTarget,
               overlayPreviewScale,
               previewBodySize,
+              manualEditOverlayTransform.offsetX,
+              manualEditOverlayTransform.offsetY,
             ),
             ...(manualEditPanelPosition ?? {}),
           }
@@ -6674,6 +6687,8 @@ function HtmlViewer({
           manualEditHoverTarget,
           overlayPreviewScale,
           previewBodySize,
+          manualEditOverlayTransform.offsetX,
+          manualEditOverlayTransform.offsetY,
         )}
         onClick={() => {
           const target = manualEditHoverTarget;

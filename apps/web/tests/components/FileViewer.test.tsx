@@ -30,11 +30,14 @@ import {
   applyInspectOverridesToSource,
   commentPreviewCanvasSize,
   effectivePreviewScale,
+  manualEditFloatingPanelStyle,
+  manualEditHoverIconStyle,
   parseInspectOverridesFromSource,
   previewOverlayTransform,
   serializeInspectOverrides,
   updateInspectOverride,
 } from '../../src/components/FileViewer';
+import type { ManualEditTarget } from '../../src/edit-mode/types';
 import {
   IframeKeepAliveProvider,
   PooledIframe,
@@ -321,6 +324,42 @@ describe('FileViewer preview scale', () => {
     expect(tablet.scale).toBeCloseTo(752 / 1180, 5);
     expect(tablet.offsetX).toBeCloseTo(24 + (1152 - 820 * (752 / 1180)) / 2, 5);
     expect(tablet.offsetY).toBe(24);
+  });
+
+  it('accepts scale options so overlay transform can match a docked board preview', () => {
+    const dockedCanvas = commentPreviewCanvasSize(
+      { width: 900, height: 700 },
+      { boardMode: true, sidePanelCollapsed: false, viewport: 'tablet' },
+    );
+    const withOptions = previewOverlayTransform('tablet', 1, dockedCanvas, { canvasPadding: 0 });
+    const withoutOptions = previewOverlayTransform('tablet', 1, dockedCanvas);
+    expect(withOptions.scale).not.toBe(withoutOptions.scale);
+  });
+
+  it('applies the tablet/mobile centering offset to the manual edit floating panel and hover icon', () => {
+    const target: ManualEditTarget = {
+      id: 'hero',
+      kind: 'container',
+      label: 'Hero',
+      tagName: 'section',
+      className: '',
+      text: '',
+      rect: { x: 10, y: 20, width: 100, height: 40 },
+      fields: {},
+      attributes: {},
+      styles: emptyManualEditStyles(),
+      isLayoutContainer: false,
+      outerHtml: '',
+    };
+    const canvasSize = { width: 1200, height: 1000 };
+    const transform = previewOverlayTransform('mobile', 1, canvasSize);
+    expect(transform.offsetX).toBeGreaterThan(0);
+
+    const panelStyle = manualEditFloatingPanelStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
+    expect(panelStyle.left).toBeGreaterThanOrEqual(transform.offsetX);
+
+    const iconStyle = manualEditHoverIconStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
+    expect(iconStyle.top).toBeGreaterThanOrEqual(transform.offsetY);
   });
 });
 
