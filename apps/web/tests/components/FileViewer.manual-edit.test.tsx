@@ -356,6 +356,43 @@ describe('FileViewer manual edit regressions', () => {
     });
   });
 
+  it('surfaces a preview-style-applied failure from the iframe as a manual edit error', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const fetchMock = vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditTarget();
+    const baseSizeInput = await findStyleInput('Size');
+    fireEvent.change(baseSizeInput, { target: { value: '18' } });
+
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: false,
+          error: 'Target not found',
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Target not found')).toBeTruthy();
+    });
+  });
+
   it('closes the inspector without saving on cancel, staying in edit mode', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async () =>

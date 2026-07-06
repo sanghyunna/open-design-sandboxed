@@ -4813,6 +4813,15 @@ function HtmlViewer({
         }, 'Edit text');
         return;
       }
+      if (data.type === 'od-edit-preview-style-applied') {
+        // Ignore acks for a preview call that's since been superseded by a
+        // newer style change (out-of-order postMessage delivery).
+        if (data.version !== manualEditPreviewVersionRef.current) return;
+        if (!data.ok) {
+          setManualEditError(data.error || 'Could not apply preview style.');
+        }
+        return;
+      }
       if (data.type === 'od-edit-undo') {
         // The host's window-level Ctrl+Z/Ctrl+Y shortcut (below) never sees
         // this keystroke: keydown does not bubble out of the cross-document
