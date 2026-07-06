@@ -370,6 +370,58 @@ describe('FileViewer preview scale', () => {
   });
 });
 
+describe('manualEditFloatingPanelStyle placement', () => {
+  const makeTarget = (rect: { x: number; y: number; width: number; height: number }): ManualEditTarget => ({
+    id: 'el',
+    kind: 'container',
+    label: 'El',
+    tagName: 'section',
+    className: '',
+    text: '',
+    rect,
+    fields: {},
+    attributes: {},
+    styles: emptyManualEditStyles(),
+    isLayoutContainer: false,
+    outerHtml: '',
+  });
+  const canvas = { width: 1200, height: 800 };
+
+  it('keeps the beside-the-element right placement when it fits', () => {
+    // Parity with pre-change behavior for small elements with room to the right.
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 10, y: 20, width: 100, height: 40 }), 1, canvas);
+    expect(style).toEqual({ left: 122, top: 20, width: 320, maxHeight: 380 });
+  });
+
+  it('flips to the left side for an element hugging the right edge', () => {
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 900, y: 100, width: 280, height: 200 }), 1, canvas);
+    expect(style).toEqual({ left: 568, top: 100, width: 320, maxHeight: 380 });
+  });
+
+  it('drops below a full-width header instead of covering it', () => {
+    // Old algorithm returned { left: 12, top: 12 } — on top of the element.
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 0, width: 1200, height: 150 }), 1, canvas);
+    expect(style).toEqual({ left: 868, top: 162, width: 320, maxHeight: 380 });
+  });
+
+  it('rises above a full-width footer pinned to the bottom', () => {
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 600, width: 1200, height: 200 }), 1, canvas);
+    expect(style).toEqual({ left: 868, top: 208, width: 320, maxHeight: 380 });
+  });
+
+  it('docks to the top-right corner when the element dominates the canvas', () => {
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 0, width: 1200, height: 800 }), 1, canvas);
+    expect(style).toEqual({ left: 868, top: 12, width: 320, maxHeight: 380 });
+  });
+
+  it('places against the VISIBLE part of a tall element scrolled half off-canvas', () => {
+    // rect.y is iframe-viewport based; y=-400 h=500 leaves only 0..100 visible,
+    // so "below" starts at 112, not at the off-screen element bottom.
+    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: -400, width: 1200, height: 500 }), 1, canvas);
+    expect(style).toEqual({ left: 868, top: 112, width: 320, maxHeight: 380 });
+  });
+});
+
 describe('FileViewer JSON artifacts', () => {
   it('pretty-prints valid JSON in the text viewer', async () => {
     const file = baseFile({
