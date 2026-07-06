@@ -748,23 +748,54 @@ export function manualEditFloatingPanelStyle(
   const canvasWidth = canvasSize?.width ?? 1200;
   const canvasHeight = canvasSize?.height ?? 800;
   const panelHeight = Math.min(preferredPanelHeight, Math.max(260, canvasHeight - pad * 2));
-  const targetLeft = offsetX + target.rect.x * scale;
-  const targetTop = offsetY + target.rect.y * scale;
-  const targetRight = offsetX + (target.rect.x + target.rect.width) * scale;
-  let left = targetRight + pad;
-  if (left + panelWidth > canvasWidth - pad) {
-    left = Math.max(pad, targetLeft - panelWidth - pad);
+  const clamp = (value: number, lo: number, hi: number) => Math.max(lo, Math.min(value, hi));
+
+  // The element's VISIBLE rect on the preview canvas. target.rect is
+  // iframe-viewport based (scroll already applied), so clamping to the canvas
+  // trims the off-screen part — the panel should avoid what the user can see,
+  // not the element's full scrolled extent.
+  const visLeft = clamp(offsetX + target.rect.x * scale, 0, canvasWidth);
+  const visTop = clamp(offsetY + target.rect.y * scale, 0, canvasHeight);
+  const visRight = clamp(offsetX + (target.rect.x + target.rect.width) * scale, 0, canvasWidth);
+  const visBottom = clamp(offsetY + (target.rect.y + target.rect.height) * scale, 0, canvasHeight);
+
+  const clampPanelLeft = (left: number) => clamp(left, pad, Math.max(pad, canvasWidth - panelWidth - pad));
+  const clampPanelTop = (top: number) => clamp(top, pad, Math.max(pad, canvasHeight - panelHeight - pad));
+
+  // Beside-the-element candidates, least surprising first: right, left, below,
+  // above. Right/left hug the element's top edge; below/above hug its right
+  // edge (where the hover affordance lives). The first candidate that fits the
+  // canvas without covering the element's visible rect wins.
+  const candidates = [
+    { left: visRight + pad, top: clampPanelTop(visTop) },
+    { left: visLeft - panelWidth - pad, top: clampPanelTop(visTop) },
+    { left: clampPanelLeft(visRight - panelWidth), top: visBottom + pad },
+    { left: clampPanelLeft(visRight - panelWidth), top: visTop - panelHeight - pad },
+  ];
+  for (const candidate of candidates) {
+    const fitsCanvas =
+      candidate.left >= pad &&
+      candidate.left + panelWidth <= canvasWidth - pad &&
+      candidate.top >= pad &&
+      candidate.top + panelHeight <= canvasHeight - pad;
+    if (!fitsCanvas) continue;
+    const coversTarget =
+      candidate.left < visRight &&
+      candidate.left + panelWidth > visLeft &&
+      candidate.top < visBottom &&
+      candidate.top + panelHeight > visTop;
+    if (coversTarget) continue;
+    // Height is left to the content (auto): a short inspector should be a
+    // compact card. The cap only engages for long inspectors, at which point
+    // the scroll body takes over.
+    return { left: candidate.left, top: candidate.top, width: panelWidth, maxHeight: panelHeight };
   }
-  const top = Math.max(
-    pad,
-    Math.min(targetTop, Math.max(pad, canvasHeight - panelHeight - pad)),
-  );
-  // Height is left to the content (auto): a short inspector (e.g. typography
-  // only) should be a compact card, not a tall half-empty panel. The cap only
-  // engages for long inspectors, at which point the scroll body takes over.
+  // The element dominates the canvas; every beside-it spot would cover it.
+  // Dock to the same top-right corner the page-styles card uses so the
+  // fallback is stable and predictable, not a random-feeling spot.
   return {
-    left,
-    top,
+    left: Math.max(pad, canvasWidth - panelWidth - pad),
+    top: pad,
     width: panelWidth,
     maxHeight: panelHeight,
   };
