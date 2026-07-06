@@ -649,59 +649,77 @@ describe('manual edit bridge rich-text editing', () => {
     dom.window.close();
   });
 
-  it('wraps the selection in <strong> on Ctrl+B and commits rich html', () => {
+  // jsdom does not implement document.execCommand at all (calling it throws
+  // "not a function"), so these tests stub it and assert the bridge *routes*
+  // Ctrl/Cmd+B/I/U through it rather than doing raw Range surgery. The actual
+  // formatting/undo behavior can only be observed in a real browser (see the
+  // Playwright verification script referenced in the PR description).
+  function stubExecCommand(win: Window & typeof globalThis): ReturnType<typeof vi.fn> {
+    const execCommand = vi.fn();
+    (win.document as unknown as { execCommand: typeof execCommand }).execCommand = execCommand;
+    return execCommand;
+  }
+
+  it.each([
+    ['b', 'bold'],
+    ['i', 'italic'],
+    ['u', 'underline'],
+  ])('routes Ctrl+%s through document.execCommand(%s) for native undo integration', (key, command) => {
     const dom = new JSDOM(
       `<main><p data-od-id="copy">Hello world</p></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
     );
     const win = dom.window as unknown as Window & typeof globalThis;
     const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
-    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const execCommand = stubExecCommand(win);
 
     copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
     selectContents(win, copy);
+    execCommand.mockClear(); // drop the styleWithCSS call fired on session start
 
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+    const event = new dom.window.KeyboardEvent('keydown', {
       bubbles: true,
       cancelable: true,
-      key: 'b',
+      key,
       ctrlKey: true,
-    }));
+    });
+    copy.dispatchEvent(event);
 
-    expect(copy.querySelector('strong')).not.toBeNull();
-    expect(copy.innerHTML).toContain('<strong>');
-
-    copy.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
-
-    expect(postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-html-commit', id: 'copy' }),
-      '*',
-    );
+    expect(execCommand).toHaveBeenCalledWith(command);
+    expect(event.defaultPrevented).toBe(true);
 
     dom.window.close();
   });
 
-  it('toggles formatting off when Ctrl+I is pressed inside an existing wrapper', () => {
+  it('enables styleWithCSS-off once per rich edit session so toggles emit tags, not style spans', () => {
     const dom = new JSDOM(
-      `<main><p data-od-id="copy"><em>Slanted</em></p></main>${buildManualEditBridge(true)}`,
+      `<main><p data-od-id="copy">Hello world</p></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
     );
     const win = dom.window as unknown as Window & typeof globalThis;
     const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+    const execCommand = stubExecCommand(win);
 
     copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-    const em = copy.querySelector('em') as HTMLElement;
-    selectContents(win, em);
 
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'i',
-      ctrlKey: true,
-    }));
+    expect(execCommand).toHaveBeenCalledWith('styleWithCSS', false, 'false');
+    expect(execCommand).toHaveBeenCalledTimes(1);
 
-    expect(copy.querySelector('em')).toBeNull();
-    expect(copy.textContent).toBe('Slanted');
+    dom.window.close();
+  });
+
+  it('does not call execCommand for link (plaintext-only) targets', () => {
+    const dom = new JSDOM(
+      `<main><a data-od-id="cta" href="/start">Start</a></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const win = dom.window as unknown as Window & typeof globalThis;
+    const link = dom.window.document.querySelector('[data-od-id="cta"]') as HTMLElement;
+    const execCommand = stubExecCommand(win);
+
+    link.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(execCommand).not.toHaveBeenCalled();
 
     dom.window.close();
   });
@@ -732,15 +750,6 @@ describe('manual edit bridge rich-text editing', () => {
     expect(selection?.toString()).toBe('Hello');
     expect(selection?.getRangeAt(0).collapsed).toBe(false);
 
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'b',
-      ctrlKey: true,
-    }));
-
-    expect(copy.innerHTML).toBe('<strong>Hello</strong> world');
-
     dom.window.close();
   });
 
@@ -765,100 +774,6 @@ describe('manual edit bridge rich-text editing', () => {
     expect(spans[1]!.hasAttribute('contenteditable')).toBe(false);
     expect(selection?.toString()).toBe('Hello world');
     expect(selection?.getRangeAt(0).collapsed).toBe(false);
-
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'b',
-      ctrlKey: true,
-    }));
-
-    expect(copy.textContent).toBe('Hello world');
-    expect(copy.querySelector('strong')?.textContent).toBe('Hello world');
-
-    dom.window.close();
-  });
-
-  it('unwraps only the selected slice inside an existing wrapper (Ctrl+B on "world")', () => {
-    const dom = new JSDOM(
-      `<main><p data-od-id="copy"><strong>hello world</strong></p></main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const win = dom.window as unknown as Window & typeof globalThis;
-    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
-
-    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-    const strongText = copy.querySelector('strong')!.firstChild!; // Text "hello world"
-    selectTextRange(win, strongText, 6, 11); // "world"
-
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'b',
-      ctrlKey: true,
-    }));
-
-    // Only "world" loses formatting; "hello " stays bold.
-    expect(copy.innerHTML).toBe('<strong>hello </strong>world');
-    expect(copy.textContent).toBe('hello world');
-
-    dom.window.close();
-  });
-
-  it('wraps only the selected slice of plain text (Ctrl+B on "world")', () => {
-    const dom = new JSDOM(
-      `<main><p data-od-id="copy">hello world</p></main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const win = dom.window as unknown as Window & typeof globalThis;
-    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
-
-    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-    const textNode = copy.firstChild!; // Text "hello world"
-    selectTextRange(win, textNode, 6, 11); // "world"
-
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'b',
-      ctrlKey: true,
-    }));
-
-    expect(copy.innerHTML).toBe('hello <strong>world</strong>');
-    expect(copy.textContent).toBe('hello world');
-
-    dom.window.close();
-  });
-
-  it('wraps a selection that spans a wrapped/unwrapped boundary without nesting', () => {
-    const dom = new JSDOM(
-      `<main><p data-od-id="copy"><strong>hello</strong> world</p></main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const win = dom.window as unknown as Window & typeof globalThis;
-    const copy = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
-
-    copy.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-    const strongText = copy.querySelector('strong')!.firstChild!; // "hello"
-    const tailText = copy.lastChild!; // " world"
-    const sel = win.getSelection();
-    const range = win.document.createRange();
-    range.setStart(strongText, 2); // mid "hello" -> "llo"
-    range.setEnd(tailText, 6); // end of " world"
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-
-    copy.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
-      bubbles: true,
-      cancelable: true,
-      key: 'b',
-      ctrlKey: true,
-    }));
-
-    // Whole selection ends up bold; no <strong> is nested inside another.
-    expect(copy.textContent).toBe('hello world');
-    expect(copy.querySelector('strong strong')).toBeNull();
-    expect(copy.innerHTML).toBe('<strong>he</strong><strong>llo world</strong>');
 
     dom.window.close();
   });
@@ -885,6 +800,100 @@ describe('manual edit bridge rich-text editing', () => {
       }),
       '*',
     );
+
+    dom.window.close();
+  });
+});
+
+describe('manual edit bridge undo/redo forwarding', () => {
+  it('forwards Ctrl+Z to the host as an undo message when no inline edit session is active', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'z',
+      ctrlKey: true,
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-undo', redo: false }, '*');
+    expect(event.defaultPrevented).toBe(true);
+
+    dom.window.close();
+  });
+
+  it('forwards Shift+Ctrl+Z and Ctrl+Y as redo', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'z',
+      ctrlKey: true,
+      shiftKey: true,
+    }));
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-undo', redo: true }, '*');
+
+    postMessage.mockClear();
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'y',
+      ctrlKey: true,
+    }));
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-undo', redo: true }, '*');
+
+    dom.window.close();
+  });
+
+  it('does not forward undo while an inline edit session is active, leaving native undo in control', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'z',
+      ctrlKey: true,
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-undo' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('does not forward undo keys while edit mode is disabled', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(false)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'z',
+      ctrlKey: true,
+    }));
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-undo' }), '*');
 
     dom.window.close();
   });

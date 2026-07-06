@@ -295,6 +295,34 @@ describe('manual edit source patches', () => {
     expect(html).toContain('href="#anchor"');
   });
 
+  it('normalizes execCommand-produced <b>/<i> tags to canonical <strong>/<em> in set-inner-html', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'hero-title',
+      html: 'Safe <b>bold</b> and <i>italic</i> and <u>under</u>',
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'hero-title');
+    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<u>under</u>');
+    expect(html).not.toContain('<b>');
+    expect(html).not.toContain('<i>');
+  });
+
+  it('normalizes nested <b><i> tags to nested <strong><em>', () => {
+    const result = applyManualEditPatch(baseSource, {
+      kind: 'set-inner-html',
+      id: 'hero-title',
+      html: '<b><i>both</i></b>',
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'hero-title');
+    expect(html).toContain('<strong><em>both</em></strong>');
+  });
+
   it('keeps allowlisted inline formatting but unwraps unknown block tags in set-inner-html', () => {
     const result = applyManualEditPatch(baseSource, {
       kind: 'set-inner-html',

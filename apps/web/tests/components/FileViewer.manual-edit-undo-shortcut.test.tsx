@@ -306,6 +306,61 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     expect(savedSources).toHaveLength(1);
   });
 
+  it('undoes and redoes via the bridge-forwarded od-edit-undo message (Ctrl+Z inside the iframe)', async () => {
+    // The bridge (apps/web/src/edit-mode/bridge.ts) posts this message when
+    // Ctrl+Z/Ctrl+Y fires inside the srcDoc iframe and no inline edit session
+    // is active, because keydown events never bubble out of a cross-document
+    // iframe to the host's window-level listener above.
+    const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
+    let persistedSource = initialSource;
+    const savedSources: string[] = [];
+    vi.stubGlobal('fetch', historyFetchMock(() => persistedSource, (next) => {
+      persistedSource = next;
+      savedSources.push(next);
+    }));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={initialSource}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const frame = await waitFor(() => {
+      const node = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
+      if (!node.contentWindow) throw new Error('Preview frame not ready');
+      return node;
+    });
+    await selectHero();
+
+    act(() => {
+      panelState.props?.onApplyPatch(
+        { id: 'hero', kind: 'set-text', value: 'Edited hero' },
+        'Content: Hero',
+      );
+    });
+    await waitFor(() => expect(savedSources).toHaveLength(1));
+    expect(savedSources[0]).toContain('Edited hero');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-undo', redo: false },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(savedSources).toHaveLength(2));
+    expect(savedSources[1]).toBe(initialSource);
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-undo', redo: true },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(savedSources).toHaveLength(3));
+    expect(savedSources[2]).toContain('Edited hero');
+  });
+
   it('ignores Ctrl+Z dispatched from a contentEditable host element', async () => {
     const initialSource = '<!doctype html><html><body><h1 data-od-id="hero">Hero</h1></body></html>';
     let persistedSource = initialSource;
