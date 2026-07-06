@@ -764,8 +764,11 @@ export function manualEditFloatingPanelStyle(
 
   // Beside-the-element candidates, least surprising first: right, left, below,
   // above. Right/left hug the element's top edge; below/above hug its right
-  // edge (where the hover affordance lives). The first candidate that fits the
-  // canvas without covering the element's visible rect wins.
+  // edge (where the hover affordance lives). Each candidate is pad-separated
+  // from the element's visible rect by construction on its defining axis (that
+  // coordinate is never clamped — clamps only touch the other axis), so the
+  // first candidate that fits the canvas is guaranteed not to cover the
+  // element; no intersection test needed.
   const candidates = [
     { left: visRight + pad, top: clampPanelTop(visTop) },
     { left: visLeft - panelWidth - pad, top: clampPanelTop(visTop) },
@@ -779,12 +782,6 @@ export function manualEditFloatingPanelStyle(
       candidate.top >= pad &&
       candidate.top + panelHeight <= canvasHeight - pad;
     if (!fitsCanvas) continue;
-    const coversTarget =
-      candidate.left < visRight &&
-      candidate.left + panelWidth > visLeft &&
-      candidate.top < visBottom &&
-      candidate.top + panelHeight > visTop;
-    if (coversTarget) continue;
     // Height is left to the content (auto): a short inspector should be a
     // compact card. The cap only engages for long inspectors, at which point
     // the scroll body takes over.
