@@ -59,10 +59,6 @@ export function registerAtomWorker(worker: AtomWorker): void {
   REGISTRY.set(worker.id, worker);
 }
 
-export function unregisterAtomWorker(id: string): void {
-  REGISTRY.delete(id);
-}
-
 export function clearAtomWorkers(): void {
   REGISTRY.clear();
 }

@@ -16,7 +16,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   const { sendApiError } = ctx.http;
   const { importUpload } = ctx.uploads;
   const { fs, path } = ctx.node;
-  const { randomId } = ctx.ids;
+  const { randomUUID } = ctx.ids;
   const { PROJECTS_DIR, RUNTIME_DATA_DIR_CANONICAL } = ctx.paths;
   const { importClaudeDesignZip, projectDir, detectEntryFile } = ctx.imports;
   const {
@@ -48,7 +48,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
           fs.promises.unlink(req.file.path).catch(() => {});
           return res.status(400).json({ error: 'expected a .zip file' });
         }
-        const id = randomId();
+        const id = randomUUID();
         const now = Date.now();
         const baseName =
           originalName.replace(/\.zip$/i, '').trim() || 'Claude Design import';
@@ -73,7 +73,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
           createdAt: now,
           updatedAt: now,
         });
-        const cid = randomId();
+        const cid = randomUUID();
         insertConversation(db, {
           id: cid,
           projectId: id,
@@ -302,7 +302,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         return sendApiError(res, 400, 'BAD_REQUEST', 'cannot import the data directory');
       }
 
-      const id = randomId();
+      const id = randomUUID();
       const now = Date.now();
       const projectName =
         typeof name === 'string' && name.trim()
@@ -336,7 +336,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         updatedAt: now,
       });
 
-      const cid = randomId();
+      const cid = randomUUID();
       insertConversation(db, {
         id: cid,
         projectId: id,

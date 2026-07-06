@@ -1446,10 +1446,6 @@ function normalizeToolName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'tool';
 }
 
-function normalizeProviderToolId(value: string): string {
-  return normalizeToolName(value);
-}
-
 function applyComposioToolCuration(
   tool: ConnectorCatalogToolDefinition,
   connectorId: string,
@@ -1457,7 +1453,7 @@ function applyComposioToolCuration(
 ): ConnectorCatalogToolDefinition {
   const connectorKey = normalizeComposioSlug(connectorId);
   const overlay = COMPOSIO_CURATION_OVERLAY[connectorKey];
-  const toolKey = providerToolId ? normalizeProviderToolId(providerToolId) : undefined;
+  const toolKey = providerToolId ? normalizeToolName(providerToolId) : undefined;
   const curation = toolKey ? overlay?.[toolKey] : undefined;
   const safetyOverride = toolKey
     ? COMPOSIO_READ_ONLY_TOOL_SAFETY_OVERRIDES.has(`${connectorKey}:${toolKey}`)

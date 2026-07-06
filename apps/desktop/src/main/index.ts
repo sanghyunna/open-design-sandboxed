@@ -86,10 +86,6 @@ type DesktopAppConfigPrefs = {
   [key: string]: unknown;
 };
 
-// Argv prefix the preload uses to recover the OS locale main process
-// read at startup. The renderer wires `__od__.client.osLocale` from it.
-export const OS_LOCALE_PRELOAD_ARG_PREFIX = "--od-os-locale=";
-
 /**
  * Read the OS preferred language and, when Electron has not yet
  * emitted `ready`, point Chromium's `--lang` flag at it so the

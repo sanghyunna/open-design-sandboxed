@@ -7,7 +7,9 @@
 //     new request) or insert a `pending` row + emit a request event.
 //   - `respondSurface()` — write user / agent / auto answer, emit response
 //     + state-synced events.
-//   - `revokeSurface()` — flip cross-conversation rows to `invalidated`.
+//
+// `revokeSurface()` (cross-conversation invalidate) lives in `store.ts` and
+// is re-exported directly through the barrel; no registry-level wrapper.
 //
 // All side effects are concentrated here; the underlying SQLite writes go
 // through `store.ts`, the SSE / ND-JSON event emission goes through the
@@ -27,7 +29,6 @@ import {
   prefillSurface,
   requestSurface,
   respondSurface as respondSurfaceRow,
-  revokeSurface as revokeSurfaceRow,
   type RespondSurfaceInput,
   type SurfaceKind,
   type SurfaceRespondedBy,
@@ -143,15 +144,6 @@ export function respondSurface(db: SqliteDb, input: RespondInput): SurfaceRow {
     );
   }
   return row;
-}
-
-export interface RevokeInput {
-  projectId:  string;
-  surfaceId:  string;
-}
-
-export function revokeProjectSurface(db: SqliteDb, input: RevokeInput): number {
-  return revokeSurfaceRow(db, input);
 }
 
 export interface PrefillInput {

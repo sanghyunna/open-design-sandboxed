@@ -1,7 +1,7 @@
 // Plan §3.F5 / spec §8 — composable Plugins section.
 //
 // Bundles the Phase 2A primitives (InlinePluginsRail, ContextChipStrip,
-// PluginInputsForm, the renderPluginBriefTemplate helper) into one
+// the renderPluginBriefTemplate helper) into one
 // reusable widget. NewProjectPanel and ChatComposer can drop this in
 // with one line and treat the rest of the composer state as untouched.
 //

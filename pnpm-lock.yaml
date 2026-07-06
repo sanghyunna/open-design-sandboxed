@@ -270,9 +270,6 @@ importers:
       '@anthropic-ai/sdk':
         specifier: 0.32.1
         version: 0.32.1
-      '@formkit/auto-animate':
-        specifier: 0.9.0
-        version: 0.9.0
       '@lexical/react':
         specifier: 0.36.2
         version: 0.36.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.31)
@@ -1411,9 +1408,6 @@ packages:
 
   '@fontsource-variable/playfair-display@5.2.8':
     resolution: {integrity: sha512-ZzVIXPOrL85yyOvZYoBzUszIJM+xKkHqni4IYn2CVLaGQQdJR8sBeC8yFNgjxSJ7ludTwta8qpULeOFuk5X75A==}
-
-  '@formkit/auto-animate@0.9.0':
-    resolution: {integrity: sha512-VhP4zEAacXS3dfTpJpJ88QdLqMTcabMg0jwpOSxZ/VzfQVfl3GkZSCZThhGC5uhq/TxPHPzW0dzr4H9Bb1OgKA==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -5975,8 +5969,6 @@ snapshots:
   '@fontsource-variable/jetbrains-mono@5.2.8': {}
 
   '@fontsource-variable/playfair-display@5.2.8': {}
-
-  '@formkit/auto-animate@0.9.0': {}
 
   '@hono/node-server@1.19.14(hono@4.12.19)':
     dependencies:

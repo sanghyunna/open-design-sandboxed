@@ -184,56 +184,6 @@ export const DESIGN_DIRECTIONS: DesignDirection[] = [
 ];
 
 /**
- * Render the direction-picker form body for emission as a `<question-form>`.
- * Uses the `direction-cards` question type so the UI renders each option
- * as a rich card (palette swatches + type sample + mood blurb + refs)
- * instead of a plain radio. Falls back gracefully — older clients that
- * don't recognise `direction-cards` treat it as text.
- */
-export function renderDirectionFormBody(): string {
-  const cards = DESIGN_DIRECTIONS.map((d) => ({
-    id: d.id,
-    label: d.label,
-    mood: d.mood,
-    references: d.references,
-    palette: [
-      d.palette.bg,
-      d.palette.surface,
-      d.palette.border,
-      d.palette.muted,
-      d.palette.fg,
-      d.palette.accent,
-    ],
-    displayFont: d.displayFont,
-    bodyFont: d.bodyFont,
-  }));
-
-  const form = {
-    description:
-      'No brand to match — pick a visual direction. Each one ships with a real palette, font stack, and layout posture. You can override the accent below.',
-    questions: [
-      {
-        id: 'direction',
-        label: 'Direction',
-        type: 'direction-cards',
-        required: true,
-        options: DESIGN_DIRECTIONS.map((d) => d.id),
-        cards,
-      },
-      {
-        id: 'accent_override',
-        label: 'Accent override (optional)',
-        type: 'text',
-        placeholder:
-          'e.g. "use moss green instead of cobalt", "no orange — too brand-y for us"',
-      },
-    ],
-  };
-
-  return JSON.stringify(form, null, 2);
-}
-
-/**
  * The block we splice into the system prompt so the agent has each
  * direction's full spec inline (palette, fonts, posture). Used by the
  * discovery prompt to teach the agent *how* to bind a chosen direction
@@ -275,10 +225,4 @@ export function renderDirectionSpecBlock(): string {
     lines.push('');
   }
   return lines.join('\n');
-}
-
-/** Look up a direction by its `label` (what the user sees in the form). */
-export function findDirectionByLabel(label: string): DesignDirection | undefined {
-  const trimmed = label.trim();
-  return DESIGN_DIRECTIONS.find((d) => d.label === trimmed || d.id === trimmed);
 }

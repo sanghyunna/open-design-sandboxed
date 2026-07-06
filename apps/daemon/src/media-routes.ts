@@ -5,48 +5,6 @@ import { proxyDispatcherRequestInit } from './connectionTest.js';
 
 export interface RegisterMediaRoutesDeps extends RouteDeps<'http' | 'paths' | 'appConfig' | 'nativeDialogs' | 'research'> {}
 
-export type LegacyMediaRouteGrantDecision =
-  | { ok: true; grant: { projectId: string } | null }
-  | {
-      ok: false;
-      code: string;
-      details?: Record<string, unknown>;
-      message: string;
-      status: number;
-    };
-
-export function resolveLegacyMediaRouteGrant(input: {
-  grant: { projectId: string } | null;
-  projectId: string;
-  requestProjectOverride: (projectId: string, tokenProjectId: string) => boolean;
-  sandboxMode: boolean;
-}): LegacyMediaRouteGrantDecision {
-  if (
-    input.sandboxMode &&
-    input.grant &&
-    input.requestProjectOverride(input.projectId, input.grant.projectId)
-  ) {
-    return {
-      ok: false,
-      code: 'FORBIDDEN',
-      details: { suppliedProjectId: input.projectId },
-      message: 'projectId is derived from the tool token',
-      status: 403,
-    };
-  }
-
-  if (!input.grant && input.sandboxMode) {
-    return {
-      ok: false,
-      code: 'TOOL_TOKEN_MISSING',
-      message: 'tool token is required for media generation in sandbox mode',
-      status: 401,
-    };
-  }
-
-  return { ok: true, grant: input.grant };
-}
-
 export function registerMediaRoutes(app: Express, ctx: RegisterMediaRoutesDeps) {
   const { isLocalSameOrigin, resolvedPortRef } = ctx.http;
   const { PROJECT_ROOT, RUNTIME_DATA_DIR } = ctx.paths;

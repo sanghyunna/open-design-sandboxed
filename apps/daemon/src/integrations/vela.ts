@@ -36,30 +36,6 @@ type AmrEntrySourcePageName = Extract<
   'onboarding' | 'chat_panel' | 'settings' | 'file_manager'
 >;
 
-const AMR_ENTRY_SOURCE_PAGES: ReadonlySet<AmrEntrySourcePageName> = new Set([
-  'onboarding',
-  'chat_panel',
-  'settings',
-  'file_manager',
-]);
-
-const AMR_ENTRY_SOURCE_PAGE_BY_SOURCE: Record<
-  TrackingAmrEntrySource,
-  AmrEntrySourcePageName
-> = {
-  onboarding_amr_card: 'onboarding',
-  onboarding_amr_sign_in_continue: 'onboarding',
-  inline_model_switcher_amr_row: 'chat_panel',
-  settings_amr_agent_card: 'settings',
-  settings_amr_authorize: 'settings',
-  chat_error_authorize_retry: 'chat_panel',
-  chat_error_recharge: 'chat_panel',
-  chat_error_switch_retry_card: 'chat_panel',
-  generation_preview_authorize_retry: 'file_manager',
-  generation_preview_recharge: 'file_manager',
-  generation_preview_switch_retry_card: 'file_manager',
-};
-
 export interface AmrEntryAnalyticsPayload {
   pageName: 'open_design';
   sourcePageName: AmrEntrySourcePageName;
@@ -436,66 +412,6 @@ export function parseVelaLoginAttribution(input: unknown): AmrEntryAttribution |
   };
 }
 
-export function parseAmrEntryAnalyticsPayload(
-  input: unknown,
-): AmrEntryAnalyticsPayload | null {
-  const raw = isRecord(input) && 'payload' in input ? input.payload : input;
-  if (!isRecord(raw)) return null;
-  const pageName = raw.pageName;
-  const sourcePageName = raw.sourcePageName;
-  const area = raw.area;
-  const element = raw.element;
-  const action = raw.action;
-  const entryId = raw.entryId;
-  const sourceProduct = raw.sourceProduct;
-  const sourceDetail = raw.sourceDetail;
-  const entryOccurredAt = raw.entryOccurredAt;
-  if (
-    pageName !== 'open_design'
-    || typeof sourcePageName !== 'string'
-    || !AMR_ENTRY_SOURCE_PAGES.has(sourcePageName as AmrEntrySourcePageName)
-    || area !== 'amr_entry'
-    || typeof element !== 'string'
-    || !AMR_ENTRY_SOURCES.has(element as TrackingAmrEntrySource)
-    || action !== 'click_amr_entry'
-    || typeof entryId !== 'string'
-    || entryId.length === 0
-    || sourceProduct !== 'open_design'
-    || typeof sourceDetail !== 'string'
-    || !AMR_ENTRY_SOURCES.has(sourceDetail as TrackingAmrEntrySource)
-    || sourceDetail !== element
-    || sourcePageName
-      !== AMR_ENTRY_SOURCE_PAGE_BY_SOURCE[sourceDetail as TrackingAmrEntrySource]
-    || typeof entryOccurredAt !== 'string'
-    || !Number.isFinite(Date.parse(entryOccurredAt))
-  ) {
-    return null;
-  }
-  return {
-    pageName,
-    sourcePageName: sourcePageName as AmrEntrySourcePageName,
-    area,
-    element: element as TrackingAmrEntrySource,
-    action,
-    entryId,
-    sourceProduct,
-    sourceDetail: sourceDetail as TrackingAmrEntrySource,
-    entryOccurredAt,
-  };
-}
-
-// Corporate-fork cleanup: the AMR-entry analytics relay to
-// amr-api.open-design.ai has been removed. This is now an inert no-op that
-// never performs network egress. The function and its types are retained only
-// so the (now unused) call surface stays type-stable; callers always observe
-// `{ mirrored: false }`.
-export async function mirrorAmrEntryAnalytics(
-  _payload: AmrEntryAnalyticsPayload,
-  _deps: MirrorAmrEntryAnalyticsDeps = {},
-): Promise<MirrorAmrEntryAnalyticsResult> {
-  return { mirrored: false };
-}
-
 function velaLoginAttributionEnv(
   attribution: AmrEntryAttribution | null | undefined,
 ): Record<string, string> {
@@ -506,8 +422,4 @@ function velaLoginAttributionEnv(
     OPEN_DESIGN_AMR_ENTRY_AT: attribution.occurredAt,
     OPEN_DESIGN_AMR_ORIGIN: attribution.sourceProduct,
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

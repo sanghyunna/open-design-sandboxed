@@ -778,7 +778,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
   const { getTemplate, listTemplates, deleteTemplate, insertTemplate, findTemplateByNameAndProject, updateTemplate } = ctx.templates;
   const { listLatestProjectRunStatuses, listProjectsAwaitingInput, normalizeProjectDisplayStatus, composeProjectDisplayStatus, listProjects } = ctx.status;
   const { subscribeFileEvents, activeProjectEventSinks } = ctx.events;
-  const { randomId } = ctx.ids;
+  const { randomUUID } = ctx.ids;
   const { validateProjectDesignSystemId, validateProjectSkillId } = ctx.validation;
   const sendCheckpointError = (res: Response, err: unknown): void => {
     if (err instanceof ProjectCheckpointConflictError) {
@@ -1013,7 +1013,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
               updatedAt: manifest.updatedAt,
             });
             insertConversation(db, {
-              id: randomId(),
+              id: randomUUID(),
               projectId: manifest.id,
               title: null,
               createdAt: now,
@@ -1237,7 +1237,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         throw err;
       }
       // Seed a default conversation so the UI always has somewhere to write.
-      const cid = randomId();
+      const cid = randomUUID();
       const initialSessionMode = normalizeChatSessionMode(
         req.body?.conversationMode ?? req.body?.sessionMode,
       );
@@ -1583,7 +1583,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
           ? normalizeChatSessionMode(sourceConversation.sessionMode)
           : 'design';
     const conv = insertConversation(db, {
-      id: randomId(),
+      id: randomUUID(),
       projectId: req.params.id,
       title: typeof title === 'string' ? title.trim() || null : null,
       sessionMode,
@@ -1602,7 +1602,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         // turn would otherwise render a perpetual spinner in the side chat.
         upsertMessage(db, conv.id, {
           ...m,
-          id: randomId(),
+          id: randomUUID(),
           runId: undefined,
           runStatus: undefined,
           lastRunEventId: undefined,
@@ -1913,7 +1913,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         });
       } else {
         t = insertTemplate(db, {
-          id: randomId(),
+          id: randomUUID(),
           name: trimmedName,
           description: descValue,
           sourceProjectId,

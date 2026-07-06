@@ -182,7 +182,7 @@ import {
   listSurfacesForRun,
   prefillProjectSurface,
   respondSurface as respondSurfaceRow,
-  revokeProjectSurface,
+  revokeSurface,
 } from './genui/index.js';
 import { composeMemoryBody, extractFromMessage } from './memory.js';
 import { attachAcpSession } from './acp.js';
@@ -1453,12 +1453,6 @@ function emitChatAgentEvent(runId, payload) {
   if (!sink) return false;
   return sink(payload);
 }
-
-// Exported for tests covering the artifact quiet-period plumbing
-// (#1451). The chat run path is a deep closure inside startServer, so
-// pin the hook contract at the emit/handle boundary instead of
-// driving a full fake-agent e2e for every invariant.
-export const __forTestChatRunHandles = activeChatRunHandles;
 
 // Broadcast an event to every SSE subscriber currently watching the given
 // project's `/api/projects/:id/events` stream. The payload's `type` field
@@ -4919,7 +4913,7 @@ export async function startServer({
     OD_BIN,
   };
   const nodeDeps = { fs, path };
-  const idDeps = { randomId, randomUUID };
+  const idDeps = { randomUUID };
   const uploadDeps = { upload, importUpload, handleProjectUpload };
   const projectStoreDeps = {
     getProject,
@@ -5325,7 +5319,7 @@ export async function startServer({
           ? normalizeConversationSessionMode(sourceConversation.sessionMode)
           : 'design';
     const conv = insertConversation(db, {
-      id: randomId(),
+      id: randomUUID(),
       projectId: req.params.id,
       title: typeof title === 'string' ? title.trim() || null : null,
       sessionMode,
@@ -5336,7 +5330,7 @@ export async function startServer({
       for (const m of seedMessages) {
         upsertMessage(db, conv.id, {
           ...m,
-          id: randomId(),
+          id: randomUUID(),
           runId: undefined,
           runStatus: undefined,
           lastRunEventId: undefined,
@@ -5558,7 +5552,7 @@ export async function startServer({
         }
       }
       const t = insertTemplate(db, {
-        id: randomId(),
+        id: randomUUID(),
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
         sourceProjectId,
@@ -6479,8 +6473,8 @@ export async function startServer({
       }
 
       const now = Date.now();
-      const id = randomId();
-      const cid = randomId();
+      const id = randomUUID();
+      const cid = randomUUID();
       const sourceSlug = githubRepoNameFromPluginName(sourcePlugin.id);
       const stagedPath = `plugin-source/${sourceSlug}`;
       const prompt = renderPluginSharePrompt({ action, sourcePlugin, stagedPath });
@@ -7525,7 +7519,7 @@ export async function startServer({
 
   app.post('/api/projects/:projectId/genui/:surfaceId/revoke', (req, res) => {
     try {
-      const changed = revokeProjectSurface(db, {
+      const changed = revokeSurface(db, {
         projectId: req.params.projectId,
         surfaceId: req.params.surfaceId,
       });
@@ -13613,10 +13607,6 @@ export async function startServer({
       reject(error);
     });
   });
-}
-
-function randomId() {
-  return randomUUID();
 }
 
 function sanitizeSlug(text) {

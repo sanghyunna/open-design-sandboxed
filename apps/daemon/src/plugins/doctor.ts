@@ -15,14 +15,10 @@
 // adds the diagnostics endpoint.
 
 import { manifestSourceDigest, resolveContext, validateSafe, type RegistryView } from '@open-design/plugin-runtime';
-import type { InstalledPluginRecord, PluginManifest } from '@open-design/contracts';
-import type Database from 'better-sqlite3';
+import type { InstalledPluginRecord } from '@open-design/contracts';
 import { findAtom, isImplementedAtom, isKnownAtom } from './atoms.js';
 import { validateConnectorRefs, type ConnectorProbe } from './connector-gate.js';
 import { isParseableUntil } from './until.js';
-import { listSnapshotsForProject, markSnapshotStale } from './snapshots.js';
-
-type SqliteDb = Database.Database;
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 
@@ -168,45 +164,3 @@ export function doctorPlugin(
   return { pluginId: plugin.id, ok, issues, freshDigest };
 }
 
-// Walk every snapshot for a project and flip those whose digest no longer
-// matches the live plugin's freshly computed digest. Called by `od plugin
-// doctor --project <id>` and the apply path when a plugin upgrade is
-// detected. Returns the list of snapshot ids that were re-tagged.
-export function markStaleSnapshotsForProject(
-  db: SqliteDb,
-  projectId: string,
-  resolveDigest: (snapshot: { pluginId: string; manifestSourceDigest: string }) => string | null,
-): string[] {
-  const updated: string[] = [];
-  const snapshots = listSnapshotsForProject(db, projectId);
-  for (const snap of snapshots) {
-    if (snap.status !== 'fresh') continue;
-    const fresh = resolveDigest({ pluginId: snap.pluginId, manifestSourceDigest: snap.manifestSourceDigest });
-    if (fresh && fresh !== snap.manifestSourceDigest) {
-      markSnapshotStale(db, snap.snapshotId);
-      updated.push(snap.snapshotId);
-    }
-  }
-  return updated;
-}
-
-export function summarizeDoctor(report: DoctorReport): string {
-  const errs = report.issues.filter((d) => d.severity === 'error');
-  const warns = report.issues.filter((d) => d.severity === 'warning');
-  if (errs.length === 0 && warns.length === 0) {
-    return `Plugin '${report.pluginId}' is OK (digest ${report.freshDigest.slice(0, 12)}…).`;
-  }
-  const parts: string[] = [];
-  parts.push(`Plugin '${report.pluginId}': ${errs.length} error(s), ${warns.length} warning(s).`);
-  for (const issue of report.issues) {
-    parts.push(`  [${issue.severity}] ${issue.code}: ${issue.message}`);
-  }
-  return parts.join('\n');
-}
-
-export function buildRegistryViewFromManifest(_manifest: PluginManifest, fallback: RegistryView): RegistryView {
-  // Phase 1 stub — returns the fallback unchanged. Phase 2A will overlay
-  // bundled-plugin-specific catalogs when the plugin ships its own skills /
-  // design systems within `<plugin>/skills/` etc.
-  return fallback;
-}

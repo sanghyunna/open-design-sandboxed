@@ -80,12 +80,10 @@ const residualAllowedExactPaths = new Set([
   "apps/web/public/od-notifications-sw.js",
   // PostCSS loads Tailwind through a web-local .mjs compatibility config entry.
   "apps/web/postcss.config.mjs",
-  "scripts/bake-html-ppt-examples.mjs",
   // CI-only plugin-preview renderer. Kept .mjs and run directly by Node so its
   // runtime deps (puppeteer-core + a headless Chrome + ffmpeg) are provided by
   // the CI environment and never pulled into the daemon/web TS build or bundle.
   "scripts/bake-plugin-previews.mjs",
-  "scripts/scaffold-html-ppt-skills.mjs",
   // AMR (vela) verifier: ad-hoc dev runner that imports the daemon's compiled
   // `dist/acp.js` and drives a real `vela agent run` against a live model.
   // Kept as .mjs so it can be invoked directly via Node without any transform.

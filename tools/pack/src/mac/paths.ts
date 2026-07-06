@@ -21,10 +21,6 @@ export function sanitizeNamespace(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
-export function macAppBundleName(namespace: string): string {
-  return `${PRODUCT_NAME}.${sanitizeNamespace(namespace)}.app`;
-}
-
 export function macAppExecutablePath(appPath: string, executableName = PRODUCT_NAME): string {
   return join(appPath, "Contents", "MacOS", executableName);
 }

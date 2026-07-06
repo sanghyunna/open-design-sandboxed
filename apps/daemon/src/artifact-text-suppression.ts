@@ -1,5 +1,3 @@
-type EventSink = (event: { type: 'text_delta'; delta: string }) => void;
-
 const ARTIFACT_OPEN_RE = /(?:<\s*\|?\s*DSML[\s,]+artifact\b[^>]*>|<\s*artifact\b[^>]*>)/i;
 const DSML_ARTIFACT_CLOSE_RE = /(?:<\/artifact>|<\/\s*\|?\s*DSML\s*>|<\s*\|?\s*\/\s*DSML\s*\|?\s*>)/i;
 const DSML_OPEN_CANONICAL = 'dsmlartifact';
@@ -64,17 +62,6 @@ export function createDsmlArtifactTextSuppressor(): ArtifactTextSuppressor {
   }
 
   return { strip, flush, isSuppressing, hasPendingCandidate };
-}
-
-export function emitWithTextSuppressor(
-  suppressor: ArtifactTextSuppressor,
-  onEvent: EventSink,
-  text: string,
-): boolean {
-  const delta = suppressor.strip(text);
-  if (!delta) return false;
-  onEvent({ type: 'text_delta', delta });
-  return true;
 }
 
 function possibleDsmlArtifactOpenStart(text: string): number {

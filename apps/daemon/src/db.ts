@@ -1403,10 +1403,6 @@ export function appendMessageAgentEvent(db: SqliteDb, messageId: string, event: 
   return next;
 }
 
-export function deleteMessage(db: SqliteDb, id: string) {
-  db.prepare(`DELETE FROM messages WHERE id = ?`).run(id);
-}
-
 export function getMessagePosition(
   db: SqliteDb,
   conversationId: string,

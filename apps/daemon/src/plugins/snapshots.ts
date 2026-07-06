@@ -326,11 +326,6 @@ export function pruneExpiredSnapshots(
   return { removed: unique.length, ids: unique };
 }
 
-export function countSnapshotsForProject(db: SqliteDb, projectId: string): number {
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM applied_plugin_snapshots WHERE project_id = ?`).get(projectId) as DbRow;
-  return Number(row['n'] ?? 0);
-}
-
 function buildSnapshot(args: {
   id: string;
   appliedAt: number;

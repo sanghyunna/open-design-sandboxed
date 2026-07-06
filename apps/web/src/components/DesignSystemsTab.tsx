@@ -142,7 +142,7 @@ export function DesignSystemsTab({
   const [category, setCategory] = useState<string>('All');
   // Cache fetched showcase HTML across re-renders so cards never re-flicker
   // when the user filters / scrolls back. null = "in flight"; undefined =
-  // "not yet requested". Mirrors the pattern used by ExamplesTab.
+  // "not yet requested".
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
 
   const librarySystems = useMemo(
