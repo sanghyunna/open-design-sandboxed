@@ -127,6 +127,11 @@ export interface ManualEditHtmlCommitMessage {
   html: string;
 }
 
+export interface ManualEditUndoMessage {
+  type: 'od-edit-undo';
+  redo: boolean;
+}
+
 export type ManualEditBridgeMessage =
   | ManualEditTargetMessage
   | ManualEditSelectMessage
@@ -134,7 +139,8 @@ export type ManualEditBridgeMessage =
   | ManualEditBackgroundMessage
   | ManualEditPreviewAppliedMessage
   | ManualEditTextCommitMessage
-  | ManualEditHtmlCommitMessage;
+  | ManualEditHtmlCommitMessage
+  | ManualEditUndoMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'lineHeight', 'letterSpacing',

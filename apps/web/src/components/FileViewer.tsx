@@ -4819,6 +4819,16 @@ function HtmlViewer({
         }, 'Edit text');
         return;
       }
+      if (data.type === 'od-edit-undo') {
+        // The host's window-level Ctrl+Z/Ctrl+Y shortcut (below) never sees
+        // this keystroke: keydown does not bubble out of the cross-document
+        // preview iframe. The bridge forwards it here instead, but only when
+        // no inline edit session is open in the iframe (native undo keeps
+        // priority for in-progress typing).
+        if (data.redo) void redoManualEditRef.current();
+        else void undoManualEditRef.current();
+        return;
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
