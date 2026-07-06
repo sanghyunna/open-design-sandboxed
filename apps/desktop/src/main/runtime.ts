@@ -221,12 +221,12 @@ export function signDesktopImportToken(
 const PENDING_POLL_MS = 120;
 const RUNNING_POLL_MS = 2000;
 // Minimum time the dark splash window stays on screen before we reveal the main
-// window. It is sized to outlast the ~1.7s clip so the brand animation always
+// window. It is sized to outlast the ~6.75s clip so the brand animation always
 // plays through. The splash is shown immediately and in parallel with the
 // daemon/web boot (see the packaged entry), so this time overlaps startup rather
 // than adding to it; the <video> holds on its final frame (it does not loop)
 // while the runtime finishes coming up. See `createSplashWindow`.
-const MIN_SPLASH_MS = 2000;
+const MIN_SPLASH_MS = 6800;
 // While the splash is up, the real web app loads in a hidden main window. We
 // reveal it only once the web bundle reports it has actually mounted (it sets
 // `data-od-app-mounted="1"` on first paint of the real UI), so the user never
