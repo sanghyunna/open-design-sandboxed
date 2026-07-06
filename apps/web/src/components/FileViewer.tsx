@@ -123,7 +123,8 @@ import type {
   PreviewCommentMember,
   PreviewCommentTarget,
 } from '../types';
-import { ManualEditPanel, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import {
   applyManualEditPatch,
   isManualEditFullHtmlDocument,
@@ -3708,6 +3709,9 @@ function HtmlViewer({
   const manualEditSavingRef = useRef(false);
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
+  const [manualEditRichFormat, setManualEditRichFormat] = useState<ManualEditRichFormatState>(
+    { editing: false, hasSelection: false, bold: false, italic: false, underline: false },
+  );
   const sourceRef = useRef<string | null>(source);
   const sourceFileKeyRef = useRef<string | null>(null);
   const templateNameId = useId();
@@ -4422,6 +4426,11 @@ function HtmlViewer({
     return true;
   }, []);
 
+  const sendManualEditRichFormat = useCallback((command: 'bold' | 'italic' | 'underline') => {
+    const win = iframeRef.current?.contentWindow;
+    if (win) win.postMessage({ type: 'od-edit-rich-format', command }, '*');
+  }, []);
+
   function postSelectedManualEditTargetToIframe(id: string | null, target: HTMLIFrameElement | null = iframeRef.current) {
     const win = target?.contentWindow;
     if (!win) return;
@@ -4776,6 +4785,7 @@ function HtmlViewer({
       selectedManualEditTargetIdRef.current = null;
       setManualEditError(null);
       manualEditPendingStyleRef.current = null;
+      setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
       return;
     }
     function onMessage(ev: MessageEvent) {
@@ -4837,6 +4847,13 @@ function HtmlViewer({
           kind: 'set-inner-html',
           html: String(data.html),
         }, 'Edit text');
+        return;
+      }
+      if (data.type === 'od-edit-selection-state') {
+        setManualEditRichFormat({
+          editing: !!data.editing, hasSelection: !!data.hasSelection,
+          bold: !!data.bold, italic: !!data.italic, underline: !!data.underline,
+        });
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
@@ -5012,6 +5029,7 @@ function HtmlViewer({
     setManualEditPanelPosition(null);
     setManualEditDraft(emptyManualEditDraft(sourceRef.current ?? ''));
     setManualEditError(null);
+    setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
   }
 
   // The inspector is scoped to one element (or the page). Closing it should
@@ -7089,6 +7107,27 @@ function HtmlViewer({
           ) : null}
         </div>
       </div>
+      {manualEditMode && selectedManualEditTarget
+        && (selectedManualEditTarget.kind === 'text'
+          || selectedManualEditTarget.kind === 'link'
+          || selectedManualEditTarget.kind === 'token') ? (
+        <ManualEditTypographyToolbar
+          target={selectedManualEditTarget}
+          styles={manualEditDraft.styles}
+          richFormat={manualEditRichFormat}
+          onStyleField={(key, value) => applyManualEditStyleField({
+            target: selectedManualEditTarget,
+            draft: manualEditDraft,
+            key,
+            value,
+            onDraftChange: setManualEditDraft,
+            onError: setManualEditError,
+            onInvalidStyle: cancelManualEditPendingStyles,
+            onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
+          })}
+          onRichFormat={sendManualEditRichFormat}
+        />
+      ) : null}
       {((filePrimaryActions: ReactNode) => (
         chromeActionsHost ? createPortal(filePrimaryActions, chromeActionsHost) : filePrimaryActions
       ))(<>

@@ -198,8 +198,9 @@ describe('FileViewer manual edit regressions', () => {
 
     fireEvent.click(screen.getByTestId('manual-edit-hover-open'));
 
-    // Selected target inspector exposes the typography "Size" control.
-    await findStyleInput('Size');
+    // Typography moved to the docked toolbar; the panel now exposes shape
+    // controls, so a pinned text target shows the "Width" size control.
+    await findStyleInput('Width');
     expect(screen.queryByText('PAGE')).toBeNull();
     // Affordance hides once its element is the pinned selection.
     expect(screen.queryByTestId('manual-edit-hover-open')).toBeNull();
@@ -227,7 +228,7 @@ describe('FileViewer manual edit regressions', () => {
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
 
     rerender(
@@ -272,7 +273,7 @@ describe('FileViewer manual edit regressions', () => {
       ));
       fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
       await selectManualEditTarget();
-      const baseSizeInput = await findStyleInput('Size');
+      const baseSizeInput = await findStyleInput('Width');
       fireEvent.change(baseSizeInput, { target: { value: '18' } });
 
       rerender(<FileViewer projectId="project-1" projectKind="prototype" file={second} />);
@@ -323,7 +324,7 @@ describe('FileViewer manual edit regressions', () => {
 
     clickManualTool('manual-edit-mode-toggle');
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
     fireEvent.click(screen.getByText('Save'));
@@ -364,7 +365,7 @@ describe('FileViewer manual edit regressions', () => {
 
     clickManualTool('manual-edit-mode-toggle');
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
     fireEvent.click(screen.getByText('Save'));
@@ -396,7 +397,7 @@ describe('FileViewer manual edit regressions', () => {
 
     clickManualTool('manual-edit-mode-toggle');
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
 
     const frame = await previewFrame();
@@ -433,7 +434,7 @@ describe('FileViewer manual edit regressions', () => {
 
     clickManualTool('manual-edit-mode-toggle');
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
     fireEvent.click(screen.getByText('Cancel'));
@@ -470,7 +471,7 @@ describe('FileViewer manual edit regressions', () => {
 
     clickManualTool('manual-edit-mode-toggle');
     await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Size');
+    const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
     fireEvent.click(screen.getByText('Save'));
