@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import type { CSSProperties } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { Simulate } from 'react-dom/test-utils';
 import { JSDOM } from 'jsdom';
 import { ManualEditPanel, emptyManualEditDraft, manualEditPatchSummary, normalizeManualEditStyles, type ManualEditDraft } from '../../src/components/ManualEditPanel';
 import { emptyManualEditStyles, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
@@ -58,8 +57,16 @@ describe('ManualEditPanel', () => {
   it('renders the style inspector without the advanced editor entry', () => {
     renderPanel();
 
-    expect(host.textContent).toContain('TYPOGRAPHY');
+    expect(host.textContent).not.toContain('TYPOGRAPHY');
+    expect(host.textContent).toContain('SIZE');
     expect(host.textContent).not.toContain('Advanced');
+  });
+
+  it('shows shape controls (SIZE and BOX) for a text target', () => {
+    renderPanel();
+    expect(host.textContent).toContain('SIZE');
+    expect(host.textContent).toContain('BOX');
+    expect(host.textContent).not.toContain('TYPOGRAPHY');
   });
 
   it('shows a readable selected element name in the titlebar', () => {
@@ -102,7 +109,7 @@ describe('ManualEditPanel', () => {
     const footer = host.querySelector('.manual-edit-footer');
     const deleteButton = host.querySelector('button[aria-label="Delete element"]');
 
-    expect(scrollRegion?.textContent).toContain('TYPOGRAPHY');
+    expect(scrollRegion?.textContent).toContain('SIZE');
     expect(scrollRegion?.contains(deleteButton)).toBe(false);
     expect(footer?.contains(deleteButton)).toBe(true);
     expect(deleteButton?.textContent).toBe('');
@@ -151,85 +158,20 @@ describe('ManualEditPanel', () => {
     expect(onSaveDraft).toHaveBeenCalledTimes(1);
   });
 
-  it('normalizes font stacks and writes a usable font-family value', () => {
-    const onDraftChange = vi.fn();
-    const onStyleChange = vi.fn();
-    renderPanel({
-      onDraftChange,
-      onStyleChange,
-      styles: {
-        ...emptyManualEditStyles(),
-        fontFamily: '"Roboto", sans-serif',
-        fontSize: '32px',
-        color: '#111111',
-        paddingTop: '8px',
-      },
-    });
-
-    const fontSelect = host.querySelector('select') as HTMLSelectElement | null;
-    if (!fontSelect) throw new Error('Font select not found');
-    expect(fontSelect.value).toBe('Roboto, Arial, sans-serif');
-
-    act(() => {
-      fontSelect.value = 'Georgia, serif';
-      fontSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
-    });
-
-    expect(onDraftChange).toHaveBeenCalledWith(expect.objectContaining({
-      styles: expect.objectContaining({ fontFamily: 'Georgia, serif' }),
-    }));
-    expect(onStyleChange).toHaveBeenCalledWith('hero-title', { fontFamily: 'Georgia, serif' }, 'Style: Hero Title');
-    expect(onStyleChange).not.toHaveBeenCalledWith(
-      'hero-title',
-      expect.objectContaining({ fontSize: '32px', color: '#111111', paddingTop: '8px' }),
-      'Style: Hero Title',
-    );
-  });
-
   it('shows px-backed values without px in numeric inputs', () => {
     renderPanel({
       styles: {
         ...emptyManualEditStyles(),
-        fontSize: '32px',
+        width: '32px',
       },
     });
 
-    const sizeRow = Array.from(host.querySelectorAll('.cc-row'))
-      .find((row) => row.textContent?.includes('Size'));
-    const sizeInput = sizeRow?.querySelector('input') as HTMLInputElement | null;
-    if (!sizeInput) throw new Error('Size input not found');
+    const widthRow = Array.from(host.querySelectorAll('.cc-row'))
+      .find((row) => row.textContent?.includes('Width'));
+    const widthInput = widthRow?.querySelector('input') as HTMLInputElement | null;
+    if (!widthInput) throw new Error('Width input not found');
 
-    expect(sizeInput.value).toBe('32');
-  });
-
-  it('increments text typography rows with normalized values', () => {
-    const onStyleChange = vi.fn();
-    renderPanel({
-      onStyleChange,
-      styles: {
-        ...emptyManualEditStyles(),
-        fontSize: '32px',
-        lineHeight: '1.4',
-        letterSpacing: '1px',
-      },
-    });
-
-    const sizeIncrease = host.querySelector('button[aria-label="Size increase"]') as HTMLButtonElement | null;
-    const lineIncrease = host.querySelector('button[aria-label="Line increase"]') as HTMLButtonElement | null;
-    const trackingDecrease = host.querySelector('button[aria-label="Tracking decrease"]') as HTMLButtonElement | null;
-    if (!sizeIncrease || !lineIncrease || !trackingDecrease) throw new Error('Stepper button not found');
-
-    act(() => {
-      sizeIncrease.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-      lineIncrease.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-      trackingDecrease.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(onStyleChange).toHaveBeenCalledWith('hero-title', { fontSize: '33px' }, 'Style: Hero Title');
-    expect(onStyleChange).toHaveBeenCalledWith('hero-title', { lineHeight: '1.5' }, 'Style: Hero Title');
-    expect(onStyleChange).toHaveBeenCalledWith('hero-title', { letterSpacing: '0px' }, 'Style: Hero Title');
-    expect(host.textContent).not.toContain('Opacity');
-    expect(host.textContent).not.toContain('Padding');
+    expect(widthInput.value).toBe('32');
   });
 
   it('does not persist an unchanged target style when the inspector opens', () => {
@@ -310,57 +252,6 @@ describe('ManualEditPanel', () => {
       ok: true,
       styles: { fontSize: '', color: '' },
     });
-  });
-
-  it('does not validate unchanged computed line-height values on blur', () => {
-    const onError = vi.fn();
-    const onStyleChange = vi.fn();
-    renderPanel({
-      onError,
-      onStyleChange,
-      styles: {
-        ...emptyManualEditStyles(),
-        lineHeight: '48.96px',
-      },
-    });
-
-    const lineInput = Array.from(host.querySelectorAll('.cc-row'))
-      .find((row) => row.textContent?.includes('Line'))
-      ?.querySelector('input') as HTMLInputElement | null;
-    if (!lineInput) throw new Error('Line input not found');
-
-    act(() => {
-      lineInput.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: true }));
-    });
-
-    expect(onError).not.toHaveBeenCalled();
-    expect(onStyleChange).not.toHaveBeenCalled();
-  });
-
-  it('accepts edited computed pixel line-height values', () => {
-    const onError = vi.fn();
-    const onStyleChange = vi.fn();
-    renderPanel({
-      onError,
-      onStyleChange,
-      styles: {
-        ...emptyManualEditStyles(),
-        lineHeight: '48.96px',
-      },
-    });
-
-    const lineInput = Array.from(host.querySelectorAll('.cc-row'))
-      .find((row) => row.textContent?.includes('Line'))
-      ?.querySelector('input') as HTMLInputElement | null;
-    if (!lineInput) throw new Error('Line input not found');
-
-    act(() => {
-      lineInput.value = '49px';
-      Simulate.change(lineInput);
-    });
-
-    expect(onError).toHaveBeenCalledWith('');
-    expect(onStyleChange).toHaveBeenCalledWith('hero-title', { lineHeight: '49px' }, 'Style: Hero Title');
   });
 
   it('does not persist unchanged page styles when no target is selected', () => {

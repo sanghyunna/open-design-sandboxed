@@ -85,19 +85,14 @@ export function ManualEditPanel({
   }, [selectedTarget]);
 
   const changeTargetStyle = (key: keyof ManualEditStyles, value: string) => {
-    const nextStyles = { ...draft.styles, [key]: value };
-    onDraftChange({ ...draft, styles: nextStyles });
-    if (!targetForInspector) return;
-    const normalized = normalizeManualEditStyles({ [key]: value }, {
-      layoutEnabled: targetForInspector.isLayoutContainer,
-    });
-    if (!normalized.ok) {
-      onError('error' in normalized ? normalized.error : 'Invalid style value.');
-      onInvalidStyle?.(targetForInspector.id, [key]);
+    if (!targetForInspector) {
+      onDraftChange({ ...draft, styles: { ...draft.styles, [key]: value } });
       return;
     }
-    onError('');
-    onStyleChange?.(targetForInspector.id, normalized.styles, `Style: ${targetForInspector.label}`);
+    applyManualEditStyleField({
+      target: targetForInspector, draft, key, value,
+      onDraftChange, onError, onInvalidStyle, onStyleChange,
+    });
   };
 
   const startPanelDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -167,7 +162,6 @@ export function ManualEditPanel({
         <div className="manual-edit-scroll">
           {targetForInspector ? (
             <StyleInspector
-              targetKind={targetForInspector.kind}
               styles={draft.styles}
               layoutEnabled={targetForInspector.isLayoutContainer}
               onChange={changeTargetStyle}
@@ -461,7 +455,7 @@ function PageInspector({
   );
 }
 
-const FONT_OPTS = [
+export const FONT_OPTS = [
   { label: 'inherit', value: '' },
   { label: 'Space Grotesk', value: '"Space Grotesk", Inter, system-ui, sans-serif' },
   { label: 'Inter', value: 'Inter, system-ui, sans-serif' },
@@ -472,13 +466,13 @@ const FONT_OPTS = [
   { label: 'Georgia', value: 'Georgia, serif' },
   { label: 'monospace', value: 'SFMono-Regular, Consolas, "Liberation Mono", monospace' },
 ] as const;
-const WEIGHT_OPTS = ['', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
-const ALIGN_OPTS = ['', 'left', 'center', 'right', 'justify', 'start', 'end'];
+export const WEIGHT_OPTS = ['', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
+export const ALIGN_OPTS = ['', 'left', 'center', 'right', 'justify', 'start', 'end'];
 const DIRECTION_OPTS = ['', 'row', 'column', 'row-reverse', 'column-reverse'];
 const JUSTIFY_OPTS = ['', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around'];
 const ITEMS_OPTS = ['', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline'];
 const BORDER_STYLE_OPTS = ['', 'solid', 'dashed', 'dotted', 'double', 'none'];
-const EDITOR_SWATCH_COLORS = [
+export const EDITOR_SWATCH_COLORS = [
   '#000000',
   '#ffffff',
   '#374151',
@@ -567,6 +561,31 @@ export function normalizeManualEditStyles(
   return { ok: true, styles: normalized };
 }
 
+// Shared normalize-and-dispatch for a single whole-element style field. Used by
+// the floating panel's StyleInspector and by the docked typography toolbar so
+// both surfaces validate/preview/persist through the same path.
+export function applyManualEditStyleField(params: {
+  target: ManualEditTarget;
+  draft: ManualEditDraft;
+  key: keyof ManualEditStyles;
+  value: string;
+  onDraftChange: (draft: ManualEditDraft) => void;
+  onError: (message: string) => void;
+  onInvalidStyle?: (id: string, keys: Array<keyof ManualEditStyles>) => void;
+  onStyleChange?: (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
+}): void {
+  const { target, draft, key, value, onDraftChange, onError, onInvalidStyle, onStyleChange } = params;
+  onDraftChange({ ...draft, styles: { ...draft.styles, [key]: value } });
+  const normalized = normalizeManualEditStyles({ [key]: value }, { layoutEnabled: target.isLayoutContainer });
+  if (!normalized.ok) {
+    onError('error' in normalized ? normalized.error : 'Invalid style value.');
+    onInvalidStyle?.(target.id, [key]);
+    return;
+  }
+  onError('');
+  onStyleChange?.(target.id, normalized.styles, `Style: ${target.label}`);
+}
+
 function normalizePxValue(value: string): string | null {
   if (/^-?\d+(\.\d+)?$/.test(value)) return `${value}px`;
   if (/^-?\d+(\.\d+)?px$/i.test(value)) return value.toLowerCase();
@@ -600,39 +619,19 @@ function styleLabel(key: keyof ManualEditStyles): string {
 }
 
 function StyleInspector({
-  targetKind, styles, layoutEnabled, onChange,
+  styles, layoutEnabled, onChange,
 }: {
-  targetKind: ManualEditTarget['kind'];
   styles: ManualEditStyles;
   layoutEnabled: boolean;
   onChange: (key: keyof ManualEditStyles, value: string) => void;
 }) {
   const u = (key: keyof ManualEditStyles, value: string) => onChange(key, value);
-  const showTypography = targetKind === 'text' || targetKind === 'link' || targetKind === 'token';
-  const showSize = targetKind !== 'text' && targetKind !== 'link' && targetKind !== 'token';
+  const showSize = true;
   const showLayout = layoutEnabled;
-  const showBox = targetKind === 'container' || targetKind === 'image' || targetKind === 'token';
+  const showBox = true;
 
   return (
     <div className="cc-inspector">
-      {showTypography ? (
-        <Section title="TYPOGRAPHY">
-          <FontRow value={styles.fontFamily} onChange={(v) => u('fontFamily', v)} />
-          <PairRow>
-            <UnitRow label="Size" value={styles.fontSize} onChange={(v) => u('fontSize', v)} unit="px" autoUnit />
-            <DropdownRow label="Weight" value={styles.fontWeight} onChange={(v) => u('fontWeight', v)} options={WEIGHT_OPTS} />
-          </PairRow>
-          <PairRow>
-            <ColorRow label="Color" value={styles.color} onChange={(v) => u('color', v)} />
-            <DropdownRow label="Align" value={styles.textAlign} onChange={(v) => u('textAlign', v)} options={ALIGN_OPTS} />
-          </PairRow>
-          <PairRow>
-            <UnitRow label="Line" value={styles.lineHeight} onChange={(v) => u('lineHeight', v)} unit="" />
-            <UnitRow label="Tracking" value={styles.letterSpacing} onChange={(v) => u('letterSpacing', v)} unit="px" autoUnit />
-          </PairRow>
-        </Section>
-      ) : null}
-
       {showSize ? (
         <Section title="SIZE">
           <PairRow>
@@ -775,7 +774,7 @@ function FontRow({ value, onChange }: {
   );
 }
 
-function normalizeFontFamilyForSelect(value: string): string {
+export function normalizeFontFamilyForSelect(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
   const direct = FONT_OPTS.find((option) => option.value === trimmed);
@@ -790,7 +789,7 @@ function normalizeFontFamilyForSelect(value: string): string {
   return match?.value ?? trimmed;
 }
 
-function fontFamilyLabel(value: string): string {
+export function fontFamilyLabel(value: string): string {
   return parseFontFamilies(value)[0] ?? value;
 }
 
@@ -898,7 +897,7 @@ function QuadCell({ axis, value, onChange }: { axis: string; value: string; onCh
   );
 }
 
-function stripPxUnit(value: string): string {
+export function stripPxUnit(value: string): string {
   const match = value.trim().match(/^(-?\d+(?:\.\d+)?)px$/i);
   return match?.[1] ?? value;
 }
@@ -926,7 +925,7 @@ function sideUpper(side: 't' | 'r' | 'b' | 'l'): 'Top' | 'Right' | 'Bottom' | 'L
   return side === 't' ? 'Top' : side === 'r' ? 'Right' : side === 'b' ? 'Bottom' : 'Left';
 }
 
-function normalizeColorForPicker(value: string): string {
+export function normalizeColorForPicker(value: string): string {
   const trimmed = value.trim();
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
     if (trimmed.length === 4) {
