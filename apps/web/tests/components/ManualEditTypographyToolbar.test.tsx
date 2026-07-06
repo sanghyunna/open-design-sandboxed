@@ -78,20 +78,66 @@ describe('ManualEditTypographyToolbar', () => {
     expect(onRichFormat).toHaveBeenCalledWith('bold');
   });
 
-  it('steps font size up in px and never below zero', () => {
-    const { getByLabelText, onStyleField } = renderToolbar();
+  it('steps font size up in px from a numeric value', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontSize: '16px' },
+    });
     fireEvent.click(getByLabelText('Font size increase'));
-    expect(onStyleField).toHaveBeenCalledWith('fontSize', expect.stringMatching(/px$/));
+    expect(onStyleField).toHaveBeenCalledWith('fontSize', '17px');
+  });
 
-    onStyleField.mockClear();
+  it('floors the font-size stepper at zero', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontSize: '0px' },
+    });
     fireEvent.click(getByLabelText('Font size decrease'));
     expect(onStyleField).toHaveBeenCalledWith('fontSize', '0px');
+  });
+
+  it('disables the size stepper for non-numeric values instead of collapsing them to px', () => {
+    const { getByLabelText } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontSize: '1.5rem' },
+    });
+    expect((getByLabelText('Font size increase') as HTMLButtonElement).disabled).toBe(true);
+    expect((getByLabelText('Font size decrease') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('steps line-height (unitless) and letter-spacing (px)', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), lineHeight: '1.4', letterSpacing: '0px' },
+    });
+    fireEvent.click(getByLabelText('Line height increase'));
+    expect(onStyleField).toHaveBeenCalledWith('lineHeight', '2.4');
+    onStyleField.mockClear();
+    fireEvent.click(getByLabelText('Letter spacing increase'));
+    expect(onStyleField).toHaveBeenCalledWith('letterSpacing', '1px');
   });
 
   it('sets text-align from an align button', () => {
     const { getByLabelText, onStyleField } = renderToolbar();
     fireEvent.click(getByLabelText('Align center'));
     expect(onStyleField).toHaveBeenCalledWith('textAlign', 'center');
+  });
+
+  it('toggles a set text-align off when its button is pressed again', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), textAlign: 'center' },
+    });
+    fireEvent.click(getByLabelText('Align center'));
+    expect(onStyleField).toHaveBeenCalledWith('textAlign', '');
+  });
+
+  it('sets font weight from the weight select', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
+    fireEvent.change(getByLabelText('Weight') as HTMLSelectElement, { target: { value: '700' } });
+    expect(onStyleField).toHaveBeenCalledWith('fontWeight', '700');
+  });
+
+  it('sets text color from a swatch tile', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
+    fireEvent.click(getByLabelText('Text color'));
+    fireEvent.click(getByLabelText('#ef4444'));
+    expect(onStyleField).toHaveBeenCalledWith('color', '#ef4444');
   });
 
   it('sets font-family from the font select', () => {

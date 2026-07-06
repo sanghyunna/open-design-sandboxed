@@ -362,6 +362,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     return (el && el.getAttribute('contenteditable') === 'true') ? el : null;
   }
   function postSelectionState(){
+    if (!enabled) return;
     var el = richEditingEl();
     if (!el) {
       window.parent.postMessage({ type: 'od-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false }, '*');

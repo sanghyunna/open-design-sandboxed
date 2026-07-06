@@ -73,6 +73,7 @@ export function ManualEditTypographyToolbar({
         aria-label={label}
         aria-pressed={pressed}
         data-tooltip={label}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => onStyleField('textAlign', pressed ? '' : value)}
       >
         <RemixIcon name={icon} size={15} />
@@ -198,8 +199,8 @@ function Stepper({
   const numeric = /^-?\d+(\.\d+)?$/.test(display.trim());
   // ponytail: buttons floor at 0; type a negative directly if a control ever needs it.
   const step = (direction: -1 | 1) => {
-    const base = numeric ? Number(display) : 0;
-    onChange(emitStepperValue(String(Math.max(0, base + direction)), unit));
+    if (!numeric) return;
+    onChange(emitStepperValue(String(Math.max(0, Number(display) + direction)), unit));
   };
   return (
     <span className={styles.stepper}>
@@ -208,6 +209,8 @@ function Stepper({
         className={`${styles.step} od-tooltip`}
         aria-label={decreaseLabel}
         data-tooltip={decreaseLabel}
+        disabled={!numeric}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => step(-1)}
       >
         <RemixIcon name="subtract-line" size={13} />
@@ -224,6 +227,8 @@ function Stepper({
         className={`${styles.step} od-tooltip`}
         aria-label={increaseLabel}
         data-tooltip={increaseLabel}
+        disabled={!numeric}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => step(1)}
       >
         <RemixIcon name="add-line" size={13} />

@@ -206,6 +206,51 @@ describe('FileViewer manual edit regressions', () => {
     expect(screen.queryByTestId('manual-edit-hover-open')).toBeNull();
   });
 
+  it('docks the typography toolbar for a text selection and posts rich-format on Bold', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditTarget();
+
+    const bold = await waitFor(() => {
+      const btn = document.querySelector('button[aria-label="Bold"]') as HTMLButtonElement | null;
+      if (!btn) throw new Error('Toolbar Bold button not found');
+      return btn;
+    });
+    // B/I/U stay disabled until the iframe reports a live, non-collapsed selection.
+    expect(bold.disabled).toBe(true);
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-selection-state',
+          editing: true, hasSelection: true, bold: false, italic: false, underline: false,
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      expect((document.querySelector('button[aria-label="Bold"]') as HTMLButtonElement).disabled).toBe(false);
+    });
+    fireEvent.click(document.querySelector('button[aria-label="Bold"]')!);
+    expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-rich-format', command: 'bold' }),
+      '*',
+    );
+  });
+
   it('does not let a pending manual edit style save survive a file switch', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
