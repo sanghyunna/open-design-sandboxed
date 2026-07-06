@@ -610,6 +610,32 @@ describe('manual edit bridge target normalization', () => {
 
     dom.window.close();
   });
+
+  it('re-broadcasts targets on scroll so a selected element rect does not go stale', async () => {
+    const posts: Array<{ type?: string }> = [];
+    const dom = new JSDOM(
+      `<main><h1 data-od-source-path="path-0-0">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+
+    const countBeforeScroll = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countBeforeScroll).toBeGreaterThan(0);
+
+    dom.window.document.dispatchEvent(new dom.window.Event('scroll'));
+
+    const countAfterScroll = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countAfterScroll).toBeGreaterThan(countBeforeScroll);
+
+    dom.window.close();
+  });
 });
 
 describe('manual edit bridge rich-text editing', () => {

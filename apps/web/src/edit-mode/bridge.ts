@@ -546,6 +546,9 @@ export function buildManualEditBridge(enabled: boolean): string {
     window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
   }, true);
   window.addEventListener('resize', postTargets);
+  // ponytail: no throttle -- postTargets is a cheap querySelectorAll + getBoundingClientRect
+  // pass; add rAF/debounce here if a scroll-heavy preview page measurably regresses.
+  document.addEventListener('scroll', postTargets, true);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
   else setTimeout(postTargets, 0);
   document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
