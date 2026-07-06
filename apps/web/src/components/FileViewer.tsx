@@ -4909,8 +4909,13 @@ function HtmlViewer({
     const pending = manualEditPendingStyleRef.current;
     if (!pending) return true;
     if (manualEditSavingRef.current) return false;
-    manualEditPendingStyleRef.current = null;
-    return applyManualEdit({ id: pending.id, kind: 'set-style', styles: pending.styles }, pending.label);
+    const ok = await applyManualEdit({ id: pending.id, kind: 'set-style', styles: pending.styles }, pending.label);
+    // Only clear if a newer edit hasn't already replaced this pending entry
+    // while the save was in flight.
+    if (ok && manualEditPendingStyleRef.current === pending) {
+      manualEditPendingStyleRef.current = null;
+    }
+    return ok;
   }
 
   function cancelManualEditStyleDraft() {

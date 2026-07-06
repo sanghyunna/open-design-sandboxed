@@ -313,6 +313,49 @@ describe('FileViewer manual edit regressions', () => {
     });
   });
 
+  it('retries the actual save when Save is clicked again after a failure, instead of silently discarding the edit', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    let postAttempts = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        postAttempts += 1;
+        return new Response(JSON.stringify({
+          error: { code: 'FORBIDDEN', message: 'Request failed (403).' },
+        }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+      }
+      if (url.includes('/api/projects/project-1/raw/preview.html')) {
+        return new Response(source, { status: 200 });
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditTarget();
+    const baseSizeInput = await findStyleInput('Size');
+
+    fireEvent.change(baseSizeInput, { target: { value: '18' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => {
+      expect(screen.getByText(/Could not save the edited file/)).toBeTruthy();
+    });
+    expect(postAttempts).toBe(1);
+
+    // No further edits — click Save again. This must retry the write, not
+    // silently treat the still-unsaved change as done.
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => {
+      expect(postAttempts).toBe(2);
+    });
+  });
+
   it('closes the inspector without saving on cancel, staying in edit mode', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async () =>
