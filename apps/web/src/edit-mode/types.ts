@@ -132,6 +132,23 @@ export interface ManualEditUndoMessage {
   redo: boolean;
 }
 
+// iframe -> host: reports the live rich-text edit/selection/format state so the
+// typography toolbar can enable + show pressed state for B/I/U.
+export interface ManualEditSelectionStateMessage {
+  type: 'od-edit-selection-state';
+  editing: boolean;       // an element is in a rich (contenteditable="true") edit session
+  hasSelection: boolean;  // a non-collapsed selection sits inside that element
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
+
+// host -> iframe: apply an execCommand format command to the current selection.
+export interface ManualEditRichFormatMessage {
+  type: 'od-edit-rich-format';
+  command: 'bold' | 'italic' | 'underline';
+}
+
 export type ManualEditBridgeMessage =
   | ManualEditTargetMessage
   | ManualEditSelectMessage
@@ -140,7 +157,8 @@ export type ManualEditBridgeMessage =
   | ManualEditPreviewAppliedMessage
   | ManualEditTextCommitMessage
   | ManualEditHtmlCommitMessage
-  | ManualEditUndoMessage;
+  | ManualEditUndoMessage
+  | ManualEditSelectionStateMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'lineHeight', 'letterSpacing',

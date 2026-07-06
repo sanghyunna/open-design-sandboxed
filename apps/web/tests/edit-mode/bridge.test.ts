@@ -924,3 +924,53 @@ describe('manual edit bridge undo/redo forwarding', () => {
     dom.window.close();
   });
 });
+
+describe('manual edit bridge selection-state + rich-format bridge', () => {
+  it('applies a rich-format command to the element currently being edited', async () => {
+    const dom = new JSDOM(
+      `<main><p data-od-source-path="path-0-0">Hello world</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const p = dom.window.document.querySelector('p')!;
+    const execCalls: string[] = [];
+    dom.window.document.execCommand = (cmd: string) => { execCalls.push(cmd); return true; };
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-mode', enabled: true } }));
+    // Put the element into a rich edit session by clicking it.
+    p.getBoundingClientRect = () => ({ x: 0, y: 0, width: 80, height: 20, top: 0, right: 80, bottom: 20, left: 0, toJSON: () => ({}) } as DOMRect);
+    p.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => dom.window.setTimeout(r, 0));
+    expect(p.getAttribute('data-od-editing')).toBe('true');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-rich-format', command: 'bold' } }));
+    expect(execCalls).toContain('bold');
+    dom.window.close();
+  });
+
+  it('ignores a rich-format command when no element is being edited', async () => {
+    const dom = new JSDOM(
+      `<main><p data-od-source-path="path-0-0">Hi</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const execCalls: string[] = [];
+    dom.window.document.execCommand = (cmd: string) => { execCalls.push(cmd); return true; };
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-mode', enabled: true } }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-rich-format', command: 'bold' } }));
+    expect(execCalls).toEqual([]);
+    dom.window.close();
+  });
+
+  it('posts an editing:false selection state on selectionchange when nothing is being edited', async () => {
+    const posts: Array<{ type?: string; editing?: boolean }> = [];
+    const dom = new JSDOM(
+      `<main><p data-od-source-path="path-0-0">Hi</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; editing?: boolean }); }) as typeof dom.window.parent.postMessage;
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-mode', enabled: true } }));
+    dom.window.document.dispatchEvent(new dom.window.Event('selectionchange'));
+    const state = posts.find((m) => m.type === 'od-edit-selection-state');
+    expect(state).toBeTruthy();
+    expect(state?.editing).toBe(false);
+    dom.window.close();
+  });
+});

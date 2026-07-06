@@ -357,6 +357,29 @@ export function buildManualEditBridge(enabled: boolean): string {
       return false;
     }
   }
+  function richEditingEl(){
+    var el = document.querySelector('[data-od-editing="true"]');
+    return (el && el.getAttribute('contenteditable') === 'true') ? el : null;
+  }
+  function postSelectionState(){
+    var el = richEditingEl();
+    if (!el) {
+      window.parent.postMessage({ type: 'od-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false }, '*');
+      return;
+    }
+    var range = currentSelectedRange();
+    var within = !!(range && el.contains(range.startContainer) && el.contains(range.endContainer));
+    function q(cmd){ try { return !!document.queryCommandState(cmd); } catch (e) { return false; } }
+    window.parent.postMessage({ type: 'od-edit-selection-state', editing: true, hasSelection: within, bold: q('bold'), italic: q('italic'), underline: q('underline') }, '*');
+  }
+  function applyRichFormat(command){
+    if (command !== 'bold' && command !== 'italic' && command !== 'underline') return;
+    var el = richEditingEl();
+    if (!el) return;
+    try { el.focus(); } catch (e) {}
+    try { document.execCommand(command); } catch (e) {}
+    postSelectionState();
+  }
   function makeEditable(el, clickEvent){
     if (!el || el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === 'plaintext-only') return;
     // Links (and any element the host routes here as a non-text leaf) stay on the
@@ -375,11 +398,13 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (rich) { try { document.execCommand('styleWithCSS', false, 'false'); } catch (e) {} }
     try { el.focus(); } catch (e) {}
     if (!restoreSelectionRange(selectedRange)) placeCaretFromClick(clickEvent, el);
+    if (rich) postSelectionState();
     function finish(commit){
       el.removeAttribute('contenteditable');
       el.removeAttribute('data-od-editing');
       el.removeEventListener('blur', onBlur);
       el.removeEventListener('keydown', onKey);
+      postSelectionState();
       if (!commit) {
         if (rich) el.innerHTML = originalHtml;
         else el.textContent = originalText;
@@ -419,6 +444,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         if (formatCommand) {
           ev.preventDefault();
           try { document.execCommand(formatCommand); } catch (e) {}
+          postSelectionState();
           return;
         }
       }
@@ -502,6 +528,10 @@ export function buildManualEditBridge(enabled: boolean): string {
       applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version);
       return;
     }
+    if (ev.data.type === 'od-edit-rich-format') {
+      applyRichFormat(ev.data.command);
+      return;
+    }
   });
   document.addEventListener('click', function(ev){
     if (!enabled) return;
@@ -545,6 +575,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     ev.preventDefault();
     window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
   }, true);
+  document.addEventListener('selectionchange', postSelectionState);
   window.addEventListener('resize', postTargets);
   // ponytail: no throttle -- postTargets is a cheap querySelectorAll + getBoundingClientRect
   // pass; add rAF/debounce here if a scroll-heavy preview page measurably regresses.
