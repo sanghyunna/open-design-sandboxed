@@ -124,6 +124,8 @@ import type {
   PreviewCommentTarget,
 } from '../types';
 import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditResizeHandles } from './ManualEditResizeHandles';
+import { RESIZE_HANDLE_DIRECTIONS, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import {
   applyManualEditPatch,
@@ -825,6 +827,29 @@ export function manualEditHoverIconStyle(
     Math.min(targetTop + inset, canvasHeight - iconSize - inset),
   );
   return { left, top, width: iconSize, height: iconSize };
+}
+
+// The selected element's rect on the preview canvas, in host px, using the same
+// iframe→canvas transform as manualEditHoverIconStyle. Feeds the resize-handle
+// overlay: left/top anchor the overlay, width/height size it. Zero/negative or
+// non-finite rects collapse to a 0-size rect at the anchor (never NaN), so the
+// caller can still render a stable — if degenerate — handle cluster.
+export function manualEditResizeOverlayRect(
+  target: ManualEditTarget,
+  previewScale: number,
+  canvasSize: PreviewCanvasSize | undefined,
+  offsetX = 0,
+  offsetY = 0,
+): { left: number; top: number; width: number; height: number } | null {
+  const scale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
+  const { x, y, width, height } = target.rect;
+  if (![x, y, width, height].every((value) => Number.isFinite(value))) return null;
+  return {
+    left: offsetX + x * scale,
+    top: offsetY + y * scale,
+    width: Math.max(0, width) * scale,
+    height: Math.max(0, height) * scale,
+  };
 }
 
 export function cancelManualEditPendingStyleSnapshot(
@@ -4988,6 +5013,56 @@ function HtmlViewer({
     previewStyleToIframe(id, styles, version);
   }
 
+  // Parse an integer-px resize commit value (e.g. "240px") back to a number for
+  // the optimistic rect sync; returns undefined for absent/non-px values.
+  function parseCommittedPx(value: string | undefined): number | undefined {
+    if (!value) return undefined;
+    const n = Number.parseFloat(value);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  // Resize-handle drag commits directly (bypassing the panel draft ref): each
+  // pointerup writes width/height via the same set-style pipeline as the panel.
+  async function commitManualEditResize(target: ManualEditTarget, styles: Partial<ManualEditStyles>) {
+    const ok = await applyManualEdit({ id: target.id, kind: 'set-style', styles }, `Style: ${target.label}`);
+    if (!ok) return;
+    // Drop the just-committed props from any staged panel draft so a later
+    // panel flush can't overwrite the drag result with stale width/height.
+    cancelManualEditPendingStyles(target.id, Object.keys(styles) as Array<keyof ManualEditStyles>);
+    // Fold the saved size into the selected target so a consecutive drag positions
+    // its handles against the new box (rect) and an Escape/pointercancel reverts to
+    // the saved size (styles) instead of the pre-drag one. A later od-edit-targets
+    // broadcast re-measures and supersedes this optimistic sync.
+    setSelectedManualEditTarget((current) => {
+      if (!current || current.id !== target.id) return current;
+      const width = parseCommittedPx(styles.width);
+      const height = parseCommittedPx(styles.height);
+      return {
+        ...current,
+        rect: {
+          ...current.rect,
+          width: width ?? current.rect.width,
+          height: height ?? current.rect.height,
+        },
+        styles: { ...current.styles, ...styles },
+      };
+    });
+  }
+
+  // Escape / pointercancel: repaint the iframe with the width/height that were
+  // in effect before the drag — the target's selection-time styles overlaid by
+  // any unsaved panel draft for the same element.
+  function revertManualEditResizePreview(target: ManualEditTarget) {
+    const pending = manualEditPendingStyleRef.current;
+    const base: Partial<ManualEditStyles> = { ...target.styles };
+    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    previewStyleToIframe(
+      target.id,
+      { width: base.width ?? '', height: base.height ?? '' },
+      nextManualEditPreviewVersion(),
+    );
+  }
+
   async function flushManualEditStyleSave(): Promise<boolean> {
     const pending = manualEditPendingStyleRef.current;
     if (!pending) return true;
@@ -6776,6 +6851,48 @@ function HtmlViewer({
         <Icon name="sliders" size={15} />
       </button>
     ) : null;
+  const manualEditResizeLabels = useMemo<Record<ResizeHandleDirection, string>>(
+    () => RESIZE_HANDLE_DIRECTIONS.reduce((acc, direction) => {
+      acc[direction] = t(`manualEdit.resize.${direction}`);
+      return acc;
+    }, {} as Record<ResizeHandleDirection, string>),
+    [t],
+  );
+  // Resize handles ride the same iframe→canvas transform as the panel/hover
+  // affordance, and only when the srcDoc edit bridge is live (URL-load preview
+  // has no od-edit-preview-style channel), gated like the panel: mode on +
+  // element selected + a valid rect.
+  const manualEditResizeRect =
+    manualEditMode && selectedManualEditTarget && !useUrlLoadPreview
+      ? manualEditResizeOverlayRect(
+          selectedManualEditTarget,
+          overlayPreviewScale,
+          previewBodySize,
+          manualEditOverlayTransform.offsetX,
+          manualEditOverlayTransform.offsetY,
+        )
+      : null;
+  const manualEditResizeHandles =
+    manualEditResizeRect && selectedManualEditTarget ? (
+      <ManualEditResizeHandles
+        rect={manualEditResizeRect}
+        startSize={{
+          width: selectedManualEditTarget.rect.width,
+          height: selectedManualEditTarget.rect.height,
+        }}
+        scale={overlayPreviewScale}
+        labels={manualEditResizeLabels}
+        onResizePreview={(styles) => {
+          previewStyleToIframe(selectedManualEditTarget.id, styles, nextManualEditPreviewVersion());
+        }}
+        onResizeCommit={(styles) => {
+          void commitManualEditResize(selectedManualEditTarget, styles);
+        }}
+        onResizeCancel={() => {
+          revertManualEditResizePreview(selectedManualEditTarget);
+        }}
+      />
+    ) : null;
   const activeComposerComment = activePreviewCommentId
     ? visibleSideComments.find((comment) => comment.id === activePreviewCommentId) ?? null
     : null;
@@ -7509,6 +7626,7 @@ function HtmlViewer({
           >
             {manualEditPanel}
             {manualEditHoverAffordance}
+            {manualEditResizeHandles}
             <div
               className={manualEditMode ? 'manual-edit-canvas' : 'comment-preview-canvas'}
               data-testid={manualEditMode ? undefined : 'comment-preview-canvas'}

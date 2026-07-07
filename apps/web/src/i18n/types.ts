@@ -2400,6 +2400,14 @@ export interface Dict {
   'manualEdit.typography.letterSpacing': string;
   'manualEdit.typography.increase': string;
   'manualEdit.typography.decrease': string;
+  'manualEdit.resize.nw': string;
+  'manualEdit.resize.n': string;
+  'manualEdit.resize.ne': string;
+  'manualEdit.resize.e': string;
+  'manualEdit.resize.se': string;
+  'manualEdit.resize.s': string;
+  'manualEdit.resize.sw': string;
+  'manualEdit.resize.w': string;
   'fileViewer.zoomOut': string;
   'fileViewer.zoomIn': string;
   'fileViewer.resetZoom': string;
