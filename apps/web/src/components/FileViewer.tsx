@@ -3776,6 +3776,11 @@ function HtmlViewer({
   const manualEditSavingRef = useRef(false);
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
+  // Highest preview-ack version applied so far. Acks stream back one per
+  // preview frame; a drag outruns them, so requiring version === current would
+  // drop nearly every mid-drag rect measurement. Monotonic acceptance keeps
+  // the overlays tracking the element's real box without reordering glitches.
+  const manualEditPreviewAckVersionRef = useRef(0);
   const [manualEditRichFormat, setManualEditRichFormat] = useState<ManualEditRichFormatState>(
     { editing: false, hasSelection: false, bold: false, italic: false, underline: false },
   );
@@ -4928,10 +4933,20 @@ function HtmlViewer({
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
-        // Ignore acks for a preview call that's since been superseded by a
-        // newer style change (out-of-order postMessage delivery).
-        if (data.version !== manualEditPreviewVersionRef.current) return;
-        if (!data.ok) {
+        const version = typeof data.version === 'number' ? data.version : 0;
+        // Drop only out-of-order stragglers; every newer ack is applied even if
+        // a later preview is already in flight (see manualEditPreviewAckVersionRef).
+        if (version < manualEditPreviewAckVersionRef.current) return;
+        manualEditPreviewAckVersionRef.current = version;
+        if (data.ok && data.rect && typeof data.id === 'string') {
+          // The iframe measured the element AFTER applying the preview styles:
+          // this is the real box (layout may have clamped the request), and it
+          // is what the resize handles / panel / hover icon must render.
+          const rect = data.rect;
+          setSelectedManualEditTarget((current) =>
+            current && current.id === data.id ? { ...current, rect } : current);
+        }
+        if (!data.ok && version === manualEditPreviewVersionRef.current) {
           setManualEditError(data.error || 'Could not apply preview style.');
         }
         return;
@@ -5032,6 +5047,7 @@ function HtmlViewer({
       startSize,
       baseStyles: { width: base.width, height: base.height },
       rectScale: target.rectScale,
+      flexItemAxis: target.flexItemAxis,
     });
   }
 
@@ -5049,36 +5065,29 @@ function HtmlViewer({
     // Drop the just-committed props from any staged panel draft so a later
     // panel flush can't overwrite the drag result with stale width/height.
     cancelManualEditPendingStyles(target.id, Object.keys(styles) as Array<keyof ManualEditStyles>);
-    // Fold the saved size into the selected target so a consecutive drag positions
-    // its handles against the new box (rect, rect-space) and an Escape/pointercancel
-    // reverts to the saved size (styles, CSS-space) instead of the pre-drag one. A
-    // later od-edit-targets broadcast re-measures and supersedes this optimistic sync.
+    // Fold the saved styles into the selected target so an Escape/pointercancel
+    // on a consecutive drag reverts to the saved size instead of the pre-drag
+    // one. The rect deliberately stays untouched: the mouse-implied size is a
+    // request the layout may have clamped, and the per-frame preview acks (plus
+    // the bridge's deferred od-edit-targets re-broadcast after the drag) hold
+    // the element's real measured box.
     setSelectedManualEditTarget((current) => {
       if (!current || current.id !== target.id) return current;
-      return {
-        ...current,
-        rect: {
-          ...current.rect,
-          width: styles.width !== undefined ? size.width : current.rect.width,
-          height: styles.height !== undefined ? size.height : current.rect.height,
-        },
-        styles: { ...current.styles, ...styles },
-      };
+      return { ...current, styles: { ...current.styles, ...styles } };
     });
   }
 
   // Escape / pointercancel: repaint the iframe with the width/height that were
   // in effect before the drag — the target's selection-time styles overlaid by
-  // any unsaved panel draft for the same element.
+  // any unsaved panel draft for the same element. For flex items the drag
+  // preview may also have pinned `flex: none`; restore the pre-drag flex too.
   function revertManualEditResizePreview(target: ManualEditTarget) {
     const pending = manualEditPendingStyleRef.current;
     const base: Partial<ManualEditStyles> = { ...target.styles };
     if (pending?.id === target.id) Object.assign(base, pending.styles);
-    previewStyleToIframe(
-      target.id,
-      { width: base.width ?? '', height: base.height ?? '' },
-      nextManualEditPreviewVersion(),
-    );
+    const revert: Partial<ManualEditStyles> = { width: base.width ?? '', height: base.height ?? '' };
+    if (target.flexItemAxis) revert.flex = base.flex ?? '';
+    previewStyleToIframe(target.id, revert, nextManualEditPreviewVersion());
   }
 
   async function flushManualEditStyleSave(): Promise<boolean> {

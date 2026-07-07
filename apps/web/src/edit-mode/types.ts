@@ -29,6 +29,7 @@ export interface ManualEditStyles {
   flexDirection: string;
   justifyContent: string;
   alignItems: string;
+  flex: string;
   backgroundColor: string;
   opacity: string;
   padding: string;
@@ -65,6 +66,13 @@ export interface ManualEditTarget {
    * Absent or 1 for untransformed elements.
    */
   rectScale?: { x: number; y: number };
+  /**
+   * Main axis of the parent flex container when the element is a flex item
+   * ('row' → width is the main axis, 'column' → height), else null. Main-axis
+   * drag commits must pin the item (flex: none) or the flex algorithm
+   * overrides the written width/height.
+   */
+  flexItemAxis?: 'row' | 'column' | null;
   fields: ManualEditFields;
   attributes: Record<string, string>;
   styles: ManualEditStyles;
@@ -119,6 +127,12 @@ export interface ManualEditPreviewAppliedMessage {
   version: number;
   ok: boolean;
   error?: string;
+  /**
+   * The target's post-apply getBoundingClientRect. Streamed back per preview
+   * frame so the host overlays track the element's REAL box during a drag —
+   * flex/grid/min-content constraints can clamp or ignore the requested size.
+   */
+  rect?: ManualEditRect;
 }
 
 export interface ManualEditTextCommitMessage {
@@ -169,7 +183,7 @@ export type ManualEditBridgeMessage =
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'lineHeight', 'letterSpacing',
   'width', 'height', 'minHeight',
-  'gap', 'flexDirection', 'justifyContent', 'alignItems',
+  'gap', 'flexDirection', 'justifyContent', 'alignItems', 'flex',
   'backgroundColor', 'opacity',
   'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
   'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',

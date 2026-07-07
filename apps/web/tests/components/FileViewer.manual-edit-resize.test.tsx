@@ -246,6 +246,108 @@ describe('FileViewer manual edit resize handles', () => {
     });
   });
 
+  it('tracks the element measured box from preview acks while dragging', async () => {
+    // Flex/grid/min-content constraints can clamp or ignore the streamed
+    // width/height, so mid-drag the handles must render the element's REAL box
+    // (fed back through the od-edit-preview-style-applied ack), not the
+    // mouse-implied one.
+    const fetchMock = vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const se = seHandle();
+
+    fireEvent.pointerDown(se, { pointerId: 40, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 40, clientX: 340, clientY: 170 });
+
+    // The iframe reports the applied layout result: the element only reached
+    // 180x60 at (30,28), not the mouse-implied 200x68 at the original anchor.
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 30, y: 28, width: 180, height: 60 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      const container = seHandle().parentElement as HTMLElement;
+      expect(container.style.left).toBe('30px');
+      expect(container.style.top).toBe('28px');
+      expect(seHandle().style.left).toBe('180px');
+      expect(seHandle().style.top).toBe('60px');
+    });
+
+    fireEvent.keyDown(seHandle(), { key: 'Escape' });
+  });
+
+  it('keeps the ack-measured rect after commit instead of the mouse-derived size', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const se = seHandle();
+
+    // Drag to a mouse-implied 200x68; layout clamps the element at 180x60.
+    fireEvent.pointerDown(se, { pointerId: 41, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 41, clientX: 340, clientY: 170 });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 60 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    fireEvent.pointerUp(se, { pointerId: 41, clientX: 340, clientY: 170 });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    // The overlay must keep the measured 180x60, not snap to the requested 200x68.
+    await waitFor(() => {
+      expect(seHandle().style.left).toBe('180px');
+      expect(seHandle().style.top).toBe('60px');
+    });
+  });
+
   it('reverts the preview and does not write the file on Escape mid-drag', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));

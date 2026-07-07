@@ -164,6 +164,34 @@ describe('ManualEditResizeHandles', () => {
     );
   });
 
+  it('renders handle positions from the rect prop, not the mouse, while dragging', () => {
+    // The rect prop is fed by per-frame measurement acks from the iframe; the
+    // mouse-implied size is a request the layout may clamp or ignore. Handles
+    // must stick to the element, not the cursor.
+    const { getByLabelText, rerender, onResizePreview } = renderHandles();
+    const se = getByLabelText(labels.se);
+
+    fireEvent.pointerDown(se, { pointerId: 10, clientX: 300, clientY: 150 });
+    // Mouse implies 240x120…
+    fireEvent.pointerMove(se, { pointerId: 10, clientX: 340, clientY: 170 });
+    // …but the measured element box came back 210x110.
+    rerender(
+      <ManualEditResizeHandles
+        rect={{ left: 100, top: 50, width: 210, height: 110 }}
+        startSize={{ width: 200, height: 100 }}
+        scale={1}
+        labels={labels}
+        onResizePreview={onResizePreview}
+        onResizeCommit={vi.fn()}
+        onResizeCancel={vi.fn()}
+      />,
+    );
+
+    const seAfter = getByLabelText(labels.se) as HTMLButtonElement;
+    expect(seAfter.style.left).toBe('210px');
+    expect(seAfter.style.top).toBe('110px');
+  });
+
   it('locks aspect ratio on a corner drag when shift is held', () => {
     const { getByLabelText, onResizePreview } = renderHandles({
       startSize: { width: 200, height: 100 },

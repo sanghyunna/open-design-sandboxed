@@ -275,6 +275,80 @@ test('[P1] manual edit resize handles track the selected element through layout 
     .toBeLessThan(4);
 });
 
+test('[P1] manual edit resize pins flex-fill items so a width drag holds and handles track the element', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit resize flex pin');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="pair-b"]', 'SIZE');
+
+  const pairB = frame.locator('[data-od-id="pair-b"]');
+  const before = await pairB.boundingBox();
+  if (!before) throw new Error('flex item has no bounding box');
+
+  const eHandle = page.getByRole('button', { name: 'Resize right edge' });
+  await expect(eHandle).toBeVisible();
+  const box = await eHandle.boundingBox();
+  if (!box) throw new Error('resize handle has no bounding box');
+
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 60, startY, { steps: 6 });
+
+  // `flex: 1 1 0` normally ignores a bare width; the drag preview pins the
+  // item (flex: none), so the element's REAL box must follow the pointer…
+  await expect
+    .poll(async () => {
+      const current = await pairB.boundingBox();
+      return current ? Math.abs(current.width - (before.width - 60)) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThan(6);
+  // …and the handle must track the element's measured edge (fed back through
+  // the per-frame preview acks), not the raw cursor position.
+  await expect
+    .poll(async () => {
+      const handleBox = await eHandle.boundingBox();
+      const elementBox = await pairB.boundingBox();
+      if (!handleBox || !elementBox) return Number.POSITIVE_INFINITY;
+      return Math.abs((handleBox.x + handleBox.width / 2) - (elementBox.x + elementBox.width));
+    })
+    .toBeLessThan(4);
+  await page.mouse.up();
+
+  // The commit persists the width together with the flex pin, so the saved
+  // file reproduces what the user saw on release.
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      const source = await resp.text();
+      const match = source.match(/data-od-id="pair-b"[^>]*style="([^"]*)"/);
+      return match?.[1] ?? '';
+    })
+    // Chromium serializes the `flex: none` shorthand as its longhand
+    // equivalent `0 0 auto` when the style attribute round-trips.
+    .toMatch(/width:\s*\d+px[^"]*flex:\s*(?:none|0 0 auto)|flex:\s*(?:none|0 0 auto)[^"]*width:\s*\d+px/);
+
+  // Handles settle exactly on the element after release — no residual offset.
+  await expect
+    .poll(async () => {
+      const handleBox = await eHandle.boundingBox();
+      const elementBox = await pairB.boundingBox();
+      if (!handleBox || !elementBox) return Number.POSITIVE_INFINITY;
+      return Math.abs((handleBox.x + handleBox.width / 2) - (elementBox.x + elementBox.width));
+    })
+    .toBeLessThan(4);
+  await expect(page.locator('.manual-edit-error')).toHaveCount(0);
+});
+
 async function selectPreviewElementThroughBridge(
   page: Page,
   frame: ReturnType<Page['frameLocator']>,

@@ -123,14 +123,25 @@ export function resizeCssCommitStyles(args: {
   startSize: { width: number; height: number };
   baseStyles?: { width?: string; height?: string };
   rectScale?: { x: number; y: number };
+  flexItemAxis?: 'row' | 'column' | null;
 }): Partial<ManualEditStyles> {
-  const { direction, size, startSize, baseStyles, rectScale } = args;
+  const { direction, size, startSize, baseStyles, rectScale, flexItemAxis } = args;
   const styles: Partial<ManualEditStyles> = {};
   if (DELTA_SIGN[direction].x !== 0) {
     styles.width = cssAxisPx(size.width, startSize.width, baseStyles?.width, rectScale?.x);
   }
   if (DELTA_SIGN[direction].y !== 0) {
     styles.height = cssAxisPx(size.height, startSize.height, baseStyles?.height, rectScale?.y);
+  }
+  // A main-axis size on a flex item is only a suggestion: flex-grow/shrink win
+  // and the drag result silently snaps back. Pin the item (flex: none — the
+  // Figma "fill → fixed" semantic) so the written size actually holds. Cross
+  // axis needs no pin: an explicit size already beats align-items stretch.
+  if (
+    (flexItemAxis === 'row' && styles.width !== undefined) ||
+    (flexItemAxis === 'column' && styles.height !== undefined)
+  ) {
+    styles.flex = 'none';
   }
   return styles;
 }

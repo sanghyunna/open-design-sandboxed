@@ -333,7 +333,8 @@ describe('manual edit bridge target normalization', () => {
     const bridge = buildManualEditBridge(true);
 
     expect(bridge).toContain("type: 'od-edit-preview-style-applied'");
-    expect(bridge).toContain('version: Number(version) || 0, ok: true');
+    expect(bridge).toContain('version: Number(version) || 0,');
+    expect(bridge).toContain('ok: true,');
     expect(bridge).toContain("ok: false, error: 'Target not found'");
   });
 
@@ -643,10 +644,13 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('does not echo a target rebroadcast for live preview style writes', async () => {
+  it('coalesces preview-write layout echoes into one deferred post after the stream quiets', async () => {
     // od-edit-preview-style streams one inline-style write per frame during a
-    // drag; the layout observer must not translate that into a per-frame
-    // od-edit-targets storm back at the host.
+    // drag; the layout observer must not echo a per-frame od-edit-targets storm
+    // back at the host, but the FINAL layout state must still re-broadcast once
+    // the stream quiets. Dropping it (instead of deferring it) strands the host
+    // overlays on stale rects after every drag: no resize/scroll event follows
+    // a pointerup, so nothing else re-measures.
     const posts: Array<{ type?: string }> = [];
     const dom = new JSDOM(
       `<main><h1 data-od-source-path="path-0-0">Title</h1></main>${buildManualEditBridge(true)}`,
@@ -662,13 +666,87 @@ describe('manual edit bridge target normalization', () => {
     await new Promise((resolve) => dom.window.setTimeout(resolve, 60));
 
     const countBefore = posts.filter((message) => message.type === 'od-edit-targets').length;
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-preview-style', id: 'path-0-0', styles: { width: '120px' }, version: 7 },
-    }));
-    await new Promise((resolve) => dom.window.setTimeout(resolve, 100));
+    for (const width of ['120px', '130px', '140px']) {
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: { type: 'od-edit-preview-style', id: 'path-0-0', styles: { width }, version: 7 },
+      }));
+      await new Promise((resolve) => dom.window.setTimeout(resolve, 10));
+    }
 
+    // Inside the mute window: no per-frame storm.
+    const countDuring = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countDuring).toBe(countBefore);
+
+    // After the stream quiets: exactly one coalesced re-broadcast.
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 200));
     const countAfter = posts.filter((message) => message.type === 'od-edit-targets').length;
-    expect(countAfter).toBe(countBefore);
+    expect(countAfter).toBe(countBefore + 1);
+
+    dom.window.close();
+  });
+
+  it('includes the freshly measured target rect in preview-style acks', () => {
+    // During a drag the host renders the resize handles from the element's REAL
+    // box, not the mouse-implied one: flex/grid/min-content constraints can
+    // clamp or ignore the streamed width/height. The per-frame ack is the
+    // feedback channel, so it must carry the post-apply rect.
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const hero = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    hero.getBoundingClientRect = () => ({
+      x: 10, y: 20, width: 300, height: 80,
+      top: 20, right: 310, bottom: 100, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-preview-style', id: 'hero', styles: { width: '300px' }, version: 9 },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style-applied',
+        id: 'hero',
+        version: 9,
+        ok: true,
+        rect: { x: 10, y: 20, width: 300, height: 80 },
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('reports the flex main axis for flex-item targets', () => {
+    // Dragging width on a flex-row item (or height on a flex-column item) is a
+    // main-axis resize: layout ignores the bare width/height unless the commit
+    // also pins the item (flex: none). The host needs to know the axis.
+    const dom = new JSDOM(
+      `<main>
+        <div style="display:flex"><h1 data-od-id="row-item">Row</h1></div>
+        <div style="display:flex;flex-direction:column"><h2 data-od-id="column-item">Column</h2></div>
+        <div><h3 data-od-id="block-item">Block</h3></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    for (const [id, axis] of [['row-item', 'row'], ['column-item', 'column'], ['block-item', null]] as const) {
+      postMessage.mockClear();
+      dom.window.document.querySelector(`[data-od-id="${id}"]`)!.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+      expect(postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-select',
+          target: expect.objectContaining({ id, flexItemAxis: axis }),
+        }),
+        '*',
+      );
+    }
 
     dom.window.close();
   });

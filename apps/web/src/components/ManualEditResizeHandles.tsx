@@ -1,7 +1,6 @@
 import {
   useEffect,
   useRef,
-  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
@@ -42,8 +41,11 @@ type DragState = {
   target: HTMLButtonElement;
 };
 
-// ponytail: no drag-image element; handles resize the overlay rect itself via optimistic
-// local state, so there is nothing extra to render during a drag beyond size updates.
+// Handles always render from the `rect` prop — the element's measured box, fed
+// per frame by the iframe's preview acks during a drag. The mouse-implied size
+// is only a REQUEST streamed to the iframe; layout (flex, grid, min-content)
+// may clamp or ignore it, and the handles must stick to the element, not the
+// cursor. No optimistic local size state.
 export function ManualEditResizeHandles({
   rect,
   startSize,
@@ -53,7 +55,6 @@ export function ManualEditResizeHandles({
   onResizeCommit,
   onResizeCancel,
 }: ManualEditResizeHandlesProps) {
-  const [liveSize, setLiveSize] = useState<Size | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
   const pendingSizeRef = useRef<Size | null>(null);
@@ -69,7 +70,6 @@ export function ManualEditResizeHandles({
     const drag = dragRef.current;
     const size = pendingSizeRef.current;
     if (!drag || !size) return;
-    setLiveSize(size);
     onResizePreview(drag.direction, size, drag.startSize);
   };
 
@@ -121,7 +121,6 @@ export function ManualEditResizeHandles({
       startSize,
       target,
     };
-    setLiveSize(startSize);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -144,7 +143,6 @@ export function ManualEditResizeHandles({
     if (!drag || event.pointerId !== drag.pointerId) return;
     const size = pendingSizeRef.current;
     endDrag();
-    setLiveSize(null);
     pendingSizeRef.current = null;
     if (size && (size.width !== drag.startSize.width || size.height !== drag.startSize.height)) {
       onResizeCommit(drag.direction, size, drag.startSize);
@@ -157,7 +155,6 @@ export function ManualEditResizeHandles({
     const drag = dragRef.current;
     if (!drag || event.pointerId !== drag.pointerId) return;
     endDrag();
-    setLiveSize(null);
     pendingSizeRef.current = null;
     onResizeCancel();
   };
@@ -167,17 +164,17 @@ export function ManualEditResizeHandles({
     event.preventDefault();
     event.stopPropagation();
     endDrag();
-    setLiveSize(null);
     pendingSizeRef.current = null;
     onResizeCancel();
   };
 
-  const size = liveSize ?? startSize;
+  // Positions in container-local space: the container itself is absolutely
+  // positioned at rect.left/top by the inline style below.
   const positions = resizeHandlePositions({
-    left: rect.left,
-    top: rect.top,
-    width: size.width * scale,
-    height: size.height * scale,
+    left: 0,
+    top: 0,
+    width: rect.width,
+    height: rect.height,
   });
 
   return (
@@ -192,7 +189,7 @@ export function ManualEditResizeHandles({
             aria-label={labels[direction]}
             data-direction={direction}
             className={`${styles.handle} ${styles[`handle-${direction}`]}`}
-            style={{ left: position.left - rect.left, top: position.top - rect.top }}
+            style={{ left: position.left, top: position.top }}
             onPointerDown={handlePointerDown(direction)}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
