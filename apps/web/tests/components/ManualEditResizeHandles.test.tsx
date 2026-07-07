@@ -65,7 +65,11 @@ describe('ManualEditResizeHandles', () => {
     fireEvent.pointerDown(se, { pointerId: 1, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(se, { pointerId: 1, clientX: 340, clientY: 170 });
 
-    expect(onResizePreview).toHaveBeenCalledWith({ width: '240px', height: '120px' });
+    expect(onResizePreview).toHaveBeenCalledWith(
+      'se',
+      { width: 240, height: 120 },
+      { width: 200, height: 100 },
+    );
   });
 
   it('commits per-axis styles on pointerup after real movement', () => {
@@ -76,8 +80,11 @@ describe('ManualEditResizeHandles', () => {
     fireEvent.pointerMove(e, { pointerId: 2, clientX: 350, clientY: 150 });
     fireEvent.pointerUp(e, { pointerId: 2, clientX: 350, clientY: 150 });
 
-    expect(onResizeCommit).toHaveBeenCalledWith({ width: '250px' });
-    expect(onResizeCommit.mock.calls[0]?.[0]).not.toHaveProperty('height');
+    expect(onResizeCommit).toHaveBeenCalledWith(
+      'e',
+      { width: 250, height: 100 },
+      { width: 200, height: 100 },
+    );
     expect(onResizeCancel).not.toHaveBeenCalled();
   });
 
@@ -150,7 +157,11 @@ describe('ManualEditResizeHandles', () => {
     fireEvent.pointerMove(se, { pointerId: 9, clientX: 340, clientY: 170 });
 
     // Delta (40,20) applied to the snapshot 200x100, not the changed 400x300 prop.
-    expect(onResizePreview).toHaveBeenLastCalledWith({ width: '240px', height: '120px' });
+    expect(onResizePreview).toHaveBeenLastCalledWith(
+      'se',
+      { width: 240, height: 120 },
+      { width: 200, height: 100 },
+    );
   });
 
   it('locks aspect ratio on a corner drag when shift is held', () => {
@@ -163,6 +174,10 @@ describe('ManualEditResizeHandles', () => {
     fireEvent.pointerMove(se, { pointerId: 6, clientX: 340, clientY: 152, shiftKey: true });
 
     // dominant axis is x (40 > 2), height follows the 2:1 start ratio -> 240/2=120.
-    expect(onResizePreview).toHaveBeenCalledWith({ width: '240px', height: '120px' });
+    expect(onResizePreview).toHaveBeenCalledWith(
+      'se',
+      { width: 240, height: 120 },
+      { width: 200, height: 100 },
+    );
   });
 });

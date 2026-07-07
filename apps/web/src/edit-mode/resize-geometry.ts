@@ -87,18 +87,50 @@ export function resizeDragSize(args: {
   return { width, height };
 }
 
-export function resizeCommitStyles(
-  direction: ResizeHandleDirection,
-  size: { width: number; height: number },
-): Partial<ManualEditStyles> {
-  const affectsX = DELTA_SIGN[direction].x !== 0;
-  const affectsY = DELTA_SIGN[direction].y !== 0;
+const PX_VALUE = /^(-?\d+(?:\.\d+)?)px$/;
+
+function parsePx(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const match = PX_VALUE.exec(value.trim());
+  if (!match?.[1]) return undefined;
+  const parsed = Number.parseFloat(match[1]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function cssAxisPx(
+  size: number,
+  startSize: number,
+  base: string | undefined,
+  scale: number | undefined,
+): string {
+  const k = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const baseCss = parsePx(base);
+  // Applying the drag as a delta on the element's current CSS size keeps
+  // box-sizing out of the math: padding/border constants cancel in the delta.
+  const value = baseCss !== undefined ? baseCss + (size - startSize) / k : size / k;
+  return `${Math.max(1, Math.round(value))}px`;
+}
+
+/**
+ * Convert a drag result from rect space (getBoundingClientRect px, which
+ * ancestor CSS transforms — e.g. a deck's fit-to-canvas scale — inflate by
+ * rectScale) into the CSS width/height property space the inspector shows and
+ * the source file stores. Per-axis: edge handles commit one axis, corners both.
+ */
+export function resizeCssCommitStyles(args: {
+  direction: ResizeHandleDirection;
+  size: { width: number; height: number };
+  startSize: { width: number; height: number };
+  baseStyles?: { width?: string; height?: string };
+  rectScale?: { x: number; y: number };
+}): Partial<ManualEditStyles> {
+  const { direction, size, startSize, baseStyles, rectScale } = args;
   const styles: Partial<ManualEditStyles> = {};
-  if (affectsX) {
-    styles.width = `${size.width}px`;
+  if (DELTA_SIGN[direction].x !== 0) {
+    styles.width = cssAxisPx(size.width, startSize.width, baseStyles?.width, rectScale?.x);
   }
-  if (affectsY) {
-    styles.height = `${size.height}px`;
+  if (DELTA_SIGN[direction].y !== 0) {
+    styles.height = cssAxisPx(size.height, startSize.height, baseStyles?.height, rectScale?.y);
   }
   return styles;
 }

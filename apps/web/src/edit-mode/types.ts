@@ -59,6 +59,12 @@ export interface ManualEditTarget {
   className: string;
   text: string;
   rect: ManualEditRect;
+  /**
+   * getBoundingClientRect px per CSS px on each axis — the accumulated
+   * ancestor transform scale (e.g. a deck's fit-to-canvas transform).
+   * Absent or 1 for untransformed elements.
+   */
+  rectScale?: { x: number; y: number };
   fields: ManualEditFields;
   attributes: Record<string, string>;
   styles: ManualEditStyles;

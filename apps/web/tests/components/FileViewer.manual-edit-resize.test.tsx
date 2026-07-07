@@ -142,6 +142,53 @@ describe('FileViewer manual edit resize handles', () => {
     expect(savedContent).toMatch(/height:\s*68px/);
   });
 
+  it('commits CSS-space px, not rect-space px, for targets under an ancestor transform', async () => {
+    // Deck fit-to-canvas transforms make rect px = CSS px * k. The drag delta
+    // must be divided back by k and applied to the element's CSS size, or every
+    // commit inflates the element and repeated resizes compound the drift.
+    let savedContent = '';
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        savedContent = JSON.parse(String(init.body)).content as string;
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget({
+      ...heroTarget(),
+      // Visual (rect) box 500x100 under a 1.25x ancestor scale; CSS box 400x80.
+      rect: { x: 24, y: 24, width: 500, height: 100 },
+      styles: { ...emptyManualEditStyles(), width: '400px', height: '80px' },
+      rectScale: { x: 1.25, y: 1.25 },
+    });
+
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 30, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 30, clientX: 340, clientY: 170 });
+    fireEvent.pointerUp(se, { pointerId: 30, clientX: 340, clientY: 170 });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+    // +40/+20 rect px at k=1.25 is +32/+16 CSS px on top of 400x80.
+    expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*432px/);
+    expect(savedContent).toMatch(/height:\s*96px/);
+  });
+
   it('reverts a second drag to the just-committed size, not the pre-drag one', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);

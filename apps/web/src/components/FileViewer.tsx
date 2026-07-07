@@ -125,7 +125,7 @@ import type {
 } from '../types';
 import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
-import { RESIZE_HANDLE_DIRECTIONS, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
+import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import {
   applyManualEditPatch,
@@ -5013,36 +5013,54 @@ function HtmlViewer({
     previewStyleToIframe(id, styles, version);
   }
 
-  // Parse an integer-px resize commit value (e.g. "240px") back to a number for
-  // the optimistic rect sync; returns undefined for absent/non-px values.
-  function parseCommittedPx(value: string | undefined): number | undefined {
-    if (!value) return undefined;
-    const n = Number.parseFloat(value);
-    return Number.isFinite(n) ? n : undefined;
+  // Translate a drag result (rect-space px) into CSS width/height, anchored on
+  // the element's current CSS size — target styles overlaid by any unsaved
+  // panel draft — and divided by rectScale so elements under an ancestor
+  // transform (deck fit-to-canvas) round-trip with the inspector's numbers.
+  function manualEditResizeStyles(
+    target: ManualEditTarget,
+    direction: ResizeHandleDirection,
+    size: { width: number; height: number },
+    startSize: { width: number; height: number },
+  ): Partial<ManualEditStyles> {
+    const pending = manualEditPendingStyleRef.current;
+    const base: Partial<ManualEditStyles> = { ...target.styles };
+    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    return resizeCssCommitStyles({
+      direction,
+      size,
+      startSize,
+      baseStyles: { width: base.width, height: base.height },
+      rectScale: target.rectScale,
+    });
   }
 
   // Resize-handle drag commits directly (bypassing the panel draft ref): each
   // pointerup writes width/height via the same set-style pipeline as the panel.
-  async function commitManualEditResize(target: ManualEditTarget, styles: Partial<ManualEditStyles>) {
+  async function commitManualEditResize(
+    target: ManualEditTarget,
+    direction: ResizeHandleDirection,
+    size: { width: number; height: number },
+    startSize: { width: number; height: number },
+  ) {
+    const styles = manualEditResizeStyles(target, direction, size, startSize);
     const ok = await applyManualEdit({ id: target.id, kind: 'set-style', styles }, `Style: ${target.label}`);
     if (!ok) return;
     // Drop the just-committed props from any staged panel draft so a later
     // panel flush can't overwrite the drag result with stale width/height.
     cancelManualEditPendingStyles(target.id, Object.keys(styles) as Array<keyof ManualEditStyles>);
     // Fold the saved size into the selected target so a consecutive drag positions
-    // its handles against the new box (rect) and an Escape/pointercancel reverts to
-    // the saved size (styles) instead of the pre-drag one. A later od-edit-targets
-    // broadcast re-measures and supersedes this optimistic sync.
+    // its handles against the new box (rect, rect-space) and an Escape/pointercancel
+    // reverts to the saved size (styles, CSS-space) instead of the pre-drag one. A
+    // later od-edit-targets broadcast re-measures and supersedes this optimistic sync.
     setSelectedManualEditTarget((current) => {
       if (!current || current.id !== target.id) return current;
-      const width = parseCommittedPx(styles.width);
-      const height = parseCommittedPx(styles.height);
       return {
         ...current,
         rect: {
           ...current.rect,
-          width: width ?? current.rect.width,
-          height: height ?? current.rect.height,
+          width: styles.width !== undefined ? size.width : current.rect.width,
+          height: styles.height !== undefined ? size.height : current.rect.height,
         },
         styles: { ...current.styles, ...styles },
       };
@@ -6882,11 +6900,15 @@ function HtmlViewer({
         }}
         scale={overlayPreviewScale}
         labels={manualEditResizeLabels}
-        onResizePreview={(styles) => {
-          previewStyleToIframe(selectedManualEditTarget.id, styles, nextManualEditPreviewVersion());
+        onResizePreview={(direction, size, startSize) => {
+          previewStyleToIframe(
+            selectedManualEditTarget.id,
+            manualEditResizeStyles(selectedManualEditTarget, direction, size, startSize),
+            nextManualEditPreviewVersion(),
+          );
         }}
-        onResizeCommit={(styles) => {
-          void commitManualEditResize(selectedManualEditTarget, styles);
+        onResizeCommit={(direction, size, startSize) => {
+          void commitManualEditResize(selectedManualEditTarget, direction, size, startSize);
         }}
         onResizeCancel={() => {
           revertManualEditResizePreview(selectedManualEditTarget);

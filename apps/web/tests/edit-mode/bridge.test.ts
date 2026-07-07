@@ -611,6 +611,99 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('re-broadcasts targets when layout mutates without a resize or scroll event', async () => {
+    // Deck slide navigation, transition settle, and media loads reflow the page
+    // with no resize/scroll event; without an in-bridge layout observer the host
+    // overlays (resize handles, inspector panel, hover icon) render stale rects.
+    const posts: Array<{ type?: string }> = [];
+    const dom = new JSDOM(
+      `<main><h1 data-od-source-path="path-0-0">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    // Let initial discovery (and any runtime-id stamping it performs) settle.
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 60));
+
+    const countBefore = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countBefore).toBeGreaterThan(0);
+
+    // A deck-style class flip: mutates layout, fires neither resize nor scroll.
+    dom.window.document.querySelector('h1')!.setAttribute('class', 'slide-active');
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 60));
+
+    const countAfter = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countAfter).toBeGreaterThan(countBefore);
+
+    dom.window.close();
+  });
+
+  it('does not echo a target rebroadcast for live preview style writes', async () => {
+    // od-edit-preview-style streams one inline-style write per frame during a
+    // drag; the layout observer must not translate that into a per-frame
+    // od-edit-targets storm back at the host.
+    const posts: Array<{ type?: string }> = [];
+    const dom = new JSDOM(
+      `<main><h1 data-od-source-path="path-0-0">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 60));
+
+    const countBefore = posts.filter((message) => message.type === 'od-edit-targets').length;
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-preview-style', id: 'path-0-0', styles: { width: '120px' }, version: 7 },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 100));
+
+    const countAfter = posts.filter((message) => message.type === 'od-edit-targets').length;
+    expect(countAfter).toBe(countBefore);
+
+    dom.window.close();
+  });
+
+  it('reports the rect-to-CSS scale of transformed elements on each axis', () => {
+    // Under an ancestor transform (deck fit-to-canvas), getBoundingClientRect
+    // px = CSS px * k. The host needs k to convert drag deltas back to the CSS
+    // width/height space the inspector shows and the source file stores.
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    title.getBoundingClientRect = () => ({
+      x: 0, y: 0, width: 200, height: 50,
+      top: 0, right: 200, bottom: 50, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    Object.defineProperty(title, 'offsetWidth', { value: 160 });
+    Object.defineProperty(title, 'offsetHeight', { value: 40 });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-select',
+      target: expect.objectContaining({
+        id: 'title',
+        rectScale: { x: 1.25, y: 1.25 },
+      }),
+    }, '*');
+
+    dom.window.close();
+  });
+
   it('re-broadcasts targets on scroll so a selected element rect does not go stale', async () => {
     const posts: Array<{ type?: string }> = [];
     const dom = new JSDOM(

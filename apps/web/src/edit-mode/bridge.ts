@@ -203,6 +203,16 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (targetVisibility === 'hidden' || targetVisibility === 'collapse') return true;
     return hasHiddenAncestorDisplayState(el);
   }
+  function rectScaleAxis(rectSize, layoutSize){
+    // offsetWidth/offsetHeight are layout (pre-transform) border-box px, so
+    // rect/offset isolates the accumulated ancestor transform scale without
+    // conflating box-sizing padding/borders. SVG and inline elements report
+    // no usable offset size; treat them as unscaled.
+    if (!layoutSize || !isFinite(layoutSize) || layoutSize <= 0) return 1;
+    var k = rectSize / layoutSize;
+    if (!isFinite(k) || k <= 0) return 1;
+    return Math.round(k * 10000) / 10000;
+  }
   function targetFrom(el, includeOuterHtml){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
@@ -226,6 +236,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       className: typeof el.className === 'string' ? el.className : '',
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 180),
       rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
+      rectScale: { x: rectScaleAxis(rect.width, el.offsetWidth), y: rectScaleAxis(rect.height, el.offsetHeight) },
       fields: fields,
       attributes: attrsFor(el),
       styles: stylesFor(el),
@@ -493,6 +504,10 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     var keys = Object.keys(styles || {});
+    // ponytail: crude mute window -- live preview streams one inline-style write
+    // per frame during a drag; without it the layout observer below would echo a
+    // full od-edit-targets post per frame. Drag end / commit refreshes anyway.
+    suppressObservedLayoutUntil = Date.now() + 64;
     try {
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
@@ -581,6 +596,40 @@ export function buildManualEditBridge(enabled: boolean): string {
   // ponytail: no throttle -- postTargets is a cheap querySelectorAll + getBoundingClientRect
   // pass; add rAF/debounce here if a scroll-heavy preview page measurably regresses.
   document.addEventListener('scroll', postTargets, true);
+  // Deck slide navigation, transition settle, media loads, and content growth
+  // reflow the page without firing resize or scroll; without re-measurement the
+  // host overlays (resize handles, inspector panel, hover icon) keep rendering
+  // the stale click-time rect. Coalesce observed changes to one post per frame.
+  var suppressObservedLayoutUntil = 0;
+  var queuedTargetsPost = false;
+  var scheduleFrame = window.requestAnimationFrame
+    ? window.requestAnimationFrame.bind(window)
+    : function(cb){ return window.setTimeout(cb, 16); };
+  function queuePostTargets(){
+    if (!enabled || queuedTargetsPost) return;
+    if (Date.now() < suppressObservedLayoutUntil) return;
+    queuedTargetsPost = true;
+    scheduleFrame(function(){
+      queuedTargetsPost = false;
+      postTargets();
+    });
+  }
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(queuePostTargets).observe(document.documentElement, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+  if (typeof ResizeObserver === 'function') {
+    var layoutResizeObserver = new ResizeObserver(queuePostTargets);
+    layoutResizeObserver.observe(document.documentElement);
+    if (document.body) layoutResizeObserver.observe(document.body);
+  }
+  document.addEventListener('load', queuePostTargets, true);
+  document.addEventListener('transitionend', queuePostTargets, true);
+  document.addEventListener('animationend', queuePostTargets, true);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
   else setTimeout(postTargets, 0);
   document.documentElement.toggleAttribute('data-od-edit-mode', enabled);

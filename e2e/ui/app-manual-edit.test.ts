@@ -192,7 +192,9 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'TYPOGRAPHY');
+  // 'SIZE' (not 'TYPOGRAPHY'): the inspector panel renders SIZE/LAYOUT/BOX;
+  // typography lives in the docked toolbar since the toolbar split.
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'SIZE');
 
   const heroTitle = frame.locator('[data-od-id="hero-title"]');
   const before = await heroTitle.evaluate((el) => {
@@ -232,6 +234,45 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
     })
     .toBe(true);
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
+});
+
+test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit resize alignment');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'SIZE');
+
+  const heroTitle = frame.locator('[data-od-id="hero-title"]');
+  // Reflow the selected element WITHOUT a window resize or scroll — the shape
+  // of deck slide navigation / transition settle / media-load reflows. The
+  // bridge's layout observer must re-broadcast rects or the host overlays
+  // (resize handles, inspector panel, hover icon) keep the stale click-time box.
+  await heroTitle.evaluate((el) => {
+    (el as HTMLElement).style.padding = '40px';
+  });
+
+  const seHandle = page.getByRole('button', { name: 'Resize bottom-right corner' });
+  await expect(seHandle).toBeVisible();
+  await expect
+    .poll(async () => {
+      const handleBox = await seHandle.boundingBox();
+      const elementBox = await heroTitle.boundingBox();
+      if (!handleBox || !elementBox) return Number.POSITIVE_INFINITY;
+      const centerX = handleBox.x + handleBox.width / 2;
+      const centerY = handleBox.y + handleBox.height / 2;
+      return Math.hypot(
+        centerX - (elementBox.x + elementBox.width),
+        centerY - (elementBox.y + elementBox.height),
+      );
+    })
+    .toBeLessThan(4);
 });
 
 async function selectPreviewElementThroughBridge(

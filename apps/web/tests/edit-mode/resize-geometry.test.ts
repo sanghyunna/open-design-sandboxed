@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   RESIZE_HANDLE_DIRECTIONS,
-  resizeCommitStyles,
+  resizeCssCommitStyles,
   resizeDragSize,
   resizeHandlePositions,
 } from '../../src/edit-mode/resize-geometry';
@@ -139,23 +139,78 @@ describe('resizeDragSize', () => {
   });
 });
 
-describe('resizeCommitStyles', () => {
+describe('resizeCssCommitStyles', () => {
+  const identity = {
+    size: { width: 120, height: 50 },
+    startSize: { width: 120, height: 50 },
+  };
+
   it('e/w commit width only', () => {
-    expect(resizeCommitStyles('e', { width: 120, height: 50 })).toEqual({ width: '120px' });
-    expect(resizeCommitStyles('w', { width: 120, height: 50 })).toEqual({ width: '120px' });
+    expect(resizeCssCommitStyles({ direction: 'e', ...identity })).toEqual({ width: '120px' });
+    expect(resizeCssCommitStyles({ direction: 'w', ...identity })).toEqual({ width: '120px' });
   });
 
   it('n/s commit height only', () => {
-    expect(resizeCommitStyles('n', { width: 120, height: 50 })).toEqual({ height: '50px' });
-    expect(resizeCommitStyles('s', { width: 120, height: 50 })).toEqual({ height: '50px' });
+    expect(resizeCssCommitStyles({ direction: 'n', ...identity })).toEqual({ height: '50px' });
+    expect(resizeCssCommitStyles({ direction: 's', ...identity })).toEqual({ height: '50px' });
   });
 
   it('corners commit both width and height', () => {
     for (const direction of ['nw', 'ne', 'se', 'sw'] as const) {
-      expect(resizeCommitStyles(direction, { width: 120, height: 50 })).toEqual({
+      expect(resizeCssCommitStyles({ direction, ...identity })).toEqual({
         width: '120px',
         height: '50px',
       });
     }
+  });
+
+  it('applies the drag delta to the CSS base size divided by rectScale', () => {
+    // rect 500x100 under a 1.25x ancestor transform; CSS box 400x80.
+    // +40/+20 rect px is +32/+16 CSS px.
+    expect(resizeCssCommitStyles({
+      direction: 'se',
+      size: { width: 540, height: 120 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '400px', height: '80px' },
+      rectScale: { x: 1.25, y: 1.25 },
+    })).toEqual({ width: '432px', height: '96px' });
+  });
+
+  it('keeps box-sizing padding out of the committed value via the delta form', () => {
+    // content-box: CSS width 400 renders as a 440px rect (padding 2x20), no
+    // transform. Dragging +40 must write 440, not the raw rect width 480.
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 480, height: 100 },
+      startSize: { width: 440, height: 100 },
+      baseStyles: { width: '400px' },
+      rectScale: { x: 1, y: 1 },
+    })).toEqual({ width: '440px' });
+  });
+
+  it('falls back to rect size divided by rectScale when the CSS base is not px', () => {
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 540, height: 100 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: 'auto' },
+      rectScale: { x: 1.25, y: 1.25 },
+    })).toEqual({ width: '432px' });
+  });
+
+  it('treats missing or degenerate rectScale as 1 and clamps to at least 1px', () => {
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 540, height: 100 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '400px' },
+      rectScale: { x: 0, y: Number.NaN },
+    })).toEqual({ width: '440px' });
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 8, height: 100 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '2px' },
+    })).toEqual({ width: '1px' });
   });
 });

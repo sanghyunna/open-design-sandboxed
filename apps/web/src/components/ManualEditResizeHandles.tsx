@@ -7,12 +7,10 @@ import {
 } from 'react';
 import {
   RESIZE_HANDLE_DIRECTIONS,
-  resizeCommitStyles,
   resizeDragSize,
   resizeHandlePositions,
   type ResizeHandleDirection,
 } from '../edit-mode/resize-geometry';
-import type { ManualEditStyles } from '../edit-mode/types';
 import styles from './ManualEditResizeHandles.module.css';
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -23,8 +21,12 @@ export type ManualEditResizeHandlesProps = {
   startSize: Size;
   scale: number;
   labels: Record<ResizeHandleDirection, string>;
-  onResizePreview: (styles: Partial<ManualEditStyles>) => void;
-  onResizeCommit: (styles: Partial<ManualEditStyles>) => void;
+  // Sizes are rect-space (getBoundingClientRect px). The host owns the
+  // conversion to CSS width/height (see resizeCssCommitStyles) because it
+  // needs the target's computed styles and rectScale, which this component
+  // deliberately knows nothing about.
+  onResizePreview: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
+  onResizeCommit: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
   onResizeCancel: () => void;
 };
 
@@ -68,7 +70,7 @@ export function ManualEditResizeHandles({
     const size = pendingSizeRef.current;
     if (!drag || !size) return;
     setLiveSize(size);
-    onResizePreview(resizeCommitStyles(drag.direction, size));
+    onResizePreview(drag.direction, size, drag.startSize);
   };
 
   const scheduleFlush = (size: Size) => {
@@ -145,7 +147,7 @@ export function ManualEditResizeHandles({
     setLiveSize(null);
     pendingSizeRef.current = null;
     if (size && (size.width !== drag.startSize.width || size.height !== drag.startSize.height)) {
-      onResizeCommit(resizeCommitStyles(drag.direction, size));
+      onResizeCommit(drag.direction, size, drag.startSize);
     } else {
       onResizeCancel();
     }
