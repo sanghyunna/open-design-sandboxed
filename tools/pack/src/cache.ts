@@ -6,6 +6,36 @@ import { withDirectoryLock } from "./lock.js";
 
 export const CACHE_SCHEMA_VERSION = 1;
 
+const TRANSIENT_RENAME_CODES = new Set(["EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
+const RENAME_RETRY_ATTEMPTS = 10;
+
+/**
+ * fs.rename with backoff for Windows share-violation errors. Antivirus and
+ * indexer scans briefly hold handles inside a freshly written payload tree,
+ * so renaming the staging directory over the cache entry throws EPERM at
+ * exactly the moment the build finishes — a bare rename makes every packaged
+ * build a coin flip. Mirrors graceful-fs: retry the transient codes with
+ * growing delays (~7s budget), rethrow everything else immediately.
+ */
+export async function renameWithRetry(
+  from: string,
+  to: string,
+  options?: { rename?: (from: string, to: string) => Promise<unknown>; baseDelayMs?: number },
+): Promise<void> {
+  const doRename = options?.rename ?? rename;
+  const baseDelayMs = options?.baseDelayMs ?? 125;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await doRename(from, to);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? "";
+      if (!TRANSIENT_RENAME_CODES.has(code) || attempt >= RENAME_RETRY_ATTEMPTS) throw error;
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+    }
+  }
+}
+
 export type CacheInvalidation = {
   reason: string;
 };
@@ -312,7 +342,7 @@ export class ToolPackCache {
           };
           await writeManifest(join(stagingPath, "manifest.json"), builtManifest);
           await rm(entryPath, { force: true, recursive: true });
-          await rename(stagingPath, entryPath);
+          await renameWithRetry(stagingPath, entryPath);
           for (const aliasKey of aliases) {
             const aliasPath = aliasPathForKey(aliasKey);
             await mkdir(dirname(aliasPath), { recursive: true });
