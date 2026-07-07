@@ -325,7 +325,7 @@ describe('run event log persistence', () => {
     });
   }
 
-  it('writes each emitted event as a JSONL line under runsLogDir/<runId>/events.jsonl', async () => {
+  it('batches adjacent agent deltas in the JSONL run log', async () => {
     const runs = createRunsWithLog(tmpDir);
     const run = runs.create({ projectId: 'p1' });
 
@@ -343,15 +343,39 @@ describe('run event log persistence', () => {
       if (fs.existsSync(logPath)) {
         const text = fs.readFileSync(logPath, 'utf8').trim();
         lines = text ? text.split('\n') : [];
-        if (lines.length >= 3) break;
+        if (lines.length >= 2) break;
       }
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
     expect(fs.existsSync(logPath)).toBe(true);
-    expect(lines.length).toBe(3); // 2 agent + 1 end
+    expect(lines.length).toBe(2); // batched agent delta + end
     const parsed = lines.map((l) => JSON.parse(l));
-    expect(parsed[0]).toMatchObject({ event: 'agent', data: { type: 'text_delta', delta: 'hello' } });
-    expect(parsed[1]).toMatchObject({ event: 'agent', data: { type: 'text_delta', delta: ' world' } });
+    expect(parsed[0]).toMatchObject({ event: 'agent', data: { type: 'text_delta', delta: 'hello world' } });
+    expect(parsed[1]).toMatchObject({ event: 'end', data: { status: 'succeeded' } });
+  });
+
+  it('does not batch adjacent agent deltas with different metadata', async () => {
+    const runs = createRunsWithLog(tmpDir);
+    const run = runs.create({ projectId: 'p1' });
+
+    runs.emit(run, 'agent', { type: 'text_delta', blockId: 'one', delta: 'hello' });
+    runs.emit(run, 'agent', { type: 'text_delta', blockId: 'two', delta: ' world' });
+    runs.finish(run, 'succeeded', 0, null);
+
+    const logPath = path.join(tmpDir, run.id, 'events.jsonl');
+    let lines: string[] = [];
+    for (let i = 0; i < 50; i++) {
+      if (fs.existsSync(logPath)) {
+        const text = fs.readFileSync(logPath, 'utf8').trim();
+        lines = text ? text.split('\n') : [];
+        if (lines.length >= 3) break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(lines.length).toBe(3);
+    const parsed = lines.map((l) => JSON.parse(l));
+    expect(parsed[0]).toMatchObject({ event: 'agent', data: { type: 'text_delta', blockId: 'one', delta: 'hello' } });
+    expect(parsed[1]).toMatchObject({ event: 'agent', data: { type: 'text_delta', blockId: 'two', delta: ' world' } });
     expect(parsed[2]).toMatchObject({ event: 'end', data: { status: 'succeeded' } });
   });
 

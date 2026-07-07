@@ -347,8 +347,7 @@ child.on('exit', (code, signal) => {
           const body = await response.text();
 
           expect(response.ok).toBe(true);
-          expect(body).toContain('"type":"text_delta","delta":"Hello from fake "');
-          expect(body).toContain('"type":"text_delta","delta":"vela."');
+          expect(body).toContain('"type":"text_delta","delta":"Hello from fake vela."');
           expect(body).not.toContain('model_catalog_unavailable');
           expect(body).not.toContain('AMR_MODEL_UNAVAILABLE');
           // The catalog probe runs at least once (remote attempted, then the
@@ -433,8 +432,7 @@ child.on('exit', (code, signal) => {
           expect(body).not.toContain('model_catalog_unavailable');
           expect(body).not.toContain('is not available from Vela');
           // It must actually proceed into the ACP run and stream assistant text.
-          expect(body).toContain('"type":"text_delta","delta":"Hello from fake "');
-          expect(body).toContain('"type":"text_delta","delta":"vela."');
+          expect(body).toContain('"type":"text_delta","delta":"Hello from fake vela."');
         },
       );
     } finally {

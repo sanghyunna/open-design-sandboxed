@@ -10,7 +10,7 @@ import { PetOverlay, type PetTaskCenter } from './PetOverlay';
 import { buildPetTaskCenter } from './taskCenter';
 
 const CONFIG_POLL_MS = 1500;
-const TASK_POLL_MS = 2000;
+const TASK_FALLBACK_POLL_MS = 15000;
 
 export function DesktopPetSurface() {
   const [config, setConfig] = useState<AppConfig>(() => loadConfig());
@@ -59,11 +59,13 @@ export function DesktopPetSurface() {
     };
     void refresh();
     window.addEventListener(RUNS_CHANGED_EVENT, handleRunsChanged);
-    const id = window.setInterval(refresh, TASK_POLL_MS);
+    window.addEventListener('focus', handleRunsChanged);
+    const fallbackId = window.setInterval(refresh, TASK_FALLBACK_POLL_MS);
     return () => {
       cancelled = true;
       window.removeEventListener(RUNS_CHANGED_EVENT, handleRunsChanged);
-      window.clearInterval(id);
+      window.removeEventListener('focus', handleRunsChanged);
+      window.clearInterval(fallbackId);
     };
   }, [pet]);
 

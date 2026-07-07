@@ -773,6 +773,38 @@ describe('FileViewer SVG artifacts', () => {
     expect(parkedFrames).not.toContain(firstFrame);
   });
 
+  it('updates pooled iframe onLoad when the callback changes', () => {
+    const firstLoad = vi.fn();
+    const secondLoad = vi.fn();
+
+    function Harness({ onLoad }: { onLoad: () => void }) {
+      return (
+        <IframeKeepAliveProvider>
+          <PooledIframe
+            cacheKey={previewIframeKeepAliveKey('project-1', 'page.html')}
+            src="/api/projects/project-1/raw/page.html?v=1&r=0"
+            title="page.html"
+            sandbox="allow-scripts allow-downloads"
+            data-testid="pooled-frame"
+            data-od-render-mode="url-load"
+            data-od-active="true"
+            onLoad={onLoad}
+          />
+        </IframeKeepAliveProvider>
+      );
+    }
+
+    const { rerender } = render(<Harness onLoad={firstLoad} />);
+    const frame = screen.getByTestId('pooled-frame');
+    fireEvent.load(frame);
+    expect(firstLoad).toHaveBeenCalledTimes(1);
+
+    rerender(<Harness onLoad={secondLoad} />);
+    fireEvent.load(frame);
+    expect(firstLoad).toHaveBeenCalledTimes(1);
+    expect(secondLoad).toHaveBeenCalledTimes(1);
+  });
+
   it('evicts inactive preview iframes for a project when the project is invalidated', () => {
     function Harness({ active }: { active: boolean }) {
       const pool = useIframeKeepAlivePool();

@@ -80,6 +80,7 @@ export function createChatRunService({
       cancelRequested: false,
       eventsLogPath: runsLogDir ? path.join(runsLogDir, id, 'events.jsonl') : null,
       eventsLogStream: null,
+      pendingDelta: null,
     };
     runs.set(run.id, run);
     return run;
@@ -115,12 +116,7 @@ export function createChatRunService({
     }
   };
 
-  const emit = (run, event, data) => {
-    if (event === 'error') {
-      const details = extractErrorDetails(data);
-      if (details.error) run.error = details.error;
-      if (details.errorCode) run.errorCode = details.errorCode;
-    }
+  const writeRecord = (run, event, data) => {
     const id = run.nextEventId++;
     const record = { id, event, data, timestamp: Date.now() };
     run.events.push(record);
@@ -137,6 +133,50 @@ export function createChatRunService({
     }
     for (const sse of run.clients) sse.send(event, data, id);
     return record;
+  };
+
+  const flushPendingDelta = (run) => {
+    const pending = run.pendingDelta;
+    if (!pending) return null;
+    if (pending.timer) clearTimeout(pending.timer);
+    run.pendingDelta = null;
+    return writeRecord(run, pending.event, { ...pending.data, delta: pending.delta });
+  };
+
+  const deltaBatchKey = (data) => {
+    const { delta: _delta, ...rest } = data;
+    return JSON.stringify(rest);
+  };
+
+  const emit = (run, event, data) => {
+    if (event === 'error') {
+      const details = extractErrorDetails(data);
+      if (details.error) run.error = details.error;
+      if (details.errorCode) run.errorCode = details.errorCode;
+    }
+    const isDelta = event === 'agent'
+      && (data?.type === 'text_delta' || data?.type === 'thinking_delta')
+      && typeof data.delta === 'string';
+    if (isDelta) {
+      const batchKey = deltaBatchKey(data);
+      const pending = run.pendingDelta;
+      if (pending && pending.batchKey === batchKey) {
+        pending.delta += data.delta;
+        return pending;
+      }
+      flushPendingDelta(run);
+      run.pendingDelta = {
+        event,
+        data: { ...data, delta: '' },
+        delta: data.delta,
+        batchKey,
+        timer: setTimeout(() => flushPendingDelta(run), 32),
+      };
+      run.pendingDelta.timer.unref?.();
+      return run.pendingDelta;
+    }
+    flushPendingDelta(run);
+    return writeRecord(run, event, data);
   };
 
   const statusBody = (run) => ({

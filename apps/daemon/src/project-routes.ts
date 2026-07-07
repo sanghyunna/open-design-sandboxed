@@ -47,6 +47,34 @@ export function cancelActiveConversationRuns(
   return runs.length;
 }
 
+export function createFileChangedCoalescer(
+  send: (evt: any) => void,
+  delayMs = 100,
+) {
+  const pending = new Map<string, any>();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const flush = () => {
+    const events = Array.from(pending.values());
+    pending.clear();
+    timer = null;
+    for (const evt of events) send(evt);
+  };
+
+  return {
+    push(evt: any) {
+      pending.set(typeof evt?.path === 'string' ? evt.path : JSON.stringify(evt), evt);
+      if (timer) return;
+      timer = setTimeout(flush, delayMs);
+    },
+    cleanup() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      pending.clear();
+    },
+  };
+}
+
 function projectDetailResolvedDir(
   projectsRoot: string,
   project: any,
@@ -1494,8 +1522,11 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       }
       sinks.add(projectEventSink);
       const watchProject = getProject(db, req.params.id);
-      sub = subscribeFileEvents(PROJECTS_DIR, req.params.id, (evt: any) => {
+      const fileChangedCoalescer = createFileChangedCoalescer((evt) => {
         sse.send('file-changed', evt);
+      });
+      sub = subscribeFileEvents(PROJECTS_DIR, req.params.id, (evt: any) => {
+        fileChangedCoalescer.push(evt);
       }, { metadata: watchProject?.metadata });
       sub.ready.then(() => sse.send('ready', { projectId: req.params.id })).catch(() => {});
       const cleanup = () => {
@@ -1504,6 +1535,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
           sub = null;
           Promise.resolve(unsubscribe()).catch(() => {});
         }
+        fileChangedCoalescer.cleanup();
         const currentSinks = activeProjectEventSinks.get(req.params.id);
         currentSinks?.delete(projectEventSink);
         if (currentSinks?.size === 0) activeProjectEventSinks.delete(req.params.id);

@@ -307,6 +307,14 @@ function syncStyle(
   }
 }
 
+function iframePropsSignature(props: PooledIframeProps) {
+  return JSON.stringify({
+    ...props,
+    onLoad: Boolean(props.onLoad),
+    style: props.style ?? null,
+  });
+}
+
 function syncIframeProps(
   frame: HTMLIFrameElement,
   props: PooledIframeProps,
@@ -369,6 +377,8 @@ const ClientPooledIframe = forwardRef<HTMLIFrameElement, PooledIframeProps>(func
   const hostRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const propsRef = useRef<PooledIframeProps>({ cacheKey, src, ...props });
+  const syncedPropsSignatureRef = useRef<string | null>(null);
+  const syncedOnLoadRef = useRef<PooledIframeProps['onLoad'] | undefined>(undefined);
   const appliedAttributesRef = useRef<Set<string>>(new Set());
   const appliedStyleKeysRef = useRef<Set<string>>(new Set());
   propsRef.current = { cacheKey, src, ...props };
@@ -377,6 +387,7 @@ const ClientPooledIframe = forwardRef<HTMLIFrameElement, PooledIframeProps>(func
     const host = hostRef.current;
     if (!host) return undefined;
     const frame = pool.attach(cacheKey, host, () => document.createElement('iframe'));
+    if (iframeRef.current !== frame) syncedPropsSignatureRef.current = null;
     iframeRef.current = frame;
     return () => {
       setForwardedRef(forwardedRef, null);
@@ -388,12 +399,18 @@ const ClientPooledIframe = forwardRef<HTMLIFrameElement, PooledIframeProps>(func
   useLayoutEffect(() => {
     const frame = iframeRef.current;
     if (!frame) return;
-    syncIframeProps(
-      frame,
-      propsRef.current,
-      appliedAttributesRef.current,
-      appliedStyleKeysRef.current,
-    );
+    const signature = iframePropsSignature(propsRef.current);
+    const onLoad = propsRef.current.onLoad;
+    if (signature !== syncedPropsSignatureRef.current || onLoad !== syncedOnLoadRef.current) {
+      syncIframeProps(
+        frame,
+        propsRef.current,
+        appliedAttributesRef.current,
+        appliedStyleKeysRef.current,
+      );
+      syncedPropsSignatureRef.current = signature;
+      syncedOnLoadRef.current = onLoad;
+    }
     setForwardedRef(forwardedRef, frame);
   });
 
