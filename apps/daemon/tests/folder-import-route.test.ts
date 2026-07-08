@@ -343,7 +343,7 @@ describe('POST /api/import/folder', () => {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        metadata: { kind: 'prototype', linkedDirs: [] },
+        metadata: { kind: 'prototype', fidelity: 'wireframe' },
       }),
     });
     expect(patchResp.status).toBe(200);

@@ -422,7 +422,6 @@ interface Props {
   onTogglePet?: () => void;
   onOpenPetSettings?: () => void;
   projectMetadata?: ProjectMetadata;
-  onProjectMetadataChange?: (metadata: ProjectMetadata) => void;
   activeWorkspaceContext?: WorkspaceContextItem | null;
   workspaceContexts?: WorkspaceContextItem[];
   currentSkillId?: string | null;
@@ -435,7 +434,7 @@ interface Props {
   // message" without forcing a separate side widget.
   activePluginSnapshot?: AppliedPluginSnapshot | null;
   composerFooterAccessory?: ReactNode;
-  // Slot rendered next to the composer's "+" menu (e.g. the working-dir pill).
+  // Slot rendered next to the composer's "+" menu for compact project controls.
   composerLeadingAccessory?: ReactNode;
   // Forwarded straight to the chat composer's mid-chat design-system
   // switcher. ProjectView owns the project record so the parent is the
@@ -568,7 +567,6 @@ export function ChatPane({
   onTogglePet,
   onOpenPetSettings,
   projectMetadata,
-  onProjectMetadataChange,
   activeWorkspaceContext,
   workspaceContexts = [],
   currentSkillId = null,
@@ -1469,7 +1467,6 @@ export function ChatPane({
       onOpenPetSettings={onOpenPetSettings}
       researchAvailable={researchAvailable}
       projectMetadata={projectMetadata}
-      onProjectMetadataChange={onProjectMetadataChange}
       activeWorkspaceContext={activeWorkspaceContext}
       workspaceContexts={workspaceContexts}
       currentSkillId={currentSkillId}

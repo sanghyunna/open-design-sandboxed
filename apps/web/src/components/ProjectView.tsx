@@ -5524,9 +5524,6 @@ export function ProjectView({
               onOpenPetSettings={onOpenPetSettings}
               researchAvailable={config.mode === 'daemon'}
               projectMetadata={project.metadata}
-              onProjectMetadataChange={(metadata) => {
-                onProjectChange({ ...project, metadata });
-              }}
               activeWorkspaceContext={activeWorkspaceContext}
               workspaceContexts={workspaceContexts}
               currentSkillId={project.skillId}

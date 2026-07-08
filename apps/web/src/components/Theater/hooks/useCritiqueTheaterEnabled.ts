@@ -89,7 +89,7 @@ export function useCritiqueTheaterEnabled(): boolean {
  *      object. The read-merge-write is mandatory because
  *      `PATCH /api/projects/:id` replaces `metadata` wholesale and a
  *      bare patch would wipe the row's other fields (`kind`,
- *      `templateId`, `linkedDirs`, ...). PerishCode P2 on PR #1338.
+ *      `templateId`, `importedFrom`, ...). PerishCode P2 on PR #1338.
  *
  * Failure modes:
  *
@@ -109,7 +109,7 @@ export function useCritiqueTheaterEnabled(): boolean {
  *     does no conditional-update (`If-Match` / version) check, so this
  *     is not catchable server-side. M1 surface accepts this trade for
  *     a single-user-action toggle; a multi-writer surface (template
- *     re-binding, linkedDirs editor) racing this setter could surface
+ *     re-binding, project metadata editor) racing this setter could surface
  *     as silently reverted edits (PerishCode P3 on PR #1484).
  *
  * `fetchProjectSettings` is a test seam mirroring the
@@ -159,7 +159,7 @@ export function setCritiqueTheaterEnabled(
   // `PATCH /api/projects/:id` replaces `metadata` wholesale (the
   // route only re-stamps the three immutable folder-import fields),
   // so sending only `{ critiqueTheaterEnabled }` would wipe `kind`,
-  // `templateId`, `linkedDirs`, and any other field the rest of the
+  // `templateId`, `importedFrom`, and any other field the rest of the
   // app reads. We GET the project first, overlay the toggle on the
   // returned metadata, then PATCH the merged object. PerishCode P2
   // on PR #1338.

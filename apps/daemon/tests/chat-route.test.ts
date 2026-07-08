@@ -2185,23 +2185,20 @@ describe('chat prompt helpers', () => {
     expect(prompt).toContain('the first tool action must be the research command');
   });
 
-  it('keeps existing resource and linked dirs as extra allowed dirs', () => {
+  it('keeps existing resource dirs as extra allowed dirs', () => {
     const existingDirs = new Set([
       '/repo/skills',
       '/repo/design-systems',
-      '/linked/reference',
     ]);
     const dirs = resolveChatExtraAllowedDirs({
       skillsDir: '/repo/skills',
       designSystemsDir: '/repo/design-systems',
-      linkedDirs: ['/linked/reference', '/missing/reference'],
       existsSync: (dir: string) => existingDirs.has(dir),
     });
 
     expect(dirs).toEqual([
       '/repo/skills',
       '/repo/design-systems',
-      '/linked/reference',
     ]);
   });
 });

@@ -76,7 +76,6 @@ import { inferPluginPreview } from './plugins-home/preview';
 import { pluginSubfacetLabel } from './plugins-home/subfacetLabel';
 import { SessionModeToggle } from './SessionModeToggle';
 import { ComposerPlusMenu } from './ComposerPlusMenu';
-import { WorkingDirPicker } from './WorkingDirPicker';
 import {
   LexicalComposerInput,
   type LexicalComposerInputHandle,
@@ -176,11 +175,6 @@ interface Props {
   contextItemCount: number;
   error: string | null;
   showActivePluginChip?: boolean;
-  workingDir?: string | null;
-  recentDirs?: string[];
-  onPickWorkingDir?: () => void;
-  onSelectRecentWorkingDir?: (dir: string) => void;
-  onClearWorkingDir?: () => void;
   onExamplePromptStatusChange?: (info: ExamplePromptInfo | null) => void;
   executionSwitcher?: ReactNode;
 }
@@ -284,11 +278,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     contextItemCount,
     error,
     showActivePluginChip = true,
-    workingDir = null,
-    recentDirs = [],
-    onPickWorkingDir,
-    onSelectRecentWorkingDir,
-    onClearWorkingDir,
     onExamplePromptStatusChange,
     executionSwitcher,
   },
@@ -1494,39 +1483,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
           </div>
         </div>
       </div>
-
-      {onPickWorkingDir ? (
-        <div className="home-hero__workdir-row">
-          <WorkingDirPicker
-            workingDir={workingDir}
-            recentDirs={recentDirs}
-            onPickDirectory={() => {
-              trackHomeChatComposerClick(analytics.track, {
-                page_name: 'home',
-                area: 'chat_composer',
-                element: 'working_dir',
-              });
-              onPickWorkingDir();
-            }}
-            onSelectRecent={(dir) => {
-              trackHomeChatComposerClick(analytics.track, {
-                page_name: 'home',
-                area: 'chat_composer',
-                element: 'working_dir_recent',
-              });
-              onSelectRecentWorkingDir?.(dir);
-            }}
-            onClear={() => {
-              trackHomeChatComposerClick(analytics.track, {
-                page_name: 'home',
-                area: 'chat_composer',
-                element: 'working_dir_clear',
-              });
-              onClearWorkingDir?.();
-            }}
-          />
-        </div>
-      ) : null}
 
       {activeCreateChip ? null : (
         <RailGroup

@@ -81,23 +81,4 @@ describe('Design Files preview list styles', () => {
     );
   });
 
-  it('opens the working directory menu below the top chrome instead of behind it', () => {
-    const menu = cssDeclarations(routinesCss, '.app .working-dir-pill-menu');
-
-    expect(ruleValue(menu, 'top')).toBe('calc(100% + 6px)');
-    expect(ruleValue(menu, 'right')).toBe('0');
-    expect(ruleValue(menu, 'z-index')).toBe('220');
-  });
-
-  it('flips the working directory menu upward when hosted in the composer toolbar', () => {
-    // The pill now lives in the composer's bottom toolbar, so the base
-    // "open downward" rule would drop the menu off the bottom of the viewport.
-    // The composer-row override anchors it above the trigger and left-aligned.
-    const override = cssDeclarations(routinesCss, '.app .composer-row .working-dir-pill-menu');
-
-    expect(ruleValue(override, 'bottom')).toBe('calc(100% + 6px)');
-    expect(ruleValue(override, 'top')).toBe('auto');
-    expect(ruleValue(override, 'left')).toBe('0');
-    expect(ruleValue(override, 'right')).toBe('auto');
-  });
 });

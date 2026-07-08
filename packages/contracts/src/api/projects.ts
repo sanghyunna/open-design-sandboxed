@@ -98,12 +98,9 @@ export interface ProjectMetadata {
   // it set `baseDir` outside the trusted flow. Privileged: rejected
   // by `POST /api/projects` and `PATCH /api/projects/:id`.
   fromTrustedPicker?: true;
-  // Hint stamped by the Home composer working-directory chip. It records
-  // where the user wanted the project to live without granting write access
-  // to that path; actual filesystem roots still use baseDir/import flows.
+  // Transient hint used by the create flow before the daemon promotes the
+  // selected folder to baseDir through the trusted import path.
   userWorkingDir?: string;
-  // Absolute paths to local code folders the agent can read via --add-dir.
-  linkedDirs?: string[];
   // Batch/API-created projects can opt out of the initial discovery form so
   // the first agent turn builds immediately from the submitted brief.
   skipDiscoveryBrief?: boolean;

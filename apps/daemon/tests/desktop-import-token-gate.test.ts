@@ -198,9 +198,9 @@ describe('desktop-import-token gate', () => {
 
   // Round-7 (lefarcen P2 @ server.ts:2998): PATCH /api/projects/:id used
   // to reject any metadata containing `fromTrustedPicker`, including the
-  // unchanged `true` marker that the linked-folder UI re-spreads when
-  // editing `linkedDirs`. Trusted imports must be able to PATCH other
-  // metadata fields without 400-ing on their own marker.
+  // unchanged `true` marker that project settings re-spread when editing
+  // other metadata. Trusted imports must be able to PATCH other metadata
+  // fields without 400-ing on their own marker.
   it('allows PATCH preserving the existing fromTrustedPicker:true marker', async () => {
     const folder = makeFolder();
     await writeFile(path.join(folder, 'index.html'), '');
@@ -219,24 +219,24 @@ describe('desktop-import-token gate', () => {
     const projectId = importBody.project.id;
     expect(importBody.project.metadata?.fromTrustedPicker).toBe(true);
 
-    // Re-spread the existing metadata exactly the way the linked-folder
-    // UI does — fromTrustedPicker:true is included unchanged.
+    // Re-spread the existing metadata exactly the way project settings do:
+    // fromTrustedPicker:true is included unchanged.
     const patchResp = await fetch(`${baseUrl}/api/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         metadata: {
           ...importBody.project.metadata,
-          linkedDirs: [folder],
+          fidelity: 'high-fidelity',
         },
       }),
     });
     expect(patchResp.status).toBe(200);
     const patchBody = (await patchResp.json()) as {
-      project: { metadata?: { fromTrustedPicker?: boolean; linkedDirs?: string[] } };
+      project: { metadata?: { fromTrustedPicker?: boolean; fidelity?: string } };
     };
     expect(patchBody.project.metadata?.fromTrustedPicker).toBe(true);
-    expect(patchBody.project.metadata?.linkedDirs).toEqual([folder]);
+    expect(patchBody.project.metadata?.fidelity).toBe('high-fidelity');
   });
 
   it('rejects PATCH that flips fromTrustedPicker on a trusted project', async () => {

@@ -27,7 +27,6 @@ const mocks = vi.hoisted(() => ({
   fetchProjectDesignSystemPackageAudit: vi.fn(),
   fetchProjectFiles: vi.fn(),
   getProject: vi.fn(),
-  openFolderDialog: vi.fn(),
   patchProject: vi.fn(),
   createConversation: vi.fn(),
   listConversations: vi.fn(),
@@ -94,7 +93,6 @@ vi.mock('../../src/providers/registry', async () => {
     fetchProjectDesignSystemPackageAudit: mocks.fetchProjectDesignSystemPackageAudit,
     fetchProjectFiles: mocks.fetchProjectFiles,
     fetchConnectorStatuses: mocks.fetchConnectorStatuses,
-    openFolderDialog: mocks.openFolderDialog,
     uploadProjectFile: mocks.uploadProjectFile,
     writeProjectTextFile: mocks.writeProjectTextFile,
   };
@@ -141,7 +139,6 @@ beforeEach(() => {
   mocks.saveMessage.mockResolvedValue(null);
   mocks.saveTabs.mockResolvedValue(null);
   mocks.streamViaDaemon.mockImplementation(async () => {});
-  mocks.openFolderDialog.mockResolvedValue(null);
   mocks.uploadProjectFile.mockImplementation(async (_projectId: string, file: File, desiredName?: string) => ({
     name: desiredName ?? file.name,
     size: file.size,
@@ -842,90 +839,6 @@ describe('DesignSystemCreationFlow', () => {
     expect(onSystemsRefresh).toHaveBeenCalled();
   });
 
-  it('links a local code folder into the design-system project so the agent can read it', async () => {
-    const system: DesignSystemDetail = {
-      id: 'user:folder-design-system',
-      title: 'Folder Design System',
-      category: 'Custom',
-      summary: 'Folder product workspace.',
-      swatches: [],
-      surface: 'web',
-      body: '# Folder Design System\n',
-      source: 'user',
-      status: 'draft',
-      isEditable: true,
-      projectId: 'ds-folder-design-system',
-    };
-    const project: Project = {
-      id: 'ds-folder-design-system',
-      name: 'Folder Design System',
-      skillId: null,
-      designSystemId: system.id,
-      createdAt: 1,
-      updatedAt: 1,
-      metadata: {
-        kind: 'other',
-        importedFrom: 'design-system',
-        entryFile: 'DESIGN.md',
-        sourceFileName: system.id,
-      },
-    };
-    mocks.createDesignSystemDraft.mockResolvedValue(system);
-    mocks.ensureDesignSystemWorkspace.mockResolvedValue({ project, files: [] });
-    mocks.patchProject.mockResolvedValue({ ...project, pendingPrompt: 'Create this project as a design system.' });
-    mocks.openFolderDialog.mockResolvedValue('/Users/qingyu/work/comfyui');
-
-    render(
-      <DesignSystemCreationFlow
-        onBack={() => {}}
-        onCreated={() => {}}
-      />,
-    );
-
-    fireEvent.change(screen.getByPlaceholderText(/Mission Impastabowl/i), {
-      target: { value: 'ComfyUI: node-based image workflow editor' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Browse folder' }));
-
-    await waitFor(() => expect(screen.getByText('/Users/qingyu/work/comfyui')).toBeTruthy());
-    expect(screen.queryByTestId('ds-source-upload-loading')).toBeNull();
-
-    continueToGeneration();
-    continueToGeneration();
-
-    await waitFor(() => expect(mocks.patchProject).toHaveBeenCalled());
-    expect(mocks.patchProject).toHaveBeenCalledWith(
-      project.id,
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          linkedDirs: ['/Users/qingyu/work/comfyui'],
-        }),
-        pendingPrompt: expect.stringContaining('Read the linked local code folders'),
-      }),
-    );
-    expect(mocks.patchProject).toHaveBeenCalledWith(
-      project.id,
-      expect.objectContaining({
-        pendingPrompt: expect.stringContaining('tools connectors local-design-context --path'),
-      }),
-    );
-    expect(mocks.writeProjectTextFile).toHaveBeenCalledWith(
-      project.id,
-      'context/source-context.md',
-      expect.stringContaining('/Users/qingyu/work/comfyui'),
-    );
-    expect(mocks.writeProjectTextFile).toHaveBeenCalledWith(
-      project.id,
-      'context/source-context.md',
-      expect.stringContaining('## Local Folder Intake Runbook'),
-    );
-    expect(mocks.writeProjectTextFile).toHaveBeenCalledWith(
-      project.id,
-      'context/source-context.md',
-      expect.stringContaining('tools connectors local-design-context --path'),
-    );
-  });
-
   it('copies browser-selected local code folder files into the design-system project context', async () => {
     const system: DesignSystemDetail = {
       id: 'user:snapshot-design-system',
@@ -991,11 +904,20 @@ describe('DesignSystemCreationFlow', () => {
         pendingPrompt: expect.stringContaining('context/local-code/comfyui/src/tokens.css'),
       }),
     );
+    const patchBody = mocks.patchProject.mock.calls.at(-1)?.[1] as { pendingPrompt?: string; metadata?: unknown };
+    expect(patchBody.metadata).toBeUndefined();
+    expect(patchBody.pendingPrompt).not.toContain('local-design-context --path');
+    expect(patchBody.pendingPrompt).not.toContain('Read the linked local code folders');
     expect(mocks.writeProjectTextFile).toHaveBeenCalledWith(
       project.id,
       'context/source-context.md',
       expect.stringContaining('context/local-code/comfyui/src/tokens.css'),
     );
+    const sourceManifestBody = mocks.writeProjectTextFile.mock.calls.find(
+      ([, name]) => name === 'context/source-context.md',
+    )?.[2] as string | undefined;
+    expect(sourceManifestBody).not.toContain('Local Folder Intake Runbook');
+    expect(sourceManifestBody).not.toContain('local-design-context --path');
     expect(window.sessionStorage.getItem(`od:auto-send-first:${project.id}`)).toBe('1');
     expect(onCreated).toHaveBeenCalledWith(project.id, project);
   });

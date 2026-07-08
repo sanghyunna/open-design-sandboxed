@@ -254,7 +254,7 @@ describe('useCritiqueTheaterEnabled (Phase 15.3)', () => {
     // PerishCode P2 on PR #1338: the daemon's `updateProject` does a
     // shallow `{ ...existing, ...patch }`, so `patch.metadata` REPLACES
     // the row's metadata. Sending only `{ critiqueTheaterEnabled }` in
-    // the patch would wipe `kind`, `templateId`, `linkedDirs`, and
+    // the patch would wipe `kind`, `templateId`, `importedFrom`, and
     // every other field the rest of the app reads. The setter has to
     // read the current metadata first and overlay the toggle on top.
     const fetchCalls: Array<{ url: string; method: string; body: string | null }> = [];
@@ -272,7 +272,7 @@ describe('useCritiqueTheaterEnabled (Phase 15.3)', () => {
                 metadata: {
                   kind: 'template',
                   templateId: 'modern-blog',
-                  linkedDirs: ['/Users/me/work'],
+                  importedFrom: 'folder',
                 },
               },
             }),
@@ -304,7 +304,7 @@ describe('useCritiqueTheaterEnabled (Phase 15.3)', () => {
       metadata: {
         kind: 'template',
         templateId: 'modern-blog',
-        linkedDirs: ['/Users/me/work'],
+        importedFrom: 'folder',
         critiqueTheaterEnabled: true,
       },
     });

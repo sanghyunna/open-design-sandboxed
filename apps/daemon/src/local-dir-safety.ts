@@ -30,17 +30,17 @@ export function isBlocked(realPath: string): boolean {
   );
 }
 
-export function validateLinkedDirs(
+export function validateLocalDirs(
   dirs: unknown,
 ): { dirs: string[]; error?: undefined } | { error: string; dirs?: undefined } {
-  if (!Array.isArray(dirs)) return { error: 'linkedDirs must be an array' };
+  if (!Array.isArray(dirs)) return { error: 'directories must be an array' };
   const validated: string[] = [];
   for (const d of dirs) {
     if (typeof d !== 'string' || !d.trim()) {
-      return { error: 'each linked dir must be a non-empty string' };
+      return { error: 'each directory must be a non-empty string' };
     }
     if (!path.isAbsolute(d)) {
-      return { error: `linked dir must be an absolute path: ${d}` };
+      return { error: `directory must be an absolute path: ${d}` };
     }
     let realPath: string;
     try {

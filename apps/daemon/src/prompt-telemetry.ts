@@ -24,7 +24,6 @@ export type PromptTelemetrySectionKind =
   | 'designSystemPrompt'
   | 'pluginStagePrompt'
   | 'cwdHint'
-  | 'linkedDirsHint'
   | 'attachments'
   | 'commentAttachments'
   | 'promptImagePaths';

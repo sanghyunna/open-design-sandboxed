@@ -1097,18 +1097,6 @@
   color: var(--text-muted);
   font-size: 12px;
 }
-/* Host wrapper that aligns the shared WorkingDirPicker to the input card's
-   left edge (card is max-width 720px, centered). The picker itself is
-   layout-neutral; this row gives it the Home placement. */
-.home-hero__workdir-row {
-  width: 100%;
-  max-width: 720px;
-  /* Hug the input card: cancel the 14px column gap and the trigger's 4px
-     top padding so the picker sits ~5px below the card. */
-  margin: -13px auto 0;
-  display: flex;
-  justify-content: flex-start;
-}
 .home-hero__active-type-chip {
   appearance: none;
   height: 32px;

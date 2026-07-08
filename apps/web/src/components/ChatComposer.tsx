@@ -33,8 +33,7 @@ import type {
   DesignToolboxClickProps,
 } from '@open-design/contracts/analytics';
 import { deriveUploadCohort } from '../analytics/upload-tracking';
-import { projectRawUrl, uploadProjectFiles, openFolderDialog, fetchRecentLinkedDirs, pushRecentLinkedDir, dirExists } from "../providers/registry";
-import { WorkingDirPicker } from './WorkingDirPicker';
+import { projectRawUrl, uploadProjectFiles } from "../providers/registry";
 import { patchProject } from "../state/projects";
 import { fetchMcpServers } from "../state/mcp";
 import type { McpServerConfig, McpTemplate } from "../state/mcp";
@@ -205,7 +204,6 @@ interface Props {
   onOpenPetSettings?: () => void;
   researchAvailable?: boolean;
   projectMetadata?: ProjectMetadata;
-  onProjectMetadataChange?: (metadata: ProjectMetadata) => void;
   activeWorkspaceContext?: WorkspaceContextItem | null;
   workspaceContexts?: WorkspaceContextItem[];
   currentSkillId?: string | null;
@@ -221,8 +219,7 @@ interface Props {
   pinnedPluginId?: string | null;
   footerAccessory?: ReactNode;
   // Slot rendered in the composer's bottom toolbar, immediately right of the
-  // "+" menu. Hosts the working-directory pill so the folder selector sits by
-  // the composer (mirroring the home input) instead of the file-panel header.
+  // "+" menu. ProjectView can use this for compact project-specific controls.
   leadingAccessory?: ReactNode;
   // Design-system picker slot rendered at the top of the composer (above
   // the textarea). The former standalone chrome header row was removed;
@@ -332,7 +329,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       onOpenPetSettings,
       researchAvailable = false,
       projectMetadata,
-      onProjectMetadataChange,
       activeWorkspaceContext = null,
       workspaceContexts = [],
       currentSkillId = null,
@@ -449,52 +445,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     // Same latest-closure trick for picking a skill by id from the next-step card.
     const applyDesignToolboxSkillByIdRef = useRef<(skillId: string) => void>(() => {});
     const petEnabled = Boolean(onAdoptPet && onTogglePet);
-    const linkedDirs = projectMetadata?.linkedDirs ?? [];
-    // The project's working directory: the local folder the agent can read
-    // (via `linkedDirs` → `--add-dir`). Shown in the WorkingDirPicker below
-    // the input, mirroring Home. We treat it as a single primary folder.
-    const workingDir = linkedDirs[0] ?? null;
-    const [recentDirs, setRecentDirs] = useState<string[]>([]);
-    useEffect(() => {
-      let cancelled = false;
-      void fetchRecentLinkedDirs().then((dirs) => {
-        if (!cancelled) setRecentDirs(dirs);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-    const rememberRecentDir = useCallback(async (dir: string) => {
-      setRecentDirs((prev) => [dir, ...prev.filter((d) => d !== dir)].slice(0, 5));
-      const persisted = await pushRecentLinkedDir(dir);
-      setRecentDirs(persisted);
-    }, []);
-    // Live-check whether the selected working directory still exists, so a
-    // folder deleted from disk turns the picker red without a page reload.
-    // Re-checked when the dir changes, when the window/tab regains focus
-    // (e.g. after deleting it in Finder), and when the picker is opened.
-    const [workingDirMissing, setWorkingDirMissing] = useState(false);
-    const checkWorkingDir = useCallback(async () => {
-      if (!workingDir) {
-        setWorkingDirMissing(false);
-        return;
-      }
-      const ok = await dirExists(workingDir);
-      setWorkingDirMissing(!ok);
-    }, [workingDir]);
-    useEffect(() => {
-      void checkWorkingDir();
-      const onFocus = () => void checkWorkingDir();
-      const onVisible = () => {
-        if (document.visibilityState === 'visible') void checkWorkingDir();
-      };
-      window.addEventListener('focus', onFocus);
-      document.addEventListener('visibilitychange', onVisible);
-      return () => {
-        window.removeEventListener('focus', onFocus);
-        document.removeEventListener('visibilitychange', onVisible);
-      };
-    }, [checkWorkingDir]);
     const visibleWorkspaceContext =
       activeWorkspaceContext && activeWorkspaceContext.id !== dismissedWorkspaceContextId
         ? activeWorkspaceContext
@@ -1105,7 +1055,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     }
 
     // Fills the fixed page/area/project context for the rest of the composer
-    // bottom bar (plus menu, design-system / working-dir switch, agent
+    // bottom bar (plus menu, design-system switch, agent
     // selector, context-chip removal).
     const trackComposerBar = (
       fields: Omit<ComposerBarClickProps, 'page_name' | 'area' | 'project_id'>,
@@ -1565,51 +1515,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
       setDragActive(false);
       const files = Array.from(e.dataTransfer.files ?? []);
       if (files.length > 0) void uploadFiles(files);
-    }
-
-    async function handleLinkFolder() {
-      if (!projectId) return;
-      const selected = await openFolderDialog();
-      if (!selected) return;
-      const base = projectMetadata ?? { kind: 'prototype' as const };
-      const existing = base.linkedDirs ?? [];
-      if (existing.includes(selected)) return;
-      const metadata: ProjectMetadata = { ...base, linkedDirs: [...existing, selected] };
-      const result = await patchProject(projectId, { metadata });
-      if (result?.metadata) onProjectMetadataChange?.(result.metadata);
-    }
-
-    // The WorkingDirPicker treats the project's working directory as a single
-    // primary folder, so selecting one replaces `linkedDirs`. The folder is
-    // read-only awareness for the agent (→ `--add-dir`), not a Design Files
-    // import, and `baseDir` is never touched.
-    async function setWorkingDirFolder(dir: string) {
-      if (!projectId) return;
-      const base = projectMetadata ?? { kind: 'prototype' as const };
-      const metadata: ProjectMetadata = { ...base, linkedDirs: [dir] };
-      const result = await patchProject(projectId, { metadata });
-      // The daemon rejects stale/inaccessible/system dirs with
-      // INVALID_LINKED_DIR (patchProject → null). Only commit the selection
-      // and promote it in recents when the project accepted it; otherwise
-      // surface the failure and leave recents untouched so a rejected path
-      // isn't re-promoted to the top of the menu.
-      if (!result?.metadata) {
-        onShowToast?.(t('homeWorkingDir.applyFailed'));
-        return;
-      }
-      onProjectMetadataChange?.(result.metadata);
-      void rememberRecentDir(dir);
-    }
-    async function handlePickWorkingDir() {
-      const selected = await openFolderDialog();
-      if (selected) await setWorkingDirFolder(selected);
-    }
-    async function clearWorkingDir() {
-      if (!projectId) return;
-      const base = projectMetadata ?? { kind: 'prototype' as const };
-      const metadata: ProjectMetadata = { ...base, linkedDirs: [] };
-      const result = await patchProject(projectId, { metadata });
-      if (result?.metadata) onProjectMetadataChange?.(result.metadata);
     }
 
     async function handleSwitchDesignSystem(
@@ -2440,20 +2345,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
             ) : null}
           </div>
         </div>
-        {projectId ? (
-          <div className="composer-workdir-row">
-            <WorkingDirPicker
-              placement="up"
-              workingDir={workingDir}
-              invalid={workingDirMissing}
-              recentDirs={recentDirs}
-              onOpen={() => void checkWorkingDir()}
-              onPickDirectory={() => void handlePickWorkingDir()}
-              onSelectRecent={(dir) => void setWorkingDirFolder(dir)}
-              onClear={() => void clearWorkingDir()}
-            />
-          </div>
-        ) : null}
         {uploadError ? <span className="composer-hint">{uploadError}</span> : null}
         {detailsRecord ? (
           <PluginDetailsModal

@@ -118,7 +118,7 @@ import {
   resolveSkillId,
   splitDerivedSkillId,
 } from './skills.js';
-import { validateLinkedDirs } from './linked-dirs.js';
+import { validateLocalDirs } from './local-dir-safety.js';
 import { installFromTarget, uninstallById, sanitizeRepoName } from './library-install.js';
 import { buildWindowsFolderDialogCommand, parseFolderDialogStdout } from './native-folder-dialog.js';
 import { listCodexPets, readCodexPetSpritesheet } from './codex-pets.js';
@@ -568,18 +568,15 @@ export function resolveResearchCommandContract(research, message) {
 export function resolveChatExtraAllowedDirs({
   skillsDir,
   designSystemsDir,
-  linkedDirs = [],
   existsSync = fs.existsSync,
 }: {
   skillsDir?: string | null;
   designSystemsDir?: string | null;
-  linkedDirs?: Array<string | null | undefined>;
   existsSync?: (path: string) => boolean;
 }): string[] {
   const candidates = [
     skillsDir,
     designSystemsDir,
-    ...(Array.isArray(linkedDirs) ? linkedDirs : []),
   ];
   return Array.from(
     new Set(
@@ -4740,7 +4737,7 @@ export async function startServer({
   });
 
   // Reconcile follow-up — the inline POST /api/projects body that lived
-  // on garnet (with baseDir privilege check, linkedDirs validation,
+  // on garnet (with baseDir privilege check, project-location validation,
   // template snapshot seeding, plugin snapshot resolution with default
   // scenario fallback) is intentionally dropped here. main moved project
   // route registration into `./project-routes.js` via PR #1043, so the
@@ -4964,7 +4961,7 @@ export async function startServer({
     updateProject,
     dbDeleteProject,
     removeProjectDir,
-    validateLinkedDirs,
+    validateLocalDirs,
   };
   const projectFileDeps = {
     ensureProject,
@@ -9687,18 +9684,8 @@ export async function startServer({
         ? getProject(db, projectId)
         : null;
     const runContextPrompt = renderRunContextPrompt(context, projectRecord?.metadata);
-    const linkedDirs = (() => {
-      if (!Array.isArray(projectRecord?.metadata?.linkedDirs)) return [];
-      const v = validateLinkedDirs(projectRecord.metadata.linkedDirs);
-      return v.dirs ?? [];
-    })();
     const cwdHint = cwd
       ? formatDesignFilesWorkspaceHint(cwd, existingProjectFiles, existingProjectFolders)
-      : '';
-    const linkedDirsHint = linkedDirs.length > 0
-      ? `\n\nLinked code folders (read-only reference code the user wants you to see):\n${
-          linkedDirs.map((d) => `- \`${d}\``).join('\n')
-        }`
       : '';
     const attachmentHint = formatProjectAttachmentHint(safeAttachments);
     // Plan §3.A3 / spec §9: thread plugin context onto every tool token
@@ -9886,7 +9873,6 @@ export async function startServer({
     const extraAllowedDirs = resolveChatExtraAllowedDirs({
       skillsDir: SKILLS_DIR,
       designSystemsDir: DESIGN_SYSTEMS_DIR,
-      linkedDirs,
     });
     const researchCommandContract = resolveResearchCommandContract(
       research,
@@ -9974,14 +9960,12 @@ export async function startServer({
     );
     const composed = [
       instructionPrompt
-        ? `# Instructions (read first)\n\n${formOverride}${instructionPrompt}${cwdHint}${linkedDirsHint}${ECHO_GUARD}\n\n---\n`
+        ? `# Instructions (read first)\n\n${formOverride}${instructionPrompt}${cwdHint}${ECHO_GUARD}\n\n---\n`
         : cwdHint
-          ? `# Instructions\n\n${formOverride}${cwdHint}${linkedDirsHint}${ECHO_GUARD}\n\n---\n`
-          : linkedDirsHint
-            ? `# Instructions\n\n${formOverride}${linkedDirsHint}${ECHO_GUARD}\n\n---\n`
-            : formOverride
-              ? `# Instructions\n\n${formOverride}${ECHO_GUARD}\n\n---\n`
-              : '',
+          ? `# Instructions\n\n${formOverride}${cwdHint}${ECHO_GUARD}\n\n---\n`
+          : formOverride
+            ? `# Instructions\n\n${formOverride}${ECHO_GUARD}\n\n---\n`
+            : '',
       `# User request\n\n${userRequestPrompt}${attachmentHint}${commentHint}`,
       promptImagePaths.length
         ? `\n\n${promptImagePaths.map((p) => `@${p}`).join(' ')}`
@@ -10011,11 +9995,6 @@ export async function startServer({
           content: promptTelemetryParts?.pluginStagePrompt,
         },
         { kind: 'cwdHint', content: cwdHint, metadata: cwd ? [cwd] : [] },
-        {
-          kind: 'linkedDirsHint',
-          content: linkedDirsHint,
-          metadata: linkedDirs,
-        },
         {
           kind: 'attachments',
           content: attachmentHint,

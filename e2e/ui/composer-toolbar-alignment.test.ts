@@ -1,9 +1,8 @@
 // Composer footer toolbar alignment.
 //
-// The composer's bottom row mixes five controls authored in five different
-// components — the + icon (.icon-btn), the working-dir pill
-// (.working-dir-pill-trigger), the agent avatar (.avatar-agent-trigger), the
-// session-mode "Design"/CLI toggle (.session-mode-toggle__trigger) and Send
+// The composer bottom row mixes controls authored in different components:
+// the + icon (.icon-btn), the agent avatar (.avatar-agent-trigger), the
+// session-mode "Design"/CLI toggle (.session-mode-toggle__trigger), and Send
 // (.composer-send). The composer mounts under `.chat-composer-fixed-layer` (a
 // body-level portal), so the `.app`-scoped "one control system" normalization
 // in chat.css never reached it and the controls drifted to 28/30/32px. Even
@@ -83,7 +82,6 @@ test('[P1] composer footer controls share one height and baseline', async ({ pag
     if (!row) return { error: 'no .composer-row' as const };
     const selectors = [
       '.icon-btn',
-      '.working-dir-pill-trigger',
       '.avatar-agent-trigger',
       '.session-mode-toggle__trigger',
       '.composer-send',
@@ -110,7 +108,7 @@ test('[P1] composer footer controls share one height and baseline', async ({ pag
   const spread = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
 
   // One control system: identical heights. On main these drift (e.g. the +
-  // at 32px, the working-dir pill at 28px, Send at 30px) and this fails.
+  // at 32px while Send sits at 30px) and this fails.
   expect(spread(heights), `control heights: ${JSON.stringify(controls)}`).toBeLessThanOrEqual(1);
   // ...and a shared vertical center so nothing rides high or low in the row.
   expect(spread(centers), `control centers: ${JSON.stringify(controls)}`).toBeLessThanOrEqual(1);

@@ -6,7 +6,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { isBlocked } from './linked-dirs.js';
+import { isBlocked } from './local-dir-safety.js';
 import { listSkills, findSkillById } from './skills.js';
 import { listDesignSystems } from './design-systems.js';
 

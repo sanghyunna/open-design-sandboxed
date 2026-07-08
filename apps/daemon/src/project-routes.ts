@@ -799,7 +799,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
   const { sendApiError, createSseResponse } = ctx.http;
   const { DESIGN_SYSTEMS_DIR, PROJECTS_DIR, SKILLS_DIR } = ctx.paths;
   const { readAppConfig, writeAppConfig } = ctx.appConfig;
-  const { insertProject, validateLinkedDirs, getProject, updateProject, dbDeleteProject, removeProjectDir } = ctx.projectStore;
+  const { insertProject, validateLocalDirs, getProject, updateProject, dbDeleteProject, removeProjectDir } = ctx.projectStore;
   const { writeProjectFile, readProjectFile, ensureProject, listFiles, listTabs, setTabs, resolveProjectDir } = ctx.projectFiles;
   const checkpoints = ctx.checkpoints;
   const { insertConversation, getConversation, listConversations, updateConversation, deleteConversation, listMessages, upsertMessage, listPreviewComments, upsertPreviewComment, updatePreviewCommentStatus, deletePreviewComment } = ctx.conversations;
@@ -876,7 +876,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     const all = allProjectLocations(PROJECTS_DIR, config.projectLocations);
     const valid = all[0] ? [all[0]] : [];
     for (const location of all.slice(1)) {
-      const validated = validateLinkedDirs([location.path]);
+      const validated = validateLocalDirs([location.path]);
       if (validated.error) continue;
       const canonical = validated.dirs[0];
       if (!canonical) continue;
@@ -978,7 +978,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       for (const loc of requested) {
         if (!loc || typeof loc !== 'object' || typeof loc.path !== 'string') continue;
         const canonicalPath = await ensureProjectLocation(loc.path);
-        const validated = validateLinkedDirs([canonicalPath]);
+        const validated = validateLocalDirs([canonicalPath]);
         if (validated.error) return sendApiError(res, 400, 'BAD_REQUEST', validated.error);
         if (locationOverlapsDaemonData(canonicalPath)) {
           return sendApiError(res, 400, 'BAD_REQUEST', 'project location cannot overlap daemon data');
@@ -1141,18 +1141,6 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
             'fromTrustedPicker can only be set via POST /api/import/folder',
           );
         }
-        // Reject invalid linked working directories up front (consistent with
-        // PATCH /api/projects/:id) instead of silently dropping them. The
-        // caller promises the agent `--add-dir` access to this folder; if the
-        // path is deleted/inaccessible/a system dir, fail loudly so the client
-        // can surface it rather than creating a project + auto-running a turn
-        // whose linked-dir access never materialises.
-        if (Array.isArray(metadata.linkedDirs)) {
-          const validated = validateLinkedDirs(metadata.linkedDirs);
-          if (validated.error) {
-            return sendApiError(res, 400, 'INVALID_LINKED_DIR', validated.error);
-          }
-        }
       }
       if (customInstructions !== undefined
           && typeof customInstructions !== 'string'
@@ -1203,12 +1191,6 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
                     importedFrom: 'project-location',
                     projectLocationId: selectedLocationId,
                   }
-                : {}),
-              ...(Array.isArray(metadata.linkedDirs)
-                ? (() => {
-                    const v = validateLinkedDirs(metadata.linkedDirs);
-                    return v.error ? {} : { linkedDirs: v.dirs };
-                  })()
                 : {}),
             }
           : skipDiscoveryBrief === true
@@ -1386,8 +1368,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       // import endpoint and otherwise immutable. Two failure modes to
       // guard against here:
       //   1. Explicit attempt to change baseDir → reject with 400.
-      //   2. A regular metadata patch that *omits* baseDir (e.g. a UI
-      //      that only edits linkedDirs sends `{ metadata: { kind, linkedDirs } }`).
+      //   2. A regular metadata patch that *omits* baseDir.
       //      updateProject() replaces metadata wholesale, so without
       //      preservation the existing baseDir gets wiped and the project
       //      detaches from the user's folder — subsequent reads/writes
@@ -1436,17 +1417,6 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
             'baseDir can only be set via POST /api/import/folder',
           );
         }
-      }
-      if (patch.metadata?.linkedDirs) {
-        const existing = getProject(db, req.params.id);
-        const validated = validateLinkedDirs(patch.metadata.linkedDirs);
-        if (validated.error) {
-          return sendApiError(res, 400, 'INVALID_LINKED_DIR', validated.error);
-        }
-        patch.metadata.linkedDirs =
-          existing?.metadata?.fromTrustedPicker === true
-            ? patch.metadata.linkedDirs
-            : validated.dirs;
       }
       if (patch.customInstructions !== undefined
           && typeof patch.customInstructions !== 'string'

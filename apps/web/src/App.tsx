@@ -302,7 +302,7 @@ function AppInner() {
   const latestPersistedConfigRef = useRef(config);
   latestPersistedConfigRef.current = config;
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // Surfaced when a Home-picked working dir could not be applied to a freshly
+  // Surfaced when a picked project folder could not be applied to a freshly
   // created project (expired/invalid desktop token, daemon rejection). Without
   // this the failure was swallowed and the user believed their folder was in
   // effect while the project actually stayed in the managed root.
@@ -1172,13 +1172,13 @@ function AppInner() {
       const pendingFiles = Array.isArray(input.pendingFiles)
         ? input.pendingFiles.filter((file): file is File => file instanceof File)
         : [];
-      // Flip the project onto the user-picked working directory BEFORE
-      // uploading staged Home attachments. `replaceProjectWorkingDir` changes
+      // Flip the project onto the user-picked project folder BEFORE
+      // uploading staged attachments. `replaceProjectWorkingDir` changes
       // `metadata.baseDir`, so the project starts reading from the external
       // folder. If we uploaded first, the staged files would land in the
       // temporary managed `.od/projects/<id>` root and then silently vanish
-      // from Design Files and the first auto-send context once the working
-      // dir flips. Doing the handoff first means the initial upload lands in
+      // from Design Files and the first auto-send context once the project
+      // folder flips. Doing the handoff first means the initial upload lands in
       // the final tree.
       const userWorkingDir = input.metadata?.userWorkingDir;
       let workingDirHandoffFailed = false;
@@ -1190,19 +1190,19 @@ function AppInner() {
             input.userWorkingDirToken,
           );
         } catch (err) {
-          // The desktop working-dir token is short-lived (~60s TTL); if the
+          // The desktop project-folder token is short-lived (~60s TTL); if the
           // user lingered on Home or the POST was otherwise rejected, the
           // handoff fails AFTER the project already exists. Do NOT swallow
           // this and do NOT proceed: uploading staged attachments or
           // auto-sending the first message would target the managed
           // `.od/projects/<id>` root the user did not choose. Mark the
           // handoff as failed so the upload + auto-send branches below are
-          // skipped, then surface a create-time error so the user can
-          // re-pick the working directory from inside the project.
-          console.warn('Failed to set working directory for new project', userWorkingDir, err);
+          // skipped, then surface a create-time error so the user can create
+          // again after choosing the intended project folder.
+          console.warn('Failed to set project folder for new project', userWorkingDir, err);
           workingDirHandoffFailed = true;
           setWorkingDirError(
-            `Couldn't apply the chosen folder "${userWorkingDir}". The project was created in the default location — re-pick the working directory from the project before uploading files or sending a message.`,
+            `Couldn't apply the chosen folder "${userWorkingDir}". The project was created in the default location. Create it again after choosing the intended project folder before uploading files or sending a message.`,
           );
         }
       }

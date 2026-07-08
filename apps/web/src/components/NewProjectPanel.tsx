@@ -614,16 +614,16 @@ export function NewProjectPanel({
             className={`ghost newproj-working-dir od-tooltip${workingDir ? ' picked' : ''}`}
             onClick={() => void handlePickWorkingDir()}
             disabled={workingDirPicking}
-            title={workingDir ?? t('workingDirPicker.homeTitle')}
-            data-tooltip={workingDir ?? t('workingDirPicker.homeTitle')}
+            title={workingDir ?? t('projectFolderPicker.homeTitle')}
+            data-tooltip={workingDir ?? t('projectFolderPicker.homeTitle')}
           >
             <Icon name="folder" size={13} />
             <span>
               {workingDirPicking
-                ? t('workingDirPicker.processing')
+                ? t('projectFolderPicker.processing')
                 : workingDir
                   ? displayFolderName(workingDir)
-                  : t('workingDirPicker.select')}
+                  : t('projectFolderPicker.select')}
             </span>
           </button>
           {workingDir ? (
@@ -634,7 +634,7 @@ export function NewProjectPanel({
                 setWorkingDir(null);
                 setWorkingDirToken(null);
               }}
-              aria-label={t('workingDirPicker.clearAria')}
+              aria-label={t('projectFolderPicker.clearAria')}
             >
               <Icon name="close" size={10} />
             </button>

@@ -14,7 +14,6 @@ import {
   fetchProjectFiles,
   fetchProjectDesignSystemPackageAudit,
   fetchDesignSystemRevisions,
-  openFolderDialog,
   startDesignSystemTokenContractRebuildJob,
   updateDesignSystemRevisionStatus,
   updateDesignSystemDraft,
@@ -60,7 +59,6 @@ import type {
   OpenTabsState,
   Project,
   ProjectFile,
-  ProjectMetadata,
 } from '../types';
 import { decideAutoOpenAfterWrite } from './auto-open-file';
 import { ChatPane } from './ChatPane';
@@ -182,7 +180,6 @@ interface SetupState {
   githubUrl: string;
   githubUrls: string[];
   codeFiles: string[];
-  codeFolders: string[];
   codeFileObjects: File[];
   figFiles: string[];
   figFileObjects: File[];
@@ -196,7 +193,6 @@ const EMPTY_SETUP: SetupState = {
   githubUrl: '',
   githubUrls: [],
   codeFiles: [],
-  codeFolders: [],
   codeFileObjects: [],
   figFiles: [],
   figFileObjects: [],
@@ -538,21 +534,11 @@ export function DesignSystemCreationFlow({
     };
   }
 
-  async function handlePickCodeFolder() {
-    emitCreateFormClick('browse_folder');
-    const selected = await openFolderDialog();
-    if (!selected) return;
+  function handleRemoveLocalCodeSelection() {
     setState((curr) => ({
       ...curr,
-      codeFolders: Array.from(new Set([...curr.codeFolders, selected])),
-    }));
-  }
-
-  function handleRemoveCodeFolder(folder: string) {
-    setState((curr) => ({
-      ...curr,
-      codeFolders: curr.codeFolders.filter((item) => item !== folder),
-      ...(curr.codeFolders.includes(folder) ? {} : { codeFiles: [], codeFileObjects: [] }),
+      codeFiles: [],
+      codeFileObjects: [],
     }));
   }
 
@@ -574,7 +560,7 @@ export function DesignSystemCreationFlow({
     // same N". Computed here because OnboardingView can't peek into
     // this flow's setup form.
     const githubRepoCount = state.githubUrls?.length ?? 0;
-    const localFolderCount = state.codeFolders?.length ?? 0;
+    const localFolderCount = state.codeFileObjects.length > 0 ? 1 : 0;
     const figFileCount = state.figFiles?.length ?? 0;
     const assetFileCount = state.assetFiles?.length ?? 0;
     const snapshot = {
@@ -832,13 +818,12 @@ export function DesignSystemCreationFlow({
             </div>
             <DropZone
               label="Link local code"
-              helper="Use a folder or selected files from this computer."
-              prompt="Drag a folder here or browse"
+              helper="Copied into this project as source context."
+              prompt="Drop a folder or select files"
               names={localCodeSourceLabels(state)}
               directory
               onZoneClick={() => emitCreateFormClick('browse_folder')}
-              onBrowseFolder={() => void handlePickCodeFolder()}
-              onRemoveName={handleRemoveCodeFolder}
+              onRemoveName={handleRemoveLocalCodeSelection}
               onError={setError}
               onProcessingStart={beginSourceProcessing}
               onFiles={(_names, files) => {
@@ -2588,7 +2573,6 @@ interface DropZoneProps {
   // drag-and-drop does not trigger it (drops are covered by
   // file_upload_result instead).
   onZoneClick?: () => void;
-  onBrowseFolder?: () => void;
   onRemoveName?: (name: string) => void;
   onError?: (message: string | null) => void;
   onProcessingStart?: () => () => void;
@@ -2759,7 +2743,6 @@ function DropZone({
   names,
   directory,
   onZoneClick,
-  onBrowseFolder,
   onRemoveName,
   onError,
   onProcessingStart,
@@ -2917,11 +2900,6 @@ function DropZone({
           />
           <span>{names.length > 0 && !onRemoveName ? names.join(', ') : prompt}</span>
         </label>
-        {onBrowseFolder ? (
-          <Button variant="ghost" onClick={onBrowseFolder}>
-            Browse folder
-          </Button>
-        ) : null}
       </div>
       {names.length > 0 && onRemoveName ? (
         <div className="ds-local-code-list" aria-label={`${label} selections`}>
@@ -3391,7 +3369,7 @@ async function prepareCreatedDesignSystemProject({
     }
     const localStart = performance.now();
     const stagedLocalCode = await stageLocalCodeFiles(project.id, state.codeFileObjects);
-    if (state.codeFileObjects.length > 0 || state.codeFolders.length > 0) {
+    if (state.codeFileObjects.length > 0) {
       emitSourceIngestResult(analyticsTrack, {
         sourceType: 'local_code',
         ingestMethod: 'local_snapshot',
@@ -3478,7 +3456,6 @@ async function prepareCreatedDesignSystemProject({
         stagedAssets,
       }),
     );
-    const metadata = mergeLinkedCodeFolders(project.metadata, state.codeFolders);
     const prompt = buildCreationAgentPrompt(
       state,
       stagedLocalCode,
@@ -3486,7 +3463,7 @@ async function prepareCreatedDesignSystemProject({
       stagedAssets,
       stagedFigma,
     );
-    const preparedProject = await patchProject(project.id, { pendingPrompt: prompt, metadata });
+    const preparedProject = await patchProject(project.id, { pendingPrompt: prompt });
     try {
       window.sessionStorage.setItem(`od:auto-send-first:${project.id}`, '1');
     } catch {
@@ -3496,7 +3473,6 @@ async function prepareCreatedDesignSystemProject({
     onProjectPrepared?.(preparedProject ?? {
       ...project,
       pendingPrompt: prompt,
-      metadata,
     });
     void onSystemsRefresh?.();
   } catch (err) {
@@ -3842,23 +3818,11 @@ function safeContextFileName(name: string, fallback: string): string {
 }
 
 function localCodeSourceLabels(state: SetupState): string[] {
-  return [
-    ...state.codeFolders,
-    ...(state.codeFiles.length ? [`${state.codeFiles.length} local code files selected`] : []),
-  ];
+  return state.codeFiles.length ? [`${state.codeFiles.length} local code files selected`] : [];
 }
 
 function localCodeReferences(state: SetupState): string[] {
-  return Array.from(new Set([...state.codeFolders, ...state.codeFiles]));
-}
-
-function mergeLinkedCodeFolders(metadata: ProjectMetadata | undefined, codeFolders: string[]): ProjectMetadata | undefined {
-  if (codeFolders.length === 0) return metadata;
-  return {
-    kind: metadata?.kind ?? 'other',
-    ...metadata,
-    linkedDirs: Array.from(new Set([...(metadata?.linkedDirs ?? []), ...codeFolders])),
-  };
+  return Array.from(new Set(state.codeFiles));
 }
 
 async function stageLocalCodeFiles(projectId: string, files: File[]): Promise<StagedLocalCodeContext> {
@@ -4022,7 +3986,6 @@ function buildCreationAgentPrompt(
   const githubUrls = githubUrlsFromState(state);
   const localCode = localCodeReferences(state);
   const githubRunbook = buildGithubConnectorRunbook(githubUrls);
-  const localFolderRunbook = buildLocalFolderRunbook(state.codeFolders);
   const title = inferDesignSystemTitle(state);
   return [
     'Create this project as a complete Open Design design system workspace.',
@@ -4056,7 +4019,7 @@ function buildCreationAgentPrompt(
     '- Reviewable previews must appear in the right-side `Design System` tab and show real modules with preview cards, not a standalone marketing page or a single placeholder panel.',
     '',
     'Core execution order:',
-    '1. Read `context/source-context.md` first, then run every intake command it lists for linked GitHub repositories and linked local code folders before editing design-system files.',
+    '1. Read `context/source-context.md` first, then run every intake command it lists for linked GitHub repositories before editing design-system files.',
     '2. Do not write `DESIGN.md`, token files, previews, UI-kit examples, or asset notes from URL text alone. When GitHub, local code, Figma, or assets were provided, preserve concrete evidence under `context/` and use it as the basis for the design-system files.',
     '3. Before writing the design-system files, inventory the local evidence for product identity, real color/theme tokens, font families, brand assets, app shell layout, navigation, chat/input surfaces, and reusable components. Use this inventory to avoid generic tokens.',
     '4. Copy high-signal source component examples from the snapshots when they explain the design system better than prose alone. Keep these examples outside `context/` as reusable package artifacts, not only as hidden evidence.',
@@ -4064,7 +4027,7 @@ function buildCreationAgentPrompt(
     '',
     'Completion gate:',
     '- For each linked GitHub repository, there must be a `context/github/*.md` evidence note plus command-written snapshots under `context/github/*/files/` before writing final design-system rules or previews. The snapshots should include theme/token/source files and any available binary assets or fonts selected by the intake command.',
-    '- For each linked local code folder, run the listed `local-design-context` command and use its `context/local-code/*.md` evidence note plus command-written snapshots under `context/local-code/*/files/` before writing final design-system rules or previews. Browser-copied snapshots already under `context/local-code/` are also valid local evidence.',
+    '- Use browser-copied local code snapshots already under `context/local-code/` as local evidence when they are present.',
     '- Do not call GitHub connector tree/content/raw tools directly from the agent. Use only the bounded `github-design-context` command listed in `context/source-context.md`; it tries this-device git first, authenticated GitHub CLI second, then connector-platform fallback when local access cannot read the repository.',
     '- If the bounded command records `Read method: git-clone`, treat those this-device snapshots as the primary evidence. If it records `Read method: connector`, treat the connector-platform snapshots as valid fallback evidence and continue.',
     '- For private repositories, local git credentials or GitHub CLI authentication (`gh auth login --web`) are preferred intake paths because the command still writes local evidence snapshots.',
@@ -4078,14 +4041,11 @@ function buildCreationAgentPrompt(
     '',
     `Company / design system context:\n${state.company.trim()}`,
     sourceContextManifestPath
-      ? `\nSource context manifest:\n- Read \`${sourceContextManifestPath}\` before drafting. It records GitHub access readiness, local folder links, copied code snapshots, uploaded resources, and the review contract for this design system project.`
+      ? `\nSource context manifest:\n- Read \`${sourceContextManifestPath}\` before drafting. It records GitHub access readiness, copied local code snapshots, uploaded resources, and the review contract for this design system project.`
       : '',
     sourceNotes ? `\nProvided resources:\n${sourceNotes}` : '',
     githubUrls.length
       ? githubRunbook
-      : '',
-    state.codeFolders.length
-      ? `Read the linked local code folders that Open Design attached to this project: ${state.codeFolders.join(', ')}. Treat them as source context only unless the user asks you to edit them.\n\n${localFolderRunbook}`
       : '',
     stagedLocalCode?.uploadedPaths.length
       ? `Inspect the copied local code snapshot files in this project under \`${LOCAL_CODE_UPLOAD_ROOT}/\`: ${stagedLocalCode.uploadedPaths.slice(0, 20).join(', ')}${stagedLocalCode.uploadedPaths.length > 20 ? `, and ${stagedLocalCode.uploadedPaths.length - 20} more` : ''}.`
@@ -4124,7 +4084,6 @@ function buildSourceContextManifest(
   },
 ): string {
   const githubUrls = githubUrlsFromState(state);
-  const linkedFolders = state.codeFolders;
   const copiedSnapshots = options.stagedLocalCode?.uploadedPaths ?? [];
   const skippedCount = options.stagedLocalCode?.skippedCount ?? 0;
   const figmaSummaries = options.stagedFigma?.summaryPaths ?? [];
@@ -4156,13 +4115,6 @@ function buildSourceContextManifest(
   }
 
   sections.push('', '## Local Code', '');
-  if (linkedFolders.length > 0) {
-    sections.push('Linked folders readable by the local agent:');
-    sections.push(...linkedFolders.map((folder) => `- ${folder}`));
-    sections.push('', '### Local Folder Intake Runbook', '', buildLocalFolderRunbook(linkedFolders));
-  } else {
-    sections.push('Linked folders readable by the local agent: none.');
-  }
   if (copiedSnapshots.length > 0) {
     sections.push('', `Copied browser-selected code snapshot files under \`${LOCAL_CODE_UPLOAD_ROOT}/\`:`);
     sections.push(...copiedSnapshots.slice(0, 40).map((filePath) => `- ${filePath}`));
@@ -4224,27 +4176,12 @@ function buildSourceContextManifest(
     BUILD_ASSET_PRESERVATION_CONTRACT,
     '- preview/brand-assets.html should visibly reference preserved files from assets/ or build/ instead of recreating logos/icons as inline placeholder drawings.',
     '- GitHub evidence must come from the bounded `github-design-context` command, not direct connector tree/content/raw tool calls. The command tries this-device git first, authenticated GitHub CLI second, and connector-platform fallback only when local access cannot read the repository.',
-    '- Linked local folder evidence should come from the bounded `local-design-context` command, which writes a local evidence note and snapshots under `context/local-code/` before final design-system rules are drafted.',
+    '- Browser-copied local code snapshots under `context/local-code/` are the local source evidence for this project.',
     '- Before marking the design system ready, run `"$OD_NODE_BIN" "$OD_BIN" tools connectors design-system-package-audit --path . --fail-on-warnings` and fix every reported error or warning.',
     '- Draft design systems cannot be used by other projects until published.',
   );
 
   return `${sections.join('\n')}\n`;
-}
-
-function buildLocalFolderRunbook(folders: string[]): string {
-  if (folders.length === 0) return '';
-  const intakeCommands = folders
-    .map((folder, index) => `   - \`"$OD_NODE_BIN" "$OD_BIN" tools connectors local-design-context --path ${shellQuote(folder)} --output context/local-code/${localEvidenceFileName(folder, index)}\``)
-    .join('\n');
-  return [
-    'Local folder intake is required before drafting from linked local code folders:',
-    '1. For each linked folder, run the bounded local intake command before writing design-system files:',
-    intakeCommands,
-    '2. The command selects design-system-relevant source files plus available logos/icons/fonts, writes a reviewable evidence note, and copies snapshots under `context/local-code/`.',
-    '3. Inspect the generated evidence note plus snapshots for README, package manifests, Tailwind/theme/token files, global CSS, font declarations, component source, layout shells, icons/logos/assets, and representative app entry files.',
-    '4. If the command cannot read a linked folder or write snapshots, stop and explain the local file access problem instead of inventing tokens from the folder name.',
-  ].join('\n');
 }
 
 function buildGithubConnectorRunbook(githubUrls: string[]): string {
@@ -4264,12 +4201,6 @@ function buildGithubConnectorRunbook(githubUrls: string[]): string {
     '7. Inspect the generated evidence note plus snapshots for README, package manifests, Tailwind/theme/token files, global CSS, font declarations, component source for buttons/forms/navigation/cards/tables, layout shells, icons/logos/assets, and representative app entry files.',
     '8. Use that evidence to create or update `DESIGN.md`, `colors_and_type.css`, `README.md`, `SKILL.md`, `preview/`, `ui_kits/app/`, `assets/`, and `fonts/` so the Design System tab can review the output as a reusable package.',
   ].join('\n');
-}
-
-function localEvidenceFileName(folder: string, index: number): string {
-  const parts = folder.split(/[\\/]+/u).filter(Boolean);
-  const basename = sanitizeEvidenceSegment(parts.at(-1) ?? 'local-source');
-  return `${basename}${index > 0 ? `-${index + 1}` : ''}.md`;
 }
 
 function githubEvidenceFileName(url: string): string {

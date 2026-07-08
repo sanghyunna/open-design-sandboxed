@@ -86,7 +86,7 @@ vi.mock('../../src/components/EntryView', () => ({
           })
         }
       >
-        Create project with working dir
+        Create project with project folder
       </button>
       <button
         type="button"
@@ -828,19 +828,19 @@ describe('App project creation routing', () => {
     expect(screen.queryByTestId('entry-project-project-existing')).toBeNull();
   });
 
-  it('switches to the picked working dir before uploading staged Home attachments', async () => {
-    // Regression for the "picked working dir + staged attachment" case:
+  it('switches to the picked project folder before uploading staged attachments', async () => {
+    // Regression for the "picked project folder + staged attachment" case:
     // replaceProjectWorkingDir flips metadata.baseDir to the external folder,
     // so it must run BEFORE uploadProjectFiles — otherwise the staged files
     // land in the temporary managed .od/projects/<id> root and vanish once the
-    // working dir flips. Asserting the call order locks the ordering in.
+    // project folder flips. Asserting the call order locks the ordering in.
     mockedListProjects.mockResolvedValue([]);
     mockedReplaceProjectWorkingDir.mockResolvedValue(undefined as never);
 
     render(<App />);
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Create project with working dir' }),
+      await screen.findByRole('button', { name: 'Create project with project folder' }),
     );
 
     await waitFor(() => {
@@ -853,7 +853,7 @@ describe('App project creation routing', () => {
       '/Users/me/external',
       'wd-token',
     );
-    // Both target the same project id, and the working-dir handoff is ordered
+    // Both target the same project id, and the project-folder handoff is ordered
     // strictly before the upload so the files land in the final tree.
     expect(mockedUploadProjectFiles.mock.calls[0]?.[0]).toBe('project-new');
     const replaceOrder = mockedReplaceProjectWorkingDir.mock.invocationCallOrder[0]!;
@@ -861,8 +861,8 @@ describe('App project creation routing', () => {
     expect(replaceOrder).toBeLessThan(uploadOrder);
   });
 
-  it('short-circuits the upload + auto-send when the working-dir handoff fails', async () => {
-    // Regression for the swallowed-failure case: the desktop working-dir token
+  it('short-circuits the upload + auto-send when the project-folder handoff fails', async () => {
+    // Regression for the swallowed-failure case: the desktop project-folder token
     // has a ~60s TTL, so a slow user (or any rejected POST) makes
     // replaceProjectWorkingDir throw AFTER the project already exists. The old
     // code only logged a warning and then uploaded the staged attachments into
@@ -872,13 +872,13 @@ describe('App project creation routing', () => {
     // choose.
     mockedListProjects.mockResolvedValue([]);
     mockedReplaceProjectWorkingDir.mockRejectedValue(
-      new Error('working-dir token expired'),
+      new Error('project-folder token expired'),
     );
 
     render(<App />);
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Create project with working dir' }),
+      await screen.findByRole('button', { name: 'Create project with project folder' }),
     );
 
     await waitFor(() => {

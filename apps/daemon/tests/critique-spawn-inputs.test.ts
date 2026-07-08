@@ -115,12 +115,11 @@ describe('narrowProjectCritiqueOverride (project metadata input)', () => {
 
   it('preserves other metadata fields by ignoring them entirely', () => {
     // Sanity check that the narrower does not throw on or care about
-    // other fields the metadata blob carries (kind, templateId, linkedDirs,
+    // other fields the metadata blob carries (kind, templateId, importedFrom,
     // importedFrom, baseDir, etc.). It is a pure read of one key.
     const metadata = {
       kind: 'design',
       templateId: 'landing-page',
-      linkedDirs: ['/a', '/b'],
       importedFrom: '/some/path',
       critiqueTheaterEnabled: true,
     };

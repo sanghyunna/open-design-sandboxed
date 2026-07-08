@@ -332,8 +332,8 @@ describe('NewProjectPanel design system defaults', () => {
 
 });
 
-describe('NewProjectPanel working directory picker', () => {
-  it('includes a browser-picked working directory in the create payload', async () => {
+describe('NewProjectPanel project folder picker', () => {
+  it('includes a browser-picked project folder in the create payload', async () => {
     const onCreate = vi.fn();
     mockedIsHostAvailable.mockReturnValue(false);
     mockedOpenFolderDialog.mockResolvedValue('/Users/me/product-designs');
@@ -349,7 +349,7 @@ describe('NewProjectPanel working directory picker', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Local storage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Project folder' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /product-designs/i })).toBeTruthy();
@@ -366,7 +366,7 @@ describe('NewProjectPanel working directory picker', () => {
     expect(mockedPickHostWorkingDir).not.toHaveBeenCalled();
   });
 
-  it('threads the desktop host working-dir token into the create payload', async () => {
+  it('threads the desktop host project-folder token into the create payload', async () => {
     const onCreate = vi.fn();
     mockedIsHostAvailable.mockReturnValue(true);
     mockedPickHostWorkingDir.mockResolvedValue({
@@ -386,7 +386,7 @@ describe('NewProjectPanel working directory picker', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Local storage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Project folder' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /host-designs/i })).toBeTruthy();
@@ -422,7 +422,7 @@ describe('NewProjectPanel working directory picker', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Local storage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Project folder' }));
 
     expect(await screen.findByText(/Couldn't open the folder picker/i)).toBeTruthy();
     expect(mockedOpenFolderDialog).not.toHaveBeenCalled();
