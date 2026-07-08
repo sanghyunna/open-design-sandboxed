@@ -198,3 +198,22 @@ export function resizeCssCommitStyles(args: {
   }
   return styles;
 }
+
+/** Parse a `translate` CSS value ('', undefined, 'none' -> {0,0}; missing/non-px token -> 0 for that axis). */
+export function parseTranslate(value: string | undefined): { x: number; y: number } {
+  if (!value || value.trim() === '' || value.trim() === 'none') return { x: 0, y: 0 };
+  const tokens = value.trim().split(/\s+/);
+  return { x: parsePx(tokens[0]) ?? 0, y: parsePx(tokens[1]) ?? 0 };
+}
+
+/** Fold a rect-space move delta onto the base translate, converting to CSS px via rectScale. */
+export function moveCssCommitStyles(args: {
+  deltaRect: { x: number; y: number };
+  baseTranslate: string | undefined;
+  rectScale?: { x: number; y: number };
+}): Partial<ManualEditStyles> {
+  const base = parseTranslate(args.baseTranslate);
+  const x = Math.round(base.x + args.deltaRect.x / rectScaleAxis(args.rectScale?.x));
+  const y = Math.round(base.y + args.deltaRect.y / rectScaleAxis(args.rectScale?.y));
+  return { translate: (x === 0 && y === 0) ? '' : `${x}px ${y}px` };
+}

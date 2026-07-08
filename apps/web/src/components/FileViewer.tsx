@@ -125,7 +125,8 @@ import type {
 } from '../types';
 import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
-import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
+import { ManualEditMoveFrame } from './ManualEditMoveFrame';
+import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, moveCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import {
   applyManualEditPatch,
@@ -135,7 +136,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBridgeMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -3764,6 +3765,11 @@ function HtmlViewer({
   }, []);
   const [manualEditTargets, setManualEditTargets] = useState<ManualEditTarget[]>([]);
   const [selectedManualEditTarget, setSelectedManualEditTarget] = useState<ManualEditTarget | null>(null);
+  // PPT move-frame mode for the selected element: 'editing' renders ring strips
+  // only (caret active), 'selected' adds the interior move surface. Seeded per
+  // selection from the target kind; demoted to 'selected' when the iframe
+  // reports the rich-edit session ended (Esc/blur).
+  const [manualEditMoveMode, setManualEditMoveMode] = useState<'editing' | 'selected'>('selected');
   const [manualEditHoverTarget, setManualEditHoverTarget] = useState<ManualEditTarget | null>(null);
   const [manualEditPageStylesOpen, setManualEditPageStylesOpen] = useState(false);
   const [manualEditPanelPosition, setManualEditPanelPosition] = useState<{ left: number; top: number } | null>(null);
@@ -3789,6 +3795,9 @@ function HtmlViewer({
     styles: Partial<ManualEditStyles>;
     cssSize?: { width: string; height: string };
   } | null>(null);
+  // Drag-start snapshot of the element's base `translate` for move-frame delta
+  // math; every frame of one drag folds onto this fixed base.
+  const manualEditMoveBaselineRef = useRef<{ id: string; translate: string } | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
@@ -4521,6 +4530,14 @@ function HtmlViewer({
     if (win) win.postMessage({ type: 'od-edit-rich-format', command }, '*');
   }, []);
 
+  const sendManualEditTextEdit = useCallback(
+    (message: ManualEditBeginTextEditMessage | ManualEditEndTextEditMessage) => {
+      const win = iframeRef.current?.contentWindow;
+      if (win) win.postMessage(message, '*');
+    },
+    [],
+  );
+
   function postSelectedManualEditTargetToIframe(id: string | null, target: HTMLIFrameElement | null = iframeRef.current) {
     const win = target?.contentWindow;
     if (!win) return;
@@ -4946,6 +4963,9 @@ function HtmlViewer({
           editing: !!data.editing, hasSelection: !!data.hasSelection,
           bold: !!data.bold, italic: !!data.italic, underline: !!data.underline,
         });
+        // Rich-edit session ended (Esc/blur) → promote the move frame to
+        // object-select. Never force 'editing' here: mode is seeded per selection.
+        if (!data.editing) setManualEditMoveMode('selected');
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
@@ -5141,6 +5161,62 @@ function HtmlViewer({
     previewStyleToIframe(target.id, revert, nextManualEditPreviewVersion());
   }
 
+  // Move-frame drag: fold the rect-space delta onto the element's base
+  // `translate` (selection-time value overlaid by any unsaved panel draft),
+  // snapshotted at drag start so preview acks / commit folds don't shift the
+  // baseline mid-drag. Mirrors the resize baseline/styles/commit/revert set.
+  function baseTranslateFor(target: ManualEditTarget): string {
+    const pending = manualEditPendingStyleRef.current;
+    if (pending?.id === target.id && pending.styles.translate !== undefined) return pending.styles.translate;
+    return target.styles.translate ?? '';
+  }
+
+  function beginManualEditMoveBaseline(target: ManualEditTarget) {
+    manualEditMoveBaselineRef.current = { id: target.id, translate: baseTranslateFor(target) };
+  }
+
+  function manualEditMoveStyles(
+    target: ManualEditTarget,
+    deltaRect: { x: number; y: number },
+  ): Partial<ManualEditStyles> {
+    let baseline = manualEditMoveBaselineRef.current;
+    if (baseline?.id !== target.id) {
+      beginManualEditMoveBaseline(target);
+      baseline = manualEditMoveBaselineRef.current;
+    }
+    return moveCssCommitStyles({
+      deltaRect,
+      baseTranslate: baseline?.translate,
+      rectScale: target.rectScale,
+    });
+  }
+
+  async function commitManualEditMove(target: ManualEditTarget, deltaRect: { x: number; y: number }) {
+    const styles = manualEditMoveStyles(target, deltaRect);
+    const ok = await applyManualEdit({ id: target.id, kind: 'set-style', styles }, `Style: ${target.label}`);
+    if (!ok) {
+      // The shared non-queued manualEditSavingRef mutex can be busy (a
+      // border-drag-while-editing chains a text-commit, or rapid consecutive
+      // drags) — same ceiling the resize commit path has. Snap the preview
+      // back to base so the iframe stays consistent with the unwritten
+      // source instead of lingering at the dragged value for the next drag
+      // to read as a stale baseline.
+      revertManualEditMovePreview(target);
+      return;
+    }
+    cancelManualEditPendingStyles(target.id, ['translate']);
+    // Fold translate into the selected target so consecutive drags accumulate
+    // on the committed base (and a later Escape reverts to it).
+    setSelectedManualEditTarget((current) => {
+      if (!current || current.id !== target.id) return current;
+      return { ...current, styles: { ...current.styles, ...styles } };
+    });
+  }
+
+  function revertManualEditMovePreview(target: ManualEditTarget) {
+    previewStyleToIframe(target.id, { translate: baseTranslateFor(target) }, nextManualEditPreviewVersion());
+  }
+
   async function flushManualEditStyleSave(): Promise<boolean> {
     const pending = manualEditPendingStyleRef.current;
     if (!pending) return true;
@@ -5213,6 +5289,9 @@ function HtmlViewer({
     // is the single funnel for od-edit-select, the panel's onSelectTarget,
     // and the hover-affordance click — none of them call setSelectedManualEditTarget directly.
     setManualEditPanelAnchorRect(target.rect);
+    // Text/link land in the caret (PPT click-into-textbox); everything else is
+    // object-selected so the whole box is a move surface.
+    setManualEditMoveMode(target.kind === 'text' || target.kind === 'link' ? 'editing' : 'selected');
     setManualEditDraft({
       text: fields.text ?? target.fields.text ?? target.text,
       href: fields.href ?? target.fields.href ?? '',
@@ -5617,6 +5696,25 @@ function HtmlViewer({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [manualEditMode]);
+
+  // Host Esc ladder: with an object-selected element, Esc deselects (like
+  // clicking empty canvas). The editing→selected Esc is handled inside the
+  // iframe (the move frame promotes on the resulting editing:false broadcast);
+  // a mid-drag Esc is swallowed by the move frame's own handler. NOTE: the
+  // second Esc may not fire when focus is trapped in the iframe post-edit —
+  // empty-canvas click is the reliable deselect (no focus-juggling for v1).
+  useEffect(() => {
+    if (!manualEditMode || !selectedManualEditTarget || manualEditMoveMode !== 'selected') return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      e.preventDefault();
+      void clearManualEditTargetSelection();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [manualEditMode, selectedManualEditTarget, manualEditMoveMode]);
 
   useEffect(() => {
     if (!presentMenuOpen) return;
@@ -6988,6 +7086,52 @@ function HtmlViewer({
         }}
       />
     ) : null;
+  // Move frame: same overlay rect + gate as the resize handles, one z-index
+  // below them so handle drags = resize and elsewhere = move (PPT model).
+  const manualEditMoveFrame =
+    manualEditResizeRect && selectedManualEditTarget ? (
+      <ManualEditMoveFrame
+        rect={manualEditResizeRect}
+        scale={overlayPreviewScale}
+        mode={manualEditMoveMode}
+        interactive={selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'}
+        label={t('manualEdit.move.frame')}
+        onMoveStart={() => {
+          beginManualEditMoveBaseline(selectedManualEditTarget);
+          // Dragging the border while editing commits the text and promotes to
+          // object-select before the move (PPT).
+          if (manualEditMoveMode === 'editing') {
+            sendManualEditTextEdit({ type: 'od-edit-end-text-edit' });
+            setManualEditMoveMode('selected');
+          }
+        }}
+        onMovePreview={(delta) => {
+          previewStyleToIframe(
+            selectedManualEditTarget.id,
+            manualEditMoveStyles(selectedManualEditTarget, delta),
+            nextManualEditPreviewVersion(),
+          );
+        }}
+        onMoveCommit={(delta) => {
+          void commitManualEditMove(selectedManualEditTarget, delta);
+        }}
+        onMoveCancel={() => {
+          revertManualEditMovePreview(selectedManualEditTarget);
+        }}
+        onSurfaceClick={(region) => {
+          if (region === 'ring' && manualEditMoveMode === 'editing') {
+            sendManualEditTextEdit({ type: 'od-edit-end-text-edit' });
+            setManualEditMoveMode('selected');
+          } else if (
+            region === 'interior' && manualEditMoveMode === 'selected'
+            && (selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link')
+          ) {
+            sendManualEditTextEdit({ type: 'od-edit-begin-text-edit', id: selectedManualEditTarget.id });
+            setManualEditMoveMode('editing');
+          }
+        }}
+      />
+    ) : null;
   const activeComposerComment = activePreviewCommentId
     ? visibleSideComments.find((comment) => comment.id === activePreviewCommentId) ?? null
     : null;
@@ -7721,6 +7865,7 @@ function HtmlViewer({
           >
             {manualEditPanel}
             {manualEditHoverAffordance}
+            {manualEditMoveFrame}
             {manualEditResizeHandles}
             <div
               className={manualEditMode ? 'manual-edit-canvas' : 'comment-preview-canvas'}

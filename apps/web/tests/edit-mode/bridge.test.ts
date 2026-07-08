@@ -569,7 +569,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('cancels inline text edits with Escape without posting a commit', () => {
+  it('commits inline text edits with Escape (PPT: keeps typed text, promotes to object-select)', () => {
     const dom = new JSDOM(
       `<main><p data-od-id="body">Original body</p></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
@@ -585,10 +585,85 @@ describe('manual edit bridge target normalization', () => {
       key: 'Escape',
     }));
 
-    expect(body.textContent).toBe('Original body');
-    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({
+    expect(body.hasAttribute('data-od-editing')).toBe(false);
+    expect(body.textContent).toBe('Draft body');
+    expect(postMessage).toHaveBeenCalledWith({
       type: 'od-edit-text-commit',
-    }), '*');
+      id: 'body',
+      value: 'Draft body',
+    }, '*');
+
+    dom.window.close();
+  });
+
+  it('enters inline text edit on an od-edit-begin-text-edit message', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Original title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-begin-text-edit', id: 'title' },
+    }));
+
+    expect(title.getAttribute('contenteditable')).toBe('true');
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+
+    dom.window.close();
+  });
+
+  it('exits inline text edit (blur -> commit) on an od-edit-end-text-edit message', () => {
+    const posts: Array<{ type?: string; editing?: boolean }> = [];
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Original title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; editing?: boolean }); }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-begin-text-edit', id: 'title' },
+    }));
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-end-text-edit' },
+    }));
+
+    expect(title.hasAttribute('data-od-editing')).toBe(false);
+    const state = posts.filter((m) => m.type === 'od-edit-selection-state').pop();
+    expect(state?.editing).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('reports the element translate in select target styles', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="hero" style="translate: 12px 34px">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.querySelector('[data-od-id="hero"]')!.dispatchEvent(
+      new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({
+          styles: expect.objectContaining({ translate: '12px 34px' }),
+        }),
+      }),
+      '*',
+    );
 
     dom.window.close();
   });

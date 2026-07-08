@@ -1,0 +1,52 @@
+.container {
+  position: absolute;
+  z-index: 31;
+  pointer-events: none;
+  border: 1px solid #2563eb;
+}
+
+.editing {
+  border-style: dashed;
+}
+
+.selected {
+  border-style: solid;
+}
+
+.ring {
+  position: absolute;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+.ringTop {
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.ringBottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.ringLeft {
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.ringRight {
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.interior {
+  position: absolute;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}

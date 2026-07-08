@@ -67,7 +67,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
-  var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
+  var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','translate','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   function isHostNode(el){
     return !!(el && el.matches && el.matches(hostNodeSelector));
@@ -486,7 +486,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       }
       if (ev.key === 'Escape') {
         ev.preventDefault();
-        finish(false);
+        finish(true); // PPT: Esc commits typed text and promotes to object-select; undo stays on host Ctrl+Z
         try { el.blur(); } catch (e) {}
       }
     }
@@ -578,6 +578,17 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     if (ev.data.type === 'od-edit-rich-format') {
       applyRichFormat(ev.data.command);
+      return;
+    }
+    if (ev.data.type === 'od-edit-begin-text-edit') {
+      if (!enabled) return;
+      var beginEl = findById(ev.data.id);
+      if (beginEl && beginEl.getAttribute('data-od-editing') !== 'true') makeEditable(beginEl);
+      return;
+    }
+    if (ev.data.type === 'od-edit-end-text-edit') {
+      var endEl = document.querySelector('[data-od-editing="true"]');
+      if (endEl && typeof endEl.blur === 'function') endEl.blur();
       return;
     }
   });

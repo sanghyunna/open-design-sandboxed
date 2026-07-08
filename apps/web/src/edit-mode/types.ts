@@ -25,6 +25,10 @@ export interface ManualEditStyles {
   width: string;
   height: string;
   minHeight: string;
+  // Standalone CSS `translate` (e.g. "10px 20px"). Drives layout-neutral move
+  // drags: it offsets the element visually without reflowing siblings and
+  // composes with any existing `transform`. Empty string = no translation.
+  translate: string;
   gap: string;
   flexDirection: string;
   justifyContent: string;
@@ -180,6 +184,22 @@ export interface ManualEditRichFormatMessage {
   command: 'bold' | 'italic' | 'underline';
 }
 
+// host -> iframe: enter the rich-text edit session for an element (PowerPoint
+// "object-selected -> click interior = caret"). The host owns the move overlay
+// that swallows the interior click, so it asks the bridge to open the caret.
+export interface ManualEditBeginTextEditMessage {
+  type: 'od-edit-begin-text-edit';
+  id: string;
+}
+
+// host -> iframe: leave the rich-text edit session but keep the element
+// selected (PowerPoint "Esc / border-drag promotes caret to object select").
+// The bridge tears down contenteditable and re-broadcasts selection-state
+// (editing: false) so the host flips the move frame to object-selected mode.
+export interface ManualEditEndTextEditMessage {
+  type: 'od-edit-end-text-edit';
+}
+
 export type ManualEditBridgeMessage =
   | ManualEditTargetMessage
   | ManualEditSelectMessage
@@ -193,7 +213,7 @@ export type ManualEditBridgeMessage =
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
   'fontFamily', 'fontSize', 'fontWeight', 'color', 'textAlign', 'lineHeight', 'letterSpacing',
-  'width', 'height', 'minHeight',
+  'width', 'height', 'minHeight', 'translate',
   'gap', 'flexDirection', 'justifyContent', 'alignItems', 'flex',
   'backgroundColor', 'opacity',
   'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
