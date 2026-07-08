@@ -6,8 +6,8 @@ description: |
   Innovation, each scored 0–10. Outputs a single self-contained HTML
   report with a radar chart, evidence-backed scores, and three lists:
   Keep / Fix / Quick-wins. Use when the brief asks for a "design
-  review", "design critique", "5 维度评审", "design audit", or "what's
-  wrong with my design".
+  review", "design critique", "5-dimension review", "design audit", or
+  "what's wrong with my design".
 triggers:
   - "critique"
   - "design review"
@@ -32,7 +32,7 @@ od:
   example_prompt: "Run a 5-dimension critique on the magazine-web-ppt deck I just generated — score philosophy / hierarchy / detail / function / innovation, give me Keep / Fix / Quick-wins."
 ---
 
-# Critique Skill · 5 维度专家评审
+# Critique Skill · 5-Dimension Expert Review
 
 Produce a single-file HTML "design review report" that scores any
 artifact across 5 dimensions and proposes actionable fixes. Inspired by

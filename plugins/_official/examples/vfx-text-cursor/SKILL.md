@@ -13,10 +13,10 @@ featured: 38
 recommended: 7
 tags: ["vfx", "text", "cursor", "chromatic", "reveal", "frame"]
 example_id: sample-vfx-text-cursor
-example_name: "VFX 光标 · 开场金句"
+example_name: "VFX Cursor · Opening Quote"
 example_format: markdown
-example_tagline: "逐字揭示 + chromatic 拖光"
-example_desc: "光标打字 hot pink + cyan 像散, 视频开场用"
+example_tagline: "Word-by-word reveal + chromatic light trail"
+example_desc: "Cursor typing with hot pink + cyan chromatic aberration, for video intros"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · vfx-text-cursor"
 od:
@@ -36,29 +36,29 @@ od:
     zh-CN: "用「VFX 文字光标」模板把我的内容做成一段「光标拖光 + 彩色像散射线 + 定向光斑, 适合视频片头逐字揭示金句」。保持模板的视觉签名，使用真实内容和数据，避免 lorem ipsum 和占位图片。"
 ---
 
-【模板: VFX 文字光标 (Text Cursor)】
-【意图】视频开场/Hero 帧 —— 光标在画布上"打字", 文字逐字浮现, 后面拖着彩色像散尾迹 + 定向光斑。Inspired by html-frames vfx-text-cursor。
+[Template: VFX Text Cursor]
+[Intent] Video opening / hero frame — a cursor "types" across the canvas, text reveals word by word, trailing a chromatic-aberration streak and directional light flares. Inspired by html-frames vfx-text-cursor.
 
-【画布】1920×1080, 背景 `#06070a` 暗哑黑 或 `#0a0d12` (有暖偏蓝); 加微妙 vignette。
+[Canvas] 1920x1080, background `#06070a` matte black or `#0a0d12` (warm-leaning blue tint); add a subtle vignette.
 
-【内容】
-- 一句金句 (中英不限), 居中, 字号 6-8vw, weight 700, 字体 `Inter Tight` / `Source Sans 3` / `Noto Sans SC`。
-- 逐字揭示, 每个字符 80ms 间隔; 当前字符后面跟着一个 cursor `▍` (或细 vertical bar)。
-- 已揭示文字默认白色 `#f5f5f7`, opacity 1; 即将揭示位置加 chromatic ghost: 一份 `text-shadow: 2px 0 #ff3b6f, -2px 0 #00d4ff` 在 reveal 瞬间, 200ms 内收敛回正常。
-- 光标本身: 16px 宽矩形, 颜色 = accent (取 1: hot pink `#ff3b6f` / cyan `#00d4ff` / amber `#ffb547`), 闪烁 `@keyframes` 1.0s 周期; 后面拖一条 60-120px 的 motion blur trail (径向渐变到透明)。
+[Content]
+- One quote (any language), centered, font size 6-8vw, weight 700, font `Inter Tight` / `Source Sans 3` / `Noto Sans SC`.
+- Reveal character by character, 80ms interval per character; the current character is followed by a cursor `▍` (or a thin vertical bar).
+- Already-revealed text defaults to white `#f5f5f7`, opacity 1; the about-to-reveal position gets a chromatic ghost: a `text-shadow: 2px 0 #ff3b6f, -2px 0 #00d4ff` at the moment of reveal, converging back to normal within 200ms.
+- The cursor itself: a 16px-wide rectangle, color = accent (pick 1: hot pink `#ff3b6f` / cyan `#00d4ff` / amber `#ffb547`), blinking via `@keyframes` on a 1.0s cycle; trailing a 60-120px motion-blur trail (radial gradient fading to transparent).
 
-【光斑 / 射线】
-- 在打字位置附近随机生成 3-5 道**定向光斑** (light leak): 用 `linear-gradient(45deg, transparent, accent20, transparent)` 的细长矩形 + `mix-blend-mode: screen`, 不规则角度。
-- 当文字打完, 整段文字加 0.5s shimmer sweep (光带横扫)。
+[Flares / rays]
+- Randomly spawn 3-5 **directional light flares** (light leak) near the typing position: thin elongated rectangles using `linear-gradient(45deg, transparent, accent20, transparent)` + `mix-blend-mode: screen`, at irregular angles.
+- Once the text finishes typing, add a 0.5s shimmer sweep across the whole line (a band of light sweeping across).
 
-【字段】
-- 顶部 caption (uppercase letterspace 0.18em, 11px, opacity 0.5): "FRAME 01 · OPENING"。
-- 文字底下副标 (24-28px, opacity 0.6): 来源 / 章节。
-- 右下角 timecode (`00:03:21` mono)。
+[Fields]
+- Top caption (uppercase, letter-spacing 0.18em, 11px, opacity 0.5): "FRAME 01 · OPENING".
+- Subtitle beneath the text (24-28px, opacity 0.6): source / chapter.
+- Bottom-right timecode (`00:03:21` mono).
 
-【设计细节】
-- **绝不**: 多色彩虹 chromatic (只用 1 个 hot pink + cyan 这种二元像散, 不要 R/G/B 全色)。
-- 字体: 西文 `Inter Tight` Bold; 中文 `Noto Sans SC` Bold; 严禁衬线。
-- 动效用 `@keyframes` + JS 计时器 (`setTimeout` 逐字), 可被 `prefers-reduced-motion` 关闭 (直接显示所有字)。
-- 必须用用户提供的金句; 不要捏造。
-- 单文件 HTML, 不要外链字体以外的资源。
+[Design details]
+- **Never**: multi-color rainbow chromatic aberration (use only 1 binary pair like hot pink + cyan, not full R/G/B).
+- Fonts: Latin text `Inter Tight` Bold; CJK text `Noto Sans SC` Bold; no serif fonts allowed.
+- Motion via `@keyframes` + a JS timer (`setTimeout` per character), and must be disable-able via `prefers-reduced-motion` (show all text immediately instead).
+- Must use the user-provided quote; do not invent one.
+- Single-file HTML; no external resources besides fonts.

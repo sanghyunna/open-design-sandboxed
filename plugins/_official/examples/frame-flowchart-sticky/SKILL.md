@@ -12,10 +12,10 @@ aspect_hint: "1920×1080 (16:9)"
 featured: 45
 tags: ["flowchart", "diagram", "sticky", "whiteboard", "frame"]
 example_id: sample-frame-flowchart-sticky
-example_name: "便利贴流程图 · 用户 onboarding"
+example_name: "Sticky Flowchart · User Onboarding"
 example_format: markdown
-example_tagline: "SVG 曲线 + 4 色便利贴"
-example_desc: "6 节点 onboarding 流程, 手写体 + 白板纸底"
+example_tagline: "SVG curves + 4-color sticky notes"
+example_desc: "6-node onboarding flow, handwriting font + whiteboard paper background"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · flowchart"
 od:
@@ -34,31 +34,31 @@ od:
     zh-CN: "用「便利贴流程图帧」模板把我的内容做成一段「SVG 曲线连接 + 便利贴节点 + 光标交互, 像白板 brainstorm」。保持模板的视觉签名，使用真实内容和数据，避免 lorem ipsum 和占位图片。"
 ---
 
-【模板: 便利贴流程图帧 (Sticky Flowchart)】
-【意图】把一个流程 / 系统 / 工作流画成"白板 + 便利贴"的样子, 适合 onboarding 视频、运营流程说明、系统架构讲解。Inspired by html-frames flowchart。
+【Template: Sticky Flowchart Frame (Sticky Flowchart)】
+【Intent】Turn a process / system / workflow into a "whiteboard + sticky notes" look, suited for onboarding videos, operations process explainers, and system architecture walkthroughs. Inspired by html-frames flowchart.
 
-【画布】1920×1080。背景: 米黄白板纸 `#f4ede1` 或冷灰白板 `#f0f2f4`; 加非常浅的 hex grid `rgba(0,0,0,0.04)` 让它有白板感。
+【Canvas】1920×1080. Background: cream whiteboard paper `#f4ede1` or cool-gray whiteboard `#f0f2f4`; add a very faint hex grid `rgba(0,0,0,0.04)` for a whiteboard feel.
 
-【节点 (Sticky Notes)】
-- 每节点 = 一张 240×180px 便利贴, 4 套颜色随机分配: 黄 `#fcd34d` / 桃 `#fca5a5` / 薄荷 `#a7f3d0` / 天 `#a5b4fc`。
-- 便利贴有轻微旋转 `transform: rotate(±2deg)` 不一致, 投影 `drop-shadow(0 6px 14px rgba(0,0,0,0.12))`, 顶部胶带 `linear-gradient(...)` 装饰。
-- 节点内容: 1 个 emoji 或单线 SVG icon + 大字标题 (16-20px) + 一行描述 (12px)。
-- 节点字体: `Kalam` / `Caveat` / `Patrick Hand` 手写感字体 (中文用 `霞鹜文楷` 或 `LXGW WenKai Screen`)。
+【Nodes (Sticky Notes)】
+- Each node = one 240×180px sticky note, randomly assigned from 4 color sets: yellow `#fcd34d` / peach `#fca5a5` / mint `#a7f3d0` / sky `#a5b4fc`.
+- Sticky notes have a slight, inconsistent rotation `transform: rotate(±2deg)`, a drop shadow `drop-shadow(0 6px 14px rgba(0,0,0,0.12))`, and a decorative tape strip on top `linear-gradient(...)`.
+- Node content: 1 emoji or single-line SVG icon + large title (16-20px) + a one-line description (12px).
+- Node font: handwriting-style `Kalam` / `Caveat` / `Patrick Hand` (for Chinese use `LXGW WenKai` / `LXGW WenKai Screen`).
 
-【连接线 (SVG)】
-- 用 `<path>` Bezier 曲线连接节点, stroke `#2a2a2a`, width 2.5, `stroke-linecap: round`, `stroke-dasharray: 0` (实线) 或 `8 6` (虚线 = 条件分支)。
-- 箭头终端用 `marker-end`, 黑色三角小箭头。
-- 复杂节点可有循环或分支: 同一节点连出 2 条 (分叉) 或 2 条进入一节点 (合并)。
+【Connectors (SVG)】
+- Use `<path>` Bezier curves to connect nodes, stroke `#2a2a2a`, width 2.5, `stroke-linecap: round`, `stroke-dasharray: 0` (solid line) or `8 6` (dashed = conditional branch).
+- Arrow ends use `marker-end`, small black triangular arrowheads.
+- Complex nodes may loop or branch: 2 lines out of the same node (fork) or 2 lines into one node (merge).
 
-【可选交互】
-- 顶部 caption (sans, 12px uppercase): "FLOW · MIGRATION · 2026"。
-- 鼠标 hover 节点: 抬起阴影 + scale 1.05, 用 CSS transition。
-- 一个"光标"装饰 (`<svg>` arrow + name tag), 浮在某节点旁, 模拟 figma 协作光标。
+【Optional Interaction】
+- Top caption (sans, 12px uppercase): "FLOW · MIGRATION · 2026".
+- Node hover: lift shadow + scale 1.05, using CSS transition.
+- A "cursor" decoration (`<svg>` arrow + name tag) floating near a node, simulating a Figma collaboration cursor.
 
-【设计细节】
-- 至少 5 个节点, 最多 12 个。
-- 节点排布不要全部居中对齐, 要有一点白板风的"随手贴"感, 但保证连接线清晰不交叉。
-- 严禁: 全屏深色背景、霓虹色、企业 dashboard 风格。
-- 字体不能用 Inter / 衬线, 必须手写感。
-- 单文件 HTML, 不要外部图标库 (用 inline SVG)。
-- 必须用用户的真实流程内容; 节点文字直接来自用户输入。
+【Design Details】
+- At least 5 nodes, at most 12.
+- Don't center-align every node; give it a whiteboard "stuck on by hand" feel, but keep connector lines clear and non-crossing.
+- Forbidden: full-screen dark background, neon colors, enterprise dashboard look.
+- Fonts must not be Inter / serif; must feel handwritten.
+- Single-file HTML, no external icon libraries (use inline SVG).
+- Must use the user's real process content; node text comes directly from user input.

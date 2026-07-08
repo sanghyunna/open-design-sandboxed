@@ -8,14 +8,14 @@ zh_description: "拟真 macOS 通知 banner + app icon + 标题正文, 适合 vi
 en_description: "Realistic macOS notification banner with app icon, title, and body, suited to video overlays or product teasers."
 category: card
 scenario: video
-aspect_hint: "1920×1080 视频或 480×120 横幅"
+aspect_hint: "1920x1080 video or 480x120 banner"
 featured: 41
 tags: ["macos", "notification", "banner", "overlay", "frame"]
 example_id: sample-frame-macos-notification
-example_name: "macOS 通知 · 新功能发布"
+example_name: "macOS Notification · New Feature Launch"
 example_format: markdown
-example_tagline: "Big Sur 磨砂玻璃 banner"
-example_desc: "App icon + 标题 + 双行正文, 视频角落叠加用"
+example_tagline: "Big Sur frosted-glass banner"
+example_desc: "App icon + title + two-line body, for video corner overlay"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · macos-notification"
 od:

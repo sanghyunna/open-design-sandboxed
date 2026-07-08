@@ -24,7 +24,7 @@
     "en": "Html Ppt Obsidian Claude Gradient"
   },
   "version": "0.1.0",
-  "description": "GitHub 暗紫渐变 deck — GitHub-dark #0d1117 + 紫蓝 radial 环境光 + 60px 网格 mask、居中布局、紫色 pill 标签、三色渐变标题（#a855f7→#60a5fa→#34d399）、GitHub 风代码 palette、紫色左边框高亮块。适合开发者工作流 / MCP / Agent / dev tool 教程，类似 GitHub Blog / Linear Changelog。",
+  "description": "GitHub dark purple gradient deck — GitHub-dark #0d1117 background with a purple-blue radial ambient glow, 60px grid mask, centered layout, purple pill tags, tri-color gradient headings (#a855f7→#60a5fa→#34d399), GitHub-style code palette, and purple left-border highlight blocks. Great for developer workflow / MCP / Agent / dev tool tutorials, similar to GitHub Blog / Linear Changelog.",
   "description_i18n": {
     "zh-CN": "GitHub 暗紫渐变幻灯片主题，采用 GitHub-dark #0d1117 背景、紫蓝径向环境光、60px 网格遮罩、居中布局、紫色药丸标签、三色渐变标题（#a855f7→#60a5fa→#34d399）、GitHub 风格代码配色和紫色左边框高亮块。适合开发者工作流、MCP、Agent 和开发工具教程。",
     "zh-TW": "GitHub 暗紫漸層簡報主題，採用 GitHub-dark #0d1117 背景、紫藍徑向環境光、60px 網格遮罩、置中佈局、紫色藥丸標籤、三色漸層標題（#a855f7→#60a5fa→#34d399）、GitHub 風格程式碼配色及紫色左邊框醒目區塊。適合開發者工作流程、MCP、Agent 與開發工具教學。",
@@ -43,7 +43,7 @@
     "ar": "قالب عرض تقديمي بتدرج أرجواني داكن بأسلوب GitHub مع خلفية GitHub-dark #0d1117، إضاءة محيطية شعاعية أزرق-أرجواني، قناع شبكة 60px، تخطيط مركزي، علامات pill أرجوانية، عناوين بتدرج ثلاثي الألوان (#a855f7→#60a5fa→#34d399)، لوحة ألوان كود بأسلوب GitHub وكتل تمييز بحدود يسرى أرجوانية. مثالي لسير عمل المطورين وMCP وAgent ودروس أدوات التطوير.",
     "tr": "GitHub tarzı koyu mor degradeli sunum teması. GitHub-dark #0d1117 arka plan, radyal mavi-mor ortam ışığı, 60px ızgara maskesi, ortalanmış düzen, mor pill etiketleri, üç renkli degrade başlıklar (#a855f7→#60a5fa→#34d399), GitHub tarzı kod paleti ve mor sol kenarlık vurgulu bloklar içerir. Geliştirici iş akışları, MCP, Agent ve geliştirme araçları eğitimleri için idealdir.",
     "uk": "Темна фіолетова градієнтна тема презентацій GitHub із фоном GitHub-dark #0d1117, радіальним фіолетово-синім навколишнім освітленням, сіткою 60px, центрованим макетом, фіолетовими pill-тегами, триколірними градієнтними заголовками (#a855f7→#60a5fa→#34d399), кодовою палітрою в стилі GitHub та фіолетовою лівою рамкою для виділення блоків. Підходить для dev-воркфлоу, MCP, Agent та туторіалів інструментів розробки.",
-    "en": "GitHub 暗紫渐变 deck — GitHub-dark #0d1117 + 紫蓝 radial 环境光 + 60px 网格 mask、居中布局、紫色 pill 标签、三色渐变标题（#a855f7→#60a5fa→#34d399）、GitHub 风代码 palette、紫色左边框高亮块。适合开发者工作流 / MCP / Agent / dev tool 教程，类似 GitHub Blog / Linear Changelog。"
+    "en": "GitHub dark purple gradient deck — GitHub-dark #0d1117 background with a purple-blue radial ambient glow, 60px grid mask, centered layout, purple pill tags, tri-color gradient headings (#a855f7→#60a5fa→#34d399), GitHub-style code palette, and purple left-border highlight blocks. Great for developer workflow / MCP / Agent / dev tool tutorials, similar to GitHub Blog / Linear Changelog."
   },
   "license": "MIT",
   "author": {

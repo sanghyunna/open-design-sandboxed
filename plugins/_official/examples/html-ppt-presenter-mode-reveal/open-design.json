@@ -24,7 +24,7 @@
     "en": "Html Ppt Presenter Mode Reveal"
   },
   "version": "0.1.0",
-  "description": "演讲者模式专用 deck — tokyo-night 默认主题，5 套主题 T 键切换，每页带 150-300 字逐字稿示例（<aside class=\"notes\">），按 S 打开 popup（CURRENT / NEXT / SCRIPT / TIMER 四张磁吸卡片）。用于技术分享、公开演讲、课程讲解，怕忘词或要提词器的场景。",
+  "description": "A dedicated presenter-mode deck — tokyo-night default theme, 5 themes toggled with the T key, each slide ships a 150-300 word script example (<aside class=\"notes\">), press S to open the popup (CURRENT / NEXT / SCRIPT / TIMER magnetic cards). Built for tech talks, public speaking, and lectures where you're worried about forgetting your lines or need a teleprompter.",
   "description_i18n": {
     "zh-CN": "演讲者模式专用 deck — tokyo-night 默认主题，5 套主题 T 键切换，每页带 150-300 字逐字稿示例（<aside class=\"notes\">），按 S 打开 popup（CURRENT / NEXT / SCRIPT / TIMER 四张磁吸卡片）。用于技术分享、公开演讲、课程讲解，怕忘词或要提词器的场景。",
     "zh-TW": "演講者模式專用 deck — tokyo-night 預設主題，5 套主題 T 鍵切換，每頁帶 150-300 字逐字稿範例（<aside class=\"notes\">），按 S 開啟 popup（CURRENT / NEXT / SCRIPT / TIMER 四張磁吸卡片）。用於技術分享、公開演講、課程講解，怕忘詞或要提詞器的場景。",
@@ -43,7 +43,7 @@
     "ar": "مجموعة شرائح وضع المقدم مع سمة tokyo-night الافتراضية، 5 سمات (مفتاح T للتبديل)، ملاحظات 150-300 كلمة لكل شريحة (<aside class=\"notes\">)، مفتاح S يفتح popup (بطاقات CURRENT / NEXT / SCRIPT / TIMER). مثالي للعروض التقنية مع المطالبة.",
     "tr": "Sunucu modu destesi tokyo-night varsayılan teması, 5 tema (T tuşu ile değiştir), slayt başına 150-300 kelime notlar (<aside class=\"notes\">), S tuşu popup açar (CURRENT / NEXT / SCRIPT / TIMER kartları). Teknik sunumlar için teleprompter ile ideal.",
     "uk": "Презентаційна колода з темою tokyo-night за замовчуванням, 5 тем (клавіша T для перемикання), нотатки на 150-300 слів (<aside class=\"notes\">), клавіша S відкриває popup (картки CURRENT / NEXT / SCRIPT / TIMER). Для технічних доповідей з суфлером.",
-    "en": "演讲者模式专用 deck — tokyo-night 默认主题，5 套主题 T 键切换，每页带 150-300 字逐字稿示例（<aside class=\"notes\">），按 S 打开 popup（CURRENT / NEXT / SCRIPT / TIMER 四张磁吸卡片）。用于技术分享、公开演讲、课程讲解，怕忘词或要提词器的场景。"
+    "en": "A dedicated presenter-mode deck — tokyo-night default theme, 5 themes toggled with the T key, each slide ships a 150-300 word script example (<aside class=\"notes\">), press S to open the popup (CURRENT / NEXT / SCRIPT / TIMER magnetic cards). Built for tech talks, public speaking, and lectures where you're worried about forgetting your lines or need a teleprompter."
   },
   "license": "MIT",
   "author": {

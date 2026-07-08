@@ -8,15 +8,15 @@ zh_description: "16 列网格 + 单一饱和 accent + 22 个锁死版面 (Klein 
 en_description: "16-column grid, one saturated accent, and 22 locked layouts (Klein Blue, Lemon, Mint, Safety Orange)."
 category: slides
 scenario: marketing
-aspect_hint: "16:9 横向翻页"
+aspect_hint: "16:9 landscape, paginated"
 featured: 1
 recommended: 1
 tags: ["swiss", "grid", "international", "ikb", "editorial", "facts"]
 example_id: sample-swiss-international
-example_name: "Swiss International · 产品路线"
+example_name: "Swiss International · Product Roadmap"
 example_format: markdown
-example_tagline: "Klein Blue IKB + 16 列网格"
-example_desc: "S01 Cover + S06 KPI Tower 两页预览, IKB 全屏标题 + 4 柱状 KPI"
+example_tagline: "Klein Blue IKB + 16-Column Grid"
+example_desc: "S01 Cover + S06 KPI Tower two-page preview, IKB full-bleed title + 4-bar KPI"
 example_source_url: "https://github.com/op7418/guizang-ppt-skill"
 example_source_label: "op7418/guizang-ppt-skill"
 od:

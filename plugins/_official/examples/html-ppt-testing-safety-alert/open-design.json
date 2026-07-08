@@ -24,7 +24,7 @@
     "en": "Html Ppt Testing Safety Alert"
   },
   "version": "0.1.0",
-  "description": "红琥珀警示 deck — 顶/底 45° 红黑 hazard 条纹、红色删除线否定标题、L1/L2/L3 绿/琥珀/红 tier 卡片、圆点状态 alert box、policy-yaml 代码块（红左边框 + bad 关键词高亮）、红绿 checklist、Q1 事故堆叠柱状图。适合安全 / 风险 / 事故复盘 / 红队 / 上线前 AI 评审 / policy-as-code。",
+  "description": "Red-amber safety alert deck — top/bottom 45° red-black hazard stripes, red strikethrough negation headline, L1/L2/L3 green/amber/red tier cards, dot-status alert boxes, policy-yaml code blocks (red left border + bad-keyword highlighting), red/green checklist, and a Q1 incident stacked bar chart. Suited for safety / risk / incident review / red team / pre-launch AI review / policy-as-code.",
   "description_i18n": {
     "zh-CN": "红琥珀警示 deck — 顶/底 45° 红黑 hazard 条纹、红色删除线否定标题、L1/L2/L3 绿/琥珀/红 tier 卡片、圆点状态 alert box、policy-yaml 代码块（红左边框 + bad 关键词高亮）、红绿 checklist、Q1 事故堆叠柱状图。适合安全 / 风险 / 事故复盘 / 红队 / 上线前 AI 评审 / policy-as-code。",
     "zh-TW": "紅琥珀警示簡報範本 — 頂/底 45° 紅黑危險條紋、紅色刪除線否定標題、L1/L2/L3 綠/琥珀/紅層級卡片、圓點狀態警示框、policy-yaml 程式碼區塊（紅色左邊框 + bad 關鍵字醒目標示）、紅綠檢查清單、Q1 事故堆疊長條圖。適用於安全/風險/事故覆盤/紅隊/上線前 AI 審查/policy-as-code。",
@@ -43,7 +43,7 @@
     "ar": "قالب عرض تنبيهات الأمان مع خطوط تحذير حمراء-سوداء وبطاقات متدرجة وصناديق تنبيه وكتل أكواد policy-yaml وقوائم مراجعة ورسوم بيانية للحوادث لمراجعات الأمان.",
     "tr": "Kırmızı-siyah tehlike şeritleri, katmanlı kartlar, uyarı kutuları, policy-yaml kod blokları, kontrol listeleri ve olay grafikleriyle güvenlik uyarı sunum şablonu.",
     "uk": "Шаблон презентації попереджень безпеки з червоно-чорними смугами небезпеки, багаторівневими картками, вікнами сповіщень, блоками коду policy-yaml, чеклістами та діаграмами інцидентів для огляду безпеки.",
-    "en": "红琥珀警示 deck — 顶/底 45° 红黑 hazard 条纹、红色删除线否定标题、L1/L2/L3 绿/琥珀/红 tier 卡片、圆点状态 alert box、policy-yaml 代码块（红左边框 + bad 关键词高亮）、红绿 checklist、Q1 事故堆叠柱状图。适合安全 / 风险 / 事故复盘 / 红队 / 上线前 AI 评审 / policy-as-code。"
+    "en": "Red-amber safety alert deck — top/bottom 45° red-black hazard stripes, red strikethrough negation headline, L1/L2/L3 green/amber/red tier cards, dot-status alert boxes, policy-yaml code blocks (red left border + bad-keyword highlighting), red/green checklist, and a Q1 incident stacked bar chart. Suited for safety / risk / incident review / red team / pre-launch AI review / policy-as-code."
   },
   "license": "MIT",
   "author": {

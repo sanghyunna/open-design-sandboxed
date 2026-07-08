@@ -8,14 +8,14 @@ zh_description: "拟真 X 推文卡片 + 互动数据 (likes/reposts/views), 适
 en_description: "Realistic X post card with engagement metrics (likes, reposts, views), suited to video overlays or shareable image cards."
 category: card
 scenario: marketing
-aspect_hint: "1280×720 或 1080×1080"
+aspect_hint: "1280×720 or 1080×1080"
 featured: 44
 tags: ["twitter", "x", "social", "card", "overlay"]
 example_id: sample-social-x-post-card
-example_name: "X 帖子卡 · AlchainHust 金句"
+example_name: "X Post Card · AlchainHust Quote"
 example_format: markdown
-example_tagline: "X dark mode + 互动数据"
-example_desc: "一条金句推文 + 12.3K likes / 1.2K reposts + 蓝勾"
+example_tagline: "X dark mode + engagement stats"
+example_desc: "A standout-quote tweet + 12.3K likes / 1.2K reposts + verified badge"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · x-post"
 od:
@@ -35,31 +35,31 @@ od:
     zh-CN: "用「X (Twitter) 帖子卡」模板把我的内容做成一份「拟真 X 推文卡片 + 互动数据 (likes/reposts/views), 适配视频叠加或图卡分享」。保持模板的视觉签名，使用真实内容和数据，避免 lorem ipsum 和占位图片。"
 ---
 
-【模板: X (Twitter) 帖子卡】
-【意图】把一段推文内容 (或用户的金句) 渲染成一张拟真度极高的 X 帖子卡片, 用于视频叠加、推特发图、知识沉淀。Inspired by html-frames x-post。
+【Template: X (Twitter) Post Card】
+【Intent】Render a tweet's content (or a user's standout quote) into a highly realistic X post card, for video overlays, X image posts, or knowledge capture. Inspired by html-frames x-post.
 
-【画布】1280×720 或 1080×1080, 暗背景 `#0f1419` 或亮背景 `#ffffff` (按 X 主题); 卡片居中, 阴影柔和。
+【Canvas】1280×720 or 1080×1080, dark background `#0f1419` or light background `#ffffff` (per X theme); card centered, soft shadow.
 
-【卡片结构】
-- 外框: 圆角 16px, 1px border `#2f3336` (dark) / `#eff3f4` (light), 内边距 16px。
-- 顶部 row: 头像 (48×48 圆形, 用 CSS gradient 占位) + 用户名 + handle `@username` + verified 蓝勾 + 时间 (mono, 12px, 灰)。
-- 正文: 17-22px, 字重 400; 链接用 X 蓝 `#1d9bf0`; hashtag 同色; mention 同色; 段落间空 0.6em。
-- 可选: 引用卡 (小卡内嵌, 灰底, 圆角 12px)。
-- 可选: 1 张图 (CSS 渐变 + 描述占位, 不能外链图片), 比例 16:9, 圆角 12px。
-- 互动 row: 4 个 icon + 数字 (回复 / 转推 / 引用 / 点赞), icon 用 inline SVG (X 官方风格), 灰色, hover 时变色。
-- 顶部右上 X logo 单线 SVG。
-- 浏览量 row: 👁️ + 数字 (小字)。
+【Card structure】
+- Outer frame: 16px rounded corners, 1px border `#2f3336` (dark) / `#eff3f4` (light), 16px padding.
+- Top row: avatar (48×48 circle, CSS gradient placeholder) + display name + handle `@username` + verified blue check + timestamp (mono, 12px, gray).
+- Body text: 17-22px, weight 400; links in X blue `#1d9bf0`; hashtags same color; mentions same color; 0.6em paragraph spacing.
+- Optional: quote card (embedded small card, gray background, 12px rounded corners).
+- Optional: 1 image (CSS gradient + description placeholder, no external image URLs), 16:9 ratio, 12px rounded corners.
+- Engagement row: 4 icons + numbers (reply / repost / quote / like), inline SVG icons (X's official style), gray, color change on hover.
+- Top-right X logo, single-line SVG.
+- View count row: 👁️ + number (small text).
 
-【字体】
-- 西文: `Chirp` (X 的字体) → fallback `Inter` 或 `Segoe UI`。
-- 中文: `Noto Sans SC` / `PingFang SC`。
-- 数字: 同主字体, 不用 mono。
+【Fonts】
+- Latin: `Chirp` (X's font) → fallback `Inter` or `Segoe UI`.
+- Chinese: `Noto Sans SC` / `PingFang SC`.
+- Numbers: same main font, not mono.
 
-【设计细节】
-- 配色 light: bg `#fff`, text `#0f1419`, secondary `#536471`, border `#eff3f4`, accent `#1d9bf0`。
-- 配色 dark (推荐, 视频叠加用): bg `#000`, text `#e7e9ea`, secondary `#71767b`, border `#2f3336`, accent `#1d9bf0`。
-- 数字格式化: 1.2K / 4.5M (不要原始 1234)。
-- 内容必须来自用户输入, 不能编造推文。
-- 若用户输入是数据 → 自动总结成一句"金句"推文 (≤ 280 字符)。
-- 单文件 HTML; icon 内联 SVG; 不要任何外部图片 URL。
-- 可选: 卡片背后加微妙径向高光 `radial-gradient(...)` 增加视频叠加的可读性。
+【Design details】
+- Light palette: bg `#fff`, text `#0f1419`, secondary `#536471`, border `#eff3f4`, accent `#1d9bf0`.
+- Dark palette (recommended, for video overlays): bg `#000`, text `#e7e9ea`, secondary `#71767b`, border `#2f3336`, accent `#1d9bf0`.
+- Number formatting: 1.2K / 4.5M (not raw 1234).
+- Content must come from user input; never fabricate a tweet.
+- If the user's input is data → auto-summarize into a single "standout quote" tweet (≤ 280 characters).
+- Single-file HTML; inline SVG icons; no external image URLs.
+- Optional: add a subtle radial highlight `radial-gradient(...)` behind the card to boost readability for video overlays.
