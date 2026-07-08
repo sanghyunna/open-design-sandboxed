@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { appendFile, mkdir, realpath, stat, writeFile } from "node:fs/promises";
 import { release } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
@@ -19,7 +20,6 @@ import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesig
 
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
-import { SPLASH_VIDEO_DATA_URL } from "./splash-video.js";
 import type { PrintReadyPdfOptions } from "./pdf-export.js";
 import type { DesktopUpdater } from "./updater.js";
 
@@ -793,60 +793,25 @@ const MAC_WINDOW_CHROME_CSS = `
 
 // Dark-gradient startup splash shown while the web runtime boots. It plays the
 // brand intro clip once and then holds on its final settled logo frame until the
-// main window is ready. The clip is embedded as a base64 data URL so it renders
-// identically in dev and in packaged builds (see `splash-video.ts`).
-function createPendingHtml(): string {
-  return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Open Design</title>
-    <style>
-      html,
-      body {
-        background: #070b19;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-      }
-      body {
-        align-items: center;
-        display: flex;
-        justify-content: center;
-      }
-      video {
-        background: #070b19;
-        height: auto;
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <video
-      id="splash"
-      autoplay
-      muted
-      playsinline
-      disablepictureinpicture
-      src="${SPLASH_VIDEO_DATA_URL}"
-    ></video>
-    <script>
-      (function () {
-        var video = document.getElementById("splash");
-        if (!video) return;
-        var play = function () {
-          var attempt = video.play();
-          if (attempt && typeof attempt.catch === "function") attempt.catch(function () {});
-        };
-        video.addEventListener("loadedmetadata", function () { video.currentTime = 0; });
-        video.addEventListener("loadeddata", play);
-        play();
-      })();
-    </script>
-  </body>
-</html>`)}`;
+// main window is ready. `splash.html` loads `splash.mp4` as a same-directory
+// file:// resource rather than an embedded base64 data URL — Chromium hard-caps
+// any URL (including a data: URI) at `url::kMaxURLChars` (2 * 1024 * 1024
+// chars), which a multi-second clip blows past and silently fails to load
+// (blank window).
+//
+// The module evaluating this function sits at a different depth per layout, so
+// probe both known locations of the shipped `assets/` directory:
+// - dev and tarball installs: `<pkg>/dist/main/runtime.js` → `<pkg>/assets/`
+// - packaged standalone prebundle: the desktop main is esbuild-bundled into
+//   `<appRoot>/prebundled/packaged-main.mjs`, and tools/pack stages the assets
+//   at `<appRoot>/assets/` (see writeAssembledAppEntrypoints).
+function resolveSplashHtmlPath(): string {
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(moduleDir, "../../assets/splash.html"),
+    resolve(moduleDir, "../assets/splash.html"),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 }
 
 export type SplashWindowHandle = {
@@ -888,7 +853,7 @@ export function createSplashWindow(): SplashWindowHandle {
       sandbox: true,
     },
   });
-  void splash.loadURL(createPendingHtml());
+  void splash.loadFile(resolveSplashHtmlPath());
   return { startedAt, window: splash };
 }
 

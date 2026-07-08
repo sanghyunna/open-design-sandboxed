@@ -19,7 +19,10 @@ describe("desktop package runtime shape", () => {
   it("keeps exported desktop types inside the published dist allowlist", () => {
     const pkg = readDesktopPackageJson();
 
-    expect(pkg.files).toEqual(["dist"]);
+    // `assets` ships the splash page (splash.html + splash.mp4) that
+    // desktop main loads as real files; see resolveSplashHtmlPath in
+    // apps/desktop/src/main/runtime.ts.
+    expect(pkg.files).toEqual(["assets", "dist"]);
     expect(pkg.exports?.["./main"]?.default).toBe("./dist/main/index.js");
     expect(pkg.exports?.["./main"]?.types).toBe("./dist/main/index.d.ts");
   });
@@ -36,6 +39,22 @@ describe("desktop package runtime shape", () => {
       const source = readFileSync(join(repoRoot, relativePath), "utf8");
       expect(source).toContain('"apps", "desktop", "dist", "main", "preload.cjs"');
       expect(source).toContain('join(paths.assembledAppRoot, "preload.cjs")');
+    }
+  });
+
+  it("stages the splash assets beside prebundled packaged app entrypoints", () => {
+    // The standalone prebundle excludes the desktop tarball, so desktop main
+    // resolves the splash page from `<appRoot>/assets/` (see
+    // resolveSplashHtmlPath in apps/desktop/src/main/runtime.ts). Win and mac
+    // stage the prebundle; linux installs desktop from its tarball, whose
+    // published files already include `assets`.
+    for (const relativePath of [
+      "tools/pack/src/mac/app.ts",
+      "tools/pack/src/win/app.ts",
+    ]) {
+      const source = readFileSync(join(repoRoot, relativePath), "utf8");
+      expect(source).toContain('join(config.workspaceRoot, "apps", "desktop", "assets")');
+      expect(source).toContain('join(paths.assembledAppRoot, "assets")');
     }
   });
 });
