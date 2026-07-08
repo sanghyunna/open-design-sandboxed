@@ -37,6 +37,7 @@ export interface AtomBodyEntryView {
  *
  *   The trailing `---` separator is omitted after the last atom.
  */
+// @dsp func-f73c66f1
 export function renderActiveStageBlock(args: {
   stageId:    string;
   bodies:     ReadonlyArray<AtomBodyEntryView>;

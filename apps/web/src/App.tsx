@@ -262,6 +262,7 @@ function scheduleStartupIdle(callback: () => void): () => void {
   return () => window.clearTimeout(id);
 }
 
+// @dsp func-127c6ffb
 export function App() {
   // `reducedMotion="user"` makes every motion/react component honor the OS
   // `prefers-reduced-motion` setting: transform/layout animations are zeroed

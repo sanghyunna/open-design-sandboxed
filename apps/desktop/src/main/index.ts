@@ -48,10 +48,15 @@ import {
 // navigation (see `setWindowOpenHandler` in `runtime.ts`), so
 // pinning them is worth the small extra surface.
 export {
+  // @dsp func-61a07e0c
   createSplashWindow,
+  // @dsp func-8448b2fd
   isAllowedChildWindowUrl,
+  // @dsp func-d62809b0
   isAllowedEmbeddedBrowserUrl,
+  // @dsp func-6206bd3b
   isHttpUrl,
+  // @dsp func-13f69c32
   resolveDesktopStatusUrl,
 } from "./runtime.js";
 
@@ -63,10 +68,15 @@ export {
 // types so the lazy-retry-on-DESKTOP_AUTH_PENDING flow is testable in
 // the packaged workspace without booting Electron.
 export {
+  // @dsp func-1197d623
   validateExistingDirectory,
+  // @dsp func-65467978
   fetchResolvedProjectDir,
+  // @dsp func-89eb6361
   isOpenPathAllowedForProject,
+  // @dsp func-4961fe47
   signDesktopImportToken,
+  // @dsp func-bbcbdae7
   pickAndImportFolder,
   type PathValidationResult,
   type ResolvedProjectDirContext,
@@ -99,6 +109,7 @@ type DesktopAppConfigPrefs = {
  * before its own `whenReady` (so the switch lands) and `runDesktopMain`
  * calls it again later to recover the same string for the BrowserWindow.
  */
+// @dsp func-55d1191f
 export function applyOsLocaleSwitch(electronApp: Electron.App): string {
   const preferred = electronApp.getPreferredSystemLanguages?.() ?? [];
   const osLocale = preferred[0] ?? "en";
@@ -188,6 +199,7 @@ function createWebDiscovery(runtime: SidecarRuntimeContext<SidecarStamp>): () =>
   };
 }
 
+// @dsp func-d3c9ddb5
 export function normalizeAmrEnvironmentProfile(profile: unknown): AmrEnvironmentProfile {
   if (typeof profile !== "string") return "prod";
   const trimmed = profile.trim();
@@ -196,6 +208,7 @@ export function normalizeAmrEnvironmentProfile(profile: unknown): AmrEnvironment
     : "prod";
 }
 
+// @dsp func-36530bea
 export function mergeAmrEnvironmentProfileConfig(
   config: DesktopAppConfigPrefs,
   profile: AmrEnvironmentProfile,
@@ -230,6 +243,7 @@ export function mergeAmrEnvironmentProfileConfig(
   };
 }
 
+// @dsp func-10bbc745
 export function createAmrEnvironmentProfileMenuItems(
   selectedProfile: AmrEnvironmentProfile,
   onSelect: (profile: AmrEnvironmentProfile) => void,
@@ -247,6 +261,7 @@ export function createAmrEnvironmentProfileMenuItems(
   ];
 }
 
+// @dsp func-5fd08ae0
 export function resolveAboutPanelVersion(options: DesktopMainOptions): string | null {
   const version = options.update?.currentVersion?.trim();
   return version == null || version.length === 0 ? null : version;
@@ -508,6 +523,7 @@ async function registerDesktopAuthWithDaemon(
   return false;
 }
 
+// @dsp func-c2bfc904
 export async function runDesktopMain(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   options: DesktopMainOptions = {},

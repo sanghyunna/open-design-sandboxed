@@ -47,6 +47,7 @@ export type PathValidationResult =
  * the openPath bridge is "show the project folder," rejecting `.app`
  * keeps the bridge limited to the actual feature surface.
  */
+// @dsp func-5fdd006f
 export async function validateExistingDirectory(p: string): Promise<PathValidationResult> {
   if (typeof p !== "string" || p.length === 0) {
     return { ok: false, reason: "path must be a non-empty string" };
@@ -107,6 +108,7 @@ export type ResolvedProjectDirContext = {
  * handler can prefix the rejection reason with "open-path: " to
  * match the rest of its error envelope shape.
  */
+// @dsp func-cee84895
 export function isOpenPathAllowedForProject(
   context: ResolvedProjectDirContext,
 ): { ok: true } | { ok: false; reason: string } {
@@ -132,6 +134,7 @@ export function isOpenPathAllowedForProject(
  * can refuse folder-imported projects that did not come through the
  * desktop HMAC-gated import flow (PR #974).
  */
+// @dsp func-df166e34
 export async function fetchResolvedProjectDir(
   apiBaseUrl: string,
   projectId: string,
@@ -207,6 +210,7 @@ const DESKTOP_IMPORT_TOKEN_FIELD_SEP = "~";
  * a small exported helper so the packaged workspace's vitest suite can
  * pin token-shape contract drift without booting Electron.
  */
+// @dsp func-cb7b77af
 export function signDesktopImportToken(
   secret: Buffer,
   baseDir: string,
@@ -389,6 +393,7 @@ export type DesktopRuntimeOptions = {
 const DESKTOP_IMPORT_TOKEN_HEADER = "X-OD-Desktop-Import-Token";
 const DESKTOP_IMPORT_TOKEN_TTL_MS = 60_000;
 
+// @dsp func-8caf710f
 export function mintImportToken(secret: Buffer, baseDir: string): string {
   const nonce = randomBytes(16).toString("base64url");
   const exp = new Date(Date.now() + DESKTOP_IMPORT_TOKEN_TTL_MS).toISOString();
@@ -439,6 +444,7 @@ export type PickAndImportFolderResult =
   | { ok: true; response: unknown }
   | { ok: false; canceled?: boolean; details?: unknown; reason?: string };
 
+// @dsp func-22d09c77
 export async function pickAndImportFolder(
   deps: PickAndImportFolderDeps,
 ): Promise<PickAndImportFolderResult> {
@@ -537,6 +543,7 @@ export type PickAndReplaceWorkingDirResult =
   | { ok: true; response: unknown }
   | { ok: false; canceled?: boolean; details?: unknown; reason?: string };
 
+// @dsp func-a9b0e500
 export async function pickAndReplaceWorkingDir(
   deps: PickAndReplaceWorkingDirDeps,
 ): Promise<PickAndReplaceWorkingDirResult> {
@@ -643,6 +650,7 @@ export type MintHomeWorkingDirTokenResult =
   | { baseDir: string; ok: true; token: string }
   | { ok: false; reason: string };
 
+// @dsp func-3e9324b6
 export async function mintHomeWorkingDirToken(
   deps: MintHomeWorkingDirTokenDeps,
 ): Promise<MintHomeWorkingDirTokenResult> {
@@ -835,6 +843,7 @@ export type SplashWindowHandle = {
  * once the real app has mounted in the (initially hidden) main window. Frameless
  * + matching size so the reveal swap reads as a single window, never a flash.
  */
+// @dsp func-521ecb08
 export function createSplashWindow(): SplashWindowHandle {
   // Stamp creation time at the instant the window appears (see SplashWindowHandle).
   const startedAt = Date.now();
@@ -896,6 +905,7 @@ async function applyWindowChromeCss(window: BrowserWindow): Promise<void> {
 // — these are pure URL-policy helpers and `apps/desktop` itself has no
 // vitest setup, so the packaged workspace hosts the coverage. Keep them
 // pure and side-effect-free.
+// @dsp func-8ccf30e5
 export function isHttpUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -905,6 +915,7 @@ export function isHttpUrl(url: string): boolean {
   }
 }
 
+// @dsp func-19862249
 export function isAllowedChildWindowUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -936,6 +947,7 @@ export function isAllowedChildWindowUrl(url: string): boolean {
   }
 }
 
+// @dsp func-206e8cfa
 export function isAllowedEmbeddedBrowserUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -956,6 +968,7 @@ export function isAllowedEmbeddedBrowserUrl(url: string): boolean {
   }
 }
 
+// @dsp func-e02a0bb8
 export function resolveDesktopStatusUrl(currentUrl: string | null, pendingUrl: string | null): string | null {
   return pendingUrl ?? currentUrl;
 }
@@ -1078,6 +1091,7 @@ export type MainWindowCloseSurface = {
   on: (event: 'closed', listener: () => void) => unknown;
 };
 
+// @dsp func-ead3c559
 export function attachNonDarwinMainWindowCloseShutdown(
   window: MainWindowCloseSurface,
   options: {
@@ -1100,6 +1114,7 @@ export function attachNonDarwinMainWindowCloseShutdown(
  * race the OS Space teardown and leave the user staring at a black
  * desktop until they switch Spaces by hand.
  */
+// @dsp func-606f53d5
 export function hideWindowExitingFullscreen(window: WindowFullscreenSurface): void {
   if (window.isSimpleFullScreen()) {
     window.once('leave-full-screen', () => window.hide());
@@ -1253,6 +1268,7 @@ async function reportRendererCrash(
   }
 }
 
+// @dsp func-8201c295
 export async function createDesktopRuntime(options: DesktopRuntimeOptions): Promise<DesktopRuntime> {
   const preloadPath = options.preloadPath ?? join(dirname(fileURLToPath(import.meta.url)), "preload.cjs");
   applyDockIcon();

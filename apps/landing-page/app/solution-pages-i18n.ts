@@ -80,6 +80,7 @@ const BY_LOCALE: Partial<Record<LandingLocaleCode, SolutionLocaleCopy>> = {
  * any locale not yet translated. Returns `undefined` only if the page key
  * itself does not exist in English (a programming error).
  */
+// @dsp func-3f8b8234
 export function getSolutionPageCopy(
   locale: LandingLocaleCode,
   key: SolutionPageKey,

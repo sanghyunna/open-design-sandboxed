@@ -1,3 +1,4 @@
+// @dsp func-a62f84e4
 export const APP_KEYS = Object.freeze({
   DAEMON: "daemon",
   DESKTOP: "desktop",
@@ -6,6 +7,7 @@ export const APP_KEYS = Object.freeze({
 
 export type AppKey = (typeof APP_KEYS)[keyof typeof APP_KEYS];
 
+// @dsp func-4ba62cc1
 export const SIDECAR_MODES = Object.freeze({
   DEV: "dev",
   RUNTIME: "runtime",
@@ -13,6 +15,7 @@ export const SIDECAR_MODES = Object.freeze({
 
 export type SidecarMode = (typeof SIDECAR_MODES)[keyof typeof SIDECAR_MODES];
 
+// @dsp func-0f1998a4
 export const SIDECAR_SOURCES = Object.freeze({
   PACKAGED: "packaged",
   TOOLS_DEV: "tools-dev",
@@ -21,6 +24,7 @@ export const SIDECAR_SOURCES = Object.freeze({
 
 export type SidecarSource = (typeof SIDECAR_SOURCES)[keyof typeof SIDECAR_SOURCES];
 
+// @dsp func-ab30f711
 export const SIDECAR_ENV = Object.freeze({
   BASE: "OD_SIDECAR_BASE",
   DAEMON_CLI_PATH: "OD_DAEMON_CLI_PATH",
@@ -35,6 +39,7 @@ export const SIDECAR_ENV = Object.freeze({
   WEB_TSCONFIG_PATH: "OD_WEB_TSCONFIG_PATH",
 } as const);
 
+// @dsp func-73f5a6da
 export const SIDECAR_RUNTIME_ENV = Object.freeze({
   base: SIDECAR_ENV.BASE,
   ipcBase: SIDECAR_ENV.IPC_BASE,
@@ -43,6 +48,7 @@ export const SIDECAR_RUNTIME_ENV = Object.freeze({
   source: SIDECAR_ENV.SOURCE,
 } as const);
 
+// @dsp func-0c7ed02e
 export const SIDECAR_STAMP_FLAGS = Object.freeze({
   app: "--od-stamp-app",
   ipc: "--od-stamp-ipc",
@@ -51,14 +57,21 @@ export const SIDECAR_STAMP_FLAGS = Object.freeze({
   source: "--od-stamp-source",
 } as const);
 
+// @dsp func-a39fe218
 export const STAMP_APP_FLAG = SIDECAR_STAMP_FLAGS.app;
+// @dsp func-430566e1
 export const STAMP_IPC_FLAG = SIDECAR_STAMP_FLAGS.ipc;
+// @dsp func-ae134e40
 export const STAMP_MODE_FLAG = SIDECAR_STAMP_FLAGS.mode;
+// @dsp func-04ebc5bc
 export const STAMP_NAMESPACE_FLAG = SIDECAR_STAMP_FLAGS.namespace;
+// @dsp func-93201a9e
 export const STAMP_SOURCE_FLAG = SIDECAR_STAMP_FLAGS.source;
 
+// @dsp func-d79ee8a7
 export const SIDECAR_STAMP_FIELDS = ["app", "mode", "namespace", "ipc", "source"] as const;
 
+// @dsp func-e847aaf5
 export const SIDECAR_DEFAULTS = Object.freeze({
   host: "127.0.0.1",
   ipcBase: "/tmp/open-design/ipc",
@@ -67,17 +80,21 @@ export const SIDECAR_DEFAULTS = Object.freeze({
   windowsPipePrefix: "open-design",
 } as const);
 
+// @dsp func-03549bc7
 export const OPEN_DESIGN_PRODUCT_NAME = "Open Design";
 
+// @dsp func-018389a7
 export function resolveWindowsReleaseNamespaceToken(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
+// @dsp func-5b66036b
 export function resolveWindowsUninstallRegistryKey(namespace: string): string {
   const namespaceToken = resolveWindowsReleaseNamespaceToken(namespace);
   return `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${OPEN_DESIGN_PRODUCT_NAME}-${namespaceToken}`;
 }
 
+// @dsp func-f6bb5bc3
 export const SIDECAR_MESSAGES = Object.freeze({
   CLICK: "click",
   CONSOLE: "console",
@@ -92,6 +109,7 @@ export const SIDECAR_MESSAGES = Object.freeze({
   UPDATE: "update",
 } as const);
 
+// @dsp func-b6e7a66b
 export const DESKTOP_UPDATE_ACTIONS = Object.freeze({
   CHECK: "check",
   DOWNLOAD: "download",
@@ -101,6 +119,7 @@ export const DESKTOP_UPDATE_ACTIONS = Object.freeze({
 
 export type DesktopUpdateAction = (typeof DESKTOP_UPDATE_ACTIONS)[keyof typeof DESKTOP_UPDATE_ACTIONS];
 
+// @dsp func-5dc22883
 export const DESKTOP_UPDATE_MODES = Object.freeze({
   JS_INCREMENTAL: "js-incremental",
   PACKAGE_LAUNCHER: "package-launcher",
@@ -108,6 +127,7 @@ export const DESKTOP_UPDATE_MODES = Object.freeze({
 
 export type DesktopUpdateMode = (typeof DESKTOP_UPDATE_MODES)[keyof typeof DESKTOP_UPDATE_MODES];
 
+// @dsp func-c43d4b22
 export const DESKTOP_UPDATE_CHANNELS = Object.freeze({
   BETA: "beta",
   NIGHTLY: "nightly",
@@ -117,6 +137,7 @@ export const DESKTOP_UPDATE_CHANNELS = Object.freeze({
 
 export type DesktopUpdateChannel = (typeof DESKTOP_UPDATE_CHANNELS)[keyof typeof DESKTOP_UPDATE_CHANNELS];
 
+// @dsp func-e106568f
 export const DESKTOP_UPDATE_STATES = Object.freeze({
   AVAILABLE: "available",
   CHECKING: "checking",
@@ -131,6 +152,7 @@ export const DESKTOP_UPDATE_STATES = Object.freeze({
 
 export type DesktopUpdateState = (typeof DESKTOP_UPDATE_STATES)[keyof typeof DESKTOP_UPDATE_STATES];
 
+// @dsp func-e8ace095
 export const SIDECAR_ERROR_CODES = Object.freeze({
   INVALID_MESSAGE: "SIDECAR_INVALID_MESSAGE",
   UNKNOWN_MESSAGE: "SIDECAR_UNKNOWN_MESSAGE",
@@ -138,6 +160,7 @@ export const SIDECAR_ERROR_CODES = Object.freeze({
 
 export type SidecarErrorCode = (typeof SIDECAR_ERROR_CODES)[keyof typeof SIDECAR_ERROR_CODES];
 
+// @dsp func-7e53b242
 export class SidecarContractError extends Error {
   readonly code: SidecarErrorCode;
 
@@ -493,6 +516,7 @@ function normalizeNonEmptyString(value: unknown, label: string): string {
   return value;
 }
 
+// @dsp func-976c46fe
 export function normalizeNamespace(namespace: unknown): string {
   if (typeof namespace !== "string") throw new Error("namespace must be a string");
   const value = namespace.trim();
@@ -505,10 +529,12 @@ export function normalizeNamespace(namespace: unknown): string {
   return value;
 }
 
+// @dsp func-f75fe7cd
 export function isSidecarMode(value: unknown): value is SidecarMode {
   return Object.values(SIDECAR_MODES).includes(value as SidecarMode);
 }
 
+// @dsp func-a810600d
 export function normalizeSidecarMode(mode: unknown): SidecarMode {
   if (!isSidecarMode(mode)) {
     throw new Error("sidecar mode must be dev or runtime");
@@ -516,19 +542,23 @@ export function normalizeSidecarMode(mode: unknown): SidecarMode {
   return mode;
 }
 
+// @dsp func-4c9eb0aa
 export function isAppKey(value: unknown): value is AppKey {
   return Object.values(APP_KEYS).includes(value as AppKey);
 }
 
+// @dsp func-ec49631f
 export function normalizeAppKey(app: unknown): AppKey {
   if (!isAppKey(app)) throw new Error(`unsupported sidecar app: ${String(app)}`);
   return app;
 }
 
+// @dsp func-32096909
 export function isSidecarSource(value: unknown): value is SidecarSource {
   return Object.values(SIDECAR_SOURCES).includes(value as SidecarSource);
 }
 
+// @dsp func-464d7e10
 export function normalizeSidecarSource(source: unknown): SidecarSource {
   if (!isSidecarSource(source)) {
     throw new Error(`unsupported sidecar source: ${String(source)}`);
@@ -536,10 +566,12 @@ export function normalizeSidecarSource(source: unknown): SidecarSource {
   return source;
 }
 
+// @dsp func-487d12f1
 export function isWindowsNamedPipePath(value: unknown): boolean {
   return typeof value === "string" && value.startsWith("\\\\.\\pipe\\");
 }
 
+// @dsp func-4020a35f
 export function normalizeIpcPath(ipc: unknown): string {
   if (typeof ipc !== "string") throw new Error("sidecar ipc path must be a string");
   if (ipc.length === 0) throw new Error("sidecar ipc path must not be empty");
@@ -556,6 +588,7 @@ function assertKnownStampKeys(value: Record<string, unknown>, label: string): vo
   assertKnownKeys(value, SIDECAR_STAMP_FIELDS, label);
 }
 
+// @dsp func-82df42b6
 export function normalizeSidecarStamp(input: unknown): SidecarStamp {
   const value = assertObject(input, "sidecar stamp");
   assertKnownStampKeys(value, "sidecar stamp");
@@ -568,6 +601,7 @@ export function normalizeSidecarStamp(input: unknown): SidecarStamp {
   };
 }
 
+// @dsp func-b4d1d1f6
 export function normalizeSidecarStampCriteria(input: unknown = {}): SidecarStampCriteria {
   const value = assertObject(input, "sidecar stamp criteria");
   assertKnownStampKeys(value, "sidecar stamp criteria");
@@ -580,6 +614,7 @@ export function normalizeSidecarStampCriteria(input: unknown = {}): SidecarStamp
   };
 }
 
+// @dsp func-fbfaf65e
 export function assertSidecarStamp(input: unknown): asserts input is SidecarStamp {
   normalizeSidecarStamp(input);
 }
@@ -659,6 +694,7 @@ function normalizeMessageType(value: unknown, label: string): string {
   return value;
 }
 
+// @dsp func-279c9128
 export function normalizeDaemonSidecarMessage(input: unknown): DaemonSidecarMessage {
   const value = assertObject(input, "daemon sidecar message");
   const type = normalizeMessageType(value.type, "daemon sidecar message");
@@ -677,6 +713,7 @@ export function normalizeDaemonSidecarMessage(input: unknown): DaemonSidecarMess
   throw new SidecarContractError(SIDECAR_ERROR_CODES.UNKNOWN_MESSAGE, `unknown daemon sidecar message: ${type}`);
 }
 
+// @dsp func-9d64316f
 export function normalizeWebSidecarMessage(input: unknown): WebSidecarMessage {
   const value = assertObject(input, "web sidecar message");
   const type = normalizeMessageType(value.type, "web sidecar message");
@@ -687,6 +724,7 @@ export function normalizeWebSidecarMessage(input: unknown): WebSidecarMessage {
   throw new SidecarContractError(SIDECAR_ERROR_CODES.UNKNOWN_MESSAGE, `unknown web sidecar message: ${type}`);
 }
 
+// @dsp func-7dad7345
 export function normalizeDesktopSidecarMessage(input: unknown): DesktopSidecarMessage {
   const value = assertObject(input, "desktop sidecar message");
   const type = normalizeMessageType(value.type, "desktop sidecar message");
@@ -717,6 +755,7 @@ export function normalizeDesktopSidecarMessage(input: unknown): DesktopSidecarMe
   }
 }
 
+// @dsp func-e67eab33
 export const OPEN_DESIGN_SIDECAR_CONTRACT = Object.freeze({
   appKeys: APP_KEYS,
   defaults: SIDECAR_DEFAULTS,

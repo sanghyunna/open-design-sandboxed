@@ -33,6 +33,7 @@ export interface AgentSkillAdapterResult {
 
 const ROLE_PARAMETER_KEYS = ['od.parameters'];
 
+// @dsp func-dfa3529f
 export function adaptAgentSkill(
   rawSkillMd: string,
   opts: AgentSkillAdapterOptions,

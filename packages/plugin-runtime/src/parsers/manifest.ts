@@ -22,6 +22,7 @@ export type ManifestParseResult = ManifestParseSuccess | ManifestParseFailure;
 // schema is permissive (passthrough), so unknown forward-compatible fields
 // survive parse without complaint. Warnings carry adapter hints — e.g. a
 // claude-plugin sidecar that declared an unmappable capability.
+// @dsp func-65a68e18
 export function parseManifest(raw: string): ManifestParseResult {
   let json: unknown;
   try {
@@ -36,6 +37,7 @@ export function parseManifest(raw: string): ManifestParseResult {
   return parseManifestObject(json);
 }
 
+// @dsp func-1c846dab
 export function parseManifestObject(value: unknown): ManifestParseResult {
   const result = PluginManifestSchema.safeParse(value);
   if (!result.success) {

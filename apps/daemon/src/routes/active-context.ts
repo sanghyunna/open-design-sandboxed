@@ -98,6 +98,7 @@ function handleGetActive(
   });
 }
 
+// @dsp func-7cc76581
 export const postActiveRoute = defineJsonRoute<PostActiveInput, PostActiveOutput, ActiveContextDomainDeps>({
   method: 'post',
   path: '/api/active',
@@ -106,6 +107,7 @@ export const postActiveRoute = defineJsonRoute<PostActiveInput, PostActiveOutput
   handle: handlePostActive,
 });
 
+// @dsp func-a6102361
 export const getActiveRoute = defineJsonRoute<void, GetActiveOutput, ActiveContextDomainDeps>({
   method: 'get',
   path: '/api/active',
@@ -114,6 +116,7 @@ export const getActiveRoute = defineJsonRoute<void, GetActiveOutput, ActiveConte
   handle: handleGetActive,
 });
 
+// @dsp func-cedd1719
 export function registerActiveContextRoutes(app: Express, ctx: RegisterActiveContextRoutesDeps): void {
   const store: ActiveContextStore = { current: null };
   const domainDeps: ActiveContextDomainDeps = {

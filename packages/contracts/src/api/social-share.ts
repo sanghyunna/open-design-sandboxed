@@ -1,3 +1,4 @@
+// @dsp func-b655ed3a
 export const OPEN_DESIGN_GITHUB_REPO_URL = 'https://github.com/nexu-io/open-design';
 
 export type SocialShareTargetKind = 'open-design-repo' | 'project-html';
@@ -49,6 +50,7 @@ interface PlatformDescriptor {
   entryUrl?: string;
 }
 
+// @dsp func-bfe8f5e2
 export const SOCIAL_SHARE_PLATFORM_ORDER: SocialSharePlatform[] = [
   'x',
   'linkedin',
@@ -87,6 +89,7 @@ function cleanLocale(value: unknown): string {
   return trimmed ? trimmed.slice(0, 32) : 'en';
 }
 
+// @dsp func-60bd6afe
 export function normalizeSocialShareUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   try {
@@ -155,6 +158,7 @@ function buildPlatformUrl(
   return exhaustive;
 }
 
+// @dsp func-df92db30
 export function buildSocialSharePayload(input: SocialShareRequest): SocialShareResponse {
   const kind = input.kind === 'project-html' ? 'project-html' : 'open-design-repo';
   const url = normalizeSocialShareUrl(input.url)

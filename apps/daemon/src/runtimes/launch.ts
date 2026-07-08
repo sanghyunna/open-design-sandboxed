@@ -12,6 +12,7 @@ export type AgentLaunchResolution = ReturnType<typeof inspectAgentExecutableReso
   diagnostic: string | null;
 };
 
+// @dsp func-7fb36bf3
 export function resolveAgentLaunch(
   def: RuntimeAgentDef,
   configuredEnv: Record<string, string> = {},
@@ -36,6 +37,7 @@ export function resolveAgentLaunch(
   };
 }
 
+// @dsp func-fc805273
 export function applyAgentLaunchEnv(
   env: NodeJS.ProcessEnv,
   launch: Pick<AgentLaunchResolution, 'childPathPrepend'>,

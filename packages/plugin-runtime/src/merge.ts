@@ -14,6 +14,7 @@ export interface MergeInputs {
   adapters?: PluginManifest[] | undefined;
 }
 
+// @dsp func-b92b7ca8
 export function mergeManifests(inputs: MergeInputs): PluginManifest {
   const adapters = inputs.adapters ?? [];
   const layers = inputs.sidecar ? [inputs.sidecar, ...adapters] : adapters;

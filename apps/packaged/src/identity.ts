@@ -56,6 +56,7 @@ function createPackagedDesktopRootIdentity(options: {
   };
 }
 
+// @dsp func-6dac2721
 export async function writePackagedDesktopIdentity(options: {
   identityPath?: string;
   paths: PackagedNamespacePaths;
@@ -84,6 +85,7 @@ export async function writePackagedDesktopIdentity(options: {
   };
 }
 
+// @dsp func-fb14aa78
 export async function writePackagedWebIdentity(options: {
   paths: PackagedNamespacePaths;
   pid: number;

@@ -35,6 +35,7 @@ export interface RegisterStaticResourceRoutesDeps extends RouteDeps<'http' | 'pa
   };
 }
 
+// @dsp func-c91ab3cf
 export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticResourceRoutesDeps) {
   const {
     RUNTIME_DATA_DIR,

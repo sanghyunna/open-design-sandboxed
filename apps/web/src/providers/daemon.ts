@@ -52,6 +52,7 @@ const MAX_TRANSCRIPT_MESSAGE_CHARS = 12_000;
 const LARGE_TOOL_RESULT_CHARS = 8_000;
 const HIGH_INPUT_TOKEN_WARNING_THRESHOLD = 200_000;
 
+// @dsp func-29778fd3
 export function latestUserPromptFromHistory(history: ChatMessage[]): string {
   for (let i = history.length - 1; i >= 0; i -= 1) {
     const message = history[i];
@@ -153,6 +154,7 @@ function scopeHistoryToAgent(history: ChatMessage[], targetAgentId?: string): Ch
 // User content is preserved verbatim — a user message that legitimately
 // quotes `<question-form>` (e.g. discussing the markup with the agent)
 // must not be mangled.
+// @dsp func-da614755
 export function sanitizePriorAssistantTurnForTranscript(content: string): string {
   let sanitized = content.replace(
     // `\1` backreference keeps the open/close tag names matched so we never
@@ -176,6 +178,7 @@ export function sanitizePriorAssistantTurnForTranscript(content: string): string
   return sanitized;
 }
 
+// @dsp func-9b73d76e
 export function buildDaemonTranscript(history: ChatMessage[], targetAgentId?: string): string {
   const scopedHistory = scopeHistoryToAgent(history, targetAgentId);
   const transcript = scopedHistory
@@ -263,6 +266,7 @@ export interface DaemonReattachOptions {
   onRunEventId?: (eventId: string) => void;
 }
 
+// @dsp func-a0453828
 export const RUNS_CHANGED_EVENT = 'open-design:runs-changed';
 
 function notifyRunsChanged() {
@@ -512,6 +516,7 @@ function cleanAmrOpenCodeStderrFallback(agentId: string | undefined, stderr: str
     .trim();
 }
 
+// @dsp func-9cf79d98
 export async function streamViaDaemon({
   agentId,
   history,
@@ -624,6 +629,7 @@ export async function streamViaDaemon({
   }
 }
 
+// @dsp func-98594b07
 export async function reattachDaemonRun(options: DaemonReattachOptions): Promise<void> {
   await consumeDaemonRun({
     ...options,
@@ -634,6 +640,7 @@ export async function reattachDaemonRun(options: DaemonReattachOptions): Promise
   });
 }
 
+// @dsp func-c1891d4d
 export async function fetchChatRunStatus(runId: string): Promise<ChatRunStatusResponse | null> {
   try {
     const resp = await fetch(`/api/runs/${encodeURIComponent(runId)}`);
@@ -658,6 +665,7 @@ export interface LaunchAntigravityOauthResult {
   via?: string;
   error?: string;
 }
+// @dsp func-a021cd85
 export async function launchAntigravityOauth(): Promise<LaunchAntigravityOauthResult> {
   try {
     const resp = await fetch('/api/agents/antigravity/oauth-launch', {
@@ -706,6 +714,7 @@ export interface VelaLoginStatus {
 //   POST /api/integrations/vela/login/cancel — terminate a still-pending login
 //   POST /api/integrations/vela/logout   — clear ~/.amr auth and Settings-backed AMR auth env
 // The Settings UI polls /status after kicking off /login to detect completion.
+// @dsp func-8d34cad6
 export async function fetchVelaLoginStatus(): Promise<VelaLoginStatus | null> {
   try {
     const resp = await fetch('/api/integrations/vela/status');
@@ -716,6 +725,7 @@ export async function fetchVelaLoginStatus(): Promise<VelaLoginStatus | null> {
   }
 }
 
+// @dsp func-4a350050
 export async function fetchAmrModels(): Promise<AmrModelsResponse | null> {
   try {
     const resp = await fetch('/api/amr/models', { cache: 'no-store' });
@@ -734,6 +744,7 @@ export interface StartVelaLoginResult {
   error?: string;
 }
 
+// @dsp func-a7629de1
 export async function startVelaLogin(
   attribution?: AmrEntryAttribution | null,
 ): Promise<StartVelaLoginResult> {
@@ -759,6 +770,7 @@ export async function startVelaLogin(
   }
 }
 
+// @dsp func-8b47b70e
 export async function cancelVelaLogin(): Promise<{ ok: boolean; canceled?: boolean }> {
   try {
     const resp = await fetch('/api/integrations/vela/login/cancel', { method: 'POST' });
@@ -770,6 +782,7 @@ export async function cancelVelaLogin(): Promise<{ ok: boolean; canceled?: boole
   }
 }
 
+// @dsp func-b1c50ec8
 export async function velaLogout(): Promise<{ ok: boolean }> {
   try {
     const resp = await fetch('/api/integrations/vela/logout', { method: 'POST' });
@@ -783,6 +796,7 @@ export async function velaLogout(): Promise<{ ok: boolean }> {
 // a Langfuse `score-create`. Fire-and-forget — failures are not surfaced
 // to the UI (the rating is already persisted on the message itself via
 // the PUT /messages/:id round-trip).
+// @dsp func-533b0f23
 export async function reportChatRunFeedback(req: {
   runId: string;
   projectId: string;
@@ -804,6 +818,7 @@ export async function reportChatRunFeedback(req: {
   }
 }
 
+// @dsp func-184c8fe9
 export async function listActiveChatRuns(
   projectId: string,
   conversationId: string,
@@ -819,6 +834,7 @@ export async function listActiveChatRuns(
   }
 }
 
+// @dsp func-c7cac4c1
 export async function listProjectRuns(): Promise<ChatRunStatusResponse[]> {
   try {
     const resp = await fetch('/api/runs');
@@ -1192,6 +1208,7 @@ function translateAgentEvent(data: DaemonAgentPayload): AgentEvent | null {
   return null;
 }
 
+// @dsp func-4a4e1729
 export async function saveArtifact(
   identifier: string,
   title: string,

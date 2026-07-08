@@ -212,6 +212,7 @@ type ProjectChatSendMeta = ChatSendMeta & {
   entryFrom?: ChatAnalyticsEntryFrom;
 };
 
+// @dsp func-13ccc313
 export function mergeSavedPreviewComment(current: PreviewComment[], saved: PreviewComment): PreviewComment[] {
   const existingIndex = current.findIndex((comment) => comment.id === saved.id);
   if (existingIndex < 0) return [...current, saved];
@@ -242,6 +243,7 @@ function mergeServerMessageWithLocal(server: ChatMessage, local?: ChatMessage): 
   return merged;
 }
 
+// @dsp func-d51aef83
 export function mergeServerMessagesIntoConversation(
   current: ChatMessage[],
   serverMessages: ChatMessage[],
@@ -661,6 +663,7 @@ function workspaceContextItemsEqual(
   return a.every((item, index) => workspaceContextItemEqual(item, b[index] ?? null));
 }
 
+// @dsp func-74ae1aa3
 export function projectSplitClassName(workspaceFocused: boolean): string {
   return workspaceFocused ? 'split split-focus' : 'split';
 }
@@ -674,6 +677,7 @@ export function projectSplitClassName(workspaceFocused: boolean): string {
 // while the user is mid-answer, dropping their selections. A distinct later
 // form lives in a different assistant message, so it still gets its own key
 // (and replays the reveal) without relying on the id.
+// @dsp func-908b1d40
 export function buildQuestionFormKey(
   conversationId: string | null,
   assistantMessageId: string | null,
@@ -689,6 +693,7 @@ type ProjectSplitStyle = CSSProperties & {
   '--project-workspace-panel-track': string;
 };
 
+// @dsp func-bebc49b5
 export function projectSplitStyle(
   workspaceFocused: boolean,
   chatPanelWidth: number,
@@ -713,6 +718,7 @@ function applySplitChatPanelWidth(
     `${width}px ${SPLIT_RESIZE_HANDLE_WIDTH}px ${workspacePanelTrack}`;
 }
 
+// @dsp func-82c4ae87
 export function ProjectView({
   project,
   routeFileName,
@@ -5760,6 +5766,7 @@ function artifactBaseNameFor(art: Artifact): string {
   );
 }
 
+// @dsp func-02ecfc3c
 export function findExistingArtifactProjectFile(
   art: Artifact,
   projectFiles: ProjectFile[],
@@ -5796,6 +5803,7 @@ export function findExistingArtifactProjectFile(
   return currentRunFiles.find((file) => file.name === candidateFileName) ?? null;
 }
 
+// @dsp func-1a7d52e5
 export function selectPrimaryProjectFile(files: ProjectFile[]): ProjectFile | null {
   const candidates = files
     .filter((file) => !isProcessArtifactFile(file.name))
@@ -5931,6 +5939,7 @@ export interface RetryTarget {
   preservedAttempts: ChatMessage[];
 }
 
+// @dsp func-ef727c1c
 export function resolveRetryTarget(
   messages: ChatMessage[],
   failedAssistantId: string,
@@ -6108,10 +6117,12 @@ function isStoppableAssistantMessage(message: ChatMessage): boolean {
   return message.runStatus === undefined && message.endedAt === undefined && message.startedAt !== undefined;
 }
 
+// @dsp func-0af84574
 export function resolveSucceededRunStatus(status: ChatMessage['runStatus']): ChatMessage['runStatus'] {
   return status === 'failed' || status === 'canceled' ? status : 'succeeded';
 }
 
+// @dsp func-c21523d7
 export function computeProducedFiles(
   beforeNames: ReadonlySet<string> | readonly string[] | undefined,
   next: readonly ProjectFile[],
@@ -6124,6 +6135,7 @@ export function computeProducedFiles(
 // Reattach with a recovered (on-disk) artifact must still include any
 // other files the turn produced before the artifact write — replacing
 // the diff with a single file was the regression noted on PR #2383.
+// @dsp func-920ddf44
 export function mergeRecoveredArtifact(
   diff: readonly ProjectFile[],
   recovered: ProjectFile | null,
@@ -6133,6 +6145,7 @@ export function mergeRecoveredArtifact(
   return [...diff, recovered];
 }
 
+// @dsp func-6edbee5a
 export function clearStreamingConversationMarker(
   currentConversationId: string | null,
   completedConversationId?: string | null,
@@ -6147,6 +6160,7 @@ export function clearStreamingConversationMarker(
   return null;
 }
 
+// @dsp func-1345a8c3
 export function shouldClearActiveRunRefs(
   currentConversationId: string | null,
   completedConversationId: string,
@@ -6154,6 +6168,7 @@ export function shouldClearActiveRunRefs(
   return currentConversationId === completedConversationId;
 }
 
+// @dsp func-efcc04ea
 export function finalizeActiveAssistantMessagesOnStop(
   messages: ChatMessage[],
   stoppedAt: number,
@@ -6176,6 +6191,7 @@ export function finalizeActiveAssistantMessagesOnStop(
 
 type BufferedTextUpdates = ReturnType<typeof createBufferedTextUpdates>;
 
+// @dsp func-c5798eb4
 export function createBufferedTextUpdates({
   updateMessage,
   persistSoon,

@@ -20,6 +20,7 @@ export interface ClaudePluginAdapterResult {
   warnings: string[];
 }
 
+// @dsp func-6eefaa7a
 export function adaptClaudePlugin(
   rawJson: string,
   opts: ClaudePluginAdapterOptions,

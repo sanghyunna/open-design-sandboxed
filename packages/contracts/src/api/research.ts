@@ -36,6 +36,7 @@ export interface ResearchFindings {
   fetchedAt: number;
 }
 
+// @dsp func-aa8c67c4
 export const RESEARCH_DEFAULT_MAX_SOURCES: Record<ResearchDepth, number> = {
   shallow: 5,
   medium: 12,

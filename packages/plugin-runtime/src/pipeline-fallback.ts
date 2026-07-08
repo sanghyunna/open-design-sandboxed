@@ -31,6 +31,7 @@ export interface ResolvePipelineResult {
   scenarioId?: string;
 }
 
+// @dsp func-5b27bf99
 export function resolveAppliedPipeline(input: ResolvePipelineInput): ResolvePipelineResult {
   const declared = input.manifest.od?.pipeline;
   if (declared && Array.isArray(declared.stages) && declared.stages.length > 0) {

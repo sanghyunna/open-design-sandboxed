@@ -28,6 +28,7 @@ const KNOWN_CAPABILITIES = new Set([
   'connector',
 ]);
 
+// @dsp func-30ea3892
 export function validateManifest(value: unknown): ValidateResult {
   const parsed = PluginManifestSchema.safeParse(value);
   if (!parsed.success) {
@@ -40,6 +41,7 @@ export function validateManifest(value: unknown): ValidateResult {
   return validateSafe(parsed.data);
 }
 
+// @dsp func-73c29b1c
 export function validateSafe(manifest: PluginManifest): ValidateResult {
   const warnings: string[] = [];
   const errors: string[] = [];

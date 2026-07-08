@@ -35,6 +35,7 @@ import { OFFICIAL_DESIGNER_PROMPT } from './official-system.js';
 import { DISCOVERY_AND_PHILOSOPHY } from './discovery.js';
 import { DECK_FRAMEWORK_DIRECTIVE } from './deck-framework.js';
 
+// @dsp func-3681689d
 export const BASE_SYSTEM_PROMPT = OFFICIAL_DESIGNER_PROMPT;
 
 function renderUiLocalePrompt(locale: string | undefined): string {
@@ -96,10 +97,12 @@ function renderReadabilityPrompt(locale: string | undefined): string {
     : READABILITY_RULE_BASE;
 }
 
+// @dsp func-2b10ae20
 export const SKIP_DISCOVERY_BRIEF_OVERRIDE = `# Automated project mode — skip discovery form
 
 This project was created through the daemon API with \`skipDiscoveryBrief: true\`. Override the discovery rules below: do NOT emit \`<question-form id="discovery">\`, do NOT show "Quick brief — 30 seconds", and do NOT ask a first-turn clarification form. Do not emit any question form or choice card, and do not wait for user input. Treat the user's first message and project metadata as the brief, choose reasonable defaults for any missing details, then proceed directly to planning/building under the normal artifact workflow.`;
 
+// @dsp func-abeefff1
 export function buildExamplePromptOverride(
   title?: string | null,
   brief?: Record<string, string> | null,
@@ -199,6 +202,7 @@ export interface ComposeInput {
   projectInstructions?: string | undefined;
 }
 
+// @dsp func-cb0c5cc7
 export function composeSystemPrompt({
   skillBody,
   skillName,

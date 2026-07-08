@@ -67,6 +67,7 @@ function formatWritablePathError(options: {
   return diagLines.join("\n");
 }
 
+// @dsp func-77b5e7da
 export async function verifyPackagedDataRootWritable(paths: Pick<PackagedNamespacePaths, "dataRoot">): Promise<void> {
   try {
     await mkdir(paths.dataRoot, { recursive: true });
@@ -89,6 +90,7 @@ export async function verifyPackagedDataRootWritable(paths: Pick<PackagedNamespa
   }
 }
 
+// @dsp func-230150b6
 export async function ensurePackagedNamespacePaths(
   paths: PackagedNamespacePaths,
 ): Promise<void> {
@@ -106,6 +108,7 @@ export async function ensurePackagedNamespacePaths(
   ]);
 }
 
+// @dsp func-3debd19d
 export function applyPackagedElectronPathOverrides(
   paths: PackagedNamespacePaths,
 ): void {
@@ -114,6 +117,7 @@ export function applyPackagedElectronPathOverrides(
   app.setPath("logs", paths.desktopLogsRoot);
 }
 
+// @dsp func-a5f43a0f
 export function claimPackagedSingleInstanceLock(
   electronApp: PackagedSingleInstanceApp,
   onSecondInstance: () => void,

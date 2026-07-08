@@ -12,6 +12,7 @@ export interface MarketplaceParseFailure {
 
 export type MarketplaceParseResult = MarketplaceParseSuccess | MarketplaceParseFailure;
 
+// @dsp func-8c1b17c7
 export function parseMarketplace(raw: string): MarketplaceParseResult {
   let json: unknown;
   try {

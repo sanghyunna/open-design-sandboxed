@@ -15,6 +15,7 @@
  * v2: `conversationId` became a required request field — handoff is
  * scoped to a single conversation, not the whole project.
  */
+// @dsp func-d33bbec1
 export const HANDOFF_SCHEMA_VERSION = 2;
 
 /**

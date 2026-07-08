@@ -25,6 +25,7 @@ const sizeClassNames: Record<ButtonSize, string | undefined> = {
   icon: joinClassNames(styles.icon, 'icon-btn'),
 };
 
+// @dsp func-8b652e65
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { className, type = 'button', variant = 'default', size = 'default', ...props },
   ref,

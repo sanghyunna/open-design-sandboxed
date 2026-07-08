@@ -9,6 +9,7 @@
  */
 import type { AppliedPluginSnapshot } from '../plugins/apply.js';
 
+// @dsp func-c6a9f40d
 export function renderPluginBlock(snapshot: AppliedPluginSnapshot): string {
   const lines: string[] = [];
   lines.push('\n\n## Active plugin');

@@ -12,15 +12,21 @@ async function loadElectronApp() {
   return electron.app;
 }
 
+// @dsp func-79b9d4e0
 export const PACKAGED_CONFIG_PATH_ENV = "OD_PACKAGED_CONFIG_PATH";
+// @dsp func-83b35750
 export const PACKAGED_NAMESPACE_ENV = "OD_PACKAGED_NAMESPACE";
+// @dsp func-d42e2a3f
 export const PACKAGED_WEB_OUTPUT_MODE_OVERRIDE_ENV = "OD_PACKAGED_ALLOW_WEB_OUTPUT_MODE_OVERRIDE";
+// @dsp func-f515152c
 export const PACKAGED_WEB_STANDALONE_ROOT_ENV = "OD_WEB_STANDALONE_ROOT";
+// @dsp func-857c9413
 export const PACKAGED_WEB_OUTPUT_MODE_ENV = "OD_WEB_OUTPUT_MODE";
 
 export type PackagedWebOutputMode = "server" | "standalone";
 export type PackagedAmrProfile = "prod" | "test" | "local";
 
+// @dsp func-53f198c4
 export function resolveDefaultPackagedNodeCommandRelativePath(
   platform: NodeJS.Platform = process.platform,
 ): string {
@@ -157,6 +163,7 @@ async function resolvePackagedRelativeEntry(value: string | undefined): Promise<
   return entry;
 }
 
+// @dsp func-6b11f489
 export async function readPackagedConfig(): Promise<PackagedConfig> {
   const raw = await readRawPackagedConfig();
   const namespace = normalizeNamespace(

@@ -13,6 +13,7 @@ import type { MemoryTreeNode } from './automations.js';
 
 export type MemoryType = 'user' | 'feedback' | 'project' | 'reference';
 
+// @dsp func-3096bfb9
 export const MEMORY_TYPES: readonly MemoryType[] = [
   'user',
   'feedback',

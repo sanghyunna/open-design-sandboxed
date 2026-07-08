@@ -34,6 +34,7 @@ export type SrcdocOptions = {
   previewFocusGuard?: boolean;
 };
 
+// @dsp func-c2808f54
 export function buildSrcdoc(
   html: string,
   options: SrcdocOptions = {}
@@ -95,6 +96,7 @@ export function buildSrcdoc(
  *      key-driven re-mount), in which case the message is dropped and the
  *      iframe stays stuck on the empty shell. See #2253.
  */
+// @dsp func-8c432f5e
 export function buildLazySrcdocTransport(): string {
   return `<!doctype html>
 <html>
@@ -144,6 +146,7 @@ export interface SrcDocActivationInputs {
  * on its empty 536-byte body, and the dedupe check then suppresses the
  * follow-up activation from the iframe's onLoad path.
  */
+// @dsp func-a3565815
 export function canActivateSrcDocTransport(state: SrcDocActivationInputs): boolean {
   if (!state.srcDoc) return false;
   if (state.useUrlLoadPreview) return false;

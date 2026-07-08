@@ -41,6 +41,7 @@ import {
 } from './plugin-preview-bakes.js';
 import { userFacingAgentLabel } from './user-facing-agent-label.js';
 
+// @dsp func-27acb8ad
 export { resolveProjectRoot };
 import { createCommandInvocation } from '@open-design/platform';
 import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
@@ -98,11 +99,17 @@ import {
   verifyDesktopImportToken,
 } from './desktop-auth.js';
 export {
+  // @dsp func-88f1351d
   isDesktopAuthGateActive,
+  // @dsp func-063ed59a
   isDesktopAuthRegistered,
+  // @dsp func-d50244ad
   resetDesktopAuthForTests,
+  // @dsp func-00fc31c4
   setDesktopAuthSecret,
+  // @dsp func-ebac4d9c
   signDesktopImportToken,
+  // @dsp func-599039c9
   verifyDesktopImportToken,
 } from './desktop-auth.js';
 import {
@@ -496,6 +503,7 @@ function cleanOptionalPath(value: string | undefined): string | null {
     : null;
 }
 
+// @dsp func-2696a5b9
 export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): string {
   const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.OD_BIN);
   if (configured) return configured;
@@ -507,6 +515,7 @@ export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): stri
 const PROJECT_ROOT = resolveProjectRoot(__dirname);
 const RESOURCE_ROOT_ENV = 'OD_RESOURCE_ROOT';
 
+// @dsp func-5f464aba
 export function composeLiveInstructionPrompt({
   daemonSystemPrompt,
   runtimeToolPrompt,
@@ -541,6 +550,7 @@ function renderPluginBriefTemplate(template, inputs = {}) {
   });
 }
 
+// @dsp func-a6352e94
 export function resolveResearchCommandContract(research, message) {
   if (!research || !research.enabled) return '';
   const researchQuery =
@@ -554,6 +564,7 @@ export function resolveResearchCommandContract(research, message) {
   });
 }
 
+// @dsp func-59eecb8a
 export function resolveChatExtraAllowedDirs({
   skillsDir,
   designSystemsDir,
@@ -580,6 +591,7 @@ export function resolveChatExtraAllowedDirs({
   );
 }
 
+// @dsp func-0c308e42
 export function normalizeCommentAttachments(input) {
   if (!Array.isArray(input)) return [];
   return input
@@ -642,6 +654,7 @@ export function normalizeCommentAttachments(input) {
     .sort((a, b) => a.order - b.order);
 }
 
+// @dsp func-e4f54362
 export function renderCommentAttachmentHint(commentAttachments) {
   if (!commentAttachments.length) return '';
   const lines = [
@@ -845,6 +858,7 @@ function isPathWithin(base, target) {
   );
 }
 
+// @dsp func-44a2f1d3
 export function resolveSafeProjectAttachments(cwd, attachments, opts = {}) {
   if (!cwd || !Array.isArray(attachments)) return [];
   const pathImpl = opts.pathImpl ?? path;
@@ -871,6 +885,7 @@ export function resolveSafeProjectAttachments(cwd, attachments, opts = {}) {
   return out;
 }
 
+// @dsp func-a441b00c
 export function formatProjectAttachmentHint(attachments) {
   if (!Array.isArray(attachments) || attachments.length === 0) return '';
   return [
@@ -903,6 +918,7 @@ function formatDesignFilesEntryLine(entry: DesignFilesHintEntry | null | undefin
   return `- \`${entryPath}\` (${[kind, size].filter(Boolean).join(', ')})`;
 }
 
+// @dsp func-62222d11
 export function formatDesignFilesWorkspaceHint(
   cwd: string | null | undefined,
   files: DesignFilesHintEntry[] = [],
@@ -953,6 +969,7 @@ export function formatDesignFilesWorkspaceHint(
   return lines.join('\n');
 }
 
+// @dsp func-ff650798
 export function resolveSafePromptImagePaths(imagePaths, opts = {}) {
   if (!Array.isArray(imagePaths) || imagePaths.length === 0) {
     return { safeImages: [], oversizedImages: [], failedImages: [] };
@@ -1036,6 +1053,7 @@ function resolveProcessResourcesPath() {
   return null;
 }
 
+// @dsp func-0627f181
 export function resolveDaemonResourceRoot({
   configured = process.env[RESOURCE_ROOT_ENV],
   safeBases = [
@@ -1070,6 +1088,7 @@ function resolveDaemonResourceDir(resourceRoot, segment, fallback) {
 // which for the prebundled daemon resolves to Resources/app (two levels up from
 // the sidecar) and has no data/. An explicit OD_PLUGIN_PREVIEWS_DIR override and
 // the dev PROJECT_ROOT layout still win. Exported for regression coverage.
+// @dsp func-f4c68241
 export function resolveDaemonPluginPreviewsDir({ env = process.env, resourceRoot, projectRoot }) {
   // Resolve the override from the injected `env` (absolute passthrough, relative
   // against projectRoot) rather than re-reading process.env, so the helper is
@@ -1154,6 +1173,7 @@ const PLUGIN_REGISTRY_DIR = resolveDaemonResourceDir(
 const OFFICIAL_MARKETPLACE_ID = 'official';
 const OFFICIAL_PLUGIN_SOURCE_REPO = 'github:nexu-io/open-design@main';
 
+// @dsp func-7529918d
 export function isStaticSpaFallbackRequest(req) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
   if (req.path === '/api' || req.path.startsWith('/api/')) return false;
@@ -1165,12 +1185,14 @@ export function isStaticSpaFallbackRequest(req) {
   return accept.length === 0 || accept.includes('text/html') || accept.includes('*/*');
 }
 
+// @dsp func-736abf1a
 export function resolveStaticSpaFallbackPath(req, staticDir) {
   const indexPath = path.join(staticDir, 'index.html');
   if (!fs.existsSync(indexPath) || !isStaticSpaFallbackRequest(req)) return null;
   return indexPath;
 }
 
+// @dsp func-3479dde3
 export function registerStaticSpaFallback(app, staticDir) {
   app.get('/*splat', (req, res, next) => {
     const indexPath = resolveStaticSpaFallbackPath(req, staticDir);
@@ -1252,6 +1274,7 @@ function createMarketplaceFetcher(seedId, bundledMarketplaceEntries) {
   };
 }
 
+// @dsp func-172737d6
 export function resolveDataDir(raw, projectRoot, options = {}) {
   const value = raw?.trim();
   if (!value) {
@@ -1495,8 +1518,10 @@ const critiqueWarnedAdapters = new Set<string>();
 // can cascade an AbortController to the matching orchestrator invocation.
 // Created once per process; not persisted across daemon restarts.
 const critiqueRunRegistry = createRunRegistry();
+// @dsp func-923ea89c
 export const SSE_KEEPALIVE_INTERVAL_MS = 25_000;
 
+// @dsp func-6f4723d6
 export function createAgentRuntimeEnv(
   baseEnv: NodeJS.ProcessEnv | Record<string, string | undefined>,
   daemonUrl: string,
@@ -1561,6 +1586,7 @@ export function createAgentRuntimeEnv(
   return env;
 }
 
+// @dsp func-17a68e2b
 export function createAgentRuntimeToolPrompt(
   daemonUrl: string,
   toolTokenGrant: { token?: string } | null = null,
@@ -1796,10 +1822,12 @@ function renderRunContextPrompt(selection, metadata) {
   return ['## Selected run context', ...lines].join('\n');
 }
 
+// @dsp func-3e2fecc4
 export function normalizeProjectDisplayStatus(status) {
   return status === 'starting' || status === 'queued' ? 'running' : status;
 }
 
+// @dsp func-b271d4a2
 export function composeProjectDisplayStatus(
   baseStatus,
   awaitingInputProjects,
@@ -1823,6 +1851,7 @@ export function composeProjectDisplayStatus(
  * @param {Omit<ApiError, 'code' | 'message'>} [init]
  * @returns {ApiError}
  */
+// @dsp func-77e5d3a7
 export function createCompatApiError(code, message, init = {}) {
   return { code, message, ...init };
 }
@@ -1833,6 +1862,7 @@ export function createCompatApiError(code, message, init = {}) {
  * @param {Omit<ApiError, 'code' | 'message'>} [init]
  * @returns {ApiErrorResponse}
  */
+// @dsp func-a4e0891d
 export function createCompatApiErrorResponse(code, message, init = {}) {
   return { error: createCompatApiError(code, message, init) };
 }
@@ -2172,6 +2202,7 @@ function shouldSkipPluginContextEntry(name) {
   return PLUGIN_CONTEXT_SKIP_DIRS.has(name) || PLUGIN_CONTEXT_SKIP_FILES.has(name);
 }
 
+// @dsp func-3b3ee3fd
 export function selectPromptImagePaths(
   agentId,
   safeImages,
@@ -2453,6 +2484,7 @@ function assertProjectRunCheckpointBinding(db, run, options = {}) {
   }
 }
 
+// @dsp func-3a0e9963
 export function shouldReportRunCompletedFromMessage(saved, body = {}) {
   return Boolean(
     saved &&
@@ -2463,6 +2495,7 @@ export function shouldReportRunCompletedFromMessage(saved, body = {}) {
   );
 }
 
+// @dsp func-fe85ade3
 export function telemetryPromptFromRunRequest(message, currentPrompt) {
   return typeof currentPrompt === 'string' ? currentPrompt : message;
 }
@@ -2482,6 +2515,7 @@ const FORM_ANSWERS_HEADER_RE = /^\s*\[form answers\s+(?:\u2014|-)\s*([^\]\r\n]+)
 // anti-patterns we ask the model to skip \u2014 silently weakening the
 // list (e.g. dropping the markdown-fence ban) would reintroduce the
 // form-echo regression on GPT-OSS / Gemini Flash.
+// @dsp func-51fd4bad
 export const FORM_ANSWERED_SYSTEM_OVERRIDE = `## OVERRIDE \u2014 form already answered (this is turn 2 or later)
 
 The user already submitted their form answers (see # User request below).
@@ -2507,6 +2541,7 @@ Required output for this turn:
 // forms are not artifact-build transitions, so we only need to suppress
 // the form re-ask without directing the model toward RULE 2 / RULE 3.
 // Exported so tests can pin the literal content independently.
+// @dsp func-39540f04
 export const FORM_ANSWERED_GENERIC_OVERRIDE = `## OVERRIDE \u2014 form already answered (this is turn 2 or later)
 
 The user already submitted their form answers (see # User request below).
@@ -2548,6 +2583,7 @@ function formAnswerTransitionForCurrentPrompt(currentPrompt) {
   return lines.join('\n');
 }
 
+// @dsp func-674b1fa1
 export function composeChatUserRequestForAgent(
   message,
   currentPrompt,
@@ -2579,6 +2615,7 @@ export function composeChatUserRequestForAgent(
   ].join('\n\n');
 }
 
+// @dsp func-e694c9b5
 export function createFinalizedMessageTelemetryReporter({
   design,
   db,
@@ -3509,6 +3546,7 @@ async function runPluginShareTask(task, folder) {
   notifyPluginShareTaskWaiters(task);
 }
 
+// @dsp func-2bf22723
 export function createSseResponse(
   res,
   { keepAliveIntervalMs = SSE_KEEPALIVE_INTERVAL_MS } = {},
@@ -3611,6 +3649,7 @@ function resolveChatRunInactivityTimeoutMs() {
 // inactivity watchdog so an oversized override doesn't get Node-downgraded
 // to a 1ms timer. Exported so tests can pin the env behavior without
 // reaching into chat-run internals.
+// @dsp func-04612bf8
 export function resolveChatRunArtifactQuietPeriodMs() {
   const raw = Number(process.env.OD_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS);
   if (!Number.isFinite(raw)) return DEFAULT_CHAT_RUN_ARTIFACT_QUIET_PERIOD_MS;
@@ -3625,6 +3664,7 @@ export function resolveChatRunArtifactQuietPeriodMs() {
 // tests (#1451 review: a 0-value override must not strand the pre-artifact
 // timer or stop further reschedules — it has to fall back to the
 // pre-artifact ceiling so subsequent activity keeps refreshing the timer).
+// @dsp func-432ff509
 export function resolveActiveInactivityTimeoutMs(params: {
   inactivityTimeoutMs: number;
   artifactQuietPeriodMs: number;
@@ -3655,6 +3695,7 @@ export function resolveActiveInactivityTimeoutMs(params: {
 //     null) — an OOM / external `kill` / container shutdown after an
 //     artifact write stays `failed`, same guard as the quiet-period
 //     branch above.
+// @dsp func-6a56332e
 export function classifyChatRunCloseStatus(params: {
   cancelRequested: boolean;
   code: number | null;
@@ -3728,6 +3769,7 @@ type ClaudeStreamJsonBookkeepingRun = {
 // other way to know the turn is over, though — without an EOF it idles until
 // the inactivity watchdog kills it. So when a turn terminates cleanly we close
 // stdin to let the child exit.
+// @dsp func-c0f41ac7
 export function applyClaudeStreamJsonRunBookkeeping(
   run: ClaudeStreamJsonBookkeepingRun,
   ev: unknown,
@@ -3774,6 +3816,7 @@ function resolveAcpStageTimeoutMs(): number | undefined {
   return Math.min(MAX_CHAT_RUN_INACTIVITY_TIMEOUT_MS, Math.max(0, Math.floor(raw)));
 }
 
+// @dsp func-a4b7141c
 export async function startServer({
   port = 7456,
   host = process.env.OD_BIND_HOST || '127.0.0.1',
@@ -13635,6 +13678,7 @@ function assembleExample(templateHtml, slidesHtml, title) {
 // `/api/skills/<id>/assets/...` URL lets the same HTML render in both
 // places — the disk preview keeps working, and the in-app preview now
 // fetches assets through the matching route below.
+// @dsp func-e0571908
 export function rewriteSkillAssetUrls(html: string, skillId: string): string {
   if (typeof html !== 'string' || html.length === 0) return html;
   // Match src/href attributes whose values point at the current skill's

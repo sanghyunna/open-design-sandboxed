@@ -3,6 +3,7 @@ import type { RouteDeps } from '../server-context.js';
 
 export interface RegisterDeployRoutesDeps extends RouteDeps<'db' | 'http' | 'paths' | 'ids' | 'deploy' | 'projectStore'> {}
 
+// @dsp func-1442a449
 export function registerDeployRoutes(app: Express, ctx: RegisterDeployRoutesDeps) {
   const { db } = ctx;
   const { sendApiError } = ctx.http;
@@ -196,6 +197,7 @@ export function registerDeployRoutes(app: Express, ctx: RegisterDeployRoutesDeps
 
 export interface RegisterDeploymentCheckRoutesDeps extends RouteDeps<'db' | 'http' | 'deploy'> {}
 
+// @dsp func-d5eb7397
 export function registerDeploymentCheckRoutes(app: Express, ctx: RegisterDeploymentCheckRoutesDeps) {
   const { db } = ctx;
   const { sendApiError } = ctx.http;

@@ -114,6 +114,7 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+// @dsp func-10c3c334
 export async function resolvePackagedElectronNodeCommand(
   execPath = process.execPath,
   platform = process.platform,
@@ -161,6 +162,7 @@ const DAEMON_MIGRATION_STATUS_TIMEOUT_MS = 30 * 60 * 1000;
  * @see apps/daemon/src/legacy-data-migrator.ts
  * @see https://github.com/nexu-io/open-design/issues/710
  */
+// @dsp func-ca65beb2
 export function resolveDaemonStatusTimeoutMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
@@ -182,6 +184,7 @@ const WEB_STATUS_TIMEOUT_MS = 180_000;
  * window. `OD_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
  * absent, non-numeric, or non-positive value falls back to the default.
  */
+// @dsp func-d6d6f242
 export function resolveWebStatusTimeoutMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
@@ -205,6 +208,7 @@ export function resolveWebStatusTimeoutMs(
  * that already exited. The error message includes the daemon log path
  * so the user can read the actual failure reason.
  */
+// @dsp func-35359063
 export async function waitForStatus<T>(
   ipcPath: string,
   isReady: (status: T) => boolean,
@@ -271,6 +275,7 @@ function extractPort(url: string): string {
 const PACKAGED_POSIX_SYSTEM_BINS = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"] as const;
 const PACKAGED_SYSTEM_PROXY_CACHE_KEY = "packaged-child-base-env";
 
+// @dsp func-0ade3abd
 export function resolvePackagedPathEnv(basePath = process.env.PATH ?? ""): string {
   const candidates = [
     ...basePath.split(delimiter),
@@ -280,6 +285,7 @@ export function resolvePackagedPathEnv(basePath = process.env.PATH ?? ""): strin
   return [...new Set(candidates.filter((entry) => entry.length > 0))].join(delimiter);
 }
 
+// @dsp func-cefc831b
 export function resolvePackagedChildBaseEnv(
   env: NodeJS.ProcessEnv = process.env,
   includeProviderSecrets = false,
@@ -336,6 +342,7 @@ export type PackagedDaemonSpawnEnvOptions = {
  * branches of `requireDesktopAuth` without spinning up a real child
  * process.
  */
+// @dsp func-a37b27ff
 export function buildPackagedDaemonSpawnEnv(
   paths: PackagedNamespacePaths,
   options: PackagedDaemonSpawnEnvOptions,
@@ -451,6 +458,7 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
   await child.logHandle.close().catch(() => undefined);
 }
 
+// @dsp func-cf1f0266
 export async function startPackagedSidecars(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   paths: PackagedNamespacePaths,

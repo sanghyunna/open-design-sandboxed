@@ -58,6 +58,7 @@ export interface ResolveResult {
   digestRefs: Array<{ kind: string; ref: string }>;
 }
 
+// @dsp func-44c32127
 export function resolveContext(manifest: PluginManifest, opts: ResolveOptions): ResolveResult {
   const warnings: string[] = [];
   const items: ContextItem[] = [];

@@ -50,12 +50,14 @@ function triggerDownload(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+// @dsp func-f4e4308d
 export function exportAsHtml(html: string, title: string): void {
   const doc = buildSrcdoc(html);
   const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
   triggerDownload(blob, `${safeFilename(title, 'artifact')}.html`);
 }
 
+// @dsp func-40a5435e
 export async function exportProjectAsHtml(opts: {
   projectId: string;
   filePath: string;
@@ -113,6 +115,7 @@ function designFileMap(entryFile: string, files?: string[]): DesignFileMap {
   return { files: all, htmlFiles, screenHtmlFiles, cssFiles, jsFiles, assetFiles, entryFile: preferredEntryFile };
 }
 
+// @dsp func-4312a8a0
 export function buildDesignManifestContent(opts: {
   title: string;
   entryFile: string;
@@ -204,6 +207,7 @@ export function buildDesignManifestContent(opts: {
   }, null, 2);
 }
 
+// @dsp func-a4145bb2
 export function buildDesignHandoffContent(opts: {
   title: string;
   entryFile: string;
@@ -315,6 +319,7 @@ ${list(assetFiles)}
 `;
 }
 
+// @dsp func-e9488e10
 export function exportAsZip(html: string, title: string): void {
   const doc = buildSrcdoc(html);
   const slug = safeFilename(title, 'artifact');
@@ -340,6 +345,7 @@ export function exportAsZip(html: string, title: string): void {
   triggerDownload(blob, `${slug}.zip`);
 }
 
+// @dsp func-96b21e2e
 export function exportAsMd(source: string, title: string): void {
   // Pass-through download: the file body is the artifact source verbatim,
   // only the extension and Content-Type are flipped to markdown. No
@@ -365,6 +371,7 @@ export type PreviewSnapshotResult =
   | { ok: true; snapshot: PreviewSnapshot }
   | { ok: false; reason: 'loading' | 'post-message-error' | 'render-error' | 'timeout'; error?: string };
 
+// @dsp func-cfc5f271
 export function requestPreviewSnapshotResult(
   iframe: HTMLIFrameElement,
   timeout = 8000,
@@ -409,6 +416,7 @@ export function requestPreviewSnapshotResult(
   });
 }
 
+// @dsp func-29e34a7d
 export async function requestPreviewSnapshot(
   iframe: HTMLIFrameElement,
   timeout = 8000,
@@ -430,6 +438,7 @@ export async function requestPreviewSnapshot(
  * getBoundingClientRect()); capturePage expects DIP page coordinates, which
  * match 1:1 for the top-level window (it never scrolls).
  */
+// @dsp func-2dc75904
 export async function captureHostRegionSnapshot(
   clipRect: { left: number; top: number; width: number; height: number } | null,
 ): Promise<PreviewSnapshot | null> {
@@ -458,6 +467,7 @@ export async function captureHostRegionSnapshot(
  * Convenience wrapper over captureHostRegionSnapshot using the iframe's
  * current bounding rect.
  */
+// @dsp func-94e46ba0
 export async function captureHostIframeSnapshot(
   iframe: HTMLIFrameElement | null,
 ): Promise<PreviewSnapshot | null> {
@@ -498,6 +508,7 @@ type ClipboardItemCtor = new (
  * the browser refuses the write for permission/security reasons, and 'failed'
  * for any other error (e.g. a malformed data-URL).
  */
+// @dsp func-d1a8ad60
 export async function copyImageDataUrlToClipboard(
   dataUrl: string,
 ): Promise<'copied' | 'denied' | 'failed'> {
@@ -601,6 +612,7 @@ function downloadImageExportTarget(filename: string): ImageExportTarget {
   };
 }
 
+// @dsp func-f2d90785
 export function downloadImageDataUrl(dataUrl: string, filename: string): void {
   // Validate the snapshot without converting the actual download path to a blob URL.
   dataUrlToBlob(dataUrl);
@@ -640,6 +652,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality?: number)
   });
 }
 
+// @dsp func-e4e204c4
 export async function imageDataUrlToBlob(
   dataUrl: string,
   format: ImageExportFormat,
@@ -670,6 +683,7 @@ export async function imageDataUrlToBlob(
   return canvasToBlob(canvas, spec.mime, format === 'jpeg' ? 0.92 : undefined);
 }
 
+// @dsp func-4b4448c5
 export async function prepareImageExportTarget(
   title: string,
   format: ImageExportFormat,
@@ -716,6 +730,7 @@ export async function prepareImageExportTarget(
 }
 
 /** Download a snapshot data-URL as a PNG file. */
+// @dsp func-eee0eb62
 export function exportAsImage(dataUrl: string, title: string): void {
   try {
     const blob = dataUrlToBlob(dataUrl);
@@ -729,6 +744,7 @@ export function exportAsImage(dataUrl: string, title: string): void {
 
 export type ProjectPdfExportResult = 'desktop' | 'fallback';
 
+// @dsp func-c48a0417
 export async function exportProjectAsPdf(opts: {
   deck: boolean;
   fallbackPdf: () => void;
@@ -759,6 +775,7 @@ export async function exportProjectAsPdf(opts: {
 
 type ReactSourceExtension = '.jsx' | '.tsx';
 
+// @dsp func-7031b71d
 export function exportAsJsx(
   source: string,
   title: string,
@@ -768,12 +785,14 @@ export function exportAsJsx(
   triggerDownload(blob, `${safeFilename(title, 'component')}${extension}`);
 }
 
+// @dsp func-69d3376b
 export function exportReactComponentAsHtml(source: string, title: string): void {
   const doc = buildReactComponentSrcdoc(source, { title });
   const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
   triggerDownload(blob, `${safeFilename(title, 'component')}.html`);
 }
 
+// @dsp func-605c5260
 export function exportReactComponentAsZip(
   source: string,
   title: string,
@@ -813,6 +832,7 @@ export function exportReactComponentAsZip(
 // directory we scope the archive to that directory, otherwise we ask the
 // daemon for the whole project. Falls back to the in-memory single-file
 // ZIP on any failure so the action never silently no-ops.
+// @dsp func-a4f2d304
 export async function exportProjectAsZip(opts: {
   projectId: string;
   filePath: string;
@@ -835,6 +855,7 @@ export async function exportProjectAsZip(opts: {
 }
 
 // Exported for unit tests. Pure string transform with no DOM dependency.
+// @dsp func-785c04c3
 export function archiveRootFromFilePath(filePath: string): string {
   const trimmed = (filePath || '').replace(/^\/+/, '');
   const slash = trimmed.indexOf('/');
@@ -845,6 +866,7 @@ export function archiveRootFromFilePath(filePath: string): string {
 // Exported for unit tests so the Content-Disposition fallback chain
 // (UTF-8 → legacy quoted → local slug) can be exercised against mock
 // Response objects without spinning up the daemon.
+// @dsp func-97a3b58c
 export function archiveFilenameFrom(resp: Response, fallbackTitle: string, root: string): string {
   // Honor the daemon's Content-Disposition (it knows the project name and
   // handles RFC 5987 UTF-8 encoding). Fall back to the active directory
@@ -878,6 +900,7 @@ function escapeHtmlAttribute(value: string): string {
 // docs/architecture.md: the untrusted code must run in an iframe sandbox
 // without `allow-same-origin`. This wrapper is same-origin, but it contains no
 // generated script; the generated document lives in an opaque-origin child.
+// @dsp func-11d5f36f
 export function buildSandboxedPreviewDocument(
   doc: string,
   title: string,
@@ -926,6 +949,7 @@ function buildBlobSafeSrcdoc(html: string, options?: SrcdocOptions): string {
   });
 }
 
+// @dsp func-09036844
 export function openSandboxedPreviewInNewTab(
   html: string,
   title: string,
@@ -953,6 +977,7 @@ export function openSandboxedPreviewInNewTab(
 // equivalent print rules; this is a safety net for older / partially
 // regenerated decks where the framework was stripped — without it,
 // horizontal-snap decks print only the visible slide.
+// @dsp func-2ee9aa99
 export async function exportAsPdf(
   html: string,
   title: string,

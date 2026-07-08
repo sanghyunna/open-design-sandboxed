@@ -89,6 +89,7 @@ function ipv4MappedToDotted(hostname: string): string | null {
   ].join('.');
 }
 
+// @dsp func-6729c6ef
 export function isLoopbackApiHost(hostname: string): boolean {
   const host = normalizeBracketedIpv6(hostname);
   if (host === 'localhost' || host === '::1') return true;
@@ -97,6 +98,7 @@ export function isLoopbackApiHost(hostname: string): boolean {
   return Boolean(mapped && isLoopbackIpv4(mapped));
 }
 
+// @dsp func-be41f1fd
 export function isBlockedExternalApiHostname(hostname: string): boolean {
   const host = normalizeBracketedIpv6(hostname);
   if (host === '::') return true;
@@ -107,6 +109,7 @@ export function isBlockedExternalApiHostname(hostname: string): boolean {
   return Boolean(mapped && isBlockedIpv4(mapped));
 }
 
+// @dsp func-e10561d7
 export function validateBaseUrl(baseUrl: string): BaseUrlValidationResult {
   let parsed: ParsedBaseUrl;
   try {

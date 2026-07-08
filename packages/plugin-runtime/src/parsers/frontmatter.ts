@@ -22,6 +22,7 @@ type StackEntry = {
   key: string | null;
 };
 
+// @dsp func-ced3a96b
 export function parseFrontmatter(src: string): { data: FrontmatterObject; body: string } {
   const text = src.replace(/^﻿/, '');
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text);

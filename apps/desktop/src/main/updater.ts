@@ -59,6 +59,7 @@ import {
   type InstallerObservationHandle,
 } from "./installer-observations.js";
 
+// @dsp func-6d2ca34e
 export const DESKTOP_UPDATE_ENV = Object.freeze({
   ARCH: "OD_UPDATE_ARCH",
   AUTO_CHECK: "OD_UPDATE_AUTO_CHECK",
@@ -377,6 +378,7 @@ function defaultPollIntervalMs(channel: DesktopUpdateChannel): number {
   return channel === DESKTOP_UPDATE_CHANNELS.STABLE ? STABLE_POLL_INTERVAL_MS : BETA_POLL_INTERVAL_MS;
 }
 
+// @dsp func-0b012fbe
 export function resolveDesktopUpdaterConfig(input: DesktopUpdaterConfigInput): DesktopUpdaterConfig {
   const env = input.env ?? process.env;
   const mode = normalizeMode(env[DESKTOP_UPDATE_ENV.MODE], input.mode ?? DESKTOP_UPDATE_MODES.PACKAGE_LAUNCHER);
@@ -834,6 +836,7 @@ function compareIdentifier(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
+// @dsp func-633b9ed7
 export function compareVersions(a: string, b: string): number {
   const left = parseComparableVersion(a);
   const right = parseComparableVersion(b);
@@ -2248,6 +2251,7 @@ async function loadVerifiedReleaseForCandidate(
   return null;
 }
 
+// @dsp func-264bc78c
 export function createDesktopUpdater(
   configInput: DesktopUpdaterConfigInput,
   deps: DesktopUpdaterDeps = {},
@@ -2992,6 +2996,7 @@ export function createDesktopUpdater(
   };
 }
 
+// @dsp func-077fae5a
 export function createDesktopUpdaterScheduler(
   updater: DesktopUpdater,
   options: {

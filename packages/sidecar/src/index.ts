@@ -115,10 +115,12 @@ export type JsonIpcServerHandle = {
   close(): Promise<void>;
 };
 
+// @dsp func-cb19c72e
 export function isWindowsNamedPipePath(value: unknown): boolean {
   return typeof value === "string" && value.startsWith("\\\\.\\pipe\\");
 }
 
+// @dsp func-f9dc8761
 export function normalizeIpcPath(ipc: unknown): string {
   if (typeof ipc !== "string") throw new Error("sidecar ipc path must be a string");
   if (ipc.length === 0) throw new Error("sidecar ipc path must not be empty");
@@ -129,6 +131,7 @@ export function normalizeIpcPath(ipc: unknown): string {
   return ipc;
 }
 
+// @dsp func-f31f3f13
 export function resolveNamespace<TStamp extends SidecarStampShape>(options: NamespaceResolutionOptions<TStamp>): string {
   return options.contract.normalizeNamespace(
     options.namespace ??
@@ -137,6 +140,7 @@ export function resolveNamespace<TStamp extends SidecarStampShape>(options: Name
   );
 }
 
+// @dsp func-3250248f
 export function resolveProjectRoot(projectRoot: string): string {
   if (typeof projectRoot !== "string" || projectRoot.trim().length === 0) {
     throw new Error("projectRoot must be a non-empty string");
@@ -144,6 +148,7 @@ export function resolveProjectRoot(projectRoot: string): string {
   return resolve(projectRoot);
 }
 
+// @dsp func-0449ead1
 export function resolveProjectTmpRoot<TStamp extends SidecarStampShape>({
   contract,
   projectRoot,
@@ -154,6 +159,7 @@ export function resolveProjectTmpRoot<TStamp extends SidecarStampShape>({
   return join(resolveProjectRoot(projectRoot), contract.defaults.projectTmpDirName);
 }
 
+// @dsp func-11f13f76
 export function resolveSourceRuntimeRoot<TStamp extends SidecarStampShape>({
   contract,
   projectRoot,
@@ -162,6 +168,7 @@ export function resolveSourceRuntimeRoot<TStamp extends SidecarStampShape>({
   return join(resolveProjectTmpRoot({ contract, projectRoot }), contract.normalizeSource(source));
 }
 
+// @dsp func-ab1dfe9c
 export function resolveSidecarBase<TStamp extends SidecarStampShape>({
   base,
   contract,
@@ -172,6 +179,7 @@ export function resolveSidecarBase<TStamp extends SidecarStampShape>({
   return resolve(base ?? env[contract.env.base] ?? resolveSourceRuntimeRoot({ contract, projectRoot, source }));
 }
 
+// @dsp func-8337582b
 export function resolveNamespaceRoot<TStamp extends SidecarStampShape>({
   base,
   contract,
@@ -204,6 +212,7 @@ export function resolveNamespaceRoot<TStamp extends SidecarStampShape>({
  * `SIDECAR_MODES.RUNTIME`) so this generic helper does not have to hardcode
  * Open Design's mode strings.
  */
+// @dsp func-a6c99382
 export function resolveRuntimeNamespaceRoot<TStamp extends SidecarStampShape>({
   contract,
   runtime,
@@ -222,6 +231,7 @@ export function resolveRuntimeNamespaceRoot<TStamp extends SidecarStampShape>({
   return resolveNamespaceRoot({ base: runtime.base, contract, namespace: runtime.namespace });
 }
 
+// @dsp func-9782e92d
 export function resolveRuntimeRoot<TStamp extends SidecarStampShape>({
   base,
   contract,
@@ -231,14 +241,17 @@ export function resolveRuntimeRoot<TStamp extends SidecarStampShape>({
   return join(resolveNamespaceRoot({ base, contract, namespace }), "runs", runId);
 }
 
+// @dsp func-87dfe9f0
 export function resolvePointerPath<TStamp extends SidecarStampShape>({ base, contract, namespace }: RuntimePathRequest<TStamp>): string {
   return join(resolveNamespaceRoot({ base, contract, namespace }), "current.json");
 }
 
+// @dsp func-9c0b30d6
 export function resolveManifestPath({ runtimeRoot }: { runtimeRoot: string }): string {
   return join(runtimeRoot, "manifest.json");
 }
 
+// @dsp func-adbae2a7
 export function resolveLogsDir<TStamp extends SidecarStampShape>({
   app,
   contract,
@@ -251,6 +264,7 @@ export function resolveLogsDir<TStamp extends SidecarStampShape>({
   return join(runtimeRoot, "logs", contract.normalizeApp(app));
 }
 
+// @dsp func-79757551
 export function resolveLogFilePath<TStamp extends SidecarStampShape>({
   app,
   contract,
@@ -265,6 +279,7 @@ export function resolveLogFilePath<TStamp extends SidecarStampShape>({
   return join(resolveLogsDir({ app, contract, runtimeRoot }), fileName);
 }
 
+// @dsp func-e504c38b
 export function resolveAppRuntimeDir<TStamp extends SidecarStampShape>({
   app,
   contract,
@@ -273,6 +288,7 @@ export function resolveAppRuntimeDir<TStamp extends SidecarStampShape>({
   return join(namespaceRoot, contract.normalizeApp(app));
 }
 
+// @dsp func-5dfa980a
 export function resolveAppRuntimePath<TStamp extends SidecarStampShape>({
   app,
   contract,
@@ -285,6 +301,7 @@ export function resolveAppRuntimePath<TStamp extends SidecarStampShape>({
   return join(resolveAppRuntimeDir({ app, contract, namespaceRoot }), fileName);
 }
 
+// @dsp func-cfb11141
 export function resolveAppIpcPath<TStamp extends SidecarStampShape>({
   app,
   contract,
@@ -302,6 +319,7 @@ export function resolveAppIpcPath<TStamp extends SidecarStampShape>({
   return join(ipcBase, normalizedNamespace, `${normalizedApp}.sock`);
 }
 
+// @dsp func-49173e24
 export function createSidecarLaunchEnv<TStamp extends SidecarStampShape>({
   base,
   contract,
@@ -325,6 +343,7 @@ function assertMatchingEnv(env: NodeJS.ProcessEnv, key: string, expected: string
   }
 }
 
+// @dsp func-080e926e
 export function bootstrapSidecarRuntime<TStamp extends SidecarStampShape>(
   stampInput: unknown,
   env: NodeJS.ProcessEnv,
@@ -443,6 +462,7 @@ async function allocateDynamicPort(label: string, host: string, reserved: Set<nu
   throw new Error(`failed to allocate dynamic ${label} port without conflict`);
 }
 
+// @dsp func-ec4bdf05
 export async function allocatePort({
   host = "127.0.0.1",
   label = "runtime",
@@ -455,6 +475,7 @@ export async function allocatePort({
     : await allocateForcedPort(forcedPort, label, host, reserved);
 }
 
+// @dsp func-6a44a431
 export async function readJsonFile<T = any>(filePath: string): Promise<T | null> {
   try {
     return JSON.parse(await readFile(filePath, "utf8")) as T;
@@ -463,6 +484,7 @@ export async function readJsonFile<T = any>(filePath: string): Promise<T | null>
   }
 }
 
+// @dsp func-83bb2544
 export async function writeJsonFile(filePath: string, payload: unknown): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
   const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
@@ -470,10 +492,12 @@ export async function writeJsonFile(filePath: string, payload: unknown): Promise
   await rename(tmpPath, filePath);
 }
 
+// @dsp func-91dcd2bf
 export async function removeFile(filePath: string): Promise<void> {
   await rm(filePath, { force: true });
 }
 
+// @dsp func-a8095034
 export async function removePointerIfCurrent(pointerPath: string, runId: string): Promise<void> {
   const pointer = await readJsonFile<{ runId?: string }>(pointerPath);
   if (pointer?.runId === runId) await removeFile(pointerPath);
@@ -517,6 +541,7 @@ async function prepareIpcPath(socketPath: string): Promise<void> {
   if (await staleUnixSocketExists(socketPath)) await rm(socketPath, { force: true });
 }
 
+// @dsp func-6a184928
 export async function createJsonIpcServer({
   handler,
   socketPath,
@@ -564,6 +589,7 @@ export async function createJsonIpcServer({
   };
 }
 
+// @dsp func-f84065e7
 export async function requestJsonIpc<T = any>(
   socketPath: string,
   payload: unknown,

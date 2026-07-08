@@ -48,12 +48,14 @@ const BASE_AGENT_DEFS: RuntimeAgentDef[] = [
   reasonixAgentDef,
 ];
 
+// @dsp func-359d65bc
 export function readLocalAgentProfileDefs(
   baseDefs: RuntimeAgentDef[] = BASE_AGENT_DEFS,
 ): RuntimeAgentDef[] {
   return readLocalAgentProfileDefsFromFile(baseDefs);
 }
 
+// @dsp func-4d4b621c
 export const AGENT_DEFS: RuntimeAgentDef[] = [
   ...BASE_AGENT_DEFS,
   ...readLocalAgentProfileDefs(BASE_AGENT_DEFS),
@@ -67,6 +69,7 @@ for (const def of AGENT_DEFS) {
   ids.add(def.id);
 }
 
+// @dsp func-fff4acb5
 export function getAgentDef(id: string): RuntimeAgentDef | null {
   return AGENT_DEFS.find((a) => a.id === id) || null;
 }

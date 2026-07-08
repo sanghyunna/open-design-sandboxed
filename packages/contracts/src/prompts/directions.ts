@@ -50,6 +50,7 @@ export interface DesignDirection {
   posture: string[];
 }
 
+// @dsp func-cdded8a5
 export const DESIGN_DIRECTIONS: DesignDirection[] = [
   {
     id: 'editorial-monocle',
@@ -190,6 +191,7 @@ export const DESIGN_DIRECTIONS: DesignDirection[] = [
  * instead of a plain radio. Falls back gracefully — older clients that
  * don't recognise `direction-cards` treat it as text.
  */
+// @dsp func-6c654d4c
 export function renderDirectionFormBody(): string {
   const cards = DESIGN_DIRECTIONS.map((d) => ({
     id: d.id,
@@ -239,6 +241,7 @@ export function renderDirectionFormBody(): string {
  * discovery prompt to teach the agent *how* to bind a chosen direction
  * onto the seed template's `:root` variables.
  */
+// @dsp func-3a9deac7
 export function renderDirectionSpecBlock(): string {
   const lines: string[] = [
     '## Direction library — bind into `:root` when the user picks one',
@@ -278,6 +281,7 @@ export function renderDirectionSpecBlock(): string {
 }
 
 /** Look up a direction by its `label` (what the user sees in the form). */
+// @dsp func-21eb1089
 export function findDirectionByLabel(label: string): DesignDirection | undefined {
   const trimmed = label.trim();
   return DESIGN_DIRECTIONS.find((d) => d.label === trimmed || d.id === trimmed);

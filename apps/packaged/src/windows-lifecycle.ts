@@ -26,6 +26,7 @@ export type SyncWindowsUninstallDisplayVersionInput = {
   version: string | null;
 };
 
+// @dsp func-a30c2aa0
 export function windowsUninstallRegistryQueryArgs(input: {
   namespace: string;
 }): string[] {
@@ -35,6 +36,7 @@ export function windowsUninstallRegistryQueryArgs(input: {
   ];
 }
 
+// @dsp func-1121da79
 export function windowsUninstallDisplayVersionRegistryArgs(input: {
   namespace: string;
   version: string;
@@ -52,6 +54,7 @@ export function windowsUninstallDisplayVersionRegistryArgs(input: {
   ];
 }
 
+// @dsp func-fa1fff72
 export async function syncWindowsUninstallDisplayVersion(
   input: SyncWindowsUninstallDisplayVersionInput,
 ): Promise<boolean> {

@@ -11,6 +11,7 @@ import type { ConnectionTestProtocol } from './connectionTest';
  * this module (without it, the file is type-only and NodeNext-resolved
  * consumers cannot resolve the re-export from the package root).
  */
+// @dsp func-71bf4c8b
 export const FINALIZE_SCHEMA_VERSION = 1;
 
 /**

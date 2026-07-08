@@ -6,6 +6,7 @@ import styles from './form-controls.module.css';
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>;
 
+// @dsp func-624e2b49
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, ...props },
   ref,
@@ -15,6 +16,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
+// @dsp func-32ecaaba
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
   { className, ...props },
   ref,
@@ -24,6 +26,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement>;
 
+// @dsp func-50795624
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { className, ...props },
   ref,

@@ -26,6 +26,7 @@ export interface DigestInput {
   resolvedContextRefs: Array<{ kind: string; ref: string }>;
 }
 
+// @dsp func-56fb76d0
 export function manifestSourceDigest(input: DigestInput): string {
   const canonical = canonicalize({
     manifest: input.manifest,

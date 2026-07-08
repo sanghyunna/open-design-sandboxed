@@ -138,6 +138,7 @@ function setCanonicalProxyEnvValue(
   addProxyEnvValue(env, canonicalKey, value, platform);
 }
 
+// @dsp func-26328e0b
 export function mergeProxyAwareEnv(
   platform: NodeJS.Platform,
   ...sources: Array<NodeJS.ProcessEnv | Record<string, string | undefined>>
@@ -241,6 +242,7 @@ function preserveWildcardNoProxyValue(noProxy: string | null | undefined): strin
   return noProxy?.split(",").some((token) => token.trim() === "*") ? "*" : undefined;
 }
 
+// @dsp func-406fdd71
 export function addLoopbackNoProxyEnv(
   env: NodeJS.ProcessEnv,
   platform: NodeJS.Platform = process.platform,
@@ -330,6 +332,7 @@ function finalizeSystemProxyEnv(
   return env;
 }
 
+// @dsp func-64aceb91
 export function parseMacosScutilProxyOutput(
   stdout: string,
   platform: NodeJS.Platform = "darwin",
@@ -388,6 +391,7 @@ function parseRegistryValue(stdout: string, valueName: string): string | null {
   return match ? match[1].trim() : null;
 }
 
+// @dsp func-20d82fda
 export function parseWindowsInternetSettingsProxyOutput(
   input: { proxyEnable: string; proxyOverride?: string; proxyServer?: string },
   platform: NodeJS.Platform = "win32",
@@ -427,6 +431,7 @@ export function parseWindowsInternetSettingsProxyOutput(
   );
 }
 
+// @dsp func-0483d49f
 export function resolveSystemProxyEnv(options: ResolveSystemProxyEnvOptions = {}): NodeJS.ProcessEnv {
   if (options.cacheKey != null) {
     const cached = systemProxyEnvCache.get(options.cacheKey);
@@ -481,6 +486,7 @@ export function resolveSystemProxyEnv(options: ResolveSystemProxyEnvOptions = {}
   }
 }
 
+// @dsp func-0cad90f0
 export function createProcessStampArgs<TStamp extends ProcessStampShape>(
   stamp: TStamp,
   contract: ProcessStampContract<TStamp>,
@@ -499,6 +505,7 @@ function commandArgs(command: string): string[] {
   return command.trim().split(/\s+/).filter((part) => part.length > 0);
 }
 
+// @dsp func-2ea242c4
 export function readFlagValue(args: readonly string[], flagName: string): string | null {
   const inlinePrefix = `${flagName}=`;
   for (let index = 0; index < args.length; index += 1) {
@@ -511,6 +518,7 @@ export function readFlagValue(args: readonly string[], flagName: string): string
   return null;
 }
 
+// @dsp func-4a17098c
 export function readProcessStamp<TStamp extends ProcessStampShape>(
   args: readonly string[],
   contract: ProcessStampContract<TStamp>,
@@ -525,6 +533,7 @@ export function readProcessStamp<TStamp extends ProcessStampShape>(
   }
 }
 
+// @dsp func-49b5132b
 export function readProcessStampFromCommand<TStamp extends ProcessStampShape>(
   command: string,
   contract: ProcessStampContract<TStamp>,
@@ -532,6 +541,7 @@ export function readProcessStampFromCommand<TStamp extends ProcessStampShape>(
   return readProcessStamp(commandArgs(command), contract);
 }
 
+// @dsp func-0510d0e1
 export function matchesProcessStamp<TStamp extends ProcessStampShape, TCriteria extends Partial<TStamp> = Partial<TStamp>>(
   stamp: TStamp,
   criteria: TCriteria | undefined,
@@ -545,6 +555,7 @@ export function matchesProcessStamp<TStamp extends ProcessStampShape, TCriteria 
   });
 }
 
+// @dsp func-5b7b74d5
 export function matchesStampedProcess<TStamp extends ProcessStampShape, TCriteria extends Partial<TStamp> = Partial<TStamp>>(
   processInfo: Pick<ProcessSnapshot, "command">,
   criteria: TCriteria | undefined,
@@ -564,6 +575,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+// @dsp func-ef72f0cd
 export function pathContains(root: string, target: string): boolean {
   const resolvedRoot = resolve(root);
   const resolvedTarget = resolve(target);
@@ -577,6 +589,7 @@ function destinationExistsError(destinationPath: string): NodeJS.ErrnoException 
   return error;
 }
 
+// @dsp func-36a62933
 export async function atomicCopyFile(
   sourcePath: string,
   destinationPath: string,
@@ -618,6 +631,7 @@ export async function atomicCopyFile(
   }
 }
 
+// @dsp func-61e5135e
 export async function removePathBestEffort(
   path: string,
   options: RemovePathBestEffortOptions = {},
@@ -675,6 +689,7 @@ function buildCmdShimInvocation(command: string, args: string[], env: NodeJS.Pro
 
 const nodeLoadablePackageManagerExtensions = new Set([".js", ".cjs", ".mjs"]);
 
+// @dsp func-e1371b3f
 export function createCommandInvocation({ args = [], command, env = process.env }: CommandInvocationRequest): CommandInvocation {
   if (process.platform === "win32" && /\.(bat|cmd)$/i.test(command)) {
     return buildCmdShimInvocation(command, args, env);
@@ -682,6 +697,7 @@ export function createCommandInvocation({ args = [], command, env = process.env 
   return { args, command };
 }
 
+// @dsp func-63f82701
 export function createPackageManagerInvocation(args: string[], env: NodeJS.ProcessEnv = process.env): CommandInvocation {
   const execPath = env.npm_execpath;
   if (execPath) {
@@ -707,6 +723,7 @@ async function waitForChildSpawn(child: ChildProcess): Promise<void> {
   });
 }
 
+// @dsp func-3a05eff5
 export async function spawnBackgroundProcess(request: SpawnProcessRequest): Promise<{ pid: number }> {
   const invocation = createCommandInvocation(request);
   const child = spawn(invocation.command, invocation.args, {
@@ -723,6 +740,7 @@ export async function spawnBackgroundProcess(request: SpawnProcessRequest): Prom
   return { pid: child.pid };
 }
 
+// @dsp func-d2240bdc
 export async function spawnLoggedProcess(request: SpawnProcessRequest): Promise<ChildProcess> {
   const invocation = createCommandInvocation(request);
   const child = spawn(invocation.command, invocation.args, {
@@ -738,6 +756,7 @@ export async function spawnLoggedProcess(request: SpawnProcessRequest): Promise<
   return child;
 }
 
+// @dsp func-2d6d5f61
 export function isProcessAlive(pid: number | null | undefined): boolean {
   if (typeof pid !== "number") return false;
   try {
@@ -749,6 +768,7 @@ export function isProcessAlive(pid: number | null | undefined): boolean {
   }
 }
 
+// @dsp func-a0a35322
 export async function waitForProcessExit(pid: number | null | undefined, timeoutMs = 5000): Promise<boolean> {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -804,6 +824,7 @@ async function listWindowsProcessSnapshots(): Promise<ProcessSnapshot[]> {
     .filter((snapshot): snapshot is ProcessSnapshot => snapshot != null);
 }
 
+// @dsp func-01417505
 export async function listProcessSnapshots(): Promise<ProcessSnapshot[]> {
   try {
     return process.platform === "win32"
@@ -814,6 +835,7 @@ export async function listProcessSnapshots(): Promise<ProcessSnapshot[]> {
   }
 }
 
+// @dsp func-0c556af0
 export function collectProcessTreePids(
   processes: ProcessSnapshot[],
   rootPids: Array<number | null | undefined>,
@@ -857,6 +879,7 @@ async function waitForProcessesToExit(pids: number[], timeoutMs = 5000): Promise
   return pids.filter(isProcessAlive);
 }
 
+// @dsp func-6a0e6b23
 export async function stopProcesses(pids: Array<number | null | undefined>): Promise<StopProcessesResult> {
   const uniquePids = [...new Set(pids)]
     .filter((pid): pid is number => typeof pid === "number" && pid !== process.pid)
@@ -875,6 +898,7 @@ export async function stopProcesses(pids: Array<number | null | undefined>): Pro
   return { alreadyStopped: false, forcedPids: remainingAfterTerm, matchedPids: uniquePids, remainingPids: remainingAfterKill, stoppedPids };
 }
 
+// @dsp func-f4c622b2
 export async function waitForHttpOk(url: string, { timeoutMs = 20000 }: HttpWaitOptions = {}): Promise<true> {
   const startedAt = Date.now();
   let lastError: Error | null = null;
@@ -891,6 +915,7 @@ export async function waitForHttpOk(url: string, { timeoutMs = 20000 }: HttpWait
   throw new Error(`timed out waiting for ${url}${lastError ? ` (${lastError.message})` : ""}`);
 }
 
+// @dsp func-41da0326
 export async function readLogTail(filePath: string, maxLines = 80): Promise<string[]> {
   try {
     const payload = await readFile(filePath, "utf8");
@@ -936,6 +961,7 @@ function resolveUserScopedHome(raw: string | undefined, home: string): string | 
 // nvm, fnm, mise, ...) is silently undetected. Both the daemon resolver
 // and the packaged sidecar PATH builder consume this so the two layers
 // can never drift again.
+// @dsp func-6372f48e
 export function wellKnownUserToolchainBins(
   options: WellKnownUserToolchainOptions = {},
 ): string[] {

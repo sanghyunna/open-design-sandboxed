@@ -33,6 +33,7 @@ const X_TWITTER = 'https://x.com/nexudotio';
 // Canonical AMR destination. Exported so the homepage AMR band CTA
 // (app/page.tsx) links to the same URL the nav uses, without a second
 // hand-maintained copy of the literal.
+// @dsp func-36ee38cd
 export const AMR_URL = 'https://open-design.ai/amr/';
 
 const ext = {
@@ -136,6 +137,7 @@ export interface HeaderProps {
   currentPath?: string;
 }
 
+// @dsp func-c66d7054
 export function Header({
   active = 'home',
   counts,

@@ -34,15 +34,18 @@ function resolveMetadataPath(toolRoot: string): string {
   return join(toolRoot, "dist", "metadata.json");
 }
 
+// @dsp func-838ea542
 export async function readToolMeta(toolRoot: string): Promise<ToolBuildMetadataPolicy> {
   const metaPath = join(toolRoot, "meta.json");
   return toolBuildMetadataPolicySchema.parse(JSON.parse(await readFile(metaPath, "utf8")));
 }
 
+// @dsp func-31a218af
 export async function writeToolBuildMetadataFromMeta(toolRoot: string): Promise<ToolBuildMetadataResult> {
   return writeToolBuildMetadata(await readToolMeta(toolRoot), toolRoot);
 }
 
+// @dsp func-df8ef1f1
 export async function assertFreshToolBuildFromMeta(toolRoot: string): Promise<ToolBuildMetadataResult> {
   return assertFreshToolBuild(await readToolMeta(toolRoot), toolRoot);
 }
@@ -77,6 +80,7 @@ async function hashPath(hash: Hash, root: string, relativePath: string): Promise
   hash.update(await readFile(absolutePath));
 }
 
+// @dsp func-f152db0b
 export async function computeToolSourceHash(
   policy: ToolBuildMetadataPolicy,
   toolRoot: string,
@@ -93,6 +97,7 @@ export async function computeToolSourceHash(
   return hash.digest("hex");
 }
 
+// @dsp func-aefc2a79
 export async function writeToolBuildMetadata(
   policy: ToolBuildMetadataPolicy,
   toolRoot: string,
@@ -131,6 +136,7 @@ function createBuildRequiredError(policy: ToolBuildMetadataPolicy, toolRoot: str
   );
 }
 
+// @dsp func-fe62d771
 export async function assertFreshToolBuild(
   policy: ToolBuildMetadataPolicy,
   toolRoot: string,

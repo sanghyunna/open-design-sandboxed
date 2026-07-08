@@ -79,6 +79,7 @@ async function logOdProtocolResponse(response: Response, target: string): Promis
  * Settings → Pets → Community). Returning a 502 instead lets the
  * renderer see a normal failure and keeps the process alive.
  */
+// @dsp func-ecffde00
 export async function handleOdRequest(
   request: Request,
   webRuntimeUrl: string,
@@ -94,10 +95,12 @@ export async function handleOdRequest(
   }
 }
 
+// @dsp func-caecdacf
 export function packagedEntryUrl(): string {
   return OD_ENTRY_URL;
 }
 
+// @dsp func-97bde04f
 export function registerOdProtocol(webRuntimeUrl: string): void {
   protocol.handle(OD_SCHEME, async (request) => {
     return await handleOdRequest(request, webRuntimeUrl);
