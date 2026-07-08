@@ -1,7 +1,7 @@
 ---
 name: kami-landing
 description: >
-  Produce a print-grade single-page kami (紙 / 纸) document — warm
+  Produce a print-grade single-page kami document — warm
   parchment canvas, ink-blue accent, serif at one weight, no italic,
   no cool grays. The output reads like a professional white paper or
   studio one-pager, not an app UI. Multilingual by design (EN ·

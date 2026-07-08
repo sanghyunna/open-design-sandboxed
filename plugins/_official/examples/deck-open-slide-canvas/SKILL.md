@@ -13,10 +13,10 @@ featured: 35
 recommended: 9
 tags: ["canvas", "open-slide", "freeform", "1920", "react"]
 example_id: sample-deck-open-slide-canvas
-example_name: "1920 自由画布 · Sea Indigo"
+example_name: "1920 Free Canvas · Sea Indigo"
 example_format: markdown
-example_tagline: "锁死 1920×1080 + 自由组合"
-example_desc: "Sea Indigo 调色 + 一页大字 question + 角标"
+example_tagline: "Locked 1920×1080 + Free Composition"
+example_desc: "Sea Indigo palette + big-type question page + corner badge"
 example_source_url: "https://github.com/1weiho/open-slide"
 example_source_label: "1weiho/open-slide"
 od:
@@ -36,35 +36,35 @@ od:
     zh-CN: "用「1920 画布自由 Deck」模板把我的内容做成一套「锁死 1920×1080 画布, React 组件级自由组合, 不绑模板」。保持模板的视觉签名，使用真实内容和数据，避免 lorem ipsum 和占位图片。"
 ---
 
-【模板: 1920 画布自由 Deck】
-【意图】不想被模板束缚的场景 (个人作品集、奇特演讲、艺术 / 设计课 deck)。给一个固定 1920×1080 画布 + 极强的类型 / 调色约束, 让 agent 像写 React 组件一样按内容自由排布每一页。Inspired by 1weiho/open-slide。
+【Template: 1920 Canvas Free Deck】
+【Intent】For scenarios that don't want to be boxed in by a fixed template (personal portfolios, unconventional talks, art/design-class decks). Gives a fixed 1920×1080 canvas plus strong type/color constraints, and lets the agent lay out each page as freely as writing a React component. Inspired by 1weiho/open-slide.
 
-【硬性技术规格】
-- 画布: 每页严格 `width: 1920px; height: 1080px;` 用 `transform: scale(...)` 适配视窗 (默认 `scale(0.7)` 居中)。
-- **绝对禁止 overflow**: 每页内容必须 fit in 1920×1080, 不许滚动条出现。
-- 字号 type scale (px): `2xs:18 · xs:22 · sm:28 · md:36 · lg:48 · xl:64 · 2xl:88 · 3xl:120 · 4xl:160 · 5xl:220`。
-- 边距 padding: 96 / 128 / 160 三档之一。
-- 每页有 `<section class="slide" data-slide-id="<n>">`。
+【Hard technical spec】
+- Canvas: every page strictly `width: 1920px; height: 1080px;`, fit to viewport with `transform: scale(...)` (default `scale(0.7)`, centered).
+- **Overflow is absolutely forbidden**: every page's content must fit within 1920×1080, no scrollbars allowed.
+- Type scale (px): `2xs:18 · xs:22 · sm:28 · md:36 · lg:48 · xl:64 · 2xl:88 · 3xl:120 · 4xl:160 · 5xl:220`.
+- Padding: one of 96 / 128 / 160.
+- Every page has `<section class="slide" data-slide-id="<n>">`.
 
-【调色板 — 每个 deck 选 1 套, 全程不改】
-- 🌫 **Ash & Lime** — bg `#f1efea`, ink `#161616`, accent `#c5e803`。
-- 🌌 **Sea Indigo** — bg `#0a0e1a`, ink `#f5f5f7`, accent `#5ac8fa`。
-- 🧉 **Mate Mocha** — bg `#1a1411`, ink `#f5e9d6`, accent `#d97757`。
-- 🌸 **Pearl Rose** — bg `#fdf6f3`, ink `#1a1015`, accent `#ff5d8f`。
+【Palette — pick 1 per deck, keep it fixed throughout】
+- 🌫 **Ash & Lime** — bg `#f1efea`, ink `#161616`, accent `#c5e803`.
+- 🌌 **Sea Indigo** — bg `#0a0e1a`, ink `#f5f5f7`, accent `#5ac8fa`.
+- 🧉 **Mate Mocha** — bg `#1a1411`, ink `#f5e9d6`, accent `#d97757`.
+- 🌸 **Pearl Rose** — bg `#fdf6f3`, ink `#1a1015`, accent `#ff5d8f`.
 
-【布局自由度 — 这是核心】
-- 不强制模板, 每页根据**内容性质**自选布局: cover / question / quote / image-text / 三列 / 五列 / 列表 / 数据卡 / 满版图。
-- 但每页**必须遵守一条规则**: 视觉重心 (visual hierarchy) 只有 1 个 — 一句金句、一个数字、一张图, 不要"什么都强调"。
-- 不许塞两段平等的文字; 真要并列就上 3 列等权重网格。
+【Layout freedom — this is the core idea】
+- No forced template; each page picks its own layout based on **the nature of its content**: cover / question / quote / image-text / three-column / five-column / list / data card / full-bleed image.
+- But every page **must follow one rule**: exactly 1 visual focal point (visual hierarchy) — one killer line, one number, one image. Don't "emphasize everything".
+- Never stack two paragraphs of equal weight; if you genuinely need parallel content, use a 3-column equal-weight grid.
 
-【字体】
-- 西文: `Inter Tight` (display) + `Inter` (body); 或 `Source Serif Pro` (editorial 风时)。
-- 中文: `Noto Sans SC` (sans 风) 或 `Noto Serif SC` (editorial 风); 不混 sans + serif。
-- mono: `JetBrains Mono` 给数据 / 时间戳。
+【Typography】
+- Latin: `Inter Tight` (display) + `Inter` (body); or `Source Serif Pro` for an editorial feel.
+- CJK: `Noto Sans SC` (sans style) or `Noto Serif SC` (editorial style); don't mix sans + serif.
+- mono: `JetBrains Mono` for data / timestamps.
 
-【设计细节】
-- 严禁 emoji 装饰 (内容里的允许); 严禁多色彩虹; accent 只用一个色。
-- 严禁 SVG icon 套用 lucide / feather 等通用库 (自己写 inline SVG)。
-- 加键盘 ← / → 切换 + hash 同步; 角标固定: 右下 `№N/M`, 左下 deck title。
-- 必须用用户的真实内容; 严禁 lorem ipsum。
-- 单文件 HTML; Tailwind CDN; 不要外链图片。
+【Design details】
+- No decorative emoji (emoji within content is fine); no multi-color rainbow accents; use exactly one accent color.
+- No SVG icons from generic libraries like lucide / feather (write inline SVG yourself).
+- Add keyboard ← / → navigation with hash sync; fixed corner badges: bottom-right `№N/M`, bottom-left deck title.
+- Must use the user's real content; lorem ipsum is strictly forbidden.
+- Single-file HTML; Tailwind CDN; no external image links.

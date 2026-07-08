@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./dist/main/index.js",
   "files": [
+    "assets",
     "dist"
   ],
   "exports": {

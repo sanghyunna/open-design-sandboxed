@@ -24,7 +24,7 @@
     "en": "Kami Landing"
   },
   "version": "0.1.0",
-  "description": "Produce a print-grade single-page kami (紙 / 纸) document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies.",
+  "description": "Produce a print-grade single-page kami document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies.",
   "description_i18n": {
     "zh-CN": "生成印刷级单页纸质文档——温暖羊皮纸底色、墨蓝强调色、单一衬线字重，无斜体，无冷灰。输出呈现专业白皮书或工作室单页效果，而非应用 UI。原生多语言支持（EN · zh-CN · ja）。单个独立 HTML 文件，零依赖。",
     "zh-TW": "產生印刷級單頁紙質文件——溫暖羊皮紙底色、墨藍強調色、單一襯線字重，無斜體，無冷灰。輸出呈現專業白皮書或工作室單頁效果，而非應用程式 UI。原生多語言支援（EN · zh-CN · ja）。單個獨立 HTML 檔案，零相依性。",
@@ -43,7 +43,7 @@
     "ar": "ينتج مستند من صفحة واحدة بجودة طباعة — خلفية رق دافئة، لون تمييز أزرق حبر، خط serif بوزن واحد، بدون مائل، بدون رمادي بارد. المخرج يبدو كورقة بيضاء احترافية أو one-pager استوديو، وليس UI تطبيق. متعدد اللغات بالتصميم (EN · zh-CN · ja). ملف HTML واحد مستقل، بدون تبعيات.",
     "tr": "Baskı kalitesinde tek sayfalık kağıt belgesi üretir — sıcak parşömen tuval, mürekkep mavisi vurgu, tek ağırlıklı serif, italik yok, soğuk griler yok. Çıktı uygulama UI'ı değil, profesyonel white paper veya stüdyo one-pager gibi görünür. Tasarım gereği çok dilli (EN · zh-CN · ja). Tek bağımsız HTML dosyası, sıfır bağımlılık.",
     "uk": "Створює односторінковий документ друкарської якості — теплий пергаментний фон, чорнильно-синій акцент, один вага шрифту з засічками, без курсиву, без холодних сірих тонів. Результат виглядає як професійний white paper або студійний one-pager, а не UI застосунку. Багатомовний за дизайном (EN · zh-CN · ja). Один автономний HTML-файл, без залежностей.",
-    "en": "Produce a print-grade single-page kami (紙 / 纸) document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies."
+    "en": "Produce a print-grade single-page kami document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies."
   },
   "license": "MIT",
   "author": {
@@ -87,7 +87,7 @@
     },
     "useCase": {
       "query": {
-        "en": "Produce a print-grade single-page kami (紙 / 纸) document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies.",
+        "en": "Produce a print-grade single-page kami document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies.",
         "zh-CN": "Produce a print-grade single-page kami (紙 / 纸) document — warm parchment canvas, ink-blue accent, serif at one weight, no italic, no cool grays. The output reads like a professional white paper or studio one-pager, not an app UI. Multilingual by design (EN · zh-CN · ja). One self-contained HTML file, zero dependencies."
       },
       "exampleOutputs": [

@@ -1,6 +1,6 @@
 ---
 name: html-ppt-dir-key-nav-minimal
-description: 8 页极简方向键 keynote — 每页一个独立单色背景（靛 / 奶 / 绛 / 翠 / 灰 / 紫 / 白 / 炭），各自配色，160px display 标题 + 4px 短粗 accent 线分隔、箭头 → 前缀的 Mono 列表、左下 ← → kbd 提示 + 右下页码、巨大呼吸留白。适合"有话要说但没什么可看"的 keynote、launch、公开演讲。
+description: An 8-page minimal arrow-key keynote — each page has its own single-color background (indigo / cream / crimson / teal / gray / purple / white / charcoal) with matching accent colors, a 160px display headline, a 4px bold accent divider line, an arrow-prefixed (→) Mono list, a bottom-left ← → kbd hint, a bottom-right page number, and generous breathing whitespace. Great for a keynote, launch, or public talk where you have a lot to say but not much to show.
 triggers:
   - "minimal keynote"
   - "极简"
@@ -20,9 +20,9 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "用 html-ppt-dir-key-nav-minimal 模板做一份 8 页极简 keynote。每页一个单色背景 + 一句 160px 大标题 + 几条箭头列表。先告诉我演讲主题，然后帮我把 8 个核心观点拍成 8 页（每页一个 idea）。"
+  example_prompt: "Use the html-ppt-dir-key-nav-minimal template to create an 8-page minimal keynote. Each page should use a single-color background, one 160px headline, and a few arrow-list bullets. First ask me for the talk topic, then turn the 8 core points into 8 slides with one idea per page."
 ---
-# HTML PPT · 8 色极简方向键
+# HTML PPT · 8-Color Minimal Arrow-Key Nav
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`dir-key-nav-minimal`** full-deck template.
 

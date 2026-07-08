@@ -24,7 +24,7 @@
     "en": "Html Ppt Weekly Report"
   },
   "version": "0.1.0",
-  "description": "Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for 周报, business reviews, team status updates, and exec dashboards.",
+  "description": "Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for weekly reports, business reviews, team status updates, and exec dashboards.",
   "description_i18n": {
     "zh-CN": "团队周报/状态更新幻灯片 — 企业级清晰展示，8格KPI网格，已完成任务列表，8周柱状图，下周计划表。适用于周报、业务回顾、团队状态更新和高管仪表板。",
     "zh-TW": "團隊週報/狀態更新簡報 — 企業級清晰展示，8格KPI網格，已完成任務清單，8週長條圖，下週計畫表。適用於週報、業務審查、團隊狀態更新和主管儀表板。",
@@ -43,7 +43,7 @@
     "ar": "عرض تقديمي أسبوعي للفريق / تحديث الحالة — وضوح مؤسسي، شبكة KPI من 8 خلايا، قائمة المنجزات، مخطط شريطي لـ 8 أسابيع، جدول الأسبوع القادم. للتقارير الأسبوعية ومراجعات الأعمال وتحديثات حالة الفريق ولوحات المعلومات التنفيذية.",
     "tr": "Ekip haftalık / durum güncelleme sunumu — kurumsal netlik, 8 hücreli KPI ızgarası, teslim listesi, 8 haftalık çubuk grafik, gelecek hafta tablosu. Haftalık raporlar, iş incelemeleri, ekip durum güncellemeleri ve yönetici panelleri için kullanın.",
     "uk": "Тижнева презентація команди / оновлення статусу — корпоративна ясність, сітка KPI з 8 комірок, список виконаного, стовпчикова діаграма на 8 тижнів, таблиця наступного тижня. Для тижневих звітів, бізнес-оглядів, оновлень статусу команди та виконавчих панелей.",
-    "en": "Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for 周报, business reviews, team status updates, and exec dashboards."
+    "en": "Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for weekly reports, business reviews, team status updates, and exec dashboards."
   },
   "license": "MIT",
   "author": {

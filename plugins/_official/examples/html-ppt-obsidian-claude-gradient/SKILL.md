@@ -1,6 +1,6 @@
 ---
 name: html-ppt-obsidian-claude-gradient
-description: GitHub 暗紫渐变 deck — GitHub-dark #0d1117 + 紫蓝 radial 环境光 + 60px 网格 mask、居中布局、紫色 pill 标签、三色渐变标题（#a855f7→#60a5fa→#34d399）、GitHub 风代码 palette、紫色左边框高亮块。适合开发者工作流 / MCP / Agent / dev tool 教程，类似 GitHub Blog / Linear Changelog。
+description: GitHub dark purple gradient deck — GitHub-dark #0d1117 background with a purple-blue radial ambient glow, 60px grid mask, centered layout, purple pill tags, tri-color gradient headings (#a855f7→#60a5fa→#34d399), GitHub-style code palette, and purple left-border highlight blocks. Great for developer workflow / MCP / Agent / dev tool tutorials, similar to GitHub Blog / Linear Changelog.
 triggers:
   - "github dark"
   - "developer tutorial"
@@ -20,9 +20,9 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "用 html-ppt-obsidian-claude-gradient 模板做一份开发者教程 PPT。GitHub 暗紫渐变 + 居中布局 + 紫色 pill + 三色渐变标题 + 配置/步骤代码块。先确认：教什么、目标受众、要不要 MCP/Agent 配置示例。"
+  example_prompt: "Use the html-ppt-obsidian-claude-gradient template to create a developer tutorial deck. GitHub dark purple gradient + centered layout + purple pills + tri-color gradient headings + configuration/step code blocks. First confirm: what to teach, the target audience, whether to include MCP/Agent configuration examples."
 ---
-# HTML PPT · GitHub 暗紫渐变
+# HTML PPT · GitHub Dark Purple Gradient
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`obsidian-claude-gradient`** full-deck template.
 

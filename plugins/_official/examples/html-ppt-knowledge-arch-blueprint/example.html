@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -167,7 +167,7 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
 }
 
 </style>
-<style>/* knowledge-arch-blueprint — 奶油纸 + 建筑蓝图风 */
+<style>/* knowledge-arch-blueprint — cream paper + architectural blueprint style */
 .tpl-knowledge-arch-blueprint{
   --kb-bg:#F0EAE0;
   --kb-ink:#1a1a1a;
@@ -233,18 +233,18 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
     <div class="kb-grid-bg"></div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:40px;margin-bottom:44px">
       <div>
-        <div class="kb-kicker">Karpathy Stack · 架构图 v2</div>
-        <h1 class="kb-h1">LLM <span class="rust">知识库</span> 的<br>工程化蓝图</h1>
-        <p class="kb-sub">从「乱贴笔记」到「可审计、可纠错、可复用」的第二大脑 —— 这是我读完 Karpathy 的分享后画的一张系统图。</p>
+        <div class="kb-kicker">Karpathy Stack · Architecture Diagram v2</div>
+        <h1 class="kb-h1">The Engineering Blueprint<br>for an <span class="rust">LLM Knowledge Base</span></h1>
+        <p class="kb-sub">From 'scattered sticky notes' to an auditable, self-correcting, reusable second brain — this is the system diagram I sketched after reading Karpathy's write-up.</p>
       </div>
-      <div class="kb-insight"><span class="kk">KEY INSIGHT</span>Karpathy 原版缺一块：<br>反馈闭环让错误能回流纠正。</div>
+      <div class="kb-insight"><span class="kk">KEY INSIGHT</span>Karpathy's original is missing one piece:<br>a feedback loop that lets errors flow back and get corrected.</div>
     </div>
     <div class="kb-section-label">Pipeline · End-to-end</div>
     <div class="kb-pipeline">
-      <div class="kb-step"><div class="kb-step-num">STEP 01</div><div class="kb-step-title">采集</div><div class="kb-step-body">浏览器剪藏、PDF、Podcast 转写、聊天记录</div></div>
-      <div class="kb-step"><div class="kb-step-num">STEP 02</div><div class="kb-step-title">去噪</div><div class="kb-step-body">清洗导航栏、广告、重复段落、低信噪素材</div></div>
-      <div class="kb-step hero"><div class="kb-step-num">STEP 03 · CORE</div><div class="kb-step-title">Wiki 化</div><div class="kb-step-body">结构化成双链笔记，实体、关系、属性全在一起</div></div>
-      <div class="kb-step"><div class="kb-step-num">STEP 04</div><div class="kb-step-title">使用</div><div class="kb-step-body">Agent 随时检索、回答、再写入</div></div>
+      <div class="kb-step"><div class="kb-step-num">STEP 01</div><div class="kb-step-title">Collect</div><div class="kb-step-body">Browser clippings, PDFs, podcast transcripts, chat logs</div></div>
+      <div class="kb-step"><div class="kb-step-num">STEP 02</div><div class="kb-step-title">Denoise</div><div class="kb-step-body">Strip nav bars, ads, duplicate paragraphs, low-signal material</div></div>
+      <div class="kb-step hero"><div class="kb-step-num">STEP 03 · CORE</div><div class="kb-step-title">Wiki-ify</div><div class="kb-step-body">Structure into bi-linked notes — entities, relations, and attributes all together</div></div>
+      <div class="kb-step"><div class="kb-step-num">STEP 04</div><div class="kb-step-title">Use</div><div class="kb-step-body">The agent retrieves, answers, and writes back anytime</div></div>
     </div>
     <div class="kb-footer"><span>Blueprint · v2 · 2026.04</span><span>01 / 08</span></div>
   </section>
@@ -254,8 +254,8 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
     <div class="kb-grid-bg"></div>
     <div style="margin:auto 0">
       <div class="kb-kicker">Chapter One</div>
-      <h1 class="kb-h1" style="font-size:120px">为什么 <span class="rust">笔记</span><br>不够用了</h1>
-      <p class="kb-sub" style="font-size:24px;margin-top:20px">当你的知识量超过记忆容量，<br>你需要的不是更多文件，而是一张<b>可导航的图</b>。</p>
+      <h1 class="kb-h1" style="font-size:120px">Why <span class="rust">notes</span><br>aren't enough anymore</h1>
+      <p class="kb-sub" style="font-size:24px;margin-top:20px">Once your knowledge outgrows your memory,<br>what you need isn't more files — it's a <b>navigable graph</b>.</p>
     </div>
     <div class="kb-footer"><span>Section · Chapter 1</span><span>02 / 08</span></div>
   </section>
@@ -264,23 +264,23 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
   <section class="slide">
     <div class="kb-grid-bg"></div>
     <div class="kb-kicker">Problem · Solution</div>
-    <h1 class="kb-h1" style="font-size:48px">原版 vs <span class="rust">升级版</span></h1>
+    <h1 class="kb-h1" style="font-size:48px">Original vs <span class="rust">Upgraded</span></h1>
     <div class="kb-grid-2">
       <div class="kb-card">
-        <div class="kb-kicker" style="color:#888">原版 Karpathy</div>
-        <h4>一次性写入</h4>
-        <p>采集 → 转写 → 存档，错了就错了。没有回路，没有修正机制，笔记越多越混乱。</p>
+        <div class="kb-kicker" style="color:#888">Original Karpathy</div>
+        <h4>Write-once</h4>
+        <p>Collect → transcribe → archive — once it's wrong, it stays wrong. No loop, no correction mechanism; more notes just means more chaos.</p>
       </div>
       <div class="kb-card" style="background:var(--kb-rust-soft);border-color:var(--kb-rust)">
-        <div class="kb-kicker">升级 v2</div>
-        <h4>反馈闭环</h4>
-        <p>AI 使用知识库时记录每次 miss / 幻觉 / 过期事实，自动回灌到源文件，让笔记会自我修正。</p>
+        <div class="kb-kicker">Upgrade v2</div>
+        <h4>Feedback loop</h4>
+        <p>Every time the AI uses the knowledge base it logs each miss / hallucination / stale fact, and auto-feeds it back into the source file so notes self-correct.</p>
       </div>
     </div>
     <div class="kb-legend">
-      <div class="d"><span class="b"></span>普通节点</div>
-      <div class="d"><span class="b rust"></span>核心节点 · 反馈回路入口</div>
-      <div class="d">—— 数据流 &nbsp;&nbsp; ┈┈ 反馈回路</div>
+      <div class="d"><span class="b"></span>Regular node</div>
+      <div class="d"><span class="b rust"></span>Core node · feedback-loop entry point</div>
+      <div class="d">—— data flow &nbsp;&nbsp; ┈┈ feedback loop</div>
     </div>
     <div class="kb-footer"><span>Content · Compare</span><span>03 / 08</span></div>
   </section>
@@ -289,8 +289,8 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
   <section class="slide">
     <div class="kb-grid-bg"></div>
     <div class="kb-kicker">Implementation · Skill Manifest</div>
-    <h1 class="kb-h1" style="font-size:48px">反馈回路 <span class="rust">怎么实现</span></h1>
-    <p class="kb-sub">一个 100 行的 Agent Skill，把「AI 用得顺不顺」回写成 vault 的一条条修订记录。</p>
+    <h1 class="kb-h1" style="font-size:48px">How the feedback loop <span class="rust">is implemented</span></h1>
+    <p class="kb-sub">A 100-line Agent Skill that writes back whether the AI's use 'went smoothly' as individual revision records in the vault.</p>
     <pre class="kb-codebox"><span class="cm"># skills/wiki-feedback/SKILL.md</span>
 <span class="kw">name</span>: wiki-feedback
 <span class="kw">trigger</span>: <span class="st">"after every retrieval"</span>
@@ -310,7 +310,7 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
   <section class="slide">
     <div class="kb-grid-bg"></div>
     <div class="kb-kicker">System Diagram</div>
-    <h1 class="kb-h1" style="font-size:44px">反馈回路全貌</h1>
+    <h1 class="kb-h1" style="font-size:44px">The full feedback loop</h1>
     <svg viewBox="0 0 1200 520" style="width:100%;max-width:1200px;margin-top:20px" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
@@ -362,15 +362,15 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
   <section class="slide">
     <div class="kb-grid-bg"></div>
     <div class="kb-kicker">After 6 Months</div>
-    <h1 class="kb-h1" style="font-size:44px">升级版 <span class="rust">跑了半年</span> 的数据</h1>
+    <h1 class="kb-h1" style="font-size:44px">Data after running the <span class="rust">upgraded version</span> for six months</h1>
     <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:24px;margin-top:28px;align-items:center">
-      <div style="text-align:center"><div class="kb-big-num">13</div><p style="font-size:14px;color:#666;margin-top:6px;letter-spacing:.1em;text-transform:uppercase">关键优化项 · 全部落地</p></div>
-      <div class="kb-card"><h4 style="color:var(--kb-rust)">-62%</h4><p>幻觉率（相比无反馈回路版本）</p></div>
-      <div class="kb-card"><h4 style="color:var(--kb-rust)">+4.1×</h4><p>单次检索命中率</p></div>
+      <div style="text-align:center"><div class="kb-big-num">13</div><p style="font-size:14px;color:#666;margin-top:6px;letter-spacing:.1em;text-transform:uppercase">Key optimizations · all shipped</p></div>
+      <div class="kb-card"><h4 style="color:var(--kb-rust)">-62%</h4><p>Hallucination rate (vs. the no-feedback-loop version)</p></div>
+      <div class="kb-card"><h4 style="color:var(--kb-rust)">+4.1×</h4><p>Single-query retrieval hit rate</p></div>
     </div>
     <div class="kb-grid-2" style="margin-top:18px">
-      <div class="kb-card"><h4>自动修订 227 条</h4><p>其中 189 条被人工批准合并，38 条被拒绝（数据已归档）。</p></div>
-      <div class="kb-card"><h4>新增笔记 412 篇</h4><p>从 miss 日志聚类而来，每篇都有来源追溯。</p></div>
+      <div class="kb-card"><h4>227 automatic revisions</h4><p>189 approved and merged by a human, 38 rejected (data archived).</p></div>
+      <div class="kb-card"><h4>412 new notes added</h4><p>Clustered from the miss log, each traceable back to its source.</p></div>
     </div>
     <div class="kb-footer"><span>Content · Stats</span><span>06 / 08</span></div>
   </section>
@@ -379,13 +379,13 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
   <section class="slide">
     <div class="kb-grid-bg"></div>
     <div class="kb-kicker">Next Step</div>
-    <h1 class="kb-h1" style="font-size:60px">开始你的 <span class="rust">Wiki v2</span></h1>
-    <p class="kb-sub">不用重写所有笔记。先接一条回路，让 AI 的每次使用都在「改好」你的 vault。</p>
+    <h1 class="kb-h1" style="font-size:60px">Start your <span class="rust">Wiki v2</span></h1>
+    <p class="kb-sub">No need to rewrite every note. Wire up one loop first, and every AI use will keep 'improving' your vault.</p>
     <div class="kb-pipeline">
-      <div class="kb-step"><div class="kb-step-num">TONIGHT</div><div class="kb-step-title">装 Skill</div><div class="kb-step-body">pnpm i -g @lewis/wiki-feedback</div></div>
-      <div class="kb-step"><div class="kb-step-num">DAY 2</div><div class="kb-step-title">跑 7 天</div><div class="kb-step-body">观察 miss log 自动累积</div></div>
-      <div class="kb-step hero"><div class="kb-step-num">DAY 8 · CORE</div><div class="kb-step-title">第一次审 PR</div><div class="kb-step-body">花 15 分钟 review 自动生成的修订</div></div>
-      <div class="kb-step"><div class="kb-step-num">MONTH 1</div><div class="kb-step-title">开始信它</div><div class="kb-step-body">你的 vault 会变成活的</div></div>
+      <div class="kb-step"><div class="kb-step-num">TONIGHT</div><div class="kb-step-title">Install the skill</div><div class="kb-step-body">pnpm i -g @lewis/wiki-feedback</div></div>
+      <div class="kb-step"><div class="kb-step-num">DAY 2</div><div class="kb-step-title">Run for 7 days</div><div class="kb-step-body">Watch the miss log accumulate automatically</div></div>
+      <div class="kb-step hero"><div class="kb-step-num">DAY 8 · CORE</div><div class="kb-step-title">First PR review</div><div class="kb-step-body">Spend 15 minutes reviewing the auto-generated revisions</div></div>
+      <div class="kb-step"><div class="kb-step-num">MONTH 1</div><div class="kb-step-title">Start trusting it</div><div class="kb-step-body">Your vault becomes alive</div></div>
     </div>
     <div class="kb-footer"><span>CTA</span><span>07 / 08</span></div>
   </section>
@@ -395,8 +395,8 @@ h4,.h4{font-size:22px;line-height:1.3;font-weight:600;margin:0 0 8px}
     <div class="kb-grid-bg"></div>
     <div style="margin:auto 0;text-align:center">
       <div class="kb-kicker">END · blueprint v2</div>
-      <h1 class="kb-h1" style="font-size:140px;margin-top:24px">谢谢 <span class="rust">·</span> thanks</h1>
-      <p class="kb-sub" style="margin:0 auto;font-size:22px">图纸、Skill、笔记模板都在 <b>github.com/lewis/karpathy-wiki-v2</b></p>
+      <h1 class="kb-h1" style="font-size:140px;margin-top:24px">Thank you <span class="rust">·</span> thanks</h1>
+      <p class="kb-sub" style="margin:0 auto;font-size:22px">Diagrams, the skill, and note templates are all at <b>github.com/lewis/karpathy-wiki-v2</b></p>
     </div>
     <div class="kb-footer"><span>End of deck</span><span>08 / 08</span></div>
   </section>

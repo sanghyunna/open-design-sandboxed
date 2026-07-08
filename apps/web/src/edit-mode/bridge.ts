@@ -67,7 +67,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
-  var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','gap','flexDirection','justifyContent','alignItems','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
+  var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   function isHostNode(el){
     return !!(el && el.matches && el.matches(hostNodeSelector));
@@ -203,6 +203,33 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (targetVisibility === 'hidden' || targetVisibility === 'collapse') return true;
     return hasHiddenAncestorDisplayState(el);
   }
+  function flexItemAxisFor(el){
+    // Main axis of the parent flex container: 'row' means width is flex-owned,
+    // 'column' means height is. Main-axis drag commits pin the item (flex:
+    // none) so the written size holds against flex-grow/shrink.
+    var parent = el.parentElement;
+    if (!parent) return null;
+    var display = window.getComputedStyle(parent).display;
+    if (display !== 'flex' && display !== 'inline-flex') return null;
+    var direction = window.getComputedStyle(parent).flexDirection || 'row';
+    return direction.indexOf('column') === 0 ? 'column' : 'row';
+  }
+  function rectScaleAxis(rectSize, layoutSize){
+    // offsetWidth/offsetHeight are layout (pre-transform) border-box px, so
+    // rect/offset isolates the accumulated ancestor transform scale without
+    // conflating box-sizing padding/borders. SVG and inline elements report
+    // no usable offset size; treat them as unscaled.
+    if (!layoutSize || !isFinite(layoutSize) || layoutSize <= 0) return 1;
+    var k = rectSize / layoutSize;
+    if (!isFinite(k) || k <= 0) return 1;
+    return Math.round(k * 10000) / 10000;
+  }
+  function cssSizeFor(el){
+    // Post-layout computed width/height: the used px values, unlike inline
+    // styles which layout may clamp or ignore. Resize-drag baseline data.
+    var computed = window.getComputedStyle(el);
+    return { width: computed.width || '', height: computed.height || '' };
+  }
   function targetFrom(el, includeOuterHtml){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
@@ -226,6 +253,9 @@ export function buildManualEditBridge(enabled: boolean): string {
       className: typeof el.className === 'string' ? el.className : '',
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 180),
       rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
+      rectScale: { x: rectScaleAxis(rect.width, el.offsetWidth), y: rectScaleAxis(rect.height, el.offsetHeight) },
+      cssSize: cssSizeFor(el),
+      flexItemAxis: flexItemAxisFor(el),
       fields: fields,
       attributes: attrsFor(el),
       styles: stylesFor(el),
@@ -493,6 +523,12 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     var keys = Object.keys(styles || {});
+    // Mute window: live preview streams one inline-style write per frame during
+    // a drag; without it the layout observer below would echo a full
+    // od-edit-targets post per frame. queuePostTargets DEFERS (not drops) the
+    // muted echo, so one coalesced re-broadcast still lands after the stream
+    // quiets; mid-drag the per-frame ack below carries the fresh rect instead.
+    suppressObservedLayoutUntil = Date.now() + 64;
     try {
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
@@ -501,7 +537,18 @@ export function buildManualEditBridge(enabled: boolean): string {
         if (typeof value !== 'string' || value.trim() === '') el.style.removeProperty(cssName);
         else el.style.setProperty(cssName, value.trim());
       }
-      window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: true }, '*');
+      // Post-apply measurement: the host renders resize handles from the
+      // element's REAL box (flex/grid/min-content can clamp or ignore the
+      // requested size), so every ack feeds the applied geometry back.
+      var applied = el.getBoundingClientRect();
+      window.parent.postMessage({
+        type: 'od-edit-preview-style-applied',
+        id: id,
+        version: Number(version) || 0,
+        ok: true,
+        rect: { x: Math.round(applied.x), y: Math.round(applied.y), width: Math.round(applied.width), height: Math.round(applied.height) },
+        cssSize: cssSizeFor(el)
+      }, '*');
     } catch (e) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
@@ -581,6 +628,51 @@ export function buildManualEditBridge(enabled: boolean): string {
   // ponytail: no throttle -- postTargets is a cheap querySelectorAll + getBoundingClientRect
   // pass; add rAF/debounce here if a scroll-heavy preview page measurably regresses.
   document.addEventListener('scroll', postTargets, true);
+  // Deck slide navigation, transition settle, media loads, and content growth
+  // reflow the page without firing resize or scroll; without re-measurement the
+  // host overlays (resize handles, inspector panel, hover icon) keep rendering
+  // the stale click-time rect. Coalesce observed changes to one post per frame.
+  var suppressObservedLayoutUntil = 0;
+  var queuedTargetsPost = false;
+  var scheduleFrame = window.requestAnimationFrame
+    ? window.requestAnimationFrame.bind(window)
+    : function(cb){ return window.setTimeout(cb, 16); };
+  function queuePostTargets(){
+    if (!enabled || queuedTargetsPost) return;
+    queuedTargetsPost = true;
+    flushTargetsWhenQuiet();
+  }
+  function flushTargetsWhenQuiet(){
+    // Defer — never drop — echoes that land inside the preview mute window.
+    // The last DOM mutation of a drag IS the final preview write; dropping its
+    // echo would strand the host overlays on stale rects (no resize/scroll
+    // event follows a pointerup to trigger another re-measure).
+    var wait = suppressObservedLayoutUntil - Date.now();
+    if (wait > 0) {
+      window.setTimeout(flushTargetsWhenQuiet, wait + 8);
+      return;
+    }
+    scheduleFrame(function(){
+      queuedTargetsPost = false;
+      postTargets();
+    });
+  }
+  if (typeof MutationObserver === 'function') {
+    new MutationObserver(queuePostTargets).observe(document.documentElement, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+  if (typeof ResizeObserver === 'function') {
+    var layoutResizeObserver = new ResizeObserver(queuePostTargets);
+    layoutResizeObserver.observe(document.documentElement);
+    if (document.body) layoutResizeObserver.observe(document.body);
+  }
+  document.addEventListener('load', queuePostTargets, true);
+  document.addEventListener('transitionend', queuePostTargets, true);
+  document.addEventListener('animationend', queuePostTargets, true);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', postTargets);
   else setTimeout(postTargets, 0);
   document.documentElement.toggleAttribute('data-od-edit-mode', enabled);

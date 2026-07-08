@@ -24,7 +24,7 @@
     "en": "Html Ppt Dir Key Nav Minimal"
   },
   "version": "0.1.0",
-  "description": "8 页极简方向键 keynote — 每页一个独立单色背景（靛 / 奶 / 绛 / 翠 / 灰 / 紫 / 白 / 炭），各自配色，160px display 标题 + 4px 短粗 accent 线分隔、箭头 → 前缀的 Mono 列表、左下 ← → kbd 提示 + 右下页码、巨大呼吸留白。适合\"有话要说但没什么可看\"的 keynote、launch、公开演讲。",
+  "description": "An 8-page minimal arrow-key keynote — each page has its own single-color background (indigo / cream / crimson / teal / gray / purple / white / charcoal) with matching accent colors, a 160px display headline, a 4px bold accent divider line, an arrow-prefixed (→) Mono list, a bottom-left ← → kbd hint, a bottom-right page number, and generous breathing whitespace. Great for a keynote, launch, or public talk where you have a lot to say but not much to show.",
   "description_i18n": {
     "zh-CN": "8 页极简方向键 keynote — 每页一个独立单色背景（靛 / 奶 / 绛 / 翠 / 灰 / 紫 / 白 / 炭），各自配色，160px display 标题 + 4px 短粗 accent 线分隔、箭头 → 前缀的 Mono 列表、左下 ← → kbd 提示 + 右下页码、巨大呼吸留白。适合'有话要说但没什么可看'的 keynote、launch、公开演讲。",
     "zh-TW": "8 頁極簡方向鍵 keynote — 每頁一個獨立單色背景（靛 / 奶 / 絳 / 翠 / 灰 / 紫 / 白 / 炭），各自配色，160px display 標題 + 4px 短粗 accent 線分隔、箭頭 → 前綴的 Mono 列表、左下 ← → kbd 提示 + 右下頁碼、巨大呼吸留白。適合『有話要說但沒什麼可看』的 keynote、launch、公開演講。",
@@ -43,7 +43,7 @@
     "ar": "عرض تقديمي بسيط من 8 صفحات مع التنقل بمفاتيح الأسهم — كل صفحة بخلفية أحادية اللون (نيلي / كريمي / قرمزي / فيروزي / رمادي / بنفسجي / أبيض / فحمي)، عنوان display بحجم 160px + خط تمييز سميك 4px، قائمة Mono ببادئة سهم ←، إشارة مفاتيح ← ← أسفل اليسار + رقم الصفحة أسفل اليمين، مساحات بيضاء واسعة. مثالي للعروض التقديمية والإطلاق والعروض العامة التي فيها الكثير ليقال لكن القليل ليُعرض.",
     "tr": "Ok tuşlarıyla gezinme özellikli 8 sayfalık minimalist keynote — her sayfa tek renkli arka plana sahip (çivit / krem / koyu kırmızı / turkuaz / gri / mor / beyaz / kömür), 160px display başlık + 4px kalın vurgu çizgisi, → önekli Mono listesi, sol alt ← → tuş ipucu + sağ alt sayfa numarası, geniş boşluklar. Söylenecek çok şey olup gösterecek az şey olan keynote, lansman ve sunumlar için ideal.",
     "uk": "8-сторінковий мінімалістичний keynote з навігацією стрілками — кожна сторінка з однотонним фоном (індиго / кремовий / бордовий / бірюзовий / сірий / фіолетовий / білий / вугільний), заголовок display 160px + жирна акцентна лінія 4px, список Mono з префіксом →, підказка клавіш ← → зліва внизу + номер сторінки справа внизу, великі відступи. Ідеально для keynote, презентацій та виступів, де є що сказати, але мало що показати.",
-    "en": "8 页极简方向键 keynote — 每页一个独立单色背景（靛 / 奶 / 绛 / 翠 / 灰 / 紫 / 白 / 炭），各自配色，160px display 标题 + 4px 短粗 accent 线分隔、箭头 → 前缀的 Mono 列表、左下 ← → kbd 提示 + 右下页码、巨大呼吸留白。适合\"有话要说但没什么可看\"的 keynote、launch、公开演讲。"
+    "en": "An 8-page minimal arrow-key keynote — each page has its own single-color background (indigo / cream / crimson / teal / gray / purple / white / charcoal) with matching accent colors, a 160px display headline, a 4px bold accent divider line, an arrow-prefixed (→) Mono list, a bottom-left ← → kbd hint, a bottom-right page number, and generous breathing whitespace. Great for a keynote, launch, or public talk where you have a lot to say but not much to show."
   },
   "license": "MIT",
   "author": {

@@ -24,7 +24,7 @@
     "en": "Html Ppt Xhs Pastel Card"
   },
   "version": "0.1.0",
-  "description": "柔和马卡龙慢生活 deck — 奶油 #fef8f1 底 + 三个柔光 blob、Playfair 斜体衬线 display 标题混 sans 正文、28px 圆角马卡龙卡片（桃 / 薄荷 / 天 / 紫 / 柠 / 玫）、Playfair 斜体 01-04 序号、SVG donut 图、chip+page 顶栏。适合生活方式 / 个人成长 / 慢生活 / 情绪类内容，\"杂志、手作、不太科技\"的感觉。",
+  "description": "A soft macaron slow-living deck — cream #fef8f1 background + three soft-light blobs, Playfair italic serif display titles mixed with sans body text, 28px rounded macaron cards (peach / mint / sky / purple / lemon / rose), Playfair italic 01-04 numbering, an SVG donut chart, and a chip+page top bar. Great for lifestyle / personal growth / slow-living / emotional content with a \"magazine, handmade, not too techy\" feel.",
   "description_i18n": {
     "zh-CN": "柔和马卡龙慢生活 deck — 奶油 #fef8f1 底 + 三个柔光 blob、Playfair 斜体衬线 display 标题混 sans 正文、28px 圆角马卡龙卡片（桃 / 薄荷 / 天 / 紫 / 柠 / 玫）、Playfair 斜体 01-04 序号、SVG donut 图、chip+page 顶栏。适合生活方式 / 个人成长 / 慢生活 / 情绪类内容，'杂志、手作、不太科技'的感觉。",
     "zh-TW": "柔和馬卡龍慢生活 deck — 奶油 #fef8f1 底 + 三個柔光 blob、Playfair 斜體襯線 display 標題混 sans 正文、28px 圓角馬卡龍卡片（桃 / 薄荷 / 天 / 紫 / 檸 / 玫）、Playfair 斜體 01-04 序號、SVG donut 圖、chip+page 頂欄。適合生活方式 / 個人成長 / 慢生活 / 情緒類內容，『雜誌、手作、不太科技』的感覺。",
@@ -43,7 +43,7 @@
     "ar": "تصميم حياة بطيئة ماكارون ناعم بخلفية كريمية #fef8f1، ثلاثة blobs ضوئية ناعمة، عناوين display Playfair مائلة serif + نص sans، بطاقات ماكارون دائرية 28px بستة ألوان، رسوم donut SVG وشريط علوي chip+page. مثالي لمحتوى نمط الحياة والنمو الشخصي والعاطفي بجمالية 'مجلة، يدوي الصنع، ليس تقنياً جداً'.",
     "tr": "Krem #fef8f1 arka planlı, üç yumuşak ışık blob'u, Playfair italic serif display başlıklar + sans gövde, altı renkte 28px yuvarlak macaron kartlar, SVG donut grafikleri ve chip+page üst çubuğu ile yumuşak macaron slow life deck. Yaşam tarzı, kişisel gelişim ve duygusal içerik için ideal, 'dergi, el yapımı, fazla teknolojik değil' estetiği.",
     "uk": "Ніжний макарон slow-life дек з кремовим фоном #fef8f1, трьома м'якими блобами, заголовками Playfair italic serif display + текстом sans, закругленими картками 28px у шести кольорах макарон, SVG donut-діаграмами та верхньою панеллю chip+page. Підходить для контенту про стиль життя, особистісний ріст та емоції з естетикою 'журнал, ручна робота, не надто техно'.",
-    "en": "柔和马卡龙慢生活 deck — 奶油 #fef8f1 底 + 三个柔光 blob、Playfair 斜体衬线 display 标题混 sans 正文、28px 圆角马卡龙卡片（桃 / 薄荷 / 天 / 紫 / 柠 / 玫）、Playfair 斜体 01-04 序号、SVG donut 图、chip+page 顶栏。适合生活方式 / 个人成长 / 慢生活 / 情绪类内容，\"杂志、手作、不太科技\"的感觉。"
+    "en": "A soft macaron slow-living deck — cream #fef8f1 background + three soft-light blobs, Playfair italic serif display titles mixed with sans body text, 28px rounded macaron cards (peach / mint / sky / purple / lemon / rose), Playfair italic 01-04 numbering, an SVG donut chart, and a chip+page top bar. Great for lifestyle / personal growth / slow-living / emotional content with a \"magazine, handmade, not too techy\" feel."
   },
   "license": "MIT",
   "author": {

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ToolPackCache } from "../src/cache.js";
+import { ToolPackCache, renameWithRetry } from "../src/cache.js";
 
 async function pathExists(path: string): Promise<boolean> {
   try {
@@ -242,5 +242,53 @@ describe("ToolPackCache", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+});
+
+describe("renameWithRetry", () => {
+  it("retries transient Windows share-violation errors until the rename lands", async () => {
+    // Windows antivirus / indexer briefly holds handles inside a freshly
+    // written payload tree, so the staging->entry directory rename throws
+    // EPERM at exactly the moment the copy finishes. A bare fs.rename makes
+    // every packaged build a coin flip; retrying with backoff is the
+    // platform-standard (graceful-fs) behavior.
+    let attempts = 0;
+    const flaky = async () => {
+      attempts += 1;
+      if (attempts < 3) {
+        const error = new Error("EPERM: operation not permitted, rename") as NodeJS.ErrnoException;
+        error.code = "EPERM";
+        throw error;
+      }
+    };
+
+    await expect(renameWithRetry("from", "to", { rename: flaky, baseDelayMs: 1 })).resolves.toBeUndefined();
+    expect(attempts).toBe(3);
+  });
+
+  it("rethrows non-transient errors immediately", async () => {
+    let attempts = 0;
+    const broken = async () => {
+      attempts += 1;
+      const error = new Error("ENOENT: no such file or directory") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      throw error;
+    };
+
+    await expect(renameWithRetry("from", "to", { rename: broken, baseDelayMs: 1 })).rejects.toThrow(/ENOENT/);
+    expect(attempts).toBe(1);
+  });
+
+  it("gives up after the retry budget with the last transient error", async () => {
+    let attempts = 0;
+    const alwaysLocked = async () => {
+      attempts += 1;
+      const error = new Error("EPERM: operation not permitted, rename") as NodeJS.ErrnoException;
+      error.code = "EPERM";
+      throw error;
+    };
+
+    await expect(renameWithRetry("from", "to", { rename: alwaysLocked, baseDelayMs: 1 })).rejects.toThrow(/EPERM/);
+    expect(attempts).toBeGreaterThan(3);
   });
 });

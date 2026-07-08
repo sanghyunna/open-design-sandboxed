@@ -1,7 +1,7 @@
 ---
 name: kami-deck
 description: >
-  Produce a print-grade slide deck in the kami (紙 / 纸) design system —
+  Produce a print-grade slide deck in the kami design system —
   warm parchment background (or ink-blue for cover / chapter slides),
   serif at one weight, ink-blue accent ≤ 5% per slide, no italic.
   Horizontal magazine swipe pagination (←/→ · wheel · swipe · ESC

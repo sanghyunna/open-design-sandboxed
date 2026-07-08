@@ -1,0 +1,48 @@
+.container {
+  position: absolute;
+  z-index: 32;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: #2563eb;
+  border: 1px solid #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.handle-nw,
+.handle-se {
+  cursor: nwse-resize;
+}
+
+.handle-ne,
+.handle-sw {
+  cursor: nesw-resize;
+}
+
+.handle-n,
+.handle-s {
+  cursor: ns-resize;
+}
+
+.handle-e,
+.handle-w {
+  cursor: ew-resize;
+}

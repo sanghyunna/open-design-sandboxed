@@ -278,6 +278,15 @@ export async function writeAssembledApp(
     join(config.workspaceRoot, "apps", "desktop", "dist", "main", "preload.cjs"),
     join(paths.assembledAppRoot, "preload.cjs"),
   );
+  // Desktop main resolves the splash page from `<appRoot>/assets/` when it
+  // runs as the standalone prebundle (see resolveSplashHtmlPath in
+  // apps/desktop/src/main/runtime.ts); the prebundle excludes the desktop
+  // tarball, so the assets must be staged here explicitly.
+  await cp(
+    join(config.workspaceRoot, "apps", "desktop", "assets"),
+    join(paths.assembledAppRoot, "assets"),
+    { recursive: true },
+  );
   const tarballByPackage = Object.fromEntries(
     packedTarballs.map((entry) => [entry.packageName, entry.fileName] as const),
   );

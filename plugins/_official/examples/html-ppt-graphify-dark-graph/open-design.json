@@ -24,7 +24,7 @@
     "en": "Html Ppt Graphify Dark Graph"
   },
   "version": "0.1.0",
-  "description": "暗底知识图谱 deck — #06060c→#0e1020 深夜渐变 + 漂浮 blur orbs、封面 SVG 力导向图谱、彩虹渐变标题、JetBrains Mono 命令行高亮、glass-morphism 卡片。适合 dev-tool / CLI / 知识图谱 / 数据可视化的发布会，\"AI-native + 科幻 + 暖色\" 调子。",
+  "description": "Dark-theme knowledge-graph deck — #06060c→#0e1020 late-night gradient with floating blur orbs, an SVG force-directed graph cover, a rainbow-gradient title, JetBrains Mono command-line highlighting, and glass-morphism cards. Suited to dev-tool / CLI / knowledge-graph / data-visualization launches with an \"AI-native + sci-fi + warm-tone\" feel.",
   "description_i18n": {
     "zh-CN": "暗底知识图谱 deck — #06060c→#0e1020 深夜渐变 + 漂浮 blur orbs、封面 SVG 力导向图谱、彩虹渐变标题、JetBrains Mono 命令行高亮、glass-morphism 卡片。适合 dev-tool / CLI / 知识图谱 / 数据可视化的发布会，'AI-native + 科幻 + 暖色' 调子。",
     "zh-TW": "暗底知識圖譜 deck — #06060c→#0e1020 深夜漸層 + 漂浮 blur orbs、封面 SVG 力導向圖譜、彩虹漸層標題、JetBrains Mono 命令列高亮、glass-morphism 卡片。適合 dev-tool / CLI / 知識圖譜 / 資料視覺化的發表會，'AI-native + 科幻 + 暖色' 調性。",
@@ -43,7 +43,7 @@
     "ar": "مجموعة رسم بياني للمعرفة بخلفية داكنة مع تدرج منتصف الليل (#06060c→#0e1020)، كرات ضبابية عائمة، رسم بياني قوة SVG، عناوين بتدرج قوس قزح، إبراز CLI بـ JetBrains Mono، وبطاقات glass-morphism. مثالي لعروض dev-tool / CLI / الرسوم البيانية للمعرفة / تصور البيانات بأسلوب 'AI-native + خيال علمي + ألوان دافئة'.",
     "tr": "Gece yarısı degradesi (#06060c→#0e1020), yüzen blur küreler, SVG kuvvet grafiği, gökkuşağı degrade başlıklar, JetBrains Mono CLI vurgulama ve glass-morphism kartlarla koyu bilgi grafiği deck'i. dev-tool / CLI / bilgi grafiği / veri görselleştirme sunumları için 'AI-native + bilim kurgu + sıcak tonlar' stilinde idealdir.",
     "uk": "Темний граф знань із нічним градієнтом (#06060c→#0e1020), плаваючими blur-сферами, SVG-графом сил, веселковими заголовками, підсвічуванням CLI в JetBrains Mono та glass-morphism картками. Підходить для презентацій dev-tool / CLI / графів знань / візуалізації даних у стилі 'AI-native + наукова фантастика + теплі тони'.",
-    "en": "暗底知识图谱 deck — #06060c→#0e1020 深夜渐变 + 漂浮 blur orbs、封面 SVG 力导向图谱、彩虹渐变标题、JetBrains Mono 命令行高亮、glass-morphism 卡片。适合 dev-tool / CLI / 知识图谱 / 数据可视化的发布会，\"AI-native + 科幻 + 暖色\" 调子。"
+    "en": "Dark-theme knowledge-graph deck — #06060c→#0e1020 late-night gradient with floating blur orbs, an SVG force-directed graph cover, a rainbow-gradient title, JetBrains Mono command-line highlighting, and glass-morphism cards. Suited to dev-tool / CLI / knowledge-graph / data-visualization launches with an \"AI-native + sci-fi + warm-tone\" feel."
   },
   "license": "MIT",
   "author": {

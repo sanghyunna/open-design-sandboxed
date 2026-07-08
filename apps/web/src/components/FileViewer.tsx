@@ -124,6 +124,8 @@ import type {
   PreviewCommentTarget,
 } from '../types';
 import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditResizeHandles } from './ManualEditResizeHandles';
+import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import {
   applyManualEditPatch,
@@ -133,7 +135,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBridgeMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBridgeMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -825,6 +827,29 @@ export function manualEditHoverIconStyle(
     Math.min(targetTop + inset, canvasHeight - iconSize - inset),
   );
   return { left, top, width: iconSize, height: iconSize };
+}
+
+// The selected element's rect on the preview canvas, in host px, using the same
+// iframe→canvas transform as manualEditHoverIconStyle. Feeds the resize-handle
+// overlay: left/top anchor the overlay, width/height size it. Zero/negative or
+// non-finite rects collapse to a 0-size rect at the anchor (never NaN), so the
+// caller can still render a stable — if degenerate — handle cluster.
+export function manualEditResizeOverlayRect(
+  target: ManualEditTarget,
+  previewScale: number,
+  canvasSize: PreviewCanvasSize | undefined,
+  offsetX = 0,
+  offsetY = 0,
+): { left: number; top: number; width: number; height: number } | null {
+  const scale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
+  const { x, y, width, height } = target.rect;
+  if (![x, y, width, height].every((value) => Number.isFinite(value))) return null;
+  return {
+    left: offsetX + x * scale,
+    top: offsetY + y * scale,
+    width: Math.max(0, width) * scale,
+    height: Math.max(0, height) * scale,
+  };
 }
 
 export function cancelManualEditPendingStyleSnapshot(
@@ -3742,6 +3767,12 @@ function HtmlViewer({
   const [manualEditHoverTarget, setManualEditHoverTarget] = useState<ManualEditTarget | null>(null);
   const [manualEditPageStylesOpen, setManualEditPageStylesOpen] = useState(false);
   const [manualEditPanelPosition, setManualEditPanelPosition] = useState<{ left: number; top: number } | null>(null);
+  // Auto-placement anchor: the target rect captured at selection time. The
+  // floating panel's auto-placed slot derives from this frozen snapshot, not
+  // the live selectedManualEditTarget.rect, so it computes once per selection
+  // and holds still afterward — live geometry keeps flowing to the resize
+  // handles / hover affordance / selectedManualEditTarget.rect unchanged.
+  const [manualEditPanelAnchorRect, setManualEditPanelAnchorRect] = useState<ManualEditRect | null>(null);
   const selectedManualEditTargetIdRef = useRef<string | null>(null);
   const [manualEditDraft, setManualEditDraft] = useState<ManualEditDraft>(() => emptyManualEditDraft());
   const [manualEditHistory, setManualEditHistory] = useState<ManualEditHistoryEntry[]>([]);
@@ -3750,7 +3781,20 @@ function HtmlViewer({
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
+  // Drag-start snapshot for resize-handle style math. The live selected target
+  // mutates per preview ack (rect + cssSize), which would shift the delta
+  // baseline mid-drag; every frame of one drag must anchor on pointerdown state.
+  const manualEditResizeBaselineRef = useRef<{
+    id: string;
+    styles: Partial<ManualEditStyles>;
+    cssSize?: { width: string; height: string };
+  } | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
+  // Highest preview-ack version applied so far. Acks stream back one per
+  // preview frame; a drag outruns them, so requiring version === current would
+  // drop nearly every mid-drag rect measurement. Monotonic acceptance keeps
+  // the overlays tracking the element's real box without reordering glitches.
+  const manualEditPreviewAckVersionRef = useRef(0);
   const [manualEditRichFormat, setManualEditRichFormat] = useState<ManualEditRichFormatState>(
     { editing: false, hasSelection: false, bold: false, italic: false, underline: false },
   );
@@ -4577,6 +4621,7 @@ function HtmlViewer({
     setManualEditTargets([]);
     setSelectedManualEditTarget(null);
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     selectedManualEditTargetIdRef.current = null;
     setManualEditDraft(emptyManualEditDraft());
     setManualEditHistory([]);
@@ -4828,6 +4873,7 @@ function HtmlViewer({
       setManualEditHoverTarget(null);
       setManualEditPageStylesOpen(false);
       setManualEditPanelPosition(null);
+      setManualEditPanelAnchorRect(null);
       selectedManualEditTargetIdRef.current = null;
       setManualEditError(null);
       manualEditPendingStyleRef.current = null;
@@ -4903,10 +4949,26 @@ function HtmlViewer({
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
-        // Ignore acks for a preview call that's since been superseded by a
-        // newer style change (out-of-order postMessage delivery).
-        if (data.version !== manualEditPreviewVersionRef.current) return;
-        if (!data.ok) {
+        const version = typeof data.version === 'number' ? data.version : 0;
+        // Drop only out-of-order stragglers; every newer ack is applied even if
+        // a later preview is already in flight (see manualEditPreviewAckVersionRef).
+        if (version < manualEditPreviewAckVersionRef.current) return;
+        manualEditPreviewAckVersionRef.current = version;
+        if (data.ok && data.rect && typeof data.id === 'string') {
+          // The iframe measured the element AFTER applying the preview styles:
+          // this is the real box (layout may have clamped the request), and it
+          // is what the resize handles / hover icon must render. The floating
+          // panel deliberately ignores it (manualEditPanelAnchorRect).
+          const rect = data.rect;
+          const cssSize = data.cssSize && typeof data.cssSize.width === 'string' && typeof data.cssSize.height === 'string'
+            ? { width: data.cssSize.width, height: data.cssSize.height }
+            : undefined;
+          setSelectedManualEditTarget((current) =>
+            current && current.id === data.id
+              ? { ...current, rect, ...(cssSize ? { cssSize } : {}) }
+              : current);
+        }
+        if (!data.ok && version === manualEditPreviewVersionRef.current) {
           setManualEditError(data.error || 'Could not apply preview style.');
         }
         return;
@@ -4988,6 +5050,97 @@ function HtmlViewer({
     previewStyleToIframe(id, styles, version);
   }
 
+  // Translate a drag result (rect-space px) into CSS width/height, anchored on
+  // the element's current CSS size — target styles overlaid by any unsaved
+  // panel draft — and divided by rectScale so elements under an ancestor
+  // transform (deck fit-to-canvas) round-trip with the inspector's numbers.
+  // Snapshot the drag baseline at pointerdown: preview acks refresh the live
+  // target's cssSize (and commits fold styles) mid-drag, and the delta math
+  // must anchor every frame of one drag on the same pre-drag state.
+  function beginManualEditResizeBaseline(target: ManualEditTarget) {
+    const pending = manualEditPendingStyleRef.current;
+    const base: Partial<ManualEditStyles> = { ...target.styles };
+    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    manualEditResizeBaselineRef.current = { id: target.id, styles: base, cssSize: target.cssSize };
+  }
+
+  function manualEditResizeStyles(
+    target: ManualEditTarget,
+    direction: ResizeHandleDirection,
+    size: { width: number; height: number },
+    startSize: { width: number; height: number },
+  ): Partial<ManualEditStyles> {
+    let baseline = manualEditResizeBaselineRef.current;
+    if (baseline?.id !== target.id) {
+      beginManualEditResizeBaseline(target);
+      baseline = manualEditResizeBaselineRef.current;
+    }
+    const base = baseline?.styles ?? target.styles;
+    return resizeCssCommitStyles({
+      direction,
+      size,
+      startSize,
+      baseStyles: { width: base.width, height: base.height },
+      computedSize: baseline?.cssSize,
+      baseMargins: {
+        marginLeft: base.marginLeft,
+        marginRight: base.marginRight,
+        marginTop: base.marginTop,
+        marginBottom: base.marginBottom,
+      },
+      rectScale: target.rectScale,
+      flexItemAxis: target.flexItemAxis,
+    });
+  }
+
+  // Resize-handle drag commits directly (bypassing the panel draft ref): each
+  // pointerup writes width/height via the same set-style pipeline as the panel.
+  async function commitManualEditResize(
+    target: ManualEditTarget,
+    direction: ResizeHandleDirection,
+    size: { width: number; height: number },
+    startSize: { width: number; height: number },
+  ) {
+    const styles = manualEditResizeStyles(target, direction, size, startSize);
+    const ok = await applyManualEdit({ id: target.id, kind: 'set-style', styles }, `Style: ${target.label}`);
+    if (!ok) return;
+    // Drop the just-committed props from any staged panel draft so a later
+    // panel flush can't overwrite the drag result with stale width/height.
+    cancelManualEditPendingStyles(target.id, Object.keys(styles) as Array<keyof ManualEditStyles>);
+    // Fold the saved styles into the selected target so an Escape/pointercancel
+    // on a consecutive drag reverts to the saved size instead of the pre-drag
+    // one. The rect deliberately stays untouched: the mouse-implied size is a
+    // request the layout may have clamped, and the per-frame preview acks (plus
+    // the bridge's deferred od-edit-targets re-broadcast after the drag) hold
+    // the element's real measured box.
+    setSelectedManualEditTarget((current) => {
+      if (!current || current.id !== target.id) return current;
+      return { ...current, styles: { ...current.styles, ...styles } };
+    });
+  }
+
+  // Escape / pointercancel: repaint the iframe with the width/height that were
+  // in effect before the drag — the target's selection-time styles overlaid by
+  // any unsaved panel draft for the same element. For flex items the drag
+  // preview may also have pinned `flex: none`; restore the pre-drag flex too.
+  function revertManualEditResizePreview(target: ManualEditTarget) {
+    const pending = manualEditPendingStyleRef.current;
+    const base: Partial<ManualEditStyles> = { ...target.styles };
+    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    // Margins revert too: a west/north drag preview shifts the box via
+    // marginLeft/marginTop (and may pin the opposite side).
+    const revert: Partial<ManualEditStyles> = {
+      width: base.width ?? '',
+      height: base.height ?? '',
+      marginLeft: base.marginLeft ?? '',
+      marginRight: base.marginRight ?? '',
+      marginTop: base.marginTop ?? '',
+      marginBottom: base.marginBottom ?? '',
+    };
+    if (target.flexItemAxis) revert.flex = base.flex ?? '';
+    previewStyleToIframe(target.id, revert, nextManualEditPreviewVersion());
+  }
+
   async function flushManualEditStyleSave(): Promise<boolean> {
     const pending = manualEditPendingStyleRef.current;
     if (!pending) return true;
@@ -5033,6 +5186,7 @@ function HtmlViewer({
     const ok = await flushManualEditStyleSave();
     if (!ok) return false;
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     setManualEditMode(false);
     return true;
   }
@@ -5055,6 +5209,10 @@ function HtmlViewer({
     const fields = readManualEditFields(base, target.id);
     selectedManualEditTargetIdRef.current = target.id;
     setSelectedManualEditTarget(target);
+    // A genuine new selection re-snapshots the panel's placement anchor. This
+    // is the single funnel for od-edit-select, the panel's onSelectTarget,
+    // and the hover-affordance click — none of them call setSelectedManualEditTarget directly.
+    setManualEditPanelAnchorRect(target.rect);
     setManualEditDraft({
       text: fields.text ?? target.fields.text ?? target.text,
       href: fields.href ?? target.fields.href ?? '',
@@ -5073,6 +5231,7 @@ function HtmlViewer({
     selectedManualEditTargetIdRef.current = null;
     setSelectedManualEditTarget(null);
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     setManualEditDraft(emptyManualEditDraft(sourceRef.current ?? ''));
     setManualEditError(null);
     setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
@@ -6728,7 +6887,11 @@ function HtmlViewer({
       floatingStyle={selectedManualEditTarget
         ? {
             ...manualEditFloatingPanelStyle(
-              selectedManualEditTarget,
+              // Auto-placement reads the selection-time anchor rect, not the
+              // live one, so the panel doesn't chase the element as edits or
+              // drags reflow it. Falls back to the live rect only when no
+              // selection has snapshotted an anchor yet.
+              { ...selectedManualEditTarget, rect: manualEditPanelAnchorRect ?? selectedManualEditTarget.rect },
               overlayPreviewScale,
               previewBodySize,
               manualEditOverlayTransform.offsetX,
@@ -6775,6 +6938,55 @@ function HtmlViewer({
       >
         <Icon name="sliders" size={15} />
       </button>
+    ) : null;
+  const manualEditResizeLabels = useMemo<Record<ResizeHandleDirection, string>>(
+    () => RESIZE_HANDLE_DIRECTIONS.reduce((acc, direction) => {
+      acc[direction] = t(`manualEdit.resize.${direction}`);
+      return acc;
+    }, {} as Record<ResizeHandleDirection, string>),
+    [t],
+  );
+  // Resize handles ride the same iframe→canvas transform as the panel/hover
+  // affordance, and only when the srcDoc edit bridge is live (URL-load preview
+  // has no od-edit-preview-style channel), gated like the panel: mode on +
+  // element selected + a valid rect.
+  const manualEditResizeRect =
+    manualEditMode && selectedManualEditTarget && !useUrlLoadPreview
+      ? manualEditResizeOverlayRect(
+          selectedManualEditTarget,
+          overlayPreviewScale,
+          previewBodySize,
+          manualEditOverlayTransform.offsetX,
+          manualEditOverlayTransform.offsetY,
+        )
+      : null;
+  const manualEditResizeHandles =
+    manualEditResizeRect && selectedManualEditTarget ? (
+      <ManualEditResizeHandles
+        rect={manualEditResizeRect}
+        startSize={{
+          width: selectedManualEditTarget.rect.width,
+          height: selectedManualEditTarget.rect.height,
+        }}
+        scale={overlayPreviewScale}
+        labels={manualEditResizeLabels}
+        onResizeStart={() => {
+          beginManualEditResizeBaseline(selectedManualEditTarget);
+        }}
+        onResizePreview={(direction, size, startSize) => {
+          previewStyleToIframe(
+            selectedManualEditTarget.id,
+            manualEditResizeStyles(selectedManualEditTarget, direction, size, startSize),
+            nextManualEditPreviewVersion(),
+          );
+        }}
+        onResizeCommit={(direction, size, startSize) => {
+          void commitManualEditResize(selectedManualEditTarget, direction, size, startSize);
+        }}
+        onResizeCancel={() => {
+          revertManualEditResizePreview(selectedManualEditTarget);
+        }}
+      />
     ) : null;
   const activeComposerComment = activePreviewCommentId
     ? visibleSideComments.find((comment) => comment.id === activePreviewCommentId) ?? null
@@ -7509,6 +7721,7 @@ function HtmlViewer({
           >
             {manualEditPanel}
             {manualEditHoverAffordance}
+            {manualEditResizeHandles}
             <div
               className={manualEditMode ? 'manual-edit-canvas' : 'comment-preview-canvas'}
               data-testid={manualEditMode ? undefined : 'comment-preview-canvas'}

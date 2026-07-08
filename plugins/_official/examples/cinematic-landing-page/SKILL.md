@@ -67,7 +67,7 @@ Gold accent **`#CB9D06`** — every hover state (nav links, buttons, footer link
 - Center: 4-leaf-clover logo SVG (`viewBox 0 0 305 304`, white, the 4 paths from the prompt), `h-[32px] md:h-[48px]` normal, `h-[24px] md:h-[32px]` scrolled, flanked by dropdowns.
   - Left menus: **About Us** (Our History / Food Service Experts / Creating unforgettable culinary experiences), **Partnering With Us** (Sourcing from trusted suppliers / Empowering Customer Operations / Our Experts).
   - Right menus: **Our Products** (Viennese Pastry / Bread / Dessert / Savory / Speciality Pastry / Culinary Aid / Ingredient), **Let's Connect!** (Contact / LinkedIn / WhatsApp / Newsletter / Brochure / Join Us).
-- Right: language switch EN / 繁, active = `bg-[#CB9D06] text-white`.
+- Right: language switch EN / ZH, active = `bg-[#CB9D06] text-white`.
 - Dropdown: `bg-white shadow-lg py-2`, items `px-4 py-2.5 text-[13px]`, hover `bg-[#CB9D06] text-white`.
 - Mobile: hamburger → full-screen overlay `bg-black/95 backdrop-blur-md`, accordion menus.
 
