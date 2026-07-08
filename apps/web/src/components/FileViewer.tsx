@@ -135,7 +135,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBridgeMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBridgeMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -3767,6 +3767,12 @@ function HtmlViewer({
   const [manualEditHoverTarget, setManualEditHoverTarget] = useState<ManualEditTarget | null>(null);
   const [manualEditPageStylesOpen, setManualEditPageStylesOpen] = useState(false);
   const [manualEditPanelPosition, setManualEditPanelPosition] = useState<{ left: number; top: number } | null>(null);
+  // Auto-placement anchor: the target rect captured at selection time. The
+  // floating panel's auto-placed slot derives from this frozen snapshot, not
+  // the live selectedManualEditTarget.rect, so it computes once per selection
+  // and holds still afterward — live geometry keeps flowing to the resize
+  // handles / hover affordance / selectedManualEditTarget.rect unchanged.
+  const [manualEditPanelAnchorRect, setManualEditPanelAnchorRect] = useState<ManualEditRect | null>(null);
   const selectedManualEditTargetIdRef = useRef<string | null>(null);
   const [manualEditDraft, setManualEditDraft] = useState<ManualEditDraft>(() => emptyManualEditDraft());
   const [manualEditHistory, setManualEditHistory] = useState<ManualEditHistoryEntry[]>([]);
@@ -4607,6 +4613,7 @@ function HtmlViewer({
     setManualEditTargets([]);
     setSelectedManualEditTarget(null);
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     selectedManualEditTargetIdRef.current = null;
     setManualEditDraft(emptyManualEditDraft());
     setManualEditHistory([]);
@@ -4858,6 +4865,7 @@ function HtmlViewer({
       setManualEditHoverTarget(null);
       setManualEditPageStylesOpen(false);
       setManualEditPanelPosition(null);
+      setManualEditPanelAnchorRect(null);
       selectedManualEditTargetIdRef.current = null;
       setManualEditError(null);
       manualEditPendingStyleRef.current = null;
@@ -4941,7 +4949,8 @@ function HtmlViewer({
         if (data.ok && data.rect && typeof data.id === 'string') {
           // The iframe measured the element AFTER applying the preview styles:
           // this is the real box (layout may have clamped the request), and it
-          // is what the resize handles / panel / hover icon must render.
+          // is what the resize handles / hover icon must render. The floating
+          // panel deliberately ignores it (manualEditPanelAnchorRect).
           const rect = data.rect;
           setSelectedManualEditTarget((current) =>
             current && current.id === data.id ? { ...current, rect } : current);
@@ -5135,6 +5144,7 @@ function HtmlViewer({
     const ok = await flushManualEditStyleSave();
     if (!ok) return false;
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     setManualEditMode(false);
     return true;
   }
@@ -5157,6 +5167,10 @@ function HtmlViewer({
     const fields = readManualEditFields(base, target.id);
     selectedManualEditTargetIdRef.current = target.id;
     setSelectedManualEditTarget(target);
+    // A genuine new selection re-snapshots the panel's placement anchor. This
+    // is the single funnel for od-edit-select, the panel's onSelectTarget,
+    // and the hover-affordance click — none of them call setSelectedManualEditTarget directly.
+    setManualEditPanelAnchorRect(target.rect);
     setManualEditDraft({
       text: fields.text ?? target.fields.text ?? target.text,
       href: fields.href ?? target.fields.href ?? '',
@@ -5175,6 +5189,7 @@ function HtmlViewer({
     selectedManualEditTargetIdRef.current = null;
     setSelectedManualEditTarget(null);
     setManualEditPanelPosition(null);
+    setManualEditPanelAnchorRect(null);
     setManualEditDraft(emptyManualEditDraft(sourceRef.current ?? ''));
     setManualEditError(null);
     setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
@@ -6830,7 +6845,11 @@ function HtmlViewer({
       floatingStyle={selectedManualEditTarget
         ? {
             ...manualEditFloatingPanelStyle(
-              selectedManualEditTarget,
+              // Auto-placement reads the selection-time anchor rect, not the
+              // live one, so the panel doesn't chase the element as edits or
+              // drags reflow it. Falls back to the live rect only when no
+              // selection has snapshotted an anchor yet.
+              { ...selectedManualEditTarget, rect: manualEditPanelAnchorRect ?? selectedManualEditTarget.rect },
               overlayPreviewScale,
               previewBodySize,
               manualEditOverlayTransform.offsetX,
