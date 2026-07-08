@@ -1934,6 +1934,7 @@ export const en: Dict = {
   'manualEdit.resize.s': 'Resize bottom edge',
   'manualEdit.resize.sw': 'Resize bottom-left corner',
   'manualEdit.resize.w': 'Resize left edge',
+  'manualEdit.move.frame': 'Move element',
   'fileViewer.zoomOut': 'Zoom out',
   'fileViewer.zoomIn': 'Zoom in',
   'fileViewer.resetZoom': 'Reset zoom',

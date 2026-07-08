@@ -2408,6 +2408,7 @@ export interface Dict {
   'manualEdit.resize.s': string;
   'manualEdit.resize.sw': string;
   'manualEdit.resize.w': string;
+  'manualEdit.move.frame': string;
   'fileViewer.zoomOut': string;
   'fileViewer.zoomIn': string;
   'fileViewer.resetZoom': string;

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   RESIZE_HANDLE_DIRECTIONS,
+  moveCssCommitStyles,
+  parseTranslate,
   resizeCssCommitStyles,
   resizeDragSize,
   resizeHandlePositions,
@@ -401,5 +403,76 @@ describe('resizeCssCommitStyles flex pinning', () => {
     expect(styles.flex).toBeUndefined();
     const nullAxis = resizeCssCommitStyles({ ...drag, direction: 'e', flexItemAxis: null });
     expect(nullAxis.flex).toBeUndefined();
+  });
+});
+
+describe('parseTranslate', () => {
+  it('treats empty/undefined/none as {0,0}', () => {
+    expect(parseTranslate('')).toEqual({ x: 0, y: 0 });
+    expect(parseTranslate(undefined)).toEqual({ x: 0, y: 0 });
+    expect(parseTranslate('none')).toEqual({ x: 0, y: 0 });
+  });
+
+  it('parses two px tokens', () => {
+    expect(parseTranslate('10px 20px')).toEqual({ x: 10, y: 20 });
+  });
+
+  it('defaults y to 0 when only one token', () => {
+    expect(parseTranslate('10px')).toEqual({ x: 10, y: 0 });
+  });
+
+  it('parses negative values', () => {
+    expect(parseTranslate('-5px -8px')).toEqual({ x: -5, y: -8 });
+  });
+
+  it('treats a non-px token as 0 for that axis', () => {
+    expect(parseTranslate('10% 20px')).toEqual({ x: 0, y: 20 });
+  });
+
+  it('parses fractional px', () => {
+    expect(parseTranslate('10.5px 20.5px')).toEqual({ x: 10.5, y: 20.5 });
+  });
+});
+
+describe('moveCssCommitStyles', () => {
+  it('no base, delta only, scale 1', () => {
+    expect(moveCssCommitStyles({ deltaRect: { x: 30, y: 40 }, baseTranslate: undefined })).toEqual({
+      translate: '30px 40px',
+    });
+  });
+
+  it('adds delta onto an existing base', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 5, y: -5 },
+      baseTranslate: '10px 20px',
+    })).toEqual({ translate: '15px 15px' });
+  });
+
+  it('divides delta by rectScale', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 20, y: 20 },
+      baseTranslate: undefined,
+      rectScale: { x: 2, y: 2 },
+    })).toEqual({ translate: '10px 10px' });
+  });
+
+  it('emits empty string when result is zero', () => {
+    expect(moveCssCommitStyles({ deltaRect: { x: 0, y: 0 }, baseTranslate: undefined })).toEqual({
+      translate: '',
+    });
+  });
+
+  it('normalizes to empty string when base+delta cancel out', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: -10, y: 0 },
+      baseTranslate: '10px 0px',
+    })).toEqual({ translate: '' });
+  });
+
+  it('rounds to nearest integer', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 3.4, y: 3.6 },
+      baseTranslate: undefined,
+    })).toEqual({ translate: '3px 4px' });
   });
 });

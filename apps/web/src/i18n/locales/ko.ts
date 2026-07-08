@@ -1934,6 +1934,7 @@ export const ko: Dict = {
   'manualEdit.resize.s': '아래쪽 가장자리 크기 조절',
   'manualEdit.resize.sw': '왼쪽 아래 모서리 크기 조절',
   'manualEdit.resize.w': '왼쪽 가장자리 크기 조절',
+  'manualEdit.move.frame': '요소 이동',
   'fileViewer.zoomOut': '축소',
   'fileViewer.zoomIn': '확대',
   'fileViewer.resetZoom': '배율 초기화',
