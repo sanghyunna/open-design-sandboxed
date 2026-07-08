@@ -67,6 +67,12 @@ export interface ManualEditTarget {
    */
   rectScale?: { x: number; y: number };
   /**
+   * Post-layout getComputedStyle width/height (used px values). Unlike
+   * `styles.width/height` (inline value first, which layout may have clamped
+   * or ignored), this is what actually renders — the resize drag baseline.
+   */
+  cssSize?: { width: string; height: string };
+  /**
    * Main axis of the parent flex container when the element is a flex item
    * ('row' → width is the main axis, 'column' → height), else null. Main-axis
    * drag commits must pin the item (flex: none) or the flex algorithm
@@ -133,6 +139,11 @@ export interface ManualEditPreviewAppliedMessage {
    * flex/grid/min-content constraints can clamp or ignore the requested size.
    */
   rect?: ManualEditRect;
+  /**
+   * Post-apply computed width/height. Feeds the host's resize baseline: when
+   * layout clamps a request, this is the value that actually took effect.
+   */
+  cssSize?: { width: string; height: string };
 }
 
 export interface ManualEditTextCommitMessage {

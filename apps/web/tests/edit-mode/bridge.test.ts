@@ -713,6 +713,34 @@ describe('manual edit bridge target normalization', () => {
         version: 9,
         ok: true,
         rect: { x: 10, y: 20, width: 300, height: 80 },
+        // Post-apply computed width/height: the host's resize baseline needs
+        // the value layout actually used, not the (possibly clamped) request.
+        cssSize: { width: expect.any(String), height: expect.any(String) },
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('includes the computed css size on selected targets', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.querySelector('[data-od-id="hero"]')!.dispatchEvent(
+      new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({
+          id: 'hero',
+          cssSize: { width: expect.any(String), height: expect.any(String) },
+        }),
       }),
       '*',
     );

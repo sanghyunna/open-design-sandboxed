@@ -224,6 +224,12 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!isFinite(k) || k <= 0) return 1;
     return Math.round(k * 10000) / 10000;
   }
+  function cssSizeFor(el){
+    // Post-layout computed width/height: the used px values, unlike inline
+    // styles which layout may clamp or ignore. Resize-drag baseline data.
+    var computed = window.getComputedStyle(el);
+    return { width: computed.width || '', height: computed.height || '' };
+  }
   function targetFrom(el, includeOuterHtml){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
@@ -248,6 +254,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 180),
       rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
       rectScale: { x: rectScaleAxis(rect.width, el.offsetWidth), y: rectScaleAxis(rect.height, el.offsetHeight) },
+      cssSize: cssSizeFor(el),
       flexItemAxis: flexItemAxisFor(el),
       fields: fields,
       attributes: attrsFor(el),
@@ -539,7 +546,8 @@ export function buildManualEditBridge(enabled: boolean): string {
         id: id,
         version: Number(version) || 0,
         ok: true,
-        rect: { x: Math.round(applied.x), y: Math.round(applied.y), width: Math.round(applied.width), height: Math.round(applied.height) }
+        rect: { x: Math.round(applied.x), y: Math.round(applied.y), width: Math.round(applied.width), height: Math.round(applied.height) },
+        cssSize: cssSizeFor(el)
       }, '*');
     } catch (e) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');

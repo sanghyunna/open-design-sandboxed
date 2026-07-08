@@ -198,6 +198,44 @@ describe('resizeCssCommitStyles', () => {
     })).toEqual({ width: '432px' });
   });
 
+  it('anchors on computedSize when the base CSS is not px (content-box safe)', () => {
+    // No inline width; content-box padding makes rect 440 for CSS width 400.
+    // The absolute fallback (rect/k = 480) would jump the element by the
+    // padding+border constant; the computed px baseline keeps the delta form.
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 480, height: 100 },
+      startSize: { width: 440, height: 100 },
+      baseStyles: { width: 'auto' },
+      computedSize: { width: '400px' },
+      rectScale: { x: 1, y: 1 },
+    })).toEqual({ width: '440px' });
+  });
+
+  it('anchors on computedSize when the inline base disagrees with it (clamped commit)', () => {
+    // A previous drag committed width:900px but max-width clamped the element
+    // at 600px. Anchoring on the inline 900 creates a dead zone: dragging
+    // inward changes nothing until the value drops under the clamp.
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 550, height: 100 },
+      startSize: { width: 600, height: 100 },
+      baseStyles: { width: '900px' },
+      computedSize: { width: '600px' },
+    })).toEqual({ width: '550px' });
+  });
+
+  it('keeps the inline base when it agrees with computedSize within 1px', () => {
+    expect(resizeCssCommitStyles({
+      direction: 'e',
+      size: { width: 540, height: 100 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '400px' },
+      computedSize: { width: '400.4px' },
+      rectScale: { x: 1.25, y: 1.25 },
+    })).toEqual({ width: '432px' });
+  });
+
   it('treats missing or degenerate rectScale as 1 and clamps to at least 1px', () => {
     expect(resizeCssCommitStyles({
       direction: 'e',
@@ -212,6 +250,110 @@ describe('resizeCssCommitStyles', () => {
       startSize: { width: 500, height: 100 },
       baseStyles: { width: '2px' },
     })).toEqual({ width: '1px' });
+  });
+});
+
+describe('resizeCssCommitStyles anchor compensation (west/north drags)', () => {
+  // CSS width/height alone always grow an in-flow element east/south: the
+  // grabbed west/north edge would stay put while the cursor walks away. The
+  // commit shifts the box back via margins so the grabbed edge tracks the
+  // pointer and the opposite edge stays fixed.
+  const westDrag = {
+    size: { width: 540, height: 100 },
+    startSize: { width: 500, height: 100 },
+    baseStyles: { width: '400px', height: '80px' },
+  };
+
+  it('w: compensates marginLeft by the CSS width delta', () => {
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'w',
+      baseMargins: { marginLeft: '10px' },
+      rectScale: { x: 1.25, y: 1.25 },
+    })).toEqual({ width: '432px', marginLeft: '-22px' });
+  });
+
+  it('n: compensates marginTop by the CSS height delta', () => {
+    expect(resizeCssCommitStyles({
+      direction: 'n',
+      size: { width: 500, height: 130 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { height: '100px' },
+      baseMargins: { marginTop: '0px' },
+    })).toEqual({ height: '130px', marginTop: '-30px' });
+  });
+
+  it('nw: compensates both margins', () => {
+    expect(resizeCssCommitStyles({
+      direction: 'nw',
+      size: { width: 540, height: 120 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '500px', height: '100px' },
+      baseMargins: { marginLeft: '0px', marginTop: '0px' },
+    })).toEqual({
+      width: '540px', height: '120px',
+      marginLeft: '-40px', marginTop: '-20px',
+    });
+  });
+
+  it('treats an empty margin base as 0', () => {
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'w',
+      baseMargins: { marginLeft: '' },
+    })).toEqual({ width: '440px', marginLeft: '-40px' });
+  });
+
+  it('skips compensation when the margin base is not px (inline auto)', () => {
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'w',
+      baseMargins: { marginLeft: 'auto' },
+    })).toEqual({ width: '440px' });
+  });
+
+  it('pins a nonzero opposite margin so auto-centering slack cannot jump the box', () => {
+    // margin: 0 auto centering resolves to a used px on both sides; writing
+    // only marginLeft would hand ALL slack to the still-auto marginRight.
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'w',
+      baseMargins: { marginLeft: '174px', marginRight: '174px' },
+    })).toEqual({ width: '440px', marginLeft: '134px', marginRight: '174px' });
+  });
+
+  it('does not pin a zero opposite margin', () => {
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'w',
+      baseMargins: { marginLeft: '0px', marginRight: '0px' },
+    })).toEqual({ width: '440px', marginLeft: '-40px' });
+  });
+
+  it('east/south drags emit no margins', () => {
+    // base height 80px + (120-100) delta = 100px.
+    expect(resizeCssCommitStyles({
+      ...westDrag,
+      direction: 'se',
+      size: { width: 540, height: 120 },
+      baseMargins: { marginLeft: '10px', marginTop: '10px' },
+    })).toEqual({ width: '440px', height: '100px' });
+  });
+
+  it('emits no margins at all when baseMargins is not provided', () => {
+    expect(resizeCssCommitStyles({ ...westDrag, direction: 'w' })).toEqual({ width: '440px' });
+  });
+
+  it('sw compensates only the west axis', () => {
+    const styles = resizeCssCommitStyles({
+      direction: 'sw',
+      size: { width: 540, height: 120 },
+      startSize: { width: 500, height: 100 },
+      baseStyles: { width: '500px', height: '100px' },
+      baseMargins: { marginLeft: '0px', marginTop: '0px' },
+    });
+    expect(styles.marginLeft).toBe('-40px');
+    expect(styles.marginTop).toBeUndefined();
   });
 });
 

@@ -3781,6 +3781,14 @@ function HtmlViewer({
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
+  // Drag-start snapshot for resize-handle style math. The live selected target
+  // mutates per preview ack (rect + cssSize), which would shift the delta
+  // baseline mid-drag; every frame of one drag must anchor on pointerdown state.
+  const manualEditResizeBaselineRef = useRef<{
+    id: string;
+    styles: Partial<ManualEditStyles>;
+    cssSize?: { width: string; height: string };
+  } | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
@@ -4952,8 +4960,13 @@ function HtmlViewer({
           // is what the resize handles / hover icon must render. The floating
           // panel deliberately ignores it (manualEditPanelAnchorRect).
           const rect = data.rect;
+          const cssSize = data.cssSize && typeof data.cssSize.width === 'string' && typeof data.cssSize.height === 'string'
+            ? { width: data.cssSize.width, height: data.cssSize.height }
+            : undefined;
           setSelectedManualEditTarget((current) =>
-            current && current.id === data.id ? { ...current, rect } : current);
+            current && current.id === data.id
+              ? { ...current, rect, ...(cssSize ? { cssSize } : {}) }
+              : current);
         }
         if (!data.ok && version === manualEditPreviewVersionRef.current) {
           setManualEditError(data.error || 'Could not apply preview style.');
@@ -5041,20 +5054,40 @@ function HtmlViewer({
   // the element's current CSS size — target styles overlaid by any unsaved
   // panel draft — and divided by rectScale so elements under an ancestor
   // transform (deck fit-to-canvas) round-trip with the inspector's numbers.
+  // Snapshot the drag baseline at pointerdown: preview acks refresh the live
+  // target's cssSize (and commits fold styles) mid-drag, and the delta math
+  // must anchor every frame of one drag on the same pre-drag state.
+  function beginManualEditResizeBaseline(target: ManualEditTarget) {
+    const pending = manualEditPendingStyleRef.current;
+    const base: Partial<ManualEditStyles> = { ...target.styles };
+    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    manualEditResizeBaselineRef.current = { id: target.id, styles: base, cssSize: target.cssSize };
+  }
+
   function manualEditResizeStyles(
     target: ManualEditTarget,
     direction: ResizeHandleDirection,
     size: { width: number; height: number },
     startSize: { width: number; height: number },
   ): Partial<ManualEditStyles> {
-    const pending = manualEditPendingStyleRef.current;
-    const base: Partial<ManualEditStyles> = { ...target.styles };
-    if (pending?.id === target.id) Object.assign(base, pending.styles);
+    let baseline = manualEditResizeBaselineRef.current;
+    if (baseline?.id !== target.id) {
+      beginManualEditResizeBaseline(target);
+      baseline = manualEditResizeBaselineRef.current;
+    }
+    const base = baseline?.styles ?? target.styles;
     return resizeCssCommitStyles({
       direction,
       size,
       startSize,
       baseStyles: { width: base.width, height: base.height },
+      computedSize: baseline?.cssSize,
+      baseMargins: {
+        marginLeft: base.marginLeft,
+        marginRight: base.marginRight,
+        marginTop: base.marginTop,
+        marginBottom: base.marginBottom,
+      },
       rectScale: target.rectScale,
       flexItemAxis: target.flexItemAxis,
     });
@@ -5094,7 +5127,16 @@ function HtmlViewer({
     const pending = manualEditPendingStyleRef.current;
     const base: Partial<ManualEditStyles> = { ...target.styles };
     if (pending?.id === target.id) Object.assign(base, pending.styles);
-    const revert: Partial<ManualEditStyles> = { width: base.width ?? '', height: base.height ?? '' };
+    // Margins revert too: a west/north drag preview shifts the box via
+    // marginLeft/marginTop (and may pin the opposite side).
+    const revert: Partial<ManualEditStyles> = {
+      width: base.width ?? '',
+      height: base.height ?? '',
+      marginLeft: base.marginLeft ?? '',
+      marginRight: base.marginRight ?? '',
+      marginTop: base.marginTop ?? '',
+      marginBottom: base.marginBottom ?? '',
+    };
     if (target.flexItemAxis) revert.flex = base.flex ?? '';
     previewStyleToIframe(target.id, revert, nextManualEditPreviewVersion());
   }
@@ -6928,6 +6970,9 @@ function HtmlViewer({
         }}
         scale={overlayPreviewScale}
         labels={manualEditResizeLabels}
+        onResizeStart={() => {
+          beginManualEditResizeBaseline(selectedManualEditTarget);
+        }}
         onResizePreview={(direction, size, startSize) => {
           previewStyleToIframe(
             selectedManualEditTarget.id,

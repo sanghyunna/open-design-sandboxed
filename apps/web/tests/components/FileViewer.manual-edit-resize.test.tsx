@@ -208,6 +208,134 @@ describe('FileViewer manual edit resize handles', () => {
     expect(savedContent).toMatch(/height:\s*96px/);
   });
 
+  it('commits a margin-left compensation on a west drag so the grabbed edge holds', async () => {
+    // Width alone grows an in-flow element eastward: the west edge (and the
+    // handle the user is holding) would not move. The commit must shift the
+    // box back by the same CSS delta via margin-left.
+    let savedContent = '';
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        savedContent = JSON.parse(String(init.body)).content as string;
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget({
+      ...heroTarget(),
+      styles: { ...emptyManualEditStyles(), width: '160px', marginLeft: '0px' },
+    });
+
+    const w = screen.getByLabelText('Resize left edge') as HTMLButtonElement;
+    fireEvent.pointerDown(w, { pointerId: 50, clientX: 100, clientY: 150 });
+    fireEvent.pointerMove(w, { pointerId: 50, clientX: 60, clientY: 150 });
+    fireEvent.pointerUp(w, { pointerId: 50, clientX: 60, clientY: 150 });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+    expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*200px/);
+    expect(savedContent).toMatch(/margin-left:\s*-40px/);
+  });
+
+  it('anchors the next drag on the ack-reported computed size, not a clamped commit', async () => {
+    // Drag 1 requests 200px but layout clamps the element at 180px (the ack
+    // carries cssSize). Committing folds the requested 200px into the target
+    // styles; without the computed anchor, drag 2 inward would spend its first
+    // 20px inside a dead zone where nothing moves.
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const se = seHandle();
+
+    // Drag 1: mouse implies 200x68; layout clamps at 180x60. The mid-drag ack
+    // must NOT shift drag 1's own baseline (it is snapshotted at pointerdown).
+    const midDragSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    fireEvent.pointerDown(se, { pointerId: 51, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 51, clientX: 340, clientY: 170 });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 60 },
+          cssSize: { width: '180px', height: '60px' },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    // A further move after the ack still previews from the pointerdown
+    // baseline: 300->350 implies 210, not computed(180) + delta(50) = 230.
+    midDragSpy.mockClear();
+    fireEvent.pointerMove(se, { pointerId: 51, clientX: 350, clientY: 170 });
+    await waitFor(() => {
+      expect(midDragSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style',
+          styles: expect.objectContaining({ width: '210px' }),
+        }),
+        '*',
+      );
+    });
+    fireEvent.pointerUp(se, { pointerId: 51, clientX: 340, clientY: 170 });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    // Drag 2: 20px inward from the measured 180px box must preview 160px
+    // immediately (anchor = computed 180), not 180px (anchor = folded 200).
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    fireEvent.pointerDown(se, { pointerId: 52, clientX: 340, clientY: 170 });
+    fireEvent.pointerMove(se, { pointerId: 52, clientX: 320, clientY: 170 });
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style',
+          id: 'hero',
+          styles: expect.objectContaining({ width: '160px' }),
+        }),
+        '*',
+      );
+    });
+    fireEvent.keyDown(se, { key: 'Escape' });
+  });
+
   it('reverts a second drag to the just-committed size, not the pre-drag one', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -259,9 +387,14 @@ describe('FileViewer manual edit resize handles', () => {
       (call[0] as { type?: string }).type === 'od-edit-preview-style'
     ));
     // Revert restores the committed size (non-empty), not the pre-first-drag empty styles.
+    // Margins revert too: a west/north drag preview may have shifted them.
     expect((revertCall?.[0] as { styles?: Record<string, string> }).styles).toEqual({
       width: '200px',
       height: '68px',
+      marginLeft: '',
+      marginRight: '',
+      marginTop: '',
+      marginBottom: '',
     });
   });
 
@@ -397,7 +530,9 @@ describe('FileViewer manual edit resize handles', () => {
     const revertCall = postSpy.mock.calls.find((call) => (
       (call[0] as { type?: string }).type === 'od-edit-preview-style'
     ));
-    expect((revertCall?.[0] as { styles?: Record<string, unknown> }).styles).toEqual({ width: '', height: '' });
+    expect((revertCall?.[0] as { styles?: Record<string, unknown> }).styles).toEqual({
+      width: '', height: '', marginLeft: '', marginRight: '', marginTop: '', marginBottom: '',
+    });
 
     expect(fetchMock).not.toHaveBeenCalledWith(
       '/api/projects/project-1/files',

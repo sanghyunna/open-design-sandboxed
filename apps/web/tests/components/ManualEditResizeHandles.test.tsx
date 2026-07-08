@@ -192,6 +192,37 @@ describe('ManualEditResizeHandles', () => {
     expect(seAfter.style.top).toBe('110px');
   });
 
+  it('flushes a still-queued final preview frame before committing on pointerup', () => {
+    // The preview stream is rAF-throttled; without the flush the last mouse
+    // move can die in the cancelled rAF queue and the element never renders
+    // the exact size that gets committed (and the iframe never acks it).
+    const queued: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      queued.push(cb);
+      return queued.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+
+    const { getByLabelText, onResizePreview, onResizeCommit } = renderHandles();
+    const se = getByLabelText(labels.se);
+
+    fireEvent.pointerDown(se, { pointerId: 11, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 11, clientX: 340, clientY: 170 });
+    expect(onResizePreview).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(se, { pointerId: 11, clientX: 340, clientY: 170 });
+
+    expect(onResizePreview).toHaveBeenCalledWith(
+      'se',
+      { width: 240, height: 120 },
+      { width: 200, height: 100 },
+    );
+    expect(onResizeCommit).toHaveBeenCalledTimes(1);
+    const previewOrder = onResizePreview.mock.invocationCallOrder[0] ?? 0;
+    const commitOrder = onResizeCommit.mock.invocationCallOrder[0] ?? 0;
+    expect(previewOrder).toBeLessThan(commitOrder);
+  });
+
   it('locks aspect ratio on a corner drag when shift is held', () => {
     const { getByLabelText, onResizePreview } = renderHandles({
       startSize: { width: 200, height: 100 },

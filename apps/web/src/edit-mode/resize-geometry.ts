@@ -97,18 +97,42 @@ function parsePx(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function rectScaleAxis(scale: number | undefined): number {
+  return typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
 function cssAxisPx(
   size: number,
   startSize: number,
   base: string | undefined,
+  computed: string | undefined,
   scale: number | undefined,
 ): string {
-  const k = typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const k = rectScaleAxis(scale);
   const baseCss = parsePx(base);
+  const computedCss = parsePx(computed);
   // Applying the drag as a delta on the element's current CSS size keeps
   // box-sizing out of the math: padding/border constants cancel in the delta.
-  const value = baseCss !== undefined ? baseCss + (size - startSize) / k : size / k;
+  // The anchor is the inline/base value, EXCEPT when the computed value
+  // disagrees with it — then layout clamped or ignored the base (max-width,
+  // min-content, a stale clamped commit) and anchoring on it creates a dead
+  // zone; the computed value is what actually renders. Computed also covers
+  // non-px bases (auto, %, fit-content) where the delta form would otherwise
+  // be unavailable.
+  const anchor = baseCss !== undefined && (computedCss === undefined || Math.abs(baseCss - computedCss) <= 1)
+    ? baseCss
+    : computedCss ?? baseCss;
+  const value = anchor !== undefined ? anchor + (size - startSize) / k : size / k;
   return `${Math.max(1, Math.round(value))}px`;
+}
+
+// Margin bases come from getComputedStyle via the bridge, so they are px in
+// practice; an empty string means "no information", which is safe to treat as
+// 0. A non-px value (an inline `auto`) means compensation could jump the box —
+// skip it for that axis.
+function marginBasePx(value: string | undefined): number | undefined {
+  if (value === undefined || value.trim() === '') return 0;
+  return parsePx(value);
 }
 
 /**
@@ -122,16 +146,45 @@ export function resizeCssCommitStyles(args: {
   size: { width: number; height: number };
   startSize: { width: number; height: number };
   baseStyles?: { width?: string; height?: string };
+  /** Post-layout getComputedStyle width/height (px), snapshotted at drag start. */
+  computedSize?: { width?: string; height?: string };
+  /** Drag-start margins (computed px from the bridge) for west/north anchoring. */
+  baseMargins?: { marginLeft?: string; marginRight?: string; marginTop?: string; marginBottom?: string };
   rectScale?: { x: number; y: number };
   flexItemAxis?: 'row' | 'column' | null;
 }): Partial<ManualEditStyles> {
-  const { direction, size, startSize, baseStyles, rectScale, flexItemAxis } = args;
+  const { direction, size, startSize, baseStyles, computedSize, baseMargins, rectScale, flexItemAxis } = args;
   const styles: Partial<ManualEditStyles> = {};
   if (DELTA_SIGN[direction].x !== 0) {
-    styles.width = cssAxisPx(size.width, startSize.width, baseStyles?.width, rectScale?.x);
+    styles.width = cssAxisPx(size.width, startSize.width, baseStyles?.width, computedSize?.width, rectScale?.x);
   }
   if (DELTA_SIGN[direction].y !== 0) {
-    styles.height = cssAxisPx(size.height, startSize.height, baseStyles?.height, rectScale?.y);
+    styles.height = cssAxisPx(size.height, startSize.height, baseStyles?.height, computedSize?.height, rectScale?.y);
+  }
+  // West/north drags: width/height alone always grow an in-flow element
+  // east/south (CSS sizes have no anchor side), so the grabbed edge would sit
+  // still while the cursor walks away. Shift the box back by the same CSS
+  // delta via the margin so the grabbed edge tracks the pointer and the
+  // opposite edge stays fixed. When the opposite margin carries a nonzero
+  // (auto-centering) used value, pin it too — otherwise the still-auto side
+  // absorbs all the slack and the box jumps.
+  if (baseMargins && styles.width !== undefined && DELTA_SIGN[direction].x < 0) {
+    const marginLeft = marginBasePx(baseMargins.marginLeft);
+    if (marginLeft !== undefined) {
+      const deltaCss = (size.width - startSize.width) / rectScaleAxis(rectScale?.x);
+      styles.marginLeft = `${Math.round(marginLeft - deltaCss)}px`;
+      const marginRight = marginBasePx(baseMargins.marginRight);
+      if (marginRight) styles.marginRight = `${Math.round(marginRight)}px`;
+    }
+  }
+  if (baseMargins && styles.height !== undefined && DELTA_SIGN[direction].y < 0) {
+    const marginTop = marginBasePx(baseMargins.marginTop);
+    if (marginTop !== undefined) {
+      const deltaCss = (size.height - startSize.height) / rectScaleAxis(rectScale?.y);
+      styles.marginTop = `${Math.round(marginTop - deltaCss)}px`;
+      const marginBottom = marginBasePx(baseMargins.marginBottom);
+      if (marginBottom) styles.marginBottom = `${Math.round(marginBottom)}px`;
+    }
   }
   // A main-axis size on a flex item is only a suggestion: flex-grow/shrink win
   // and the drag result silently snaps back. Pin the item (flex: none — the

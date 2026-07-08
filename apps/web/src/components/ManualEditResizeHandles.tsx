@@ -27,6 +27,9 @@ export type ManualEditResizeHandlesProps = {
   onResizePreview: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
   onResizeCommit: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
   onResizeCancel: () => void;
+  // Fired at pointerdown so the host can snapshot its drag baseline (computed
+  // css size, base styles) BEFORE preview acks start mutating the live target.
+  onResizeStart?: () => void;
 };
 
 type DragState = {
@@ -54,9 +57,15 @@ export function ManualEditResizeHandles({
   onResizePreview,
   onResizeCommit,
   onResizeCancel,
+  onResizeStart,
 }: ManualEditResizeHandlesProps) {
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
+  // Scheduling is tracked separately from the rAF id: a synchronously-executing
+  // requestAnimationFrame (test stubs, polyfills) runs flushPreview BEFORE the
+  // id is assigned to rafRef, so the id alone cannot answer "is a flush still
+  // queued" — it would read as queued forever and starve every later frame.
+  const flushScheduledRef = useRef(false);
   const pendingSizeRef = useRef<Size | null>(null);
 
   useEffect(() => () => {
@@ -66,6 +75,7 @@ export function ManualEditResizeHandles({
   }, []);
 
   const flushPreview = () => {
+    flushScheduledRef.current = false;
     rafRef.current = null;
     const drag = dragRef.current;
     const size = pendingSizeRef.current;
@@ -75,14 +85,18 @@ export function ManualEditResizeHandles({
 
   const scheduleFlush = (size: Size) => {
     pendingSizeRef.current = size;
-    if (rafRef.current !== null) return;
-    rafRef.current = requestAnimationFrame(flushPreview);
+    if (flushScheduledRef.current) return;
+    flushScheduledRef.current = true;
+    const id = requestAnimationFrame(flushPreview);
+    // A sync rAF already ran flushPreview here; don't resurrect the id.
+    if (flushScheduledRef.current) rafRef.current = id;
   };
 
   const endDrag = () => {
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
+    flushScheduledRef.current = false;
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -113,6 +127,7 @@ export function ManualEditResizeHandles({
     // handle explicitly; otherwise the Escape-cancels-drag onKeyDown never fires
     // because keydown routes to whatever was previously focused.
     if (typeof target.focus === 'function') target.focus({ preventScroll: true });
+    onResizeStart?.();
     dragRef.current = {
       direction,
       pointerId: event.pointerId,
@@ -142,9 +157,14 @@ export function ManualEditResizeHandles({
     const drag = dragRef.current;
     if (!drag || event.pointerId !== drag.pointerId) return;
     const size = pendingSizeRef.current;
+    const finalFrameUnsent = flushScheduledRef.current;
     endDrag();
     pendingSizeRef.current = null;
     if (size && (size.width !== drag.startSize.width || size.height !== drag.startSize.height)) {
+      // endDrag() cancelled any queued rAF flush; without this the last mouse
+      // move dies in that queue — the element never renders the exact size
+      // being committed and the iframe never acks its measurements.
+      if (finalFrameUnsent) onResizePreview(drag.direction, size, drag.startSize);
       onResizeCommit(drag.direction, size, drag.startSize);
     } else {
       onResizeCancel();
