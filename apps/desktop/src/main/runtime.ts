@@ -224,7 +224,7 @@ export function signDesktopImportToken(
 
 const PENDING_POLL_MS = 120;
 const RUNNING_POLL_MS = 2000;
-// Minimum time the dark splash window stays on screen before we reveal the main
+// Minimum time the splash window stays on screen before we reveal the main
 // window. It is sized to outlast the ~6.75s clip so the brand animation always
 // plays through. The splash is shown immediately and in parallel with the
 // daemon/web boot (see the packaged entry), so this time overlaps startup rather
@@ -799,7 +799,7 @@ const MAC_WINDOW_CHROME_CSS = `
   }
 `;
 
-// Dark-gradient startup splash shown while the web runtime boots. It plays the
+// Light-background startup splash shown while the web runtime boots. It plays the
 // brand intro clip once and then holds on its final settled logo frame until the
 // main window is ready. `splash.html` loads `splash.mp4` as a same-directory
 // file:// resource rather than an embedded base64 data URL — Chromium hard-caps
@@ -836,7 +836,7 @@ export type SplashWindowHandle = {
 };
 
 /**
- * Create and immediately show the dark brand-splash window. The packaged entry
+ * Create and immediately show the brand-splash window. The packaged entry
  * calls this BEFORE awaiting the daemon/web sidecars so the animation masks the
  * whole cold boot (no black no-window gap); the desktop runtime then adopts it
  * via `DesktopRuntimeOptions.splashWindow` + `splashStartedAt` and closes it
@@ -849,7 +849,7 @@ export function createSplashWindow(): SplashWindowHandle {
   const startedAt = Date.now();
   const splash = new BrowserWindow({
     autoHideMenuBar: true,
-    backgroundColor: "#070b19",
+    backgroundColor: "#f2f4f5",
     frame: false,
     height: 450,
     resizable: false,
@@ -1815,7 +1815,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     void persistRendererEntry(entry);
   });
 
-  // The splash window carries the dark brand animation. In packaged builds the
+  // The splash window carries the brand animation. In packaged builds the
   // entry hands us one it created BEFORE the sidecars booted (so it overlaps the
   // whole cold start); otherwise we create our own. The main window above stays
   // hidden behind it until the real app has mounted.
