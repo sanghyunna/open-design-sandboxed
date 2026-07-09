@@ -167,6 +167,7 @@ export type CssNamedColorMatch = {
 };
 
 const cssHexColorPattern = /^#[0-9a-fA-F]{3,8}\b/;
+const cssEncodedHexColorPattern = /%23[0-9a-fA-F]{3,8}\b/gi;
 
 export function collectCssNamedColorMatches(source: string): CssNamedColorMatch[] {
   return collectCssHardcodedColorMatches(source).filter((match) => cssNamedColors.has(match.value.toLowerCase()));
@@ -185,6 +186,28 @@ export function collectCssHardcodedColorMatches(source: string): CssNamedColorMa
   }
 
   return matches;
+}
+
+export function collectCssEmptyVarFunctionMatches(source: string): CssNamedColorMatch[] {
+  const matches: CssNamedColorMatch[] = [];
+  const scannableSource = maskCssCommentsAndStrings(source);
+
+  for (const declaration of scannableSource.matchAll(cssDeclarationPattern)) {
+    const declarationValue = declaration.groups?.value;
+    if (declarationValue === undefined) continue;
+
+    const valueOffset = (declaration.index ?? 0) + declaration[0].lastIndexOf(declarationValue);
+    matches.push(...collectCssEmptyVarFunctionMatchesFromDeclarationValue(declarationValue, valueOffset));
+  }
+
+  return matches;
+}
+
+export function collectCssEncodedHexColorMatches(source: string): CssNamedColorMatch[] {
+  return [...maskCssCommentsAndStrings(source).matchAll(cssEncodedHexColorPattern)].map((match) => ({
+    index: match.index ?? 0,
+    value: match[0],
+  }));
 }
 
 function maskCssCommentsAndStrings(source: string): string {
@@ -300,6 +323,55 @@ function collectCssHardcodedColorMatchesFromDeclarationValue(
     }
 
     index = identifier.endIndex;
+  }
+
+  return matches;
+}
+
+function collectCssEmptyVarFunctionMatchesFromDeclarationValue(
+  declarationValue: string,
+  sourceOffset: number,
+): CssNamedColorMatch[] {
+  const matches: CssNamedColorMatch[] = [];
+  let index = 0;
+
+  while (index < declarationValue.length) {
+    const current = declarationValue[index];
+    const next = declarationValue[index + 1];
+
+    if (current === "/" && next === "*") {
+      const commentEnd = declarationValue.indexOf("*/", index + 2);
+      index = commentEnd === -1 ? declarationValue.length : commentEnd + 2;
+      continue;
+    }
+
+    if (current === '"' || current === "'") {
+      index = skipCssString(declarationValue, index, current);
+      continue;
+    }
+
+    const functionName = readCssIdentifier(declarationValue, index);
+    if (functionName === undefined) {
+      index += 1;
+      continue;
+    }
+
+    if (functionName.value.toLowerCase() === "var") {
+      const functionStart = skipCssWhitespace(declarationValue, functionName.endIndex);
+      if (declarationValue[functionStart] === "(") {
+        const functionEnd = skipCssFunction(declarationValue, functionStart);
+        const fallbackStart = cssVarFallbackStartIndex(declarationValue, functionStart, functionEnd);
+        const nameEnd = fallbackStart === undefined ? functionEnd - 1 : fallbackStart - 1;
+        const customPropertyName = declarationValue.slice(functionStart + 1, nameEnd).trim();
+        if (customPropertyName.length === 0) {
+          matches.push({ index: sourceOffset + index, value: declarationValue.slice(index, functionEnd) });
+        }
+        index = functionEnd;
+        continue;
+      }
+    }
+
+    index = functionName.endIndex;
   }
 
   return matches;

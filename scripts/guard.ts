@@ -16,7 +16,13 @@ import {
   checkDesignSystemTokenFixtureSync,
   checkDesignSystemUnknownTokens,
 } from "./check-tokens-fixture-sync.ts";
-import { collectCssHardcodedColorMatches, cssWideAndSpecialColorKeywords, realNamedColors } from "./style-policy.ts";
+import {
+  collectCssEncodedHexColorMatches,
+  collectCssEmptyVarFunctionMatches,
+  collectCssHardcodedColorMatches,
+  cssWideAndSpecialColorKeywords,
+  realNamedColors,
+} from "./style-policy.ts";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const allowedE2eScripts = new Set([
@@ -959,8 +965,27 @@ const stylePolicySkippedDirectories = new Set([
   "test-results",
 ]);
 
-const stylePolicySourcePrefixes = ["apps/web/app/", "apps/web/src/"];
+const stylePolicySourcePrefixes = ["apps/web/app/", "apps/web/src/", "packages/components/src/"];
 const stylePolicyHardcodedColorEnforcedPrefixes = ["scripts/guard-style-policy-fixtures/"];
+const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
+  "apps/web/src/components/AgentIcon.tsx",
+  "apps/web/src/components/FileViewer.tsx",
+  "apps/web/src/components/ManualEditPanel.tsx",
+  "apps/web/src/components/MemoryModelInline.tsx",
+  "apps/web/src/components/MemorySection.tsx",
+  "apps/web/src/components/MemoryToast.tsx",
+  "apps/web/src/components/NewProjectPanel.tsx",
+  "apps/web/src/components/PaletteTweaks.tsx",
+  "apps/web/src/components/pet/PetSettings.tsx",
+  "apps/web/src/components/SettingsDialog.tsx",
+  "apps/web/src/components/SketchEditor.tsx",
+  "apps/web/src/components/SketchPreview.tsx",
+  "apps/web/src/components/sketch-colors.ts",
+  "apps/web/src/components/workspace/TerminalViewer.tsx",
+  "apps/web/src/state/appearance.ts",
+  "apps/web/src/state/themes.ts",
+  "apps/web/src/utils/connectorBrandColor.ts",
+]);
 const stylePolicyCheckedDirectoryPrefixes = [
   ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes]),
 ];
@@ -1033,9 +1058,19 @@ const hardcodedColorAllowlist: StylePolicyAllowlistEntry[] = [
     reason: "global token definitions, shadows, overlays, and retained migration inventory live in the CSS source of truth",
   },
   {
-    pathPattern: /^apps\/web\/src\/components\/(?:AgentIcon|PaletteTweaks|PetSettings|SettingsDialog)\.tsx$/,
+    pathPattern: /^apps\/web\/src\/components\/(?:AgentIcon|PaletteTweaks|PetSettings)\.tsx$/,
     valuePattern: /^(?:#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))$/,
     reason: "brand accents, user accent choices, and legacy token fallbacks are classified as Phase 1 migration inventory",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/components\/SettingsDialog\.tsx$/,
+    valuePattern: /^#(?:9aa0a6|ff6b6b|f88|11141a|e6e6e6|fbbf24)\b$/i,
+    reason: "Settings dialog inline legacy CSS-var fallbacks are retained until that panel is fully tokenized",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/components\/pet\/PetSettings\.tsx$/,
+    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
+    reason: "pet accent swatches are selectable user customization values, not app chrome tokens",
   },
   {
     pathPattern: /^apps\/web\/src\/components\/(?:SketchEditor|SketchPreview|NewProjectPanel)\.tsx$/,
@@ -1051,6 +1086,31 @@ const hardcodedColorAllowlist: StylePolicyAllowlistEntry[] = [
     pathPattern: /^apps\/web\/src\/components\/(?:MemorySection|MemoryModelInline|MemoryToast)\.tsx$/,
     valuePattern: /^(?:#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))$/,
     reason: "memory UI legacy color fallbacks are classified as Phase 1 migration inventory",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/components\/workspace\/TerminalViewer\.tsx$/,
+    valuePattern: /^(?:#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))$/,
+    reason: "xterm fallback colors mirror CSS terminal tokens for the no-CSS-var fallback path",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/components\/sketch-colors\.ts$/,
+    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
+    reason: "sketch tool defaults are user-authored canvas ink defaults, not app chrome tokens",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/state\/appearance\.ts$/,
+    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
+    reason: "appearance swatches are selectable user accent values and are normalized before use",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/state\/themes\.ts$/,
+    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
+    reason: "theme picker swatches mirror the named theme token files for previews",
+  },
+  {
+    pathPattern: /^apps\/web\/src\/utils\/connectorBrandColor\.ts$/,
+    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
+    reason: "connector colors are third-party brand identifiers, not app chrome palette tokens",
   },
   {
     pathPattern: /^apps\/web\/tests\//,
@@ -1075,7 +1135,16 @@ function isStylePolicySource(repositoryPath: string): boolean {
 }
 
 function isHardcodedColorEnforcedPath(repositoryPath: string): boolean {
-  return stylePolicyHardcodedColorEnforcedPrefixes.some((prefix) => repositoryPath.startsWith(prefix));
+  if (stylePolicyHardcodedColorEnforcedExactPaths.has(repositoryPath)) return true;
+  if (stylePolicyHardcodedColorEnforcedPrefixes.some((prefix) => repositoryPath.startsWith(prefix))) {
+    return true;
+  }
+
+  if (!repositoryPath.endsWith(".css")) return false;
+  if (repositoryPath === "apps/web/src/styles/tokens.css") return false;
+  if (repositoryPath.startsWith("apps/web/src/styles/themes/")) return false;
+
+  return repositoryPath.startsWith("apps/web/src/") || repositoryPath.startsWith("packages/components/src/");
 }
 
 function isHardcodedColorAllowlisted(repositoryPath: string, match: string): boolean {
@@ -1104,7 +1173,23 @@ function addStylePolicyViolation(
   });
 }
 
-function collectStylePolicyViolationsFromSource(repositoryPath: string, source: string): StylePolicyViolation[] {
+function isInsideTsComment(source: string, index: number): boolean {
+  const blockStart = source.lastIndexOf("/*", index);
+  if (blockStart > source.lastIndexOf("*/", index)) return true;
+
+  const lineStart = source.lastIndexOf("\n", index) + 1;
+  const lineComment = source.indexOf("//", lineStart);
+  return lineComment !== -1 && lineComment < index;
+}
+
+function isLikelyTsInlineStyleNamedColor(source: string, index: number): boolean {
+  const before = source.slice(Math.max(0, index - 80), index);
+  return /(?:^|[,{]\s*)(?:accentColor|backgroundColor|borderColor|caretColor|color|fill|outlineColor|stroke|textDecorationColor)\s*:\s*$/m.test(
+    before,
+  );
+}
+
+export function collectStylePolicyViolationsFromSource(repositoryPath: string, source: string): StylePolicyViolation[] {
   const violations: StylePolicyViolation[] = [];
 
   if (isStylePolicySource(repositoryPath)) {
@@ -1120,6 +1205,28 @@ function collectStylePolicyViolationsFromSource(repositoryPath: string, source: 
 
   if (isStylePolicySource(repositoryPath) || isHardcodedColorEnforcedPath(repositoryPath)) {
     if (repositoryPath.endsWith(".css") && isHardcodedColorEnforcedPath(repositoryPath)) {
+      for (const match of collectCssEmptyVarFunctionMatches(source)) {
+        addStylePolicyViolation(
+          violations,
+          repositoryPath,
+          source,
+          match.index,
+          match.value,
+          "empty CSS var() calls are invalid and usually mean a token replacement lost its variable name",
+        );
+      }
+
+      for (const match of collectCssEncodedHexColorMatches(source)) {
+        addStylePolicyViolation(
+          violations,
+          repositoryPath,
+          source,
+          match.index,
+          match.value,
+          "encoded hardcoded UI colors must use native controls, currentColor, or tokenized CSS instead",
+        );
+      }
+
       for (const match of collectCssHardcodedColorMatches(source)) {
         const value = match.value;
         if (value === undefined || isHardcodedColorAllowlisted(repositoryPath, value)) continue;
@@ -1136,6 +1243,11 @@ function collectStylePolicyViolationsFromSource(repositoryPath: string, source: 
     } else {
       for (const match of source.matchAll(hardcodedColorPattern)) {
         const value = match[0];
+        const index = match.index ?? 0;
+        if (!repositoryPath.endsWith(".css") && isInsideTsComment(source, index)) continue;
+        if (!repositoryPath.endsWith(".css") && /^['"]/.test(value) && !isLikelyTsInlineStyleNamedColor(source, index)) {
+          continue;
+        }
         if (isHardcodedColorAllowlisted(repositoryPath, value)) continue;
         if (!isHardcodedColorEnforcedPath(repositoryPath)) continue;
 
@@ -1143,7 +1255,7 @@ function collectStylePolicyViolationsFromSource(repositoryPath: string, source: 
           violations,
           repositoryPath,
           source,
-          match.index ?? 0,
+          index,
           value,
           "unregistered hardcoded UI colors must use Open Design tokens or an explicit allowlist entry",
         );
@@ -1152,6 +1264,138 @@ function collectStylePolicyViolationsFromSource(repositoryPath: string, source: 
   }
 
   return violations;
+}
+
+function cssRuleBody(source: string, selector: string): string | undefined {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, "m"))?.[1];
+}
+
+function themeRuleBody(source: string, themeId: string): string | undefined {
+  return cssRuleBody(source, `[data-theme="${themeId}"]`) ?? cssRuleBody(source, `[data-theme='${themeId}']`);
+}
+
+function cssCustomPropertyNames(source: string): Set<string> {
+  const names = new Set<string>();
+  for (const match of source.matchAll(/^\s*(--[-_a-zA-Z0-9]+)\s*:/gm)) {
+    names.add(match[1]!);
+  }
+  return names;
+}
+
+function cssCustomPropertyValue(source: string, name: string): string | undefined {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`^\\s*${escaped}\\s*:\\s*([^;]+);`, "m"))?.[1]?.trim();
+}
+
+function hexColorToRgb(value: string): [number, number, number] | undefined {
+  const match = value.match(/^#([0-9a-fA-F]{6})$/);
+  if (!match) return undefined;
+  const hex = match[1]!;
+  return [0, 2, 4].map((index) => Number.parseInt(hex.slice(index, index + 2), 16) / 255) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function relativeLuminance(rgb: [number, number, number]): number {
+  const [r, g, b] = rgb.map((value) =>
+    value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4),
+  ) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a: string, b: string): number | undefined {
+  const first = hexColorToRgb(a);
+  const second = hexColorToRgb(b);
+  if (!first || !second) return undefined;
+  const firstLum = relativeLuminance(first);
+  const secondLum = relativeLuminance(second);
+  return (Math.max(firstLum, secondLum) + 0.05) / (Math.min(firstLum, secondLum) + 0.05);
+}
+
+function validateAccentContrast(repositoryPath: string, body: string, violations: string[]): void {
+  const accent = cssCustomPropertyValue(body, "--accent");
+  const contrast = cssCustomPropertyValue(body, "--accent-contrast");
+  if (!accent || !contrast) {
+    violations.push(`${repositoryPath} must define --accent and --accent-contrast`);
+    return;
+  }
+  const ratio = contrastRatio(accent, contrast);
+  if (ratio === undefined) {
+    violations.push(`${repositoryPath} --accent and --accent-contrast must be literal six-digit hex colors`);
+    return;
+  }
+  if (ratio < 4.5) {
+    violations.push(`${repositoryPath} --accent / --accent-contrast ratio ${ratio.toFixed(2)} is below 4.5`);
+  }
+}
+
+export function collectWebThemeTokenParityViolationsFromSource(
+  repositoryPath: string,
+  themeId: string,
+  expected: Set<string>,
+  source: string,
+): string[] {
+  const violations: string[] = [];
+  const body = themeRuleBody(source, themeId);
+  if (body === undefined) {
+    violations.push(`${repositoryPath} must define [data-theme="${themeId}"]`);
+    return violations;
+  }
+
+  const names = cssCustomPropertyNames(body);
+  const missing = [...expected].filter((name) => !names.has(name));
+  const extra = [...names].filter((name) => !expected.has(name));
+  if (missing.length > 0) violations.push(`${repositoryPath} missing ${missing.join(", ")}`);
+  if (extra.length > 0) violations.push(`${repositoryPath} extra ${extra.join(", ")}`);
+  validateAccentContrast(repositoryPath, body, violations);
+  return violations;
+}
+
+async function checkWebThemeTokenParity(): Promise<boolean> {
+  const tokensPath = path.join(repoRoot, "apps/web/src/styles/tokens.css");
+  const themesDir = path.join(repoRoot, "apps/web/src/styles/themes");
+  const tokensSource = await readFile(tokensPath, "utf8");
+  const rootBody = cssRuleBody(tokensSource, ":root");
+  const darkBody = cssRuleBody(tokensSource, '[data-theme="dark"]');
+  if (rootBody === undefined) {
+    console.error("Web theme token parity failed: tokens.css is missing :root.");
+    return false;
+  }
+  if (darkBody === undefined) {
+    console.error("Web theme token parity failed: tokens.css is missing [data-theme=\"dark\"].");
+    return false;
+  }
+
+  const expected = cssCustomPropertyNames(darkBody);
+  const entries = await readdir(themesDir, { withFileTypes: true });
+  const violations: string[] = [];
+  validateAccentContrast("apps/web/src/styles/tokens.css :root", rootBody, violations);
+  validateAccentContrast("apps/web/src/styles/tokens.css [data-theme=\"dark\"]", darkBody, violations);
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".css") || entry.name === "index.css") continue;
+    const repositoryPath = `apps/web/src/styles/themes/${entry.name}`;
+    const themeId = path.basename(entry.name, ".css");
+    violations.push(
+      ...collectWebThemeTokenParityViolationsFromSource(
+        repositoryPath,
+        themeId,
+        expected,
+        await readFile(path.join(themesDir, entry.name), "utf8"),
+      ),
+    );
+  }
+
+  if (violations.length > 0) {
+    console.error("Web theme token parity violations found:");
+    for (const violation of violations) console.error(`- ${violation}`);
+    return false;
+  }
+
+  console.log(`Web theme token parity passed: ${entries.filter((entry) => entry.isFile() && entry.name.endsWith(".css") && entry.name !== "index.css").length} named themes match the dark token override contract.`);
+  return true;
 }
 
 async function collectStylePolicyViolations(directory: string): Promise<StylePolicyViolation[]> {
@@ -1224,6 +1468,7 @@ const checks: GuardCheck[] = [
   { name: "e2e layout", run: checkE2eLayout },
   { name: "web test layout", run: checkWebTestLayout },
   { name: "tools layout", run: checkToolsLayout },
+  { name: "web theme token parity", run: checkWebThemeTokenParity },
   { name: "style policy", run: checkStylePolicy },
   { name: "design system manifests", run: checkDesignSystemManifests },
   { name: "design system package quality", run: checkDesignSystemPackageQuality },
