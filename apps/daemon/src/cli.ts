@@ -244,6 +244,7 @@ const SUBCOMMAND_MAP = {
   skills: runSkills,
   'design-systems': runDesignSystems,
   craft: runCraft,
+  fonts: runFonts,
   diagnostics: runDiagnostics,
   status: runStatus,
   version: runVersion,
@@ -6136,6 +6137,50 @@ async function runLibraryList(name, args) {
 
 async function runSkills(args)        { return runLibraryList('skills', args); }
 async function runCraft(args)         { return runLibraryList('craft', args); }
+
+async function runFonts(args) {
+  if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
+    console.log(`Usage:
+  od fonts list            List fonts installed on this machine.
+
+Options:
+  --daemon-url <url>   Open Design daemon HTTP base.
+  --refresh            Rescan installed fonts (bypass the daemon cache).
+  --json               Emit raw JSON.`);
+    process.exit(args.length === 0 ? 2 : 0);
+  }
+  const sub = args[0];
+  const rest = args.slice(1);
+  const flags = parseFlags(rest, {
+    string: LIBRARY_STRING_FLAGS,
+    boolean: new Set([...LIBRARY_BOOLEAN_FLAGS, 'refresh']),
+  });
+  const base = (await libraryDaemonUrl(flags)).replace(/\/$/, '');
+  switch (sub) {
+    case 'list': {
+      const resp = await fetch(`${base}/api/system/fonts${flags.refresh ? '?refresh=1' : ''}`);
+      if (!resp.ok) return structuredHttpFailure(resp);
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      const fonts = data?.fonts ?? [];
+      if (fonts.length === 0) {
+        console.log(`(no system fonts enumerated; platform: ${data?.platform ?? 'unknown'})`);
+        return;
+      }
+      for (const fam of fonts) {
+        const faces = fam.faces ?? [];
+        const weights = [
+          ...new Set(faces.map((f) => `${f.weight}${f.style === 'italic' ? 'i' : ''}`)),
+        ].join(',');
+        console.log(`${fam.family}\t${faces.length} face(s)\t${weights}`);
+      }
+      return;
+    }
+    default:
+      console.error(`unknown subcommand: od fonts ${sub}`);
+      process.exit(2);
+  }
+}
 
 async function runDesignSystems(args) {
   if (args[0] === 'rename') return runDesignSystemRename(args.slice(1));

@@ -1904,6 +1904,7 @@ export const ko: Dict = {
   'manualEdit.uploadImageFailed': '이미지를 업로드할 수 없습니다.',
   'manualEdit.focusSlides': '슬라이드에 집중',
   'manualEdit.showPanels': '패널 표시',
+  'manualEdit.systemFontsGroup': '시스템 글꼴',
   'manualEdit.typography.bold': '굵게',
   'manualEdit.typography.italic': '기울임',
   'manualEdit.typography.underline': '밑줄',

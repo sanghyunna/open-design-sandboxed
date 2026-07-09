@@ -4,6 +4,8 @@ import { useT } from '../i18n';
 import { emptyManualEditStyles, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';
 import { RemixIcon } from './RemixIcon';
+import { useSystemFonts } from './useSystemFonts';
+import { systemFontOptions } from './font-options';
 
 export interface ManualEditDraft {
   text: string;
@@ -500,8 +502,12 @@ const PX_STYLE_PROPS = new Set<keyof ManualEditStyles>([
 ]);
 const NON_NEGATIVE_PX_STYLE_PROPS = new Set<keyof ManualEditStyles>(['width', 'height', 'minHeight']);
 const COLOR_STYLE_PROPS = new Set<keyof ManualEditStyles>(['color', 'backgroundColor', 'borderColor']);
+// fontFamily is intentionally free-form (no whitelist): the picker now offers
+// installed system fonts and preserves pre-existing custom values, none of
+// which are in FONT_OPTS. It is written verbatim as an inline font-family
+// style, which the browser ignores if malformed — so there is no invariant to
+// enforce here. The other select-backed props stay whitelisted.
 const SELECT_STYLE_OPTIONS: Partial<Record<keyof ManualEditStyles, ReadonlyArray<string>>> = {
-  fontFamily: FONT_OPTS.map((option) => option.value),
   fontWeight: WEIGHT_OPTS,
   textAlign: ALIGN_OPTS,
   flexDirection: DIRECTION_OPTS,
@@ -754,19 +760,32 @@ function FontRow({ value, onChange }: {
   value: string;
   onChange: (v: string) => void;
 }) {
+  const t = useT();
+  const { families } = useSystemFonts();
+  const systemOptions = systemFontOptions(families, FONT_OPTS);
   const normalizedValue = normalizeFontFamilyForSelect(value);
   const customValue = normalizedValue === value ? value : '';
+  const isCurated = FONT_OPTS.some((option) => option.value === customValue);
+  const isSystem = systemOptions.some((option) => option.value === customValue);
   return (
     <label className="cc-row">
       <span className="cc-label">Font</span>
       <span className="cc-value cc-select">
+        {/* ponytail: native <select>+<optgroup>; a searchable combobox is a deferred follow-up. */}
         <select value={normalizedValue} onChange={(event) => onChange(event.currentTarget.value)}>
-          {customValue && !FONT_OPTS.some((option) => option.value === customValue) ? (
+          {customValue && !isCurated && !isSystem ? (
             <option value={customValue}>{fontFamilyLabel(customValue)}</option>
           ) : null}
           {FONT_OPTS.map((option) => (
             <option key={option.label} value={option.value}>{option.label}</option>
           ))}
+          {systemOptions.length ? (
+            <optgroup label={t('manualEdit.systemFontsGroup')}>
+              {systemOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
         <em className="cc-chevron">▾</em>
       </span>

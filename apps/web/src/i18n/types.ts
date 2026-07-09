@@ -2378,6 +2378,7 @@ export interface Dict {
   'manualEdit.uploadImageFailed': string;
   'manualEdit.focusSlides': string;
   'manualEdit.showPanels': string;
+  'manualEdit.systemFontsGroup': string;
   'manualEdit.typography.bold': string;
   'manualEdit.typography.italic': string;
   'manualEdit.typography.underline': string;

@@ -13,6 +13,8 @@ import {
   normalizeFontFamilyForSelect,
   stripPxUnit,
 } from './ManualEditPanel';
+import { useSystemFonts } from './useSystemFonts';
+import { systemFontOptions } from './font-options';
 import styles from './ManualEditTypographyToolbar.module.css';
 
 export interface ManualEditRichFormatState {
@@ -41,6 +43,9 @@ export function ManualEditTypographyToolbar({
 }) {
   const t = useT();
   const richDisabled = !(richFormat.editing && richFormat.hasSelection);
+  const { families } = useSystemFonts();
+  const systemFonts = systemFontOptions(families, FONT_OPTS);
+  const isSystemFont = systemFonts.some((option) => option.value === elementStyles.fontFamily);
 
   const richButton = (
     command: 'bold' | 'italic' | 'underline',
@@ -84,6 +89,7 @@ export function ManualEditTypographyToolbar({
   return (
     <div className={styles.toolbar}>
       <label className={styles.group}>
+        {/* ponytail: native <select>+<optgroup>; a searchable combobox is a deferred follow-up. */}
         <select
           className={styles.select}
           aria-label={t('manualEdit.typography.font')}
@@ -93,12 +99,20 @@ export function ManualEditTypographyToolbar({
         >
           {elementStyles.fontFamily &&
           normalizeFontFamilyForSelect(elementStyles.fontFamily) === elementStyles.fontFamily &&
-          !FONT_OPTS.some((option) => option.value === elementStyles.fontFamily) ? (
+          !FONT_OPTS.some((option) => option.value === elementStyles.fontFamily) &&
+          !isSystemFont ? (
             <option value={elementStyles.fontFamily}>{fontFamilyLabel(elementStyles.fontFamily)}</option>
           ) : null}
           {FONT_OPTS.map((option) => (
             <option key={option.label} value={option.value}>{option.label}</option>
           ))}
+          {systemFonts.length ? (
+            <optgroup label={t('manualEdit.systemFontsGroup')}>
+              {systemFonts.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
       </label>
 

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { hash as blake3Hash } from 'blake3-wasm';
 import { listFiles, readProjectFile, validateProjectPath } from './projects.js';
+import { embedUsedSystemFonts } from './font-embed-runtime.js';
 import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav.js';
 
 export const VERCEL_PROVIDER_ID = 'vercel-self';
@@ -352,7 +353,36 @@ export async function buildDeployFileSet(projectsRoot: string, projectId: string
       invalid: plan.invalid,
     });
   }
-  return plan.files;
+  return embedSystemFontsIntoDeploySet(plan.files);
+}
+
+// Base64-embed the installed non-web-safe fonts the deployed design uses into
+// index.html, so a site on Vercel/Cloudflare Pages does not depend on the
+// visitor's machine having the font. Scans bundled CSS too, so a font used only
+// in an external stylesheet still travels with the site. Project-owned url()
+// fonts are already shipped as real files; the embedder skips families that
+// already have an @font-face and only embeds names that resolve to an installed
+// system font (brand fonts are untouched). Runs on the deploy set only, never
+// the preflight plan.
+async function embedSystemFontsIntoDeploySet(files: DeployFile[]): Promise<DeployFile[]> {
+  const entryIndex = files.findIndex((f) => f.file === 'index.html');
+  const entry = entryIndex < 0 ? undefined : files[entryIndex];
+  if (!entry) return files;
+  const entryHtml = entry.data.toString('utf8');
+  const extraCss = files.filter((f) => /\.css$/i.test(f.file)).map((f) => f.data.toString('utf8'));
+  // Keep index.html within the strictest supported provider's per-asset cap
+  // (Cloudflare Pages, 25 MiB). Fonts that don't fit are skipped and fall back
+  // — a deployable page beats a hard upload rejection. Margin covers the
+  // injected <style>/@font-face markup and data: URI overhead.
+  const maxTotalBytes = Math.max(
+    0,
+    CLOUDFLARE_PAGES_ASSET_MAX_BYTES - Buffer.byteLength(entryHtml, 'utf8') - 256 * 1024,
+  );
+  const { html } = await embedUsedSystemFonts(entryHtml, extraCss, { maxTotalBytes });
+  if (html === entryHtml) return files;
+  const next = files.slice();
+  next[entryIndex] = { ...entry, data: Buffer.from(html, 'utf8') };
+  return next;
 }
 
 async function addVisibleProjectFilesToDeployPlan(
