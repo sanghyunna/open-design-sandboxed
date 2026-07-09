@@ -393,6 +393,27 @@ describe('POST /api/import/folder', () => {
     });
   });
 
+  // Regression: standalone-deck exports produce ~30 MB HTML posted as a JSON
+  // { content } body. The global 4 MB express.json cap used to 413 these; the
+  // route now gets a 64 MB parser. A body >4 MB must be accepted.
+  it('accepts a JSON file upload larger than the global 4 MB body limit', async () => {
+    const createResp = await fetch(`${baseUrl}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: `big-${Date.now()}`, name: 'big', metadata: { kind: 'prototype' } }),
+    });
+    expect(createResp.status).toBe(200);
+    const { project } = (await createResp.json()) as { project: { id: string } };
+
+    const content = `<!doctype html>${'x'.repeat(6 * 1024 * 1024)}`; // ~6 MB, over the 4 MB cap
+    const saveResp = await fetch(`${baseUrl}/api/projects/${project.id}/files`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, name: 'huge.html' }),
+    });
+    expect(saveResp.status).toBe(200);
+  });
+
   it('refuses raw reads through a descendant symlink that escapes the folder', async () => {
     const real = makeFolder();
     await mkdir(path.join(real, 'assets'));

@@ -3849,6 +3849,16 @@ export async function startServer({
 
   const app = express();
   installRouteRegistrationGuard(app);
+  // Project file uploads carry large standalone-deck HTML (~30 MB) as a JSON
+  // { content } body, which blows the global 4 MB limit. Raise the ceiling for
+  // just that route; every other endpoint keeps the 4 MB cap below.
+  const projectFilesJson = express.json({ limit: '64mb' });
+  app.use((req, res, next) => {
+    if (req.method === 'POST' && /^\/api\/projects\/[^/]+\/files\/?$/.test(req.path)) {
+      return projectFilesJson(req, res, next);
+    }
+    next();
+  });
   app.use(express.json({ limit: '4mb' }));
   const projectPreviewScopes = createProjectPreviewScopeRegistry();
 
