@@ -50,6 +50,19 @@ async function setupProject() {
   return { projectsRoot: path.join(root, 'projects'), projectId, dir };
 }
 
+function duplicateDeckHtml() {
+  return (
+    '<!doctype html><html><body>' +
+    '<section class="slide active"></section><section class="slide"></section>' +
+    '<script>' +
+    'function onKey(e){if(e.key==="ArrowRight"){window.moves=(window.moves||0)+1;}}' +
+    'window.addEventListener("keydown",onKey,true);' +
+    'document.addEventListener("keydown",onKey,true);' +
+    '</script>' +
+    '</body></html>'
+  );
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -235,6 +248,18 @@ describe('deploy file set', () => {
     expect(files.map((f) => f.file)).toEqual(['index.html']);
   });
 
+  it('injects standalone deck key dedupe into deployed entry HTML decks', async () => {
+    const { projectsRoot, projectId, dir } = await setupProject();
+    await writeFile(path.join(dir, 'deck.html'), duplicateDeckHtml());
+
+    const files = await buildDeployFileSet(projectsRoot, projectId, 'deck.html');
+    const index = files.find((item) => item.file === 'index.html');
+    const html = index?.data.toString();
+
+    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
+    expect(html!.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
+  });
+
   it('can include all visible project files while keeping the selected entry at index.html', async () => {
     const { projectsRoot, projectId, dir } = await setupProject();
     await mkdir(path.join(dir, 'screens'), { recursive: true });
@@ -255,6 +280,21 @@ describe('deploy file set', () => {
     ]);
     expect(index?.sourcePath).toBe('index-v1.html');
     expect(index?.data.toString('utf8')).toContain('V1');
+  });
+
+  it('injects standalone deck key dedupe into visible deployed HTML decks', async () => {
+    const { projectsRoot, projectId, dir } = await setupProject();
+    await writeFile(path.join(dir, 'index.html'), '<!doctype html><h1>Launcher</h1>');
+    await writeFile(path.join(dir, 'deck.html'), duplicateDeckHtml());
+
+    const files = await buildDeployFileSet(projectsRoot, projectId, 'index.html', {
+      includeProjectFiles: true,
+    });
+    const deck = files.find((item) => item.file === 'deck.html');
+    const html = deck?.data.toString();
+
+    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
+    expect(html!.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
   });
 
   it('does not publish unreferenced files from linked-folder projects', async () => {

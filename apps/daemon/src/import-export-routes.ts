@@ -8,6 +8,7 @@ import {
   type InlineAssetReader,
 } from './inline-assets.js';
 import { isSandboxModeEnabled } from './sandbox-mode.js';
+import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav.js';
 
 export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {}
 
@@ -666,11 +667,12 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
         readProjectFile,
         resolveProjectFilePath,
       });
-      const rendered = await inlineRelativeAssets(
+      const inlined = await inlineRelativeAssets(
         exportSource.html,
         exportSource.relPath,
         fileReader,
       );
+      const rendered = injectStandaloneDeckKeyDedupe(inlined);
       // PR #1312 round-2 (lefarcen P2): top-level browser navigation to
       // this URL sends no Origin header, so the /api middleware lets it
       // through. Without a CSP, any JS in the exported document would

@@ -5,7 +5,20 @@ import path from 'node:path';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { buildProjectArchive } from '../src/projects.js';
+import { buildBatchArchive, buildProjectArchive } from '../src/projects.js';
+
+function duplicateDeckHtml() {
+  return (
+    '<!doctype html><html><body>' +
+    '<section class="slide active"></section><section class="slide"></section>' +
+    '<script>' +
+    'function onKey(e){if(e.key==="ArrowRight"){window.moves=(window.moves||0)+1;}}' +
+    'window.addEventListener("keydown",onKey,true);' +
+    'document.addEventListener("keydown",onKey,true);' +
+    '</script>' +
+    '</body></html>'
+  );
+}
 
 describe('buildProjectArchive', () => {
   let projectsRoot = '';
@@ -37,6 +50,28 @@ describe('buildProjectArchive', () => {
       .map((entry) => entry.name)
       .sort();
     expect(fileEntries).toEqual(['DESIGN-HANDOFF.md', 'DESIGN-MANIFEST.json', 'frames/phone.html', 'index.html', 'src/app.css']);
+  });
+
+  it('injects standalone deck key dedupe into archived HTML decks', async () => {
+    await writeFile(path.join(projectsRoot, projectId, 'ui-design', 'index.html'), duplicateDeckHtml());
+
+    const { buffer } = await buildProjectArchive(projectsRoot, projectId, 'ui-design');
+    const zip = await JSZip.loadAsync(buffer);
+    const html = await zip.file('index.html')!.async('string');
+
+    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
+    expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+  });
+
+  it('injects standalone deck key dedupe into batch archived HTML decks', async () => {
+    await writeFile(path.join(projectsRoot, projectId, 'deck.html'), duplicateDeckHtml());
+
+    const { buffer } = await buildBatchArchive(projectsRoot, projectId, ['deck.html']);
+    const zip = await JSZip.loadAsync(buffer);
+    const html = await zip.file('deck.html')!.async('string');
+
+    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
+    expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
   });
 
   it('zips the whole project when no root is given', async () => {
