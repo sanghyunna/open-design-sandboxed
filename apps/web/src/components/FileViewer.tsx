@@ -7119,16 +7119,21 @@ function HtmlViewer({
           revertManualEditMovePreview(selectedManualEditTarget);
         }}
         onSurfaceClick={(region) => {
-          if (region === 'ring' && manualEditMoveMode === 'editing') {
-            sendManualEditTextEdit({ type: 'od-edit-end-text-edit' });
-            setManualEditMoveMode('selected');
-          } else if (
+          if (
             region === 'interior' && manualEditMoveMode === 'selected'
             && (selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link')
           ) {
             sendManualEditTextEdit({ type: 'od-edit-begin-text-edit', id: selectedManualEditTarget.id });
             setManualEditMoveMode('editing');
           }
+        }}
+        onSurfaceDoubleClick={() => {
+          const textTargetId = selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'
+            ? selectedManualEditTarget.id
+            : selectedManualEditTarget.textEditTargetId;
+          if (!textTargetId || manualEditMoveMode !== 'selected') return;
+          sendManualEditTextEdit({ type: 'od-edit-begin-text-edit', id: textTargetId });
+          setManualEditMoveMode('editing');
         }}
       />
     ) : null;
@@ -7512,7 +7517,8 @@ function HtmlViewer({
       {manualEditMode && selectedManualEditTarget
         && (selectedManualEditTarget.kind === 'text'
           || selectedManualEditTarget.kind === 'link'
-          || selectedManualEditTarget.kind === 'token') ? (
+          || selectedManualEditTarget.kind === 'token'
+          || !!selectedManualEditTarget.textEditTargetId) ? (
         <ManualEditTypographyToolbar
           target={selectedManualEditTarget}
           styles={manualEditDraft.styles}

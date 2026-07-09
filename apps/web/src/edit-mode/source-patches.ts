@@ -22,6 +22,10 @@ const INLINE_HTML_ALLOWED_TAGS = new Set([
   ...INLINE_TEXT_WRAPPER_TAGS,
   'a', 'br',
 ]);
+const DECORATIVE_HTML_ALLOWED_TAGS = new Set([
+  'div', 'svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon',
+  'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'mask', 'use',
+]);
 
 export function applyManualEditPatch(source: string, patch: ManualEditPatch): ManualEditPatchResult {
   if (patch.kind === 'set-full-source') return { ok: true, source: patch.source };
@@ -279,10 +283,11 @@ const CANONICAL_TAG_RENAMES: Record<string, string> = { b: 'strong', i: 'em' };
 
 // Light, dependency-free normalization for rich-text inner HTML. The goal is
 // clean inline markup; blocking obvious script injection is a bonus rather than a
-// hardened security boundary. We allowlist inline-formatting tags, unwrap unknown
-// tags (keeping their text), remove `<script>`/`<style>` outright, and strip
-// `on*` handlers plus URLs whose scheme is not on the safe allowlist from the
-// tags we keep.
+// hardened security boundary. We allowlist inline-formatting tags, preserve
+// textless decorative structure that generated text effects rely on, unwrap
+// unknown tags (keeping their text), remove `<script>`/`<style>` outright, and
+// strip `on*` handlers plus URLs whose scheme is not on the safe allowlist from
+// the tags we keep.
 function sanitizeInlineHtml(doc: Document, html: string): string {
   const template = doc.createElement('template');
   template.innerHTML = html;
@@ -295,10 +300,12 @@ function sanitizeInlineHtml(doc: Document, html: string): string {
       original.remove();
       continue;
     }
-    const canonicalTag = CANONICAL_TAG_RENAMES[tag];
+    const textless = !(original.textContent ?? '').trim();
+    const canonicalTag = textless ? undefined : CANONICAL_TAG_RENAMES[tag];
     const el = canonicalTag ? renameElement(original, canonicalTag) : original;
     const finalTag = el.tagName.toLowerCase();
-    if (!INLINE_HTML_ALLOWED_TAGS.has(finalTag)) {
+    const textlessDecorative = DECORATIVE_HTML_ALLOWED_TAGS.has(finalTag) && textless;
+    if (!INLINE_HTML_ALLOWED_TAGS.has(finalTag) && !textlessDecorative) {
       unwrapElement(el);
       continue;
     }
@@ -308,7 +315,7 @@ function sanitizeInlineHtml(doc: Document, html: string): string {
         el.removeAttribute(attr.name);
         continue;
       }
-      if ((name === 'href' || name === 'src') && !isSafeUrlValue(attr.value)) {
+      if ((name === 'href' || name === 'src' || name.endsWith(':href')) && !isSafeUrlValue(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }
