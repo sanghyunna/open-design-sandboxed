@@ -193,6 +193,47 @@ test('[P0] projects empty state create action opens the new project flow', async
   await expect(page.locator('.newproj-title')).toContainText('New prototype');
 });
 
+test('[P1] new project dropdown popovers stay above later sections', async ({ page }) => {
+  await page.route('**/api/skills', async (route) => {
+    await route.fulfill({ json: { skills: TAB_SKILLS } });
+  });
+  await page.route('**/api/design-systems', async (route) => {
+    await route.fulfill({ json: { designSystems: DESIGN_SYSTEMS } });
+  });
+  await page.route('**/api/connectors', async (route) => {
+    await route.fulfill({ json: { connectors: [] } });
+  });
+  await page.route('**/api/connectors/status', async (route) => {
+    await route.fulfill({ json: { statuses: {} } });
+  });
+  await page.route('**/api/projects', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { projects: [] } });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto('/projects');
+  await page.locator('.designs-empty-cta').click();
+  await expect(page.getByTestId('new-project-modal')).toBeVisible();
+  await expect(page.getByTestId('new-project-panel')).toBeVisible();
+  await page.getByTestId('new-project-tab-prototype').click();
+
+  await page.getByTestId('design-system-trigger').click();
+  const designSystemPopover = page.locator('[data-testid="design-system-picker"] .ds-picker-popover');
+  await expect(designSystemPopover).toBeVisible();
+  await expectPopoverTopmostOver(designSystemPopover, '.platform-picker');
+
+  await page.getByTestId('design-system-trigger').click();
+  await expect(designSystemPopover).toHaveCount(0);
+
+  await page.locator('.platform-picker .ds-picker-trigger').click();
+  const platformPopover = page.locator('.platform-picker .ds-picker-popover');
+  await expect(platformPopover).toBeVisible();
+  await expectPopoverTopmostOver(platformPopover, '.surface-options');
+});
+
 test('[P1] design system multi-select stores primary and inspiration metadata', async ({ page }) => {
   await page.route('**/api/design-systems', async (route) => {
     await route.fulfill({ json: { designSystems: DESIGN_SYSTEMS } });
@@ -1298,6 +1339,35 @@ async function openNewProjectPanel(page: Page) {
   await page.getByTestId('entry-nav-new-project').click();
   await expect(page.getByTestId('new-project-modal')).toBeVisible();
   await expect(page.getByTestId('new-project-panel')).toBeVisible();
+}
+
+async function expectPopoverTopmostOver(popover: Locator, laterSectionSelector: string) {
+  const result = await popover.evaluate((popoverElement, selector) => {
+    const laterSection = document.querySelector(selector);
+    if (!(laterSection instanceof HTMLElement)) {
+      return { ok: false, reason: `missing ${selector}` };
+    }
+
+    const popoverRect = popoverElement.getBoundingClientRect();
+    const sectionRect = laterSection.getBoundingClientRect();
+    const left = Math.max(popoverRect.left, sectionRect.left);
+    const right = Math.min(popoverRect.right, sectionRect.right);
+    const top = Math.max(popoverRect.top, sectionRect.top);
+    const bottom = Math.min(popoverRect.bottom, sectionRect.bottom);
+    if (right <= left || bottom <= top) {
+      return { ok: false, reason: `no overlap with ${selector}` };
+    }
+
+    const x = left + (right - left) / 2;
+    const y = top + (bottom - top) / 2;
+    const topElement = document.elementFromPoint(x, y);
+    return {
+      ok: topElement === popoverElement || popoverElement.contains(topElement),
+      reason: topElement instanceof HTMLElement ? topElement.className : String(topElement),
+    };
+  }, laterSectionSelector);
+
+  expect(result, result.reason).toMatchObject({ ok: true });
 }
 
 async function expectDesignsView(page: Page) {

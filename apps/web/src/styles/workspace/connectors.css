@@ -1,5 +1,6 @@
 /* -------- Design system picker (custom popover dropdown) ------------ */
 .ds-picker { position: relative; }
+.newproj-section.ds-picker:has(> .ds-picker-trigger.open) { z-index: 5; }
 .ds-picker-trigger {
   display: flex;
   align-items: center;
