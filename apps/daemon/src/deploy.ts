@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { hash as blake3Hash } from 'blake3-wasm';
 import { listFiles, readProjectFile, validateProjectPath } from './projects.js';
 import { embedUsedSystemFonts } from './font-embed-runtime.js';
+import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav.js';
 
 export const VERCEL_PROVIDER_ID = 'vercel-self';
 export const CLOUDFLARE_PAGES_PROVIDER_ID = 'cloudflare-pages';
@@ -249,7 +250,7 @@ export async function buildDeployFilePlan(projectsRoot: string, projectId: strin
   const html = entry.buffer.toString('utf8');
   const entryBase = path.posix.dirname(entryPath);
   const deployHtml = injectDeployHookScript(
-    rewriteEntryHtmlReferences(html, entryBase),
+    injectStandaloneDeckKeyDedupe(rewriteEntryHtmlReferences(html, entryBase)),
     options.hookScriptUrl ?? process.env.OD_DEPLOY_HOOK_SCRIPT_URL,
   );
   const files = new Map<string, DeployFile>();
@@ -311,7 +312,7 @@ export async function buildDeployFilePlan(projectsRoot: string, projectId: strin
 
     files.set(safePath, {
       file: safePath,
-      data: projectFile.buffer,
+      data: deployBufferFor(safePath, projectFile.buffer),
       contentType: projectFile.mime,
       sourcePath: safePath,
     });
@@ -400,11 +401,16 @@ async function addVisibleProjectFilesToDeployPlan(
     const projectFile = await readProjectFile(input.projectsRoot, input.projectId, safePath, input.metadata);
     files.set(safePath, {
       file: safePath,
-      data: projectFile.buffer,
+      data: deployBufferFor(safePath, projectFile.buffer),
       contentType: projectFile.mime,
       sourcePath: safePath,
     });
   }
+}
+
+function deployBufferFor(name: string, buffer: Buffer): Buffer {
+  if (!/\.html?$/i.test(name)) return buffer;
+  return Buffer.from(injectStandaloneDeckKeyDedupe(buffer.toString('utf8')), 'utf8');
 }
 
 function isLinkedFolderProject(metadata: unknown) {

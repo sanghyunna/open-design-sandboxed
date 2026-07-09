@@ -28,6 +28,7 @@ import {
 import { normalizeArtifactRuntimeImports } from './artifact-runtime-compat.js';
 import { isIgnoredProjectDirName } from './project-ignored-dirs.js';
 import { isSandboxModeEnabled } from './sandbox-mode.js';
+import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav.js';
 
 const FORBIDDEN_SEGMENT = /^$|^\.\.?$/;
 const RESERVED_PROJECT_FILE_SEGMENTS = new Set(['.live-artifacts']);
@@ -319,7 +320,7 @@ export async function buildProjectArchive(projectsRoot, projectId, root, metadat
   const zip = new JSZip();
   for (const entry of entries) {
     const buf = await readFile(entry.fullPath);
-    zip.file(entry.relPath, buf, {
+    zip.file(entry.relPath, archiveBufferFor(entry.relPath, buf), {
       date: new Date(entry.mtime),
       binary: true,
     });
@@ -423,7 +424,7 @@ export async function buildBatchArchive(projectsRoot, projectId, fileNames, meta
     }
 
     const buf = await readFile(filePath);
-    zip.file(name, buf, {
+    zip.file(name, archiveBufferFor(name, buf), {
       date: new Date(st.mtimeMs),
       binary: true,
     });
@@ -453,6 +454,11 @@ export async function buildBatchArchive(projectsRoot, projectId, fileNames, meta
     compressionOptions: { level: 6 },
   });
   return { buffer, baseName: '' };
+}
+
+function archiveBufferFor(name, buf) {
+  if (!/\.html?$/i.test(name)) return buf;
+  return Buffer.from(injectStandaloneDeckKeyDedupe(buf.toString('utf8')), 'utf8');
 }
 
 async function collectArchiveEntries(dir, relDir, out) {

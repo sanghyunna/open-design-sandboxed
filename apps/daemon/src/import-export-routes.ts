@@ -9,6 +9,7 @@ import {
 } from './inline-assets.js';
 import { isSandboxModeEnabled } from './sandbox-mode.js';
 import { embedUsedSystemFonts } from './font-embed-runtime.js';
+import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav.js';
 
 export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {}
 
@@ -672,11 +673,12 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
         exportSource.relPath,
         fileReader,
       );
+      const deckDeduped = injectStandaloneDeckKeyDedupe(inlined);
       // Base64-embed any installed non-web-safe fonts the design uses so the
       // single-file HTML renders identically on a machine without them. This
       // is the font half of a "fully self-contained export" that the inliner
       // deliberately leaves out of scope (see inline-assets.ts header).
-      const { html: rendered } = await embedUsedSystemFonts(inlined);
+      const { html: rendered } = await embedUsedSystemFonts(deckDeduped);
       // PR #1312 round-2 (lefarcen P2): top-level browser navigation to
       // this URL sends no Origin header, so the /api middleware lets it
       // through. Without a CSP, any JS in the exported document would

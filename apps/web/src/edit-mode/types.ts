@@ -83,6 +83,7 @@ export interface ManualEditTarget {
    * overrides the written width/height.
    */
   flexItemAxis?: 'row' | 'column' | null;
+  textEditTargetId?: string;
   fields: ManualEditFields;
   attributes: Record<string, string>;
   styles: ManualEditStyles;
