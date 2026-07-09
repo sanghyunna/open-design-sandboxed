@@ -851,11 +851,11 @@ export function createSplashWindow(): SplashWindowHandle {
     autoHideMenuBar: true,
     backgroundColor: "#070b19",
     frame: false,
-    height: 900,
+    height: 450,
     resizable: false,
     show: true,
     title: "Open Design",
-    width: 1280,
+    width: 640,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
