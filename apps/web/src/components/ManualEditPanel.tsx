@@ -470,10 +470,10 @@ export const FONT_OPTS = [
 ] as const;
 export const WEIGHT_OPTS = ['', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
 export const ALIGN_OPTS = ['', 'left', 'center', 'right', 'justify', 'start', 'end'];
-const DIRECTION_OPTS = ['', 'row', 'column', 'row-reverse', 'column-reverse'];
-const JUSTIFY_OPTS = ['', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around'];
-const ITEMS_OPTS = ['', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline'];
-const BORDER_STYLE_OPTS = ['', 'solid', 'dashed', 'dotted', 'double', 'none'];
+export const DIRECTION_OPTS = ['', 'row', 'column', 'row-reverse', 'column-reverse'];
+export const JUSTIFY_OPTS = ['', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around'];
+export const ITEMS_OPTS = ['', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline'];
+export const BORDER_STYLE_OPTS = ['', 'solid', 'dashed', 'dotted', 'double', 'none'];
 export const EDITOR_SWATCH_COLORS = [
   '#000000',
   '#ffffff',

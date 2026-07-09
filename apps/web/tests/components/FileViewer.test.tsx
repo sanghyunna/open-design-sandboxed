@@ -134,7 +134,7 @@ function clickAgentTool(testId: string) {
   fireEvent.click(screen.getByTestId(testId));
 }
 
-function manualEditTarget(id: string, label: string, x: number) {
+function manualEditTarget(id: string, label: string, x: number, overrides: Partial<ManualEditTarget> = {}) {
   return {
     id,
     kind: 'container',
@@ -148,6 +148,7 @@ function manualEditTarget(id: string, label: string, x: number) {
     styles: emptyManualEditStyles(),
     isLayoutContainer: true,
     outerHtml: `<div data-od-id="${id}">${label}</div>`,
+    ...overrides,
   };
 }
 
@@ -1112,8 +1113,12 @@ describe('FileViewer SVG artifacts', () => {
   });
 
   it('keeps the manual edit inspector pinned after clicking a target', async () => {
-    const heroTarget = manualEditTarget('hero-card', 'Hero card', 20);
-    const trendTarget = manualEditTarget('trend-card', 'Trend card', 320);
+    const heroTarget = manualEditTarget('hero-card', 'Hero card', 20, {
+      styles: { ...emptyManualEditStyles(), width: '111px' },
+    });
+    const trendTarget = manualEditTarget('trend-card', 'Trend card', 320, {
+      styles: { ...emptyManualEditStyles(), width: '222px' },
+    });
     render(
       <FileViewer
         projectId="project-1"
@@ -1151,20 +1156,21 @@ describe('FileViewer SVG artifacts', () => {
     expect(await screen.findByTestId('manual-edit-hover-open')).toBeTruthy();
     expect(screen.queryByText('Hero card')).toBeNull();
 
-    // Selecting pins the inspector to the hero card.
+    // Selecting a shape pins the docked shape toolbar to the hero card.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: { type: 'od-edit-select', target: heroTarget },
     }));
-    expect(await screen.findByText('Hero card')).toBeTruthy();
+    expect(await screen.findByTestId('manual-edit-shape-toolbar')).toBeTruthy();
+    expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('111');
 
-    // Hovering a different element must not switch the pinned inspector.
+    // Hovering a different element must not switch the pinned toolbar.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: { type: 'od-edit-hover', target: trendTarget },
     }));
 
-    expect(screen.getByText('Hero card')).toBeTruthy();
+    expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('111');
     expect(screen.queryByText('Trend card')).toBeNull();
   });
 

@@ -123,7 +123,8 @@ import type {
   PreviewCommentMember,
   PreviewCommentTarget,
 } from '../types';
-import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, normalizeManualEditStyles, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditShapeToolbar } from './ManualEditShapeToolbar';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
 import { ManualEditMoveFrame } from './ManualEditMoveFrame';
 import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, moveCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
@@ -154,6 +155,10 @@ export type ManualEditPendingStyleSave = {
   label: string;
   version: number;
 };
+type ManualEditPostSaveIntent =
+  | { seq: number; kind: 'select'; target: ManualEditTarget }
+  | { seq: number; kind: 'clear'; openPageStyles: boolean }
+  | { seq: number; kind: 'exit' };
 type PreviewViewportId = 'desktop' | 'tablet' | 'mobile';
 type PreviewCanvasSize = { width: number; height: number; scrollLeft?: number; scrollTop?: number };
 type CommentPreviewCanvasOptions = {
@@ -3780,6 +3785,9 @@ function HtmlViewer({
   // handles / hover affordance / selectedManualEditTarget.rect unchanged.
   const [manualEditPanelAnchorRect, setManualEditPanelAnchorRect] = useState<ManualEditRect | null>(null);
   const selectedManualEditTargetIdRef = useRef<string | null>(null);
+  const selectedManualEditTargetRef = useRef<ManualEditTarget | null>(null);
+  const manualEditActionSeqRef = useRef(0);
+  const manualEditPostSaveIntentRef = useRef<ManualEditPostSaveIntent | null>(null);
   const [manualEditDraft, setManualEditDraft] = useState<ManualEditDraft>(() => emptyManualEditDraft());
   const [manualEditHistory, setManualEditHistory] = useState<ManualEditHistoryEntry[]>([]);
   const [manualEditUndone, setManualEditUndone] = useState<ManualEditHistoryEntry[]>([]);
@@ -4089,6 +4097,10 @@ function HtmlViewer({
   useEffect(() => {
     liveCommentTargetsRef.current = liveCommentTargets;
   }, [liveCommentTargets]);
+
+  useEffect(() => {
+    selectedManualEditTargetRef.current = selectedManualEditTarget;
+  }, [selectedManualEditTarget]);
 
   useEffect(() => {
     const sourceFileKey = `${projectId}\0${file.name}\0${liveHtml === undefined ? 'raw' : 'live'}`;
@@ -4648,6 +4660,9 @@ function HtmlViewer({
     setManualEditPanelPosition(null);
     setManualEditPanelAnchorRect(null);
     selectedManualEditTargetIdRef.current = null;
+    selectedManualEditTargetRef.current = null;
+    manualEditPostSaveIntentRef.current = null;
+    manualEditActionSeqRef.current += 1;
     setManualEditDraft(emptyManualEditDraft());
     setManualEditHistory([]);
     setManualEditUndone([]);
@@ -4900,6 +4915,9 @@ function HtmlViewer({
       setManualEditPanelPosition(null);
       setManualEditPanelAnchorRect(null);
       selectedManualEditTargetIdRef.current = null;
+      selectedManualEditTargetRef.current = null;
+      manualEditPostSaveIntentRef.current = null;
+      manualEditActionSeqRef.current += 1;
       setManualEditError(null);
       manualEditPendingStyleRef.current = null;
       setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
@@ -4941,8 +4959,7 @@ function HtmlViewer({
         // card — only meaningful for full HTML documents.
         setManualEditHoverTarget(null);
         if (typeof source === 'string' && isManualEditFullHtmlDocument(source)) {
-          void clearManualEditTargetSelection();
-          setManualEditPageStylesOpen(true);
+          void clearManualEditTargetSelection({ openPageStyles: true });
         }
         return;
       }
@@ -5033,6 +5050,7 @@ function HtmlViewer({
   ) {
     if (id !== '__body__' && !readManualEditOuterHtml(savedSource, id)) {
       setManualEditError('The selected target no longer exists in the saved source. Refreshing the preview.');
+      selectedManualEditTargetRef.current = null;
       setSelectedManualEditTarget(null);
       setManualEditFrozenSource(null);
       setReloadKey((key) => key + 1);
@@ -5076,6 +5094,19 @@ function HtmlViewer({
     manualEditPendingStyleRef.current = pending;
     setManualEditError(null);
     previewStyleToIframe(id, styles, version);
+  }
+
+  function applyManualEditStyleFields(target: ManualEditTarget, styles: Partial<ManualEditStyles>) {
+    setManualEditDraft((current) => ({ ...current, styles: { ...current.styles, ...styles } }));
+    const normalized = normalizeManualEditStyles(styles, { layoutEnabled: target.isLayoutContainer });
+    const keys = Object.keys(styles) as Array<keyof ManualEditStyles>;
+    if (!normalized.ok) {
+      setManualEditError('error' in normalized ? normalized.error : 'Invalid style value.');
+      cancelManualEditPendingStyles(target.id, keys);
+      return;
+    }
+    setManualEditError('');
+    void handleManualEditStyleChange(target.id, normalized.styles, `Style: ${target.label}`);
   }
 
   // Translate a drag result (rect-space px) into CSS width/height, anchored on
@@ -5266,8 +5297,24 @@ function HtmlViewer({
     setManualEditError(null);
   }
 
-  async function exitManualEditModeAfterFlush(): Promise<boolean> {
+  function runManualEditPostSaveIntent(intent: ManualEditPostSaveIntent) {
+    if (intent.seq !== manualEditActionSeqRef.current) return;
+    if (intent.kind === 'select') {
+      void selectManualEditTarget(intent.target, intent.seq);
+    } else if (intent.kind === 'clear') {
+      void clearManualEditTargetSelection({ openPageStyles: intent.openPageStyles }, intent.seq);
+    } else {
+      void exitManualEditModeAfterFlush(intent.seq);
+    }
+  }
+
+  async function exitManualEditModeAfterFlush(actionSeq = ++manualEditActionSeqRef.current): Promise<boolean> {
+    if (manualEditSavingRef.current) {
+      manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'exit' };
+      return false;
+    }
     const ok = await flushManualEditStyleSave();
+    if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
     setManualEditPanelPosition(null);
     setManualEditPanelAnchorRect(null);
@@ -5286,12 +5333,28 @@ function HtmlViewer({
     if (win) win.postMessage({ type: 'od-edit-hover-reset' }, '*');
   }
 
-  async function selectManualEditTarget(target: ManualEditTarget) {
+  async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
+    manualEditPostSaveIntentRef.current = null;
+    if (manualEditSavingRef.current) {
+      manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'select', target };
+      return;
+    }
     setManualEditPageStylesOpen(false);
-    if (manualEditPendingStyleRef.current?.id !== target.id) cancelManualEditStyleDraft();
+    if (manualEditPendingStyleRef.current?.id !== target.id) {
+      const pendingTarget = pendingManualEditStyleTarget();
+      if (pendingTarget && isManualEditShapeTarget(pendingTarget)) {
+        const ok = await flushManualEditStyleSave();
+        if (actionSeq !== manualEditActionSeqRef.current) return;
+        if (!ok) return;
+      } else {
+        cancelManualEditStyleDraft();
+      }
+    }
+    if (actionSeq !== manualEditActionSeqRef.current) return;
     const base = sourceRef.current ?? '';
     const fields = readManualEditFields(base, target.id);
     selectedManualEditTargetIdRef.current = target.id;
+    selectedManualEditTargetRef.current = target;
     setSelectedManualEditTarget(target);
     // A genuine new selection re-snapshots the panel's placement anchor. This
     // is the single funnel for od-edit-select, the panel's onSelectTarget,
@@ -5313,15 +5376,46 @@ function HtmlViewer({
     setManualEditError(null);
   }
 
-  async function clearManualEditTargetSelection() {
-    cancelManualEditStyleDraft();
+  function pendingManualEditStyleTarget(): ManualEditTarget | null {
+    const pending = manualEditPendingStyleRef.current;
+    if (!pending || pending.id === '__body__') return null;
+    const selectedTarget = selectedManualEditTargetRef.current;
+    return selectedTarget?.id === pending.id
+      ? selectedTarget
+      : manualEditTargets.find((item) => item.id === pending.id) ?? null;
+  }
+
+  function isManualEditShapeTarget(target: ManualEditTarget): boolean {
+    return !target.textEditTargetId && (target.kind === 'container' || target.kind === 'image');
+  }
+
+  async function clearManualEditTargetSelection(
+    options: { openPageStyles?: boolean } = {},
+    actionSeq = ++manualEditActionSeqRef.current,
+  ): Promise<boolean> {
+    if (manualEditSavingRef.current) {
+      manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'clear', openPageStyles: !!options.openPageStyles };
+      return false;
+    }
+    const selectedTarget = selectedManualEditTargetRef.current;
+    if (selectedTarget && isManualEditShapeTarget(selectedTarget)) {
+      const ok = await flushManualEditStyleSave();
+      if (actionSeq !== manualEditActionSeqRef.current) return false;
+      if (!ok) return false;
+    } else {
+      cancelManualEditStyleDraft();
+    }
+    if (actionSeq !== manualEditActionSeqRef.current) return false;
     selectedManualEditTargetIdRef.current = null;
+    selectedManualEditTargetRef.current = null;
     setSelectedManualEditTarget(null);
     setManualEditPanelPosition(null);
     setManualEditPanelAnchorRect(null);
     setManualEditDraft(emptyManualEditDraft(sourceRef.current ?? ''));
     setManualEditError(null);
     setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
+    if (options.openPageStyles) setManualEditPageStylesOpen(true);
+    return true;
   }
 
   // The inspector is scoped to one element (or the page). Closing it should
@@ -5399,6 +5493,7 @@ function HtmlViewer({
           manualEditPendingStyleRef.current = null;
         }
         selectedManualEditTargetIdRef.current = null;
+        selectedManualEditTargetRef.current = null;
         setSelectedManualEditTarget(null);
         setManualEditTargets((current) => current.filter((target) => target.id !== patch.id));
         setManualEditDraft(emptyManualEditDraft(result.source));
@@ -5415,6 +5510,14 @@ function HtmlViewer({
     } finally {
       manualEditSavingRef.current = false;
       setManualEditSaving(false);
+      if (manualEditPostSaveIntentRef.current) {
+        window.setTimeout(() => {
+          const intent = manualEditPostSaveIntentRef.current;
+          if (!intent) return;
+          manualEditPostSaveIntentRef.current = null;
+          runManualEditPostSaveIntent(intent);
+        }, 0);
+      }
     }
   }
 
@@ -6946,8 +7049,20 @@ function HtmlViewer({
   // clicking the empty canvas. No more full-height panel popping on toggle.
   const manualEditPageCardActive =
     manualEditMode && !selectedManualEditTarget && manualEditPageStylesOpen;
+  const manualEditShapeToolbarActive =
+    manualEditMode && selectedManualEditTarget && isManualEditShapeTarget(selectedManualEditTarget);
   const manualEditPanelActive =
-    manualEditMode && (!!selectedManualEditTarget || manualEditPageCardActive);
+    manualEditMode && ((!!selectedManualEditTarget && !manualEditShapeToolbarActive) || manualEditPageCardActive);
+  const pickManualEditImage = async (pickedFile: File) => {
+    const result = await uploadProjectFiles(projectId, [pickedFile]);
+    const uploaded = result.uploaded[0];
+    if (!uploaded?.path) {
+      setManualEditError(result.error ?? t('manualEdit.uploadImageFailed'));
+      return null;
+    }
+    setManualEditError(null);
+    return toOwnerRelativePath(file.name, uploaded.path);
+  };
   const manualEditPanel = manualEditPanelActive ? (
     <ManualEditPanel
       targets={manualEditTargets}
@@ -7007,16 +7122,7 @@ function HtmlViewer({
           }
         : { top: 12, right: 12, width: 320 }}
       onFloatingPositionChange={selectedManualEditTarget ? setManualEditPanelPosition : undefined}
-      onPickImage={async (pickedFile) => {
-        const result = await uploadProjectFiles(projectId, [pickedFile]);
-        const uploaded = result.uploaded[0];
-        if (!uploaded?.path) {
-          setManualEditError(result.error ?? t('manualEdit.uploadImageFailed'));
-          return null;
-        }
-        setManualEditError(null);
-        return toOwnerRelativePath(file.name, uploaded.path);
-      }}
+      onPickImage={pickManualEditImage}
     />
   ) : null;
   const manualEditHoverAffordance =
@@ -7542,6 +7648,34 @@ function HtmlViewer({
             onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
           })}
           onRichFormat={sendManualEditRichFormat}
+        />
+      ) : null}
+      {manualEditShapeToolbarActive && selectedManualEditTarget ? (
+        <ManualEditShapeToolbar
+          target={selectedManualEditTarget}
+          styles={manualEditDraft.styles}
+          draftAlt={manualEditDraft.alt}
+          error={manualEditError}
+          busy={manualEditSaving}
+          canUndo={manualEditHistory.length > 0}
+          canRedo={manualEditUndone.length > 0}
+          getActiveTarget={() => selectedManualEditTargetRef.current}
+          onStyleField={(key, value) => applyManualEditStyleField({
+            target: selectedManualEditTarget,
+            draft: manualEditDraft,
+            key,
+            value,
+            onDraftChange: setManualEditDraft,
+            onError: setManualEditError,
+            onInvalidStyle: cancelManualEditPendingStyles,
+            onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
+          })}
+          onStyleFields={(styleUpdates) => applyManualEditStyleFields(selectedManualEditTarget, styleUpdates)}
+          onApplyPatch={(patch, label) => { void applyManualEdit(patch, label); }}
+          onPickImage={pickManualEditImage}
+          onError={setManualEditError}
+          onUndo={() => { void undoManualEdit(); }}
+          onRedo={() => { void redoManualEdit(); }}
         />
       ) : null}
       {((filePrimaryActions: ReactNode) => (

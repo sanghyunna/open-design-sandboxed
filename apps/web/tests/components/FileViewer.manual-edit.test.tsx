@@ -73,6 +73,27 @@ describe('FileViewer manual edit regressions', () => {
     });
   }
 
+  async function selectManualEditShapeTarget(target: ManualEditTarget) {
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
+    });
+  }
+
+  function deferredResponse() {
+    let resolve!: (value: Response) => void;
+    const promise = new Promise<Response>((next) => {
+      resolve = next;
+    });
+    return { promise, resolve };
+  }
+
   async function findStyleInput(label: string) {
     return waitFor(() => {
       const input = Array.from(document.querySelectorAll('.cc-row'))
@@ -249,6 +270,302 @@ describe('FileViewer manual edit regressions', () => {
       expect.objectContaining({ type: 'od-edit-rich-format', command: 'bold' }),
       '*',
     );
+  });
+
+  it('docks the shape toolbar for container and image selections without mounting the floating panel', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><img data-od-id="photo" src="/old.png" alt="Old"></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+
+    expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
+    expect(screen.getByLabelText('Spacing')).toBeTruthy();
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
+
+    await selectManualEditShapeTarget(imageTarget());
+    fireEvent.click(screen.getByLabelText('More'));
+
+    expect(screen.getByText('Upload image')).toBeTruthy();
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
+  });
+
+  it('surfaces shape preview-style errors in the docked toolbar', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '18' } });
+
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: false,
+          error: 'Target not found',
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe('Target not found');
+    });
+  });
+
+  it('updates all linked padding sides in the visible shape toolbar draft', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+
+    fireEvent.change(screen.getByLabelText('Padding'), { target: { value: '16' } });
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Padding') as HTMLInputElement).value).toBe('16');
+    });
+    expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: {
+          paddingTop: '16px',
+          paddingRight: '16px',
+          paddingBottom: '16px',
+          paddingLeft: '16px',
+        },
+      }),
+      '*',
+    );
+  });
+
+  it('keeps the latest shape selection requested while a style save is in flight', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section><aside data-od-id="cta">CTA</aside></body></html>';
+    const save = deferredResponse();
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') return save.promise;
+      return new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'od-edit-preview-style', id: 'hero' }),
+        '*',
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: containerTarget({ id: 'cta', label: 'CTA', styles: { ...emptyManualEditStyles(), width: '333px' } }) },
+        source: frame.contentWindow,
+      }));
+    });
+    save.resolve(new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('333');
+    });
+  });
+
+  it('keeps a background click newer than a pending shape selection after the save resolves', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section></body></html>';
+    const save = deferredResponse();
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') return save.promise;
+      return new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
+    const frame = await previewFrame();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-background' },
+        source: frame.contentWindow,
+      }));
+    });
+    save.resolve(new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('manual-edit-shape-toolbar')).toBeNull();
+      expect(screen.getByText('PAGE')).toBeTruthy();
+    });
+  });
+
+  it('keeps manual edit mode exited when exit is newer than a pending shape selection save', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><section data-od-id="trend">Trend</section></body></html>';
+    const save = deferredResponse();
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') return save.promise;
+      return new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
+    const frame = await previewFrame();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: containerTarget({ id: 'trend', label: 'Trend', styles: { ...emptyManualEditStyles(), width: '222px' } }) },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    clickManualTool('manual-edit-mode-toggle');
+    save.resolve(new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('manual-edit-shape-toolbar')).toBeNull();
+      expect(screen.queryByText('PAGE')).toBeNull();
+    });
+  });
+
+  it('saves a pending shape style edit before clearing selection on background click', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await selectManualEditShapeTarget(containerTarget());
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
+
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-background' },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      const saveCall = fetchMock.mock.calls.find(([input, init]) => {
+        const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+        return url.includes('/api/projects/project-1/files') && init?.method === 'POST';
+      });
+      expect(saveCall).toBeTruthy();
+      const body = JSON.parse(String((saveCall?.[1] as RequestInit).body));
+      expect(body.content).toContain('width: 111px');
+      expect(screen.getByText('PAGE')).toBeTruthy();
+    });
   });
 
   it('does not let a pending manual edit style save survive a file switch', async () => {
@@ -546,6 +863,31 @@ function heroTarget(): ManualEditTarget {
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
     outerHtml: '<main data-od-id="hero">Hero</main>',
+  };
+}
+
+function containerTarget(overrides: Partial<ManualEditTarget> = {}): ManualEditTarget {
+  return {
+    ...heroTarget(),
+    kind: 'container',
+    text: '',
+    fields: {},
+    outerHtml: '<main data-od-id="hero">Hero</main>',
+    ...overrides,
+  };
+}
+
+function imageTarget(): ManualEditTarget {
+  return {
+    ...heroTarget(),
+    id: 'photo',
+    kind: 'image',
+    label: 'Photo',
+    tagName: 'img',
+    text: '',
+    fields: { src: '/old.png', alt: 'Old' },
+    attributes: { 'data-od-id': 'photo', src: '/old.png', alt: 'Old' },
+    outerHtml: '<img data-od-id="photo" src="/old.png" alt="Old">',
   };
 }
 
