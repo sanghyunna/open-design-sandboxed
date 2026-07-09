@@ -36,7 +36,7 @@ import {
   isDesignSystemWorkspacePrompt,
 } from '../design-system-auto-prompt';
 import { isTodoWriteToolName, latestTodoWriteInputForPinnedCard } from '../runtime/todos';
-import type { AppConfig, ChatAttachment, ChatCommentAttachment, ChatMessage, ChatMessageFeedbackChange, Conversation, DesignSystemSummary, PreviewComment, Project, ProjectFile, ProjectMetadata, SkillSummary } from '../types';
+import type { AppConfig, ChatAttachment, ChatCommentAttachment, ChatMessage, Conversation, DesignSystemSummary, PreviewComment, Project, ProjectFile, ProjectMetadata, SkillSummary } from '../types';
 import { exactDateTime, messageTime, shortTime } from '../utils/chatTime';
 import { commentTargetDisplayName, commentsToAttachments, simplePositionLabel } from '../comments';
 import { AssistantMessage, type QuestionFormOpenRequest } from './AssistantMessage';
@@ -298,10 +298,8 @@ interface Props {
   projectId: string | null;
   sessionMode?: ChatSessionMode;
   onSessionModeChange?: (mode: ChatSessionMode) => void;
-  // Analytics-only — forwarded to AssistantMessage so the feedback
-  // events know which project surface the rating applies to. Optional
-  // (defaults to null/'prototype') so unit tests can mount ChatPane
-  // without project context.
+  // Analytics-only context for chat-panel events. Optional so unit tests can
+  // mount ChatPane without project context.
   projectKindForTracking?: TrackingProjectKind | null;
   projectFiles: ProjectFile[];
   activeProjectFileName?: string | null;
@@ -355,7 +353,6 @@ interface Props {
   // Focus the right-hand Questions tab from the chat banner.
   onOpenQuestions?: (request?: QuestionFormOpenRequest) => void;
   onContinueRemainingTasks?: (assistantMessage: ChatMessage, todos: TodoItem[]) => void;
-  onAssistantFeedback?: (assistantMessage: ChatMessage, change: ChatMessageFeedbackChange) => void;
   // "Next step" affordance handlers forwarded to the last assistant message.
   // The featured design-toolbox rows are driven directly off the composer ref
   // owned here, so they need no handler from ProjectView (unlike onArtifactShare).
@@ -537,7 +534,6 @@ export function ChatPane({
   initialDraft,
   onOpenQuestions,
   onContinueRemainingTasks,
-  onAssistantFeedback,
   onArtifactShare,
   onArtifactDownload,
   onForkFromMessage,
@@ -625,13 +621,11 @@ export function ChatPane({
   // LATEST handler. See areAssistantMessagePropsEqual in AssistantMessage.tsx.
   const assistantCallbacksRef = useRef({
     onContinueRemainingTasks,
-    onAssistantFeedback,
     onArtifactShare,
     onForkFromMessage,
   });
   assistantCallbacksRef.current = {
     onContinueRemainingTasks,
-    onAssistantFeedback,
     onArtifactShare,
     onForkFromMessage,
   };
@@ -1760,7 +1754,6 @@ export function ChatPane({
                 nextStepSkills={skills}
                 toolboxSkillNames={featuredToolboxSkillNames}
                 onForkFromMessage={onForkFromMessage}
-                onAssistantFeedback={onAssistantFeedback}
                 forkingMessageId={forkingMessageId}
                 t={t}
                 onOpenQuestions={onOpenQuestions}
@@ -1976,9 +1969,6 @@ interface AssistantCallbacks {
   onContinueRemainingTasks:
     | ((assistantMessage: ChatMessage, todos: TodoItem[]) => void)
     | undefined;
-  onAssistantFeedback:
-    | ((message: ChatMessage, change: ChatMessageFeedbackChange) => void)
-    | undefined;
   onArtifactShare: ((fileName: string) => void) | undefined;
   onForkFromMessage: ((message: ChatMessage) => void) | undefined;
 }
@@ -2040,7 +2030,6 @@ function ChatRows({
   nextStepSkills,
   toolboxSkillNames,
   onForkFromMessage,
-  onAssistantFeedback,
   forkingMessageId,
   t,
   onOpenQuestions,
@@ -2078,7 +2067,6 @@ function ChatRows({
   nextStepSkills?: SkillSummary[];
   toolboxSkillNames?: Partial<Record<DesignToolboxActionId, string | null>>;
   onForkFromMessage?: (message: ChatMessage) => void;
-  onAssistantFeedback?: (message: ChatMessage, change: ChatMessageFeedbackChange) => void;
   forkingMessageId?: string | null;
   t: TranslateFn;
   onOpenQuestions?: (request?: QuestionFormOpenRequest) => void;
@@ -2152,7 +2140,6 @@ function ChatRows({
         showConversationTodoCard={m.id === conversationTodoAnchorMessageId}
         conversationTodoInput={conversationTodoInput}
         projectId={projectId}
-        projectKind={projectKindForTracking}
         conversationId={activeConversationId}
         projectFiles={projectFiles}
         projectFileNames={projectFileNames}
@@ -2164,7 +2151,6 @@ function ChatRows({
         errorCardOwnerId={errorCardOwnerId}
         nextUserContent={nextUserContentByAssistantId.get(m.id)}
         suppressDirectionForms={hasActiveDesignSystem}
-        hasDesignSystemContext={hasActiveDesignSystem || !!activeDesignSystem}
         onOpenQuestions={onOpenQuestions}
         onContinueRemainingTasks={
           m.id === lastAssistantId && onContinueRemainingTasks
@@ -2177,11 +2163,6 @@ function ChatRows({
             : undefined
         }
         forking={forkingMessageId === m.id}
-        onFeedback={
-          onAssistantFeedback
-            ? (rating) => assistantCallbacksRef.current.onAssistantFeedback?.(m, rating)
-            : undefined
-        }
         onArtifactShare={
           onArtifactShare
             ? (fileName) => assistantCallbacksRef.current.onArtifactShare?.(fileName)

@@ -10,6 +10,6 @@ describe('Critique Theater styles', () => {
     expect(css).toContain('.theater-score-ticker');
     expect(css).toContain('.theater-interrupt');
     expect(css).toContain('.theater-transcript');
-    expect(css.indexOf('.theater-stage')).toBeLessThan(css.indexOf('.assistant-feedback-wrap'));
+    expect(css.indexOf('.theater-stage')).toBeLessThan(css.indexOf('.assistant-footer-controls'));
   });
 });

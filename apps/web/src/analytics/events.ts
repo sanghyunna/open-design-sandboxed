@@ -14,7 +14,6 @@ import type {
   PluginDetailModalSurfaceViewProps,
   PluginImportModalSurfaceViewProps,
   DesignSystemsTemplatesModalSurfaceViewProps,
-  AssistantFeedbackReasonPanelSurfaceViewProps,
   QuestionsFormSurfaceViewProps,
   // ui_click
   HomeNavClickProps,
@@ -79,12 +78,6 @@ import type {
   ArtifactHeaderClickProps,
   PresentPopoverClickProps,
   ShareOptionPopoverClickProps,
-  AssistantFeedbackButtonClickProps,
-  AssistantFeedbackClickProps,
-  AssistantFeedbackReasonClickProps,
-  AssistantFeedbackReasonSubmitClickProps,
-  AssistantFeedbackReasonSubmitProps,
-  AssistantFeedbackReasonViewProps,
   SettingsSidebarClickProps,
   SettingsExecutionModeTabClickProps,
   SettingsLocalCliClickProps,
@@ -107,7 +100,6 @@ import type {
   RunFinishedProps,
   FileUploadResultProps,
   ArtifactExportResultProps,
-  FeedbackSubmitResultProps,
   SettingsViewProps,
   SettingsCliTestResultProps,
   SettingsByokModelsFetchResultProps,
@@ -197,13 +189,6 @@ export function trackPluginDetailModalSurfaceView(
 export function trackPluginImportModalSurfaceView(
   track: Track,
   props: PluginImportModalSurfaceViewProps,
-): void {
-  send(track, 'surface_view', props);
-}
-
-export function trackAssistantFeedbackReasonPanelSurfaceView(
-  track: Track,
-  props: AssistantFeedbackReasonPanelSurfaceViewProps,
 ): void {
   send(track, 'surface_view', props);
 }
@@ -665,23 +650,6 @@ export function trackShareOptionPopoverClick(
   send(track, 'ui_click', props, options);
 }
 
-// ---- ui_click (feedback) -------------------------------------------------
-
-export function trackAssistantFeedbackButtonClick(
-  track: Track,
-  props: AssistantFeedbackButtonClickProps,
-): void {
-  send(track, 'ui_click', props);
-}
-
-export function trackAssistantFeedbackReasonSubmitClick(
-  track: Track,
-  props: AssistantFeedbackReasonSubmitClickProps,
-  options?: { requestId?: string },
-): void {
-  send(track, 'ui_click', props, options);
-}
-
 // ---- ui_click (settings) -------------------------------------------------
 
 export function trackSettingsSidebarClick(
@@ -840,14 +808,6 @@ export function trackArtifactExportResult(
   send(track, 'artifact_export_result', props, options);
 }
 
-export function trackFeedbackSubmitResult(
-  track: Track,
-  props: FeedbackSubmitResultProps,
-  options?: { requestId?: string },
-): void {
-  send(track, 'feedback_submit_result', props, options);
-}
-
 // ---- Settings view + test/auth result events -----------------------------
 
 export function trackSettingsView(
@@ -883,50 +843,6 @@ export function trackSettingsConnectorAuthResult(
   props: SettingsConnectorAuthResultProps,
 ): void {
   send(track, 'settings_connector_auth_result', props);
-}
-
-export function trackAssistantFeedbackClick(
-  track: Track,
-  props: AssistantFeedbackClickProps,
-) {
-  track(
-    'assistant_feedback_click',
-    props as unknown as Record<string, unknown>,
-  );
-}
-
-export function trackAssistantFeedbackReasonView(
-  track: Track,
-  props: AssistantFeedbackReasonViewProps,
-) {
-  track(
-    'assistant_feedback_reason_view',
-    props as unknown as Record<string, unknown>,
-  );
-}
-
-export function trackAssistantFeedbackReasonClick(
-  track: Track,
-  props: AssistantFeedbackReasonClickProps,
-  options?: { requestId: string },
-) {
-  track(
-    'assistant_feedback_reason_click',
-    props as unknown as Record<string, unknown>,
-    options,
-  );
-}
-
-export function trackAssistantFeedbackReasonSubmit(
-  track: Track,
-  props: AssistantFeedbackReasonSubmitProps,
-  options?: { requestId: string },
-) {
-  track(
-    'assistant_feedback_reason_submit',
-    props as unknown as Record<string, unknown>,
-    options,
-  );
 }
 
 // ---- Onboarding ---------------------------------------------------------

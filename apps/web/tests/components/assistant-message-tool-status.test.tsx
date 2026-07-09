@@ -23,7 +23,6 @@ describe('AssistantMessage tool status', () => {
   it('shows Done for a completed run tool use that has no tool result', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={messageWithEvents([
           {
@@ -45,7 +44,6 @@ describe('AssistantMessage tool status', () => {
   it('keeps legacy completed messages without runStatus as Done', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={{
           ...messageWithEvents([
@@ -70,7 +68,6 @@ describe('AssistantMessage tool status', () => {
   it('shows Done in a grouped completed run when tool results are missing', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={messageWithEvents([
           {
@@ -98,7 +95,6 @@ describe('AssistantMessage tool status', () => {
   it('does not show Done when a failed run is missing a tool result', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={{
           ...messageWithEvents([
@@ -123,7 +119,6 @@ describe('AssistantMessage tool status', () => {
   it('does not show Done when a canceled run is missing a tool result', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={{
           ...messageWithEvents([
@@ -148,7 +143,6 @@ describe('AssistantMessage tool status', () => {
   it('keeps Running for a streaming tool use that has no tool result', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={{
           ...messageWithEvents([
@@ -174,7 +168,6 @@ describe('AssistantMessage tool status', () => {
   it('renders URLs in JSON-like status details without trailing structural characters', () => {
     const { container } = render(
       <AssistantMessage
-        projectKind="prototype"
         conversationId="conv-1"
         message={messageWithEvents([
           {

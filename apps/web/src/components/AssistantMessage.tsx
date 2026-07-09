@@ -7,26 +7,6 @@ import {
 } from "../runtime/markdown";
 import { asInProjectFilePath } from "../runtime/in-project-link";
 import { projectFileUrl } from "../providers/registry";
-import { useAnalytics } from "../analytics/provider";
-import {
-  trackAssistantFeedbackButtonClick,
-  trackAssistantFeedbackClick,
-  trackAssistantFeedbackReasonClick,
-  trackAssistantFeedbackReasonPanelSurfaceView,
-  trackAssistantFeedbackReasonSubmit,
-  trackAssistantFeedbackReasonSubmitClick,
-  trackAssistantFeedbackReasonView,
-  trackFeedbackSubmitResult,
-} from "../analytics/events";
-import {
-  feedbackAgentProviderIdToTracking,
-  modelIdForTracking,
-  normalizeCustomReason,
-  type TrackingFeedbackProviderId,
-  type TrackingFeedbackReasonCode,
-  type TrackingFeedbackRatingWithNone,
-  type TrackingProjectKind,
-} from "@open-design/contracts/analytics";
 import {
   splitOnQuestionForms,
   stripTrailingOpenQuestionForm,
@@ -57,9 +37,6 @@ import { filterImplicitProducedFiles } from "../produced-files";
 import type {
   AgentEvent,
   ChatMessage,
-  ChatMessageFeedbackChange,
-  ChatMessageFeedbackRating,
-  ChatMessageFeedbackReasonCode,
   ProjectFile,
   SkillSummary,
 } from "../types";
@@ -126,10 +103,6 @@ interface Props {
   showConversationTodoCard?: boolean;
   conversationTodoInput?: unknown | null;
   projectId: string | null;
-  // Analytics context for the assistant_feedback_* events. Defaults
-  // applied at the call site keep AssistantMessage usable in tests
-  // that don't care about telemetry.
-  projectKind?: TrackingProjectKind | null;
   conversationId?: string | null;
   projectFiles?: ProjectFile[];
   projectFileNames?: Set<string>;
@@ -157,9 +130,7 @@ interface Props {
   onContinueRemainingTasks?: (todos: TodoItem[]) => void;
   onForkFromMessage?: () => void;
   forking?: boolean;
-  onFeedback?: (change: ChatMessageFeedbackChange) => void;
   suppressDirectionForms?: boolean;
-  hasDesignSystemContext?: boolean;
   // "Next step" affordance handlers, surfaced under the last successful
   // assistant message. Omitting them hides the affordance entirely (e.g. in
   // tests that don't wire chat send).
@@ -176,7 +147,7 @@ interface Props {
 
 // Props compared by reference to decide whether a memoized AssistantMessage can
 // skip re-rendering. The interaction callbacks (onContinueRemainingTasks,
-// onForkFromMessage, onFeedback, and next-step actions) are DELIBERATELY
+// onForkFromMessage, and next-step actions) are DELIBERATELY
 // excluded: ChatPane re-creates them per render, but routes them through a ref
 // so their behavior is reference-stable — comparing them would defeat the memo
 // on every streamed frame. `isLast` is compared, which captures the only state
@@ -190,7 +161,6 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   'showConversationTodoCard',
   'conversationTodoInput',
   'projectId',
-  'projectKind',
   'conversationId',
   'projectFiles',
   'projectFileNames',
@@ -203,7 +173,6 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   'nextUserContent',
   'forking',
   'suppressDirectionForms',
-  'hasDesignSystemContext',
   // Memoized + stable from ChatPane; compared so a late skill-list load
   // refreshes the featured next-step rows' `@skill` hover detail and the
   // More → Design toolbox global resources.
@@ -247,7 +216,6 @@ function AssistantMessageImpl({
   showConversationTodoCard = false,
   conversationTodoInput = null,
   projectId,
-  projectKind = null,
   conversationId = null,
   projectFiles = [],
   projectFileNames,
@@ -262,9 +230,7 @@ function AssistantMessageImpl({
   onContinueRemainingTasks,
   onForkFromMessage,
   forking = false,
-  onFeedback,
   suppressDirectionForms = false,
-  hasDesignSystemContext = false,
   onArtifactShare,
   onToolboxAction,
   onPickSkill,
@@ -423,16 +389,7 @@ function AssistantMessageImpl({
       }
     : undefined;
   const copyMarkdown = message.content.trim().length > 0 ? message.content : undefined;
-  const showFeedback =
-    !!onFeedback &&
-    isFeedbackEligible({
-      streaming,
-      message,
-      hasEmptyResponse,
-      hasUnfinishedTodos: unfinishedTodos.length > 0,
-    });
   const showCompletionRow =
-    showFeedback ||
     streaming ||
     !!message.startedAt ||
     !!message.endedAt ||
@@ -588,51 +545,20 @@ function AssistantMessageImpl({
         ) : null}
         {showCompletionRow ? (
           <div className="assistant-completion-row">
-            {showFeedback ? (
-              <AssistantFeedback
-                feedback={message.feedback}
-                onFeedback={onFeedback}
-                projectId={projectId}
-                projectKind={projectKind}
-                conversationId={conversationId}
-                runId={message.runId ?? null}
-                assistantMessageId={message.id}
-                modelId={modelIdForTracking(assistantFeedbackModelId(message))}
-                agentProviderId={feedbackAgentProviderIdToTracking(message.agentId)}
-                producedFileCount={displayedProduced.length}
-                hasDesignSystemContext={hasDesignSystemContext}
-                footerProps={{
-                  streaming,
-                  startedAt: message.startedAt,
-                  endedAt: message.endedAt,
-                  usage,
-                  hasUnfinishedTodos: unfinishedTodos.length > 0,
-                  hasEmptyResponse,
-                  preparing,
-                  copyMarkdown,
-                  onFork: canFork ? onForkFromMessage : undefined,
-                  forking,
-                  onRollback: handleRollbackFromMessage,
-                  forceVisible: true,
-                  isLast: !!isLast,
-                }}
-              />
-            ) : (
-              <AssistantFooter
-                streaming={streaming}
-                startedAt={message.startedAt}
-                endedAt={message.endedAt}
-                usage={usage}
-                hasUnfinishedTodos={unfinishedTodos.length > 0}
-                hasEmptyResponse={hasEmptyResponse}
-                preparing={preparing}
-                copyMarkdown={copyMarkdown}
-                onFork={canFork ? onForkFromMessage : undefined}
-                forking={forking}
-                onRollback={handleRollbackFromMessage}
-                isLast={!!isLast}
-              />
-            )}
+            <AssistantFooter
+              streaming={streaming}
+              startedAt={message.startedAt}
+              endedAt={message.endedAt}
+              usage={usage}
+              hasUnfinishedTodos={unfinishedTodos.length > 0}
+              hasEmptyResponse={hasEmptyResponse}
+              preparing={preparing}
+              copyMarkdown={copyMarkdown}
+              onFork={canFork ? onForkFromMessage : undefined}
+              forking={forking}
+              onRollback={handleRollbackFromMessage}
+              isLast={!!isLast}
+            />
           </div>
         ) : null}
         {showNextStepActions ? (
@@ -707,34 +633,6 @@ function inferProducedFilesFromTurn({
   ).sort((a, b) => b.mtime - a.mtime);
 }
 
-// A run that reached a terminal state — succeeded, failed, or canceled — has a
-// settled assistant turn worth rating. Only queued/running turns are still in
-// flight, so they have no outcome to give feedback on yet. Feedback used to be
-// gated on success alone, which silently dropped the thumbs row on failed and
-// canceled turns even though those are exactly the outcomes a user most wants
-// to thumbs-down.
-function isTerminalRunStatus(
-  status: NonNullable<ChatMessage["runStatus"]>
-): boolean {
-  return status === "succeeded" || status === "failed" || status === "canceled";
-}
-
-function isFeedbackEligible({
-  streaming,
-  message,
-  hasEmptyResponse,
-  hasUnfinishedTodos,
-}: {
-  streaming: boolean;
-  message: ChatMessage;
-  hasEmptyResponse: boolean;
-  hasUnfinishedTodos: boolean;
-}): boolean {
-  if (streaming || hasEmptyResponse || hasUnfinishedTodos) return false;
-  if (message.runStatus) return isTerminalRunStatus(message.runStatus);
-  return !!message.endedAt;
-}
-
 // The agent name without the trailing model id — the role header shows the
 // brand logo + name only, so the `· model` suffix is dropped there.
 export function assistantRoleName(
@@ -782,16 +680,6 @@ function assistantModelDetail(message: ChatMessage): string | null {
   return detail;
 }
 
-function assistantFeedbackModelId(message: ChatMessage): string | null {
-  const detail = assistantModelDetail(message);
-  if (detail) return detail;
-  const displayName = message.agentName?.trim();
-  if (!displayName) return null;
-  const parts = displayName.split(" · ");
-  const model = parts.length > 1 ? parts[parts.length - 1]?.trim() : "";
-  return model || null;
-}
-
 function appendRoleModel(label: string, model: string | null): string {
   if (!model || label.includes(" · ")) return label;
   return `${label} · ${model}`;
@@ -811,7 +699,6 @@ interface AssistantFooterProps {
   onFork?: () => void;
   forking?: boolean;
   onRollback?: () => void;
-  feedbackControls?: ReactNode;
   forceVisible?: boolean;
   // The most recent assistant reply keeps its footer permanently visible
   // (not hover-gated), matching Lobe Chat's persistent last-message footer.
@@ -830,7 +717,6 @@ function AssistantFooter({
   onFork,
   forking = false,
   onRollback,
-  feedbackControls,
   forceVisible = false,
   isLast = false,
 }: AssistantFooterProps) {
@@ -881,7 +767,7 @@ function AssistantFooter({
           : ""}
         {costLabel}
       </span>
-      {copyMarkdown || onFork || onRollback || feedbackControls ? (
+      {copyMarkdown || onFork || onRollback ? (
         <span className="assistant-footer-controls">
           {copyMarkdown ? <AssistantMarkdownCopyButton markdown={copyMarkdown} /> : null}
           {onRollback ? <AssistantRollbackButton onRollback={onRollback} /> : null}
@@ -891,7 +777,6 @@ function AssistantFooter({
               onFork={onFork}
             />
           ) : null}
-          {feedbackControls}
         </span>
       ) : null}
     </div>
@@ -982,440 +867,6 @@ function AssistantMarkdownCopyButton({ markdown }: { markdown: string }) {
       <Icon name={copied ? "check" : "copy"} size={13} />
     </button>
   );
-}
-
-function AssistantFeedback({
-  feedback,
-  onFeedback,
-  hasDesignSystemContext,
-  footerProps,
-  projectId,
-  projectKind,
-  conversationId,
-  runId,
-  assistantMessageId,
-  modelId,
-  agentProviderId,
-  producedFileCount,
-}: {
-  feedback: ChatMessage["feedback"];
-  onFeedback: (change: ChatMessageFeedbackChange) => void;
-  hasDesignSystemContext: boolean;
-  footerProps: AssistantFooterProps;
-  projectId: string | null;
-  projectKind: TrackingProjectKind | null;
-  conversationId: string | null;
-  runId: string | null;
-  assistantMessageId: string;
-  modelId: string;
-  agentProviderId: TrackingFeedbackProviderId;
-  producedFileCount: number;
-}) {
-  const t = useT();
-  const analytics = useAnalytics();
-  // Analytics context the feedback events need. The four ids are either
-  // user-anchored (projectId / assistantMessageId) or run-anchored (runId),
-  // so we pass them down with a stable identity. `producedFileCount` feeds
-  // `has_produced_files` on assistant_feedback_button click.
-  const [burstKey, setBurstKey] = useState(0);
-  const [reasonRating, setReasonRating] =
-    useState<ChatMessageFeedbackRating | null>(null);
-  const reasonsRef = useRef<HTMLDivElement | null>(null);
-  const [draftReasonCodes, setDraftReasonCodes] = useState<
-    Set<ChatMessageFeedbackReasonCode>
-  >(() => new Set());
-  const [customReason, setCustomReason] = useState("");
-  const selected = feedback?.rating;
-  useEffect(() => {
-    if (selected) return;
-    setReasonRating(null);
-  }, [selected]);
-  useEffect(() => {
-    if (!reasonRating) return;
-    reasonsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-    // P0 surface_view assistant_feedback_reason_panel — fires when the
-    // reason panel actually appears (reasonRating flips from null to
-    // truthy), not when the buttons render.
-    trackAssistantFeedbackReasonPanelSurfaceView(analytics.track, {
-      page_name: "chat_panel",
-      area: "chat_panel",
-      element: "assistant_feedback_reason_panel",
-      view_type: "panel",
-      project_id: projectId ?? "",
-      project_kind: projectKind,
-      conversation_id: conversationId,
-      assistant_message_id: assistantMessageId,
-      run_id: runId ?? "",
-      rating: reasonRating,
-    });
-    // Dedicated assistant_feedback_reason_view event paired with the
-    // umbrella surface_view above. Requires the full project + conversation
-    // identity (its props type is stricter than the umbrella variant);
-    // skipped on test renders that mount AssistantMessage without those.
-    if (projectId && projectKind && conversationId) {
-      trackAssistantFeedbackReasonView(analytics.track, {
-        page: "studio",
-        area: "chat_panel",
-        element: "assistant_feedback_reason_panel",
-        view_type: "panel",
-        project_id: projectId,
-        project_kind: projectKind,
-        conversation_id: conversationId,
-        assistant_message_id: assistantMessageId,
-        run_id: runId ?? null,
-        agent_provider_id: agentProviderId,
-        model_id: modelId,
-        rating: reasonRating,
-      });
-    }
-  }, [
-    reasonRating,
-    analytics.track,
-    projectId,
-    projectKind,
-    conversationId,
-    assistantMessageId,
-    runId,
-    agentProviderId,
-    modelId,
-  ]);
-  const toggleFeedback = (rating: ChatMessageFeedbackRating) => {
-    const nextRating = selected === rating ? null : rating;
-    if (nextRating === "positive") setBurstKey((key) => key + 1);
-    setDraftReasonCodes(new Set());
-    setCustomReason("");
-    setReasonRating(nextRating);
-    // P0 ui_click assistant_feedback_button. v1 emitted `rating: null` on
-    // the clear path, which lost the signal "user un-thumbed positive vs
-    // un-thumbed negative". v2 fixes this: when clearing, `rating` carries
-    // the rating that was cleared (the user's most recent gesture target),
-    // and `rating_before` records the previous selection state.
-    const ratingBefore: "positive" | "negative" | "none" = selected ?? "none";
-    trackAssistantFeedbackButtonClick(analytics.track, {
-      page_name: "chat_panel",
-      area: "chat_panel",
-      element: "assistant_feedback_button",
-      action: nextRating ? "submit_feedback_rating" : "clear_feedback_rating",
-      project_id: projectId ?? "",
-      project_kind: projectKind,
-      conversation_id: conversationId,
-      assistant_message_id: assistantMessageId,
-      run_id: runId ?? "",
-      agent_provider_id: agentProviderId,
-      model_id: modelId,
-      rating,
-      rating_before: ratingBefore,
-      has_produced_files: producedFileCount > 0,
-    });
-    // Dedicated assistant_feedback_click paired with the umbrella ui_click
-    // above. Carries the post-action rating in the widened union (allows
-    // 'none' for the clear path).
-    if (projectId && projectKind && conversationId) {
-      const ratingAfter: TrackingFeedbackRatingWithNone = nextRating ?? "none";
-      trackAssistantFeedbackClick(analytics.track, {
-        page: "studio",
-        area: "chat_panel",
-        element: "assistant_feedback_button",
-        action: nextRating ? "submit_feedback_rating" : "clear_feedback_rating",
-        project_id: projectId,
-        project_kind: projectKind,
-        conversation_id: conversationId,
-        assistant_message_id: assistantMessageId,
-        run_id: runId ?? null,
-        agent_provider_id: agentProviderId,
-        model_id: modelId,
-        rating: ratingAfter,
-        rating_before: ratingBefore,
-        has_produced_files: producedFileCount > 0,
-      });
-    }
-    onFeedback(nextRating ? { rating: nextRating } : null);
-  };
-  const toggleReasonCode = (code: ChatMessageFeedbackReasonCode) => {
-    const next = new Set(draftReasonCodes);
-    if (next.has(code)) {
-      next.delete(code);
-      if (code === "other") setCustomReason("");
-    } else {
-      next.add(code);
-    }
-    setDraftReasonCodes(next);
-  };
-  const submitReasons = () => {
-    if (!reasonRating) return;
-    const trimmedCustomReason = customReason.trim();
-    const reasonCodes = [...draftReasonCodes];
-    const reasonJoined = reasonCodes.length > 0 ? reasonCodes.join(",") : undefined;
-    const hasCustomReason = draftReasonCodes.has("other") && trimmedCustomReason.length > 0;
-    const requestId = analytics.newRequestId();
-    // P0 ui_click element=assistant_feedback_reason_submit_button — fires
-    // synchronously on the user gesture so the click count never depends on
-    // the host's onFeedback persistence resolving.
-    trackAssistantFeedbackReasonSubmitClick(
-      analytics.track,
-      {
-        page_name: "chat_panel",
-        area: "chat_panel",
-        element: "assistant_feedback_reason_submit_button",
-        action: "click_submit_feedback_reason",
-        project_id: projectId ?? "",
-        project_kind: projectKind,
-        conversation_id: conversationId,
-        assistant_message_id: assistantMessageId,
-        run_id: runId ?? "",
-        agent_provider_id: agentProviderId,
-        model_id: modelId,
-        rating: reasonRating,
-        ...(reasonJoined ? { reason: reasonJoined } : {}),
-        reason_count: reasonCodes.length,
-        has_custom_reason: hasCustomReason,
-        ...(hasCustomReason ? { custom_reason: trimmedCustomReason } : {}),
-      },
-      { requestId },
-    );
-    // P0 feedback_submit_result — paired with the click via requestId so
-    // PostHog dashboards can correlate intent → persistence. onFeedback in
-    // our app currently completes synchronously, so we emit `success`
-    // optimistically; a future error-aware host can flip this to `failed`.
-    trackFeedbackSubmitResult(
-      analytics.track,
-      {
-        page_name: "chat_panel",
-        area: "chat_panel",
-        element: "assistant_feedback_reason_submit",
-        action: "submit_feedback_reason",
-        project_id: projectId ?? "",
-        project_kind: projectKind,
-        conversation_id: conversationId,
-        assistant_message_id: assistantMessageId,
-        run_id: runId ?? "",
-        agent_provider_id: agentProviderId,
-        model_id: modelId,
-        rating: reasonRating,
-        ...(reasonJoined ? { reason: reasonJoined } : {}),
-        reason_count: reasonCodes.length,
-        has_custom_reason: hasCustomReason,
-        ...(hasCustomReason ? { custom_reason: trimmedCustomReason } : {}),
-        result: "success",
-      },
-      { requestId },
-    );
-    // Dedicated assistant_feedback_reason_click + reason_submit paired with
-    // the umbrella ui_click + feedback_submit_result above. Both fire under
-    // the same `requestId` so PostHog can stitch click → result per the
-    // tracking spec.
-    if (projectId && projectKind && conversationId) {
-      const reasons = reasonCodes as TrackingFeedbackReasonCode[];
-      const sharedPayload = {
-        page: "studio" as const,
-        area: "chat_panel" as const,
-        project_id: projectId,
-        project_kind: projectKind,
-        conversation_id: conversationId,
-        assistant_message_id: assistantMessageId,
-        run_id: runId ?? null,
-        agent_provider_id: agentProviderId,
-        model_id: modelId,
-        rating: reasonRating,
-        reason: reasons,
-        reason_count: reasons.length,
-        has_custom_reason: hasCustomReason,
-        custom_reason: hasCustomReason
-          ? normalizeCustomReason(trimmedCustomReason)
-          : "",
-      };
-      trackAssistantFeedbackReasonClick(
-        analytics.track,
-        {
-          ...sharedPayload,
-          element: "assistant_feedback_reason_submit_button",
-          action: "click_submit_feedback_reason",
-        },
-        { requestId },
-      );
-      trackAssistantFeedbackReasonSubmit(
-        analytics.track,
-        {
-          ...sharedPayload,
-          element: "assistant_feedback_reason_submit",
-          action: "submit_feedback_reason",
-        },
-        { requestId },
-      );
-    }
-    onFeedback({
-      rating: reasonRating,
-      reasonCodes,
-      customReason:
-        draftReasonCodes.has("other") && trimmedCustomReason
-          ? trimmedCustomReason
-          : undefined,
-      reasonsSubmittedAt: Date.now(),
-    });
-    setReasonRating(null);
-  };
-  const reasonOptions = reasonRating
-    ? feedbackReasonOptions(reasonRating, t, hasDesignSystemContext)
-    : [];
-  const reasonEmoji = reasonRating === "positive" ? "😊" : "😔";
-  const showOtherInput = draftReasonCodes.has("other");
-  const canSubmit =
-    draftReasonCodes.size > 0 || (showOtherInput && customReason.trim().length > 0);
-  const controls = (
-    <span
-      className="assistant-feedback"
-      role="group"
-      aria-label={t("assistant.feedbackPrompt")}
-    >
-      <button
-        type="button"
-        className="assistant-feedback-button od-tooltip"
-        data-selected={selected === "positive" ? "true" : "false"}
-        data-tooltip={t("assistant.feedbackPositive")}
-        data-tooltip-placement="top"
-        aria-pressed={selected === "positive"}
-        aria-label={t("assistant.feedbackPositive")}
-        title={t("assistant.feedbackPositive")}
-        onClick={() => toggleFeedback("positive")}
-      >
-        <Icon name="thumbs-up" size={13} />
-        {burstKey > 0 ? (
-          <span
-            key={burstKey}
-            className="assistant-feedback-burst"
-            aria-hidden="true"
-          >
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </span>
-        ) : null}
-      </button>
-      <button
-        type="button"
-        className="assistant-feedback-button od-tooltip"
-        data-selected={selected === "negative" ? "true" : "false"}
-        data-tooltip={t("assistant.feedbackNegative")}
-        data-tooltip-placement="top"
-        aria-pressed={selected === "negative"}
-        aria-label={t("assistant.feedbackNegative")}
-        title={t("assistant.feedbackNegative")}
-        onClick={() => toggleFeedback("negative")}
-      >
-        <Icon name="thumbs-down" size={13} />
-      </button>
-    </span>
-  );
-  return (
-    <div className="assistant-feedback-wrap">
-      <AssistantFooter {...footerProps} feedbackControls={controls} />
-      {reasonRating ? (
-        <div className="assistant-feedback-reasons" ref={reasonsRef}>
-          <div className="assistant-feedback-reason-title">
-            <span>{t("assistant.feedbackReasonTitle")}</span>
-            <span className="assistant-feedback-reason-emoji" aria-hidden="true">
-              {reasonEmoji}
-            </span>
-          </div>
-          <div className="assistant-feedback-reason-options">
-            {reasonOptions.map((option) => (
-              <label
-                key={option.code}
-                className="assistant-feedback-reason-option"
-                data-selected={draftReasonCodes.has(option.code) ? "true" : "false"}
-              >
-                <input
-                  type="checkbox"
-                  checked={draftReasonCodes.has(option.code)}
-                  onChange={() => toggleReasonCode(option.code)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-          {showOtherInput ? (
-            <textarea
-              className="assistant-feedback-custom"
-              value={customReason}
-              placeholder={t("assistant.feedbackReasonPlaceholder")}
-              rows={2}
-              onChange={(event) => setCustomReason(event.target.value)}
-            />
-          ) : null}
-          <div className="assistant-feedback-actions">
-            <button
-              type="button"
-              className="assistant-feedback-submit"
-              disabled={!canSubmit}
-              onClick={submitReasons}
-            >
-              {t("assistant.feedbackReasonSubmit")}
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function feedbackReasonOptions(
-  rating: ChatMessageFeedbackRating,
-  t: TranslateFn,
-  hasDesignSystemContext: boolean,
-): Array<{ code: ChatMessageFeedbackReasonCode; label: string }> {
-  const codes: ChatMessageFeedbackReasonCode[] =
-    rating === "positive"
-      ? [
-          "matched_request",
-          "strong_visual",
-          "useful_structure",
-          "easy_to_continue",
-          ...(hasDesignSystemContext ? (["followed_design_system"] as const) : []),
-          "other",
-        ]
-      : [
-          "missed_request",
-          "weak_visual",
-          "incomplete_output",
-          "hard_to_use",
-          ...(hasDesignSystemContext ? (["missed_design_system"] as const) : []),
-          "other",
-        ];
-  return codes.map((code) => ({ code, label: feedbackReasonLabel(code, t) }));
-}
-
-function feedbackReasonLabel(
-  code: ChatMessageFeedbackReasonCode,
-  t: TranslateFn,
-): string {
-  switch (code) {
-    case "matched_request":
-      return t("assistant.feedbackReasonPositiveMatched");
-    case "strong_visual":
-      return t("assistant.feedbackReasonPositiveVisual");
-    case "useful_structure":
-      return t("assistant.feedbackReasonPositiveUseful");
-    case "easy_to_continue":
-      return t("assistant.feedbackReasonPositiveEasy");
-    case "followed_design_system":
-      return t("assistant.feedbackReasonPositiveDesignSystem");
-    case "missed_request":
-      return t("assistant.feedbackReasonNegativeMissed");
-    case "weak_visual":
-      return t("assistant.feedbackReasonNegativeVisual");
-    case "incomplete_output":
-      return t("assistant.feedbackReasonNegativeIncomplete");
-    case "hard_to_use":
-      return t("assistant.feedbackReasonNegativeHard");
-    case "missed_design_system":
-      return t("assistant.feedbackReasonNegativeDesignSystem");
-    case "other":
-      return t("assistant.feedbackReasonOther");
-  }
-  return code;
 }
 
 function UnfinishedTodosPanel({

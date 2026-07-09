@@ -31,10 +31,8 @@ import {
   listActiveChatRuns,
   listProjectRuns,
   reattachDaemonRun,
-  reportChatRunFeedback,
   streamViaDaemon,
 } from '../providers/daemon';
-import { normalizeCustomReason } from '@open-design/contracts/analytics';
 import {
   deletePreviewComment,
   fetchConnectorStatuses,
@@ -135,7 +133,6 @@ import type {
   ChatAttachment,
   ChatCommentAttachment,
   ChatMessage,
-  ChatMessageFeedbackChange,
   Conversation,
   DesignSystemSummary,
   OpenTabsState,
@@ -2208,54 +2205,6 @@ export function ProjectView({
     clearStreamingMarker(conversationId);
     return true;
   }, [clearActiveRunRefs, clearStreamingMarker]);
-
-  const handleAssistantFeedback = useCallback(
-    (assistantMessage: ChatMessage, change: ChatMessageFeedbackChange) => {
-      const now = Date.now();
-      updateMessageById(
-        assistantMessage.id,
-        (prev) =>
-          change
-            ? {
-                ...prev,
-                feedback: {
-                  rating: change.rating,
-                  reasonCodes: change.reasonCodes,
-                  customReason: change.customReason,
-                  reasonsSubmittedAt: change.reasonsSubmittedAt,
-                  createdAt:
-                    prev.feedback?.rating === change.rating
-                      ? prev.feedback.createdAt
-                      : now,
-                  updatedAt: now,
-                },
-              }
-            : {
-                ...prev,
-                feedback: undefined,
-              },
-        true,
-      );
-      // Forward affirmative ratings to the daemon → Langfuse `score-create`.
-      // Clears (change=null) are skipped — Langfuse scores are append-only,
-      // and the rating is also captured by the PostHog event so a clear is
-      // recoverable downstream if we ever need it.
-      const runId = assistantMessage.runId;
-      if (change && runId && activeConversationId) {
-        void reportChatRunFeedback({
-          runId,
-          projectId: project.id,
-          conversationId: activeConversationId,
-          assistantMessageId: assistantMessage.id,
-          rating: change.rating,
-          reasonCodes: change.reasonCodes ?? [],
-          hasCustomReason: !!change.customReason,
-          customReason: normalizeCustomReason(change.customReason),
-        });
-      }
-    },
-    [updateMessageById, activeConversationId, project.id],
-  );
 
   // `code` is the structured API error code (e.g. AGENT_AUTH_REQUIRED); it
   // rides along on the error status event so AssistantMessage can render the
@@ -4698,7 +4647,6 @@ export function ProjectView({
             onUpdateQueuedSend: updateQueuedChatSend,
             onReorderQueuedSends: reorderCurrentConversationQueuedChatSends,
             onSendQueuedNow: sendQueuedChatSendNow,
-            onAssistantFeedback: handleAssistantFeedback,
           }
         : undefined,
     [
@@ -4710,7 +4658,6 @@ export function ProjectView({
 	      currentConversationLoading,
 	      currentConversationStreaming,
       error,
-      handleAssistantFeedback,
       handleRetry,
       handleSend,
       handleStop,
@@ -5481,7 +5428,6 @@ export function ProjectView({
               initialDraft={chatInitialDraft}
               onOpenQuestions={openQuestionsTab}
               onContinueRemainingTasks={handleContinueRemainingTasks}
-              onAssistantFeedback={handleAssistantFeedback}
               onArtifactShare={handleArtifactShare}
               onArtifactDownload={handleArtifactDownload}
               onForkFromMessage={handleForkFromMessage}

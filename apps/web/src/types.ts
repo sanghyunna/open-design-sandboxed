@@ -10,9 +10,6 @@ import type {
   ChatAttachment,
   ChatCommentAttachment,
   ChatCommentSelectionKind,
-  ChatMessageFeedback,
-  ChatMessageFeedbackRating,
-  ChatMessageFeedbackReasonCode,
   ChatMessage,
   ConnectionTestKind,
   ConnectionTestProtocol,
@@ -336,23 +333,10 @@ export interface ComposioSettings {
 
 export type AgentEvent = PersistedAgentEvent;
 
-export type ChatMessageFeedbackChange =
-  | ({
-      rating: ChatMessageFeedbackRating;
-    } & Partial<
-      Pick<
-        ChatMessageFeedback,
-        'reasonCodes' | 'customReason' | 'reasonsSubmittedAt'
-      >
-    >)
-  | null;
-
 export type {
   ChatAttachment,
   ChatCommentAttachment,
   ChatMessage,
-  ChatMessageFeedbackRating,
-  ChatMessageFeedbackReasonCode,
 };
 
 export type {

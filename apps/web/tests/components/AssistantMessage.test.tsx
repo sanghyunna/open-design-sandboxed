@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
 
-/**
- * Visibility-gate coverage for the assistant feedback widget. It should
- * appear after any successfully completed turn, and stay hidden for
- * streaming turns, failed runs, and empty responses.
- */
-
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -48,18 +42,7 @@ function baseMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
   } as ChatMessage;
 }
 
-function producedFile(name: string): ProjectFile {
-  return {
-    name,
-    path: name,
-    size: 100,
-    mtime: 1700000005,
-    kind: 'html',
-    mime: 'text/html',
-  } as ProjectFile;
-}
-
-describe('AssistantMessage feedback gate', () => {
+describe('AssistantMessage completion footer', () => {
   it('copies the raw assistant markdown from the completion footer', async () => {
     const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -134,79 +117,22 @@ describe('AssistantMessage feedback gate', () => {
     expect(screen.queryByRole('button', { name: 'Fork from here' })).toBeNull();
   });
 
-  it('shows the feedback widget after a successful turn that produced files', () => {
+  it('keeps copy, rollback, and fork actions without thumbs feedback', () => {
     render(
       <AssistantMessage
-        message={baseMessage({ producedFiles: [producedFile('index.html')] })}
+        message={baseMessage()}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
+        conversationId="conv-1"
+        onForkFromMessage={vi.fn()}
       />,
     );
-    expect(screen.getByRole('group', { name: 'Feedback' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Helpful' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Not helpful' })).toBeTruthy();
-  });
 
-  it('shows the feedback widget for a successful text-only turn with no producedFiles', () => {
-    render(
-      <AssistantMessage
-        message={baseMessage({ producedFiles: [] })}
-        streaming={false}
-        projectId="proj-1"
-        onFeedback={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole('group', { name: 'Feedback' })).toBeTruthy();
-  });
-
-  it('hides the feedback widget while the turn is still streaming', () => {
-    render(
-      <AssistantMessage
-        message={baseMessage({
-          producedFiles: [producedFile('index.html')],
-          runStatus: 'running',
-          endedAt: undefined,
-        })}
-        streaming
-        projectId="proj-1"
-        onFeedback={vi.fn()}
-      />,
-    );
-    expect(screen.queryByRole('group', { name: 'Feedback' })).toBeNull();
-  });
-
-  it('shows the feedback widget when the run failed', () => {
-    render(
-      <AssistantMessage
-        message={baseMessage({
-          producedFiles: [producedFile('index.html')],
-          runStatus: 'failed',
-        })}
-        streaming={false}
-        projectId="proj-1"
-        onFeedback={vi.fn()}
-      />,
-    );
-    // A failed turn is a settled outcome worth rating — it's exactly the case a
-    // user most wants to thumbs-down, so the feedback row must be present.
-    expect(screen.getByRole('group', { name: 'Feedback' })).toBeTruthy();
-  });
-
-  it('hides the feedback widget when the run ended with an empty_response status', () => {
-    render(
-      <AssistantMessage
-        message={baseMessage({
-          producedFiles: [producedFile('index.html')],
-          events: [
-            { kind: 'status', label: 'empty_response' } as ChatMessage['events'][number],
-          ],
-        })}
-        streaming={false}
-        projectId="proj-1"
-        onFeedback={vi.fn()}
-      />,
-    );
+    expect(screen.getByRole('button', { name: 'Copy response markdown' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Rollback from here' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Fork from here' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Helpful' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Not helpful' })).toBeNull();
     expect(screen.queryByRole('group', { name: 'Feedback' })).toBeNull();
   });
 });
@@ -236,7 +162,6 @@ describe('AssistantMessage status badge updates (Bug A)', () => {
         })}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
 
@@ -260,7 +185,6 @@ describe('AssistantMessage status badge updates (Bug A)', () => {
         })}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
 
@@ -284,7 +208,6 @@ describe('AssistantMessage status badge updates (Bug A)', () => {
         })}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
 

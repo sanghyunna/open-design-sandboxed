@@ -7,7 +7,6 @@ import type {
   ChatAttachment,
   ChatCommentAttachment,
   ChatMessage,
-  ChatMessageFeedbackChange,
   Conversation,
   ProjectFile,
 } from '../../types';
@@ -53,10 +52,6 @@ export interface ActiveConversationChatState {
   ) => void;
   onReorderQueuedSends?: (orderedIds: string[]) => void;
   onSendQueuedNow?: (id: string) => void;
-  onAssistantFeedback?: (
-    assistantMessage: ChatMessage,
-    change: ChatMessageFeedbackChange,
-  ) => void;
 }
 
 interface Props {
@@ -150,7 +145,6 @@ export function SideChatTab({
           onSend={controlledChat?.onSend ?? chat.onSend}
           onRetry={controlledChat?.onRetry ?? chat.onRetry}
           onStop={controlledChat?.onStop ?? chat.onStop}
-          onAssistantFeedback={controlledChat?.onAssistantFeedback}
           onRequestOpenFile={onRequestOpenFile}
           conversations={conversations}
           activeConversationId={conversationId}

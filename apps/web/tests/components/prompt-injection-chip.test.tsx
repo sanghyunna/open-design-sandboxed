@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { AssistantMessage } from '../../src/components/AssistantMessage';
 import type { ChatMessage } from '../../src/types';
 
@@ -31,7 +31,6 @@ describe('prompt injection chip', () => {
         )}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
     expect(screen.queryByText('System reminder')).toBeNull();
@@ -46,7 +45,6 @@ describe('prompt injection chip', () => {
         )}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
     expect(container.querySelector('.system-reminder-block.injection')).not.toBeNull();
@@ -60,7 +58,6 @@ describe('prompt injection chip', () => {
         )}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
     const toggle = container.querySelector('.system-reminder-toggle') as HTMLButtonElement;
@@ -78,7 +75,6 @@ describe('prompt injection chip', () => {
         )}
         streaming={false}
         projectId="proj-1"
-        onFeedback={vi.fn()}
       />,
     );
     const iconSpan = container.querySelector('.system-reminder-icon');

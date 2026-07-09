@@ -9,7 +9,7 @@
  */
 
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { AssistantMessage } from '../../src/components/AssistantMessage';
 import type { ChatMessage } from '../../src/types';
@@ -52,7 +52,6 @@ describe('AssistantMessage error-pill suppression', () => {
         streaming={false}
         projectId="p1"
         errorCardOwnerId={null}
-        onFeedback={vi.fn()}
       />,
     );
     expect(screen.getByText('boom-401')).toBeTruthy();
@@ -65,7 +64,6 @@ describe('AssistantMessage error-pill suppression', () => {
         streaming={false}
         projectId="p1"
         errorCardOwnerId="some-other-message"
-        onFeedback={vi.fn()}
       />,
     );
     expect(screen.getByText('boom-401')).toBeTruthy();
@@ -78,7 +76,6 @@ describe('AssistantMessage error-pill suppression', () => {
         streaming={false}
         projectId="p1"
         errorCardOwnerId="msg-failed"
-        onFeedback={vi.fn()}
       />,
     );
     expect(screen.queryByText('boom-401')).toBeNull();
