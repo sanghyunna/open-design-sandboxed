@@ -325,8 +325,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var el = findById(id);
     if (el) el.setAttribute('data-od-edit-selected', 'true');
   }
-  function closestTarget(event){
-    var el = event.target;
+  function ancestorTarget(el){
     while (el && el !== document.documentElement) {
       if (el !== document.body && el !== document.documentElement && isSourceMappable(el) && isDiscoveryTarget(el)) {
         return targetForInlineText(el);
@@ -334,6 +333,55 @@ export function buildManualEditBridge(enabled: boolean): string {
       el = el.parentElement;
     }
     return null;
+  }
+  function closestTarget(event){
+    return ancestorTarget(event.target);
+  }
+  function targetsAtPoint(x, y){
+    if (!document.elementsFromPoint) return [];
+    var nodes = document.elementsFromPoint(x, y) || [];
+    var targets = [];
+    for (var i = 0; i < nodes.length; i++) {
+      var target = ancestorTarget(nodes[i]);
+      if (!target || targets.indexOf(target) >= 0) continue;
+      targets.push(target);
+    }
+    return targets;
+  }
+  var clickCycle = null;
+  var clickCycleTolerance = 4;
+  function resetClickCycle(){
+    clickCycle = null;
+  }
+  function stackSignature(stack){
+    return stack.map(function(el){ return stableId(el); }).join('\\n');
+  }
+  function sameClickCycle(x, y, signature){
+    return clickCycle
+      && Math.abs(clickCycle.x - x) <= clickCycleTolerance
+      && Math.abs(clickCycle.y - y) <= clickCycleTolerance
+      && clickCycle.signature === signature;
+  }
+  function clickTarget(event){
+    if (!event.altKey) {
+      resetClickCycle();
+      return closestTarget(event);
+    }
+    var stack = targetsAtPoint(event.clientX, event.clientY);
+    if (!stack.length) {
+      var fallback = closestTarget(event);
+      if (fallback) stack = [fallback];
+    }
+    if (!stack.length) {
+      resetClickCycle();
+      return null;
+    }
+    var signature = stackSignature(stack);
+    var index = sameClickCycle(event.clientX, event.clientY, signature)
+      ? (clickCycle.index + 1) % stack.length
+      : (stack.length > 1 ? 1 : 0);
+    clickCycle = { x: event.clientX, y: event.clientY, signature: signature, index: index };
+    return stack[index];
   }
   function currentSelectedRange(){
     try {
@@ -450,6 +498,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var originalHtml = el.innerHTML;
     var selectedRange = selectedRangeWithin(el);
     clearSelectedTarget();
+    resetClickCycle();
     el.setAttribute('contenteditable', rich ? 'true' : 'plaintext-only');
     el.setAttribute('data-od-editing', 'true');
     // Chromium's execCommand defaults to inline style spans; turning this off
@@ -586,11 +635,13 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (ev.data.type === 'od-edit-mode') {
       enabled = !!ev.data.enabled;
       document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
+      resetClickCycle();
       if (!enabled) clearSelectedTarget();
       if (enabled) setTimeout(postTargets, 0);
       return;
     }
     if (ev.data.type === 'od-edit-selected-target') {
+      if (!ev.data.id) resetClickCycle();
       setSelectedTarget(ev.data.id || null);
       return;
     }
@@ -625,8 +676,9 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    var el = closestTarget(ev);
+    var el = clickTarget(ev);
     if (!el) {
+      resetClickCycle();
       // Clicking empty canvas (no source-mapped ancestor) is the gesture for
       // page-level styles; the host decides whether to surface the card.
       window.parent.postMessage({ type: 'od-edit-background' }, '*');
@@ -634,8 +686,9 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     el = targetForSelection(el);
     var kind = inferKind(el);
+    setSelectedTarget(stableId(el));
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true) }, '*');
-    if (kind === 'text' || kind === 'link') {
+    if (!ev.altKey && (kind === 'text' || kind === 'link')) {
       makeEditable(el, ev);
       return;
     }

@@ -392,6 +392,213 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('uses the topmost target for plain clicks and the next lower target for Alt+click', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="bottom" data-od-edit="container"><span>Bottom</span></div>
+        <div data-od-id="top" data-od-edit="container"><span>Top</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const top = dom.window.document.querySelector('[data-od-id="top"]') as HTMLElement;
+    const bottom = dom.window.document.querySelector('[data-od-id="bottom"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [top, bottom],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'top' }) }),
+      '*',
+    );
+
+    postMessage.mockClear();
+    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'bottom' }) }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('cycles a 3-deep Alt+click stack and wraps to the top target', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
+        <div data-od-id="middle" data-od-edit="container"><span>Middle</span></div>
+        <div data-od-id="front" data-od-edit="container"><span>Front</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]') as HTMLElement;
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]') as HTMLElement;
+    const back = dom.window.document.querySelector('[data-od-id="back"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [front, middle, back],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    for (let i = 0; i < 4; i++) {
+      front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+    }
+
+    const selectedIds = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; target?: { id?: string } })
+      .filter((message) => message.type === 'od-edit-select')
+      .map((message) => message.target?.id);
+    expect(selectedIds).toEqual(['middle', 'back', 'front', 'middle']);
+
+    dom.window.close();
+  });
+
+  it('resets Alt+click cycling when the click point moves beyond tolerance', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
+        <div data-od-id="middle" data-od-edit="container"><span>Middle</span></div>
+        <div data-od-id="front" data-od-edit="container"><span>Front</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]') as HTMLElement;
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]') as HTMLElement;
+    const back = dom.window.document.querySelector('[data-od-id="back"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [front, middle, back],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+    front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 20, clientY: 10 }));
+
+    const selectedIds = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; target?: { id?: string } })
+      .filter((message) => message.type === 'od-edit-select')
+      .map((message) => message.target?.id);
+    expect(selectedIds).toEqual(['middle', 'middle']);
+
+    dom.window.close();
+  });
+
+  it('resets Alt+click cycling when the stack composition changes', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
+        <div data-od-id="middle" data-od-edit="container"><span>Middle</span></div>
+        <div data-od-id="front" data-od-edit="container"><span>Front</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]') as HTMLElement;
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]') as HTMLElement;
+    const back = dom.window.document.querySelector('[data-od-id="back"]') as HTMLElement;
+    let stack = [front, middle, back];
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => stack,
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+    stack = [front, back];
+    front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+
+    const selectedIds = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; target?: { id?: string } })
+      .filter((message) => message.type === 'od-edit-select')
+      .map((message) => message.target?.id);
+    expect(selectedIds).toEqual(['middle', 'back']);
+
+    dom.window.close();
+  });
+
+  it('selects text and link targets on Alt+click without entering inline edit', () => {
+    const dom = new JSDOM(
+      `<main><a data-od-id="cta" href="/start">Start</a></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const link = dom.window.document.querySelector('[data-od-id="cta"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [link],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    link.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'cta', kind: 'link' }) }),
+      '*',
+    );
+    expect(link.hasAttribute('data-od-editing')).toBe(false);
+    expect(link.hasAttribute('contenteditable')).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('still enters inline edit for plain clicks on text and link targets', () => {
+    const dom = new JSDOM(
+      `<main>
+        <h1 data-od-id="title">Title</h1>
+        <a data-od-id="cta" href="/start">Start</a>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    const link = dom.window.document.querySelector('[data-od-id="cta"]') as HTMLElement;
+
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+    title.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
+
+    link.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(link.getAttribute('data-od-editing')).toBe('true');
+
+    dom.window.close();
+  });
+
+  it('emits a background message for empty click regions', () => {
+    const dom = new JSDOM(
+      `<main><div>Empty</div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.body.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-background' }, '*');
+
+    dom.window.close();
+  });
+
+  it('moves the selected marker to the deeper Alt+click target', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="bottom" data-od-edit="container"><span>Bottom</span></div>
+        <div data-od-id="top" data-od-edit="container"><span>Top</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const top = dom.window.document.querySelector('[data-od-id="top"]') as HTMLElement;
+    const bottom = dom.window.document.querySelector('[data-od-id="bottom"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [top, bottom],
+    });
+
+    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+
+    expect(top.hasAttribute('data-od-edit-selected')).toBe(false);
+    expect(bottom.getAttribute('data-od-edit-selected')).toBe('true');
+
+    dom.window.close();
+  });
+
   it('keeps runtime selection marker out of source-shaped target data', () => {
     const bridge = buildManualEditBridge(true);
 
