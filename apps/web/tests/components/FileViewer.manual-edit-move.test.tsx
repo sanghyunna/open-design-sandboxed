@@ -388,6 +388,46 @@ describe('FileViewer manual edit move frame', () => {
     });
   });
 
+  it('re-enters edit mode with the committed translate, not the pre-edit frozen snapshot', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((c) => { savedContent = c; });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+
+    const interior = interiorSurface();
+    fireEvent.pointerDown(interior, { pointerId: 8, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(interior, { pointerId: 8, clientX: 330, clientY: 190 });
+    fireEvent.pointerUp(interior, { pointerId: 8, clientX: 330, clientY: 190 });
+    await waitFor(() => {
+      expect(savedContent).toMatch(/data-od-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
+    });
+
+    // Exit and re-enter edit mode. Exit is async (flush-then-exit), so wait
+    // for each transition — a synchronous double click lands both on the
+    // exit branch. The canvas must rebuild from the committed source; a
+    // survived pre-edit frozen snapshot renders every moved element back at
+    // its original position.
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await waitFor(() => {
+      expect(screen.getByTestId('manual-edit-mode-toggle').getAttribute('aria-pressed')).toBe('false');
+    });
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await waitFor(() => {
+      expect(screen.getByTestId('manual-edit-mode-toggle').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    await waitFor(() => {
+      const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
+      expect(frame.getAttribute('srcdoc') ?? '').toMatch(/translate:\s*30px\s+40px/);
+    });
+  });
+
   it('commits CSS-space translate (delta / rectScale) for a target under an ancestor transform', async () => {
     let savedContent = '';
     const fetchMock = savingFetch((c) => { savedContent = c; });

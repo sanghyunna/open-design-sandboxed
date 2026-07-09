@@ -4162,7 +4162,15 @@ function HtmlViewer({
   // invisible to the iframe — live updates flow through od-edit-preview-style
   // postMessage instead, so the canvas never has to reload.
   useEffect(() => {
-    if (manualEditMode && manualEditFrozenSource === null && livePreviewSource != null) {
+    if (!manualEditMode) {
+      // Exit invalidates the freeze. set-style commits intentionally never
+      // refresh the frozen snapshot (that would reload the canvas mid-edit),
+      // so letting it survive the session would resurrect pre-edit geometry
+      // on the next entry; re-entry must re-snapshot the current source.
+      if (manualEditFrozenSource !== null) setManualEditFrozenSource(null);
+      return;
+    }
+    if (manualEditFrozenSource === null && livePreviewSource != null) {
       setManualEditFrozenSource(livePreviewSource);
     }
   }, [manualEditMode, manualEditFrozenSource, livePreviewSource]);
