@@ -6,7 +6,7 @@
   position: fixed;
   inset: 0;
   z-index: 920;
-  background: rgba(28, 27, 26, 0.42);
+  background: color-mix(in srgb, var(--text-strong) 42%, transparent);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: flex-start;
@@ -97,7 +97,7 @@
   font-size: 12px;
 }
 .new-project-modal__status.error {
-  border-color: color-mix(in oklab, var(--danger, #d4543b) 45%, var(--border));
-  background: color-mix(in oklab, var(--danger, #d4543b) 10%, var(--bg-panel));
-  color: var(--danger, #d4543b);
+  border-color: color-mix(in oklab, var(--danger) 45%, var(--border));
+  background: color-mix(in oklab, var(--danger) 10%, var(--bg-panel));
+  color: var(--danger);
 }

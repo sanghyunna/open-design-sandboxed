@@ -33,8 +33,8 @@
 .memory-path-copied-badge {
   font-size: 11px;
   font-weight: 500;
-  color: var(--success-fg, #16a34a);
-  background: var(--success-bg, #dcfce7);
+  color: var(--success-fg);
+  background: var(--success-bg);
   padding: 1px 6px;
   border-radius: var(--radius-pill);
   animation: memory-badge-in 160ms var(--ease-out);
@@ -99,7 +99,7 @@
 }
 
 .memory-details-summary::before {
-  /* Caret used to render at 10px in --text-faint (#aaa). On hi-dpi
+  /* Caret used to render at 10px in --text-faint (var(--text-faint)). On hi-dpi
      panels that's a fuzzy speck the user can't even tell points right.
      Bumping to 13px (matches the summary text weight) and switching to
      --text-muted gives the disclosure marker enough mass to be obvious
@@ -122,7 +122,7 @@
 }
 
 .memory-details-summary:focus-visible {
-  outline: 2px solid var(--accent, #00946f);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
@@ -139,33 +139,33 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  background: var(--surface-strong, rgba(0, 0, 0, 0.06));
-  color: var(--text-muted, #888);
+  background: var(--surface-strong, color-mix(in srgb, var(--black) 6%, transparent));
+  color: var(--text-muted);
 }
 
 .memory-extraction-pill.is-running {
-  background: rgba(64, 137, 255, 0.16);
-  color: #2864d6;
+  background: color-mix(in srgb, var(--blue) 16%, transparent);
+  color: var(--blue);
 }
 
 .memory-extraction-pill.is-success {
-  background: rgba(34, 139, 90, 0.16);
-  color: #1f7a4d;
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--green);
 }
 
 .memory-extraction-pill.is-skipped {
-  background: rgba(150, 150, 150, 0.16);
-  color: var(--text-muted, #888);
+  background: color-mix(in srgb, var(--text-muted) 16%, transparent);
+  color: var(--text-muted);
 }
 
 .memory-extraction-pill.is-failed {
-  background: rgba(220, 53, 69, 0.14);
-  color: #b02a37;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
 }
 
 .memory-extraction-reason {
   font-size: 11px;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -174,10 +174,10 @@
   gap: 3px;
   margin-top: 8px;
   padding: 9px 10px;
-  border: 1px solid rgba(220, 53, 69, 0.22);
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, transparent);
   border-radius: var(--radius-sm);
-  background: rgba(220, 53, 69, 0.06);
-  color: var(--text-muted, #888);
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -193,7 +193,7 @@
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
 }
 
 .memory-extraction-ids {
@@ -209,9 +209,9 @@
   margin: 4px 0 8px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(34, 139, 90, 0.12);
-  color: var(--text-success, #1f7a4d);
-  border: 1px solid rgba(34, 139, 90, 0.32);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--text-success, var(--green));
+  border: 1px solid color-mix(in srgb, var(--success) 32%, transparent);
   font-size: 12px;
   font-weight: 500;
 }
@@ -455,7 +455,7 @@
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--white);
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
@@ -470,7 +470,7 @@
 }
 
 .library-install-error {
-  color: #e55;
+  color: var(--danger);
   font-size: 12px;
   margin: 0;
 }
@@ -559,8 +559,8 @@
   flex-shrink: 0;
 }
 .library-uninstall-btn:hover {
-  background: color-mix(in srgb, #e55 12%, transparent);
-  color: #e55;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
 .library-ds-card-actions {
@@ -612,7 +612,7 @@
   width: 14px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--white);
   border-radius: 50%;
   transition: transform 0.2s;
 }
@@ -685,19 +685,19 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid color-mix(in srgb, #2563eb 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--selected) 55%, transparent);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  color: #2563eb;
+  color: var(--selected);
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--shadow-color) 22%, transparent);
   opacity: 0;
   transform: scale(0.9);
   animation: manual-edit-hover-action-in 160ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
   pointer-events: auto;
 }
 .manual-edit-workspace > .manual-edit-hover-action:hover {
-  background: color-mix(in srgb, #2563eb 12%, var(--bg-panel));
+  background: color-mix(in srgb, var(--selected) 12%, var(--bg-panel));
 }
 @keyframes manual-edit-hover-action-in {
   to {
@@ -732,7 +732,7 @@
   color: var(--manual-edit-field-text);
   font-size: 10px; min-width: 0;
 }
-.cc-row:focus-within { border-color: var(--accent, #2563eb); }
+.cc-row:focus-within { border-color: var(--accent); }
 .cc-label {
   color: var(--manual-edit-field-muted);
   flex: 0 0 auto; padding-right: 8px;
@@ -792,7 +792,7 @@
 .cc-color-popover {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
   background: var(--bg-panel); border: 1px solid var(--manual-edit-field-border);
-  border-radius: var(--radius-sm); padding: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  border-radius: var(--radius-sm); padding: 8px; box-shadow: 0 6px 18px color-mix(in srgb, var(--black) 12%, transparent);
   display: flex; flex-direction: column; gap: 8px;
   width: min(168px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
@@ -953,7 +953,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--shadow-color) 12%, transparent);
 }
 
 .manual-edit-modal.cc-panel {
@@ -972,7 +972,7 @@
   max-height: 100%;
   padding-bottom: 10px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--shadow-color) 18%, transparent);
 }
 .manual-edit-scroll {
   flex: 1 1 auto;

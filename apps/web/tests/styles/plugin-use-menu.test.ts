@@ -22,11 +22,31 @@ function cssDeclarations(css: string, selector: string): string {
   return blocks.join('\n');
 }
 
+function cssBlock(css: string, selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = new RegExp(`${escaped}\\s*\\{([^}]*)\\}`).exec(css);
+  if (!match) throw new Error(`Missing CSS block for ${selector}`);
+  return match[1] ?? '';
+}
+
 function ruleValue(block: string, property: string): string {
   const matches = [...block.matchAll(new RegExp(`(?:^|[;\\n])\\s*${property}:\\s*([^;]+);`, 'g'))];
   const match = matches.at(-1);
   if (!match) throw new Error(`Missing CSS property ${property}`);
   return match[1]!.trim();
+}
+
+function cssVariables(selector: string, names: readonly string[]): Record<string, string> {
+  const block = cssBlock(indexCss, selector);
+  return Object.fromEntries(names.map((name) => [name, ruleValue(block, name)]));
+}
+
+function resolveVar(value: string, variables: Record<string, string>): string {
+  const match = /^var\((--[\w-]+)\)$/.exec(value);
+  if (!match) return value;
+  const resolved = variables[match[1]!];
+  if (!resolved) throw new Error(`Missing resolved value for ${match[1]}`);
+  return resolveVar(resolved, variables);
 }
 
 function specificity(selector: string): Specificity {
@@ -86,6 +106,9 @@ function contrastRatio(foreground: string, background: string): number {
 
 describe('plugin use menu contrast', () => {
   it('keeps option text readable on hover and keyboard focus', () => {
+    const colorVariables = ['--text-strong', '--bg-subtle'];
+    const lightVars = cssVariables(':root', colorVariables);
+    const darkVars = cssVariables('[data-theme="dark"]', colorVariables);
     const globalHoverSelector = 'button:hover:not(:disabled)';
     const hoverSelector = 'button.plugins-home__use-menu-item:hover:not(:disabled)';
     const focusSelector = 'button.plugins-home__use-menu-item:focus-visible';
@@ -100,7 +123,8 @@ describe('plugin use menu contrast', () => {
       const background = ruleValue(block, 'background');
       const color = ruleValue(block, 'color');
 
-      expect(contrastRatio(color, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(resolveVar(color, lightVars), resolveVar(background, lightVars))).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(resolveVar(color, darkVars), resolveVar(background, darkVars))).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

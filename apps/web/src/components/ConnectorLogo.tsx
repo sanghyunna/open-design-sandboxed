@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react';
 import type { ConnectorDetail } from '@open-design/contracts';
+import { resolveDocumentThemeScheme } from '../state/themes';
 
 const COMPOSIO_LOGO_SLUG_OVERRIDES: Record<string, string> = {
   google_drive: 'googledrive',
@@ -46,19 +47,14 @@ function composioLogoUrl(
 export function useResolvedTheme(): 'light' | 'dark' {
   const read = (): 'light' | 'dark' => {
     if (typeof document === 'undefined') return 'dark';
-    const attr = document.documentElement.getAttribute('data-theme');
-    if (attr === 'light' || attr === 'dark') return attr;
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return 'dark';
+    return resolveDocumentThemeScheme();
   };
   const [theme, setTheme] = useState<'light' | 'dark'>(read);
   useEffect(() => {
     const update = () => setTheme(read());
     update();
     const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-theme-scheme'] });
     const media = window.matchMedia?.('(prefers-color-scheme: dark)');
     media?.addEventListener?.('change', update);
     return () => {

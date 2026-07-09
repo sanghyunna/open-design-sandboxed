@@ -16,11 +16,11 @@
    install list should read as informational, so we only nudge the left border
    tone instead of painting the whole row. */
 .error {
-  border-left-color: color-mix(in srgb, var(--danger, #d9534f) 40%, var(--border));
+  border-left-color: color-mix(in srgb, var(--danger) 40%, var(--border));
 }
 
 .warning {
-  border-left-color: color-mix(in srgb, var(--warning, #d9a441) 40%, var(--border));
+  border-left-color: color-mix(in srgb, var(--warning) 40%, var(--border));
 }
 
 .info {

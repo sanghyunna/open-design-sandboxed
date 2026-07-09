@@ -30,8 +30,8 @@
   margin-bottom: 12px;
   padding: 0 9px;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--accent, #79a8ff) 12%, transparent);
-  color: color-mix(in srgb, var(--accent, #79a8ff) 78%, var(--text));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
   font-size: 10.5px;
   font-weight: 750;
   letter-spacing: 0.08em;
@@ -109,16 +109,16 @@
   gap: 6px;
   height: 34px;
   padding: 0 13px;
-  border: 1px solid color-mix(in srgb, var(--accent, #79a8ff) 48%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--accent, #79a8ff) 16%, var(--bg-panel));
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-panel));
   color: var(--text-strong);
   font-size: 12.5px;
   font-weight: 680;
   letter-spacing: -0.005em;
   cursor: pointer;
   box-shadow:
-    0 1px 0 color-mix(in srgb, #fff 70%, transparent) inset,
+    0 1px 0 color-mix(in srgb, var(--white) 70%, transparent) inset,
     var(--shadow-xs);
   transition:
     background-color 140ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -129,11 +129,11 @@
 }
 
 .automations-view__new:hover {
-  background: color-mix(in srgb, var(--accent, #79a8ff) 22%, var(--bg-panel));
-  border-color: color-mix(in srgb, var(--accent, #79a8ff) 60%, var(--border));
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
   box-shadow:
-    0 1px 0 color-mix(in srgb, #fff 70%, transparent) inset,
-    0 6px 16px color-mix(in srgb, var(--accent, #79a8ff) 18%, transparent);
+    0 1px 0 color-mix(in srgb, var(--white) 70%, transparent) inset,
+    0 6px 16px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .automations-view__new:active {
@@ -147,9 +147,9 @@
 
 .automations-view__error {
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--red, #d94c4c) 34%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--red) 34%, var(--border));
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--red, #d94c4c) 12%, var(--bg-panel));
+  background: color-mix(in srgb, var(--red) 12%, var(--bg-panel));
   color: var(--text);
   font-size: 12px;
 }
@@ -224,7 +224,7 @@
 
 .automation-empty:hover {
   border-style: solid;
-  border-color: color-mix(in srgb, var(--accent, #79a8ff) 38%, var(--border-strong, var(--border)));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border-strong, var(--border)));
   background: var(--bg-panel);
   box-shadow: var(--shadow-xs);
 }
@@ -236,8 +236,8 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--accent, #79a8ff) 16%, var(--bg-subtle));
-  color: color-mix(in srgb, var(--accent, #79a8ff) 76%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--accent) 76%, var(--text-strong));
 }
 
 .automation-empty__body {
@@ -279,8 +279,8 @@
   background: color-mix(in srgb, var(--bg-panel) 88%, var(--bg-subtle));
   border-color: var(--border-strong);
   box-shadow:
-    0 1px 2px color-mix(in srgb, #000 3%, transparent),
-    0 6px 18px color-mix(in srgb, #000 4%, transparent);
+    0 1px 2px color-mix(in srgb, var(--black) 3%, transparent),
+    0 6px 18px color-mix(in srgb, var(--black) 4%, transparent);
 }
 
 .automation-row.is-paused {
@@ -315,7 +315,7 @@
   height: 32px;
   border-radius: var(--radius);
   background: var(--bg-subtle);
-  color: color-mix(in srgb, var(--accent, #79a8ff) 74%, var(--text-muted));
+  color: color-mix(in srgb, var(--accent) 74%, var(--text-muted));
 }
 
 .automation-row__content {
@@ -376,28 +376,28 @@
 
 .automation-status.is-running,
 .automation-status.is-queued {
-  border-color: color-mix(in srgb, #c49a3b 28%, var(--border));
-  background: color-mix(in srgb, #c49a3b 12%, var(--bg-subtle));
-  color: color-mix(in srgb, #c49a3b 70%, var(--text));
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+  background: color-mix(in srgb, var(--warning) 12%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--warning) 70%, var(--text));
 }
 
 .automation-status.is-succeeded {
-  border-color: color-mix(in srgb, #43a66d 28%, var(--border));
-  background: color-mix(in srgb, #43a66d 12%, var(--bg-subtle));
-  color: color-mix(in srgb, #43a66d 68%, var(--text));
+  border-color: color-mix(in srgb, var(--success) 28%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--success) 68%, var(--text));
 }
 
 .automation-status.is-failed {
-  border-color: color-mix(in srgb, var(--red, #d94c4c) 34%, var(--border));
-  background: color-mix(in srgb, var(--red, #d94c4c) 12%, var(--bg-subtle));
-  color: color-mix(in srgb, var(--red, #d94c4c) 76%, var(--text));
+  border-color: color-mix(in srgb, var(--red) 34%, var(--border));
+  background: color-mix(in srgb, var(--red) 12%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--red) 76%, var(--text));
 }
 
 .automation-inline-link {
   appearance: none;
   border: 0;
   background: transparent;
-  color: color-mix(in srgb, var(--accent, #79a8ff) 78%, var(--text));
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -452,8 +452,8 @@
 }
 
 .automation-row__btn--danger:hover {
-  color: var(--red, #d94c4c);
-  border-color: color-mix(in srgb, var(--red, #d94c4c) 40%, var(--border));
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 40%, var(--border));
 }
 
 .automation-history {
@@ -537,7 +537,7 @@
 }
 
 .automation-history__message.is-error {
-  color: color-mix(in srgb, var(--red, #d94c4c) 78%, var(--text));
+  color: color-mix(in srgb, var(--red) 78%, var(--text));
 }
 
 .automation-history__actions {
@@ -653,8 +653,8 @@
 }
 
 .automations-template-tab.is-active .automations-template-tab__count {
-  background: color-mix(in srgb, var(--accent, #d77757) 18%, var(--bg-subtle));
-  color: color-mix(in srgb, var(--accent, #d77757) 70%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-strong));
 }
 
 .automations-templates__empty {
@@ -675,8 +675,8 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--accent, #79a8ff) 14%, var(--bg-subtle));
-  color: color-mix(in srgb, var(--accent, #79a8ff) 70%, var(--text-strong));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-strong));
 }
 
 .automations-templates__empty strong {
@@ -726,8 +726,8 @@
   border-color: var(--border-strong);
   transform: translateY(-2px);
   box-shadow:
-    0 1px 2px color-mix(in srgb, #000 3%, transparent),
-    0 10px 24px color-mix(in srgb, #000 5%, transparent);
+    0 1px 2px color-mix(in srgb, var(--black) 3%, transparent),
+    0 10px 24px color-mix(in srgb, var(--black) 5%, transparent);
 }
 
 .automation-template-card:active {
@@ -789,7 +789,7 @@
   align-items: center;
   gap: 4px;
   margin-top: auto;
-  color: color-mix(in srgb, var(--accent, #79a8ff) 78%, var(--text));
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
   font-size: 12px;
   font-weight: 700;
 }
@@ -806,7 +806,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--scrim, rgba(0, 0, 0, 0.45)) 92%, transparent);
+  background: color-mix(in srgb, var(--scrim) 92%, transparent);
   backdrop-filter: blur(3px);
   animation: automation-modal-fade-in 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -826,8 +826,8 @@
   border-radius: var(--radius);
   background: var(--bg-elevated, var(--bg-panel));
   box-shadow:
-    0 24px 60px color-mix(in srgb, #000 30%, transparent),
-    0 1px 0 color-mix(in srgb, #fff 5%, transparent) inset;
+    0 24px 60px color-mix(in srgb, var(--black) 30%, transparent),
+    0 1px 0 color-mix(in srgb, var(--white) 5%, transparent) inset;
   overflow: hidden;
   animation: automation-modal-pop-in 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -957,23 +957,23 @@
 
 .automation-modal__prompt:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent, #79a8ff) 44%, var(--border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #79a8ff) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .automation-modal__prompt-wrap.is-mentioning .automation-modal__prompt {
-  border-color: color-mix(in srgb, var(--accent, #79a8ff) 48%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--accent, #79a8ff) 15%, transparent),
-    0 16px 34px color-mix(in srgb, var(--accent, #79a8ff) 7%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent),
+    0 16px 34px color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
 .automation-modal__error {
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--red, #d94c4c) 32%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--red) 32%, var(--border));
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--red, #d94c4c) 14%, var(--bg-panel));
+  background: color-mix(in srgb, var(--red) 14%, var(--bg-panel));
   font-size: 12px;
   color: var(--text);
 }
@@ -989,7 +989,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elevated, var(--bg-panel));
-  box-shadow: 0 18px 44px color-mix(in srgb, #000 32%, transparent);
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--black) 32%, transparent);
   overflow: hidden;
   animation: automation-popover-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -1080,7 +1080,7 @@
 }
 
 .automation-mention-item.is-selected {
-  background: color-mix(in srgb, var(--accent, #79a8ff) 12%, var(--bg-panel));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-panel));
 }
 
 .automation-mention-item__icon {
@@ -1095,9 +1095,9 @@
 }
 
 .automation-mention-item.is-selected .automation-mention-item__icon {
-  border-color: var(--accent, #79a8ff);
-  background: var(--accent, #79a8ff);
-  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--white);
 }
 
 .automation-mention-item__body {
@@ -1251,9 +1251,9 @@
 }
 
 .automation-pill.is-active {
-  border-color: color-mix(in srgb, var(--accent, #79a8ff) 58%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
   box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--accent, #79a8ff) 18%, transparent);
+    color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .automation-modal__actions {
@@ -1322,7 +1322,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elevated, var(--bg-panel));
-  box-shadow: 0 14px 34px color-mix(in srgb, #000 28%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--black) 28%, transparent);
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1390,7 +1390,7 @@
 
 .automation-popover__item.is-selected,
 .automation-template-option.is-selected {
-  background: color-mix(in srgb, var(--accent, #79a8ff) 14%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .automation-template-option__icon {
@@ -1505,9 +1505,9 @@
 }
 
 .automation-popover__weekday.is-active {
-  background: var(--accent, #79a8ff);
-  border-color: var(--accent, #79a8ff);
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
 }
 
 .automation-popover__row {

@@ -1,4 +1,5 @@
 import type { HighlighterGeneric } from 'shiki';
+import { resolveDocumentThemeScheme } from '../state/themes';
 
 let highlighterPromise: Promise<HighlighterGeneric<any, any>> | null = null;
 
@@ -23,11 +24,7 @@ function getHighlighter(): Promise<HighlighterGeneric<any, any>> {
 }
 
 function isDarkMode(): boolean {
-  if (typeof document === 'undefined') return false;
-  const theme = document.documentElement.getAttribute('data-theme');
-  if (theme === 'dark') return true;
-  if (theme === 'light') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return resolveDocumentThemeScheme() === 'dark';
 }
 
 export async function highlightCode(code: string, lang: string): Promise<string> {

@@ -1,9 +1,9 @@
 .ds-editor-error {
   padding: 10px 12px;
-  border: 1px solid rgba(192, 57, 43, 0.32);
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
   border-radius: 8px;
-  background: rgba(192, 57, 43, 0.08);
-  color: var(--danger, #c0392b);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
   font-size: 12px;
 }
 .ds-setup-shell {
@@ -72,7 +72,7 @@
 .ds-setup-actions .primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast, #fff);
+  color: var(--accent-contrast);
 }
 .ds-setup-actions .primary:disabled,
 .ds-resource-inline button:disabled {
@@ -191,7 +191,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-panel) 98%, var(--bg-subtle) 2%);
-  box-shadow: 0 14px 36px color-mix(in srgb, var(--shadow-color, #000) 5%, transparent), var(--shadow-xs);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--shadow-color) 5%, transparent), var(--shadow-xs);
   overflow: hidden;
 }
 .ds-resource-row {
@@ -447,7 +447,7 @@
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--shadow-color) 14%, transparent);
 }
 .ds-hidden-input {
   display: none;
@@ -1348,7 +1348,7 @@
   min-height: 68vh;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--white);
 }
 .ds-file-preview-frame--asset {
   min-height: 320px;
@@ -1635,7 +1635,7 @@
   justify-content: center;
 }
 .ds-user-row__actions .icon-btn.danger {
-  color: var(--danger, #c0392b);
+  color: var(--danger);
 }
 .ds-status-toggle {
   display: inline-flex;
@@ -1751,7 +1751,7 @@
   left: 0;
   z-index: 2;
   background: var(--bg-panel);
-  box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.12);
+  box-shadow: 4px 0 6px -4px color-mix(in srgb, var(--black) 12%, transparent);
 }
 .ws-tab.design-system-tab.active {
   background: var(--bg-subtle);
@@ -1801,8 +1801,8 @@
   font-weight: 500;
 }
 .ws-tab-action.share:hover:not(:disabled) {
-  background: #000;
-  border-color: #000;
+  background: var(--black);
+  border-color: var(--black);
 }
 
 .ws-body {
@@ -2704,7 +2704,7 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  background: #d8d8d8;
+  background: var(--border);
 }
 .ds-project-review-item .ds-project-review-notice,
 .ds-project-review-item .ds-project-last-feedback,

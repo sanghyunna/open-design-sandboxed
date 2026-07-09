@@ -1,6 +1,7 @@
 @import './styles/remixicon/remixicon.css';
 @import './styles/design-system-flow.css';
 @import './styles/tokens.css';
+@import './styles/themes/index.css';
 @import './styles/base.css';
 @import '@open-design/components/styles.css';
 @import './styles/primitives.css';

@@ -393,7 +393,7 @@
 .plugins-view__primary {
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: white;
+  color: var(--white);
 }
 
 .plugins-view__primary:hover:not(:disabled) {
@@ -600,7 +600,7 @@
 }
 
 .plugins-view__notice.is-success {
-  border-color: color-mix(in srgb, var(--green, #168a4a) 25%, var(--border));
+  border-color: color-mix(in srgb, var(--green) 25%, var(--border));
 }
 
 .plugins-view__notice.is-error {
@@ -634,7 +634,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 18, 24, 0.28);
+  background: color-mix(in srgb, var(--shadow-color) 28%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -649,7 +649,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
-  box-shadow: var(--shadow-lg, 0 20px 60px rgba(0, 0, 0, 0.22));
+  box-shadow: var(--shadow-lg, 0 20px 60px color-mix(in srgb, var(--black) 22%, transparent));
 }
 
 .plugins-import-modal__head,

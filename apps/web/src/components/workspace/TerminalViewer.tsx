@@ -122,7 +122,7 @@ function subscribeToAppearanceChanges(onChange: () => void): () => void {
   // (plus the prefers-color-scheme media query below), never by the host root's
   // inline style. Observing `style` would re-run a full getComputedStyle theme
   // recompute on every unrelated inline-style write to <html>.
-  observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  observer.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-theme-scheme'] });
 
   if (media && typeof media.addEventListener === 'function') {
     media.addEventListener('change', schedule);

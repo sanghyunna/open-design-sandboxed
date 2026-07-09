@@ -30,7 +30,7 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  background-color: var(--surface-2, #f6f4ee);
+  background-color: var(--surface-2, var(--bg-panel));
   border-radius: var(--radius);
   border: 1px solid var(--border);
   image-rendering: pixelated;
@@ -215,7 +215,7 @@
   height: 56px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background-color: var(--surface-2, #f6f4ee);
+  background-color: var(--surface-2, var(--bg-panel));
   background-image: var(--pet-codex-src);
   background-repeat: no-repeat;
   /* Show only the top-left cell of the 8x9 atlas — that is the
@@ -241,13 +241,13 @@
   height: 139px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background-color: var(--surface-2, #f6f4ee);
+  background-color: var(--surface-2, var(--bg-panel));
   background-image: var(--pet-codex-src);
   background-repeat: no-repeat;
   background-position: 0% 0%;
   background-size: 800% 900%;
   image-rendering: pixelated;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--black) 22%, transparent);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 6px) scale(0.82);
@@ -489,7 +489,7 @@
 .qs-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 12, 10, 0.32);
+  background: color-mix(in srgb, var(--shadow-color) 32%, transparent);
   /* Sits in the modal tier (alongside prompt-template-modal-overlay) so
    * the palette renders above any open context menus or popovers. */
   z-index: 1500;
@@ -876,8 +876,8 @@
   border-radius: var(--radius-xs);
 }
 .library-card-delete:hover {
-  background: color-mix(in oklab, #ef4444 18%, transparent);
-  color: #ef4444;
+  background: color-mix(in oklab, var(--danger) 18%, transparent);
+  color: var(--danger);
 }
 
 .library-import-toggle {
@@ -925,7 +925,7 @@
   font-size: 12px;
 }
 .library-import-error {
-  color: #ef4444;
+  color: var(--danger);
   font-size: 12px;
 }
 .library-import-actions {
@@ -1023,7 +1023,7 @@
   width: 18px;
   height: 18px;
   border-radius: var(--radius-xs);
-  border: 1px solid rgba(128, 128, 128, 0.2);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 20%, transparent);
 }
 
 .library-ds-title {
@@ -1078,7 +1078,7 @@
   color: var(--text-muted);
   font-size: 13px;
   /* Tinted fill so the empty state reads as its own slot inside the
-     card. Without it the message floats in the same white as the card
+     card. Without it the message floats in the same var(--white) as the card
      itself and looks like a layout gap rather than an intentional
      "you have nothing here yet" panel. */
   padding: 28px 24px;
@@ -1114,9 +1114,9 @@
 .memory-disabled-banner {
   padding: 8px 12px;
   border-radius: var(--radius);
-  background: rgba(255, 159, 64, 0.12);
-  color: var(--text-muted, #b06a00);
-  border: 1px solid rgba(255, 159, 64, 0.32);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--text-muted, var(--warning));
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, transparent);
   font-size: 12px;
   margin: 8px 0 12px;
 }
@@ -1128,9 +1128,9 @@
 .memory-noprovider-banner {
   padding: 8px 12px;
   border-radius: var(--radius);
-  background: rgba(220, 53, 69, 0.10);
-  color: var(--text-danger, #b02a37);
-  border: 1px solid rgba(220, 53, 69, 0.32);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--text-danger, var(--danger));
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
   font-size: 12px;
   margin: 8px 0 12px;
 }
@@ -1421,15 +1421,15 @@
 }
 
 .memory-extraction-card.is-running {
-  border-color: rgba(64, 137, 255, 0.28);
+  border-color: color-mix(in srgb, var(--blue) 28%, transparent);
 }
 
 .memory-extraction-card.is-success {
-  border-color: rgba(34, 139, 90, 0.24);
+  border-color: color-mix(in srgb, var(--success) 24%, transparent);
 }
 
 .memory-extraction-card.is-failed {
-  border-color: rgba(220, 53, 69, 0.22);
+  border-color: color-mix(in srgb, var(--danger) 22%, transparent);
 }
 
 .memory-extraction-card .library-card-title-row {
@@ -1715,7 +1715,7 @@
   border: 2px solid var(--bg-panel);
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: white;
+  color: var(--white);
   box-shadow: var(--shadow-xs);
   opacity: 0;
   transform: scale(0.9);
@@ -1767,7 +1767,7 @@
 
 .memory-connector-picker.is-selected .memory-connector-picker-box {
   background: var(--accent);
-  color: white;
+  color: var(--white);
 }
 
 .memory-connector-connect-button {
@@ -1912,15 +1912,15 @@
 }
 
 .memory-connector-result.is-success {
-  border: 1px solid rgba(34, 139, 90, 0.24);
-  background: rgba(34, 139, 90, 0.08);
+  border: 1px solid color-mix(in srgb, var(--success) 24%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
   color: var(--text);
 }
 
 .memory-connector-result.is-error {
-  border: 1px solid rgba(220, 53, 69, 0.24);
-  background: rgba(220, 53, 69, 0.08);
-  color: var(--text-danger, #b02a37);
+  border: 1px solid color-mix(in srgb, var(--danger) 24%, transparent);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--text-danger, var(--danger));
 }
 
 .memory-connector-run-history {
@@ -1935,11 +1935,11 @@
 }
 
 .memory-connector-run-history .memory-extraction-card.is-success {
-  border-color: rgba(34, 139, 90, 0.18);
+  border-color: color-mix(in srgb, var(--success) 18%, transparent);
 }
 
 .memory-connector-run-history .memory-extraction-card.is-failed {
-  border-color: rgba(220, 53, 69, 0.18);
+  border-color: color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
 .memory-connector-diagnostics {
@@ -1992,15 +1992,15 @@
 }
 
 .memory-connector-diagnostic-row.is-succeeded .memory-connector-diagnostic-dot {
-  background: #228b5a;
+  background: var(--success);
 }
 
 .memory-connector-diagnostic-row.is-failed .memory-connector-diagnostic-dot {
-  background: #dc3545;
+  background: var(--danger);
 }
 
 .memory-connector-diagnostic-row.is-skipped .memory-connector-diagnostic-dot {
-  background: #9aa3ad;
+  background: var(--text-muted);
 }
 
 .memory-connector-diagnostic-copy {

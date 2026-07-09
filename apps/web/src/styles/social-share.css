@@ -52,52 +52,52 @@
 }
 
 .social-share-button--x {
-  --social-share-brand: #111111;
+  --social-share-brand: var(--brand-x);
 }
 
 .social-share-button--linkedin {
-  --social-share-brand: #0a66c2;
+  --social-share-brand: var(--brand-linkedin);
 }
 
 .social-share-button--facebook {
-  --social-share-brand: #1877f2;
+  --social-share-brand: var(--brand-facebook);
 }
 
 .social-share-button--reddit {
-  --social-share-brand: #ff4500;
+  --social-share-brand: var(--brand-reddit);
 }
 
 .social-share-button--telegram {
-  --social-share-brand: #26a5e4;
+  --social-share-brand: var(--brand-telegram);
 }
 
 .social-share-button--whatsapp {
-  --social-share-brand: #25d366;
+  --social-share-brand: var(--brand-whatsapp);
 }
 
 .social-share-button--weibo {
-  --social-share-brand: #e6162d;
+  --social-share-brand: var(--brand-tiktok);
 }
 
 .social-share-button--line {
-  --social-share-brand: #06c755;
+  --social-share-brand: var(--brand-line);
 }
 
 .social-share-button--instagram {
-  --social-share-brand: #e4405f;
+  --social-share-brand: var(--brand-instagram);
 }
 
 .social-share-button--xiaohongshu {
-  --social-share-brand: #ff2442;
+  --social-share-brand: var(--brand-instagram);
 }
 
-[data-theme="dark"] .social-share-button--x {
-  --social-share-brand: #f5f5f5;
+[data-theme-scheme="dark"] .social-share-button--x {
+  --social-share-brand: var(--bg-subtle);
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme]) .social-share-button--x {
-    --social-share-brand: #f5f5f5;
+  html:not([data-theme-scheme]) .social-share-button--x {
+    --social-share-brand: var(--bg-subtle);
   }
 }
 

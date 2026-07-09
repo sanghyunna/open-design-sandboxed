@@ -3,37 +3,6 @@
    over POST. Fills the body so the terminal owns the scroll. */
 
 .root {
-  --terminal-bg: #fbfaf8;
-  --terminal-fg: #1f2328;
-  --terminal-muted-fg: rgba(31, 35, 40, 0.68);
-  --terminal-cursor: #1f2328;
-  --terminal-cursor-accent: #fbfaf8;
-  --terminal-selection-bg: rgba(37, 99, 235, 0.24);
-  --terminal-selection-fg: #0f172a;
-  --terminal-selection-inactive-bg: rgba(100, 116, 139, 0.18);
-  --terminal-banner-bg: rgba(15, 23, 42, 0.045);
-  --terminal-banner-border: rgba(15, 23, 42, 0.11);
-  --terminal-button-bg: rgba(15, 23, 42, 0.06);
-  --terminal-button-bg-hover: rgba(15, 23, 42, 0.11);
-  --terminal-button-border: rgba(15, 23, 42, 0.12);
-  --terminal-button-border-hover: rgba(15, 23, 42, 0.2);
-  --terminal-ansi-black: #24292f;
-  --terminal-ansi-red: #b42318;
-  --terminal-ansi-green: #087443;
-  --terminal-ansi-yellow: #9a5b00;
-  --terminal-ansi-blue: #1d4ed8;
-  --terminal-ansi-magenta: #7e22ce;
-  --terminal-ansi-cyan: #047481;
-  --terminal-ansi-white: #ede9e0;
-  --terminal-ansi-bright-black: #6b7280;
-  --terminal-ansi-bright-red: #d92d20;
-  --terminal-ansi-bright-green: #099250;
-  --terminal-ansi-bright-yellow: #b7791f;
-  --terminal-ansi-bright-blue: #2563eb;
-  --terminal-ansi-bright-magenta: #9333ea;
-  --terminal-ansi-bright-cyan: #0891b2;
-  --terminal-ansi-bright-white: #ffffff;
-
   display: flex;
   flex-direction: column;
   position: relative;
@@ -44,72 +13,12 @@
   background: var(--terminal-bg);
 }
 
-:global([data-theme='dark']) .root {
-  --terminal-bg: #1e1e1e;
-  --terminal-fg: #e6e1d9;
-  --terminal-muted-fg: rgba(230, 225, 217, 0.72);
-  --terminal-cursor: #f2ede4;
-  --terminal-cursor-accent: #1e1e1e;
-  --terminal-selection-bg: rgba(96, 165, 250, 0.32);
-  --terminal-selection-fg: #ffffff;
-  --terminal-selection-inactive-bg: rgba(148, 163, 184, 0.22);
-  --terminal-banner-bg: rgba(255, 255, 255, 0.06);
-  --terminal-banner-border: rgba(255, 255, 255, 0.12);
-  --terminal-button-bg: rgba(255, 255, 255, 0.12);
-  --terminal-button-bg-hover: rgba(255, 255, 255, 0.2);
-  --terminal-button-border: rgba(255, 255, 255, 0.18);
-  --terminal-button-border-hover: rgba(255, 255, 255, 0.3);
-  --terminal-ansi-black: #1f2328;
-  --terminal-ansi-red: #ff7b72;
-  --terminal-ansi-green: #7ee787;
-  --terminal-ansi-yellow: #d29922;
-  --terminal-ansi-blue: #79c0ff;
-  --terminal-ansi-magenta: #d2a8ff;
-  --terminal-ansi-cyan: #56d4dd;
-  --terminal-ansi-white: #e6edf3;
-  --terminal-ansi-bright-black: #6e7681;
-  --terminal-ansi-bright-red: #ffa198;
-  --terminal-ansi-bright-green: #7ee787;
-  --terminal-ansi-bright-yellow: #e3b341;
-  --terminal-ansi-bright-blue: #a5d6ff;
-  --terminal-ansi-bright-magenta: #d2a8ff;
-  --terminal-ansi-bright-cyan: #7ee7f2;
-  --terminal-ansi-bright-white: #ffffff;
+:global([data-theme-scheme='dark']) .root {
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :global(html:not([data-theme])) .root {
-    --terminal-bg: #1e1e1e;
-    --terminal-fg: #e6e1d9;
-    --terminal-muted-fg: rgba(230, 225, 217, 0.72);
-    --terminal-cursor: #f2ede4;
-    --terminal-cursor-accent: #1e1e1e;
-    --terminal-selection-bg: rgba(96, 165, 250, 0.32);
-    --terminal-selection-fg: #ffffff;
-    --terminal-selection-inactive-bg: rgba(148, 163, 184, 0.22);
-    --terminal-banner-bg: rgba(255, 255, 255, 0.06);
-    --terminal-banner-border: rgba(255, 255, 255, 0.12);
-    --terminal-button-bg: rgba(255, 255, 255, 0.12);
-    --terminal-button-bg-hover: rgba(255, 255, 255, 0.2);
-    --terminal-button-border: rgba(255, 255, 255, 0.18);
-    --terminal-button-border-hover: rgba(255, 255, 255, 0.3);
-    --terminal-ansi-black: #1f2328;
-    --terminal-ansi-red: #ff7b72;
-    --terminal-ansi-green: #7ee787;
-    --terminal-ansi-yellow: #d29922;
-    --terminal-ansi-blue: #79c0ff;
-    --terminal-ansi-magenta: #d2a8ff;
-    --terminal-ansi-cyan: #56d4dd;
-    --terminal-ansi-white: #e6edf3;
-    --terminal-ansi-bright-black: #6e7681;
-    --terminal-ansi-bright-red: #ffa198;
-    --terminal-ansi-bright-green: #7ee787;
-    --terminal-ansi-bright-yellow: #e3b341;
-    --terminal-ansi-bright-blue: #a5d6ff;
-    --terminal-ansi-bright-magenta: #d2a8ff;
-    --terminal-ansi-bright-cyan: #7ee7f2;
-    --terminal-ansi-bright-white: #ffffff;
     color-scheme: dark;
   }
 }

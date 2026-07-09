@@ -38,11 +38,11 @@ describe('HomeHero footer select theme styles', () => {
 
   it('inverts monochrome model logos in dark dropdown panels', () => {
     for (const icon of ['openai', 'dalle', 'grok', 'elevenlabs', 'suno']) {
-      const selector = `[data-theme="dark"] .home-hero__model-option-icon--${icon} img`;
+      const selector = `[data-theme-scheme="dark"] .home-hero__model-option-icon--${icon} img`;
       expect(ruleValue(cssDeclarations(selector), 'filter'), selector)
         .toBe('invert(1) brightness(1.2)');
       expect(homeHeroCss).toContain(
-        `html:not([data-theme="light"]) .home-hero__model-option-icon--${icon} img`,
+        `html:not([data-theme-scheme]) .home-hero__model-option-icon--${icon} img`,
       );
     }
   });

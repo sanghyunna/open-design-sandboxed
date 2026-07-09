@@ -39,8 +39,8 @@
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 10px 28px -10px rgba(0, 0, 0, 0.18);
+    0 1px 2px color-mix(in srgb, var(--black) 4%, transparent),
+    0 10px 28px -10px color-mix(in srgb, var(--black) 18%, transparent);
   overflow: visible;
 }
 .plus-menu__popup--flyout-contained {
@@ -112,8 +112,8 @@
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 10px 28px -10px rgba(0, 0, 0, 0.18);
+    0 1px 2px color-mix(in srgb, var(--black) 4%, transparent),
+    0 10px 28px -10px color-mix(in srgb, var(--black) 18%, transparent);
   overflow-y: auto;
 }
 .plus-menu__popup--flyout-left .plus-menu__flyout {
@@ -346,8 +346,8 @@
   border-radius: var(--radius-lg);
   background: var(--bg-panel);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 10px 28px -10px rgba(0, 0, 0, 0.18);
+    0 1px 2px color-mix(in srgb, var(--black) 4%, transparent),
+    0 10px 28px -10px color-mix(in srgb, var(--black) 18%, transparent);
   overflow: hidden auto;
   scrollbar-width: thin;
 }
