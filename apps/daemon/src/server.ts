@@ -436,6 +436,7 @@ import {
 } from './agent-session-resume.js';
 import { registerConnectorRoutes } from './connectors/routes.js';
 import { registerActiveContextRoutes } from './routes/active-context.js';
+import { registerSystemFontsRoutes } from './routes/system-fonts.js';
 import { registerMcpRoutes } from './mcp-routes.js';
 import { registerXaiRoutes } from './routes/xai.js';
 import { registerDesignSystemToolRoutes } from './routes/design-system-tool.js';
@@ -5106,6 +5107,7 @@ export async function startServer({
     projectStore: projectStoreDeps,
   });
   registerSocialShareRoutes(app, { http: httpDeps });
+  registerSystemFontsRoutes(app, { http: httpDeps });
   registerProjectRoutes(app, {
     db,
     design,

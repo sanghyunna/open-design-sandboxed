@@ -1904,6 +1904,7 @@ export const en: Dict = {
   'manualEdit.uploadImageFailed': 'Could not upload image.',
   'manualEdit.focusSlides': 'Focus slides',
   'manualEdit.showPanels': 'Show panels',
+  'manualEdit.systemFontsGroup': 'System fonts',
   'manualEdit.typography.bold': 'Bold',
   'manualEdit.typography.italic': 'Italic',
   'manualEdit.typography.underline': 'Underline',

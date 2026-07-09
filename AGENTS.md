@@ -41,7 +41,7 @@ This file is the single source of truth for agents entering this repository. Rea
 
 ## Windows native
 
-- macOS, Linux, and WSL2 are the primary supported paths. Windows native is best-effort — file an issue if it doesn't work.
+- Windows is the primary supported platform; product features may assume Windows-native capabilities (e.g. system-font enumeration reads the Windows font registry). macOS, Linux, and WSL2 are best-effort — file an issue if something doesn't work.
 - Historical Windows-specific friction is documented in closed issues #10, #96, #100, #203, and #315; check the issue tracker for the current state before filing new reports.
 - Install Node 24. Either `winget install OpenJS.NodeJS.LTS` (currently Node 24.x) or download from https://nodejs.org. After install, verify with `node --version` — the WinGet LTS pointer rolls to the next major in October 2026, so re-verify if you re-run the install command later. Do not use Node 22 — see FAQ.
 - `corepack enable` fails with EPERM on Windows (cannot write shims to `Program Files`). Use `npm install -g pnpm@10.33.2` instead.

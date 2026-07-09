@@ -15,6 +15,8 @@ import type {
   ReplaceProjectWorkingDirResponse,
   SocialShareRequest,
   SocialShareResponse,
+  SystemFontFamily,
+  SystemFontsResponse,
 } from '@open-design/contracts';
 import type {
   AgentInfo,
@@ -203,6 +205,19 @@ export async function fetchSkills(options?: { signal?: AbortSignal }): Promise<S
     if (!resp.ok) return [];
     const json = (await resp.json()) as { skills: SkillSummary[] };
     return json.skills ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// Fonts installed on the machine running the daemon. Empty on unsupported
+// platforms (or any failure) so the picker falls back to the curated list.
+export async function fetchSystemFonts(options?: { signal?: AbortSignal }): Promise<SystemFontFamily[]> {
+  try {
+    const resp = await fetch('/api/system/fonts', { signal: options?.signal });
+    if (!resp.ok) return [];
+    const json = (await resp.json()) as SystemFontsResponse;
+    return json.fonts ?? [];
   } catch {
     return [];
   }
