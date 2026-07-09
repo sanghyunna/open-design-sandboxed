@@ -726,13 +726,13 @@
 .chrome-action-export {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--white);
   box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 .chrome-action-export:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: white;
+  color: var(--white);
 }
 .chrome-action-export:focus-visible {
   outline-color: var(--accent);
@@ -875,16 +875,16 @@
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-subtle));
 }
 .project-feature-chip.is-widgets {
-  color: color-mix(in srgb, #0891b2 72%, var(--text-strong));
-  border-color: color-mix(in srgb, #0891b2 26%, transparent);
-  background: color-mix(in srgb, #0891b2 10%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--blue) 72%, var(--text-strong));
+  border-color: color-mix(in srgb, var(--blue) 26%, transparent);
+  background: color-mix(in srgb, var(--blue) 10%, var(--bg-subtle));
 }
 .project-target-platform-chip.is-count {
   min-width: 28px;
   max-width: 36px;
   flex: 0 0 auto;
   color: var(--text-strong);
-  background: color-mix(in srgb, var(--accent, #7c5cff) 12%, var(--bg-subtle));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-subtle));
 }
 
 /* Settings: custom instructions textarea */
@@ -904,7 +904,7 @@
 }
 .custom-instructions-input:focus {
   outline: none;
-  border-color: var(--accent, #646cff);
+  border-color: var(--accent);
 }
 
 .topbar {
@@ -994,12 +994,12 @@
   transition: box-shadow var(--dur-quick) var(--ease-out), transform var(--dur-quick) var(--ease-out);
 }
 .avatar-btn:hover:not(:disabled) {
-  box-shadow: 0 0 0 3px rgba(194, 83, 45, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   border-color: transparent;
 }
 .avatar-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(194, 83, 45, 0.32);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
   border-color: transparent;
 }
 .avatar-btn:active:not(:disabled) { transform: scale(0.96); }
@@ -1191,11 +1191,11 @@ a.avatar-item:visited {
 .env-pill:hover { background: var(--bg-panel); border-color: var(--border-strong); }
 .env-pill-dot {
   width: 22px; height: 22px; border-radius: 50%;
-  background: linear-gradient(135deg, #d97757 0%, #b85a3b 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
   flex-shrink: 0;
 }
 .env-pill-dot[data-mode="api"] {
-  background: linear-gradient(135deg, #1c1b1a 0%, #4b4948 100%);
+  background: linear-gradient(135deg, var(--text-strong) 0%, var(--text-muted) 100%);
 }
 .env-pill-label { font-weight: 500; font-size: 12px; }
 .env-pill-meta {

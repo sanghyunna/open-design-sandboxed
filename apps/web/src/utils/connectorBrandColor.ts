@@ -1,3 +1,5 @@
+import { resolveDocumentThemeScheme } from '../state/themes';
+
 // Brand colors for connector mention pills. Neither ConnectorDetail nor the
 // upstream Composio catalog expose a brand color, so we keep a small curated
 // map of common connectors and fall back to a deterministic hash → palette for
@@ -113,8 +115,5 @@ export function connectorBrandColor(
  * `prefers-color-scheme` when no explicit theme is set (system mode).
  */
 export function resolveBrandTheme(): BrandTheme {
-  if (typeof document === 'undefined') return 'light';
-  const attr = document.documentElement.getAttribute('data-theme');
-  if (attr === 'dark' || attr === 'light') return attr;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return resolveDocumentThemeScheme();
 }

@@ -392,7 +392,7 @@
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--black) 12%, transparent);
 }
 .pet-swatch.active {
   border-color: var(--text-strong);

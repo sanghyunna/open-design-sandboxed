@@ -91,8 +91,8 @@
   font-size: 12px;
 }
 .markdown-status-error {
-  border-color: color-mix(in oklab, var(--danger, #d04b4b) 45%, var(--border-soft));
-  color: var(--danger, #d04b4b);
+  border-color: color-mix(in oklab, var(--danger) 45%, var(--border-soft));
+  color: var(--danger);
 }
 .markdown-rendered h1,
 .markdown-rendered h2,
@@ -197,7 +197,7 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  background: white;
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
@@ -210,20 +210,20 @@
   width: 100%;
   height: 100%;
   display: block;
-  background: white;
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 .sketch-preview.loading {
   background:
-    radial-gradient(circle at 8px 8px, #d7d4ce 1px, transparent 1px),
-    #f7f5f1;
+    radial-gradient(circle at 8px 8px, var(--border-soft) 1px, transparent 1px),
+    var(--bg-panel);
   background-size: 16px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 .sketch-preview-empty-mark path {
-  stroke: #bfbcb6;
+  stroke: var(--text-faint);
   stroke-width: 6;
   stroke-linecap: round;
   fill: none;
@@ -256,7 +256,7 @@
   min-width: 32px;
 }
 .sketch-tool:hover { background: var(--bg-subtle); }
-.sketch-tool.active { background: var(--accent); color: white; border-color: var(--accent); }
+.sketch-tool.active { background: var(--accent); color: var(--white); border-color: var(--accent); }
 .sketch-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .sketch-color { width: 32px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
 .sketch-size { width: 80px; background: transparent; border: none; }
@@ -415,7 +415,7 @@
 }
 .chat-example:hover .chat-example-cta {
   background: var(--accent);
-  color: #fff;
+  color: var(--white);
   transform: translateX(2px);
 }
 
@@ -445,7 +445,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--white);
 }
 .chat-connect-repo-body {
   display: flex;
@@ -588,7 +588,7 @@
   border-radius: var(--radius-xs);
   border: 1.5px solid var(--border-soft);
   background: var(--bg-panel);
-  color: #fff;
+  color: var(--white);
 }
 .prose-block .md-task-item[data-checked="true"] .md-task-check {
   background: var(--green);
@@ -696,13 +696,13 @@
   height: 0.85em;
   border-radius: 2px;
   box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(255, 255, 255, 0.55);
+    inset 0 0 0 1px color-mix(in srgb, var(--black) 24%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--white) 55%, transparent);
 }
-[data-theme="dark"] .prose-block .md-color-swatch {
+[data-theme-scheme="dark"] .prose-block .md-color-swatch {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-    0 0 0 1px rgba(0, 0, 0, 0.45);
+    inset 0 0 0 1px color-mix(in srgb, var(--white) 28%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--black) 45%, transparent);
 }
 .prose-block .md-code {
   background: transparent;
@@ -912,8 +912,8 @@
   overflow-wrap: anywhere;
   max-height: min(40vh, 320px);
   overflow-y: auto;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8px, black calc(100% - 16px), transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 8px, black calc(100% - 16px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, var(--black) 8px, var(--black) calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, var(--black) 8px, var(--black) calc(100% - 16px), transparent 100%);
 }
 .thinking-body .md-p + .md-p,
 .thinking-body .md-p + .md-h1,
@@ -996,21 +996,21 @@
 }
 /* Warning status — fabricated role markers (#3247), audit warnings, etc. */
 .status-pill.is-warning {
-  background: color-mix(in srgb, var(--amber, #b26200) 12%, transparent);
-  color: var(--amber, #b26200);
-  border-color: color-mix(in srgb, var(--amber, #b26200) 32%, transparent);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 32%, transparent);
 }
 .status-pill.is-warning .status-detail {
-  color: color-mix(in srgb, var(--amber, #b26200) 85%, var(--text));
+  color: color-mix(in srgb, var(--amber) 85%, var(--text));
 }
 /* Error status — agent failures, tool errors, etc. */
 .status-pill.is-error {
-  background: color-mix(in srgb, var(--red, #dc2626) 10%, transparent);
-  color: var(--red, #dc2626);
-  border-color: color-mix(in srgb, var(--red, #dc2626) 30%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
 }
 .status-pill.is-error .status-detail {
-  color: color-mix(in srgb, var(--red, #dc2626) 85%, var(--text));
+  color: color-mix(in srgb, var(--red) 85%, var(--text));
 }
 
 /* Grouped tool / action card */

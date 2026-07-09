@@ -7,6 +7,7 @@ import {
   syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../../src/state/config';
+import { THEME_OPTIONS } from '../../src/state/themes';
 import type { AppConfig } from '../../src/types';
 
 const store = new Map<string, string>();
@@ -412,7 +413,19 @@ describe('loadConfig', () => {
     const config = loadConfig();
 
     expect(config.theme).toBe('dark');
+    expect(config.accentColorMode).toBe('custom');
     expect(config.accentColor).toBe('#4f46e5');
+  });
+
+  it('loads valid named themes and falls back for invalid themes', () => {
+    const named = THEME_OPTIONS.find((option) => option.id === 'dracula')!;
+    store.set('open-design:config', JSON.stringify({ theme: named.id }));
+
+    expect(loadConfig().theme).toBe(named.id);
+
+    store.set('open-design:config', JSON.stringify({ theme: 'neon' }));
+
+    expect(loadConfig().theme).toBe('system');
   });
 
   it('falls back to the default accent color for malformed saved colors', () => {
@@ -421,7 +434,22 @@ describe('loadConfig', () => {
     };
     store.set('open-design:config', JSON.stringify(savedConfig));
 
-    expect(loadConfig().accentColor).toBe(DEFAULT_CONFIG.accentColor);
+    const config = loadConfig();
+    expect(config.accentColorMode).toBe('theme');
+    expect(config.accentColor).toBe(DEFAULT_CONFIG.accentColor);
+  });
+
+  it('keeps legacy default and missing accent colors in theme accent mode', () => {
+    store.set(
+      'open-design:config',
+      JSON.stringify({ accentColor: DEFAULT_CONFIG.accentColor }),
+    );
+
+    expect(loadConfig().accentColorMode).toBe('theme');
+
+    store.set('open-design:config', JSON.stringify({}));
+
+    expect(loadConfig().accentColorMode).toBe('theme');
   });
 
   it('returns defaults for malformed localStorage JSON', () => {

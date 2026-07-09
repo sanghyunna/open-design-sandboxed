@@ -21,10 +21,10 @@
   content: '';
   position: absolute;
   inset: 2px;
-  background: #2563eb;
-  border: 1px solid #fff;
+  background: var(--selected);
+  border: 1px solid var(--white);
   border-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--black) 30%, transparent);
 }
 
 .handle-nw,

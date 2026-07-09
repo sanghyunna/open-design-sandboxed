@@ -325,6 +325,17 @@ export interface Dict {
   'settings.themeSystem': string;
   'settings.themeLight': string;
   'settings.themeDark': string;
+  'settings.themeMonokai': string;
+  'settings.themeDracula': string;
+  'settings.themeCatppuccinLatte': string;
+  'settings.themeCatppuccinFrappe': string;
+  'settings.themeCatppuccinMacchiato': string;
+  'settings.themeCatppuccinMocha': string;
+  'settings.themeNord': string;
+  'settings.themeGruvbox': string;
+  'settings.themeSolarizedDark': string;
+  'settings.themeOneDark': string;
+  'settings.themeAccent': string;
   'settings.agentModelHead': string;
   'settings.modelPicker': string;
   'settings.modelSourceLive': string;

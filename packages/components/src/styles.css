@@ -15,9 +15,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-weight: 500;
-  box-shadow: 0 1px 0 rgba(180, 90, 59, 0.18) inset, var(--shadow-xs);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-strong) 18%, transparent) inset, var(--shadow-xs);
 }
 button.primary:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -46,12 +46,12 @@ button.ghost:hover:not(:disabled) { background: var(--bg-subtle); border-color: 
  * ghost button that wants the same "did it" pulse.
  */
 button.ghost.is-success-flash {
-  border-color: var(--green-border, color-mix(in srgb, #1f9d55 32%, var(--border)));
-  background: var(--green-bg, color-mix(in srgb, #1f9d55 8%, transparent));
-  color: var(--green, #137a3d);
+  border-color: var(--green-border, color-mix(in srgb, var(--green) 32%, var(--border)));
+  background: var(--green-bg, color-mix(in srgb, var(--green) 8%, transparent));
+  color: var(--green);
 }
 button.ghost.is-success-flash:hover:not(:disabled) {
-  background: var(--green-bg, color-mix(in srgb, #1f9d55 14%, transparent));
+  background: var(--green-bg, color-mix(in srgb, var(--green) 14%, transparent));
 }
 button.ghost.is-success-flash svg {
   color: currentColor;
@@ -104,49 +104,23 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px var(--selected-soft);
 }
 /* Entry sidebar form fields keep a quieter, neutral focus so the orange
-   "Create" CTA stays the loudest thing in the panel. A low-opacity black
+   "Create" CTA stays the loudest thing in the panel. A low-opacity var(--black)
    halo reads as "focused" without re-introducing the global blue/accent
    ring. Using rgba directly because the Next CSS pipeline collapses
    `color-mix(in srgb, var(--text) 8%, transparent)` to a solid var(--text)
-   ring (would render a 3px black band — too loud). */
+   ring (would render a 3px var(--black) band — too loud). */
 .entry-side input:focus,
 .entry-side textarea:focus,
 .entry-side select:focus {
   border-color: var(--text);
-  box-shadow: 0 0 0 3px rgba(28, 27, 26, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-strong) 8%, transparent);
 }
-/* Native <select> on macOS uses its own intrinsic min-height that ends up
-   shorter than <input> at the same `padding: 7px 10px` rule above, so any
-   form that flex-aligns an input next to a select (e.g. the memory editor's
-   Title + Type row) renders with mismatched heights. Stripping the native
-   chrome lets the shared padding and inherited line-height compute the
-   same box dimensions as the input, then we paint our own chevron via a
-   background SVG. The chevron color is a per-theme override so it stays
-   readable against the panel in both light and dark. */
+/* Keep native select indicators so dropdown affordances inherit platform and
+   high-contrast behavior instead of a hardcoded data-URI color. */
 select {
-  padding-right: 32px;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2374716b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 12px;
+  padding-right: 10px;
 }
 select::-ms-expand { display: none; }
-[data-theme='dark'] select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239a9690' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 12px;
-}
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239a9690' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px 12px;
-  }
-}
 textarea { resize: vertical; font-family: inherit; }
 
 .od-select {

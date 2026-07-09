@@ -140,12 +140,12 @@
 .viewer-action.primary {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: white;
+  color: var(--white);
 }
 .viewer-action.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: white;
+  color: var(--white);
 }
 /* Primary actions support a subtle in-flight affordance via data-running. Keeps
    layout stable (unlike :disabled-only) so locale text width doesn't jump. */
@@ -224,7 +224,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md, 10px);
-  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  box-shadow: var(--shadow-md, 0 8px 24px color-mix(in srgb, var(--black) 12%, transparent));
 }
 .artifact-tool-menu-item {
   width: 100%;
@@ -606,7 +606,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--black) 22%, transparent);
   background: var(--bg-panel);
 }
 .preview-viewport:not(.preview-viewport-desktop).comment-preview-layer-with-side-dock .comment-preview-canvas {
@@ -661,18 +661,18 @@
 }
 .board-pod-stroke polyline {
   fill: none;
-  stroke: rgba(22, 119, 255, 0.95);
+  stroke: color-mix(in srgb, var(--selected) 95%, transparent);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 4px rgba(22, 119, 255, 0.28));
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--selected) 28%, transparent));
 }
 .comment-target-overlay {
   position: absolute;
   pointer-events: none;
-  border: 1px solid var(--comment-overlay-border, #1677ff);
-  background: var(--comment-overlay-bg, rgba(22, 119, 255, 0.24));
-  box-shadow: 0 0 0 1px var(--comment-overlay-ring, rgba(22, 119, 255, 0.18));
+  border: 1px solid var(--comment-overlay-border, var(--selected));
+  background: var(--comment-overlay-bg, color-mix(in srgb, var(--selected) 24%, transparent));
+  box-shadow: 0 0 0 1px var(--comment-overlay-ring, color-mix(in srgb, var(--selected) 18%, transparent));
 }
 .comment-target-overlay.selected {
   border-width: 2px;
@@ -681,7 +681,7 @@
    Only fires from the member rendering branch in CommentTargetOverlay;
    single-element snapshots use the non-member fallback and never get hovered. */
 .comment-target-overlay--member.is-hover-focused {
-  outline: 2px solid rgb(22, 119, 255);
+  outline: 2px solid var(--selected);
   outline-offset: 2px;
   z-index: 2; /* float above sibling overlays */
 }
@@ -712,21 +712,21 @@
   width: 42px;
   height: 42px;
   padding: 0;
-  border: 3px solid #fff;
+  border: 3px solid var(--white);
   border-radius: 50% 50% 50% 10px;
-  background: #d96a46;
-  color: white;
+  background: var(--accent);
+  color: var(--white);
   font-size: 18px;
   font-weight: 800;
   line-height: 36px;
   text-align: center;
-  box-shadow: 0 10px 22px rgba(33, 24, 18, 0.22);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--shadow-color) 22%, transparent);
   pointer-events: auto;
   transform: translate(-50%, -50%);
 }
 .comment-saved-pin:hover,
 .comment-active-pin:hover {
-  background: #c95e3e;
+  background: var(--accent-strong);
   transform: translate(-50%, calc(-50% - 1px));
 }
 .comment-active-pin {
@@ -980,10 +980,10 @@
   padding: 0;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel, var(--white));
   color: var(--text);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--black) 18%, transparent);
 }
 .comment-popover-image-remove:hover {
   background: var(--red-bg);
@@ -1029,7 +1029,7 @@
   writing-mode: horizontal-tb;
 }
 .comment-side-panel {
-  --comment-accent: #ff5a3c;
+  --comment-accent: var(--accent);
   --comment-accent-strong: color-mix(in srgb, var(--comment-accent) 78%, var(--text));
   --comment-accent-surface: color-mix(in srgb, var(--comment-accent) 10%, var(--bg-panel));
   --comment-accent-surface-strong: color-mix(in srgb, var(--comment-accent) 18%, var(--bg-panel));
@@ -1038,10 +1038,10 @@
   width: 320px;
   height: 100%;
   max-width: 100%;
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel, var(--white));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--black) 8%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1056,7 +1056,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel, var(--white));
 }
 .comment-side-title {
   display: inline-flex;
@@ -1126,9 +1126,9 @@
   padding: 12px 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel, var(--white));
   color: var(--text-muted);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--black) 8%, transparent);
   cursor: pointer;
 }
 .comment-side-rail:hover {
@@ -1151,8 +1151,8 @@
   justify-content: center;
   padding: 0 4px;
   border-radius: var(--radius-pill);
-  background: #ff5a3c;
-  color: #fff;
+  background: var(--accent);
+  color: var(--white);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -1261,8 +1261,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #0a0a0a;
-  color: #fff;
+  background: var(--black);
+  color: var(--white);
   font-size: 11px;
   display: inline-flex;
   align-items: center;
@@ -1286,7 +1286,7 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  color: #fff;
+  color: var(--white);
   flex-shrink: 0;
 }
 .comment-side-check.checked {
@@ -1351,7 +1351,7 @@
   align-items: center;
   gap: 4px;
   background: var(--comment-accent);
-  color: #fff;
+  color: var(--white);
   border: 1px solid var(--comment-accent);
   border-radius: var(--radius-sm);
   padding: 5px 10px;
@@ -1361,18 +1361,18 @@
 .comment-side-selectbar .primary:disabled {
   background: color-mix(in srgb, var(--comment-accent) 45%, var(--bg-panel));
   border-color: color-mix(in srgb, var(--comment-accent) 45%, var(--border));
-  color: color-mix(in srgb, #fff 68%, var(--text-muted));
+  color: color-mix(in srgb, var(--white) 68%, var(--text-muted));
   cursor: not-allowed;
 }
 .comment-side-selectbar .primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--comment-accent) 88%, #000);
-  border-color: color-mix(in srgb, var(--comment-accent) 88%, #000);
+  background: color-mix(in srgb, var(--comment-accent) 88%, var(--black));
+  border-color: color-mix(in srgb, var(--comment-accent) 88%, var(--black));
 }
 .comment-side-new-comment {
   flex: 0 0 auto;
   border-top: 1px solid var(--border);
   padding: 10px 12px;
-  background: var(--bg-panel, #fff);
+  background: var(--bg-panel, var(--white));
 }
 .comment-side-new-comment .comment-side-new-comment-shell {
   padding: 8px 10px 6px;
@@ -1427,17 +1427,17 @@
   gap: 10px;
   min-height: 48px;
   padding: 0 12px 0 16px;
-  border: 1px solid rgba(87, 149, 206, 0.5);
+  border: 1px solid color-mix(in srgb, var(--blue) 50%, transparent);
   border-radius: 16px;
-  background: #0d3858;
-  color: #fff;
-  box-shadow: 0 12px 32px rgba(6, 22, 36, 0.28);
+  background: var(--blue-bg);
+  color: var(--blue);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-color) 28%, transparent);
   font-size: 15px;
   font-weight: 650;
   white-space: nowrap;
 }
 .screenshot-toast > i {
-  color: #fff;
+  color: var(--white);
   flex: 0 0 auto;
 }
 .screenshot-toast button {
@@ -1449,12 +1449,12 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: color-mix(in srgb, var(--blue) 72%, transparent);
   cursor: pointer;
 }
 .screenshot-toast button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue);
 }
 
 /* Inspect panel — sibling of the preview canvas and comment popover.
@@ -1563,7 +1563,7 @@
 button.ghost.mcp-copy-btn {
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--black) 8%, transparent);
 }
 button.ghost.mcp-copy-btn:hover:not(:disabled) {
   background: var(--bg-subtle);

@@ -564,7 +564,7 @@
   border: 1px solid var(--accent-soft);
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: #fff;
+  color: var(--white);
   font-size: 11px;
   font-weight: 650;
   cursor: pointer;
@@ -647,8 +647,8 @@
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(17, 24, 39, 0.95);
-  color: white;
+  background: color-mix(in srgb, var(--shadow-color) 95%, transparent);
+  color: var(--white);
   font-size: 10.5px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
@@ -675,8 +675,8 @@
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(17, 24, 39, 0.95);
-  color: white;
+  background: color-mix(in srgb, var(--shadow-color) 95%, transparent);
+  color: var(--white);
   font-size: 10.5px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
@@ -808,7 +808,7 @@
   font-size: 52px;
   line-height: 1;
   animation: var(--pet-anim, pet-float) 3.4s ease-in-out infinite;
-  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.08));
+  filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--black) 8%, transparent));
 }
 .pet-sprite-shadow {
   position: absolute;
@@ -816,7 +816,7 @@
   left: 50%;
   width: 64px;
   height: 8px;
-  background: rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--black) 18%, transparent);
   border-radius: 50%;
   filter: blur(4px);
   transform: translateX(-50%);
@@ -834,7 +834,7 @@
   justify-content: center;
   border-radius: var(--radius-pill);
   background: var(--pet-accent);
-  color: white;
+  color: var(--white);
   border: 2px solid var(--bg);
   font-size: 11px;
   font-weight: 700;

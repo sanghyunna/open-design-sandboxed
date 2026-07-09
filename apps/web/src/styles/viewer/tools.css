@@ -236,10 +236,10 @@
 .plugin-action-button--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--white);
 }
 .plugin-action-button--primary:hover:not(:disabled) {
-  color: #fff;
+  color: var(--white);
   filter: brightness(0.85);
 }
 .plugin-action-card__notice {
@@ -370,14 +370,14 @@
   border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
 }
 .file-ops-badge--write {
-  color: #2e7d32;
-  border-color: color-mix(in oklab, #2e7d32 35%, var(--border));
-  background: color-mix(in oklab, #2e7d32 8%, var(--bg-subtle));
+  color: var(--green);
+  border-color: color-mix(in oklab, var(--green) 35%, var(--border));
+  background: color-mix(in oklab, var(--green) 8%, var(--bg-subtle));
 }
 .file-ops-badge--edit {
-  color: #b26500;
-  border-color: color-mix(in oklab, #b26500 35%, var(--border));
-  background: color-mix(in oklab, #b26500 8%, var(--bg-subtle));
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning) 35%, var(--border));
+  background: color-mix(in oklab, var(--warning) 8%, var(--bg-subtle));
 }
 .file-ops-row-path {
   flex: 1;
@@ -410,8 +410,8 @@
   background: color-mix(in oklab, var(--accent) 10%, transparent);
 }
 .file-ops-row-status--error {
-  color: #c0392b;
-  background: color-mix(in oklab, #c0392b 12%, transparent);
+  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
 }
 .file-ops-row-open {
   font-size: 11px;
@@ -432,8 +432,8 @@
 .op-bash .op-output {
   margin: 0;
   padding: 8px 12px;
-  background: #1c1b1a;
-  color: #f0eee9;
+  background: var(--text-strong);
+  color: var(--bg-subtle);
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.55;
@@ -442,7 +442,7 @@
   max-height: 220px;
   overflow-y: auto;
 }
-.op-bash .op-output { background: #2a2926; }
+.op-bash .op-output { background: var(--bg-muted); }
 
 .op-todo .todo-list {
   list-style: none;
@@ -569,13 +569,13 @@
   gap: 6px;
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--white);
   box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .viewer-action-export:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  color: white;
+  color: var(--white);
 }
 @keyframes export-ready-nudge {
   0% {
@@ -771,24 +771,24 @@
   letter-spacing: 0;
 }
 .template-share-platform--reddit .template-share-platform__mark {
-  background: #ff4500;
-  color: white;
+  background: var(--brand-reddit);
+  color: var(--white);
 }
 .template-share-platform--facebook .template-share-platform__mark {
-  background: #1877f2;
-  color: white;
+  background: var(--brand-facebook);
+  color: var(--white);
 }
 .template-share-platform--linkedin .template-share-platform__mark {
-  background: #0a66c2;
-  color: white;
+  background: var(--brand-linkedin);
+  color: var(--white);
 }
 .template-share-platform--instagram .template-share-platform__mark {
-  background: #e4405f;
-  color: white;
+  background: var(--brand-instagram);
+  color: var(--white);
 }
 .template-share-platform--xiaohongshu .template-share-platform__mark {
-  background: #ff2442;
-  color: white;
+  background: var(--brand-instagram);
+  color: var(--white);
 }
 .share-menu-subitem {
   padding-left: 18px;
@@ -1099,9 +1099,9 @@
   letter-spacing: 0.02em;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
-  color: #137a3d;
-  background: color-mix(in srgb, #1f9d55 10%, transparent);
-  border: 1px solid color-mix(in srgb, #1f9d55 28%, var(--border));
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 28%, var(--border));
   font-variant-numeric: tabular-nums;
 }
 /*

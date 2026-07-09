@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { collectCssHardcodedColorMatches, collectCssNamedColorMatches } from "./style-policy.ts";
+import {
+  collectStylePolicyViolationsFromSource,
+  collectWebThemeTokenParityViolationsFromSource,
+} from "./guard.ts";
+import {
+  collectCssEncodedHexColorMatches,
+  collectCssEmptyVarFunctionMatches,
+  collectCssHardcodedColorMatches,
+  collectCssNamedColorMatches,
+} from "./style-policy.ts";
 
 test("collectCssNamedColorMatches finds named colors inside CSS shorthands and functions", () => {
   const source = [
@@ -56,5 +65,119 @@ test("collectCssHardcodedColorMatches finds CSS colors in declaration values", (
   assert.deepEqual(
     collectCssHardcodedColorMatches(source).map((match) => match.value),
     ["#ff0000", "rgb(255 0 0)", "hsl(0 100% 50%)"],
+  );
+});
+
+test("collectCssEmptyVarFunctionMatches finds invalid empty CSS var functions", () => {
+  const source = ".example { color: var(); background: color-mix(in srgb, var( ), red); border: var(, red); }";
+
+  assert.deepEqual(
+    collectCssEmptyVarFunctionMatches(source).map((match) => match.value),
+    ["var()", "var( )", "var(, red)"],
+  );
+});
+
+test("collectCssEmptyVarFunctionMatches ignores comments, strings, and valid var references", () => {
+  const source = [
+    "/* .ignored { color: var(); } */",
+    '.content { content: "var()"; }',
+    ".valid { color: var(--fg); background: var(--missing, rgb(1 2 3)); }",
+  ].join("\n");
+
+  assert.deepEqual(collectCssEmptyVarFunctionMatches(source), []);
+});
+
+test("collectCssEncodedHexColorMatches ignores comments and strings", () => {
+  const source = [
+    "/* .ignored { color: %23fff; } */",
+    '.content { content: "%23aaa"; }',
+    ".bad { color: %23bada55; }",
+  ].join("\n");
+
+  assert.deepEqual(
+    collectCssEncodedHexColorMatches(source).map((match) => match.value),
+    ["%23bada55"],
+  );
+});
+
+test("style policy flags encoded hex only outside CSS comments and strings", () => {
+  const source = [
+    "/* .ignored { color: %23fff; } */",
+    '.content { content: "%23aaa"; }',
+    ".bad { color: %23bada55; }",
+  ].join("\n");
+
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource("scripts/guard-style-policy-fixtures/encoded.css", source).map(
+      (violation) => violation.match,
+    ),
+    ["%23bada55"],
+  );
+});
+
+test("style policy keeps SettingsDialog legacy fallbacks narrow", () => {
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource(
+      "apps/web/src/components/SettingsDialog.tsx",
+      "const style = { color: 'var(--fg-2, #9aa0a6)', borderLeft: '3px solid var(--warning-fg, #fbbf24)' };",
+    ),
+    [],
+  );
+
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource(
+      "apps/web/src/components/SettingsDialog.tsx",
+      "const style = { color: '#123456' };",
+    ).map((violation) => violation.match),
+    ["#123456"],
+  );
+});
+
+test("style policy catches quoted named colors in enforced TSX paths", () => {
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource(
+      "scripts/guard-style-policy-fixtures/component.tsx",
+      "export const Component = () => <div style={{ color: 'red' }} />;",
+    ).map((violation) => violation.match),
+    ["'red'"],
+  );
+});
+
+test("style policy ignores TS comments and non-style named color strings", () => {
+  assert.deepEqual(
+    collectStylePolicyViolationsFromSource(
+      "apps/web/src/components/SettingsDialog.tsx",
+      ["const protocol = 'azure';", "// Issue #739", "const next = protocol === 'azure' ? 'api' : 'local';"].join("\n"),
+    ),
+    [],
+  );
+});
+
+test("theme parity requires the theme selector to match the file theme id", () => {
+  const expected = new Set(["--accent", "--accent-contrast"]);
+
+  assert.deepEqual(
+    collectWebThemeTokenParityViolationsFromSource(
+      "apps/web/src/styles/themes/dracula.css",
+      "dracula",
+      expected,
+      [
+        "[data-theme='dracula-broken'] {",
+        "  --accent: #ffffff;",
+        "  --accent-contrast: #000000;",
+        "}",
+      ].join("\n"),
+    ),
+    ['apps/web/src/styles/themes/dracula.css must define [data-theme="dracula"]'],
+  );
+
+  assert.deepEqual(
+    collectWebThemeTokenParityViolationsFromSource(
+      "apps/web/src/styles/themes/dracula.css",
+      "dracula",
+      expected,
+      ["[data-theme='dracula'] {", "  --accent: #ffffff;", "  --accent-contrast: #000000;", "}"].join("\n"),
+    ),
+    [],
   );
 });

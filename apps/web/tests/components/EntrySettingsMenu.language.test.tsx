@@ -1,15 +1,25 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EntrySettingsMenu } from '../../src/components/EntrySettingsMenu';
 import { I18nProvider } from '../../src/i18n';
-import type { AppConfig } from '../../src/types';
+import type { AppConfig, AppTheme } from '../../src/types';
+
+const { analyticsTrackMock } = vi.hoisted(() => ({
+  analyticsTrackMock: vi.fn(),
+}));
 
 vi.mock('../../src/analytics/provider', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/analytics/provider')>();
-  return { ...actual, useAnalytics: () => ({ track: vi.fn() }) };
+  return { ...actual, useAnalytics: () => ({ track: analyticsTrackMock }) };
 });
 
 const originalFetch = globalThis.fetch;
@@ -36,19 +46,45 @@ function baseConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   } as AppConfig;
 }
 
-function renderMenu() {
-  return render(
-    <I18nProvider initial="en">
-      <EntrySettingsMenu
-        config={baseConfig()}
-        onThemeChange={vi.fn()}
-        onOpenSettings={vi.fn()}
-      />
-    </I18nProvider>,
-  );
+function renderMenu({
+  config = baseConfig(),
+  onThemeChange = vi.fn(),
+}: {
+  config?: AppConfig;
+  onThemeChange?: (theme: AppTheme) => void;
+} = {}) {
+  return {
+    onThemeChange,
+    ...render(
+      <I18nProvider initial="en">
+        <EntrySettingsMenu
+          config={config}
+          onThemeChange={onThemeChange}
+          onOpenSettings={vi.fn()}
+        />
+      </I18nProvider>,
+    ),
+  };
 }
 
+const EXPECTED_THEME_OPTIONS: Array<{ id: AppTheme; label: string }> = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'monokai', label: 'Monokai' },
+  { id: 'dracula', label: 'Dracula' },
+  { id: 'catppuccin-latte', label: 'Catppuccin Latte' },
+  { id: 'catppuccin-frappe', label: 'Catppuccin Frappé' },
+  { id: 'catppuccin-macchiato', label: 'Catppuccin Macchiato' },
+  { id: 'catppuccin-mocha', label: 'Catppuccin Mocha' },
+  { id: 'nord', label: 'Nord' },
+  { id: 'gruvbox', label: 'Gruvbox' },
+  { id: 'solarized-dark', label: 'Solarized Dark' },
+  { id: 'one-dark', label: 'One Dark' },
+];
+
 beforeEach(() => {
+  analyticsTrackMock.mockReset();
   globalThis.fetch = vi.fn(async () => jsonResponse({})) as typeof fetch;
 });
 
@@ -96,5 +132,59 @@ describe('EntrySettingsMenu language picker a11y', () => {
     fireEvent.click(langTrigger);
     expect(langTrigger.getAttribute('aria-expanded')).toBe('true');
     expect(list.hasAttribute('inert')).toBe(false);
+  });
+});
+
+describe('EntrySettingsMenu theme picker', () => {
+  it('renders every registry theme and selects a named theme', () => {
+    const { container, onThemeChange } = renderMenu();
+    fireEvent.click(screen.getByTestId('entry-settings-menu-trigger'));
+
+    const themeRow = container.querySelector(
+      '.entry-settings-menu__theme-row',
+    ) as HTMLElement;
+    for (const option of EXPECTED_THEME_OPTIONS) {
+      expect(
+        within(themeRow).getByRole('menuitemradio', { name: option.label }),
+      ).toBeTruthy();
+    }
+
+    fireEvent.click(
+      within(themeRow).getByRole('menuitemradio', { name: 'Catppuccin Latte' }),
+    );
+
+    expect(onThemeChange).toHaveBeenCalledWith('catppuccin-latte');
+    expect(analyticsTrackMock).toHaveBeenCalledWith(
+      'ui_click',
+      expect.objectContaining({
+        page_name: 'home',
+        area: 'settings_popover',
+        element: 'appearance',
+        value: 'catppuccin_latte',
+      }),
+      undefined,
+    );
+  });
+
+  it('uses roving focus for theme menu keyboard navigation', () => {
+    const { container } = renderMenu({ config: baseConfig({ theme: 'dracula' }) });
+    fireEvent.click(screen.getByTestId('entry-settings-menu-trigger'));
+
+    const themeRow = container.querySelector(
+      '.entry-settings-menu__theme-row',
+    ) as HTMLElement;
+    const dracula = within(themeRow).getByRole('menuitemradio', { name: 'Dracula' });
+    const latte = within(themeRow).getByRole('menuitemradio', { name: 'Catppuccin Latte' });
+    const system = within(themeRow).getByRole('menuitemradio', { name: 'System' });
+
+    expect(dracula.getAttribute('tabindex')).toBe('0');
+    expect(latte.getAttribute('tabindex')).toBe('-1');
+
+    dracula.focus();
+    fireEvent.keyDown(dracula, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(latte);
+
+    fireEvent.keyDown(latte, { key: 'Home' });
+    expect(document.activeElement).toBe(system);
   });
 });

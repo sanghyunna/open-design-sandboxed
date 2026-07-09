@@ -421,7 +421,7 @@
 }
 .msg-mode-chip--chat {
   border-color: color-mix(in srgb, var(--text-soft) 22%, var(--border));
-  background: color-mix(in srgb, var(--bg-subtle) 78%, #fff);
+  background: color-mix(in srgb, var(--bg-subtle) 78%, var(--white));
   color: var(--text-muted);
 }
 .msg-plugin-context {
@@ -476,7 +476,7 @@
   flex: 0 0 auto;
 }
 .msg-plugin-chip--design-system .msg-plugin-chip__dot {
-  background: #d76445;
+  background: var(--accent);
 }
 .msg-plugin-chip__icon {
   display: inline-flex;
@@ -724,7 +724,7 @@
   padding: 2px 8px;
   font-size: 11px;
   background: var(--accent);
-  color: white;
+  color: var(--white);
   border-radius: var(--radius-xs);
 }
 /* Run-failure error card. Neutral gray (not red): the actionable next step
@@ -766,7 +766,7 @@
   cursor: pointer;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: white;
+  color: var(--white);
   font: inherit;
   font-weight: 600;
   padding: 4px 12px;
@@ -842,7 +842,7 @@
   cursor: pointer;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: white;
+  color: var(--white);
   font: inherit;
   font-weight: 600;
   font-size: 13px;
@@ -1507,7 +1507,7 @@
   height: 32px;
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: white;
+  color: var(--white);
   font-weight: 650;
   padding: 0 11px;
   font-size: 12.5px;
@@ -1555,8 +1555,8 @@
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--bg-panel) 92%, var(--bg-subtle));
   box-shadow:
-    0 10px 24px -18px rgba(0, 0, 0, 0.32),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+    0 10px 24px -18px color-mix(in srgb, var(--black) 32%, transparent),
+    0 1px 2px color-mix(in srgb, var(--black) 5%, transparent);
 }
 
 .chat-queued-send-list {
@@ -1574,7 +1574,7 @@
 .chat-queued-send-list.is-scrollable {
   padding-right: 3px;
   overscroll-behavior: contain;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to bottom, var(--black) calc(100% - 18px), transparent);
 }
 
 .chat-queued-send-header {
@@ -1777,7 +1777,7 @@
   max-width: 180px;
   padding: 5px 7px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--text-strong) 92%, #000);
+  background: color-mix(in srgb, var(--text-strong) 92%, var(--black));
   color: var(--bg-panel);
   font-size: 11px;
   line-height: 1.2;
@@ -1803,13 +1803,13 @@
 }
 
 .preview-draw-note-input::placeholder {
-  color: rgba(255, 225, 210, 0.86);
+  color: color-mix(in srgb, var(--accent-tint) 86%, transparent);
 }
 
 .preview-draw-note-input:focus {
-  background: rgba(218, 97, 56, 0.26) !important;
-  border-color: rgba(255, 184, 140, 0.95) !important;
-  box-shadow: 0 0 0 3px rgba(218, 97, 56, 0.34), 0 0 18px rgba(218, 97, 56, 0.24) !important;
+  background: color-mix(in srgb, var(--accent) 26%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent-soft) 95%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 24%, transparent) !important;
 }
 
 /* -------- Staged attachments -------------------------------------- */
@@ -2026,7 +2026,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(17, 24, 39, 0.75);
+  background: color-mix(in srgb, var(--shadow-color) 75%, transparent);
   backdrop-filter: blur(4px);
 }
 .staged-preview-card {

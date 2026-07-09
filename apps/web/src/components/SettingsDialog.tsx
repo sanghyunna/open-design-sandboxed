@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, Dispatch, SetStateAction } from 'react';
+import type { CSSProperties, Dispatch, KeyboardEvent as ReactKeyboardEvent, SetStateAction } from 'react';
 import { Button } from '@open-design/components';
 import { validateBaseUrl } from '@open-design/contracts/api/connectionTest';
 import {
@@ -7,6 +7,7 @@ import {
   byokProtocolToTracking,
   executionModeToTracking,
   settingsSectionToTracking,
+  themeIdToTracking,
 } from '@open-design/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
@@ -142,6 +143,7 @@ import {
   requestNotificationPermission,
   showCompletionNotification,
 } from '../utils/notifications';
+import { THEME_OPTIONS } from '../state/themes';
 
 export type SettingsSection =
   | 'execution'
@@ -854,6 +856,7 @@ export function SettingsDialog({
   const previousInitialRef = useRef(initial);
   const lastSavedAppearanceRef = useRef({
     theme: initial.theme ?? 'system',
+    accentColorMode: initial.accentColorMode ?? 'theme',
     accentColor: resolveAccentColor(initial.accentColor),
   });
 
@@ -866,9 +869,10 @@ export function SettingsDialog({
   useEffect(() => {
     lastSavedAppearanceRef.current = {
       theme: initial.theme ?? 'system',
+      accentColorMode: initial.accentColorMode ?? 'theme',
       accentColor: resolveAccentColor(initial.accentColor),
     };
-  }, [initial.theme, initial.accentColor]);
+  }, [initial.theme, initial.accentColorMode, initial.accentColor]);
 
   useEffect(() => {
     const previousInitial = previousInitialRef.current;
@@ -2048,6 +2052,7 @@ export function SettingsDialog({
           autosaveLastSavedRef.current = snapshot;
           lastSavedAppearanceRef.current = {
             theme: snapshot.theme ?? 'system',
+            accentColorMode: snapshot.accentColorMode ?? 'theme',
             accentColor: resolveAccentColor(snapshot.accentColor),
           };
           // If a newer edit landed while the request was in flight,
@@ -4764,11 +4769,20 @@ function IntegrationsSection() {
   );
 }
 
-const THEMES: Array<{ value: AppTheme; labelKey: 'settings.themeSystem' | 'settings.themeLight' | 'settings.themeDark'; icon?: 'sun' | 'moon' }> = [
-  { value: 'system', labelKey: 'settings.themeSystem' },
-  { value: 'light', labelKey: 'settings.themeLight', icon: 'sun' },
-  { value: 'dark', labelKey: 'settings.themeDark', icon: 'moon' },
-];
+function themeIndexForKey(currentIndex: number, key: string): number | null {
+  if (key === 'ArrowDown' || key === 'ArrowRight') return (currentIndex + 1) % THEME_OPTIONS.length;
+  if (key === 'ArrowUp' || key === 'ArrowLeft') return (currentIndex - 1 + THEME_OPTIONS.length) % THEME_OPTIONS.length;
+  if (key === 'Home') return 0;
+  if (key === 'End') return THEME_OPTIONS.length - 1;
+  return null;
+}
+
+function focusThemeRadio(event: ReactKeyboardEvent<HTMLButtonElement>, theme: AppTheme): void {
+  const picker = event.currentTarget.closest('[data-theme-picker]');
+  window.requestAnimationFrame(() => {
+    picker?.querySelector<HTMLButtonElement>(`[data-theme-option="${theme}"]`)?.focus();
+  });
+}
 
 function AppearanceSection({
   cfg,
@@ -4780,6 +4794,7 @@ function AppearanceSection({
   const { t } = useI18n();
   const analytics = useAnalytics();
   const current = cfg.theme ?? 'system';
+  const accentColorMode = cfg.accentColorMode ?? 'theme';
   const currentAccent = normalizeAccentColor(cfg.accentColor) ?? DEFAULT_ACCENT_COLOR;
   const accentLabel = t('pet.fieldAccent');
   const defaultAccentLabel = t('pet.fieldAccentDefault');
@@ -4790,47 +4805,84 @@ function AppearanceSection({
   useLayoutEffect(() => {
     applyAppearanceToDocument({
       theme: current,
+      accentColorMode,
       accentColor: currentAccent,
     });
-  }, [current, currentAccent]);
+  }, [current, accentColorMode, currentAccent]);
 
   const setAccentColor = (color: string) => {
-    setCfg((c) => ({ ...c, accentColor: normalizeAccentColor(color) ?? c.accentColor ?? DEFAULT_ACCENT_COLOR }));
+    setCfg((c) => ({
+      ...c,
+      accentColorMode: 'custom',
+      accentColor: normalizeAccentColor(color) ?? c.accentColor ?? DEFAULT_ACCENT_COLOR,
+    }));
+  };
+  const setTheme = (value: AppTheme) => {
+    trackSettingsAppearanceClick(analytics.track, {
+      page_name: 'settings',
+      area: 'appearance',
+      element: 'appearance',
+      value: themeIdToTracking(value),
+    });
+    setCfg((c) => ({ ...c, theme: value }));
   };
 
   return (
     <section className="settings-section">
-      <div className="seg-control" role="group" aria-label={t('settings.appearance')} style={{ '--seg-cols': THEMES.length } as React.CSSProperties}>
-        {THEMES.map(({ value, labelKey, icon }) => (
+      <div className={styles.themePicker} role="radiogroup" aria-label={t('settings.appearance')} data-theme-picker>
+        {THEME_OPTIONS.map(({ id: value, labelKey, swatch }, index) => (
           <button
             key={value}
             type="button"
-            className={'seg-btn' + (current === value ? ' active' : '')}
-            aria-pressed={current === value}
+            data-theme-option={value}
+            className={`${styles.themeOption}${current === value ? ` ${styles.themeOptionActive}` : ''}`}
+            aria-checked={current === value}
+            role="radio"
+            tabIndex={current === value ? 0 : -1}
+            onKeyDown={(event) => {
+              const nextIndex = themeIndexForKey(index, event.key);
+              if (nextIndex == null) return;
+              event.preventDefault();
+              const nextTheme = THEME_OPTIONS[nextIndex]?.id;
+              if (!nextTheme) return;
+              setTheme(nextTheme);
+              focusThemeRadio(event, nextTheme);
+            }}
             onClick={() => {
-              // P1 ui_click area=appearance — `system|light|dark` only
-              // emits from the segmented control; accent swatch picks
-              // use `accent_color` with the swatch hex below.
-              if (value === 'system' || value === 'light' || value === 'dark') {
-                trackSettingsAppearanceClick(analytics.track, {
-                  page_name: 'settings',
-                  area: 'appearance',
-                  element: value,
-                });
-              }
-              setCfg((c) => ({ ...c, theme: value }));
+              setTheme(value);
             }}
           >
-            {icon ? <Icon name={icon} size={14} aria-hidden="true" /> : null}
-            <span className="seg-title">{t(labelKey)}</span>
+            <span className={styles.themeSwatch} aria-hidden="true">
+              {swatch.map((color) => (
+                <span key={color} style={{ background: color }} />
+              ))}
+            </span>
+            <span className={styles.themeOptionLabel}>{t(labelKey)}</span>
+            {current === value ? <Icon name="check" size={14} aria-hidden="true" /> : null}
           </button>
         ))}
       </div>
       <div className="field">
         <span className="field-label">{accentLabel}</span>
+        <button
+          type="button"
+          className={`${styles.themeAccentButton}${accentColorMode === 'theme' ? ` ${styles.themeAccentButtonActive}` : ''}`}
+          aria-pressed={accentColorMode === 'theme'}
+          onClick={() => {
+            trackSettingsAppearanceClick(analytics.track, {
+              page_name: 'settings',
+              area: 'appearance',
+              element: 'accent_mode',
+            });
+            setCfg((c) => ({ ...c, accentColorMode: 'theme' }));
+          }}
+        >
+          <span>{t('settings.themeAccent')}</span>
+          {accentColorMode === 'theme' ? <Icon name="check" size={14} aria-hidden="true" /> : null}
+        </button>
         <div className="pet-swatches" role="radiogroup" aria-label={accentLabel}>
           {ACCENT_SWATCHES.map((color) => {
-            const active = currentAccent === color;
+            const active = accentColorMode === 'custom' && currentAccent === color;
             return (
               <button
                 key={color}

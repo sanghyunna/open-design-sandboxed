@@ -159,7 +159,22 @@ export interface ApiProtocolConfig {
 export type AgentModelChoice = AgentModelPrefs;
 export type AgentCliEnvConfig = AgentCliEnvPrefs;
 
-export type AppTheme = 'system' | 'light' | 'dark';
+export type AppTheme =
+  | 'system'
+  | 'light'
+  | 'dark'
+  | 'monokai'
+  | 'dracula'
+  | 'catppuccin-latte'
+  | 'catppuccin-frappe'
+  | 'catppuccin-macchiato'
+  | 'catppuccin-mocha'
+  | 'nord'
+  | 'gruvbox'
+  | 'solarized-dark'
+  | 'one-dark';
+export type ThemeScheme = 'light' | 'dark';
+export type AccentColorMode = 'theme' | 'custom';
 
 // One animation row inside a pet's sprite atlas. Mirrors the Codex
 // hatch-pet `animation-rows.md` reference — `id` lets the overlay map
@@ -265,6 +280,7 @@ export interface AppConfig {
   skillId: string | null;
   designSystemId: string | null;
   theme?: AppTheme;
+  accentColorMode?: AccentColorMode;
   accentColor?: string;
   // True once the user has been through the welcome onboarding modal at
   // least once (saved or skipped). Bootstrap skips the auto-popup when

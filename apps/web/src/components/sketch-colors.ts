@@ -1,3 +1,5 @@
+import { resolveDocumentThemeScheme } from '../state/themes';
+
 export const DEFAULT_SKETCH_LIGHT_TOOL_COLOR = '#1c1b1a';
 export const DEFAULT_SKETCH_DARK_TOOL_COLOR = '#ffffff';
 
@@ -12,7 +14,7 @@ export function resolveDefaultSketchToolColor(
 
 export function readDefaultSketchToolColor(): string {
   if (typeof document === 'undefined') return DEFAULT_SKETCH_LIGHT_TOOL_COLOR;
-  const theme = document.documentElement.getAttribute('data-theme');
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches === true;
-  return resolveDefaultSketchToolColor(theme, prefersDark);
+  return resolveDocumentThemeScheme() === 'dark'
+    ? DEFAULT_SKETCH_DARK_TOOL_COLOR
+    : DEFAULT_SKETCH_LIGHT_TOOL_COLOR;
 }

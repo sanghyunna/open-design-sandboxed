@@ -12,7 +12,7 @@
   position: fixed;
   inset: 0;
   z-index: 920;
-  background: rgba(28, 27, 26, 0.42);
+  background: color-mix(in srgb, var(--text-strong) 42%, transparent);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -297,7 +297,7 @@
 }
 .use-everywhere-modal__primary {
   background: var(--accent);
-  color: var(--accent-on, #fff);
+  color: var(--accent-on, var(--white));
   border: 1px solid var(--accent);
 }
 .use-everywhere-modal__primary:hover {

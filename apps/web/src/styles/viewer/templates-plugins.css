@@ -257,11 +257,11 @@
 
 .mcp-error {
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--danger, #d54) 50%, transparent);
-  background: color-mix(in srgb, var(--danger, #d54) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
   border-radius: var(--radius-sm);
   font-size: 12px;
-  color: var(--danger, #d54);
+  color: var(--danger);
 }
 
 .mcp-agent-support {
@@ -286,7 +286,7 @@
   background: color-mix(in srgb, var(--bg) 70%, transparent);
 }
 .mcp-agent-support-unsupported {
-  color: color-mix(in srgb, var(--danger, #d54) 85%, var(--text));
+  color: color-mix(in srgb, var(--danger) 85%, var(--text));
 }
 
 .mcp-rows {
@@ -533,7 +533,7 @@
   flex-wrap: wrap;
 }
 .mcp-foot-spacer { flex: 1; }
-.mcp-saved-msg { color: var(--success, #6c6); }
+.mcp-saved-msg { color: var(--success); }
 
 /* Per-row OAuth Connect/Disconnect control. Sits between the row header
  * and the field grid so the connection state is the FIRST thing the user
@@ -548,8 +548,8 @@
   background: var(--bg-subtle);
 }
 .mcp-oauth-control.connected {
-  border-color: color-mix(in srgb, var(--success, #2da44e) 60%, var(--border));
-  background: color-mix(in srgb, var(--success, #2da44e) 8%, var(--bg-subtle));
+  border-color: color-mix(in srgb, var(--success) 60%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--bg-subtle));
 }
 .mcp-oauth-status {
   display: flex;
@@ -566,8 +566,8 @@
   background: var(--text-faint);
 }
 .mcp-oauth-dot-ok {
-  background: var(--success, #2da44e);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success, #2da44e) 25%, transparent);
+  background: var(--success);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 25%, transparent);
 }
 .mcp-oauth-dot-pending {
   background: var(--accent);
@@ -589,8 +589,8 @@
   font-size: 11.5px;
   padding: 6px 8px;
   border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--danger, #d54) 14%, transparent);
-  color: var(--danger, #d54);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -661,10 +661,10 @@
   --trust-border: color-mix(in srgb, var(--amber) 28%, var(--border));
 }
 .plugin-trust-badge--overlay {
-  --trust-fg: #fff;
-  --trust-bg: rgba(255, 255, 255, 0.18);
-  --trust-border: rgba(255, 255, 255, 0.24);
-  --trust-dot: #fff;
+  --trust-fg: var(--white);
+  --trust-bg: color-mix(in srgb, var(--white) 18%, transparent);
+  --trust-border: color-mix(in srgb, var(--white) 24%, transparent);
+  --trust-dot: var(--white);
 
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -820,7 +820,7 @@
   appearance: none;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: white;
+  color: var(--white);
   padding: 6px 14px;
   border-radius: var(--radius-sm, 6px);
   font-size: 12.5px;
@@ -832,7 +832,7 @@
   cursor: not-allowed;
 }
 .plugin-loop-home__error {
-  color: var(--danger, #c33);
+  color: var(--danger);
   font-size: 12px;
 }
 .plugin-loop-home__rail-header {
@@ -1037,7 +1037,7 @@
   position: fixed;
   inset: 0;
   z-index: 920;
-  background: rgba(28, 27, 26, 0.42);
+  background: color-mix(in srgb, var(--text-strong) 42%, transparent);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -1271,7 +1271,7 @@
 .plugin-details-modal__hero-tab.is-active {
   background: var(--bg-panel);
   color: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--black) 6%, transparent);
 }
 .plugin-details-modal__hero-frame {
   border-radius: var(--radius-md, 10px);
@@ -1294,11 +1294,11 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--black) 12%, transparent);
 }
-.plugin-details-modal__hero-light.is-red    { background: #ff5f57; }
-.plugin-details-modal__hero-light.is-yellow { background: #febc2e; margin-left: -2px; }
-.plugin-details-modal__hero-light.is-green  { background: #28c840; margin-left: -2px; }
+.plugin-details-modal__hero-light.is-red    { background: var(--window-close); }
+.plugin-details-modal__hero-light.is-yellow { background: var(--window-minimize); margin-left: -2px; }
+.plugin-details-modal__hero-light.is-green  { background: var(--window-zoom); margin-left: -2px; }
 .plugin-details-modal__hero-url {
   flex: 1;
   display: inline-flex;
@@ -1345,7 +1345,7 @@
   border: none;
   width: 100%;
   height: 380px;
-  background: #ffffff;
+  background: var(--white);
   display: block;
 }
 
@@ -1502,29 +1502,29 @@
   font-weight: 500;
 }
 .plugin-details-modal__badge.is-required {
-  background: rgba(200, 60, 60, 0.1);
-  color: rgb(160, 40, 40);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
 }
 .plugin-details-modal__badge.is-type {
-  background: rgba(0, 120, 200, 0.08);
-  color: rgb(0, 100, 170);
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+  color: var(--blue);
 }
 .plugin-details-modal__badge.is-primary {
-  background: rgba(0, 160, 80, 0.1);
-  color: rgb(0, 110, 60);
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
   margin-left: 6px;
 }
 .plugin-details-modal__badge.is-repeat {
-  background: rgba(120, 80, 200, 0.1);
-  color: rgb(90, 60, 160);
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  color: var(--purple);
 }
 .plugin-details-modal__badge.is-failure {
-  background: rgba(200, 120, 0, 0.1);
-  color: rgb(160, 90, 0);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--warning);
 }
 .plugin-details-modal__badge.is-required {
-  background: rgba(200, 60, 60, 0.1);
-  color: rgb(160, 40, 40);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
 }
 .plugin-details-modal__badge.is-optional {
   background: var(--bg-subtle);
@@ -1675,7 +1675,7 @@
 }
 .settings-skills .skills-row:hover {
   border-color: var(--border-strong, var(--border));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--black) 4%, transparent);
 }
 .settings-skills .skills-row-expanded {
   background: var(--bg-subtle);
@@ -1828,9 +1828,9 @@
   border: 1px solid var(--border);
 }
 .plugin-details-modal__atom.is-cap {
-  background: rgba(120, 80, 200, 0.06);
-  color: rgb(90, 60, 160);
-  border-color: rgba(120, 80, 200, 0.18);
+  background: color-mix(in srgb, var(--purple) 6%, transparent);
+  color: var(--purple);
+  border-color: color-mix(in srgb, var(--purple) 18%, transparent);
 }
 .plugin-details-modal__caps {
   display: flex;
@@ -2030,7 +2030,7 @@
   gap: 6px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: white;
+  color: var(--white);
   padding: 7px 16px;
   border-radius: var(--radius-sm, 6px);
   font-size: 12.5px;
@@ -2063,7 +2063,7 @@
   gap: 0;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  border-left-color: rgba(255, 255, 255, 0.32);
+  border-left-color: color-mix(in srgb, var(--white) 32%, transparent);
   margin-left: -1px;
 }
 .plugin-details-modal__use-menu {
@@ -2432,4 +2432,3 @@
     padding: 18px 20px 24px;
   }
 }
-

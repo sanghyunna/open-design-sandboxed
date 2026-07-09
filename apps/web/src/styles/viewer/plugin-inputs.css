@@ -234,8 +234,8 @@
 	background:
 		linear-gradient(
 			180deg,
-			color-mix(in srgb, var(--bg) 92%, black) 0%,
-			color-mix(in srgb, var(--bg) 86%, black) 100%
+			color-mix(in srgb, var(--bg) 92%, var(--black)) 0%,
+			color-mix(in srgb, var(--bg) 86%, var(--black)) 100%
 		);
 
 	font-family: var(--mono);

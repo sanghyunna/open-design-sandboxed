@@ -99,7 +99,7 @@
   letter-spacing: 0.02em;
   padding: 1px 5px;
   background: var(--text-strong);
-  color: #fff;
+  color: var(--white);
   border-radius: var(--radius-pill);
   border: 2px solid var(--bg-panel);
 }
@@ -145,7 +145,7 @@
   border-radius: var(--radius-sm) !important;
 }
 /* Mirror the `.subtab-pill` segmented control so all left/right toggles in
-   the app share one visual language — gray container, white raised tab for
+   the app share one visual language — gray container, var(--white) raised tab for
    active. Density stays popover-tight (smaller padding than the toolbar
    variant). */
 .ds-picker-mode {
@@ -367,7 +367,7 @@
 /* The Icon component renders inline SVG with `stroke: currentColor`, so by
    default it tracks the pill's text color exactly. Override via opacity to
    keep the glyph muted relative to the label — on hover the icon "lifts"
-   just enough to feel active without going full black, which would make
+   just enough to feel active without going full var(--black), which would make
    it compete with the label for attention. */
 .entry-side-foot .foot-pill svg {
   width: 10px;
@@ -401,7 +401,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--black) 12%, transparent);
 }
 .lang-menu-item {
   display: grid;
@@ -634,10 +634,10 @@
 .connector-inline-error {
   margin: 0 0 12px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in oklab, #ff6b6b 45%, var(--line) 55%);
+  border: 1px solid color-mix(in oklab, var(--danger) 45%, var(--line) 55%);
   border-radius: var(--radius-lg);
-  background: color-mix(in oklab, #ff6b6b 10%, var(--panel) 90%);
-  color: color-mix(in oklab, #ff6b6b 70%, var(--fg) 30%);
+  background: color-mix(in oklab, var(--danger) 10%, var(--panel) 90%);
+  color: color-mix(in oklab, var(--danger) 70%, var(--fg) 30%);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -711,14 +711,14 @@
 .connector-card:hover:not(.is-locked) {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--text) 28%, var(--border));
-  box-shadow: 0 8px 24px -14px rgba(0, 0, 0, 0.25), var(--shadow-xs);
+  box-shadow: 0 8px 24px -14px color-mix(in srgb, var(--black) 25%, transparent), var(--shadow-xs);
 }
 .connector-card:focus-visible {
   outline: none;
   border-color: color-mix(in srgb, var(--text) 48%, var(--border));
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--text) 14%, transparent),
-    0 8px 24px -14px rgba(0, 0, 0, 0.25);
+    0 8px 24px -14px color-mix(in srgb, var(--black) 25%, transparent);
 }
 .connector-card.status-connected {
   border-color: color-mix(in srgb, var(--green) 40%, var(--border));
@@ -931,28 +931,28 @@
 }
 .connector-logo.state-error[data-palette='1'] .connector-logo-fallback,
 .connector-logo.is-fallback[data-palette='1'] .connector-logo-fallback {
-  background: color-mix(in oklab, #6b8afd 7%, var(--bg-subtle));
-  color: color-mix(in oklab, #6b8afd 38%, var(--text-muted));
+  background: color-mix(in oklab, var(--blue) 7%, var(--bg-subtle));
+  color: color-mix(in oklab, var(--blue) 38%, var(--text-muted));
 }
 .connector-logo.state-error[data-palette='2'] .connector-logo-fallback,
 .connector-logo.is-fallback[data-palette='2'] .connector-logo-fallback {
-  background: color-mix(in oklab, #2dbfa8 7%, var(--bg-subtle));
-  color: color-mix(in oklab, #2dbfa8 38%, var(--text-muted));
+  background: color-mix(in oklab, var(--green) 7%, var(--bg-subtle));
+  color: color-mix(in oklab, var(--green) 38%, var(--text-muted));
 }
 .connector-logo.state-error[data-palette='3'] .connector-logo-fallback,
 .connector-logo.is-fallback[data-palette='3'] .connector-logo-fallback {
-  background: color-mix(in oklab, #d18b3a 7%, var(--bg-subtle));
-  color: color-mix(in oklab, #d18b3a 40%, var(--text-muted));
+  background: color-mix(in oklab, var(--warning) 7%, var(--bg-subtle));
+  color: color-mix(in oklab, var(--warning) 40%, var(--text-muted));
 }
 .connector-logo.state-error[data-palette='4'] .connector-logo-fallback,
 .connector-logo.is-fallback[data-palette='4'] .connector-logo-fallback {
-  background: color-mix(in oklab, #c356b3 6%, var(--bg-subtle));
-  color: color-mix(in oklab, #c356b3 38%, var(--text-muted));
+  background: color-mix(in oklab, var(--purple) 6%, var(--bg-subtle));
+  color: color-mix(in oklab, var(--purple) 38%, var(--text-muted));
 }
 .connector-logo.state-error[data-palette='5'] .connector-logo-fallback,
 .connector-logo.is-fallback[data-palette='5'] .connector-logo-fallback {
-  background: color-mix(in oklab, #5d6b85 9%, var(--bg-subtle));
-  color: color-mix(in oklab, #5d6b85 42%, var(--text-muted));
+  background: color-mix(in oklab, var(--text-muted) 9%, var(--bg-subtle));
+  color: color-mix(in oklab, var(--text-muted) 42%, var(--text-muted));
 }
 /* The wrapper border is what visually frames the tile. When the real
    image is loaded we keep it; in the fallback states we soften it a
@@ -1398,14 +1398,14 @@ button.connector-action.is-loading {
   color: var(--text);
   background: var(--bg-panel);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 1px 2px color-mix(in srgb, var(--black) 6%, transparent),
     0 0 0 1px color-mix(in srgb, var(--text) 12%, var(--border));
 }
 .connectors-provider-tab:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--text) 14%, transparent),
-    0 1px 2px rgba(0, 0, 0, 0.06);
+    0 1px 2px color-mix(in srgb, var(--black) 6%, transparent);
 }
 .connectors-panel-embedded .connector-grid-wrap.is-masked {
   /* Cap the masked grid's height so the gate's centered card stays in the
@@ -1567,7 +1567,7 @@ button.connector-action.is-loading {
   border-color: color-mix(in srgb, var(--text) 10%, transparent);
 }
 /* When the parent card is hovered, the action gains a touch more weight
-   so it telegraphs interactivity without ever flashing to full white.
+   so it telegraphs interactivity without ever flashing to full var(--white).
    This applies whether the user is hovering the card or the button
    directly, so reaching for the action never feels like the button
    moves out from under them. */
@@ -1669,11 +1669,11 @@ button.connector-action.is-loading {
   flex: 0 0 auto;
 }
 .connectors-panel-embedded .connector-status-dot.status-connected {
-  background: var(--green, #22c55e);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green, #22c55e) 22%, transparent);
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent);
 }
 .connectors-panel-embedded .connector-status-dot.status-error {
-  background: var(--red, #ef4444);
+  background: var(--red);
 }
 .connectors-panel-embedded .connector-status-dot.status-disabled {
   background: var(--text-faint);
@@ -1726,7 +1726,7 @@ button.connector-action.is-loading {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-md, 0 10px 30px rgba(0, 0, 0, 0.18));
+  box-shadow: var(--shadow-md, 0 10px 30px color-mix(in srgb, var(--black) 18%, transparent));
 }
 .connector-gate-icon {
   display: inline-flex;

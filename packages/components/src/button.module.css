@@ -22,9 +22,9 @@
 .primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--accent-contrast);
   font-weight: 500;
-  box-shadow: 0 1px 0 rgba(180, 90, 59, 0.18) inset, var(--shadow-xs);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-strong) 18%, transparent) inset, var(--shadow-xs);
 }
 
 .primary:hover:not(:disabled) {

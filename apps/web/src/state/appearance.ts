@@ -1,4 +1,5 @@
-import type { AppTheme } from '../types';
+import type { AccentColorMode, AppTheme } from '../types';
+import { explicitThemeScheme, resolveThemeForStorage } from './themes';
 
 const ACCENT_VARS = [
   '--accent',
@@ -44,15 +45,26 @@ function accentVars(accentColor: string): Record<(typeof ACCENT_VARS)[number], s
 export function applyAppearanceToDocument({
   theme,
   accentColor,
+  accentColorMode,
 }: {
   theme?: AppTheme;
   accentColor?: string;
+  accentColorMode?: AccentColorMode;
 }): void {
   const root = document.documentElement;
-  if (theme === 'light' || theme === 'dark') {
-    root.setAttribute('data-theme', theme);
+  const resolvedTheme = resolveThemeForStorage(theme);
+  const scheme = explicitThemeScheme(resolvedTheme);
+  if (scheme) {
+    root.setAttribute('data-theme', resolvedTheme);
+    root.setAttribute('data-theme-scheme', scheme);
   } else {
     root.removeAttribute('data-theme');
+    root.removeAttribute('data-theme-scheme');
+  }
+
+  if (accentColorMode !== 'custom') {
+    for (const name of ACCENT_VARS) root.style.removeProperty(name);
+    return;
   }
 
   const normalized = resolveAccentColor(accentColor);

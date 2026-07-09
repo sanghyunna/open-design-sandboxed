@@ -232,7 +232,7 @@ function ensureConnectorThemeObserver(): void {
   const observer = new MutationObserver(restampMountedConnectorPills);
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme'],
+    attributeFilter: ['data-theme', 'data-theme-scheme'],
   });
   if (typeof window !== 'undefined' && window.matchMedia) {
     const media = window.matchMedia('(prefers-color-scheme: dark)');

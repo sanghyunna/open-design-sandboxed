@@ -49,6 +49,12 @@ describe('default app background colors', () => {
     expect(indexCss).not.toContain("@import './styles/fonts.css';");
   });
 
+  it('prehydrates legacy custom accents before React loads', () => {
+    expect(layoutTsx).toContain(
+      "var m=c.accentColorMode;var custom=m==='custom'||(m!=='theme'&&a!=='#c96442')",
+    );
+  });
+
   it('forces app text to Pretendard without clobbering Remix Icon glyphs', () => {
     expect(fontsCss).toContain("format('woff2')");
     expect(fontsCss).not.toContain('woff2-variations');

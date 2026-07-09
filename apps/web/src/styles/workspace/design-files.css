@@ -379,10 +379,10 @@
 .df-row.active:not(.selected) { background: var(--blue-bg); color: var(--text); }
 .df-row.active:not(.selected) .df-row-name { color: var(--text-strong); }
 .df-row.selected { background: var(--blue); }
-.df-row.selected .df-row-name { color: #fff; }
+.df-row.selected .df-row-name { color: var(--white); }
 .df-row.selected .df-row-sub,
-.df-row.selected .df-row-time { color: rgba(255, 255, 255, 0.82); }
-.df-row.selected .df-row-check { color: #fff; }
+.df-row.selected .df-row-time { color: color-mix(in srgb, var(--white) 82%, transparent); }
+.df-row.selected .df-row-check { color: var(--white); }
 
 .df-row-check {
   display: inline-flex;
@@ -422,7 +422,7 @@
 .df-row-icon[data-kind="folder"] { background: var(--bg-muted); color: var(--text-soft); }
 .df-row-icon[data-kind="html"] { background: var(--accent-tint); color: var(--accent-strong); }
 .df-row-icon[data-kind="image"] { background: var(--green-bg); color: var(--green); }
-.df-row-icon[data-kind="code"] { background: #fff7d8; color: #8c6700; }
+.df-row-icon[data-kind="code"] { background: var(--amber-bg); color: var(--warning-text); }
 .df-row-icon[data-kind="text"] { background: var(--bg-subtle); color: var(--text-muted); }
 .df-row-icon[data-kind="sketch"] { background: var(--purple-bg); color: var(--purple); }
 .df-row-icon[data-kind="stylesheet"] { background: var(--blue-bg); color: var(--blue, var(--accent-strong)); }
@@ -562,8 +562,8 @@
   border: 1px solid var(--border);
   background: var(--bg-panel);
   box-shadow:
-    0 1px 0 rgba(15, 15, 15, 0.02),
-    0 8px 24px -12px rgba(15, 15, 15, 0.08);
+    0 1px 0 color-mix(in srgb, var(--shadow-color) 2%, transparent),
+    0 8px 24px -12px color-mix(in srgb, var(--shadow-color) 8%, transparent);
   max-width: min(420px, 92%);
   text-align: center;
 }
@@ -721,7 +721,7 @@
   padding: 18px 26px;
   border-radius: var(--radius);
   background: var(--bg-panel);
-  box-shadow: var(--shadow-lg, 0 14px 36px rgba(0, 0, 0, 0.14));
+  box-shadow: var(--shadow-lg, 0 14px 36px color-mix(in srgb, var(--black) 14%, transparent));
   color: var(--text);
   text-align: center;
 }
@@ -777,7 +777,7 @@
 }
 /* Hover affordance lives on the container border, NOT a translucent layer
    over the iframe: painting a semi-transparent fill on top of a sandboxed
-   iframe makes Chromium/Electron repaint the iframe white on hover. */
+   iframe makes Chromium/Electron repaint the iframe var(--white) on hover. */
 .df-preview-thumb.is-openable:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
@@ -800,7 +800,7 @@
 .df-preview-thumb iframe,
 .df-preview-thumb img,
 .df-preview-thumb video {
-  width: 100%; height: 100%; border: none; background: white; object-fit: cover; display: block;
+  width: 100%; height: 100%; border: none; background: var(--white); object-fit: cover; display: block;
 }
 /* The transparent overlay button already captures the click; letting hover
    fall through to the iframe avoids any compositing repaint flash. */

@@ -34,7 +34,7 @@
 }
 .project-actions-button-primary {
   background: var(--accent);
-  color: var(--accent-text, white);
+  color: var(--accent-text, var(--white));
   border-color: var(--accent);
 }
 .project-actions-button-primary:hover:not(:disabled) {
@@ -42,8 +42,8 @@
   background: var(--accent);
 }
 .project-actions-button-warning {
-  border-color: var(--warning, #d97706);
-  color: var(--warning, #d97706);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 .project-actions-button-pending {
   display: inline-flex;
@@ -90,8 +90,8 @@
   font-size: 11.5px;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--warning, #d97706) 14%, transparent);
-  color: var(--warning, #d97706);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
 }
 .project-actions-disabled-hint {
   font-size: 11.5px;
@@ -109,11 +109,11 @@
   max-width: 480px;
   padding: 10px 14px;
   border-radius: var(--radius-sm, 4px);
-  background: var(--text-strong, #1f2328);
-  color: var(--bg, white);
+  background: var(--text-strong);
+  color: var(--bg, var(--white));
   font-size: 12.5px;
   line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--black) 18%, transparent);
   z-index: 1000;
   pointer-events: auto;
 }
@@ -123,20 +123,20 @@
   z-index: 1200;
 }
 .od-toast.tone-success {
-  border: 1px solid color-mix(in srgb, var(--success, #2da44e) 42%, var(--border));
-  background: color-mix(in srgb, var(--success, #2da44e) 14%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--success) 42%, var(--border));
+  background: color-mix(in srgb, var(--success) 14%, var(--bg));
   color: var(--text);
   box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.14),
-    0 0 0 1px color-mix(in srgb, var(--success, #2da44e) 12%, transparent);
+    0 4px 14px color-mix(in srgb, var(--black) 14%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--success) 12%, transparent);
 }
 .od-toast.tone-error {
-  border: 1px solid color-mix(in srgb, var(--danger, #cf222e) 42%, var(--border));
-  background: color-mix(in srgb, var(--danger, #cf222e) 13%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--border));
+  background: color-mix(in srgb, var(--danger) 13%, var(--bg));
   color: var(--text);
   box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.14),
-    0 0 0 1px color-mix(in srgb, var(--danger, #cf222e) 12%, transparent);
+    0 4px 14px color-mix(in srgb, var(--black) 14%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--danger) 12%, transparent);
 }
 .od-toast-body {
   display: flex;
@@ -150,13 +150,13 @@
   justify-content: center;
 }
 .od-toast.tone-success .od-toast-icon {
-  color: var(--success, #2da44e);
+  color: var(--success);
 }
 .od-toast.tone-error .od-toast-icon {
-  color: var(--danger, #cf222e);
+  color: var(--danger);
 }
 .od-toast.tone-loading .od-toast-icon {
-  color: var(--text-muted, #6e7781);
+  color: var(--text-muted);
 }
 /* Entrance: gentle rise + fade (ease-out per the UI animation philosophy).
    Exit: the .leaving class plays a faster fade-out before onDismiss unmounts
@@ -206,7 +206,7 @@
   margin: 8px 0 0;
   padding: 8px 10px;
   border-radius: var(--radius-sm, 4px);
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--white) 8%, transparent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   line-height: 1.45;
@@ -218,16 +218,16 @@
 }
 .od-toast-dismiss {
   margin-top: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--bg, white);
+  background: color-mix(in srgb, var(--white) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--white) 20%, transparent);
+  color: var(--bg, var(--white));
   font-size: 11.5px;
   padding: 4px 10px;
   border-radius: var(--radius-sm, 4px);
   cursor: pointer;
 }
 .od-toast-dismiss:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: color-mix(in srgb, var(--white) 18%, transparent);
 }
 
 /* ---------------- Routines (Settings → Automations) ---------------- */
@@ -287,28 +287,13 @@
   transition: border-color 120ms var(--ease-out), box-shadow 120ms var(--ease-out);
 }
 
-/* Restore custom dropdown chevron for select elements in routines form.
-   The appearance:none above removes the native chevron, so we paint our own
-   via background-image (matching the global select styling). */
+/* Keep native select indicators so dropdown affordances inherit platform and
+   high-contrast behavior instead of a hardcoded data-URI color. */
 .routines-field select,
 .routines-project-select {
-  padding-right: 32px;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2374716b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px 12px;
-}
-
-[data-theme='dark'] .routines-field select,
-[data-theme='dark'] .routines-project-select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239a9690' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) .routines-field select,
-  html:not([data-theme]) .routines-project-select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%239a9690' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 5 6 8 9 5'/%3E%3C/svg%3E");
-  }
+  appearance: auto;
+  -webkit-appearance: menulist;
+  padding-right: 12px;
 }
 .routines-field input:focus,
 .routines-field textarea:focus,
@@ -316,7 +301,7 @@
 .routines-project-select:focus {
   outline: none;
   border-color: var(--text);
-  box-shadow: 0 0 0 3px rgba(26, 25, 22, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow-color) 8%, transparent);
 }
 .routines-field textarea { resize: vertical; min-height: 80px; }
 
@@ -488,7 +473,7 @@
   align-items: center;
 }
 .routines-item-error {
-  color: #b3382b;
+  color: var(--danger);
   font-size: 12px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -533,7 +518,7 @@
 }
 .routines-history-error {
   grid-column: 1 / -1;
-  color: #b3382b;
+  color: var(--danger);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -574,11 +559,11 @@
   background: var(--bg-muted);
   color: var(--text-muted);
 }
-.routines-status-running { background: #f3eddc; color: #8a6a1a; }
-.routines-status-queued { background: #ece9e2; color: var(--text-muted); }
-.routines-status-succeeded { background: #e3efe6; color: #2e7d5b; }
-.routines-status-failed { background: #f6dfdc; color: #b3382b; }
-.routines-status-canceled { background: #ece9e2; color: var(--text-muted); }
+.routines-status-running { background: var(--amber-bg); color: var(--warning-text); }
+.routines-status-queued { background: var(--border-soft); color: var(--text-muted); }
+.routines-status-succeeded { background: var(--success-bg); color: var(--green); }
+.routines-status-failed { background: var(--red-bg); color: var(--danger); }
+.routines-status-canceled { background: var(--border-soft); color: var(--text-muted); }
 
 /* ============================================================
    New Project — Media tab additions (Media tab + segmented inner
@@ -706,7 +691,7 @@
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
   min-width: 240px; background: var(--bg-panel); border: 1px solid var(--border);
   border-radius: var(--radius-md, 10px);
-  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  box-shadow: var(--shadow-md, 0 8px 24px color-mix(in srgb, var(--black) 12%, transparent));
   padding: 8px; display: flex; flex-direction: column; gap: 6px; user-select: none;
 }
 .palette-tweaks-header {
@@ -727,7 +712,7 @@
 .palette-tweaks-item.selected { background: var(--bg-muted); }
 .palette-tweaks-stripe {
   display: inline-flex; border-radius: var(--radius-xs); overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--black) 6%, transparent); flex-shrink: 0;
 }
 .palette-tweaks-chip { width: 14px; height: 18px; display: inline-block; }
 .palette-tweaks-stripe-original { box-shadow: none; background: transparent; }
@@ -1029,10 +1014,10 @@
 }
 .app .msg.user .user-text {
   padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--selected) 88%, #000);
+  border: 1px solid color-mix(in srgb, var(--selected) 88%, var(--black));
   border-radius: 14px 14px 4px 14px;
   background: var(--selected);
-  color: #fff;
+  color: var(--white);
   line-height: 1.45;
   font-size: 13.5px;
   box-shadow: var(--shadow-xs);
@@ -1414,7 +1399,7 @@
   display: block;
   border: 0;
   object-fit: cover;
-  background: #fff;
+  background: var(--white);
   pointer-events: none;
 }
 .app .chat-design-artifact-preview .sketch-preview,
@@ -1546,7 +1531,7 @@
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 9%, transparent);
 }
-/* Keep the typing area a clean white field with a soft border so it reads as
+/* Keep the typing area a clean var(--white) field with a soft border so it reads as
    the one input surface inside the tinted card — the resting border replaces
    the removed toolbar divider as the only separator in the footer. */
 .chat-composer-fixed-layer .composer-input-wrap {
@@ -1579,7 +1564,7 @@
   /* Match the 28px control height exactly — the old 32px min-height left 4px
      of dead space that made the footer band feel too tall. */
   min-height: 28px;
-  /* No divider above the toolbar: the white input box already separates it
+  /* No divider above the toolbar: the var(--white) input box already separates it
      from the textarea, so the extra border-top + its 2px spacing just stacked
      another line into the footer. Drop both so the card reads as fewer layers. */
   padding-top: 0;
@@ -1939,10 +1924,10 @@
   background: color-mix(in srgb, var(--bg-subtle) 62%, transparent);
 }
 /* A selected row must keep its blue fill on hover — otherwise the generic
-   hover background wins (higher specificity) and the white selected text
+   hover background wins (higher specificity) and the var(--white) selected text
    lands on a light fill and "disappears". Darken slightly for feedback. */
 .app .df-file-row.selected:hover {
-  background: color-mix(in srgb, var(--blue) 90%, #000);
+  background: color-mix(in srgb, var(--blue) 90%, var(--black));
 }
 .app .df-row-icon {
   width: 30px;
@@ -2031,7 +2016,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md, 0 18px 48px rgba(0, 0, 0, 0.16));
+  box-shadow: var(--shadow-md, 0 18px 48px color-mix(in srgb, var(--black) 16%, transparent));
   display: flex;
   flex-direction: column;
   z-index: 140;
@@ -2193,7 +2178,7 @@
   white-space: nowrap;
   cursor: pointer;
   opacity: 0;
-  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--black) 40%, transparent);
   transition: opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
     transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
     background 160ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -2252,7 +2237,7 @@
   width: 1280px;
   height: 720px;
   border: 0;
-  background: #fff;
+  background: var(--white);
   transform: scale(0.181);
   transform-origin: top left;
   pointer-events: none;
@@ -2287,7 +2272,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg, 0 32px 80px rgba(0, 0, 0, 0.24));
+  box-shadow: var(--shadow-lg, 0 32px 80px color-mix(in srgb, var(--black) 24%, transparent));
   display: flex;
   flex-direction: column;
   overflow: hidden;
