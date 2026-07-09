@@ -69,7 +69,6 @@ export function buildManualEditBridge(enabled: boolean): string {
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','translate','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
-  var decorativeTextlessTags = { div:1, svg:1, g:1, path:1, circle:1, ellipse:1, rect:1, line:1, polyline:1, polygon:1, defs:1, lineargradient:1, radialgradient:1, stop:1, clippath:1, mask:1, use:1 };
   function isHostNode(el){
     return !!(el && el.matches && el.matches(hostNodeSelector));
   }
@@ -146,30 +145,6 @@ export function buildManualEditBridge(enabled: boolean): string {
       return true;
     }
     return visit(el) ? textNode : null;
-  }
-  function hasStructuredEditableText(el){
-    var hasText = false;
-    var children = el.childNodes || [];
-    for (var i = 0; i < children.length; i++) {
-      var child = children[i];
-      if (child.nodeType === 3) {
-        if ((child.textContent || '').trim()) hasText = true;
-        continue;
-      }
-      if (child.nodeType === 1) {
-        if (isHostNode(child)) continue;
-        var tag = child.tagName ? child.tagName.toLowerCase() : '';
-        if (inlineTextWrapperTags[tag]) {
-          if ((child.textContent || '').trim()) hasText = true;
-          continue;
-        }
-        if (!decorativeTextlessTags[tag] || (child.textContent || '').trim()) return false;
-        continue;
-      }
-      if (child.nodeType === 8) continue;
-      return false;
-    }
-    return hasText;
   }
   function inferKind(el){
     var explicit = el.getAttribute('data-od-edit');
@@ -259,7 +234,6 @@ export function buildManualEditBridge(enabled: boolean): string {
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
     var id = stableId(el);
-    var textEditTarget = kind === 'container' && hasStructuredEditableText(el) ? el : null;
     var hidden = isHiddenTarget(el, rect);
     var fields = {};
     if (kind === 'link') {
@@ -282,7 +256,6 @@ export function buildManualEditBridge(enabled: boolean): string {
       rectScale: { x: rectScaleAxis(rect.width, el.offsetWidth), y: rectScaleAxis(rect.height, el.offsetHeight) },
       cssSize: cssSizeFor(el),
       flexItemAxis: flexItemAxisFor(el),
-      textEditTargetId: textEditTarget ? stableId(textEditTarget) : undefined,
       fields: fields,
       attributes: attrsFor(el),
       styles: stylesFor(el),
@@ -444,8 +417,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     // plain-text path: their inline label is the only editable surface and rich
     // markup would fight the panel's link/href fields. Everything else gets a
     // formatting-capable contenteditable so Ctrl/Cmd+B/U/I can produce markup.
-    var kind = inferKind(el);
-    var rich = kind === 'text' || (kind !== 'link' && hasStructuredEditableText(el));
+    var rich = inferKind(el) === 'text';
     var originalText = el.textContent || '';
     var originalHtml = el.innerHTML;
     var selectedRange = selectedRangeWithin(el);

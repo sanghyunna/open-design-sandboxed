@@ -10,7 +10,6 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
   const onMoveCommit = vi.fn();
   const onMoveCancel = vi.fn();
   const onSurfaceClick = vi.fn();
-  const onSurfaceDoubleClick = vi.fn();
   const utils = render(
     <ManualEditMoveFrame
       rect={{ left: 100, top: 50, width: 200, height: 100 }}
@@ -23,13 +22,12 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
       onMoveCommit={onMoveCommit}
       onMoveCancel={onMoveCancel}
       onSurfaceClick={onSurfaceClick}
-      onSurfaceDoubleClick={onSurfaceDoubleClick}
       {...overrides}
     />,
   );
   const ring = utils.container.querySelector('[data-region="ring"]') as HTMLElement;
   const interior = utils.container.querySelector('[data-region="interior"]') as HTMLElement | null;
-  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onSurfaceClick, onSurfaceDoubleClick };
+  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onSurfaceClick };
 }
 
 beforeEach(() => {
@@ -67,21 +65,6 @@ describe('ManualEditMoveFrame', () => {
     expect(onMoveStart).not.toHaveBeenCalled();
     expect(onSurfaceClick).toHaveBeenCalledWith('interior');
     expect(onMoveCommit).not.toHaveBeenCalled();
-  });
-
-  it('reports a surface double-click without requiring interactivity', () => {
-    const { interior, onSurfaceClick, onSurfaceDoubleClick } = renderFrame({ interactive: false });
-
-    fireEvent.pointerDown(interior!, { pointerId: 9, clientX: 110, clientY: 80 });
-    fireEvent.pointerUp(interior!, { pointerId: 9, clientX: 110, clientY: 80 });
-    fireEvent.click(interior!);
-    fireEvent.pointerDown(interior!, { pointerId: 10, clientX: 110, clientY: 80 });
-    fireEvent.pointerUp(interior!, { pointerId: 10, clientX: 110, clientY: 80 });
-    fireEvent.click(interior!);
-    fireEvent.doubleClick(interior!);
-
-    expect(onSurfaceDoubleClick).toHaveBeenCalledWith('interior');
-    expect(onSurfaceClick).not.toHaveBeenCalled();
   });
 
   it('starts, previews (rect-space delta), and commits a real drag', () => {

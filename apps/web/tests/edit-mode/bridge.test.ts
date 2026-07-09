@@ -563,7 +563,6 @@ describe('manual edit bridge target normalization', () => {
       target: expect.objectContaining({
         id: 'hero',
         kind: 'container',
-        textEditTargetId: undefined,
       }),
     }, '*');
 
@@ -613,111 +612,6 @@ describe('manual edit bridge target normalization', () => {
 
     expect(title.getAttribute('contenteditable')).toBe('true');
     expect(title.getAttribute('data-od-editing')).toBe('true');
-
-    dom.window.close();
-  });
-
-  it('exposes structured text containers as container objects with a text edit target', async () => {
-    const posts: Array<{ type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }>; html?: string }> = [];
-    const dom = new JSDOM(
-      `<main><div data-od-id="fancy-title">Big Headline<div class="glow-underline"></div></div></main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const title = dom.window.document.querySelector('[data-od-id="fancy-title"]') as HTMLElement;
-    title.getBoundingClientRect = () => ({ x: 0, y: 0, width: 240, height: 64, top: 0, right: 240, bottom: 64, left: 0, toJSON: () => ({}) } as DOMRect);
-    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }>; html?: string }); }) as typeof dom.window.parent.postMessage;
-
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-mode', enabled: true },
-    }));
-    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
-
-    const targets = posts.find((m) => m.type === 'od-edit-targets')?.targets ?? [];
-    expect(targets.find((target) => target.id === 'fancy-title')).toMatchObject({
-      kind: 'container',
-      textEditTargetId: 'fancy-title',
-    });
-
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-begin-text-edit', id: 'fancy-title' },
-    }));
-
-    expect(title.getAttribute('contenteditable')).toBe('true');
-    title.innerHTML = 'Edited Headline<div class="glow-underline"></div>';
-    title.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
-
-    expect(posts).toContainEqual(expect.objectContaining({
-      type: 'od-edit-html-commit',
-      html: 'Edited Headline<div class="glow-underline"></div>',
-    }));
-
-    dom.window.close();
-  });
-
-  it('exposes split and icon text containers as self-editable structured text', async () => {
-    const posts: Array<{ type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }> }> = [];
-    const dom = new JSDOM(
-      `<main>
-        <div data-od-id="grad"><span data-od-source-path="path-0-0-0">Half</span> <span data-od-source-path="path-0-0-1">Title</span></div>
-        <div data-od-id="icon-label"><svg viewBox="0 0 1 1"><path d="M0 0h1v1z"></path></svg><span>Label</span></div>
-      </main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const grad = dom.window.document.querySelector('[data-od-id="grad"]') as HTMLElement;
-    const icon = dom.window.document.querySelector('[data-od-id="icon-label"]') as HTMLElement;
-    grad.getBoundingClientRect = () => ({ x: 0, y: 0, width: 240, height: 64, top: 0, right: 240, bottom: 64, left: 0, toJSON: () => ({}) } as DOMRect);
-    icon.getBoundingClientRect = () => ({ x: 0, y: 80, width: 180, height: 40, top: 80, right: 180, bottom: 120, left: 0, toJSON: () => ({}) } as DOMRect);
-    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }> }); }) as typeof dom.window.parent.postMessage;
-
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-mode', enabled: true },
-    }));
-    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
-
-    const targets = posts.find((m) => m.type === 'od-edit-targets')?.targets ?? [];
-    expect(targets.find((target) => target.id === 'grad')).toMatchObject({
-      kind: 'container',
-      textEditTargetId: 'grad',
-    });
-    expect(targets.find((target) => target.id === 'icon-label')).toMatchObject({
-      kind: 'container',
-      textEditTargetId: 'icon-label',
-    });
-    expect(targets.some((target) => target.id === 'path-0-0-0')).toBe(false);
-    expect(targets.some((target) => target.id === 'path-0-0-1')).toBe(false);
-
-    dom.window.close();
-  });
-
-  it('does not expose containers with non-round-trippable children as structured text', async () => {
-    const posts: Array<{ type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }> }> = [];
-    const dom = new JSDOM(
-      `<main>
-        <div data-od-id="image-label">Logo <img src="icon.png"></div>
-        <div data-od-id="svg-title"><svg viewBox="0 0 1 1"><title>Search</title><path d="M0 0h1v1z"></path></svg><span>Label</span></div>
-      </main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const imageLabel = dom.window.document.querySelector('[data-od-id="image-label"]') as HTMLElement;
-    const svgTitle = dom.window.document.querySelector('[data-od-id="svg-title"]') as HTMLElement;
-    imageLabel.getBoundingClientRect = () => ({ x: 0, y: 0, width: 180, height: 40, top: 0, right: 180, bottom: 40, left: 0, toJSON: () => ({}) } as DOMRect);
-    svgTitle.getBoundingClientRect = () => ({ x: 0, y: 80, width: 180, height: 40, top: 80, right: 180, bottom: 120, left: 0, toJSON: () => ({}) } as DOMRect);
-    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; targets?: Array<{ id: string; kind?: string; textEditTargetId?: string }> }); }) as typeof dom.window.parent.postMessage;
-
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-mode', enabled: true },
-    }));
-    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
-
-    const targets = posts.find((m) => m.type === 'od-edit-targets')?.targets ?? [];
-    expect(targets.find((target) => target.id === 'image-label')).toMatchObject({
-      kind: 'container',
-      textEditTargetId: undefined,
-    });
-    expect(targets.find((target) => target.id === 'svg-title')).toMatchObject({
-      kind: 'container',
-      textEditTargetId: undefined,
-    });
 
     dom.window.close();
   });

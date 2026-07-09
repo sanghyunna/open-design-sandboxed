@@ -323,30 +323,6 @@ describe('manual edit source patches', () => {
     expect(html).toContain('<strong><em>both</em></strong>');
   });
 
-  it('preserves textless decorative structure in structured rich text saves', () => {
-    const source = '<main><div data-od-id="fancy-title">Big Headline<div class="glow-underline"></div></div></main>';
-    const result = applyManualEditPatch(source, {
-      kind: 'set-inner-html',
-      id: 'fancy-title',
-      html: 'Edited Headline<div class="glow-underline"></div>',
-    });
-
-    expect(result.ok).toBe(true);
-    expect(result.source).toBe('<main><div data-od-id="fancy-title">Edited Headline<div class="glow-underline"></div></div></main>');
-  });
-
-  it('preserves empty icon wrappers and textless svgs in structured rich text saves', () => {
-    const source = '<main><div data-od-id="label">Label<i class="icon"></i><svg viewBox="0 0 1 1"><path d="M0 0h1v1z"></path></svg></div></main>';
-    const result = applyManualEditPatch(source, {
-      kind: 'set-inner-html',
-      id: 'label',
-      html: 'Edited<i class="icon"></i><svg viewBox="0 0 1 1"><path d="M0 0h1v1z"></path><use xlink:href="javascript:alert(1)"></use></svg>',
-    });
-
-    expect(result.ok).toBe(true);
-    expect(result.source).toBe('<main><div data-od-id="label">Edited<i class="icon"></i><svg viewBox="0 0 1 1"><path d="M0 0h1v1z"></path><use></use></svg></div></main>');
-  });
-
   it('keeps allowlisted inline formatting but unwraps unknown block tags in set-inner-html', () => {
     const result = applyManualEditPatch(baseSource, {
       kind: 'set-inner-html',

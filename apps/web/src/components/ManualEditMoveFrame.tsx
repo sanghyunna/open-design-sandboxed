@@ -2,7 +2,6 @@ import {
   useEffect,
   useRef,
   type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import styles from './ManualEditMoveFrame.module.css';
@@ -22,7 +21,6 @@ export type ManualEditMoveFrameProps = {
   onMoveCommit: (delta: Delta) => void; // pointerup after a real drag
   onMoveCancel: () => void; // Esc / pointercancel mid-drag
   onSurfaceClick: (region: Region) => void; // pointerup with NO drag
-  onSurfaceDoubleClick: (region: Region) => void;
 };
 
 // px, unscaled — the frame lives in canvas-space overlay coords.
@@ -54,7 +52,6 @@ export function ManualEditMoveFrame({
   onMoveCommit,
   onMoveCancel,
   onSurfaceClick,
-  onSurfaceDoubleClick,
 }: ManualEditMoveFrameProps) {
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -187,12 +184,6 @@ export function ManualEditMoveFrame({
     if (dragging) onMoveCancel();
   };
 
-  const handleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>, region: Region) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onSurfaceDoubleClick(region);
-  };
-
   const surfaceProps = (region: Region) => ({
     'data-region': region,
     tabIndex: -1,
@@ -200,7 +191,6 @@ export function ManualEditMoveFrame({
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,
     onPointerCancel: handlePointerCancel,
-    onDoubleClick: (event: ReactMouseEvent<HTMLDivElement>) => handleDoubleClick(event, region),
     onKeyDown: handleKeyDown,
   });
 

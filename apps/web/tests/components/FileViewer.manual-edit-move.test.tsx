@@ -56,15 +56,6 @@ describe('FileViewer manual edit move frame', () => {
   function ringSurface() {
     return moveFrame().querySelector('[data-region="ring"]') as HTMLElement;
   }
-  function doubleClickSurface(surface: HTMLElement) {
-    fireEvent.pointerDown(surface, { pointerId: 11, clientX: 100, clientY: 100 });
-    fireEvent.pointerUp(surface, { pointerId: 11, clientX: 100, clientY: 100 });
-    fireEvent.click(surface);
-    fireEvent.pointerDown(surface, { pointerId: 12, clientX: 100, clientY: 100 });
-    fireEvent.pointerUp(surface, { pointerId: 12, clientX: 100, clientY: 100 });
-    fireEvent.click(surface);
-    fireEvent.doubleClick(surface);
-  }
 
   function savingFetch(onSave: (content: string) => void) {
     return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -113,118 +104,6 @@ describe('FileViewer manual edit move frame', () => {
     await selectManualEditTarget(textTarget());
     expect(interiorSurface()).toBeNull();
     expect(ringSurface()).not.toBeNull();
-  });
-
-  it('double-clicks through the selected overlay to edit structured text containers', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
-    );
-
-    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget(structuredTextContainerTarget());
-    expect(interiorSurface()).not.toBeNull();
-
-    const frame = await previewFrame();
-    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
-    doubleClickSurface(interiorSurface());
-
-    await waitFor(() => {
-      expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-begin-text-edit', id: 'fancy-title' }),
-        '*',
-      );
-    });
-    await waitFor(() => expect(interiorSurface()).toBeNull());
-  });
-
-  it('does not enter text edit when double-clicking a true image move surface', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
-    );
-
-    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget(imageTarget());
-
-    const frame = await previewFrame();
-    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
-    doubleClickSurface(interiorSurface());
-
-    expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-begin-text-edit' }),
-      '*',
-    );
-    expect(interiorSurface()).not.toBeNull();
-  });
-
-  it('saves structured rich text commits through the host pipeline', async () => {
-    const structuredSource = '<!doctype html><html><body><div data-od-id="fancy-title">Big Headline<div class="glow-underline"></div></div></body></html>';
-    let savedContent = '';
-    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
-      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
-        savedContent = JSON.parse(String(init.body)).content as string;
-        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(structuredSource, { status: 200, headers: { 'Content-Type': 'text/html' } });
-    }));
-
-    render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={structuredSource} />,
-    );
-
-    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget(structuredTextContainerTarget());
-    const frame = await previewFrame();
-    act(() => {
-      window.dispatchEvent(new MessageEvent('message', {
-        data: {
-          type: 'od-edit-html-commit',
-          id: 'fancy-title',
-          html: 'Edited Headline<div class="glow-underline"></div>',
-        },
-        source: frame.contentWindow,
-      }));
-    });
-
-    await waitFor(() => {
-      expect(savedContent).toContain('Edited Headline<div class="glow-underline"></div>');
-    });
-  });
-
-  it('keeps text editing active on border clicks that are not drags', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
-    );
-
-    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget(textTarget());
-
-    const frame = await previewFrame();
-    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
-    const ring = ringSurface();
-    fireEvent.pointerDown(ring, { pointerId: 7, clientX: 100, clientY: 100 });
-    fireEvent.pointerUp(ring, { pointerId: 7, clientX: 100, clientY: 100 });
-
-    expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-end-text-edit' }),
-      '*',
-    );
-    expect(interiorSurface()).toBeNull();
   });
 
   it('streams translate preview and commits translate to the saved file; consecutive drags accumulate', async () => {
@@ -443,24 +322,6 @@ function imageTarget(): ManualEditTarget {
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
     outerHtml: '<img data-od-id="pic" src="x.png">',
-  };
-}
-
-function structuredTextContainerTarget(): ManualEditTarget {
-  return {
-    id: 'fancy-title',
-    kind: 'container',
-    label: 'Big Headline',
-    tagName: 'div',
-    className: 'fancy-title',
-    text: 'Big Headline',
-    rect: { x: 24, y: 24, width: 260, height: 80 },
-    fields: { text: 'Big Headline' },
-    attributes: { 'data-od-id': 'fancy-title' },
-    styles: emptyManualEditStyles(),
-    isLayoutContainer: false,
-    textEditTargetId: 'fancy-title',
-    outerHtml: '<div data-od-id="fancy-title" class="fancy-title">Big Headline<div class="glow-underline"></div></div>',
   };
 }
 
