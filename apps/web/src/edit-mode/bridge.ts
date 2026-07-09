@@ -737,7 +737,6 @@ html[data-od-edit-mode] [data-od-edit-selected] {
 html[data-od-edit-mode] [data-od-editing="true"] {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
-  background: rgba(37, 99, 235, 0.06);
   cursor: text !important;
 }
 </style>`;
