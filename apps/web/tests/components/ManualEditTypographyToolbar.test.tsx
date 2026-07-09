@@ -2,11 +2,24 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
+import { FONT_OPTS } from '../../src/components/ManualEditPanel';
 import {
   ManualEditTypographyToolbar,
+  filterFontOptions,
+  fontValueFromComboboxInput,
   type ManualEditRichFormatState,
 } from '../../src/components/ManualEditTypographyToolbar';
+import { quoteFontFamily, systemFontOptions, type FontOption } from '../../src/components/font-options';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
+import type { SystemFontFamily } from '@open-design/contracts';
+
+const systemFontsMock = vi.hoisted(() => ({
+  families: [] as SystemFontFamily[],
+}));
+
+vi.mock('../../src/components/useSystemFonts', () => ({
+  useSystemFonts: () => ({ families: systemFontsMock.families, loading: false }),
+}));
 
 const target: ManualEditTarget = {
   id: 'hero-title',
@@ -49,7 +62,49 @@ function renderToolbar(overrides: {
   return { ...utils, onStyleField, onRichFormat };
 }
 
-afterEach(() => cleanup());
+afterEach(() => {
+  systemFontsMock.families = [];
+  cleanup();
+});
+
+describe('font combobox helpers', () => {
+  const options: FontOption[] = [
+    { label: 'Briar', value: 'briar' },
+    { label: 'Arial', value: 'arial' },
+    { label: 'Archivo', value: 'archivo' },
+    { label: 'Zar', value: 'zar' },
+  ];
+
+  it('filters case-insensitively with prefix matches before substring matches', () => {
+    expect(filterFontOptions(options, 'AR').map((option) => option.label)).toEqual([
+      'Arial',
+      'Archivo',
+      'Briar',
+      'Zar',
+    ]);
+  });
+
+  it('finds Arial through a substring query', () => {
+    expect(filterFontOptions(options, 'rial').map((option) => option.label)).toEqual(['Arial']);
+  });
+
+  it('resolves committed font values', () => {
+    const fontOptions = [
+      ...FONT_OPTS,
+      ...systemFontOptions([{ family: 'Cascadia Code', faces: [] }], FONT_OPTS),
+    ];
+    expect(fontValueFromComboboxInput('Georgia', fontOptions, true)).toBe('Georgia, serif');
+    expect(fontValueFromComboboxInput('Cascadia Code', fontOptions, true)).toBe('"Cascadia Code"');
+    expect(fontValueFromComboboxInput('My Display Font', fontOptions, true)).toBe(quoteFontFamily('My Display Font'));
+    expect(fontValueFromComboboxInput('inherit', fontOptions, true)).toBe('');
+  });
+
+  it('preserves the current off-list value when committing its displayed label', () => {
+    expect(fontValueFromComboboxInput('acme display', FONT_OPTS, true, '"Acme Display", serif')).toBe(
+      '"Acme Display", serif',
+    );
+  });
+});
 
 describe('ManualEditTypographyToolbar', () => {
   it('disables B/I/U when nothing is being edited', () => {
@@ -140,10 +195,123 @@ describe('ManualEditTypographyToolbar', () => {
     expect(onStyleField).toHaveBeenCalledWith('color', '#ef4444');
   });
 
-  it('sets font-family from the font select', () => {
+  it('filters font rows as the user types', () => {
+    const { getByRole, queryByRole } = renderToolbar();
+    const input = getByRole('combobox', { name: 'Font' }) as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'rial' } });
+    expect(getByRole('option', { name: 'Arial' })).toBeTruthy();
+    expect(queryByRole('option', { name: 'Georgia' })).toBeNull();
+  });
+
+  it('commits the top filtered font on Enter', () => {
     const { getByLabelText, onStyleField } = renderToolbar();
-    const select = getByLabelText('Font') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'Georgia, serif' } });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'rial' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onStyleField).toHaveBeenCalledWith('fontFamily', 'Arial, Helvetica, sans-serif');
+  });
+
+  it('commits an exact font label on Enter', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Georgia' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
     expect(onStyleField).toHaveBeenCalledWith('fontFamily', 'Georgia, serif');
+  });
+
+  it('commits an exact font label when a sibling toolbar button prevents blur', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Georgia' } });
+    fireEvent.mouseDown(getByLabelText('Align center'));
+    fireEvent.click(getByLabelText('Align center'));
+    expect(onStyleField).toHaveBeenCalledWith('fontFamily', 'Georgia, serif');
+  });
+
+  it('preserves a current off-list font stack on Enter when the displayed label is unchanged', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontFamily: '"Acme Display", serif' },
+    });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    expect(input.value).toBe('acme display');
+    fireEvent.focus(input);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onStyleField).not.toHaveBeenCalled();
+  });
+
+  it('commits a custom typed font on Enter', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'My Display Font' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onStyleField).toHaveBeenCalledWith('fontFamily', '"My Display Font"');
+  });
+
+  it('commits inherit as an empty font-family on Enter', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontFamily: 'Georgia, serif' },
+    });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'inherit' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onStyleField).toHaveBeenCalledWith('fontFamily', '');
+  });
+
+  it('commits a clicked system font row', () => {
+    systemFontsMock.families = [{ family: 'Cascadia Code', faces: [] }];
+    const { getByLabelText, getByRole, onStyleField } = renderToolbar();
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Casc' } });
+    const option = getByRole('option', { name: 'Cascadia Code' });
+    fireEvent.pointerDown(option);
+    const mouseDownWasPrevented = !fireEvent.mouseDown(option);
+    if (!mouseDownWasPrevented) fireEvent.blur(input);
+    expect(mouseDownWasPrevented).toBe(true);
+    fireEvent.click(option);
+    expect(onStyleField).toHaveBeenCalledWith('fontFamily', '"Cascadia Code"');
+  });
+
+  it('reverts the font input on Escape', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontFamily: 'Georgia, serif' },
+    });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Inter' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input.value).toBe('georgia');
+    expect(onStyleField).not.toHaveBeenCalled();
+  });
+
+  it('reverts a non-matching font input on blur', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontFamily: 'Arial, Helvetica, sans-serif' },
+    });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'No Such Font' } });
+    fireEvent.blur(input);
+    expect(input.value).toBe('arial');
+    expect(onStyleField).not.toHaveBeenCalled();
+  });
+
+  it('reverts a non-matching font input when a sibling toolbar button prevents blur', () => {
+    const { getByLabelText, onStyleField } = renderToolbar({
+      styles: { ...emptyManualEditStyles(), fontFamily: 'Arial, Helvetica, sans-serif' },
+    });
+    const input = getByLabelText('Font') as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Georg' } });
+    fireEvent.mouseDown(getByLabelText('Align center'));
+    fireEvent.click(getByLabelText('Align center'));
+    expect(input.value).toBe('arial');
+    expect(onStyleField.mock.calls.some(([key]) => key === 'fontFamily')).toBe(false);
   });
 });

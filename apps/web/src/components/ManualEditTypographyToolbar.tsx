@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
 import type { ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
@@ -10,11 +10,10 @@ import {
   WEIGHT_OPTS,
   fontFamilyLabel,
   normalizeColorForPicker,
-  normalizeFontFamilyForSelect,
   stripPxUnit,
 } from './ManualEditPanel';
 import { useSystemFonts } from './useSystemFonts';
-import { systemFontOptions } from './font-options';
+import { quoteFontFamily, systemFontOptions, type FontOption } from './font-options';
 import styles from './ManualEditTypographyToolbar.module.css';
 
 export interface ManualEditRichFormatState {
@@ -44,8 +43,8 @@ export function ManualEditTypographyToolbar({
   const t = useT();
   const richDisabled = !(richFormat.editing && richFormat.hasSelection);
   const { families } = useSystemFonts();
-  const systemFonts = systemFontOptions(families, FONT_OPTS);
-  const isSystemFont = systemFonts.some((option) => option.value === elementStyles.fontFamily);
+  const systemFonts = useMemo(() => systemFontOptions(families, FONT_OPTS), [families]);
+  const fontOptions = useMemo(() => [...FONT_OPTS, ...systemFonts], [systemFonts]);
 
   const richButton = (
     command: 'bold' | 'italic' | 'underline',
@@ -88,33 +87,12 @@ export function ManualEditTypographyToolbar({
 
   return (
     <div className={styles.toolbar}>
-      <label className={styles.group}>
-        {/* ponytail: native <select>+<optgroup>; a searchable combobox is a deferred follow-up. */}
-        <select
-          className={styles.select}
-          aria-label={t('manualEdit.typography.font')}
-          data-tooltip={t('manualEdit.typography.font')}
-          value={normalizeFontFamilyForSelect(elementStyles.fontFamily)}
-          onChange={(e) => onStyleField('fontFamily', e.currentTarget.value)}
-        >
-          {elementStyles.fontFamily &&
-          normalizeFontFamilyForSelect(elementStyles.fontFamily) === elementStyles.fontFamily &&
-          !FONT_OPTS.some((option) => option.value === elementStyles.fontFamily) &&
-          !isSystemFont ? (
-            <option value={elementStyles.fontFamily}>{fontFamilyLabel(elementStyles.fontFamily)}</option>
-          ) : null}
-          {FONT_OPTS.map((option) => (
-            <option key={option.label} value={option.value}>{option.label}</option>
-          ))}
-          {systemFonts.length ? (
-            <optgroup label={t('manualEdit.systemFontsGroup')}>
-              {systemFonts.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </optgroup>
-          ) : null}
-        </select>
-      </label>
+      <FontCombobox
+        label={t('manualEdit.typography.font')}
+        value={elementStyles.fontFamily}
+        options={fontOptions}
+        onChange={(value) => onStyleField('fontFamily', value)}
+      />
 
       <Stepper
         label={t('manualEdit.typography.fontSize')}
@@ -184,6 +162,165 @@ export function ManualEditTypographyToolbar({
         onChange={(v) => onStyleField('letterSpacing', v)}
       />
     </div>
+  );
+}
+
+function normalizedFontLabel(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+export function filterFontOptions(
+  options: ReadonlyArray<FontOption>,
+  query: string,
+): FontOption[] {
+  const needle = normalizedFontLabel(query);
+  if (!needle) return [...options];
+  const prefix: FontOption[] = [];
+  const substring: FontOption[] = [];
+  for (const option of options) {
+    const label = normalizedFontLabel(option.label);
+    if (label.startsWith(needle)) prefix.push(option);
+    else if (label.includes(needle)) substring.push(option);
+  }
+  return [...prefix, ...substring];
+}
+
+function exactFontOption(options: ReadonlyArray<FontOption>, input: string): FontOption | undefined {
+  const needle = normalizedFontLabel(input);
+  return options.find((option) => normalizedFontLabel(option.label) === needle);
+}
+
+export function fontValueFromComboboxInput(
+  input: string,
+  options: ReadonlyArray<FontOption>,
+  fallbackToTopOrCustom: boolean,
+  currentValue = '',
+): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  if (currentValue && normalizedFontLabel(trimmed) === normalizedFontLabel(fontFamilyLabel(currentValue))) {
+    return currentValue;
+  }
+  const exact = exactFontOption(options, trimmed);
+  if (exact) return exact.value;
+  if (!fallbackToTopOrCustom) return null;
+  return filterFontOptions(options, trimmed)[0]?.value ?? quoteFontFamily(trimmed);
+}
+
+function FontCombobox({
+  label, value, options, onChange,
+}: {
+  label: string;
+  value: string;
+  options: ReadonlyArray<FontOption>;
+  onChange: (value: string) => void;
+}) {
+  const listboxId = useId();
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const skipBlurAfterOutsideMouseDownRef = useRef(false);
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(fontFamilyLabel(value));
+  const [activeIndex, setActiveIndex] = useState(0);
+  const filtered = useMemo(() => filterFontOptions(options, inputValue), [inputValue, options]);
+
+  const reset = useCallback(() => {
+    setInputValue(fontFamilyLabel(value));
+    setOpen(false);
+    setActiveIndex(0);
+  }, [value]);
+  const commit = useCallback((next: string) => {
+    if (next !== value) onChange(next);
+    setInputValue(fontFamilyLabel(next));
+    setOpen(false);
+    setActiveIndex(0);
+  }, [onChange, value]);
+  const resolveTypedInput = useCallback(() => {
+    const next = fontValueFromComboboxInput(inputValue, options, false, value);
+    if (next === null) reset();
+    else commit(next);
+  }, [commit, inputValue, options, reset, value]);
+
+  useEffect(() => setInputValue(fontFamilyLabel(value)), [value]);
+  useEffect(() => setActiveIndex(0), [inputValue, options]);
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (event: MouseEvent) => {
+      if (ref.current?.contains(event.target as Node)) return;
+      skipBlurAfterOutsideMouseDownRef.current = true;
+      resolveTypedInput();
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [open, resolveTypedInput]);
+
+  return (
+    <span className={styles.fontCombobox} ref={ref}>
+      <input
+        className={styles.fontInput}
+        role="combobox"
+        aria-label={label}
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-${activeIndex}` : undefined}
+        data-tooltip={label}
+        value={inputValue}
+        onFocus={() => setOpen(true)}
+        onChange={(event) => {
+          skipBlurAfterOutsideMouseDownRef.current = false;
+          setInputValue(event.currentTarget.value);
+          setOpen(true);
+        }}
+        onBlur={() => {
+          if (skipBlurAfterOutsideMouseDownRef.current) {
+            skipBlurAfterOutsideMouseDownRef.current = false;
+            return;
+          }
+          resolveTypedInput();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            reset();
+            return;
+          }
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setOpen(true);
+            if (!filtered.length) return;
+            setActiveIndex((index) => (
+              event.key === 'ArrowDown'
+                ? (index + 1) % filtered.length
+                : (index - 1 + filtered.length) % filtered.length
+            ));
+            return;
+          }
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            const matched = fontValueFromComboboxInput(inputValue, options, false, value);
+            commit(matched ?? filtered[activeIndex]?.value ?? fontValueFromComboboxInput(inputValue, options, true) ?? '');
+          }
+        }}
+      />
+      {open ? (
+        <div className={styles.fontPopover} id={listboxId} role="listbox">
+          {filtered.map((option, index) => (
+            <div
+              key={`${option.label}:${option.value}`}
+              id={`${listboxId}-${index}`}
+              role="option"
+              aria-selected={index === activeIndex}
+              className={`${styles.fontOption}${index === activeIndex ? ` ${styles.fontOptionActive}` : ''}`}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => commit(option.value)}
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </span>
   );
 }
 
