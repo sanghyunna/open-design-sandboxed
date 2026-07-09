@@ -3,7 +3,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { inlineRelativeAssets, type InlineAssetReader } from '../src/inline-assets.js';
+import {
+  inlineRelativeAssets,
+  type InlineAssetReader,
+} from '../src/inline-assets.js';
+import { injectStandaloneDeckKeyDedupe } from '../src/standalone-deck-nav.js';
 import { startServer } from '../src/server.js';
 
 // ---------------------------------------------------------------------------
@@ -25,6 +29,21 @@ function readerFrom(files: Record<string, string>) {
       read: async () => value,
     };
   };
+}
+
+function duplicateDeckHtml() {
+  return (
+    '<!doctype html><html><head></head><body>' +
+    '<section class="slide active"></section><section class="slide"></section><section class="slide"></section>' +
+    '<script>' +
+    'window.idx=0;' +
+    'function show(next){window.idx=Math.max(0,Math.min(2,next));}' +
+    'function onKey(e){if(e.key==="ArrowRight"){show(window.idx+1);}if(e.key==="ArrowLeft"){show(window.idx-1);}}' +
+    'window.addEventListener("keydown",onKey,true);' +
+    'document.addEventListener("keydown",onKey,true);' +
+    '</script>' +
+    '</body></html>'
+  );
 }
 
 describe('inlineRelativeAssets', () => {
@@ -451,6 +470,112 @@ describe('inlineRelativeAssets', () => {
   });
 });
 
+describe('injectStandaloneDeckKeyDedupe', () => {
+  const duplicateListenerDeck =
+    '<!doctype html><html><head></head><body>' +
+    '<section class="slide active"></section><section class="slide"></section>' +
+    '<script>' +
+    'function onKey(e){if(e.key==="ArrowRight"){e.preventDefault();window.moves=(window.moves||0)+1;}}' +
+    'window.addEventListener("keydown",onKey,true);' +
+    'document.addEventListener("keydown",onKey,true);' +
+    '</script>' +
+    '</body></html>';
+
+  it('dedupes the same listener without blocking other keydown listeners', () => {
+    const duplicateWithoutPreventDefault =
+      '<!doctype html><html><body>' +
+      '<section class="slide active"></section><section class="slide"></section>' +
+      '<script>' +
+      'function onKey(e){if(e.key==="ArrowRight"){window.moves=(window.moves||0)+1;}}' +
+      'function onOther(e){if(e.key==="ArrowRight"){window.other=(window.other||0)+1;}}' +
+      'window.addEventListener("keydown",onKey,true);' +
+      'document.addEventListener("keydown",onKey,true);' +
+      'document.addEventListener("keydown",onOther,true);' +
+      '</script>' +
+      '</body></html>';
+    const out = injectStandaloneDeckKeyDedupe(duplicateWithoutPreventDefault);
+    const guardBody = out.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
+    const deckBody = out.match(/<script>function onKey([\s\S]*?)<\/script>/)?.[0]
+      .replace(/^<script>/, '')
+      .replace(/<\/script>$/, '');
+    expect(guardBody).toBeTruthy();
+    expect(deckBody).toBeTruthy();
+
+    interface FakeKeyEvent {
+      key: string;
+      defaultPrevented: boolean;
+      preventDefault(): void;
+    }
+    type FakeKeyListener = (event: FakeKeyEvent) => void;
+
+    const windowListeners: FakeKeyListener[] = [];
+    const documentListeners: FakeKeyListener[] = [];
+    const fakeWindow = {
+      moves: 0,
+      other: 0,
+      addEventListener: (_type: string, listener: FakeKeyListener) => windowListeners.push(listener),
+      removeEventListener: () => {},
+    };
+    const fakeDocument = {
+      addEventListener: (_type: string, listener: FakeKeyListener) => documentListeners.push(listener),
+      removeEventListener: () => {},
+    };
+
+    Function('window', 'document', guardBody!)(fakeWindow, fakeDocument);
+    Function('window', 'document', deckBody!)(fakeWindow, fakeDocument);
+
+    const event = {
+      key: 'ArrowRight',
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+    };
+    for (const listener of windowListeners) listener.call(fakeWindow, event);
+    for (const listener of documentListeners) listener.call(fakeDocument, event);
+
+    expect(fakeWindow.moves).toBe(1);
+    expect(fakeWindow.other).toBe(1);
+  });
+
+  it('does not substitute keydown proxies when removing other event types', () => {
+    const out = injectStandaloneDeckKeyDedupe(duplicateListenerDeck);
+    const guardBody = out.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
+    expect(guardBody).toBeTruthy();
+
+    type Listener = () => void;
+    const windowListeners = new Map<string, Listener[]>();
+    const fakeWindow = {
+      addEventListener: (type: string, listener: Listener) => {
+        windowListeners.set(type, [...(windowListeners.get(type) ?? []), listener]);
+      },
+      removeEventListener: (type: string, listener: Listener) => {
+        windowListeners.set(type, (windowListeners.get(type) ?? []).filter((item) => item !== listener));
+      },
+    };
+    const fakeDocument = {
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    };
+
+    Function('window', 'document', guardBody!)(fakeWindow, fakeDocument);
+    const listener = () => {};
+    fakeWindow.addEventListener('keydown', listener);
+    fakeWindow.addEventListener('click', listener);
+    fakeWindow.removeEventListener('click', listener);
+    expect(windowListeners.get('click')).toEqual([]);
+    expect(windowListeners.get('keydown')?.length).toBe(1);
+
+    fakeWindow.removeEventListener('keydown', listener);
+    expect(windowListeners.get('keydown')).toEqual([]);
+  });
+
+  it('leaves non-duplicate documents unchanged', () => {
+    const html = '<!doctype html><html><body><script>document.addEventListener("keydown",function(){})</script></body></html>';
+    expect(injectStandaloneDeckKeyDedupe(html)).toBe(html);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // HTTP integration — GET /api/projects/:id/export/*?inline=1
 // ---------------------------------------------------------------------------
@@ -506,9 +631,20 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
         '</head></html>',
     );
     await writeFile(path.join(shared, 'util.js'), nestedJsBody);
-  });
 
-  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+    await writeFile(
+      path.join(dir, 'deck.html'),
+      duplicateDeckHtml(),
+    );
+  }, 30_000);
+
+  afterAll(() => new Promise<void>((resolve) => {
+    if (!server) {
+      resolve();
+      return;
+    }
+    server.close(() => resolve());
+  }));
 
   const exportUrl = (name: string, query = 'inline=1') =>
     `${baseUrl}/api/projects/${projectId}/export/${name}${query ? `?${query}` : ''}`;
@@ -525,6 +661,51 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(body).not.toContain('href="app.css"');
     expect(body).not.toContain('src="app.js"');
     expect(body).toContain('<style data-od-inline-asset="app.css">');
+  });
+
+  it('exported standalone deck advances one slide per physical arrow key', async () => {
+    const res = await fetch(exportUrl('deck.html'));
+    expect(res.status).toBe(200);
+    const body = await res.text();
+
+    interface FakeKeyEvent {
+      key: string;
+      defaultPrevented: boolean;
+      preventDefault(): void;
+    }
+    type FakeKeyListener = (event: FakeKeyEvent) => void;
+    const windowListeners: FakeKeyListener[] = [];
+    const documentListeners: FakeKeyListener[] = [];
+    const fakeWindow = {
+      idx: 0,
+      addEventListener: (_type: string, listener: FakeKeyListener) => windowListeners.push(listener),
+      removeEventListener: () => {},
+    };
+    const fakeDocument = {
+      addEventListener: (_type: string, listener: FakeKeyListener) => documentListeners.push(listener),
+      removeEventListener: () => {},
+    };
+
+    for (const match of body.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
+      Function('window', 'document', match[1]!)(fakeWindow, fakeDocument);
+    }
+
+    function press(key: string) {
+      const event = {
+        key,
+        defaultPrevented: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+      };
+      for (const listener of windowListeners) listener.call(fakeWindow, event);
+      for (const listener of documentListeners) listener.call(fakeDocument, event);
+    }
+
+    press('ArrowRight');
+    expect(fakeWindow.idx).toBe(1);
+    press('ArrowLeft');
+    expect(fakeWindow.idx).toBe(0);
   });
 
   it('returns 400 BAD_REQUEST when ?inline is missing', async () => {

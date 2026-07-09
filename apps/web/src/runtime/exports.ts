@@ -15,6 +15,7 @@
 import { buildSrcdoc, type SrcdocOptions } from './srcdoc';
 import { buildReactComponentSrcdoc } from './react-component';
 import { buildZip } from './zip';
+import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav';
 import { randomUUID } from '../utils/uuid';
 import {
   captureHostPage,
@@ -52,7 +53,7 @@ function triggerDownload(blob: Blob, filename: string): void {
 
 // @dsp func-f4e4308d
 export function exportAsHtml(html: string, title: string): void {
-  const doc = buildSrcdoc(html);
+  const doc = injectStandaloneDeckKeyDedupe(buildSrcdoc(html));
   const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
   triggerDownload(blob, `${safeFilename(title, 'artifact')}.html`);
 }
@@ -321,7 +322,7 @@ ${list(assetFiles)}
 
 // @dsp func-e9488e10
 export function exportAsZip(html: string, title: string): void {
-  const doc = buildSrcdoc(html);
+  const doc = injectStandaloneDeckKeyDedupe(buildSrcdoc(html));
   const slug = safeFilename(title, 'artifact');
   const blob = buildZip([
     { path: `${slug}/index.html`, content: doc },

@@ -15,6 +15,7 @@ import {
   exportAsPdf,
   exportProjectAsHtml,
   exportProjectAsPdf,
+  exportProjectAsZip,
   openSandboxedPreviewInNewTab,
   prepareImageExportTarget,
   requestPreviewSnapshot,
@@ -22,6 +23,84 @@ import {
 
 function mockResponse(headers: Record<string, string>): Response {
   return { headers: new Headers(headers) } as Response;
+}
+
+function duplicateDeckHtml() {
+  return (
+    '<!doctype html><html><body>' +
+    '<section class="slide active"></section><section class="slide"></section>' +
+    '<script>' +
+    'function onKey(e){if(e.key==="ArrowRight"){window.moves=(window.moves||0)+1;}}' +
+    'window.addEventListener("keydown",onKey,true);' +
+    'document.addEventListener("keydown",onKey,true);' +
+    '</script>' +
+    '</body></html>'
+  );
+}
+
+async function storedZipEntry(blob: Blob, entryName: string): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const decoder = new TextDecoder();
+  let offset = 0;
+  while (offset + 30 <= bytes.length) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset);
+    if (view.getUint32(0, true) !== 0x04034b50) break;
+    const compressedSize = view.getUint32(18, true);
+    const nameLength = view.getUint16(26, true);
+    const extraLength = view.getUint16(28, true);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const name = decoder.decode(bytes.slice(nameStart, nameStart + nameLength));
+    if (name === entryName) {
+      return decoder.decode(bytes.slice(dataStart, dataStart + compressedSize));
+    }
+    offset = dataStart + compressedSize;
+  }
+  throw new Error(`missing zip entry ${entryName}`);
+}
+
+function expectSingleStepStandaloneDeckNavigation(html: string) {
+  expect(html).toContain('data-od-standalone-deck-nav-dedupe');
+  expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+
+  const guardBody = html.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
+  const deckBody = html.match(/<script>function onKey([\s\S]*?)<\/script>/)?.[0]
+    .replace(/^<script>/, '')
+    .replace(/<\/script>$/, '');
+  expect(guardBody).toBeTruthy();
+  expect(deckBody).toBeTruthy();
+
+  type FakeKeyEvent = {
+    key: string;
+    defaultPrevented: boolean;
+    preventDefault(): void;
+  };
+  type FakeKeyListener = (event: FakeKeyEvent) => void;
+  const windowListeners: FakeKeyListener[] = [];
+  const documentListeners: FakeKeyListener[] = [];
+  const fakeWindow = {
+    moves: 0,
+    addEventListener: (_type: string, listener: FakeKeyListener) => windowListeners.push(listener),
+    removeEventListener: () => {},
+  };
+  const fakeDocument = {
+    addEventListener: (_type: string, listener: FakeKeyListener) => documentListeners.push(listener),
+    removeEventListener: () => {},
+  };
+
+  Function('window', 'document', guardBody!)(fakeWindow, fakeDocument);
+  Function('window', 'document', deckBody!)(fakeWindow, fakeDocument);
+
+  const event = {
+    key: 'ArrowRight',
+    defaultPrevented: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+  };
+  for (const listener of windowListeners) listener.call(fakeWindow, event);
+  for (const listener of documentListeners) listener.call(fakeDocument, event);
+  expect(fakeWindow.moves).toBe(1);
 }
 
 function selectorSpecificity(selector: string): number {
@@ -386,6 +465,36 @@ describe('exportProjectAsHtml', () => {
 
     expect(capturedFilename).toBe('Fallback.html');
     expect(await capturedBlob!.text()).toContain('<main>fallback</main>');
+  });
+
+  it('injects standalone deck key dedupe into fallback HTML exports', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+
+    await exportProjectAsHtml({
+      projectId: 'proj-1',
+      filePath: 'deck.html',
+      fallbackHtml: duplicateDeckHtml(),
+      fallbackTitle: 'Deck',
+    });
+
+    const html = await capturedBlob!.text();
+    expectSingleStepStandaloneDeckNavigation(html);
+  });
+
+  it('injects standalone deck key dedupe into fallback ZIP exports', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+
+    await exportProjectAsZip({
+      projectId: 'proj-1',
+      filePath: 'deck.html',
+      fallbackHtml: duplicateDeckHtml(),
+      fallbackTitle: 'Deck',
+    });
+
+    const html = await storedZipEntry(capturedBlob!, 'Deck/index.html');
+    expectSingleStepStandaloneDeckNavigation(html);
   });
 });
 
