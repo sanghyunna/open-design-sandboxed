@@ -3,6 +3,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { themeIdToTracking } from '@open-design/contracts/analytics';
 import {
   LOCALE_LABEL,
   LOCALES,
@@ -17,6 +19,7 @@ import {
 } from '../analytics/events';
 import type { AppConfig, AppTheme } from '../types';
 import { Icon } from './Icon';
+import { THEME_OPTIONS } from '../state/themes';
 
 export type EntrySettingsSection =
   | 'execution'
@@ -33,16 +36,6 @@ export type EntrySettingsSection =
   | 'memory'
   | 'designSystems';
 
-const ENTRY_THEME_OPTIONS: Array<{
-  value: AppTheme;
-  icon: 'sun-moon' | 'sun' | 'moon';
-  labelKey: 'settings.themeSystem' | 'settings.themeLight' | 'settings.themeDark';
-}> = [
-  { value: 'system', icon: 'sun-moon', labelKey: 'settings.themeSystem' },
-  { value: 'light', icon: 'sun', labelKey: 'settings.themeLight' },
-  { value: 'dark', icon: 'moon', labelKey: 'settings.themeDark' },
-];
-
 interface Props {
   config: AppConfig;
   onThemeChange: (theme: AppTheme) => void;
@@ -54,6 +47,20 @@ interface Props {
   // The popover is mounted both on the home header and the in-project
   // artifact header; defaults to 'home' so existing call sites stay correct.
   trackingPageName?: 'home' | 'artifact';
+}
+
+function themeIndexForKey(currentIndex: number, key: string): number | null {
+  if (key === 'ArrowDown' || key === 'ArrowRight') return (currentIndex + 1) % THEME_OPTIONS.length;
+  if (key === 'ArrowUp' || key === 'ArrowLeft') return (currentIndex - 1 + THEME_OPTIONS.length) % THEME_OPTIONS.length;
+  if (key === 'Home') return 0;
+  if (key === 'End') return THEME_OPTIONS.length - 1;
+  return null;
+}
+
+function focusThemeMenuItem(event: ReactKeyboardEvent<HTMLButtonElement>, nextIndex: number): void {
+  const row = event.currentTarget.closest('.entry-settings-menu__theme-row');
+  const buttons = Array.from(row?.querySelectorAll<HTMLButtonElement>('[data-theme-option]') ?? []);
+  buttons[nextIndex]?.focus();
 }
 
 export function EntrySettingsMenu({
@@ -229,30 +236,44 @@ export function EntrySettingsMenu({
               <span>{t('settings.appearance')}</span>
             </div>
             <div className="entry-settings-menu__theme-row">
-              {ENTRY_THEME_OPTIONS.map((option) => {
-                const active = activeTheme === option.value;
+              {THEME_OPTIONS.map((option) => {
+                const active = activeTheme === option.id;
+                const index = THEME_OPTIONS.indexOf(option);
                 return (
                   <button
-                    key={option.value}
+                    key={option.id}
                     type="button"
+                    data-theme-option={option.id}
                     role="menuitemradio"
                     aria-checked={active}
+                    tabIndex={active ? 0 : -1}
                     className={`entry-settings-menu__theme${
                       active ? ' is-active' : ''
                     }`}
+                    onKeyDown={(event) => {
+                      const nextIndex = themeIndexForKey(index, event.key);
+                      if (nextIndex == null) return;
+                      event.preventDefault();
+                      focusThemeMenuItem(event, nextIndex);
+                    }}
                     onClick={() => {
                       trackSettingsPopoverClick(analytics.track, {
                         page_name: pageName,
                         area: 'settings_popover',
                         element: 'appearance',
-                        value: option.value,
+                        value: themeIdToTracking(option.id),
                       });
-                      onThemeChange(option.value);
+                      onThemeChange(option.id);
                       setOpen(false);
                     }}
                   >
-                    <Icon name={option.icon} size={13} />
+                    <span className="entry-settings-menu__theme-swatch" aria-hidden="true">
+                      {option.swatch.map((color) => (
+                        <span key={color} style={{ background: color }} />
+                      ))}
+                    </span>
                     <span>{t(option.labelKey)}</span>
+                    {active ? <Icon name="check" size={12} /> : null}
                   </button>
                 );
               })}

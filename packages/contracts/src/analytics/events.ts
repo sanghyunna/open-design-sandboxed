@@ -1051,32 +1051,72 @@ export interface ExecutionSettingsPopoverClickProps {
 // the "Share Open Design" social grid, the Discord / follow-on-X links and
 // the Settings → details entry. The same popover is mounted both on the home
 // header and the in-project artifact header, hence the two-value page_name.
-export interface SettingsPopoverClickProps {
-  page_name: 'home' | 'artifact';
-  area: 'settings_popover';
-  element:
-    | 'language_select'
-    | 'appearance'
-    | 'share_channel'
-    | 'join_discord'
-    | 'follow_x'
-    | 'open_settings';
-  // element=language_select → snake_cased locale (e.g. en, zh_cn, pt_br);
-  // element=appearance → system | light | dark.
-  value?: string;
-  // element=share_channel only — which social network was clicked.
-  channel?:
-    | 'x'
-    | 'linkedin'
-    | 'facebook'
-    | 'reddit'
-    | 'telegram'
-    | 'whatsapp'
-    | 'weibo'
-    | 'line'
-    | 'instagram'
-    | 'xiaohongshu';
-}
+export type TrackingThemeChoice =
+  | 'system'
+  | 'light'
+  | 'dark'
+  | 'monokai'
+  | 'dracula'
+  | 'catppuccin_latte'
+  | 'catppuccin_frappe'
+  | 'catppuccin_macchiato'
+  | 'catppuccin_mocha'
+  | 'nord'
+  | 'gruvbox'
+  | 'solarized_dark'
+  | 'one_dark';
+
+export type TrackingThemeId =
+  | 'system'
+  | 'light'
+  | 'dark'
+  | 'monokai'
+  | 'dracula'
+  | 'catppuccin-latte'
+  | 'catppuccin-frappe'
+  | 'catppuccin-macchiato'
+  | 'catppuccin-mocha'
+  | 'nord'
+  | 'gruvbox'
+  | 'solarized-dark'
+  | 'one-dark';
+
+export type SettingsPopoverClickProps =
+  | {
+      page_name: 'home' | 'artifact';
+      area: 'settings_popover';
+      element: 'language_select';
+      // Snake-cased locale, e.g. en, zh_cn, pt_br.
+      value: string;
+    }
+  | {
+      page_name: 'home' | 'artifact';
+      area: 'settings_popover';
+      element: 'appearance';
+      value: TrackingThemeChoice;
+    }
+  | {
+      page_name: 'home' | 'artifact';
+      area: 'settings_popover';
+      element: 'share_channel';
+      // Social network clicked.
+      channel:
+        | 'x'
+        | 'linkedin'
+        | 'facebook'
+        | 'reddit'
+        | 'telegram'
+        | 'whatsapp'
+        | 'weibo'
+        | 'line'
+        | 'instagram'
+        | 'xiaohongshu';
+    }
+  | {
+      page_name: 'home' | 'artifact';
+      area: 'settings_popover';
+      element: 'join_discord' | 'follow_x' | 'open_settings';
+    };
 
 export interface HomeChatComposerClickProps {
   page_name: 'home';
@@ -2080,12 +2120,24 @@ export interface SettingsLanguageClickProps {
   element: string;
 }
 
-export interface SettingsAppearanceClickProps {
-  page_name: TrackingSettingsPage;
-  area: 'appearance';
-  element: 'system' | 'light' | 'dark' | 'accent_color';
-  color?: string;
-}
+export type SettingsAppearanceClickProps =
+  | {
+      page_name: TrackingSettingsPage;
+      area: 'appearance';
+      element: 'appearance';
+      value: TrackingThemeChoice;
+    }
+  | {
+      page_name: TrackingSettingsPage;
+      area: 'appearance';
+      element: 'accent_color';
+      color: string;
+    }
+  | {
+      page_name: TrackingSettingsPage;
+      area: 'appearance';
+      element: 'accent_mode';
+    };
 
 export interface SettingsNotificationsClickProps {
   page_name: TrackingSettingsPage;
@@ -2945,7 +2997,35 @@ export function modelIdForTracking(model: string | null | undefined): string {
   return trimmed.length > 0 ? trimmed : 'default';
 }
 
-// Daemon agent id (apps/daemon/src/agents.ts) → CSV cli_provider_id.
+// Theme id (apps/web/src/state/themes.ts) -> analytics value.
+export function themeIdToTracking(theme: TrackingThemeId): TrackingThemeChoice {
+  switch (theme) {
+    case 'system':
+    case 'light':
+    case 'dark':
+    case 'monokai':
+    case 'dracula':
+    case 'nord':
+    case 'gruvbox':
+      return theme;
+    case 'catppuccin-latte':
+      return 'catppuccin_latte';
+    case 'catppuccin-frappe':
+      return 'catppuccin_frappe';
+    case 'catppuccin-macchiato':
+      return 'catppuccin_macchiato';
+    case 'catppuccin-mocha':
+      return 'catppuccin_mocha';
+    case 'solarized-dark':
+      return 'solarized_dark';
+    case 'one-dark':
+      return 'one_dark';
+  }
+  const unreachable: never = theme;
+  return unreachable;
+}
+
+// Daemon agent id (apps/daemon/src/agents.ts) -> CSV cli_provider_id.
 export function agentIdToTracking(agentId: string | null | undefined): TrackingCliProviderId {
   switch (agentId) {
     case 'claude':

@@ -2646,6 +2646,7 @@ describe('SettingsDialog appearance interactions', () => {
   afterEach(() => {
     cleanup();
     document.documentElement.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('data-theme-scheme');
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--accent-strong');
     document.documentElement.style.removeProperty('--accent-soft');
@@ -2659,19 +2660,20 @@ describe('SettingsDialog appearance interactions', () => {
       { initialSection: 'appearance' },
     );
 
-    expect(screen.getByRole('button', { name: 'System' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'System' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Light' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Dark' }).getAttribute('aria-checked')).toBe('false');
   });
 
-  it('applies the first accent color as the default appearance color', () => {
+  it('uses the selected theme accent by default', () => {
     renderSettingsDialog(
       { theme: 'system' },
       { initialSection: 'appearance' },
     );
 
-    expect(screen.getByRole('radio', { name: 'Default accent color' }).getAttribute('aria-checked')).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#c96442');
+    expect(screen.getByRole('button', { name: 'Use theme accent' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Default accent color' }).getAttribute('aria-checked')).toBe('false');
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('');
   });
 
   it('live previews explicit themes and removes the explicit document theme when switching back to System', () => {
@@ -2682,11 +2684,82 @@ describe('SettingsDialog appearance interactions', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Light' }));
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(document.documentElement.getAttribute('data-theme-scheme')).toBe('light');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'System' }));
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-theme-scheme')).toBe(false);
+  });
+
+  it('renders every named palette in Settings Appearance and persists a named theme', async () => {
+    const { onPersist } = renderSettingsDialog(
+      { mode: 'daemon', agentId: 'codex', theme: 'system' },
+      { initialSection: 'appearance' },
+    );
+
+    for (const label of [
+      'System',
+      'Light',
+      'Dark',
+      'Monokai',
+      'Dracula',
+      'Catppuccin Latte',
+      'Catppuccin Frappé',
+      'Catppuccin Macchiato',
+      'Catppuccin Mocha',
+      'Nord',
+      'Gruvbox',
+      'Solarized Dark',
+      'One Dark',
+    ]) {
+      expect(screen.getByRole('radio', { name: label })).toBeTruthy();
+    }
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Catppuccin Latte' }));
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('catppuccin-latte');
+    expect(document.documentElement.getAttribute('data-theme-scheme')).toBe('light');
+    expect(analyticsTrackMock).toHaveBeenCalledWith(
+      'ui_click',
+      expect.objectContaining({
+        page_name: 'settings',
+        area: 'appearance',
+        element: 'appearance',
+        value: 'catppuccin_latte',
+      }),
+      undefined,
+    );
+
+    await waitForPersist(
+      onPersist,
+      expect.objectContaining({
+        theme: 'catppuccin-latte',
+      }),
+    );
+  });
+
+  it('supports arrow-key selection in the Settings theme radiogroup', async () => {
+    renderSettingsDialog(
+      { theme: 'system' },
+      { initialSection: 'appearance' },
+    );
+
+    const system = screen.getByRole('radio', { name: 'System' });
+    system.focus();
+    fireEvent.keyDown(system, { key: 'ArrowRight' });
+
+    const light = screen.getByRole('radio', { name: 'Light' });
+    expect(light.getAttribute('aria-checked')).toBe('true');
+    await waitFor(() => expect(document.activeElement).toBe(light));
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
 
-    fireEvent.click(screen.getByRole('button', { name: 'System' }));
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    fireEvent.keyDown(light, { key: 'End' });
+    const oneDark = screen.getByRole('radio', { name: 'One Dark' });
+    expect(oneDark.getAttribute('aria-checked')).toBe('true');
+    await waitFor(() => expect(document.activeElement).toBe(oneDark));
+    expect(document.documentElement.getAttribute('data-theme')).toBe('one-dark');
   });
 
   it('reverts an unsaved appearance preview back to the saved theme when the dialog closes', () => {
@@ -2697,7 +2770,7 @@ describe('SettingsDialog appearance interactions', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Light' }));
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     fireEvent.click(first.container.querySelector('.settings-close') as HTMLElement);
     expect(first.onClose).toHaveBeenCalledTimes(1);
@@ -2706,14 +2779,21 @@ describe('SettingsDialog appearance interactions', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
-  it('persists System mode explicitly and preserves accent variables without an explicit document theme', async () => {
+  it('persists System mode explicitly without clearing a custom accent', async () => {
     const { onPersist } = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex', theme: 'dark', accentColor: '#2563eb' },
+      {
+        mode: 'daemon',
+        agentId: 'codex',
+        theme: 'dark',
+        accentColor: '#2563eb',
+        accentColorMode: 'custom',
+      },
       { initialSection: 'appearance' },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'System' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'System' }));
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-theme-scheme')).toBe(false);
     expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#2563eb');
 
     await waitForPersist(
@@ -2721,6 +2801,7 @@ describe('SettingsDialog appearance interactions', () => {
       expect.objectContaining({
         theme: 'system',
         accentColor: '#2563eb',
+        accentColorMode: 'custom',
       }),
     );
   });
@@ -2773,7 +2854,7 @@ describe('SettingsDialog appearance interactions', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Light' }));
 
     await waitForPersist(
       view.onPersist,
@@ -2853,20 +2934,27 @@ describe('SettingsDialog appearance interactions', () => {
     });
   });
 
-  it('switches back to the default accent color and persists it explicitly', async () => {
+  it('switches back to the theme accent and preserves the last custom color', async () => {
     const { onPersist } = renderSettingsDialog(
-      { mode: 'daemon', agentId: 'codex', theme: 'light', accentColor: '#2563eb' },
+      {
+        mode: 'daemon',
+        agentId: 'codex',
+        theme: 'light',
+        accentColor: '#2563eb',
+        accentColorMode: 'custom',
+      },
       { initialSection: 'appearance' },
     );
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Default accent color' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use theme accent' }));
 
-    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#c96442');
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('');
 
     await waitForPersist(
       onPersist,
       expect.objectContaining({
-        accentColor: '#c96442',
+        accentColor: '#2563eb',
+        accentColorMode: 'theme',
       }),
     );
   });
@@ -2883,6 +2971,7 @@ describe('SettingsDialog appearance interactions', () => {
       view.onPersist,
       expect.objectContaining({
         accentColor: '#059669',
+        accentColorMode: 'custom',
       }),
     );
 
@@ -2906,6 +2995,7 @@ describe('SettingsDialog appearance interactions', () => {
       onPersist,
       expect.objectContaining({
         accentColor: '#059669',
+        accentColorMode: 'custom',
       }),
     );
 
@@ -2918,6 +3008,7 @@ describe('SettingsDialog appearance interactions', () => {
       onPersist,
       expect.objectContaining({
         accentColor: '#123456',
+        accentColorMode: 'custom',
       }),
     );
   });
