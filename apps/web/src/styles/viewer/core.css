@@ -1430,7 +1430,7 @@
   border: 1px solid color-mix(in srgb, var(--blue) 50%, transparent);
   border-radius: 16px;
   background: var(--blue-bg);
-  color: var(--white);
+  color: var(--blue);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-color) 28%, transparent);
   font-size: 15px;
   font-weight: 650;
@@ -1449,12 +1449,12 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: color-mix(in srgb, var(--white) 72%, transparent);
+  color: color-mix(in srgb, var(--blue) 72%, transparent);
   cursor: pointer;
 }
 .screenshot-toast button:hover {
-  background: color-mix(in srgb, var(--white) 10%, transparent);
-  color: var(--white);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue);
 }
 
 /* Inspect panel — sibling of the preview canvas and comment popover.

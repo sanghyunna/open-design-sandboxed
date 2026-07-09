@@ -48,7 +48,7 @@ button.ghost:hover:not(:disabled) { background: var(--bg-subtle); border-color: 
 button.ghost.is-success-flash {
   border-color: var(--green-border, color-mix(in srgb, var(--green) 32%, var(--border)));
   background: var(--green-bg, color-mix(in srgb, var(--green) 8%, transparent));
-  color: var(--green-border);
+  color: var(--green);
 }
 button.ghost.is-success-flash:hover:not(:disabled) {
   background: var(--green-bg, color-mix(in srgb, var(--green) 14%, transparent));
