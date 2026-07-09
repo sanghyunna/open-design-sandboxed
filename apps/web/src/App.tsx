@@ -544,9 +544,10 @@ function AppInner() {
   useLayoutEffect(() => {
     applyAppearanceToDocument({
       theme: config.theme ?? 'system',
+      accentColorMode: config.accentColorMode,
       accentColor: config.accentColor,
     });
-  }, [config.theme, config.accentColor]);
+  }, [config.theme, config.accentColorMode, config.accentColor]);
 
   // Tell the daemon what the user is currently looking at, so the MCP
   // server can surface it as `get_active_context` to a coding agent in

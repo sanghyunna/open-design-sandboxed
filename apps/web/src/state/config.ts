@@ -11,6 +11,7 @@ import {
   DEFAULT_ACCENT_COLOR,
   normalizeAccentColor,
 } from './appearance';
+import { resolveThemeForStorage } from './themes';
 import {
   DEFAULT_FAILURE_SOUND_ID,
   DEFAULT_SUCCESS_SOUND_ID,
@@ -62,6 +63,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   designSystemId: null,
   onboardingCompleted: false,
   theme: 'system',
+  accentColorMode: 'theme',
   accentColor: DEFAULT_ACCENT_COLOR,
   composio: {},
   agentModels: {},
@@ -355,6 +357,14 @@ export function loadConfig(): AppConfig {
       };
     }
     const parsed = JSON.parse(raw) as Partial<AppConfig>;
+    const parsedAccentColor = normalizeAccentColor(parsed.accentColor);
+    const parsedAccentMode =
+      parsed.accentColorMode === 'custom' ||
+      parsed.accentColorMode === 'theme'
+        ? parsed.accentColorMode
+        : parsedAccentColor && parsedAccentColor !== DEFAULT_ACCENT_COLOR
+          ? 'custom'
+          : 'theme';
     // Strip daemon-owned privacy fields if a stale localStorage payload
     // still carries them. Older builds wrote these to localStorage; we
     // now treat the daemon as authoritative so the user can rotate /
@@ -373,7 +383,9 @@ export function loadConfig(): AppConfig {
       composio: { ...(parsed.composio ?? {}) },
       agentModels: { ...(parsed.agentModels ?? {}) },
       agentCliEnv: { ...(parsed.agentCliEnv ?? {}) },
-      accentColor: normalizeAccentColor(parsed.accentColor) ?? DEFAULT_CONFIG.accentColor,
+      theme: resolveThemeForStorage(parsed.theme),
+      accentColorMode: parsedAccentMode,
+      accentColor: parsedAccentColor ?? DEFAULT_CONFIG.accentColor,
       pet: normalizePet(parsed.pet),
       notifications: normalizeNotifications(parsed.notifications),
     };
