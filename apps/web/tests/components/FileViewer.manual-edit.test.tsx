@@ -44,7 +44,7 @@ describe('FileViewer manual edit regressions', () => {
   }
 
   // Clicking the empty canvas is the gesture that opens the compact page card.
-  async function clickManualEditBackground() {
+  async function sendManualEditBackground() {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
@@ -52,28 +52,18 @@ describe('FileViewer manual edit regressions', () => {
         source: frame.contentWindow,
       }));
     });
+  }
+
+  async function clickManualEditBackground() {
+    await sendManualEditBackground();
     await waitFor(() => {
       expect(document.querySelector('.manual-edit-right')).not.toBeNull();
     });
   }
 
-  // Hover only surfaces the "edit params" affordance; pinning the inspector to
-  // a target now requires an explicit click (mirrors clicking that affordance
-  // or a container/image body in the bridge).
+  // Hover only surfaces the "edit params" affordance; selecting a target pins
+  // the docked toolbars without mounting the page-styles card.
   async function selectManualEditTarget(target = heroTarget()) {
-    const frame = await previewFrame();
-    act(() => {
-      window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target },
-        source: frame.contentWindow,
-      }));
-    });
-    await waitFor(() => {
-      expect(document.querySelector('.manual-edit-right')).not.toBeNull();
-    });
-  }
-
-  async function selectManualEditShapeTarget(target: ManualEditTarget) {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
@@ -84,6 +74,7 @@ describe('FileViewer manual edit regressions', () => {
     await waitFor(() => {
       expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
     });
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
   }
 
   function deferredResponse() {
@@ -96,9 +87,7 @@ describe('FileViewer manual edit regressions', () => {
 
   async function findStyleInput(label: string) {
     return waitFor(() => {
-      const input = Array.from(document.querySelectorAll('.cc-row'))
-        .find((row) => row.textContent?.includes(label))
-        ?.querySelector('input') as HTMLInputElement | null;
+      const input = screen.queryByLabelText(label) as HTMLInputElement | null;
       if (!input) throw new Error(`${label} input not found`);
       return input;
     });
@@ -200,7 +189,7 @@ describe('FileViewer manual edit regressions', () => {
     expect(document.querySelector('.manual-edit-page-card')).not.toBeNull();
   });
 
-  it('pins the inspector to a target only after clicking the hover affordance', async () => {
+  it('pins docked controls to a target only after clicking the hover affordance', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
@@ -219,9 +208,9 @@ describe('FileViewer manual edit regressions', () => {
 
     fireEvent.click(screen.getByTestId('manual-edit-hover-open'));
 
-    // Typography moved to the docked toolbar; the panel now exposes shape
-    // controls, so a pinned text target shows the "Width" size control.
+    // A pinned text target gets both docked typography and shape controls.
     await findStyleInput('Width');
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
     expect(screen.queryByText('PAGE')).toBeNull();
     // Affordance hides once its element is the pinned selection.
     expect(screen.queryByTestId('manual-edit-hover-open')).toBeNull();
@@ -272,7 +261,7 @@ describe('FileViewer manual edit regressions', () => {
     );
   });
 
-  it('docks the shape toolbar for container and image selections without mounting the floating panel', async () => {
+  it('docks shape controls for every selected target without mounting the floating panel', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main><img data-od-id="photo" src="/old.png" alt="Old"></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
@@ -285,17 +274,23 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    const targets = [
+      heroTarget(),
+      { ...heroTarget(), id: 'link', kind: 'link' as const, tagName: 'a', fields: { text: 'Link', href: '/next' } },
+      { ...heroTarget(), id: 'token', kind: 'token' as const },
+      containerTarget({ textEditTargetId: 'hero' }),
+      containerTarget(),
+      imageTarget(),
+    ];
 
-    expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
-    expect(screen.getByLabelText('Spacing')).toBeTruthy();
-    expect(document.querySelector('.manual-edit-right')).toBeNull();
+    for (const target of targets) {
+      await selectManualEditTarget(target);
+      expect(screen.getByLabelText('Spacing')).toBeTruthy();
+      expect(document.querySelector('.manual-edit-right')).toBeNull();
+    }
 
-    await selectManualEditShapeTarget(imageTarget());
     fireEvent.click(screen.getByLabelText('More'));
-
     expect(screen.getByText('Upload image')).toBeTruthy();
-    expect(document.querySelector('.manual-edit-right')).toBeNull();
   });
 
   it('surfaces shape preview-style errors in the docked toolbar', async () => {
@@ -311,7 +306,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(containerTarget());
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '18' } });
 
     const frame = await previewFrame();
@@ -333,7 +328,7 @@ describe('FileViewer manual edit regressions', () => {
     });
   });
 
-  it('updates all linked padding sides in the visible shape toolbar draft', async () => {
+  it('updates per-side padding from the spacing popover', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
@@ -346,25 +341,21 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(containerTarget());
     const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
 
-    fireEvent.change(screen.getByLabelText('Padding'), { target: { value: '16' } });
+    fireEvent.click(screen.getByLabelText('Spacing'));
+    fireEvent.change(screen.getByLabelText('Padding top'), { target: { value: '16' } });
 
     await waitFor(() => {
-      expect((screen.getByLabelText('Padding') as HTMLInputElement).value).toBe('16');
+      expect((screen.getByLabelText('Padding top') as HTMLInputElement).value).toBe('16');
     });
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'od-edit-preview-style',
         id: 'hero',
-        styles: {
-          paddingTop: '16px',
-          paddingRight: '16px',
-          paddingBottom: '16px',
-          paddingLeft: '16px',
-        },
+        styles: { paddingTop: '16px' },
       }),
       '*',
     );
@@ -387,7 +378,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(containerTarget());
     const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
@@ -444,7 +435,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(containerTarget());
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
     const frame = await previewFrame();
 
@@ -495,7 +486,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(containerTarget());
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
     const frame = await previewFrame();
 
@@ -524,7 +515,7 @@ describe('FileViewer manual edit regressions', () => {
     });
   });
 
-  it('saves a pending shape style edit before clearing selection on background click', async () => {
+  it('saves a pending text-target style edit before clearing selection on background click', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -545,7 +536,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditShapeTarget(containerTarget());
+    await selectManualEditTarget(heroTarget());
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '111' } });
 
     const frame = await previewFrame();
@@ -689,19 +680,20 @@ describe('FileViewer manual edit regressions', () => {
     const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
-    fireEvent.click(screen.getByText('Save'));
+    await sendManualEditBackground();
     await waitFor(() => {
       expect(screen.getByText(/Could not save the edited file/)).toBeTruthy();
     });
 
     fireEvent.change(baseSizeInput, { target: { value: '19' } });
-    fireEvent.click(screen.getByText('Save'));
+    await sendManualEditBackground();
     await waitFor(() => {
       expect(screen.queryByText(/Could not save the edited file/)).toBeNull();
+      expect(saveAttempts).toBe(2);
     });
   });
 
-  it('retries the actual save when Save is clicked again after a failure, instead of silently discarding the edit', async () => {
+  it('retries the actual save when background clear is requested again after a failure', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     let postAttempts = 0;
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -730,15 +722,15 @@ describe('FileViewer manual edit regressions', () => {
     const baseSizeInput = await findStyleInput('Width');
 
     fireEvent.change(baseSizeInput, { target: { value: '18' } });
-    fireEvent.click(screen.getByText('Save'));
+    await sendManualEditBackground();
     await waitFor(() => {
       expect(screen.getByText(/Could not save the edited file/)).toBeTruthy();
     });
     expect(postAttempts).toBe(1);
 
-    // No further edits — click Save again. This must retry the write, not
+    // No further edits: requesting the clear again must retry the write, not
     // silently treat the still-unsaved change as done.
-    fireEvent.click(screen.getByText('Save'));
+    await sendManualEditBackground();
     await waitFor(() => {
       expect(postAttempts).toBe(2);
     });
@@ -781,7 +773,67 @@ describe('FileViewer manual edit regressions', () => {
     });
   });
 
-  it('closes the inspector without saving on cancel, staying in edit mode', async () => {
+  it('keeps page styles open when selecting a target fails to save, then selects it on retry', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    let saveAttempts = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        saveAttempts += 1;
+        if (saveAttempts === 1) {
+          return new Response(JSON.stringify({ error: { code: 'FORBIDDEN', message: 'Request failed (403).' } }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await clickManualEditBackground();
+    const baseSizeInput = screen.getByText('Base size').closest('label')?.querySelector('input');
+    expect(baseSizeInput).toBeTruthy();
+    fireEvent.change(baseSizeInput!, { target: { value: '18' } });
+
+    const frame = await previewFrame();
+    const selectTarget = () => act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: heroTarget() },
+        source: frame.contentWindow,
+      }));
+    });
+    selectTarget();
+
+    await waitFor(() => {
+      expect(saveAttempts).toBe(1);
+      expect(screen.getByText(/Could not save the edited file/)).toBeTruthy();
+    });
+    expect(document.querySelector('.manual-edit-right')).not.toBeNull();
+    expect(screen.getByText('Cancel')).toBeTruthy();
+    expect(screen.queryByTestId('manual-edit-shape-toolbar')).toBeNull();
+
+    selectTarget();
+
+    await waitFor(() => {
+      expect(saveAttempts).toBe(2);
+      expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
+      expect(document.querySelector('.manual-edit-right')).toBeNull();
+    });
+  });
+
+  it('closes the page-styles card without saving on cancel, staying in edit mode', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async () =>
       new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
@@ -795,10 +847,7 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Width');
-
-    fireEvent.change(baseSizeInput, { target: { value: '18' } });
+    await clickManualEditBackground();
     fireEvent.click(screen.getByText('Cancel'));
 
     await waitFor(() => {
@@ -811,7 +860,7 @@ describe('FileViewer manual edit regressions', () => {
     );
   });
 
-  it('closes the inspector after save succeeds, staying in edit mode', async () => {
+  it('closes the page-styles card after save succeeds, staying in edit mode', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -832,10 +881,11 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
-    await selectManualEditTarget();
-    const baseSizeInput = await findStyleInput('Width');
+    await clickManualEditBackground();
+    const baseSizeInput = screen.getByText('Base size').closest('label')?.querySelector('input');
+    expect(baseSizeInput).toBeTruthy();
 
-    fireEvent.change(baseSizeInput, { target: { value: '18' } });
+    fireEvent.change(baseSizeInput!, { target: { value: '18' } });
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
-import { emptyManualEditStyles, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';
 import { RemixIcon } from './RemixIcon';
 import { useSystemFonts } from './useSystemFonts';
@@ -27,13 +27,10 @@ export function emptyManualEditDraft(source = ''): ManualEditDraft {
 }
 
 export function ManualEditPanel({
-  selectedTarget,
-  draft,
   error,
   canUndo,
   canRedo,
   busy,
-  onDraftChange,
   onStyleChange,
   onInvalidStyle,
   onError,
@@ -42,33 +39,16 @@ export function ManualEditPanel({
   onUndo,
   onRedo,
   onExit,
-  onApplyPatch,
-  onPickImage,
   pageStylesEnabled = true,
-  floatingStyle,
-  floatingClassName,
-  onFloatingPositionChange,
 }: {
-  targets: ManualEditTarget[];
-  selectedTarget: ManualEditTarget | null;
-  draft: ManualEditDraft;
-  history: ManualEditHistoryEntry[];
   error: string | null;
   canUndo: boolean;
   canRedo: boolean;
   busy?: boolean;
   pageStylesEnabled?: boolean;
-  onSelectTarget: (target: ManualEditTarget) => void;
-  onDraftChange: (draft: ManualEditDraft) => void;
-  onStyleChange?: (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
+  onStyleChange: (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
   onInvalidStyle?: (id: string, keys: Array<keyof ManualEditStyles>) => void;
-  onApplyPatch: (patch: ManualEditPatch, label: string) => void;
-  onPickImage?: (file: File) => Promise<string | null>;
-  floatingStyle?: CSSProperties;
-  floatingClassName?: string;
-  onFloatingPositionChange?: (position: { left: number; top: number }) => void;
   onError: (message: string) => void;
-  onClearSelection: () => void;
   onExit?: () => void;
   onCancelDraft: () => void;
   onSaveDraft: () => void;
@@ -76,79 +56,12 @@ export function ManualEditPanel({
   onRedo: () => void;
 }) {
   const t = useT();
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const selectedTargetRef = useRef<ManualEditTarget | null>(selectedTarget);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const targetForInspector = selectedTarget;
-  const panelTitle = targetForInspector ? readableManualEditTargetName(targetForInspector) : t('manualEdit.fallbackTitle');
-  useEffect(() => {
-    selectedTargetRef.current = selectedTarget;
-  }, [selectedTarget]);
-
-  const changeTargetStyle = (key: keyof ManualEditStyles, value: string) => {
-    if (!targetForInspector) {
-      onDraftChange({ ...draft, styles: { ...draft.styles, [key]: value } });
-      return;
-    }
-    applyManualEditStyleField({
-      target: targetForInspector, draft, key, value,
-      onDraftChange, onError, onInvalidStyle, onStyleChange,
-    });
-  };
-
-  const startPanelDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!onFloatingPositionChange) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const panel = event.currentTarget.closest('.manual-edit-right') as HTMLElement | null;
-    const parent = panel?.parentElement;
-    if (!panel || !parent) return;
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const startLeft = panel.offsetLeft;
-    const startTop = panel.offsetTop;
-    const parentRect = parent.getBoundingClientRect();
-    const panelRect = panel.getBoundingClientRect();
-    const pad = 8;
-    const maxLeft = Math.max(pad, parentRect.width - panelRect.width - pad);
-    const maxTop = Math.max(pad, parentRect.height - panelRect.height - pad);
-    const ownerDocument = panel.ownerDocument;
-    const move = (moveEvent: PointerEvent) => {
-      onFloatingPositionChange({
-        left: clamp(startLeft + moveEvent.clientX - startX, pad, maxLeft),
-        top: clamp(startTop + moveEvent.clientY - startY, pad, maxTop),
-      });
-    };
-    const up = () => {
-      ownerDocument.removeEventListener('pointermove', move);
-      ownerDocument.removeEventListener('pointerup', up);
-      ownerDocument.removeEventListener('pointercancel', up);
-    };
-    ownerDocument.addEventListener('pointermove', move);
-    ownerDocument.addEventListener('pointerup', up);
-    ownerDocument.addEventListener('pointercancel', up);
-  };
 
   return (
-    <aside
-      className={`manual-edit-right${floatingStyle ? ' manual-edit-floating' : ''}${floatingClassName ? ` ${floatingClassName}` : ''}`}
-      style={floatingStyle}
-    >
+    <aside className="manual-edit-right manual-edit-floating manual-edit-page-card" style={{ top: 12, right: 12, width: 320 }}>
       <section className="manual-edit-modal cc-panel">
         <div className="manual-edit-titlebar">
-          {floatingStyle ? (
-            <button
-              type="button"
-              className="manual-edit-drag-handle"
-              aria-label={t('manualEdit.movePanel')}
-              title={t('manualEdit.movePanel')}
-              onPointerDown={startPanelDrag}
-            >
-              <span aria-hidden />
-            </button>
-          ) : null}
-          <span title={panelTitle}>{panelTitle}</span>
+          <span title={t('manualEdit.fallbackTitle')}>{t('manualEdit.fallbackTitle')}</span>
           {onExit ? (
             <button
               type="button"
@@ -162,69 +75,19 @@ export function ManualEditPanel({
           ) : null}
         </div>
         <div className="manual-edit-scroll">
-          {targetForInspector ? (
-            <StyleInspector
-              styles={draft.styles}
-              layoutEnabled={targetForInspector.isLayoutContainer}
-              onChange={changeTargetStyle}
-            />
-          ) : !targetForInspector ? (
-            <PageInspector
-              enabled={pageStylesEnabled}
-              onStyleChange={(styles) => {
-                const normalized = normalizeManualEditStyles(styles, { layoutEnabled: true });
-                if (!normalized.ok) {
-                  onError('error' in normalized ? normalized.error : 'Invalid style value.');
-                  onInvalidStyle?.('__body__', Object.keys(styles) as Array<keyof ManualEditStyles>);
-                  return;
-                }
-                onError('');
-                onStyleChange?.('__body__', normalized.styles, 'Page styles');
-              }}
-            />
-          ) : null}
-
-          {targetForInspector?.kind === 'image' && onPickImage ? (
-            <div className="cc-section">
-              <header className="cc-section-head">IMAGE</header>
-              <div className="cc-section-body">
-                <button
-                  type="button"
-                  className="cc-action-btn"
-                  disabled={uploadingImage}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploadingImage ? t('manualEdit.uploadingImage') : t('manualEdit.uploadImage')}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={async (e) => {
-                    const file = e.currentTarget.files?.[0];
-                    if (!file) return;
-                    e.currentTarget.value = '';
-                    setUploadingImage(true);
-                    try {
-                      const src = await onPickImage(file);
-                      if (src) {
-                        const activeTargetId = selectedTargetRef.current?.id ?? targetForInspector.id;
-                        onApplyPatch(
-                          { id: activeTargetId, kind: 'set-image', src, alt: draft.alt },
-                          t('manualEdit.uploadImage'),
-                        );
-                      } else {
-                        onError(t('manualEdit.uploadImageFailed'));
-                      }
-                    } finally {
-                      setUploadingImage(false);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
+          <PageInspector
+            enabled={pageStylesEnabled}
+            onStyleChange={(styles) => {
+              const normalized = normalizeManualEditStyles(styles, { layoutEnabled: true });
+              if (!normalized.ok) {
+                onError('error' in normalized ? normalized.error : 'Invalid style value.');
+                onInvalidStyle?.('__body__', Object.keys(styles) as Array<keyof ManualEditStyles>);
+                return;
+              }
+              onError('');
+              onStyleChange('__body__', normalized.styles, 'Page styles');
+            }}
+          />
         </div>
 
         <div className="manual-edit-footer">
@@ -252,47 +115,6 @@ export function ManualEditPanel({
                   <RemixIcon name="arrow-go-forward-line" size={15} />
                 </Button>
               </div>
-              {targetForInspector ? (
-                confirmDelete ? (
-                  <div className="manual-edit-delete-confirm">
-                    <button
-                      type="button"
-                      className="manual-edit-delete-btn manual-edit-delete-confirm-action"
-                      aria-label={t('manualEdit.deleteElement')}
-                      title={canUndo ? t('manualEdit.deleteElementConfirm') : t('manualEdit.deleteElement')}
-                      disabled={busy}
-                      onClick={() => {
-                        setConfirmDelete(false);
-                        onApplyPatch(
-                          { id: targetForInspector.id, kind: 'remove-element' },
-                          t('manualEdit.deleteElement'),
-                        );
-                      }}
-                    >
-                      <Icon name="trash" size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="manual-edit-footer-btn subtle"
-                      disabled={busy}
-                      onClick={() => setConfirmDelete(false)}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="manual-edit-delete-btn"
-                    aria-label={t('manualEdit.deleteElement')}
-                    title={t('manualEdit.deleteElement')}
-                    disabled={busy}
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Icon name="trash" size={15} />
-                  </button>
-                )
-              ) : null}
             </div>
             <div className="manual-edit-footer-right">
               <button
@@ -319,97 +141,6 @@ export function ManualEditPanel({
       </section>
     </aside>
   );
-}
-
-function readableManualEditTargetName(target: ManualEditTarget): string {
-  const explicit = firstReadableText(
-    target.attributes['data-od-label'],
-    target.attributes['aria-label'],
-    target.attributes.title,
-  );
-  if (explicit) return explicit;
-
-  if (target.kind === 'text' || target.kind === 'link' || target.kind === 'token') {
-    const textName = readableContentName(target.text || target.fields.text || target.label);
-    if (textName) return textName;
-  }
-  if (target.kind === 'image') {
-    const imageName = readableContentName(target.fields.alt || target.label);
-    if (imageName) return imageName;
-  }
-
-  const identifierName = readableIdentifierName(
-    target.attributes.id ||
-    target.attributes['data-od-id'] ||
-    target.id,
-  );
-  if (identifierName) return identifierName;
-
-  const className = readableClassName(target.className);
-  if (className) return className;
-
-  const labelName = readableContentName(target.label);
-  if (labelName && !looksCodeLikeLabel(labelName)) return labelName;
-
-  if (target.kind === 'container') return 'Container';
-  if (target.kind === 'image') return 'Image';
-  if (target.kind === 'link') return 'Link';
-  return 'Text';
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function firstReadableText(...values: Array<string | undefined>): string {
-  for (const value of values) {
-    const readable = readableContentName(value);
-    if (readable) return readable;
-  }
-  return '';
-}
-
-function readableContentName(value: string | undefined): string {
-  const clean = (value ?? '').replace(/\s+/g, ' ').trim();
-  if (!clean) return '';
-  if (looksGeneratedIdentifier(clean)) return '';
-  return clean.length > 42 ? `${clean.slice(0, 39).trim()}...` : clean;
-}
-
-function readableIdentifierName(value: string | undefined): string {
-  const raw = (value ?? '').trim();
-  if (!raw || looksGeneratedIdentifier(raw)) return '';
-  const lastSelectorPart = (raw.includes('.') ? raw.split('.').filter(Boolean).at(-1) : raw) ?? '';
-  const lastIdPart = (lastSelectorPart.includes('#') ? lastSelectorPart.split('#').filter(Boolean).at(-1) : lastSelectorPart) ?? '';
-  return humanizeIdentifier(lastIdPart);
-}
-
-function readableClassName(value: string | undefined): string {
-  const classes = (value ?? '').split(/\s+/).map((item) => item.trim()).filter(Boolean);
-  const candidate = classes.find((item) => {
-    const lower = item.toLowerCase();
-    return !looksGeneratedIdentifier(item) && !['container', 'wrapper', 'group', 'section', 'row', 'col'].includes(lower);
-  }) ?? classes.find((item) => !looksGeneratedIdentifier(item));
-  return humanizeIdentifier(candidate);
-}
-
-function humanizeIdentifier(value: string | undefined): string {
-  const clean = (value ?? '')
-    .replace(/^[_#.\s-]+|[_#.\s-]+$/g, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!clean || looksGeneratedIdentifier(clean)) return '';
-  return clean.charAt(0).toUpperCase() + clean.slice(1);
-}
-
-function looksCodeLikeLabel(value: string): boolean {
-  return /^[a-z][a-z0-9-]*(?:[#.][\w-]+)+$/i.test(value) || /^[a-z][a-z0-9-]*\s+#/.test(value);
-}
-
-function looksGeneratedIdentifier(value: string): boolean {
-  return /^path(?:-\d+)+$/i.test(value) || /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
 }
 
 function PageInspector({
@@ -567,9 +298,7 @@ export function normalizeManualEditStyles(
   return { ok: true, styles: normalized };
 }
 
-// Shared normalize-and-dispatch for a single whole-element style field. Used by
-// the floating panel's StyleInspector and by the docked typography toolbar so
-// both surfaces validate/preview/persist through the same path.
+// Shared normalize-and-dispatch for docked manual-edit toolbar fields.
 export function applyManualEditStyleField(params: {
   target: ManualEditTarget;
   draft: ManualEditDraft;
@@ -624,72 +353,6 @@ function styleLabel(key: keyof ManualEditStyles): string {
   return key.replace(/[A-Z]/g, (match) => ` ${match.toLowerCase()}`);
 }
 
-function StyleInspector({
-  styles, layoutEnabled, onChange,
-}: {
-  styles: ManualEditStyles;
-  layoutEnabled: boolean;
-  onChange: (key: keyof ManualEditStyles, value: string) => void;
-}) {
-  const u = (key: keyof ManualEditStyles, value: string) => onChange(key, value);
-  const showSize = true;
-  const showLayout = layoutEnabled;
-  const showBox = true;
-
-  return (
-    <div className="cc-inspector">
-      {showSize ? (
-        <Section title="SIZE">
-          <PairRow>
-            <UnitRow label="Width" value={styles.width} onChange={(v) => u('width', v)} unit="px" autoUnit />
-            <UnitRow label="Height" value={styles.height} onChange={(v) => u('height', v)} unit="px" autoUnit />
-          </PairRow>
-        </Section>
-      ) : null}
-
-      {showLayout ? (
-        <Section title="LAYOUT">
-          <PairRow>
-            <UnitRow label="Gap" value={styles.gap} onChange={(v) => u('gap', v)} unit="px" autoUnit />
-            <DropdownRow label="Direction" value={styles.flexDirection} onChange={(v) => u('flexDirection', v)} options={DIRECTION_OPTS} />
-          </PairRow>
-          <PairRow>
-            <DropdownRow label="Justify" value={styles.justifyContent} onChange={(v) => u('justifyContent', v)} options={JUSTIFY_OPTS} />
-            <DropdownRow label="Align" value={styles.alignItems} onChange={(v) => u('alignItems', v)} options={ITEMS_OPTS} />
-          </PairRow>
-        </Section>
-      ) : null}
-
-      {showBox ? (
-      <Section title="BOX">
-        <PairRow>
-          <ColorRow label="Fill" value={styles.backgroundColor} onChange={(v) => u('backgroundColor', v)} />
-          <UnitRow label="Opacity" value={styles.opacity} onChange={(v) => u('opacity', v)} unit="" />
-        </PairRow>
-
-        <QuadRow label="Padding" values={{
-          t: styles.paddingTop, r: styles.paddingRight, b: styles.paddingBottom, l: styles.paddingLeft,
-        }} onChange={(side, value) => u(sideToProp('padding', side), value)} />
-
-        <QuadRow label="Margin" values={{
-          t: styles.marginTop, r: styles.marginRight, b: styles.marginBottom, l: styles.marginLeft,
-        }} onChange={(side, value) => u(sideToProp('margin', side), value)} />
-
-        <QuadRow label="Border" values={{
-          t: styles.borderTopWidth, r: styles.borderRightWidth, b: styles.borderBottomWidth, l: styles.borderLeftWidth,
-        }} onChange={(side, value) => u(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)} />
-
-        <PairRow>
-          <DropdownRow label="Style" value={styles.borderStyle} onChange={(v) => u('borderStyle', v)} options={BORDER_STYLE_OPTS} />
-          <ColorRow label="Border" value={styles.borderColor} onChange={(v) => u('borderColor', v)} compact />
-        </PairRow>
-        <UnitRow label="Radius" value={styles.borderRadius} onChange={(v) => u('borderRadius', v)} unit="px" autoUnit />
-      </Section>
-      ) : null}
-    </div>
-  );
-}
-
 function Section({ title, children, inactive }: { title: string; children: React.ReactNode; inactive?: boolean }) {
   return (
     <section className={`cc-section${inactive ? ' cc-section-inactive' : ''}`}>
@@ -697,10 +360,6 @@ function Section({ title, children, inactive }: { title: string; children: React
       <div className="cc-section-body">{children}</div>
     </section>
   );
-}
-
-function PairRow({ children }: { children: React.ReactNode }) {
-  return <div className="cc-pair">{children}</div>;
 }
 
 function UnitRow({ label, value, onChange, unit, autoUnit, disabled }: {
@@ -733,24 +392,6 @@ function UnitRow({ label, value, onChange, unit, autoUnit, disabled }: {
         <input value={display} placeholder="" disabled={disabled} onChange={(e) => onChange(valueFromDisplay(e.currentTarget.value))} onBlur={(e) => handle(e.currentTarget.value)} />
         <button type="button" className="cc-step" disabled={!canStep} aria-label={`${label} increase`} onClick={() => stepBy(1)}>+</button>
         {unit ? <em className="cc-unit">{unit}</em> : null}
-      </span>
-    </label>
-  );
-}
-
-function DropdownRow({ label, value, onChange, options, placeholder, disabled }: {
-  label: string; value: string; onChange: (v: string) => void;
-  options: ReadonlyArray<string>; placeholder?: string; disabled?: boolean;
-}) {
-  return (
-    <label className="cc-row">
-      <span className="cc-label">{label}</span>
-      <span className="cc-value cc-select">
-        <select value={value} disabled={disabled} onChange={(e) => onChange(e.currentTarget.value)}>
-          {!options.includes(value) && value ? <option value={value}>{value}</option> : null}
-          {options.map((opt) => <option key={opt || '__'} value={opt}>{opt || (placeholder ?? '–')}</option>)}
-        </select>
-        <em className="cc-chevron">▾</em>
       </span>
     </label>
   );
@@ -859,63 +500,6 @@ function ColorRow({ label, value, onChange, compact }: {
   );
 }
 
-function QuadRow({ label, values, onChange }: {
-  label: string; values: { t: string; r: string; b: string; l: string };
-  onChange: (side: 't' | 'r' | 'b' | 'l', value: string) => void;
-}) {
-  const [open, setOpen] = useState(true);
-  const allEqualValue = (() => {
-    const v = values.t;
-    return v === values.r && v === values.b && v === values.l ? v : null;
-  })();
-  return (
-    <div className="cc-quad">
-      <button type="button" className="cc-quad-head" onClick={() => setOpen((v) => !v)}>
-        <span>{label}</span>
-        {!open && allEqualValue !== null ? <em>{allEqualValue || '0 px'}</em> : <span className="cc-chevron-small">{open ? '▾' : '▸'}</span>}
-      </button>
-      {open ? (
-        <div className="cc-quad-grid">
-          <QuadCell axis="T" value={values.t} onChange={(v) => onChange('t', v)} />
-          <QuadCell axis="R" value={values.r} onChange={(v) => onChange('r', v)} />
-          <QuadCell axis="B" value={values.b} onChange={(v) => onChange('b', v)} />
-          <QuadCell axis="L" value={values.l} onChange={(v) => onChange('l', v)} />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function QuadCell({ axis, value, onChange }: { axis: string; value: string; onChange: (v: string) => void }) {
-  const display = stripPxUnit(value);
-  const canStep = isNumericInput(display);
-  const stepBy = (direction: -1 | 1) => {
-    if (!canStep) return;
-    onChange(`${formatSteppedNumber(Number(display) + direction, display, 1)}px`);
-  };
-  return (
-    <span className="cc-quad-cell">
-      <em className="cc-quad-axis">{axis}</em>
-      <button type="button" className="cc-step cc-step-quad" disabled={!canStep} aria-label={`${axis} decrease`} onClick={() => stepBy(-1)}>−</button>
-      <input value={display} placeholder="0"
-        onChange={(e) => {
-          const raw = e.currentTarget.value.trim();
-          if (raw === '') onChange('');
-          else if (isNumericInput(raw)) onChange(`${raw}px`);
-          else if (/^-?\d+(\.\d+)?px$/i.test(raw)) onChange(raw.toLowerCase());
-          else onChange(e.currentTarget.value);
-        }}
-        onBlur={(e) => {
-          const v = e.currentTarget.value.trim();
-          const next = v && isNumericInput(v) ? `${v}px` : e.currentTarget.value;
-          if (next !== value) onChange(next);
-        }} />
-      <button type="button" className="cc-step cc-step-quad" disabled={!canStep} aria-label={`${axis} increase`} onClick={() => stepBy(1)}>+</button>
-      <em className="cc-quad-unit">px</em>
-    </span>
-  );
-}
-
 export function stripPxUnit(value: string): string {
   const match = value.trim().match(/^(-?\d+(?:\.\d+)?)px$/i);
   return match?.[1] ?? value;
@@ -937,13 +521,6 @@ function decimalPlaces(value: string): number {
   return match?.[1]?.length ?? 0;
 }
 
-function sideToProp(base: 'padding' | 'margin', side: 't' | 'r' | 'b' | 'l'): keyof ManualEditStyles {
-  return `${base}${sideUpper(side)}` as keyof ManualEditStyles;
-}
-function sideUpper(side: 't' | 'r' | 'b' | 'l'): 'Top' | 'Right' | 'Bottom' | 'Left' {
-  return side === 't' ? 'Top' : side === 'r' ? 'Right' : side === 'b' ? 'Bottom' : 'Left';
-}
-
 export function normalizeColorForPicker(value: string): string {
   const trimmed = value.trim();
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
@@ -959,10 +536,4 @@ export function normalizeColorForPicker(value: string): string {
     return `#${toHex(match[1]!)}${toHex(match[2]!)}${toHex(match[3]!)}`;
   }
   return '#000000';
-}
-
-export function manualEditPatchSummary(patch: ManualEditPatch): string {
-  if (patch.kind === 'set-full-source') return JSON.stringify({ kind: patch.kind, bytes: patch.source.length });
-  if (patch.kind === 'set-outer-html' || patch.kind === 'set-inner-html') return JSON.stringify({ id: patch.id, kind: patch.kind, bytes: patch.html.length });
-  return JSON.stringify(patch);
 }

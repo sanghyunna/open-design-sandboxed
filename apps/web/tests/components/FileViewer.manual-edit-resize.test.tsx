@@ -41,31 +41,13 @@ describe('FileViewer manual edit resize handles', () => {
       }));
     });
     await waitFor(() => {
-      expect(document.querySelector('.manual-edit-right')).not.toBeNull();
+      expect(screen.getByTestId('manual-edit-shape-toolbar')).toBeTruthy();
     });
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
   }
 
   function seHandle() {
     return screen.getByLabelText('Resize bottom-right corner') as HTMLButtonElement;
-  }
-
-  function panelEl() {
-    return document.querySelector('.manual-edit-right') as HTMLElement;
-  }
-
-  // manualEditFloatingPanelStyle clamps its beside-the-element candidates
-  // against the preview canvas size. jsdom's real getBoundingClientRect is
-  // always zero, which collapses every candidate to the same constant
-  // fallback regardless of the target rect — useless for a test that needs
-  // placement to actually vary with the rect. Stub a realistic canvas so the
-  // candidate math produces distinct, rect-dependent positions.
-  function stubPreviewCanvasSize(width: number, height: number) {
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-      const isViewerBody = this.classList?.contains('viewer-body');
-      const w = isViewerBody ? width : 0;
-      const h = isViewerBody ? height : 0;
-      return { x: 0, y: 0, width: w, height: h, top: 0, left: 0, right: w, bottom: h, toJSON: () => ({}) } as DOMRect;
-    });
   }
 
   it('renders the 8 resize handles once a target is selected in edit mode', async () => {
@@ -580,11 +562,10 @@ describe('FileViewer manual edit resize handles', () => {
     );
   });
 
-  it('freezes the panel auto-placement to the selection-time rect while live geometry keeps updating', async () => {
+  it('keeps the selected target panel-free while live geometry updates', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
     vi.stubGlobal('fetch', fetchMock);
-    stubPreviewCanvasSize(1200, 800);
 
     render(
       <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
@@ -592,9 +573,6 @@ describe('FileViewer manual edit resize handles', () => {
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await selectManualEditTarget();
-
-    const originalLeft = panelEl().style.left;
-    const originalTop = panelEl().style.top;
 
     const frame = await previewFrame();
     // A geometry refresh (not a user selection) reporting the same element
@@ -610,44 +588,13 @@ describe('FileViewer manual edit resize handles', () => {
       }));
     });
 
-    // (b) the live path stays live: the resize-handle overlay tracks the moved rect.
+    // The live path stays live: the resize-handle overlay tracks the moved rect.
     await waitFor(() => {
       expect(seHandle().parentElement?.style.left).toBe('500px');
     });
     expect(seHandle().parentElement?.style.top).toBe('500px');
 
-    // (a) the panel's auto-placed position does not chase the element.
-    expect(panelEl().style.left).toBe(originalLeft);
-    expect(panelEl().style.top).toBe(originalTop);
-  });
-
-  it('recomputes the panel placement when a different element is selected', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
-    vi.stubGlobal('fetch', fetchMock);
-    stubPreviewCanvasSize(1200, 800);
-
-    render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
-    );
-
-    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget();
-    const firstLeft = panelEl().style.left;
-    const firstTop = panelEl().style.top;
-
-    await selectManualEditTarget({
-      ...heroTarget(),
-      id: 'footer',
-      rect: { x: 800, y: 600, width: 100, height: 40 },
-      attributes: { 'data-od-id': 'footer' },
-      outerHtml: '<footer data-od-id="footer">Footer</footer>',
-    });
-
-    await waitFor(() => {
-      expect(panelEl().style.left).not.toBe(firstLeft);
-    });
-    expect(panelEl().style.top).not.toBe(firstTop);
+    expect(document.querySelector('.manual-edit-right')).toBeNull();
   });
 });
 

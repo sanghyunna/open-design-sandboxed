@@ -30,7 +30,6 @@ import {
   applyInspectOverridesToSource,
   commentPreviewCanvasSize,
   effectivePreviewScale,
-  manualEditFloatingPanelStyle,
   manualEditHoverIconStyle,
   parseInspectOverridesFromSource,
   previewOverlayTransform,
@@ -337,7 +336,7 @@ describe('FileViewer preview scale', () => {
     expect(withOptions.scale).not.toBe(withoutOptions.scale);
   });
 
-  it('applies the tablet/mobile centering offset to the manual edit floating panel and hover icon', () => {
+  it('applies the tablet/mobile centering offset to the manual edit hover icon', () => {
     const target: ManualEditTarget = {
       id: 'hero',
       kind: 'container',
@@ -359,67 +358,8 @@ describe('FileViewer preview scale', () => {
     const transform = previewOverlayTransform('mobile', 1, canvasSize);
     expect(transform).toEqual({ scale: 1, offsetX: 405, offsetY: 24 });
 
-    // Exact expected values with the offset applied (left/top for BOTH would
-    // land at the pre-fix, offset-less position — {122, 20} for the panel
-    // and {80, 24} for the icon — if either offsetX or offsetY were dropped,
-    // so this discriminates a regression on either axis or either element.
-    const panelStyle = manualEditFloatingPanelStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
-    expect(panelStyle).toEqual({ left: 527, top: 44, width: 320, maxHeight: 380 });
-
     const iconStyle = manualEditHoverIconStyle(target, transform.scale, canvasSize, transform.offsetX, transform.offsetY);
     expect(iconStyle).toEqual({ left: 485, top: 48, width: 26, height: 26 });
-  });
-});
-
-describe('manualEditFloatingPanelStyle placement', () => {
-  const makeTarget = (rect: { x: number; y: number; width: number; height: number }): ManualEditTarget => ({
-    id: 'el',
-    kind: 'container',
-    label: 'El',
-    tagName: 'section',
-    className: '',
-    text: '',
-    rect,
-    fields: {},
-    attributes: {},
-    styles: emptyManualEditStyles(),
-    isLayoutContainer: false,
-    outerHtml: '',
-  });
-  const canvas = { width: 1200, height: 800 };
-
-  it('keeps the beside-the-element right placement when it fits', () => {
-    // Parity with pre-change behavior for small elements with room to the right.
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 10, y: 20, width: 100, height: 40 }), 1, canvas);
-    expect(style).toEqual({ left: 122, top: 20, width: 320, maxHeight: 380 });
-  });
-
-  it('flips to the left side for an element hugging the right edge', () => {
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 900, y: 100, width: 280, height: 200 }), 1, canvas);
-    expect(style).toEqual({ left: 568, top: 100, width: 320, maxHeight: 380 });
-  });
-
-  it('drops below a full-width header instead of covering it', () => {
-    // Old algorithm returned { left: 12, top: 12 } — on top of the element.
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 0, width: 1200, height: 150 }), 1, canvas);
-    expect(style).toEqual({ left: 868, top: 162, width: 320, maxHeight: 380 });
-  });
-
-  it('rises above a full-width footer pinned to the bottom', () => {
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 600, width: 1200, height: 200 }), 1, canvas);
-    expect(style).toEqual({ left: 868, top: 208, width: 320, maxHeight: 380 });
-  });
-
-  it('docks to the top-right corner when the element dominates the canvas', () => {
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: 0, width: 1200, height: 800 }), 1, canvas);
-    expect(style).toEqual({ left: 868, top: 12, width: 320, maxHeight: 380 });
-  });
-
-  it('places against the VISIBLE part of a tall element scrolled half off-canvas', () => {
-    // rect.y is iframe-viewport based; y=-400 h=500 leaves only 0..100 visible,
-    // so "below" starts at 112, not at the off-screen element bottom.
-    const style = manualEditFloatingPanelStyle(makeTarget({ x: 0, y: -400, width: 1200, height: 500 }), 1, canvas);
-    expect(style).toEqual({ left: 868, top: 112, width: 320, maxHeight: 380 });
   });
 });
 

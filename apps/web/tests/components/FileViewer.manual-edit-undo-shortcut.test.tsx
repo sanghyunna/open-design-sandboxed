@@ -6,17 +6,17 @@ import type { ComponentProps } from 'react';
 import { emptyManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
 import type { ProjectFile } from '../../src/types';
 
-const panelState = vi.hoisted(() => ({
-  props: null as ComponentProps<typeof import('../../src/components/ManualEditPanel').ManualEditPanel> | null,
+const toolbarState = vi.hoisted(() => ({
+  props: null as ComponentProps<typeof import('../../src/components/ManualEditShapeToolbar').ManualEditShapeToolbar> | null,
 }));
 
-vi.mock('../../src/components/ManualEditPanel', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/components/ManualEditPanel')>();
+vi.mock('../../src/components/ManualEditShapeToolbar', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/components/ManualEditShapeToolbar')>();
   return {
     ...actual,
-    ManualEditPanel: (props: ComponentProps<typeof actual.ManualEditPanel>) => {
-      panelState.props = props;
-      return <div data-testid="mock-manual-edit-panel" />;
+    ManualEditShapeToolbar: (props: ComponentProps<typeof actual.ManualEditShapeToolbar>) => {
+      toolbarState.props = props;
+      return <div data-testid="mock-manual-edit-shape-toolbar" />;
     },
   };
 });
@@ -35,12 +35,12 @@ async function selectHero() {
       source: frame.contentWindow,
     }));
   });
-  await waitFor(() => expect(panelState.props).not.toBeNull());
+  await waitFor(() => expect(toolbarState.props).not.toBeNull());
 }
 
 afterEach(() => {
   cleanup();
-  panelState.props = null;
+  toolbarState.props = null;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -84,7 +84,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     await selectHero();
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { id: 'hero', kind: 'set-text', value: 'Edited hero' },
         'Content: Hero',
       );
@@ -191,7 +191,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     await selectHero();
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { id: 'hero', kind: 'set-text', value: 'Edited hero' },
         'Content: Hero',
       );
@@ -230,7 +230,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     for (const value of ['Alpha', 'Bravo', 'Charlie']) {
       const before = savedSources.length;
       act(() => {
-        panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value }, 'Content: Hero');
+        toolbarState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value }, 'Content: Hero');
       });
       await waitFor(() => expect(savedSources.length).toBe(before + 1));
     }
@@ -286,7 +286,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     await selectHero();
 
     act(() => {
-      panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
+      toolbarState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
     });
     await waitFor(() => expect(savedSources).toHaveLength(1));
 
@@ -334,7 +334,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     await selectHero();
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { id: 'hero', kind: 'set-text', value: 'Edited hero' },
         'Content: Hero',
       );
@@ -380,7 +380,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     await selectHero();
 
     act(() => {
-      panelState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
+      toolbarState.props?.onApplyPatch({ id: 'hero', kind: 'set-text', value: 'Edited hero' }, 'Content: Hero');
     });
     await waitFor(() => expect(savedSources).toHaveLength(1));
 

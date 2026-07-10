@@ -6,17 +6,17 @@ import type { ComponentProps } from 'react';
 import { emptyManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
 import type { ProjectFile } from '../../src/types';
 
-const panelState = vi.hoisted(() => ({
-  props: null as ComponentProps<typeof import('../../src/components/ManualEditPanel').ManualEditPanel> | null,
+const toolbarState = vi.hoisted(() => ({
+  props: null as ComponentProps<typeof import('../../src/components/ManualEditShapeToolbar').ManualEditShapeToolbar> | null,
 }));
 
-vi.mock('../../src/components/ManualEditPanel', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/components/ManualEditPanel')>();
+vi.mock('../../src/components/ManualEditShapeToolbar', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/components/ManualEditShapeToolbar')>();
   return {
     ...actual,
-    ManualEditPanel: (props: ComponentProps<typeof actual.ManualEditPanel>) => {
-      panelState.props = props;
-      return <div data-testid="mock-manual-edit-panel" />;
+    ManualEditShapeToolbar: (props: ComponentProps<typeof actual.ManualEditShapeToolbar>) => {
+      toolbarState.props = props;
+      return <div data-testid="mock-manual-edit-shape-toolbar" />;
     },
   };
 });
@@ -36,7 +36,7 @@ function clickAgentTool(testId: string) {
   fireEvent.click(screen.getByTestId(testId));
 }
 
-// Pins the inspector to a target. Hover no longer auto-selects, so selection
+// Pins the docked toolbar to a target. Hover no longer auto-selects, so selection
 // rides the explicit click path (od-edit-select), matching the bridge sending
 // it when the user clicks the hover affordance or a container/image body.
 async function selectManualEditTarget(target = heroTarget()) {
@@ -51,12 +51,12 @@ async function selectManualEditTarget(target = heroTarget()) {
       source: frame.contentWindow,
     }));
   });
-  await waitFor(() => expect(panelState.props).not.toBeNull());
+  await waitFor(() => expect(toolbarState.props).not.toBeNull());
 }
 
 afterEach(() => {
   cleanup();
-  panelState.props = null;
+  toolbarState.props = null;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -99,7 +99,7 @@ describe('FileViewer manual edit history regressions', () => {
     await selectManualEditTarget();
 
     act(() => {
-      panelState.props?.onStyleChange?.('hero', { color: '#ef4444' }, 'Style: Hero');
+      toolbarState.props?.onStyleField('color', '#ef4444');
     });
     clickAgentTool('draw-overlay-toggle');
 
@@ -191,7 +191,7 @@ describe('FileViewer manual edit history regressions', () => {
     await selectManualEditTarget();
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { kind: 'set-style', id: 'hero', styles: { color: '#ef4444' } },
         'Style: Hero',
       );
@@ -200,13 +200,13 @@ describe('FileViewer manual edit history regressions', () => {
     expect(savedSources[0]).toContain('rgb(239, 68, 68)');
 
     act(() => {
-      panelState.props?.onUndo();
+      toolbarState.props?.onUndo();
     });
     await waitFor(() => expect(savedSources).toHaveLength(2));
     expect(savedSources[1]).toBe(initialSource);
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { kind: 'set-style', id: 'hero', styles: { backgroundColor: '#f97316' } },
         'Style: Hero',
       );
@@ -257,17 +257,15 @@ describe('FileViewer manual edit history regressions', () => {
       const frame = getActivePreviewFrame();
       expect(frame.getAttribute('data-od-active')).toBe('true');
       expect(frame.getAttribute('data-od-render-mode')).toBe('srcdoc');
-      expect(panelState.props?.draft.fullSource).toContain('Hero');
     });
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { id: 'hero', kind: 'set-text', value: 'Updated hero' },
         'Content: Hero',
       );
     });
 
     await waitFor(() => expect(savedSources).toHaveLength(1));
-    await waitFor(() => expect(panelState.props?.draft.fullSource).toContain('Updated hero'));
     await waitFor(() => {
       expect(getActivePreviewFrame().srcdoc).toContain('Updated hero');
     });
@@ -312,11 +310,10 @@ describe('FileViewer manual edit history regressions', () => {
     const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
     const postMessageSpy = vi.spyOn(frame.contentWindow!, 'postMessage');
 
-    await waitFor(() => expect(panelState.props?.selectedTarget?.id).toBe('hero'));
-    expect(panelState.props?.draft.text).toBe('Hero');
+    await waitFor(() => expect(toolbarState.props?.target.id).toBe('hero'));
 
     act(() => {
-      panelState.props?.onApplyPatch(
+      toolbarState.props?.onApplyPatch(
         { id: 'hero', kind: 'remove-element' },
         'Delete element',
       );
@@ -327,7 +324,7 @@ describe('FileViewer manual edit history regressions', () => {
     expect(savedSources[0]).toContain('data-od-id="body"');
     // Clearing the selection closes the inspector: edit mode returns to a clean
     // canvas (no docked/pinned panel) and the iframe selection marker is reset.
-    await waitFor(() => expect(screen.queryByTestId('mock-manual-edit-panel')).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId('mock-manual-edit-shape-toolbar')).toBeNull());
     expect(postMessageSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-selected-target', id: null }),
       '*',

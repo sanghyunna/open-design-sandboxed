@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { ManualEditShapeToolbar } from '../../src/components/ManualEditShapeToolbar';
@@ -31,7 +32,6 @@ function renderToolbar(overrides: {
   onPickImage?: (file: File) => Promise<string | null>;
 } = {}) {
   const onStyleField = vi.fn<(key: keyof ManualEditStyles, value: string) => void>();
-  const onStyleFields = vi.fn<(styles: Partial<ManualEditStyles>) => void>();
   const onApplyPatch = vi.fn<(patch: ManualEditPatch, label: string) => void>();
   const onUndo = vi.fn<() => void>();
   const onRedo = vi.fn<() => void>();
@@ -47,7 +47,6 @@ function renderToolbar(overrides: {
       canRedo
       getActiveTarget={overrides.getActiveTarget}
       onStyleField={onStyleField}
-      onStyleFields={onStyleFields}
       onApplyPatch={onApplyPatch}
       onPickImage={overrides.onPickImage}
       onError={onError}
@@ -55,7 +54,7 @@ function renderToolbar(overrides: {
       onRedo={onRedo}
     />,
   );
-  return { ...utils, onStyleField, onStyleFields, onApplyPatch, onUndo, onRedo, onError };
+  return { ...utils, onStyleField, onApplyPatch, onUndo, onRedo, onError };
 }
 
 afterEach(() => {
@@ -63,8 +62,8 @@ afterEach(() => {
 });
 
 describe('ManualEditShapeToolbar', () => {
-  it('calls onStyleField for direct fill, size, linked spacing, border, radius, and opacity controls', () => {
-    const { getByLabelText, onStyleField, onStyleFields } = renderToolbar();
+  it('keeps the high-value fill, size, radius, and opacity controls direct', () => {
+    const { getByLabelText, onStyleField } = renderToolbar();
 
     fireEvent.click(getByLabelText('Fill'));
     fireEvent.click(getByLabelText('#ef4444'));
@@ -76,29 +75,6 @@ describe('ManualEditShapeToolbar', () => {
     fireEvent.change(getByLabelText('Height'), { target: { value: '180' } });
     expect(onStyleField).toHaveBeenCalledWith('height', '180px');
 
-    fireEvent.change(getByLabelText('Padding'), { target: { value: '16' } });
-    expect(onStyleFields).toHaveBeenCalledWith({
-      paddingTop: '16px',
-      paddingRight: '16px',
-      paddingBottom: '16px',
-      paddingLeft: '16px',
-    });
-
-    fireEvent.change(getByLabelText('Border widths'), { target: { value: '2' } });
-    expect(onStyleFields).toHaveBeenCalledWith({
-      borderTopWidth: '2px',
-      borderRightWidth: '2px',
-      borderBottomWidth: '2px',
-      borderLeftWidth: '2px',
-    });
-
-    fireEvent.change(getByLabelText('Style'), { target: { value: 'dashed' } });
-    expect(onStyleField).toHaveBeenCalledWith('borderStyle', 'dashed');
-
-    fireEvent.click(getByLabelText('Border color'));
-    fireEvent.click(getByLabelText('#3b82f6'));
-    expect(onStyleField).toHaveBeenCalledWith('borderColor', '#3b82f6');
-
     fireEvent.change(getByLabelText('Radius'), { target: { value: '8' } });
     expect(onStyleField).toHaveBeenCalledWith('borderRadius', '8px');
 
@@ -106,18 +82,56 @@ describe('ManualEditShapeToolbar', () => {
     expect(onStyleField).toHaveBeenCalledWith('opacity', '0.5');
   });
 
-  it('keeps per-side spacing and border widths in accessible popover groups', () => {
+  it('keeps spacing and border controls in accessible popover groups without duplicate linked inputs', () => {
     const { getByLabelText, getByRole, onStyleField } = renderToolbar();
 
     fireEvent.click(getByLabelText('Spacing'));
     expect(getByRole('group', { name: 'Spacing' })).toBeTruthy();
+    expect(() => getByLabelText('Padding')).toThrow();
     fireEvent.change(getByLabelText('Padding top'), { target: { value: '12' } });
     expect(onStyleField).toHaveBeenCalledWith('paddingTop', '12px');
 
     fireEvent.click(getByLabelText('Border'));
     expect(getByRole('group', { name: 'Border' })).toBeTruthy();
+    expect(() => getByLabelText('Border widths')).toThrow();
     fireEvent.change(getByLabelText('Border widths left'), { target: { value: '3' } });
     expect(onStyleField).toHaveBeenCalledWith('borderLeftWidth', '3px');
+    fireEvent.change(getByLabelText('Style'), { target: { value: 'dashed' } });
+    expect(onStyleField).toHaveBeenCalledWith('borderStyle', 'dashed');
+    fireEvent.click(getByLabelText('Border color'));
+    fireEvent.click(getByLabelText('#3b82f6'));
+    expect(onStyleField).toHaveBeenCalledWith('borderColor', '#3b82f6');
+  });
+
+  it('keeps grouped popovers trigger-relative on desktop', () => {
+    const css = readFileSync('src/components/ManualEditShapeToolbar.module.css', 'utf8');
+
+    expect(css).toMatch(/\.menuGroup \.popoverWrap \.popover\s*\{[^}]*right:\s*0;[^}]*left:\s*auto;/);
+  });
+
+  it('clamps grouped popovers to both toolbar edges in narrow containers', () => {
+    const css = readFileSync('src/components/ManualEditShapeToolbar.module.css', 'utf8');
+    const narrowRules = css.match(/@container \(max-width: 760px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+
+    expect(narrowRules).toMatch(/\.menuGroup \.popoverWrap\s*\{[^}]*position:\s*static;/);
+    expect(narrowRules).toMatch(/\.menuGroup \.popoverWrap \.popover\s*\{[^}]*inset-inline:\s*10px;[^}]*min-width:\s*0;/);
+  });
+
+  it('closes an open control group with Escape without propagating it', () => {
+    const { getByLabelText, getByRole, queryByRole } = renderToolbar();
+    const onWindowKeyDown = vi.fn();
+
+    fireEvent.click(getByLabelText('Spacing'));
+    expect(getByRole('group', { name: 'Spacing' })).toBeTruthy();
+    window.addEventListener('keydown', onWindowKeyDown);
+    try {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    } finally {
+      window.removeEventListener('keydown', onWindowKeyDown);
+    }
+
+    expect(queryByRole('group', { name: 'Spacing' })).toBeNull();
+    expect(onWindowKeyDown).not.toHaveBeenCalled();
   });
 
   it('shows layout controls only for layout containers', () => {
@@ -189,7 +203,6 @@ describe('ManualEditShapeToolbar', () => {
 
   it('does not carry delete confirmation to a different selected shape', () => {
     const onStyleField = vi.fn<(key: keyof ManualEditStyles, value: string) => void>();
-    const onStyleFields = vi.fn<(styles: Partial<ManualEditStyles>) => void>();
     const onApplyPatch = vi.fn<(patch: ManualEditPatch, label: string) => void>();
     const props = {
       styles: emptyManualEditStyles(),
@@ -198,7 +211,6 @@ describe('ManualEditShapeToolbar', () => {
       canUndo: false,
       canRedo: false,
       onStyleField,
-      onStyleFields,
       onApplyPatch,
       onError: vi.fn<(message: string) => void>(),
       onUndo: vi.fn<() => void>(),

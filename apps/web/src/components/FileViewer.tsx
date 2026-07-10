@@ -742,74 +742,9 @@ function pickLatestShareDeployment(
     .sort(compareDeploymentsByNewest)[0] ?? null;
 }
 
-export function manualEditFloatingPanelStyle(
-  target: ManualEditTarget,
-  previewScale: number,
-  canvasSize: PreviewCanvasSize | undefined,
-  offsetX = 0,
-  offsetY = 0,
-): CSSProperties {
-  const scale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
-  const panelWidth = 320;
-  const preferredPanelHeight = 380;
-  const pad = 12;
-  const canvasWidth = canvasSize?.width ?? 1200;
-  const canvasHeight = canvasSize?.height ?? 800;
-  const panelHeight = Math.min(preferredPanelHeight, Math.max(260, canvasHeight - pad * 2));
-  const clamp = (value: number, lo: number, hi: number) => Math.max(lo, Math.min(value, hi));
-
-  // The element's VISIBLE rect on the preview canvas. target.rect is
-  // iframe-viewport based (scroll already applied), so clamping to the canvas
-  // trims the off-screen part — the panel should avoid what the user can see,
-  // not the element's full scrolled extent.
-  const visLeft = clamp(offsetX + target.rect.x * scale, 0, canvasWidth);
-  const visTop = clamp(offsetY + target.rect.y * scale, 0, canvasHeight);
-  const visRight = clamp(offsetX + (target.rect.x + target.rect.width) * scale, 0, canvasWidth);
-  const visBottom = clamp(offsetY + (target.rect.y + target.rect.height) * scale, 0, canvasHeight);
-
-  const clampPanelLeft = (left: number) => clamp(left, pad, Math.max(pad, canvasWidth - panelWidth - pad));
-  const clampPanelTop = (top: number) => clamp(top, pad, Math.max(pad, canvasHeight - panelHeight - pad));
-
-  // Beside-the-element candidates, least surprising first: right, left, below,
-  // above. Right/left hug the element's top edge; below/above hug its right
-  // edge (where the hover affordance lives). Each candidate is pad-separated
-  // from the element's visible rect by construction on its defining axis (that
-  // coordinate is never clamped — clamps only touch the other axis), so the
-  // first candidate that fits the canvas is guaranteed not to cover the
-  // element; no intersection test needed.
-  const candidates = [
-    { left: visRight + pad, top: clampPanelTop(visTop) },
-    { left: visLeft - panelWidth - pad, top: clampPanelTop(visTop) },
-    { left: clampPanelLeft(visRight - panelWidth), top: visBottom + pad },
-    { left: clampPanelLeft(visRight - panelWidth), top: visTop - panelHeight - pad },
-  ];
-  for (const candidate of candidates) {
-    const fitsCanvas =
-      candidate.left >= pad &&
-      candidate.left + panelWidth <= canvasWidth - pad &&
-      candidate.top >= pad &&
-      candidate.top + panelHeight <= canvasHeight - pad;
-    if (!fitsCanvas) continue;
-    // Height is left to the content (auto): a short inspector should be a
-    // compact card. The cap only engages for long inspectors, at which point
-    // the scroll body takes over.
-    return { left: candidate.left, top: candidate.top, width: panelWidth, maxHeight: panelHeight };
-  }
-  // The element dominates the canvas; every beside-it spot would cover it.
-  // Dock to the same top-right corner the page-styles card uses so the
-  // fallback is stable and predictable, not a random-feeling spot.
-  return {
-    left: Math.max(pad, canvasWidth - panelWidth - pad),
-    top: pad,
-    width: panelWidth,
-    maxHeight: panelHeight,
-  };
-}
-
 // Anchors the hover "edit params" affordance to the top-right corner of the
 // hovered element, just inside its bounds so moving the cursor from the
-// element onto the icon does not drop the hover. Uses the same iframe→canvas
-// coordinate basis as the floating inspector panel.
+// element onto the icon does not drop the hover.
 export function manualEditHoverIconStyle(
   target: ManualEditTarget,
   previewScale: number,
@@ -3777,13 +3712,6 @@ function HtmlViewer({
   const [manualEditMoveMode, setManualEditMoveMode] = useState<'editing' | 'selected'>('selected');
   const [manualEditHoverTarget, setManualEditHoverTarget] = useState<ManualEditTarget | null>(null);
   const [manualEditPageStylesOpen, setManualEditPageStylesOpen] = useState(false);
-  const [manualEditPanelPosition, setManualEditPanelPosition] = useState<{ left: number; top: number } | null>(null);
-  // Auto-placement anchor: the target rect captured at selection time. The
-  // floating panel's auto-placed slot derives from this frozen snapshot, not
-  // the live selectedManualEditTarget.rect, so it computes once per selection
-  // and holds still afterward — live geometry keeps flowing to the resize
-  // handles / hover affordance / selectedManualEditTarget.rect unchanged.
-  const [manualEditPanelAnchorRect, setManualEditPanelAnchorRect] = useState<ManualEditRect | null>(null);
   const selectedManualEditTargetIdRef = useRef<string | null>(null);
   const selectedManualEditTargetRef = useRef<ManualEditTarget | null>(null);
   const manualEditActionSeqRef = useRef(0);
@@ -4657,8 +4585,6 @@ function HtmlViewer({
     setManualEditViewportWidth(null);
     setManualEditTargets([]);
     setSelectedManualEditTarget(null);
-    setManualEditPanelPosition(null);
-    setManualEditPanelAnchorRect(null);
     selectedManualEditTargetIdRef.current = null;
     selectedManualEditTargetRef.current = null;
     manualEditPostSaveIntentRef.current = null;
@@ -4912,8 +4838,6 @@ function HtmlViewer({
       setSelectedManualEditTarget(null);
       setManualEditHoverTarget(null);
       setManualEditPageStylesOpen(false);
-      setManualEditPanelPosition(null);
-      setManualEditPanelAnchorRect(null);
       selectedManualEditTargetIdRef.current = null;
       selectedManualEditTargetRef.current = null;
       manualEditPostSaveIntentRef.current = null;
@@ -5002,8 +4926,7 @@ function HtmlViewer({
         if (data.ok && data.rect && typeof data.id === 'string') {
           // The iframe measured the element AFTER applying the preview styles:
           // this is the real box (layout may have clamped the request), and it
-          // is what the resize handles / hover icon must render. The floating
-          // panel deliberately ignores it (manualEditPanelAnchorRect).
+          // is what the resize handles / hover icon must render.
           const rect = data.rect;
           const cssSize = data.cssSize && typeof data.cssSize.width === 'string' && typeof data.cssSize.height === 'string'
             ? { width: data.cssSize.width, height: data.cssSize.height }
@@ -5094,19 +5017,6 @@ function HtmlViewer({
     manualEditPendingStyleRef.current = pending;
     setManualEditError(null);
     previewStyleToIframe(id, styles, version);
-  }
-
-  function applyManualEditStyleFields(target: ManualEditTarget, styles: Partial<ManualEditStyles>) {
-    setManualEditDraft((current) => ({ ...current, styles: { ...current.styles, ...styles } }));
-    const normalized = normalizeManualEditStyles(styles, { layoutEnabled: target.isLayoutContainer });
-    const keys = Object.keys(styles) as Array<keyof ManualEditStyles>;
-    if (!normalized.ok) {
-      setManualEditError('error' in normalized ? normalized.error : 'Invalid style value.');
-      cancelManualEditPendingStyles(target.id, keys);
-      return;
-    }
-    setManualEditError('');
-    void handleManualEditStyleChange(target.id, normalized.styles, `Style: ${target.label}`);
   }
 
   // Translate a drag result (rect-space px) into CSS width/height, anchored on
@@ -5316,8 +5226,6 @@ function HtmlViewer({
     const ok = await flushManualEditStyleSave();
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
-    setManualEditPanelPosition(null);
-    setManualEditPanelAnchorRect(null);
     setManualEditMode(false);
     return true;
   }
@@ -5339,18 +5247,13 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'select', target };
       return;
     }
-    setManualEditPageStylesOpen(false);
     if (manualEditPendingStyleRef.current?.id !== target.id) {
-      const pendingTarget = pendingManualEditStyleTarget();
-      if (pendingTarget && isManualEditShapeTarget(pendingTarget)) {
-        const ok = await flushManualEditStyleSave();
-        if (actionSeq !== manualEditActionSeqRef.current) return;
-        if (!ok) return;
-      } else {
-        cancelManualEditStyleDraft();
-      }
+      const ok = await flushManualEditStyleSave();
+      if (actionSeq !== manualEditActionSeqRef.current) return;
+      if (!ok) return;
     }
     if (actionSeq !== manualEditActionSeqRef.current) return;
+    setManualEditPageStylesOpen(false);
     const base = sourceRef.current ?? '';
     const fields = readManualEditFields(base, target.id);
     selectedManualEditTargetIdRef.current = target.id;
@@ -5359,7 +5262,6 @@ function HtmlViewer({
     // A genuine new selection re-snapshots the panel's placement anchor. This
     // is the single funnel for od-edit-select, the panel's onSelectTarget,
     // and the hover-affordance click — none of them call setSelectedManualEditTarget directly.
-    setManualEditPanelAnchorRect(target.rect);
     // Text/link land in the caret (PPT click-into-textbox); everything else is
     // object-selected so the whole box is a move surface.
     setManualEditMoveMode(target.kind === 'text' || target.kind === 'link' ? 'editing' : 'selected');
@@ -5376,19 +5278,6 @@ function HtmlViewer({
     setManualEditError(null);
   }
 
-  function pendingManualEditStyleTarget(): ManualEditTarget | null {
-    const pending = manualEditPendingStyleRef.current;
-    if (!pending || pending.id === '__body__') return null;
-    const selectedTarget = selectedManualEditTargetRef.current;
-    return selectedTarget?.id === pending.id
-      ? selectedTarget
-      : manualEditTargets.find((item) => item.id === pending.id) ?? null;
-  }
-
-  function isManualEditShapeTarget(target: ManualEditTarget): boolean {
-    return !target.textEditTargetId && (target.kind === 'container' || target.kind === 'image');
-  }
-
   async function clearManualEditTargetSelection(
     options: { openPageStyles?: boolean } = {},
     actionSeq = ++manualEditActionSeqRef.current,
@@ -5397,20 +5286,13 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'clear', openPageStyles: !!options.openPageStyles };
       return false;
     }
-    const selectedTarget = selectedManualEditTargetRef.current;
-    if (selectedTarget && isManualEditShapeTarget(selectedTarget)) {
-      const ok = await flushManualEditStyleSave();
-      if (actionSeq !== manualEditActionSeqRef.current) return false;
-      if (!ok) return false;
-    } else {
-      cancelManualEditStyleDraft();
-    }
+    const ok = await flushManualEditStyleSave();
+    if (actionSeq !== manualEditActionSeqRef.current) return false;
+    if (!ok) return false;
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     selectedManualEditTargetIdRef.current = null;
     selectedManualEditTargetRef.current = null;
     setSelectedManualEditTarget(null);
-    setManualEditPanelPosition(null);
-    setManualEditPanelAnchorRect(null);
     setManualEditDraft(emptyManualEditDraft(sourceRef.current ?? ''));
     setManualEditError(null);
     setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
@@ -5425,17 +5307,12 @@ function HtmlViewer({
   async function dismissManualEditPanel() {
     const ok = await flushManualEditStyleSave();
     if (!ok) return;
-    if (selectedManualEditTarget) void clearManualEditTargetSelection();
-    else setManualEditPageStylesOpen(false);
+    setManualEditPageStylesOpen(false);
   }
 
   function cancelManualEditPanel() {
-    if (selectedManualEditTarget) {
-      void clearManualEditTargetSelection();
-    } else {
-      cancelManualEditStyleDraft();
-      setManualEditPageStylesOpen(false);
-    }
+    cancelManualEditStyleDraft();
+    setManualEditPageStylesOpen(false);
   }
 
   async function applyManualEdit(patch: ManualEditPatch, label: string): Promise<boolean> {
@@ -7044,15 +6921,12 @@ function HtmlViewer({
     localCommentSideDockActive && commentSidePanelCollapsed ? 'comment-preview-layer-dock-collapsed' : '',
     boardSideDockStacked ? 'comment-preview-layer-side-dock-stacked' : '',
   ].filter(Boolean).join(' ');
-  // Edit mode opens clean: the inspector only appears once the user pins an
-  // element (click its hover affordance / a container) or opens page styles by
-  // clicking the empty canvas. No more full-height panel popping on toggle.
+  // Selected targets use docked controls; the floating panel is reserved for
+  // page styles opened from the empty canvas.
   const manualEditPageCardActive =
     manualEditMode && !selectedManualEditTarget && manualEditPageStylesOpen;
   const manualEditShapeToolbarActive =
-    manualEditMode && selectedManualEditTarget && isManualEditShapeTarget(selectedManualEditTarget);
-  const manualEditPanelActive =
-    manualEditMode && ((!!selectedManualEditTarget && !manualEditShapeToolbarActive) || manualEditPageCardActive);
+    manualEditMode && !!selectedManualEditTarget;
   const pickManualEditImage = async (pickedFile: File) => {
     const result = await uploadProjectFiles(projectId, [pickedFile]);
     const uploaded = result.uploaded[0];
@@ -7063,32 +6937,18 @@ function HtmlViewer({
     setManualEditError(null);
     return toOwnerRelativePath(file.name, uploaded.path);
   };
-  const manualEditPanel = manualEditPanelActive ? (
+  const manualEditPanel = manualEditPageCardActive ? (
     <ManualEditPanel
-      targets={manualEditTargets}
-      selectedTarget={selectedManualEditTarget}
-      draft={manualEditDraft}
-      history={manualEditHistory}
       error={manualEditError}
       canUndo={manualEditHistory.length > 0}
       canRedo={manualEditUndone.length > 0}
       busy={manualEditSaving}
       pageStylesEnabled={manualEditPageStylesEnabled}
-      onSelectTarget={(target) => {
-        void selectManualEditTarget(target);
-      }}
-      onDraftChange={setManualEditDraft}
       onStyleChange={(id, styles, label) => {
         void handleManualEditStyleChange(id, styles, label);
       }}
       onInvalidStyle={cancelManualEditPendingStyles}
-      onApplyPatch={(patch, label) => {
-        void applyManualEdit(patch, label);
-      }}
       onError={setManualEditError}
-      onClearSelection={() => {
-        void clearManualEditTargetSelection();
-      }}
       onExit={() => {
         void dismissManualEditPanel();
       }}
@@ -7104,25 +6964,6 @@ function HtmlViewer({
       onRedo={() => {
         void redoManualEdit();
       }}
-      floatingClassName={manualEditPageCardActive ? 'manual-edit-page-card' : undefined}
-      floatingStyle={selectedManualEditTarget
-        ? {
-            ...manualEditFloatingPanelStyle(
-              // Auto-placement reads the selection-time anchor rect, not the
-              // live one, so the panel doesn't chase the element as edits or
-              // drags reflow it. Falls back to the live rect only when no
-              // selection has snapshotted an anchor yet.
-              { ...selectedManualEditTarget, rect: manualEditPanelAnchorRect ?? selectedManualEditTarget.rect },
-              overlayPreviewScale,
-              previewBodySize,
-              manualEditOverlayTransform.offsetX,
-              manualEditOverlayTransform.offsetY,
-            ),
-            ...(manualEditPanelPosition ?? {}),
-          }
-        : { top: 12, right: 12, width: 320 }}
-      onFloatingPositionChange={selectedManualEditTarget ? setManualEditPanelPosition : undefined}
-      onPickImage={pickManualEditImage}
     />
   ) : null;
   const manualEditHoverAffordance =
@@ -7158,10 +6999,10 @@ function HtmlViewer({
     }, {} as Record<ResizeHandleDirection, string>),
     [t],
   );
-  // Resize handles ride the same iframe→canvas transform as the panel/hover
+  // Resize handles ride the same iframe→canvas transform as the hover
   // affordance, and only when the srcDoc edit bridge is live (URL-load preview
-  // has no od-edit-preview-style channel), gated like the panel: mode on +
-  // element selected + a valid rect.
+  // has no od-edit-preview-style channel), with edit mode on, an element
+  // selected, and a valid rect.
   const manualEditResizeRect =
     manualEditMode && selectedManualEditTarget && !useUrlLoadPreview
       ? manualEditResizeOverlayRect(
@@ -7670,7 +7511,6 @@ function HtmlViewer({
             onInvalidStyle: cancelManualEditPendingStyles,
             onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
           })}
-          onStyleFields={(styleUpdates) => applyManualEditStyleFields(selectedManualEditTarget, styleUpdates)}
           onApplyPatch={(patch, label) => { void applyManualEdit(patch, label); }}
           onPickImage={pickManualEditImage}
           onError={setManualEditError}

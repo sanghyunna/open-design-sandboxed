@@ -2329,7 +2329,6 @@ export interface Dict {
   'manualEdit.hiddenBadge': string;
   'manualEdit.title': string;
   'manualEdit.fallbackTitle': string;
-  'manualEdit.movePanel': string;
   'manualEdit.editParams': string;
   'manualEdit.closePanel': string;
   'manualEdit.selectLayer': string;
@@ -2372,7 +2371,6 @@ export interface Dict {
   'manualEdit.width': string;
   'manualEdit.minHeight': string;
   'manualEdit.deleteElement': string;
-  'manualEdit.deleteElementConfirm': string;
   'manualEdit.uploadImage': string;
   'manualEdit.uploadingImage': string;
   'manualEdit.uploadImageFailed': string;

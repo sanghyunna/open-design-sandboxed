@@ -24,7 +24,6 @@ export function ManualEditShapeToolbar({
   canRedo,
   getActiveTarget,
   onStyleField,
-  onStyleFields,
   onApplyPatch,
   onPickImage,
   onError,
@@ -40,7 +39,6 @@ export function ManualEditShapeToolbar({
   canRedo: boolean;
   getActiveTarget?: () => ManualEditTarget | null;
   onStyleField: (key: keyof ManualEditStyles, value: string) => void;
-  onStyleFields: (styles: Partial<ManualEditStyles>) => void;
   onApplyPatch: (patch: ManualEditPatch, label: string) => void;
   onPickImage?: (file: File) => Promise<string | null>;
   onError: (message: string) => void;
@@ -55,22 +53,6 @@ export function ManualEditShapeToolbar({
     setConfirmDeleteTargetId(null);
   }, [target.id]);
   const update = (key: keyof ManualEditStyles, value: string) => onStyleField(key, value);
-  const updateBox = (base: 'padding' | 'margin', value: string) => {
-    onStyleFields({
-      [sideToProp(base, 't')]: value,
-      [sideToProp(base, 'r')]: value,
-      [sideToProp(base, 'b')]: value,
-      [sideToProp(base, 'l')]: value,
-    });
-  };
-  const updateBorderWidth = (value: string) => {
-    onStyleFields({
-      borderTopWidth: value,
-      borderRightWidth: value,
-      borderBottomWidth: value,
-      borderLeftWidth: value,
-    });
-  };
   const confirmingDelete = confirmDeleteTargetId === target.id;
 
   return (
@@ -86,134 +68,144 @@ export function ManualEditShapeToolbar({
 
       <span className={styles.divider} aria-hidden="true" />
 
-      <ColorControl label={t('manualEdit.shape.fill')} value={elementStyles.backgroundColor} onChange={(v) => update('backgroundColor', v)} />
-      <UnitInput label={t('manualEdit.shape.width')} value={elementStyles.width} unit="px" autoUnit onChange={(v) => update('width', v)} />
-      <UnitInput label={t('manualEdit.shape.height')} value={elementStyles.height} unit="px" autoUnit onChange={(v) => update('height', v)} />
-      <UnitInput label={t('manualEdit.shape.padding')} value={linkedBoxValue(elementStyles, 'padding')} unit="px" autoUnit onChange={(v) => updateBox('padding', v)} />
-      <UnitInput label={t('manualEdit.shape.borderWidths')} value={linkedBorderWidthValue(elementStyles)} unit="px" autoUnit onChange={updateBorderWidth} />
-      <SelectControl label={t('manualEdit.shape.style')} value={elementStyles.borderStyle} options={BORDER_STYLE_OPTS} onChange={(v) => update('borderStyle', v)} compact />
-      <ColorControl label={t('manualEdit.shape.borderColor')} value={elementStyles.borderColor} onChange={(v) => update('borderColor', v)} />
+      <div className={styles.group}>
+        <ColorControl label={t('manualEdit.shape.fill')} value={elementStyles.backgroundColor} onChange={(v) => update('backgroundColor', v)} />
+        <UnitInput label={t('manualEdit.shape.width')} icon="expand-width-line" value={elementStyles.width} unit="px" autoUnit compact onChange={(v) => update('width', v)} />
+        <UnitInput label={t('manualEdit.shape.height')} icon="expand-height-line" value={elementStyles.height} unit="px" autoUnit compact onChange={(v) => update('height', v)} />
+      </div>
 
       <span className={styles.divider} aria-hidden="true" />
 
-      <ToolbarPopover label={t('manualEdit.shape.spacing')} icon="box-3-line">
-        <Quad label={t('manualEdit.shape.padding')} sideLabels={{
-          t: t('manualEdit.shape.paddingTop'),
-          r: t('manualEdit.shape.paddingRight'),
-          b: t('manualEdit.shape.paddingBottom'),
-          l: t('manualEdit.shape.paddingLeft'),
-        }} values={{
-          t: elementStyles.paddingTop, r: elementStyles.paddingRight, b: elementStyles.paddingBottom, l: elementStyles.paddingLeft,
-        }} onChange={(side, value) => update(sideToProp('padding', side), value)} />
-        <Quad label={t('manualEdit.shape.margin')} sideLabels={{
-          t: t('manualEdit.shape.marginTop'),
-          r: t('manualEdit.shape.marginRight'),
-          b: t('manualEdit.shape.marginBottom'),
-          l: t('manualEdit.shape.marginLeft'),
-        }} values={{
-          t: elementStyles.marginTop, r: elementStyles.marginRight, b: elementStyles.marginBottom, l: elementStyles.marginLeft,
-        }} onChange={(side, value) => update(sideToProp('margin', side), value)} />
-      </ToolbarPopover>
-
-      <ToolbarPopover label={t('manualEdit.shape.border')} icon="rounded-corner">
-        <Quad label={t('manualEdit.shape.borderWidths')} sideLabels={{
-          t: t('manualEdit.shape.borderWidthsTop'),
-          r: t('manualEdit.shape.borderWidthsRight'),
-          b: t('manualEdit.shape.borderWidthsBottom'),
-          l: t('manualEdit.shape.borderWidthsLeft'),
-        }} values={{
-          t: elementStyles.borderTopWidth, r: elementStyles.borderRightWidth, b: elementStyles.borderBottomWidth, l: elementStyles.borderLeftWidth,
-        }} onChange={(side, value) => update(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)} />
-      </ToolbarPopover>
-      <UnitInput label={t('manualEdit.shape.radius')} value={elementStyles.borderRadius} unit="px" autoUnit onChange={(v) => update('borderRadius', v)} />
-      <UnitInput label={t('manualEdit.shape.opacity')} value={elementStyles.opacity} unit="" onChange={(v) => update('opacity', v)} />
-
-      {target.isLayoutContainer ? (
-        <ToolbarPopover label={t('manualEdit.shape.layout')} icon="layout-row-line">
-          <UnitInput label={t('manualEdit.shape.gap')} value={elementStyles.gap} unit="px" autoUnit onChange={(v) => update('gap', v)} />
-          <SelectControl label={t('manualEdit.shape.direction')} value={elementStyles.flexDirection} options={DIRECTION_OPTS} onChange={(v) => update('flexDirection', v)} />
-          <SelectControl label={t('manualEdit.shape.justify')} value={elementStyles.justifyContent} options={JUSTIFY_OPTS} onChange={(v) => update('justifyContent', v)} />
-          <SelectControl label={t('manualEdit.shape.align')} value={elementStyles.alignItems} options={ITEMS_OPTS} onChange={(v) => update('alignItems', v)} />
+      <div className={`${styles.group} ${styles.menuGroup}`}>
+        <ToolbarPopover label={t('manualEdit.shape.spacing')} icon="box-3-line">
+          <Quad label={t('manualEdit.shape.padding')} sideLabels={{
+            t: t('manualEdit.shape.paddingTop'),
+            r: t('manualEdit.shape.paddingRight'),
+            b: t('manualEdit.shape.paddingBottom'),
+            l: t('manualEdit.shape.paddingLeft'),
+          }} values={{
+            t: elementStyles.paddingTop, r: elementStyles.paddingRight, b: elementStyles.paddingBottom, l: elementStyles.paddingLeft,
+          }} onChange={(side, value) => update(sideToProp('padding', side), value)} />
+          <Quad label={t('manualEdit.shape.margin')} sideLabels={{
+            t: t('manualEdit.shape.marginTop'),
+            r: t('manualEdit.shape.marginRight'),
+            b: t('manualEdit.shape.marginBottom'),
+            l: t('manualEdit.shape.marginLeft'),
+          }} values={{
+            t: elementStyles.marginTop, r: elementStyles.marginRight, b: elementStyles.marginBottom, l: elementStyles.marginLeft,
+          }} onChange={(side, value) => update(sideToProp('margin', side), value)} />
         </ToolbarPopover>
-      ) : null}
 
-      <ToolbarPopover label={t('manualEdit.shape.more')} icon="more-2-line">
-        {target.kind === 'image' && onPickImage ? (
-          <>
-            <button type="button" className={styles.menuAction} disabled={busy || uploadingImage} onClick={() => fileInputRef.current?.click()}>
-              <RemixIcon name="image-add-line" size={14} />
-              {uploadingImage ? t('manualEdit.uploadingImage') : t('manualEdit.uploadImage')}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className={styles.fileInput}
-              onChange={async (event) => {
-                const file = event.currentTarget.files?.[0];
-                if (!file) return;
-                event.currentTarget.value = '';
-                setUploadingImage(true);
-                try {
-                  const src = await onPickImage(file);
-                  const activeTarget = getActiveTarget?.() ?? target;
-                  if (!src) {
-                    onError(t('manualEdit.uploadImageFailed'));
-                    return;
-                  }
-                  if (activeTarget?.id !== target.id || activeTarget.kind !== 'image') return;
-                  {
+        <ToolbarPopover label={t('manualEdit.shape.border')} icon="rounded-corner">
+          <div className={styles.popoverRow}>
+            <SelectControl label={t('manualEdit.shape.style')} value={elementStyles.borderStyle} options={BORDER_STYLE_OPTS} onChange={(v) => update('borderStyle', v)} compact />
+            <ColorControl label={t('manualEdit.shape.borderColor')} value={elementStyles.borderColor} onChange={(v) => update('borderColor', v)} />
+          </div>
+          <Quad label={t('manualEdit.shape.borderWidths')} sideLabels={{
+            t: t('manualEdit.shape.borderWidthsTop'),
+            r: t('manualEdit.shape.borderWidthsRight'),
+            b: t('manualEdit.shape.borderWidthsBottom'),
+            l: t('manualEdit.shape.borderWidthsLeft'),
+          }} values={{
+            t: elementStyles.borderTopWidth, r: elementStyles.borderRightWidth, b: elementStyles.borderBottomWidth, l: elementStyles.borderLeftWidth,
+          }} onChange={(side, value) => update(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)} />
+        </ToolbarPopover>
+      </div>
+
+      <div className={styles.group}>
+        <UnitInput label={t('manualEdit.shape.radius')} icon="rounded-corner" value={elementStyles.borderRadius} unit="px" autoUnit compact onChange={(v) => update('borderRadius', v)} />
+        <UnitInput label={t('manualEdit.shape.opacity')} icon="contrast-drop-2-line" value={elementStyles.opacity} unit="" compact onChange={(v) => update('opacity', v)} />
+      </div>
+
+      <span className={styles.divider} aria-hidden="true" />
+
+      <div className={`${styles.group} ${styles.menuGroup}`}>
+
+        {target.isLayoutContainer ? (
+          <ToolbarPopover label={t('manualEdit.shape.layout')} icon="layout-row-line">
+            <UnitInput label={t('manualEdit.shape.gap')} value={elementStyles.gap} unit="px" autoUnit onChange={(v) => update('gap', v)} />
+            <SelectControl label={t('manualEdit.shape.direction')} value={elementStyles.flexDirection} options={DIRECTION_OPTS} onChange={(v) => update('flexDirection', v)} />
+            <SelectControl label={t('manualEdit.shape.justify')} value={elementStyles.justifyContent} options={JUSTIFY_OPTS} onChange={(v) => update('justifyContent', v)} />
+            <SelectControl label={t('manualEdit.shape.align')} value={elementStyles.alignItems} options={ITEMS_OPTS} onChange={(v) => update('alignItems', v)} />
+          </ToolbarPopover>
+        ) : null}
+
+        <ToolbarPopover label={t('manualEdit.shape.more')} icon="more-2-line">
+          {target.kind === 'image' && onPickImage ? (
+            <>
+              <button type="button" className={styles.menuAction} disabled={busy || uploadingImage} onClick={() => fileInputRef.current?.click()}>
+                <RemixIcon name="image-add-line" size={14} />
+                {uploadingImage ? t('manualEdit.uploadingImage') : t('manualEdit.uploadImage')}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className={styles.fileInput}
+                onChange={async (event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (!file) return;
+                  event.currentTarget.value = '';
+                  setUploadingImage(true);
+                  try {
+                    const src = await onPickImage(file);
+                    const activeTarget = getActiveTarget?.() ?? target;
+                    if (!src) {
+                      onError(t('manualEdit.uploadImageFailed'));
+                      return;
+                    }
+                    if (activeTarget?.id !== target.id || activeTarget.kind !== 'image') return;
                     onApplyPatch({
                       id: activeTarget.id,
                       kind: 'set-image',
                       src,
                       alt: draftAlt,
                     }, t('manualEdit.uploadImage'));
+                  } finally {
+                    setUploadingImage(false);
                   }
-                } finally {
-                  setUploadingImage(false);
-                }
-              }}
-            />
-          </>
-        ) : null}
-        {confirmingDelete ? (
-          <div className={styles.confirmDelete}>
+                }}
+              />
+            </>
+          ) : null}
+          {confirmingDelete ? (
+            <div className={styles.confirmDelete}>
+              <button
+                type="button"
+                className={styles.dangerAction}
+                disabled={busy}
+                aria-label={t('manualEdit.deleteElement')}
+                onClick={() => {
+                  if (confirmDeleteTargetId !== target.id) {
+                    setConfirmDeleteTargetId(target.id);
+                    return;
+                  }
+                  setConfirmDeleteTargetId(null);
+                  onApplyPatch({ id: target.id, kind: 'remove-element' }, t('manualEdit.deleteElement'));
+                }}
+              >
+                <RemixIcon name="delete-bin-line" size={14} />
+                {t('manualEdit.deleteElement')}
+              </button>
+              <button type="button" className={styles.menuAction} disabled={busy} onClick={() => setConfirmDeleteTargetId(null)}>
+                {t('common.cancel')}
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
               className={styles.dangerAction}
-              disabled={busy}
               aria-label={t('manualEdit.deleteElement')}
-              onClick={() => {
-                if (confirmDeleteTargetId !== target.id) {
-                  setConfirmDeleteTargetId(target.id);
-                  return;
-                }
-                setConfirmDeleteTargetId(null);
-                onApplyPatch({ id: target.id, kind: 'remove-element' }, t('manualEdit.deleteElement'));
-              }}
+              disabled={busy}
+              onClick={() => setConfirmDeleteTargetId(target.id)}
             >
               <RemixIcon name="delete-bin-line" size={14} />
               {t('manualEdit.deleteElement')}
             </button>
-            <button type="button" className={styles.menuAction} disabled={busy} onClick={() => setConfirmDeleteTargetId(null)}>
-              {t('common.cancel')}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className={styles.dangerAction}
-            aria-label={t('manualEdit.deleteElement')}
-            disabled={busy}
-            onClick={() => setConfirmDeleteTargetId(target.id)}
-          >
-            <RemixIcon name="delete-bin-line" size={14} />
-            {t('manualEdit.deleteElement')}
-          </button>
-        )}
-      </ToolbarPopover>
-      {error ? <div className={styles.error} role="alert">{error}</div> : null}
+          )}
+        </ToolbarPopover>
+      </div>
+      {error ? <div className={styles.error} role="alert" title={error}>{error}</div> : null}
     </div>
   );
 }
@@ -227,17 +219,27 @@ function ToolbarPopover({ label, icon, children }: { label: string; icon: string
       if (ref.current?.contains(event.target as Node)) return;
       setOpen(false);
     };
+    const onDocKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKeyDown);
+    };
   }, [open]);
   return (
     <span className={styles.popoverWrap} ref={ref}>
       <Button
         variant="subtle"
         size="default"
-        className={styles.popoverButton}
+        className={`${styles.popoverButton} od-tooltip`}
         aria-label={label}
         aria-expanded={open}
+        data-tooltip={label}
         onClick={() => setOpen((v) => !v)}
       >
         <RemixIcon name={icon} size={15} />
@@ -250,12 +252,14 @@ function ToolbarPopover({ label, icon, children }: { label: string; icon: string
 }
 
 function UnitInput({
-  label, value, unit, autoUnit, onChange,
+  label, icon, value, unit, autoUnit, compact, onChange,
 }: {
   label: string;
+  icon?: string;
   value: string;
   unit: 'px' | '';
   autoUnit?: boolean;
+  compact?: boolean;
   onChange: (value: string) => void;
 }) {
   const display = unit === 'px' ? stripPxUnit(value) : value;
@@ -266,8 +270,11 @@ function UnitInput({
     return raw;
   };
   return (
-    <label className={styles.field}>
-      <span>{label}</span>
+    <label
+      className={`${styles.field}${compact ? ` ${styles.compactField}` : ''}${icon ? ' od-tooltip' : ''}`}
+      data-tooltip={icon ? label : undefined}
+    >
+      {icon ? <RemixIcon name={icon} size={14} /> : <span>{label}</span>}
       <input
         aria-label={label}
         value={display}
@@ -308,16 +315,27 @@ function ColorControl({ label, value, onChange }: { label: string; value: string
       if (ref.current?.contains(event.target as Node)) return;
       setOpen(false);
     };
+    const onDocKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDocMouseDown);
-    return () => document.removeEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKeyDown);
+    };
   }, [open]);
   return (
     <span className={styles.colorWrap} ref={ref}>
       <button
         type="button"
-        className={styles.swatch}
+        className={`${styles.swatch} od-tooltip`}
         style={{ '--swatch-color': value || 'transparent' } as CSSProperties}
         aria-label={label}
+        data-tooltip={label}
+        title={label}
         onClick={() => setOpen((v) => !v)}
       />
       {open ? (
@@ -358,26 +376,6 @@ function Quad({
       <UnitInput label={sideLabels.l} value={values.l} unit="px" autoUnit onChange={(value) => onChange('l', value)} />
     </div>
   );
-}
-
-function linkedBoxValue(styles: ManualEditStyles, base: 'padding' | 'margin'): string {
-  const values = [
-    styles[sideToProp(base, 't')],
-    styles[sideToProp(base, 'r')],
-    styles[sideToProp(base, 'b')],
-    styles[sideToProp(base, 'l')],
-  ];
-  return values.every((value) => value === values[0]) ? values[0] ?? '' : '';
-}
-
-function linkedBorderWidthValue(styles: ManualEditStyles): string {
-  const values = [
-    styles.borderTopWidth,
-    styles.borderRightWidth,
-    styles.borderBottomWidth,
-    styles.borderLeftWidth,
-  ];
-  return values.every((value) => value === values[0]) ? values[0] ?? '' : '';
 }
 
 function sideToProp(base: 'padding' | 'margin', side: 't' | 'r' | 'b' | 'l'): keyof ManualEditStyles {

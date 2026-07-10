@@ -1,19 +1,27 @@
 .toolbar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 6px;
-  padding: 6px 14px;
+  gap: 4px;
+  min-width: 0;
+  padding: 5px 10px;
   min-height: 40px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
   color: var(--text-muted);
+  container-type: inline-size;
 }
 
 .group {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 3px;
+}
+
+.menuGroup {
+  min-width: 0;
 }
 
 .divider {
@@ -52,6 +60,10 @@
   width: 92px;
 }
 
+.compactField input {
+  width: 42px;
+}
+
 .field input:focus-visible,
 .field select:focus-visible,
 .swatch:focus-visible,
@@ -75,6 +87,7 @@
 
 .popoverButton {
   gap: 4px;
+  white-space: nowrap;
 }
 
 .popover,
@@ -159,6 +172,13 @@
   font-weight: 600;
 }
 
+.popoverRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .menuAction,
 .dangerAction {
   display: inline-flex;
@@ -195,9 +215,53 @@
 
 .error {
   flex-basis: 100%;
+  min-width: 0;
   padding: 2px 0;
   color: var(--danger, var(--text-default));
   font-size: 12px;
+}
+
+.menuGroup .popoverWrap .popover {
+  right: 0;
+  left: auto;
+}
+
+@container (max-width: 760px) {
+  .menuGroup .popoverWrap {
+    position: static;
+  }
+
+  .menuGroup .popoverWrap .popover {
+    inset-inline: 10px;
+    min-width: 0;
+  }
+
+  .menuGroup .popoverButton {
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .menuGroup .popoverButton span,
+  .menuGroup .popoverButton > i:last-child {
+    display: none;
+  }
+}
+
+@container (max-width: 520px) {
+  .divider {
+    display: none;
+  }
+
+  .compactField input {
+    width: 34px;
+  }
+
+  .compactField em {
+    display: none;
+  }
 }
 
 @keyframes shape-pop-in {
