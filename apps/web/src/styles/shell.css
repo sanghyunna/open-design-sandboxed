@@ -1309,6 +1309,20 @@ a.avatar-item:visited {
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
 }
+/* Manual-edit inspector host: mirrors .comment-left-host so the edit inspector
+   fills the left chat slot when edit mode is active. */
+.manual-edit-left-host {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
 .pane {
   display: flex;
   flex-direction: column;

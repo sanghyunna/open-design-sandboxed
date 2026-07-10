@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';
 import { RemixIcon } from './RemixIcon';
-import { useSystemFonts } from './useSystemFonts';
-import { systemFontOptions } from './font-options';
+import { ManualEditPageSection } from './ManualEditPageSection';
 
 export interface ManualEditDraft {
   text: string;
@@ -75,18 +73,11 @@ export function ManualEditPanel({
           ) : null}
         </div>
         <div className="manual-edit-scroll">
-          <PageInspector
+          <ManualEditPageSection
             enabled={pageStylesEnabled}
-            onStyleChange={(styles) => {
-              const normalized = normalizeManualEditStyles(styles, { layoutEnabled: true });
-              if (!normalized.ok) {
-                onError('error' in normalized ? normalized.error : 'Invalid style value.');
-                onInvalidStyle?.('__body__', Object.keys(styles) as Array<keyof ManualEditStyles>);
-                return;
-              }
-              onError('');
-              onStyleChange('__body__', normalized.styles, 'Page styles');
-            }}
+            onStyleChange={onStyleChange}
+            onError={onError}
+            onInvalidStyle={onInvalidStyle}
           />
         </div>
 
@@ -140,51 +131,6 @@ export function ManualEditPanel({
         </div>
       </section>
     </aside>
-  );
-}
-
-function PageInspector({
-  enabled,
-  onStyleChange,
-}: {
-  enabled: boolean;
-  onStyleChange: (styles: Partial<ManualEditStyles>) => void;
-}) {
-  const [bg, setBg] = useState('');
-  const [font, setFont] = useState('');
-  const [size, setSize] = useState('');
-  const update = (next: { bg?: string; font?: string; size?: string }) => {
-    if ('bg' in next) {
-      const value = next.bg ?? '';
-      setBg(value);
-      onStyleChange({ backgroundColor: value });
-    }
-    if ('font' in next) {
-      const value = next.font ?? '';
-      setFont(value);
-      onStyleChange({ fontFamily: value });
-    }
-    if ('size' in next) {
-      const value = next.size ?? '';
-      setSize(value);
-      onStyleChange({ fontSize: value });
-    }
-  };
-
-  return (
-    <div className="cc-inspector">
-      <Section title="PAGE">
-        {enabled ? (
-          <>
-            <ColorRow label="Background" value={bg} onChange={(value) => update({ bg: value })} />
-            <FontRow value={font} onChange={(value) => update({ font: value })} />
-            <UnitRow label="Base size" value={size} onChange={(value) => update({ size: value })} unit="px" autoUnit />
-          </>
-        ) : (
-          <p className="cc-section-hint">Page styles are available only for full HTML documents.</p>
-        )}
-      </Section>
-    </div>
   );
 }
 
@@ -353,87 +299,6 @@ function styleLabel(key: keyof ManualEditStyles): string {
   return key.replace(/[A-Z]/g, (match) => ` ${match.toLowerCase()}`);
 }
 
-function Section({ title, children, inactive }: { title: string; children: React.ReactNode; inactive?: boolean }) {
-  return (
-    <section className={`cc-section${inactive ? ' cc-section-inactive' : ''}`}>
-      <header className="cc-section-head">{title}</header>
-      <div className="cc-section-body">{children}</div>
-    </section>
-  );
-}
-
-function UnitRow({ label, value, onChange, unit, autoUnit, disabled }: {
-  label: string; value: string; onChange: (v: string) => void;
-  unit: string; autoUnit?: boolean; disabled?: boolean;
-}) {
-  const display = unit === 'px' ? stripPxUnit(value) : value;
-  const step = unit === 'px' ? 1 : 0.1;
-  const canStep = !disabled && isNumericInput(display);
-  const valueFromDisplay = (raw: string) => {
-    const trimmed = raw.trim();
-    if (autoUnit && trimmed && isNumericInput(trimmed)) return `${trimmed}px`;
-    if (autoUnit && /^-?\d+(\.\d+)?px$/i.test(trimmed)) return trimmed.toLowerCase();
-    return raw;
-  };
-  const handle = (raw: string) => {
-    const next = valueFromDisplay(raw);
-    if (next !== value) onChange(next);
-  };
-  const stepBy = (direction: -1 | 1) => {
-    if (!canStep) return;
-    const next = formatSteppedNumber(Number(display) + direction * step, display, step);
-    onChange(valueFromDisplay(next));
-  };
-  return (
-    <label className="cc-row">
-      <span className="cc-label">{label}</span>
-      <span className="cc-value">
-        <button type="button" className="cc-step" disabled={!canStep} aria-label={`${label} decrease`} onClick={() => stepBy(-1)}>−</button>
-        <input value={display} placeholder="" disabled={disabled} onChange={(e) => onChange(valueFromDisplay(e.currentTarget.value))} onBlur={(e) => handle(e.currentTarget.value)} />
-        <button type="button" className="cc-step" disabled={!canStep} aria-label={`${label} increase`} onClick={() => stepBy(1)}>+</button>
-        {unit ? <em className="cc-unit">{unit}</em> : null}
-      </span>
-    </label>
-  );
-}
-
-function FontRow({ value, onChange }: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const t = useT();
-  const { families } = useSystemFonts();
-  const systemOptions = systemFontOptions(families, FONT_OPTS);
-  const normalizedValue = normalizeFontFamilyForSelect(value);
-  const customValue = normalizedValue === value ? value : '';
-  const isCurated = FONT_OPTS.some((option) => option.value === customValue);
-  const isSystem = systemOptions.some((option) => option.value === customValue);
-  return (
-    <label className="cc-row">
-      <span className="cc-label">Font</span>
-      <span className="cc-value cc-select">
-        {/* ponytail: native <select>+<optgroup>; a searchable combobox is a deferred follow-up. */}
-        <select value={normalizedValue} onChange={(event) => onChange(event.currentTarget.value)}>
-          {customValue && !isCurated && !isSystem ? (
-            <option value={customValue}>{fontFamilyLabel(customValue)}</option>
-          ) : null}
-          {FONT_OPTS.map((option) => (
-            <option key={option.label} value={option.value}>{option.label}</option>
-          ))}
-          {systemOptions.length ? (
-            <optgroup label={t('manualEdit.systemFontsGroup')}>
-              {systemOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </optgroup>
-          ) : null}
-        </select>
-        <em className="cc-chevron">▾</em>
-      </span>
-    </label>
-  );
-}
-
 export function normalizeFontFamilyForSelect(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
@@ -460,65 +325,9 @@ function parseFontFamilies(value: string): string[] {
     .filter(Boolean);
 }
 
-function ColorRow({ label, value, onChange, compact }: {
-  label: string; value: string; onChange: (v: string) => void; compact?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (event: MouseEvent) => {
-      if (!ref.current) return;
-      if (ref.current.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
-  return (
-    <label className="cc-row">
-      {compact ? null : <span className="cc-label">{label}</span>}
-      <span className={`cc-value cc-color ${compact ? 'cc-color-compact' : ''}`} ref={ref}>
-        <button type="button" className="cc-swatch" style={{ background: value || 'transparent' }}
-          onClick={() => setOpen((v) => !v)} aria-label={`Pick ${label}`} />
-        <input value={value} placeholder="#000000"
-          onChange={(e) => onChange(e.currentTarget.value)} onFocus={() => setOpen(true)} />
-        {open ? (
-          <div className="cc-color-popover">
-            <div className="cc-color-grid">
-              {EDITOR_SWATCH_COLORS.map((hex) => (
-                <button key={hex} type="button" className="cc-color-tile" style={{ background: hex }}
-                  onClick={() => { onChange(hex); setOpen(false); }} aria-label={hex} />
-              ))}
-            </div>
-            <input type="color" className="cc-color-native" value={normalizeColorForPicker(value)}
-              onChange={(e) => onChange(e.currentTarget.value)} />
-          </div>
-        ) : null}
-      </span>
-    </label>
-  );
-}
-
 export function stripPxUnit(value: string): string {
   const match = value.trim().match(/^(-?\d+(?:\.\d+)?)px$/i);
   return match?.[1] ?? value;
-}
-
-function isNumericInput(value: string): boolean {
-  return /^-?\d+(\.\d+)?$/.test(value.trim());
-}
-
-function formatSteppedNumber(value: number, current: string, step: number): string {
-  const decimals = Math.max(decimalPlaces(current), decimalPlaces(String(step)));
-  return decimals > 0
-    ? value.toFixed(decimals).replace(/\.?0+$/, '')
-    : String(Math.round(value));
-}
-
-function decimalPlaces(value: string): number {
-  const match = value.match(/\.(\d+)/);
-  return match?.[1]?.length ?? 0;
 }
 
 export function normalizeColorForPicker(value: string): string {

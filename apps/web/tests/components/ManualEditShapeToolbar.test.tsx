@@ -104,13 +104,13 @@ describe('ManualEditShapeToolbar', () => {
   });
 
   it('keeps grouped popovers trigger-relative on desktop', () => {
-    const css = readFileSync('src/components/ManualEditShapeToolbar.module.css', 'utf8');
+    const css = readFileSync('src/components/ManualEditShapeControls.module.css', 'utf8');
 
     expect(css).toMatch(/\.menuGroup \.popoverWrap \.popover\s*\{[^}]*right:\s*0;[^}]*left:\s*auto;/);
   });
 
   it('clamps grouped popovers to both toolbar edges in narrow containers', () => {
-    const css = readFileSync('src/components/ManualEditShapeToolbar.module.css', 'utf8');
+    const css = readFileSync('src/components/ManualEditShapeControls.module.css', 'utf8');
     const narrowRules = css.match(/@container \(max-width: 760px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
 
     expect(narrowRules).toMatch(/\.menuGroup \.popoverWrap\s*\{[^}]*position:\s*static;/);

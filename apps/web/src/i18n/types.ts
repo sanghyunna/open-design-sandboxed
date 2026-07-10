@@ -2329,8 +2329,13 @@ export interface Dict {
   'manualEdit.hiddenBadge': string;
   'manualEdit.title': string;
   'manualEdit.fallbackTitle': string;
+  'manualEdit.inspectorTitle': string;
   'manualEdit.editParams': string;
   'manualEdit.closePanel': string;
+  'manualEdit.exitEditMode': string;
+  'manualEdit.sectionText': string;
+  'manualEdit.sectionShape': string;
+  'manualEdit.sectionPage': string;
   'manualEdit.selectLayer': string;
   'manualEdit.empty': string;
   'manualEdit.noEditableLayers': string;
@@ -2422,6 +2427,8 @@ export interface Dict {
   'manualEdit.typography.letterSpacing': string;
   'manualEdit.typography.increase': string;
   'manualEdit.typography.decrease': string;
+  'manualEdit.typography.style': string;
+  'manualEdit.typography.alignment': string;
   'manualEdit.resize.nw': string;
   'manualEdit.resize.n': string;
   'manualEdit.resize.ne': string;
