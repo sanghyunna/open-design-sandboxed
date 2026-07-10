@@ -9,6 +9,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
   const onMovePreview = vi.fn();
   const onMoveCommit = vi.fn();
   const onMoveCancel = vi.fn();
+  const onAltClick = vi.fn();
   const onSurfaceClick = vi.fn();
   const onSurfaceDoubleClick = vi.fn();
   const utils = render(
@@ -22,6 +23,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
       onMovePreview={onMovePreview}
       onMoveCommit={onMoveCommit}
       onMoveCancel={onMoveCancel}
+      onAltClick={onAltClick}
       onSurfaceClick={onSurfaceClick}
       onSurfaceDoubleClick={onSurfaceDoubleClick}
       {...overrides}
@@ -29,7 +31,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
   );
   const ring = utils.container.querySelector('[data-region="ring"]') as HTMLElement;
   const interior = utils.container.querySelector('[data-region="interior"]') as HTMLElement | null;
-  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onSurfaceClick, onSurfaceDoubleClick };
+  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onAltClick, onSurfaceClick, onSurfaceDoubleClick };
 }
 
 beforeEach(() => {
@@ -98,6 +100,19 @@ describe('ManualEditMoveFrame', () => {
 
     expect(onMoveCommit).toHaveBeenCalledWith({ x: 20, y: 30 });
     expect(onSurfaceClick).not.toHaveBeenCalled();
+  });
+
+  it('keeps Alt-modified movement on the normal drag path instead of cycling', () => {
+    const { interior, onMoveStart, onMovePreview, onMoveCommit, onAltClick } = renderFrame();
+
+    fireEvent.pointerDown(interior!, { pointerId: 14, altKey: true, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 14, altKey: true, clientX: 230, clientY: 140 });
+    fireEvent.pointerUp(interior!, { pointerId: 14, altKey: true, clientX: 230, clientY: 140 });
+
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onMovePreview).toHaveBeenCalledWith({ x: 30, y: 40 });
+    expect(onMoveCommit).toHaveBeenCalledWith({ x: 30, y: 40 });
+    expect(onAltClick).not.toHaveBeenCalled();
   });
 
   it('flushes a still-queued final preview frame before committing', () => {

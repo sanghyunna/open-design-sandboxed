@@ -630,14 +630,38 @@ export function buildManualEditBridge(enabled: boolean): string {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
   }
+  function handleClick(event){
+    var el = clickTarget(event);
+    if (!el) {
+      resetClickCycle();
+      // Clicking empty canvas (no source-mapped ancestor) is the gesture for
+      // page-level styles; the host decides whether to surface the card.
+      window.parent.postMessage({ type: 'od-edit-background' }, '*');
+      return;
+    }
+    el = targetForSelection(el);
+    var kind = inferKind(el);
+    setSelectedTarget(stableId(el));
+    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true) }, '*');
+    if (!event.altKey && (kind === 'text' || kind === 'link')) makeEditable(el, event);
+  }
   window.addEventListener('message', function(ev){
     if (!ev.data) return;
     if (ev.data.type === 'od-edit-mode') {
-      enabled = !!ev.data.enabled;
+      var nextEnabled = !!ev.data.enabled;
+      if (enabled !== nextEnabled) resetClickCycle();
+      enabled = nextEnabled;
       document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
-      resetClickCycle();
       if (!enabled) clearSelectedTarget();
       if (enabled) setTimeout(postTargets, 0);
+      return;
+    }
+    if (ev.data.type === 'od-edit-alt-click') {
+      var clickX = Number(ev.data.clientX);
+      var clickY = Number(ev.data.clientY);
+      if (!enabled || !isFinite(clickX) || !isFinite(clickY)) return;
+      var clickEl = document.elementFromPoint ? document.elementFromPoint(clickX, clickY) : null;
+      handleClick({ target: clickEl, altKey: true, clientX: clickX, clientY: clickY });
       return;
     }
     if (ev.data.type === 'od-edit-selected-target') {
@@ -676,22 +700,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) return;
     ev.preventDefault();
     ev.stopPropagation();
-    var el = clickTarget(ev);
-    if (!el) {
-      resetClickCycle();
-      // Clicking empty canvas (no source-mapped ancestor) is the gesture for
-      // page-level styles; the host decides whether to surface the card.
-      window.parent.postMessage({ type: 'od-edit-background' }, '*');
-      return;
-    }
-    el = targetForSelection(el);
-    var kind = inferKind(el);
-    setSelectedTarget(stableId(el));
-    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true) }, '*');
-    if (!ev.altKey && (kind === 'text' || kind === 'link')) {
-      makeEditable(el, ev);
-      return;
-    }
+    handleClick(ev);
   }, true);
   document.addEventListener('pointerover', function(ev){
     if (!enabled) return;

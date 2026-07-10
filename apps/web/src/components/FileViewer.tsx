@@ -7073,6 +7073,17 @@ function HtmlViewer({
         onMoveCancel={() => {
           revertManualEditMovePreview(selectedManualEditTarget);
         }}
+        onAltClick={({ clientX, clientY }) => {
+          const frame = iframeRef.current;
+          const win = frame?.contentWindow;
+          if (!frame || !win) return;
+          const frameRect = frame.getBoundingClientRect();
+          win.postMessage({
+            type: 'od-edit-alt-click',
+            clientX: (clientX - frameRect.left) / overlayPreviewScale,
+            clientY: (clientY - frameRect.top) / overlayPreviewScale,
+          }, '*');
+        }}
         onSurfaceClick={(region) => {
           if (
             region === 'interior' && manualEditMoveMode === 'selected'

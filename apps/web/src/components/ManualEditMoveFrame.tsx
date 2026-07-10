@@ -9,6 +9,7 @@ import styles from './ManualEditMoveFrame.module.css';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type Delta = { x: number; y: number };
+type Point = { clientX: number; clientY: number };
 type Region = 'ring' | 'interior';
 
 export type ManualEditMoveFrameProps = {
@@ -21,6 +22,7 @@ export type ManualEditMoveFrameProps = {
   onMovePreview: (delta: Delta) => void; // rect-space delta, per rAF frame
   onMoveCommit: (delta: Delta) => void; // pointerup after a real drag
   onMoveCancel: () => void; // Esc / pointercancel mid-drag
+  onAltClick: (point: Point) => void;
   onSurfaceClick: (region: Region) => void; // pointerup with NO drag
   onSurfaceDoubleClick: (region: Region) => void;
 };
@@ -53,6 +55,7 @@ export function ManualEditMoveFrame({
   onMovePreview,
   onMoveCommit,
   onMoveCancel,
+  onAltClick,
   onSurfaceClick,
   onSurfaceDoubleClick,
 }: ManualEditMoveFrameProps) {
@@ -160,6 +163,8 @@ export function ManualEditMoveFrame({
       // move dies in that queue — the element never renders the committed delta.
       if (finalFrameUnsent) onMovePreview(delta);
       onMoveCommit(delta);
+    } else if (event.altKey) {
+      onAltClick({ clientX: event.clientX, clientY: event.clientY });
     } else if (region !== 'interior' || interactive) {
       // Non-interactive elements (host-side gate) can't re-enter text edit;
       // an interior click on them is a no-op. Ring clicks always report —

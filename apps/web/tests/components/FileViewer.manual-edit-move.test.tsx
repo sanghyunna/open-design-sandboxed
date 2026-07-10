@@ -115,6 +115,45 @@ describe('FileViewer manual edit move frame', () => {
     expect(ringSurface()).not.toBeNull();
   });
 
+  it('forwards Alt-clicks on a selected container interior to the iframe bridge', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(structuredTextContainerTarget());
+
+    const frame = await previewFrame();
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 50, left: 100, top: 50, width: 800, height: 600,
+      right: 900, bottom: 650, toJSON: () => ({}),
+    } as DOMRect);
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+
+    fireEvent.pointerDown(interiorSurface(), {
+      pointerId: 13,
+      altKey: true,
+      clientX: 150,
+      clientY: 80,
+    });
+    expect(postSpy).not.toHaveBeenCalled();
+
+    fireEvent.pointerUp(interiorSurface(), {
+      pointerId: 13,
+      altKey: true,
+      clientX: 150,
+      clientY: 80,
+    });
+
+    expect(postSpy).toHaveBeenCalledWith(
+      { type: 'od-edit-alt-click', clientX: 50, clientY: 30 },
+      '*',
+    );
+  });
+
   it('double-clicks through the selected overlay to edit structured text containers', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
