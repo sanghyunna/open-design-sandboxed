@@ -198,12 +198,16 @@ describe('FileViewer manual edit history regressions', () => {
     });
     await waitFor(() => expect(savedSources).toHaveLength(1));
     expect(savedSources[0]).toContain('rgb(239, 68, 68)');
+    const frameBeforeUndo = screen.getByTestId('artifact-preview-frame');
 
     act(() => {
       toolbarState.props?.onUndo();
     });
     await waitFor(() => expect(savedSources).toHaveLength(2));
     expect(savedSources[1]).toBe(initialSource);
+    await waitFor(() => {
+      expect(screen.getByTestId('artifact-preview-frame')).not.toBe(frameBeforeUndo);
+    });
 
     act(() => {
       toolbarState.props?.onApplyPatch(

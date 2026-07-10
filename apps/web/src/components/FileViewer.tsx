@@ -5477,6 +5477,7 @@ function HtmlViewer({
       sourceRef.current = latest.beforeSource;
       setInlinedSource(null);
       setManualEditFrozenSource(latest.beforeSource);
+      setSrcDocTransportResetKey((key) => key + 1);
       setManualEditHistory(rest);
       setManualEditUndone((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.beforeSource }));
