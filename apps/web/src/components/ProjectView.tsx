@@ -860,8 +860,12 @@ export function ProjectView({
   const projectFilesRef = useRef<ProjectFile[]>([]);
   const [workspaceFocused, setWorkspaceFocused] = useState(false);
   const [commentInspectorActive, setCommentInspectorActive] = useState(false);
+  const [manualEditInspectorActive, setManualEditInspectorActive] = useState(false);
   const commentInspectorPortalId = useId();
-  const leftInspectorActive = commentInspectorActive;
+  const manualEditInspectorPortalId = useId();
+  // Manual-edit wins the left slot when both would be active; it is a modal
+  // workspace mode. Entering edit mode also closes comments (see FileViewer).
+  const leftInspectorActive = commentInspectorActive || manualEditInspectorActive;
   // PR #974 round 7 (mrcfps @ useDesignMdState.ts:131): counter that bumps on
   // file-changed SSE events and the chat streaming-completion edge so the
   // staleness chip stays in sync with the underlying mtimes / conversation
@@ -5376,7 +5380,13 @@ export function ProjectView({
         style={projectSplitStyle(workspaceFocused, splitLeftPanelWidth, workspacePanelTrack)}
       >
         <div className="split-chat-slot" hidden={workspaceFocused}>
-          {commentInspectorActive ? (
+          {manualEditInspectorActive ? (
+            <div
+              id={manualEditInspectorPortalId}
+              className="manual-edit-left-host"
+              aria-label={t('manualEdit.inspectorTitle')}
+            />
+          ) : commentInspectorActive ? (
             <div
               id={commentInspectorPortalId}
               className="comment-left-host"
@@ -5597,6 +5607,8 @@ export function ProjectView({
           githubConnected={githubConnected}
           commentPortalId={commentInspectorPortalId}
           onCommentModeChange={setCommentInspectorActive}
+          manualEditPortalId={manualEditInspectorPortalId}
+          onManualEditInspectorChange={setManualEditInspectorActive}
           chatConfig={config}
           chatAgentsById={agentsById}
           chatLocale={locale}

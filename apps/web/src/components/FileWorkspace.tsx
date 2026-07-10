@@ -155,6 +155,8 @@ interface Props {
   githubConnected?: boolean;
   commentPortalId?: string;
   onCommentModeChange?: (active: boolean) => void;
+  manualEditPortalId?: string;
+  onManualEditInspectorChange?: (active: boolean) => void;
   // Side Chat (`chat:<conversationId>` tab) wiring. Threaded from ProjectView
   // so a secondary ChatPane can render an already-open conversation tab without
   // FileWorkspace owning any chat state. All optional: a workspace mounted
@@ -388,6 +390,8 @@ export function FileWorkspace({
   githubConnected,
   commentPortalId,
   onCommentModeChange,
+  manualEditPortalId,
+  onManualEditInspectorChange,
   chatConfig,
   chatAgentsById,
   chatLocale,
@@ -2179,6 +2183,8 @@ export function FileWorkspace({
             onOpenFileReplacing={openFileReplacing}
             commentPortalId={commentPortalId}
             onCommentModeChange={onCommentModeChange}
+            manualEditPortalId={manualEditPortalId}
+            onManualEditInspectorChange={onManualEditInspectorChange}
             shareRequest={
               shareRequest && shareRequest.name === activeFile.name
                 ? { nonce: shareRequest.nonce }

@@ -129,6 +129,7 @@ import { ManualEditResizeHandles } from './ManualEditResizeHandles';
 import { ManualEditMoveFrame } from './ManualEditMoveFrame';
 import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, moveCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
+import { ManualEditLeftInspector } from './ManualEditLeftInspector';
 import {
   applyManualEditPatch,
   isManualEditFullHtmlDocument,
@@ -974,6 +975,8 @@ interface Props {
   onOpenFileReplacing?: (openName: string, closeName: string) => void;
   commentPortalId?: string;
   onCommentModeChange?: (active: boolean) => void;
+  manualEditPortalId?: string;
+  onManualEditInspectorChange?: (active: boolean) => void;
   // Bumped nonce asking this viewer to open its Share/Export menu (chat-side
   // "Share" next-step action). Only HTML artifacts expose a Share menu.
   shareRequest?: { nonce: number } | null;
@@ -1004,6 +1007,8 @@ export function FileViewer({
   onOpenFileReplacing,
   commentPortalId,
   onCommentModeChange,
+  manualEditPortalId,
+  onManualEditInspectorChange,
   shareRequest,
   downloadRequest,
   slideNavRequest,
@@ -1048,6 +1053,8 @@ export function FileViewer({
         onFileSaved={onFileSaved}
         commentPortalId={commentPortalId}
         onCommentModeChange={onCommentModeChange}
+        manualEditPortalId={manualEditPortalId}
+        onManualEditInspectorChange={onManualEditInspectorChange}
         shareRequest={shareRequest}
         downloadRequest={downloadRequest}
         slideNavRequest={slideNavRequest}
@@ -3291,6 +3298,8 @@ function HtmlViewer({
   onFileSaved,
   commentPortalId,
   onCommentModeChange,
+  manualEditPortalId,
+  onManualEditInspectorChange,
   shareRequest,
   downloadRequest,
   slideNavRequest,
@@ -3312,6 +3321,8 @@ function HtmlViewer({
   onFileSaved?: () => Promise<void> | void;
   commentPortalId?: string;
   onCommentModeChange?: (active: boolean) => void;
+  manualEditPortalId?: string;
+  onManualEditInspectorChange?: (active: boolean) => void;
   shareRequest?: { nonce: number } | null;
   downloadRequest?: { nonce: number } | null;
   slideNavRequest?: { slideIndex: number; nonce: number } | null;
@@ -3552,6 +3563,7 @@ function HtmlViewer({
   const [manualEditFrozenSource, setManualEditFrozenSource] = useState<string | null>(null);
   const [manualEditViewportWidth, setManualEditViewportWidth] = useState<number | null>(null);
   const [commentPortalHost, setCommentPortalHost] = useState<HTMLElement | null>(null);
+  const [manualEditPortalHost, setManualEditPortalHost] = useState<HTMLElement | null>(null);
   const [previewBodyRef, previewBodySize] = usePreviewCanvasSize<HTMLDivElement>();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const urlPreviewIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -3636,6 +3648,34 @@ function HtmlViewer({
       setCommentPortalHost(null);
     };
   }, [commentPanelOpen, commentPortalId]);
+  // Tell ProjectView to swap the chat slot for the manual-edit inspector while
+  // edit mode is active, and to restore chat on unmount.
+  useEffect(() => {
+    onManualEditInspectorChange?.(manualEditMode);
+  }, [manualEditMode, onManualEditInspectorChange]);
+  useEffect(() => () => {
+    onManualEditInspectorChange?.(false);
+  }, [onManualEditInspectorChange]);
+  useEffect(() => {
+    if (!manualEditMode || !manualEditPortalId) {
+      setManualEditPortalHost(null);
+      return;
+    }
+    let cancelled = false;
+    let raf = 0;
+    const findHost = () => {
+      if (cancelled) return;
+      const host = document.getElementById(manualEditPortalId);
+      setManualEditPortalHost(host);
+      if (!host) raf = window.requestAnimationFrame(findHost);
+    };
+    findHost();
+    return () => {
+      cancelled = true;
+      if (raf) window.cancelAnimationFrame(raf);
+      setManualEditPortalHost(null);
+    };
+  }, [manualEditMode, manualEditPortalId]);
   const capturePreviewScrollPosition = useCallback(() => {
     const host = previewBodyRef.current;
     let frameLeft = 0;
@@ -6937,7 +6977,9 @@ function HtmlViewer({
     setManualEditError(null);
     return toOwnerRelativePath(file.name, uploaded.path);
   };
-  const manualEditPanel = manualEditPageCardActive ? (
+  // The floating page-styles card is the fallback surface only. In the project
+  // workspace (portal host present) the Page section lives in the left inspector.
+  const manualEditPanel = manualEditPageCardActive && !manualEditPortalId ? (
     <ManualEditPanel
       error={manualEditError}
       canUndo={manualEditHistory.length > 0}
@@ -7480,7 +7522,10 @@ function HtmlViewer({
           ) : null}
         </div>
       </div>
-      {manualEditMode && selectedManualEditTarget
+      {/* Docked (fallback) toolbars: only when no left-inspector host is
+          provided (FileViewer used outside the project workspace). In the
+          project workspace the controls render in the left inspector below. */}
+      {!manualEditPortalId && manualEditMode && selectedManualEditTarget
         && (selectedManualEditTarget.kind === 'text'
           || selectedManualEditTarget.kind === 'link'
           || selectedManualEditTarget.kind === 'token'
@@ -7502,7 +7547,7 @@ function HtmlViewer({
           onRichFormat={sendManualEditRichFormat}
         />
       ) : null}
-      {manualEditShapeToolbarActive && selectedManualEditTarget ? (
+      {!manualEditPortalId && manualEditShapeToolbarActive && selectedManualEditTarget ? (
         <ManualEditShapeToolbar
           target={selectedManualEditTarget}
           styles={manualEditDraft.styles}
@@ -7529,6 +7574,47 @@ function HtmlViewer({
           onRedo={() => { void redoManualEdit(); }}
         />
       ) : null}
+      {/* Left-panel inspector: the primary manual-edit surface in the project
+          workspace. Portaled into the chat slot host provided by ProjectView. */}
+      {manualEditMode && manualEditPortalHost
+        ? createPortal(
+            <ManualEditLeftInspector
+              target={selectedManualEditTarget}
+              styles={manualEditDraft.styles}
+              richFormat={manualEditRichFormat}
+              draftAlt={manualEditDraft.alt}
+              error={manualEditError}
+              busy={manualEditSaving}
+              canUndo={manualEditHistory.length > 0}
+              canRedo={manualEditUndone.length > 0}
+              pageStylesEnabled={manualEditPageStylesEnabled}
+              getActiveTarget={() => selectedManualEditTargetRef.current}
+              onStyleField={(key, value) => {
+                if (!selectedManualEditTarget) return;
+                applyManualEditStyleField({
+                  target: selectedManualEditTarget,
+                  draft: manualEditDraft,
+                  key,
+                  value,
+                  onDraftChange: setManualEditDraft,
+                  onError: setManualEditError,
+                  onInvalidStyle: cancelManualEditPendingStyles,
+                  onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
+                });
+              }}
+              onRichFormat={sendManualEditRichFormat}
+              onApplyPatch={(patch, label) => { void applyManualEdit(patch, label); }}
+              onPickImage={pickManualEditImage}
+              onError={setManualEditError}
+              onUndo={() => { void undoManualEdit(); }}
+              onRedo={() => { void redoManualEdit(); }}
+              onPageStyleChange={(id, pageStyles, label) => { void handleManualEditStyleChange(id, pageStyles, label); }}
+              onPageInvalidStyle={cancelManualEditPendingStyles}
+              onExit={activateManualEditTool}
+            />,
+            manualEditPortalHost,
+          )
+        : null}
       {((filePrimaryActions: ReactNode) => (
         chromeActionsHost ? createPortal(filePrimaryActions, chromeActionsHost) : filePrimaryActions
       ))(<>

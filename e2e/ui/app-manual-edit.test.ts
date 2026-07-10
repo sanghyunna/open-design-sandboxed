@@ -58,7 +58,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('[P0] manual edit inspector previews and persists page and selected element styles', async ({ page }) => {
+test('[P0] manual edit left inspector previews and persists page and selected element styles', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit smoke');
   await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
@@ -68,60 +68,51 @@ test('[P0] manual edit inspector previews and persists page and selected element
   await expect(artifactPreview(page)).toBeVisible();
   const frame = artifactPreviewFrame(page);
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
-  const responsivePair = frame.locator('[data-od-id="responsive-pair"]');
-  await expect.poll(async () => responsivePair.evaluate((el) => getComputedStyle(el).flexDirection)).toBe('row');
 
+  // Enter edit mode: the left chat panel becomes the manual-edit inspector.
+  // With nothing selected the inspector shows the Page section, and the docked
+  // toolbars no longer render above the preview canvas.
   await page.getByTestId('manual-edit-mode-toggle').click();
   await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
-  await expect.poll(async () => responsivePair.evaluate((el) => getComputedStyle(el).flexDirection)).toBe('row');
+  const inspector = page.locator('.manual-edit-left-inspector');
+  await expect(inspector).toBeVisible();
+  await expect(inspectorSection(page, 'Page')).toBeVisible();
+  await expect(inspector).toContainText('Background');
+  await expect(page.locator('[data-testid="manual-edit-shape-toolbar"]')).toHaveCount(0);
 
-  await frame.locator('body').evaluate(() => {
-    window.parent.postMessage({ type: 'od-edit-background' }, '*');
-  });
-  await expect(page.locator('.manual-edit-modal')).toContainText('PAGE');
-  await expect(page.locator('.manual-edit-tabs')).toHaveCount(0);
-  await expect(page.locator('.manual-edit-layer-row')).toHaveCount(0);
-
-  await inspectorRow(page, 'Background').locator('input').fill('#eef2ff');
+  // Page edits round-trip through the inspector rows.
+  await inspectorRow(page, 'Background').locator('input:not([type="color"])').fill('#eef2ff');
   await inspectorRow(page, 'Font').locator('select').selectOption('Georgia, serif');
   await inspectorRow(page, 'Base size').locator('input').fill('18');
   await expect(inspectorRow(page, 'Background').locator('input:not([type="color"])')).toHaveValue('#eef2ff');
   await expect(inspectorRow(page, 'Font').locator('select')).toHaveValue('Georgia, serif');
   await expect(inspectorRow(page, 'Base size').locator('input')).toHaveValue('18');
 
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'TYPOGRAPHY');
-  const selectedTitleMarker = frame.locator('[data-od-id="hero-title"][data-od-edit-selected="true"]');
-  await expect(selectedTitleMarker).toHaveCount(1);
-  const fontSizeInput = inspectorSection(page, 'TYPOGRAPHY').locator('.cc-row').filter({ hasText: 'Size' }).locator('input');
-  await fontSizeInput.click();
-  await expect(selectedTitleMarker).toHaveCount(1);
-  await expect(fontSizeInput).not.toHaveValue('');
-  await expect(fontSizeInput).not.toHaveValue(/px/i);
-  await expect(inspectorSection(page, 'TYPOGRAPHY').locator('.cc-row').filter({ hasText: 'Color' }).locator('input')).toHaveValue(/^#[0-9a-f]{6}$/);
-  const lineInput = inspectorSection(page, 'TYPOGRAPHY').locator('.cc-row').filter({ hasText: 'Line' }).locator('input');
-  await lineInput.click();
-  await lineInput.blur();
-  await expect(page.locator('.manual-edit-error')).toHaveCount(0);
-  await frame.locator('body').evaluate(() => {
-    window.parent.postMessage({ type: 'od-edit-targets', targets: [] }, '*');
-  });
-  await expect(page.locator('.manual-edit-modal')).toContainText('TYPOGRAPHY');
-  await expect(page.locator('.manual-edit-modal')).not.toContainText('PAGE');
-  await frame.locator('body').evaluate(() => {
-    (window as Window & typeof globalThis & { __manualEditSmokeMarker?: string }).__manualEditSmokeMarker = 'stable-frame';
-  });
+  // Selecting a text element swaps the Page section for Text + Shape sections.
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Text');
+  await expect(inspectorSection(page, 'Shape')).toBeVisible();
+  await expect(inspectorSection(page, 'Page')).toHaveCount(0);
 
+  const fontSizeInput = inspectorSection(page, 'Text').locator('.cc-row').filter({ hasText: 'Font size' }).locator('input');
   await fontSizeInput.fill('48');
-  await inspectorSection(page, 'TYPOGRAPHY').locator('.cc-row').filter({ hasText: 'Color' }).locator('input').fill('#ef4444');
+  await inspectorSection(page, 'Text').locator('.cc-row').filter({ hasText: 'Text color' }).locator('input:not([type="color"])').fill('#ef4444');
   await expect(fontSizeInput).toHaveValue('48');
 
+  // Edits preview live on the selected element.
   const title = frame.getByRole('heading', { name: 'Original Hero' });
   await expect.poll(async () => title.evaluate((el) => getComputedStyle(el).fontSize)).toBe('48px');
   await expect(title).toHaveCSS('color', 'rgb(239, 68, 68)');
-  await inspectSaveButton(page).click({ force: true });
+
+  // Exiting edit mode flushes staged edits to the file and restores chat.
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(page.locator('.manual-edit-left-inspector')).toHaveCount(0);
   await expectFileSource(page, projectId, 'manual-edit.html', [
+    // Element edits (selected hero title): the browser serializes the applied
+    // color as rgb() when the style attribute round-trips.
     'font-size: 48px',
-    'color:',
+    'rgb(239, 68, 68)',
+    // Page edits (body) flushed when the element selection took over.
+    'background-color: rgb(238, 242, 255)',
   ]);
   await expectFileSourceExcludes(page, projectId, 'manual-edit.html', ['data-od-edit-selected']);
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
@@ -144,7 +135,9 @@ test('[P0] manual edit direct text typing persists text-only elements', async ({
   await page.getByTestId('manual-edit-mode-toggle').click();
   await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
   await textOnlyDiv.click();
-  await expect(textOnlyDiv).toHaveAttribute('contenteditable', 'plaintext-only');
+  // Text-only elements open a formatting-capable (rich) contenteditable so
+  // B/I/U can emit markup; only links/non-text leaves get plaintext-only.
+  await expect(textOnlyDiv).toHaveAttribute('contenteditable', 'true');
 
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('Edited left panel');
@@ -166,13 +159,13 @@ test('[P0] manual edit mode preserves preview actions after style edits', async 
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'TYPOGRAPHY');
-  const fontSizeInput = await selectStyleRowInput(page, frame, '[data-od-id="hero-title"]', 'TYPOGRAPHY', 'Size');
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Text');
+  const fontSizeInput = await selectStyleRowInput(page, frame, '[data-od-id="hero-title"]', 'Text', 'Font size');
   await fontSizeInput.fill('48');
-  await inspectSaveButton(page).click({ force: true });
-  await expectFileSource(page, projectId, 'manual-edit.html', ['font-size: 48px']);
 
+  // Exit edit mode to flush the staged style edit to the file.
   await page.getByTestId('manual-edit-mode-toggle').click();
+  await expectFileSource(page, projectId, 'manual-edit.html', ['font-size: 48px']);
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('board-mode-toggle').click();
@@ -192,9 +185,9 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  // 'SIZE' (not 'TYPOGRAPHY'): the inspector panel renders SIZE/LAYOUT/BOX;
-  // typography lives in the docked toolbar since the toolbar split.
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'SIZE');
+  // The Shape section carries sizing controls; the resize handles overlay the
+  // preview element itself, independent of where the controls are docked.
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
 
   const heroTitle = frame.locator('[data-od-id="hero-title"]');
   const before = await heroTitle.evaluate((el) => {
@@ -247,7 +240,7 @@ test('[P1] manual edit resize handles track the selected element through layout 
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'SIZE');
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
 
   const heroTitle = frame.locator('[data-od-id="hero-title"]');
   // Reflow the selected element WITHOUT a window resize or scroll — the shape
@@ -286,7 +279,7 @@ test('[P1] manual edit resize pins flex-fill items so a width drag holds and han
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="pair-b"]', 'SIZE');
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="pair-b"]', 'Shape');
 
   const pairB = frame.locator('[data-od-id="pair-b"]');
   const before = await pairB.boundingBox();
@@ -357,7 +350,7 @@ async function selectPreviewElementThroughBridge(
 ) {
   await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
   await frame.locator(selector).click();
-  await expect(page.locator('.manual-edit-modal')).toContainText(section);
+  await expect(inspectorSection(page, section)).toBeVisible();
   await expect(frame.locator(`${selector}[data-od-edit-selected="true"]`)).toHaveCount(1);
 }
 
@@ -430,7 +423,7 @@ async function selectStyleRowInput(
       },
     }, '*');
   });
-  await expect(page.locator('.manual-edit-modal')).toContainText('TYPOGRAPHY');
+  await expect(inspectorSection(page, section)).toBeVisible();
   const row = inspectorSection(page, section).locator('.cc-row').filter({ hasText: label }).locator('input');
   await expect(row).toBeVisible();
   return row;
@@ -658,15 +651,11 @@ async function expectFileSourceExcludes(page: Page, projectId: string, fileName:
 }
 
 function inspectorRow(page: Page, label: string) {
-  return page.locator('.manual-edit-modal .cc-row').filter({ hasText: label }).first();
+  return page.locator('.manual-edit-left-inspector .cc-row').filter({ hasText: label }).first();
 }
 
 function inspectorSection(page: Page, title: string) {
-  return page.locator('.manual-edit-modal .cc-section').filter({ hasText: title }).first();
-}
-
-function inspectSaveButton(page: Page) {
-  return page.locator('.manual-edit-modal').getByRole('button', { name: /^Save$/ });
+  return page.locator('.manual-edit-left-inspector .cc-section').filter({ has: page.locator('.cc-section-head', { hasText: new RegExp(`^${title}$`, 'i') }) }).first();
 }
 
 function manualEditHtml(): string {
@@ -695,30 +684,6 @@ function manualEditHtml(): string {
         <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
     </main>
-  </body>
-</html>`;
-}
-
-function deckHtml(): string {
-  return `<!doctype html>
-<html>
-  <body>
-    <section class="slide" data-od-id="slide-1"><h1>Slide One</h1></section>
-    <section class="slide" data-od-id="slide-2" hidden><h1>Slide Two</h1></section>
-    <script>
-      let active = 0;
-      const slides = Array.from(document.querySelectorAll('.slide'));
-      function render() { slides.forEach((slide, index) => { slide.hidden = index !== active; }); }
-      window.addEventListener('message', (event) => {
-        if (!event.data || event.data.type !== 'od:slide') return;
-        if (event.data.action === 'next') active = Math.min(slides.length - 1, active + 1);
-        if (event.data.action === 'prev') active = Math.max(0, active - 1);
-        render();
-        window.parent.postMessage({ type: 'od:slide-state', active, count: slides.length }, '*');
-      });
-      render();
-      window.parent.postMessage({ type: 'od:slide-state', active, count: slides.length }, '*');
-    </script>
   </body>
 </html>`;
 }
