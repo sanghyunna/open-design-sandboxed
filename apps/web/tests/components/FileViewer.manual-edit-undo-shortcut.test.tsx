@@ -350,11 +350,16 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     });
     await waitFor(() => expect(savedSources).toHaveLength(2));
     expect(savedSources[1]).toBe(initialSource);
+    const remountedFrame = await waitFor(() => {
+      const node = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
+      if (node === frame || !node.contentWindow) throw new Error('Remounted preview frame not ready');
+      return node;
+    });
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: { type: 'od-edit-undo', redo: true },
-        source: frame.contentWindow,
+        source: remountedFrame.contentWindow,
       }));
     });
     await waitFor(() => expect(savedSources).toHaveLength(3));

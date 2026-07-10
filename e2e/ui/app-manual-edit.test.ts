@@ -236,6 +236,74 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
 });
 
+test('[P1] issue 16 move browser verification', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 16 move browser verification');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const image = frame.locator('[data-od-id="hero-image"]');
+  await expect(image).toBeVisible();
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await image.click();
+  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const before = await image.boundingBox();
+  if (!before) throw new Error('image has no bounding box before move');
+  const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
+  await expect(moveSurface).toBeVisible();
+  const moveBox = await moveSurface.boundingBox();
+  if (!moveBox) throw new Error('move surface has no bounding box');
+  const startX = moveBox.x + moveBox.width / 2;
+  const startY = moveBox.y + moveBox.height / 2;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 80, startY + 40, { steps: 8 });
+  await expect
+    .poll(async () => {
+      const current = await image.boundingBox();
+      return current
+        ? Math.abs((current.x - before.x) - 80) < 4
+          && Math.abs((current.y - before.y) - 40) < 4
+        : false;
+    })
+    .toBe(true);
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      const source = await resp.text();
+      return source.match(/data-od-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
+    })
+    .toMatch(/translate:\s*80px\s+40px/);
+  const moved = await image.boundingBox();
+  if (!moved) throw new Error('image has no bounding box after move');
+  expect(Math.abs((moved.x - before.x) - 80)).toBeLessThan(2);
+  expect(Math.abs((moved.y - before.y) - 40)).toBeLessThan(2);
+
+  await page.keyboard.press('Control+z');
+
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return false;
+      const source = await resp.text();
+      const style = source.match(/data-od-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      return !/\btranslate:/.test(style);
+    })
+    .toBe(true);
+  const undone = await image.boundingBox();
+  if (!undone) throw new Error('image has no bounding box after undo');
+  expect(Math.abs(undone.x - before.x)).toBeLessThan(1);
+  expect(Math.abs(undone.y - before.y)).toBeLessThan(1);
+});
+
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit resize alignment');
