@@ -29,6 +29,8 @@ import type {
 } from '@open-design/contracts';
 import type { StreamHandlers } from './anthropic';
 
+const ROLLBACK_MODE_VALUES = new Set(['files_only', 'chat_only', 'files_and_chat']);
+
 /**
  * Returns the front-end carrier that's about to send this request:
  * - 'desktop' when running inside the Electron shell
@@ -1204,6 +1206,32 @@ function translateAgentEvent(data: DaemonAgentPayload): AgentEvent | null {
   }
   if (t === 'raw' && typeof data.line === 'string') {
     return { kind: 'raw', line: data.line };
+  }
+  if (
+    t === 'rollback_request'
+    && typeof data.requestId === 'string'
+    && data.requestId
+    && typeof data.expiresAt === 'number'
+    && Number.isFinite(data.expiresAt)
+    && typeof data.runId === 'string'
+    && typeof data.projectId === 'string'
+    && typeof data.conversationId === 'string'
+    && typeof data.targetMessageId === 'string'
+    && typeof data.targetCheckpointId === 'string'
+  ) {
+    const mode = ROLLBACK_MODE_VALUES.has(data.mode) ? data.mode : 'files_only';
+    return {
+      kind: 'agent_rollback_request',
+      requestId: data.requestId,
+      expiresAt: data.expiresAt,
+      runId: data.runId,
+      projectId: data.projectId,
+      conversationId: data.conversationId,
+      targetMessageId: data.targetMessageId,
+      targetCheckpointId: data.targetCheckpointId,
+      mode,
+      reason: String(data.reason ?? ''),
+    };
   }
   return null;
 }

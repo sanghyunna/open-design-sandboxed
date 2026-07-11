@@ -137,6 +137,7 @@ async function buildWorkspaceArtifacts(config: ToolPackConfig): Promise<void> {
       ["-r", `--workspace-concurrency=${workspaceConcurrency}`, ...filterArgs, "run", "build"],
       { OD_WEB_OUTPUT_MODE: config.webOutputMode },
     );
+    await runPnpm(config, ["--filter", "@open-design/platform", "build:native:win32"]);
     await runPnpm(config, ["--filter", "@open-design/web", "build:sidecar"]);
     // Strip browser sourcemaps before any packaging step copies the web
     // output into the Electron resources.

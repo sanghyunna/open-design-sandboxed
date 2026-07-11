@@ -65,7 +65,14 @@ import {
   waitForWebRuntime,
 } from "./sidecar-client.js";
 import { ensureDaemonGateForDesktop } from "./desktop-auth-gate.js";
+import {
+  createDesktopApprovalToken,
+  desktopApprovalChildEnv,
+  stripDesktopApprovalToken,
+} from "./desktop-approval-env.js";
+import { planDesktopApprovalLifecycle } from "./desktop-approval-rotation.js";
 import { loadWorkspaceLocalEnv } from "./local-env.js";
+import { ensureWindowsNativeIsolator } from "./native-isolator-build.js";
 import { resolveSharedPortsFromRunningState } from "./shared-ports.js";
 
 type CliOptions = ToolDevOptions & {
@@ -92,6 +99,7 @@ process.on("uncaughtException", exitWithError);
 process.on("unhandledRejection", exitWithError);
 
 loadWorkspaceLocalEnv({ workspaceRoot: WORKSPACE_ROOT });
+stripDesktopApprovalToken(process.env);
 
 function printJson(payload: unknown): void {
   process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
@@ -396,6 +404,7 @@ async function assertNoStaleActiveProcess(config: ToolDevConfig, appName: ToolDe
 async function spawnSidecarRuntime(request: {
   appName: typeof APP_KEYS.DAEMON | typeof APP_KEYS.WEB;
   config: ToolDevConfig;
+  desktopApprovalToken?: string | null;
   env: NodeJS.ProcessEnv;
   logHandle: FileHandle;
 }): Promise<{ pid: number }> {
@@ -406,11 +415,11 @@ async function spawnSidecarRuntime(request: {
     command: process.execPath,
     cwd: request.config.workspaceRoot,
     detached: true,
-    env: {
+    env: desktopApprovalChildEnv(request.appName, request.desktopApprovalToken ?? null, {
       ...process.env,
       ...env,
       ...request.env,
-    },
+    }),
     logFd: request.logHandle.fd,
   });
   return { pid: spawned.pid };
@@ -419,13 +428,33 @@ async function spawnSidecarRuntime(request: {
 async function spawnDaemonRuntime(
   config: ToolDevConfig,
   options: CliOptions,
-  spawnOptions: { requireDesktopAuth?: boolean } = {},
+  spawnOptions: { desktopApprovalToken?: string | null; requireDesktopAuth?: boolean } = {},
 ): Promise<{ pid: number }> {
   const daemonPort = parsePortOption(options.daemonPort, "--daemon-port");
   const webPort = parsePortOption(options.webPort, "--web-port");
   const logHandle = await openAppLog(config, APP_KEYS.DAEMON);
 
   try {
+    if (spawnOptions.desktopApprovalToken != null) {
+      await ensureWindowsNativeIsolator({
+        log: async (message) => { await logHandle.write(message); },
+        runBuild: async () => {
+          const invocation = createPackageManagerInvocation(
+            ["--filter", "@open-design/platform", "build:native:win32"],
+            process.env,
+          );
+          await runLoggedCommand({
+            args: invocation.args,
+            command: invocation.command,
+            cwd: config.workspaceRoot,
+            env: process.env,
+            logFd: logHandle.fd,
+            windowsVerbatimArguments: invocation.windowsVerbatimArguments,
+          });
+        },
+        workspaceRoot: config.workspaceRoot,
+      });
+    }
     await ensureDaemonCliBuild(config, logHandle);
     await logHandle.write(`\n[tools-dev] launching daemon at ${new Date().toISOString()}\n`);
     if (webPort != null) await logHandle.write(`[tools-dev] trusting web origin port ${webPort}\n`);
@@ -442,6 +471,7 @@ async function spawnDaemonRuntime(
     return await spawnSidecarRuntime({
       appName: APP_KEYS.DAEMON,
       config,
+      desktopApprovalToken: spawnOptions.desktopApprovalToken,
       env: {
         [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort ?? 0),
         ...(webPort == null ? {} : { [SIDECAR_ENV.WEB_PORT]: String(webPort) }),
@@ -471,6 +501,7 @@ async function spawnWebRuntime(config: ToolDevConfig, options: CliOptions): Prom
     return await spawnSidecarRuntime({
       appName: APP_KEYS.WEB,
       config,
+      desktopApprovalToken: null,
       env: {
         NODE_PATH: prependNodePath([
           path.join(config.workspaceRoot, "apps/web/node_modules"),
@@ -576,18 +607,22 @@ async function writeWebDevTsconfig(config: ToolDevConfig): Promise<void> {
   );
 }
 
-async function spawnDesktopRuntime(config: ToolDevConfig, options: CliOptions): Promise<{ pid: number }> {
+async function spawnDesktopRuntime(
+  config: ToolDevConfig,
+  options: CliOptions,
+  desktopApprovalToken: string | null,
+): Promise<{ pid: number }> {
   const { args: stampArgs, env } = createAppStamp(config, APP_KEYS.DESKTOP);
   const logHandle = await openAppLog(config, APP_KEYS.DESKTOP);
 
   try {
     await buildDesktop(config, logHandle);
     await logHandle.write(`[tools-dev] launching desktop at ${new Date().toISOString()}\n`);
-    const spawnEnv: NodeJS.ProcessEnv = {
+    const spawnEnv = desktopApprovalChildEnv(APP_KEYS.DESKTOP, desktopApprovalToken, {
       ...process.env,
       ...env,
       ...(options.parentPid == null ? {} : { [TOOLS_DEV_PARENT_PID_ENV]: String(options.parentPid) }),
-    };
+    });
     // ELECTRON_RUN_AS_NODE=1 makes Electron boot as plain Node and skip
     // main-process API injection (app, BrowserWindow, protocol all become
     // undefined). Strip it from the spawn env so desktop always boots in
@@ -627,13 +662,18 @@ async function spawnDesktopRuntime(config: ToolDevConfig, options: CliOptions): 
 async function startDaemon(
   config: ToolDevConfig,
   options: CliOptions,
-  startOptions: { refreshWebOrigin?: boolean; requireDesktopAuth?: boolean } = {},
+  startOptions: {
+    desktopApprovalToken?: string | null;
+    refreshWebOrigin?: boolean;
+    requireDesktopAuth?: boolean;
+  } = {},
 ) {
   const daemonPort = parsePortOption(options.daemonPort, "--daemon-port");
   const webPort = parsePortOption(options.webPort, "--web-port");
   let existing = await inspectDaemonRuntime(runtimeLookup(config));
   const shouldRefreshWebOrigin = startOptions.refreshWebOrigin === true && webPort != null;
-  const existingWeb = shouldRefreshWebOrigin
+  const shouldRotateDesktopApproval = startOptions.desktopApprovalToken != null;
+  const existingWeb = shouldRefreshWebOrigin || shouldRotateDesktopApproval
     ? await inspectWebRuntime(runtimeLookup(config))
     : null;
   if (existingWeb?.url != null && !statusMatchesForcedPort(existingWeb.url, webPort)) {
@@ -641,7 +681,7 @@ async function startDaemon(
   }
   const daemonTrustedWebOriginPort = existing?.trustedWebOriginPort ?? null;
   if (existing?.url != null && statusMatchesForcedPort(existing.url, daemonPort)) {
-    if (shouldRefreshWebOrigin && daemonTrustedWebOriginPort !== webPort) {
+    if (shouldRotateDesktopApproval || (shouldRefreshWebOrigin && daemonTrustedWebOriginPort !== webPort)) {
       if (existingWeb?.url != null) {
         await stopApp(config, APP_KEYS.WEB);
       }
@@ -662,10 +702,16 @@ async function startDaemon(
   // and the user is bringing it back up while desktop kept running).
   // Both branches close the daemon-restart bypass.
   const desktopAlreadyRunning = await inspectDesktopRuntime(runtimeLookup(config));
+  if (desktopAlreadyRunning != null && startOptions.desktopApprovalToken == null) {
+    throw new Error("daemon cannot restart beside a live desktop without rotating their approval token");
+  }
   const requireDesktopAuth =
     (startOptions.requireDesktopAuth ?? false) || desktopAlreadyRunning != null;
 
-  const spawned = await spawnDaemonRuntime(config, options, { requireDesktopAuth });
+  const spawned = await spawnDaemonRuntime(config, options, {
+    desktopApprovalToken: startOptions.desktopApprovalToken,
+    requireDesktopAuth,
+  });
   try {
     const status = await waitForDaemonRuntime(runtimeLookup(config));
     return {
@@ -712,14 +758,18 @@ async function startWeb(config: ToolDevConfig, options: CliOptions) {
   }
 }
 
-async function startDesktop(config: ToolDevConfig, options: CliOptions) {
+async function startDesktop(
+  config: ToolDevConfig,
+  options: CliOptions,
+  desktopApprovalToken: string | null,
+) {
   const existing = await inspectDesktopRuntime(runtimeLookup(config));
   if (existing != null) {
     return { app: APP_KEYS.DESKTOP, created: false, logPath: config.apps.desktop.latestLogPath, status: existing };
   }
   await assertNoStaleActiveProcess(config, APP_KEYS.DESKTOP);
 
-  const spawned = await spawnDesktopRuntime(config, options);
+  const spawned = await spawnDesktopRuntime(config, options, desktopApprovalToken);
   try {
     const status = await waitForDesktopRuntime(runtimeLookup(config));
     return {
@@ -739,7 +789,10 @@ async function startApp(
   config: ToolDevConfig,
   appName: ToolDevAppName,
   options: CliOptions,
-  context: { targets?: readonly ToolDevAppName[] } = {},
+  context: {
+    desktopApprovalToken?: string | null;
+    targets?: readonly ToolDevAppName[];
+  } = {},
 ) {
   switch (appName) {
     case APP_KEYS.DAEMON:
@@ -751,6 +804,7 @@ async function startApp(
         // case (desktop already running) is handled inside startDaemon.
         refreshWebOrigin: context.targets?.includes(APP_KEYS.WEB) === true,
         requireDesktopAuth: context.targets?.includes(APP_KEYS.DESKTOP) === true,
+        desktopApprovalToken: context.desktopApprovalToken,
       });
     case APP_KEYS.WEB:
       return await startWeb(config, options);
@@ -774,6 +828,7 @@ async function startApp(
             port != null ? { ...options, daemonPort: port } : { ...options };
           if (webPort != null) portedOptions.webPort = webPort;
           await startDaemon(config, portedOptions, {
+            desktopApprovalToken: context.desktopApprovalToken,
             refreshWebOrigin: webPort != null,
             requireDesktopAuth: true,
           });
@@ -785,7 +840,7 @@ async function startApp(
         },
         log: (msg) => process.stderr.write(`${msg}\n`),
       });
-      return await startDesktop(config, options);
+      return await startDesktop(config, options, context.desktopApprovalToken ?? null);
   }
 }
 
@@ -881,16 +936,26 @@ async function status(config: ToolDevConfig, appName: string | undefined) {
 }
 
 async function restartTargets(config: ToolDevConfig, appName: string | undefined, options: CliOptions) {
-  const stopTargets = resolveStopApps(appName);
-  const startTargets = resolveStartApps(appName);
-  await resolveSharedPortsFromRunningState(startTargets, options, {
+  const plan = await createApprovalLifecyclePlan(
+    config,
+    resolveStartApps(appName),
+    resolveStopApps(appName),
+    true,
+  );
+  await resolveSharedPortsFromRunningState(plan.startTargets, options, {
     daemonUrl: async () => (await inspectDaemonRuntime(runtimeLookup(config)))?.url,
     webUrl: async () => (await inspectWebRuntime(runtimeLookup(config)))?.url,
   });
-  return {
-    stop: await runSequential(stopTargets, (target) => stopApp(config, target)),
-    start: await runSequential(startTargets, (target) => startApp(config, target, options, { targets: startTargets })),
-  };
+  if (plan.rotationRequired) {
+    process.stderr.write("[tools-dev] rotating desktop approval token with the coupled daemon lifecycle\n");
+  }
+  const stop = await runSequential(plan.stopTargets, (target) => stopApp(config, target));
+  const context = await createStartContext(config, plan.startTargets);
+  const start = await runSequential(
+    plan.startTargets,
+    (target) => startApp(config, target, options, context),
+  );
+  return { start, stop };
 }
 
 async function readLogs(config: ToolDevConfig, appName: ToolDevAppName) {
@@ -1040,14 +1105,61 @@ function stopOrderFor(targets: readonly ToolDevAppName[]): ToolDevAppName[] {
   return DEFAULT_STOP_APPS.filter((target) => selected.has(target));
 }
 
+async function createApprovalLifecyclePlan(
+  config: ToolDevConfig,
+  startTargets: readonly ToolDevAppName[],
+  stopTargets: readonly ToolDevAppName[] = [],
+  forceDaemonRestart = false,
+) {
+  const [daemon, desktop, web] = await Promise.all([
+    inspectDaemonRuntime(runtimeLookup(config)),
+    inspectDesktopRuntime(runtimeLookup(config)),
+    inspectWebRuntime(runtimeLookup(config)),
+  ]);
+  return planDesktopApprovalLifecycle({
+    daemonRunning: daemon != null,
+    desktopRunning: desktop != null,
+    forceDaemonRestart,
+    startTargets,
+    stopTargets,
+    webRunning: web != null,
+  });
+}
+
+async function createStartContext(
+  config: ToolDevConfig,
+  targets: readonly ToolDevAppName[],
+): Promise<{ desktopApprovalToken: string | null; targets: readonly ToolDevAppName[] }> {
+  const needsDesktopToken = targets.includes(APP_KEYS.DESKTOP)
+    && await inspectDesktopRuntime(runtimeLookup(config)) == null;
+  return {
+    desktopApprovalToken: needsDesktopToken ? createDesktopApprovalToken() : null,
+    targets,
+  };
+}
+
 async function runForeground(config: ToolDevConfig, appName: string | undefined, options: CliOptions) {
-  const targets = resolveRunApps(appName);
+  const requestedTargets = resolveRunApps(appName);
+  const plan = await createApprovalLifecyclePlan(config, requestedTargets);
   const foregroundOptions = { ...options, parentPid: process.pid };
-  await resolveSharedPortsFromRunningState(targets, foregroundOptions, {
+  await resolveSharedPortsFromRunningState(plan.startTargets, foregroundOptions, {
     daemonUrl: async () => (await inspectDaemonRuntime(runtimeLookup(config)))?.url,
     webUrl: async () => (await inspectWebRuntime(runtimeLookup(config)))?.url,
   });
-  const started = await runSequential(targets, (target) => startApp(config, target, foregroundOptions, { targets }));
+  if (plan.rotationRequired) {
+    process.stderr.write("[tools-dev] rotating desktop approval token with the coupled daemon lifecycle\n");
+    await runSequential(plan.stopTargets, (target) => stopApp(config, target));
+  }
+  const context = await createStartContext(config, plan.startTargets);
+  const started = await runSequential(
+    plan.startTargets,
+    (target) => startApp(
+      config,
+      target,
+      requestedTargets.includes(target) ? foregroundOptions : options,
+      context,
+    ),
+  );
   printRunForegroundResult(started, options);
 
   let shuttingDown = false;
@@ -1058,7 +1170,7 @@ async function runForeground(config: ToolDevConfig, appName: string | undefined,
       shuttingDown = true;
       clearInterval(keepAlive);
       process.stderr.write("\nStopping Open Design dev server...\n");
-      void runSequential(stopOrderFor(targets), (target) => stopApp(config, target)).finally(() => {
+      void runSequential(stopOrderFor(requestedTargets), (target) => stopApp(config, target)).finally(() => {
         for (const sig of ["SIGINT", "SIGTERM"] as const) {
           process.off(sig, shutdown);
         }
@@ -1092,12 +1204,20 @@ addPortOptions(addSharedOptions(cli.command("start [app]", "Start daemon, web, d
   async (appName: string | undefined, options: CliOptions) => {
     assertSupportedNodeRuntimeForStart();
     const config = resolveToolDevConfig(options);
-    const targets = resolveStartApps(appName);
-    await resolveSharedPortsFromRunningState(targets, options, {
+    const plan = await createApprovalLifecyclePlan(config, resolveStartApps(appName));
+    await resolveSharedPortsFromRunningState(plan.startTargets, options, {
       daemonUrl: async () => (await inspectDaemonRuntime(runtimeLookup(config)))?.url,
       webUrl: async () => (await inspectWebRuntime(runtimeLookup(config)))?.url,
     });
-    const result = await runSequential(targets, (target) => startApp(config, target, options, { targets }));
+    if (plan.rotationRequired) {
+      process.stderr.write("[tools-dev] rotating desktop approval token with the coupled daemon lifecycle\n");
+      await runSequential(plan.stopTargets, (target) => stopApp(config, target));
+    }
+    const context = await createStartContext(config, plan.startTargets);
+    const result = await runSequential(
+      plan.startTargets,
+      (target) => startApp(config, target, options, context),
+    );
     printStartResult(result, options);
   },
 );

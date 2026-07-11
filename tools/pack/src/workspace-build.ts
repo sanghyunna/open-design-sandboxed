@@ -94,11 +94,14 @@ async function createWorkspaceBuildCacheKey(config: ToolPackConfig): Promise<str
     buildCommands: BUILD_COMMANDS,
     node: nodeId,
     nodeVersion: process.version,
+    nativeBuild: config.platform === "win"
+      ? { args: ["--filter", "@open-design/platform", "build:native:win32"] }
+      : null,
     packageHashes,
     packageManager: await readPackageManager(config.workspaceRoot),
     platform: config.platform,
     pnpmLock: await hashPath(join(config.workspaceRoot, "pnpm-lock.yaml")),
-    schemaVersion: 7,
+    schemaVersion: 8,
     webOutputMode: config.webOutputMode,
   });
 }
@@ -123,6 +126,9 @@ function workspaceBuildOutputFiles(config: ToolPackConfig): string[] {
     "packages/sidecar/dist/index.d.ts",
     "packages/platform/dist/index.mjs",
     "packages/platform/dist/index.d.ts",
+    ...(config.platform === "win"
+      ? ["packages/platform/dist/native/win32/od-agent-isolator.exe"]
+      : []),
     "packages/download/dist/index.mjs",
     "packages/download/dist/index.d.ts",
     "packages/host/dist/index.mjs",

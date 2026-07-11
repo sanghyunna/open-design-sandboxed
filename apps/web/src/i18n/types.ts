@@ -2655,6 +2655,17 @@ export interface Dict {
   'rollback.successDetails': string;
   'rollback.failed': string;
   'rollback.noCheckpointChatOnly': string;
+  'rollback.noCheckpointFilesOnly': string;
+  'rollback.agentRequestTitle': string;
+  'rollback.agentRequestMode': string;
+  'rollback.agentRequestAccept': string;
+  'rollback.agentRequestReject': string;
+  'rollback.agentRequestDiff': string;
+  'rollback.agentRequestAcceptAria': string;
+  'rollback.agentRequestRejectAria': string;
+  'rollback.agentRequestDiffAria': string;
+  'rollback.agentRequestRejected': string;
+  'rollback.agentRequestExpired': string;
   'assistant.shareToOpenDesign': string;
   'assistant.emptyResponseLabel': string;
   'assistant.emptyResponseMessage': string;

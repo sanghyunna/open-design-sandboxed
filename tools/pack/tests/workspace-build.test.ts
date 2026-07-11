@@ -42,6 +42,7 @@ const OUTPUT_FILES = [
   "packages/sidecar/dist/index.d.ts",
   "packages/platform/dist/index.mjs",
   "packages/platform/dist/index.d.ts",
+  "packages/platform/dist/native/win32/od-agent-isolator.exe",
   "packages/download/dist/index.mjs",
   "packages/download/dist/index.d.ts",
   "packages/host/dist/index.mjs",

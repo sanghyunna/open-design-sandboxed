@@ -59,6 +59,7 @@ const PACKAGED_CHILD_ENV_ALLOWLIST = [
 ] as const;
 
 function shouldForwardPackagedChildEnv(key: string, includeProviderSecrets = false): boolean {
+  if (key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN) return false;
   return (
     PACKAGED_CHILD_ENV_ALLOWLIST.includes(
       key as (typeof PACKAGED_CHILD_ENV_ALLOWLIST)[number],
@@ -323,6 +324,7 @@ export type PackagedDaemonSpawnEnvOptions = {
   appVersion: string | null;
   amrProfile?: string | null;
   daemonCliEntry: string | null;
+  desktopApprovalToken?: string | null;
   /**
    * PR #974 round-5 (lefarcen P2): only pin the daemon's import-folder
    * gate ON when the desktop runtime is actually being started in the
@@ -349,6 +351,9 @@ export function buildPackagedDaemonSpawnEnv(
 ): NodeJS.ProcessEnv {
   return {
     [SIDECAR_ENV.DAEMON_PORT]: "0",
+    ...(options.desktopApprovalToken
+      ? { [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: options.desktopApprovalToken }
+      : {}),
     ...(options.daemonCliEntry == null ? {} : { [SIDECAR_ENV.DAEMON_CLI_PATH]: options.daemonCliEntry }),
     // PR #974 round-4 P1 + round-5 P2: pinned ON when a desktop is
     // being started, OFF for headless. The daemon-side flag refuses
@@ -467,6 +472,7 @@ export async function startPackagedSidecars(
     amrProfile: string | null;
     daemonCliEntry: string | null;
     daemonSidecarEntry: string | null;
+    desktopApprovalToken: string | null;
     nodeCommand: string | null;
     pathsAlreadyEnsured: boolean;
     /**
@@ -513,6 +519,7 @@ export async function startPackagedSidecars(
         appVersion: options.appVersion,
         amrProfile: options.amrProfile,
         daemonCliEntry: options.daemonCliEntry,
+        desktopApprovalToken: options.desktopApprovalToken,
         legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
         requireDesktopAuth: options.requireDesktopAuth,
       }),

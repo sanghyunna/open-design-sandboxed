@@ -145,6 +145,212 @@ describe('project checkpoint capture', () => {
 });
 
 describe('project checkpoint restore', () => {
+  it.each(['chat_only', 'files_and_chat'] as const)(
+    'rejects agent %s rollback without deleting chat',
+    async (mode) => {
+      const { db, service, projectId } = await makeFixture();
+      seedConversationMessages(db);
+      upsertMessage(db, 'conv-1', {
+        id: 'assistant-1',
+        role: 'assistant',
+        content: 'first answer',
+        runId: 'run-1',
+      });
+
+      await expect(service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        mode,
+        actor: 'agent',
+        runId: 'run-1',
+      })).rejects.toMatchObject({
+        status: 400,
+        code: 'BAD_REQUEST',
+      });
+      expect(listMessages(db, 'conv-1').map((message) => message.id)).toEqual([
+        'user-1',
+        'assistant-1',
+        'user-2',
+        'assistant-2',
+      ]);
+    },
+  );
+
+  it('uses only the run before_run checkpoint for agent rollback while user inference stays unchanged', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    upsertMessage(db, 'conv-1', {
+      id: 'assistant-1',
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+    });
+
+    await writeFixtureFile(projectDir, 'index.html', 'before run');
+    const beforeRun = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'before_run',
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await writeFixtureFile(projectDir, 'index.html', 'after message');
+    await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_message',
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await writeFixtureFile(projectDir, 'index.html', 'after run');
+    const afterRun = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_run_unfinalized',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'current');
+
+    const agentRestore = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      actor: 'agent',
+      runId: 'run-1',
+    });
+    expect(agentRestore.restoredCheckpointId).toBe(beforeRun.id);
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('before run');
+
+    await writeFixtureFile(projectDir, 'index.html', 'current again');
+    const userRestore = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+    });
+    expect(userRestore.restoredCheckpointId).toBe(afterRun.id);
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('after run');
+  });
+
+  it.each(['after_message', 'after_run_unfinalized'] as const)(
+    'rejects an explicit same-run %s checkpoint for agent rollback',
+    async (kind) => {
+      const { db, service, projectId, projectDir } = await makeFixture();
+      seedConversationMessages(db);
+      upsertMessage(db, 'conv-1', {
+        id: 'assistant-1',
+        role: 'assistant',
+        content: 'first answer',
+        runId: 'run-1',
+      });
+      await writeFixtureFile(projectDir, 'index.html', 'post-edit');
+      const checkpoint = await service.captureCheckpoint({
+        projectId,
+        conversationId: 'conv-1',
+        messageId: 'assistant-1',
+        runId: 'run-1',
+        kind,
+      });
+      await writeFixtureFile(projectDir, 'index.html', 'current');
+
+      await expect(service.rollback({
+        projectId,
+        conversationId: 'conv-1',
+        targetMessageId: 'assistant-1',
+        targetCheckpointId: checkpoint.id,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        actor: 'agent',
+        runId: 'run-1',
+      })).rejects.toMatchObject({
+        status: 404,
+        code: 'CHECKPOINT_NOT_FOUND',
+      });
+      expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('current');
+    },
+  );
+
+  it('rejects a before_restore safety checkpoint as an agent restore target', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    upsertMessage(db, 'conv-1', {
+      id: 'assistant-1',
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'before');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'after_message',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'after');
+    const manual = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+    });
+
+    await expect(service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: manual.safetyCheckpointId!,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      actor: 'agent',
+      runId: 'run-1',
+    })).rejects.toMatchObject({
+      status: 404,
+      code: 'CHECKPOINT_NOT_FOUND',
+    });
+  });
+
+  it('rejects an agent checkpoint from a different run', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    upsertMessage(db, 'conv-1', {
+      id: 'assistant-1',
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'before');
+    const checkpoint = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'other-run',
+      kind: 'after_message',
+    });
+
+    await expect(service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: checkpoint.id,
+      mode: 'files_only',
+      actor: 'agent',
+      runId: 'run-1',
+    })).rejects.toMatchObject({
+      status: 403,
+      code: 'ROLLBACK_RUN_MISMATCH',
+    });
+  });
+
   it('rejects an explicit checkpoint id that does not belong to the target message', async () => {
     const { db, service, projectId, projectDir } = await makeFixture();
     seedConversationMessages(db);

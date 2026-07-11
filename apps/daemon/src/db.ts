@@ -1624,12 +1624,16 @@ export interface DbProjectCheckpointRestoreInput {
   deletedMessageIds: string[];
   createdAt?: number;
   metadata?: JsonObject | null;
+  /** Who initiated the rollback, stored inside metadata_json. */
+  actor?: 'user' | 'agent';
 }
 
 export function insertProjectCheckpointRestore(
   db: SqliteDb,
   input: DbProjectCheckpointRestoreInput,
 ): void {
+  const metadata: JsonObject = { ...(input.metadata ?? {}) };
+  if (input.actor) metadata.actor = input.actor;
   db.prepare(
     `INSERT INTO project_checkpoint_restores
        (id, project_id, conversation_id, target_message_id, target_checkpoint_id,
@@ -1648,8 +1652,40 @@ export function insertProjectCheckpointRestore(
     JSON.stringify(input.fileChanges),
     JSON.stringify(input.deletedMessageIds),
     input.createdAt ?? Date.now(),
-    input.metadata ? JSON.stringify(input.metadata) : null,
+    Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
   );
+}
+
+export function getAgentRollbackRestoreCountForRun(
+  db: SqliteDb,
+  runId: string,
+): number {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS count
+         FROM project_checkpoint_restores r
+         JOIN messages m ON m.id = r.target_message_id
+        WHERE m.run_id = ?
+          AND r.metadata_json IS NOT NULL
+          AND json_extract(r.metadata_json, '$.actor') = 'agent'`,
+    )
+    .get(runId) as DbRow | undefined;
+  return typeof row?.count === 'number' ? Number(row.count) : 0;
+}
+
+export function getMessageRunId(
+  db: SqliteDb,
+  conversationId: string,
+  messageId: string,
+): string | null {
+  const row = db
+    .prepare(
+      `SELECT run_id AS runId
+         FROM messages
+        WHERE conversation_id = ? AND id = ?`,
+    )
+    .get(conversationId, messageId) as DbRow | undefined;
+  return typeof row?.runId === 'string' ? row.runId : null;
 }
 
 function normalizeProjectCheckpointRow(row: DbRow): DbProjectCheckpointRow {

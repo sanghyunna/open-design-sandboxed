@@ -21,6 +21,8 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+
 import {
   buildPackagedDaemonSpawnEnv,
   resolveDaemonStatusTimeoutMs,
@@ -66,6 +68,17 @@ describe('resolveDaemonStatusTimeoutMs', () => {
 });
 
 describe('packaged child Vite+ environment forwarding', () => {
+  it('never inherits the desktop approval bearer through packaged child forwarding', () => {
+    const env = resolvePackagedChildBaseEnv({
+      HOME: '/Users/tester',
+      Od_DeSkToP_ApPrOvAl_ToKeN: 'must-not-leak',
+    }, true, {}, false);
+
+    expect(Object.keys(env).map((key) => key.toUpperCase())).not.toContain(
+      SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN,
+    );
+  });
+
   it('keeps VP_HOME in the packaged child base env without forwarding unrelated variables', () => {
     const env = resolvePackagedChildBaseEnv({
       HOME: '/Users/tester',
@@ -325,6 +338,17 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
     expect(env.OD_APP_VERSION).toBe('1.2.3');
     expect(env.OD_LEGACY_DATA_DIR).toBeUndefined();
+  });
+
+  it('passes the ephemeral approval bearer only through the explicit daemon env', () => {
+    const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
+      appVersion: null,
+      daemonCliEntry: null,
+      desktopApprovalToken: 'packaged-approval-token',
+      requireDesktopAuth: true,
+    });
+
+    expect(env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]).toBe('packaged-approval-token');
   });
 
   it('omits OD_REQUIRE_DESKTOP_AUTH entirely when requireDesktopAuth=false (headless)', () => {

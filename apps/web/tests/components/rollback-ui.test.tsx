@@ -25,6 +25,7 @@ const projectStateMocks = vi.hoisted(() => {
   }
 
   return {
+    executeAgentRollback: vi.fn(),
     fetchProjectCheckpointDiff: vi.fn(),
     listProjectCheckpoints: vi.fn(),
     rollbackConversation: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('../../src/state/projects', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/state/projects')>();
   return {
     ...actual,
+    executeAgentRollback: projectStateMocks.executeAgentRollback,
     fetchProjectCheckpointDiff: projectStateMocks.fetchProjectCheckpointDiff,
     listProjectCheckpoints: projectStateMocks.listProjectCheckpoints,
     rollbackConversation: projectStateMocks.rollbackConversation,
@@ -183,6 +185,7 @@ describe('RollbackModal', () => {
       clearedAgentSessions: true,
       fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
       conflicts: [],
+      actor: 'user',
     };
 
     projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
@@ -263,6 +266,7 @@ describe('RollbackModal', () => {
         unchanged: 0,
       },
       conflicts: [],
+      actor: 'user',
     };
     const onClose = vi.fn();
     const onSuccess = vi.fn();
@@ -311,7 +315,7 @@ describe('RollbackModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('stops local streaming before posting rollback', async () => {
+  it('posts rollback without pre-canceling renderer state', async () => {
     const checkpoint: ProjectCheckpointSummary = {
       id: 'checkpoint-1',
       projectId: 'proj-1',
@@ -337,30 +341,21 @@ describe('RollbackModal', () => {
       clearedAgentSessions: true,
       fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
       conflicts: [],
+      actor: 'user',
     };
-    const calls: string[] = [];
-
     projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
     projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
       checkpoint,
       files: [{ path: 'index.html', status: 'modified' }],
       conflicts: [],
     });
-    projectStateMocks.rollbackConversation.mockImplementation(async () => {
-      calls.push('rollback');
-      return rollbackResponse;
-    });
+    projectStateMocks.rollbackConversation.mockResolvedValue(rollbackResponse);
 
     render(
       <RollbackModal
         projectId="proj-1"
         conversationId="conv-1"
         targetMessage={baseMessage()}
-        onBeforeRollback={async () => {
-          calls.push('stop-start');
-          await new Promise((resolve) => setTimeout(resolve, 10));
-          calls.push('stop-end');
-        }}
         onClose={vi.fn()}
         onSuccess={vi.fn()}
       />,
@@ -371,6 +366,370 @@ describe('RollbackModal', () => {
     fireEvent.click(confirmButton);
 
     await waitFor(() => expect(projectStateMocks.rollbackConversation).toHaveBeenCalled());
-    expect(calls).toEqual(['stop-start', 'stop-end', 'rollback']);
+  });
+
+  it('keeps a denied manual rollback open without mutating renderer state', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-1',
+      projectId: 'proj-1',
+      kind: 'after_message',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_006_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [],
+    });
+    projectStateMocks.rollbackConversation.mockRejectedValue(new Error('Desktop approval was denied.'));
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    const confirm = await screen.findByRole('button', { name: 'Restore files and chat' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Desktop approval was denied.');
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('renders read-only diff preview without rollback controls when readOnly is set', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-agent',
+      projectId: 'proj-1',
+      kind: 'after_message',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_006_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const diff: ProjectCheckpointDiffResponse = {
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [],
+    };
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue(diff);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        readOnly
+        initialMode="files_only"
+        initialCheckpointId="checkpoint-agent"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('index.html')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Restore files' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Restore mode' })).toBeNull();
+    expect(projectStateMocks.rollbackConversation).not.toHaveBeenCalled();
+  });
+
+  it('keeps an explicit agent checkpoint instead of selecting a later checkpoint for the same message', async () => {
+    const beforeRun: ProjectCheckpointSummary = {
+      id: 'checkpoint-before-run',
+      projectId: 'proj-1',
+      kind: 'before_run',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_000_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'before-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const afterMessage: ProjectCheckpointSummary = {
+      ...beforeRun,
+      id: 'checkpoint-after-message',
+      kind: 'after_message',
+      createdAt: 1_700_000_010_000,
+      manifestHash: 'after-hash',
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_only',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: beforeRun.id,
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+      actor: 'agent',
+    };
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([beforeRun, afterMessage]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockImplementation(async (_projectId, checkpointId) => ({
+      checkpoint: checkpointId === beforeRun.id ? beforeRun : afterMessage,
+      files: [{ path: `${checkpointId}.txt`, status: 'modified' }],
+      conflicts: [],
+    }));
+    projectStateMocks.executeAgentRollback.mockResolvedValue(rollbackResponse);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        initialMode="files_only"
+        initialCheckpointId={beforeRun.id}
+        agentRequestId="request-1"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Chat only' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Files and chat' })).toBeNull();
+    const confirmButton = screen.getByRole('button', { name: 'Restore files' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirmButton.disabled).toBe(false));
+    expect(projectStateMocks.fetchProjectCheckpointDiff).not.toHaveBeenCalledWith('proj-1', afterMessage.id);
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => {
+      expect(projectStateMocks.executeAgentRollback).toHaveBeenCalledWith('proj-1', 'conv-1', {
+        requestId: 'request-1',
+        conflictPolicy: 'fail',
+      });
+    });
+    expect(projectStateMocks.rollbackConversation).not.toHaveBeenCalled();
+  });
+
+  it('requires an agent rollback conflict choice while preserving the manual overwrite default', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-agent',
+      projectId: 'proj-1',
+      kind: 'before_run',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_000_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_only',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: checkpoint.id,
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+      actor: 'agent',
+    };
+
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [{ path: 'index.html', reason: 'current_changed_since_checkpoint' }],
+    });
+    projectStateMocks.executeAgentRollback.mockResolvedValue(rollbackResponse);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        initialMode="files_only"
+        initialCheckpointId={checkpoint.id}
+        agentRequestId="request-1"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    const conflictPolicy = await screen.findByRole('combobox', { name: 'Conflict policy' }) as HTMLSelectElement;
+    const confirmButton = screen.getByRole('button', { name: 'Restore files' }) as HTMLButtonElement;
+    expect(conflictPolicy.value).toBe('fail');
+    expect(confirmButton.disabled).toBe(true);
+
+    fireEvent.change(conflictPolicy, { target: { value: 'overwrite' } });
+    await waitFor(() => expect(confirmButton.disabled).toBe(false));
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(projectStateMocks.executeAgentRollback).toHaveBeenCalledWith('proj-1', 'conv-1', {
+        requestId: 'request-1',
+        conflictPolicy: 'overwrite',
+      });
+    });
+  });
+
+  it('retries the same broker request after a server-reported file conflict', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-agent',
+      projectId: 'proj-1',
+      kind: 'before_run',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_000_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const rollbackResponse: RollbackResponse = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_only',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: checkpoint.id,
+      safetyCheckpointId: 'safety-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: true,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+      actor: 'agent',
+    };
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [],
+    });
+    projectStateMocks.executeAgentRollback
+      .mockRejectedValueOnce(new projectStateMocks.RollbackConflictError('Rollback conflicts with current files.', [
+        { path: 'index.html', reason: 'current_changed_since_checkpoint' },
+      ]))
+      .mockResolvedValueOnce(rollbackResponse);
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        initialMode="files_only"
+        initialCheckpointId={checkpoint.id}
+        agentRequestId="request-1"
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    const confirm = screen.getByRole('button', { name: 'Restore files' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+    expect(await screen.findByText('Rollback conflicts with current files.')).toBeTruthy();
+
+    const policy = screen.getByRole('combobox', { name: 'Conflict policy' });
+    fireEvent.change(policy, { target: { value: 'overwrite' } });
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(rollbackResponse));
+    expect(projectStateMocks.executeAgentRollback).toHaveBeenNthCalledWith(1, 'proj-1', 'conv-1', {
+      requestId: 'request-1',
+      conflictPolicy: 'fail',
+    });
+    expect(projectStateMocks.executeAgentRollback).toHaveBeenNthCalledWith(2, 'proj-1', 'conv-1', {
+      requestId: 'request-1',
+      conflictPolicy: 'overwrite',
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'Desktop approval is unavailable.',
+    'Desktop approval was denied.',
+    'Desktop approval timed out.',
+  ])('shows %s without dismissing or mutating the request', async (approvalError) => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-agent',
+      projectId: 'proj-1',
+      kind: 'before_run',
+      messageId: 'msg-1',
+      runId: 'run-1',
+      conversationId: 'conv-1',
+      createdAt: 1_700_000_000_000,
+      rootPathHash: 'root-hash',
+      fileCount: 1,
+      totalBytes: 100,
+      manifestHash: 'manifest-hash',
+      restoreModes: ['files_only', 'chat_only', 'files_and_chat'],
+    };
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff.mockResolvedValue({
+      checkpoint,
+      files: [{ path: 'index.html', status: 'modified' }],
+      conflicts: [],
+    });
+    projectStateMocks.executeAgentRollback.mockRejectedValue(new Error(approvalError));
+
+    render(
+      <RollbackModal
+        projectId="proj-1"
+        conversationId="conv-1"
+        targetMessage={baseMessage()}
+        initialMode="files_only"
+        initialCheckpointId={checkpoint.id}
+        agentRequestId="request-1"
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    const confirm = screen.getByRole('button', { name: 'Restore files' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+
+    expect((await screen.findByRole('alert')).textContent).toContain(approvalError);
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+    await waitFor(() => expect(projectStateMocks.executeAgentRollback).toHaveBeenCalledTimes(2));
+    expect(projectStateMocks.executeAgentRollback).toHaveBeenNthCalledWith(2, 'proj-1', 'conv-1', {
+      requestId: 'request-1',
+      conflictPolicy: 'fail',
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(projectStateMocks.rollbackConversation).not.toHaveBeenCalled();
   });
 });

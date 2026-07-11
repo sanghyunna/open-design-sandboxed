@@ -16,7 +16,9 @@
   },
   "scripts": {
     "build": "node ./esbuild.config.mjs && tsc -p tsconfig.json --emitDeclarationOnly",
+    "build:native:win32": "powershell -NoProfile -ExecutionPolicy Bypass -File ./native/win32/build.ps1",
     "test": "vitest run",
+    "test:native:win32": "pnpm run build:native:win32 && vitest run tests/isolated-process.win32.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit"
   },
   "devDependencies": {

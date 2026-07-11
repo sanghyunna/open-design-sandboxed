@@ -3,6 +3,7 @@ import {
   applyPlugin,
   contributeGeneratedPluginToOpenDesign,
   createPluginShareProject,
+  executeAgentRollback,
   fetchProjectCheckpointDiff,
   importClaudeDesignZip,
   importFolderProject,
@@ -46,8 +47,8 @@ describe('project checkpoints', () => {
     });
   });
 
-  it('posts rollback mode and exposes conflict responses', async () => {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(
+  it('posts manual rollback without spoofable actor metadata and exposes conflicts', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(
       JSON.stringify({
         error: {
           code: 'ROLLBACK_CONFLICT',
@@ -56,7 +57,8 @@ describe('project checkpoints', () => {
         },
       }),
       { status: 409, headers: { 'content-type': 'application/json' } },
-    )));
+    ));
+    vi.stubGlobal('fetch', fetchMock);
 
     await expect(rollbackConversation('proj-1', 'conv-1', {
       targetMessageId: 'msg-1',
@@ -67,6 +69,50 @@ describe('project checkpoints', () => {
     })).rejects.toMatchObject({
       code: 'ROLLBACK_CONFLICT',
       conflicts: [{ path: 'index.html', reason: 'modified' }],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe('/api/projects/proj-1/conversations/conv-1/rollback');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      targetMessageId: 'msg-1',
+      targetCheckpointId: 'cp-1',
+      mode: 'files_and_chat',
+      conflictPolicy: 'fail',
+      createSafetyCheckpoint: true,
+    });
+  });
+
+  it('executes an agent rollback with only its opaque request and conflict policy', async () => {
+    const payload = {
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      mode: 'files_only',
+      targetMessageId: 'msg-1',
+      restoredCheckpointId: 'cp-1',
+      safetyCheckpointId: 'safe-1',
+      deletedMessageIds: [],
+      clearedAgentSessions: false,
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+      conflicts: [],
+      actor: 'agent',
+    };
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify(payload),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(executeAgentRollback('proj-1', 'conv-1', {
+      requestId: 'request-1',
+      conflictPolicy: 'keep_current',
+    })).resolves.toEqual(payload);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe('/api/projects/proj-1/conversations/conv-1/agent-rollback-execute');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      requestId: 'request-1',
+      conflictPolicy: 'keep_current',
     });
   });
 });

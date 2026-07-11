@@ -11,6 +11,7 @@ import type { ResearchOptions } from './research';
 import type { RunContextSelection } from './context.js';
 import type { AppliedPluginSnapshot } from '../plugins/apply.js';
 import type { McpAuthMode, McpServerConfig, McpTransport } from './mcp';
+import type { RollbackMode } from './checkpoints.js';
 
 export type ChatRole = 'user' | 'assistant';
 export type ChatSessionMode = 'design' | 'chat';
@@ -316,7 +317,23 @@ export type PersistedAgentEvent =
   | { kind: 'tool_use'; id: string; name: string; input: unknown }
   | { kind: 'tool_result'; toolUseId: string; content: string; isError: boolean }
   | { kind: 'usage'; inputTokens?: number; outputTokens?: number; costUsd?: number; durationMs?: number }
-  | { kind: 'raw'; line: string };
+  | { kind: 'raw'; line: string }
+  | AgentRollbackRequestEvent;
+
+export interface AgentRollbackRequestEvent {
+  kind: 'agent_rollback_request';
+  /** Opaque handle accepted by the agent rollback execution endpoint. */
+  requestId: string;
+  /** Epoch milliseconds after which the request can no longer be executed. */
+  expiresAt: number;
+  runId: string;
+  projectId: string;
+  conversationId: string;
+  targetMessageId: string;
+  targetCheckpointId: string;
+  mode: RollbackMode;
+  reason: string;
+}
 
 export interface ChatMessage {
   id: string;

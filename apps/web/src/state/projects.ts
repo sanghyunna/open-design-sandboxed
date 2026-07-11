@@ -6,6 +6,7 @@
 // the UI can stay rendered when the daemon is briefly unreachable.
 
 import type {
+  AgentRollbackExecuteRequest,
   AppliedPluginSnapshot,
   ApplyResult,
   ChatSessionMode,
@@ -51,7 +52,6 @@ export type {
   RollbackRequest,
   RollbackResponse,
 } from '@open-design/contracts';
-export type RollbackRestoreMode = RollbackMode;
 
 export class RollbackConflictError extends Error {
   readonly code: string;
@@ -457,9 +457,37 @@ export async function rollbackConversation(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetMessageId: request.targetMessageId,
+        ...(request.targetCheckpointId ? { targetCheckpointId: request.targetCheckpointId } : {}),
+        mode: request.mode,
+        ...(request.conflictPolicy ? { conflictPolicy: request.conflictPolicy } : {}),
+        ...(request.createSafetyCheckpoint !== undefined
+          ? { createSafetyCheckpoint: request.createSafetyCheckpoint }
+          : {}),
+      }),
+    },
+  );
+  return readRollbackResponse(resp);
+}
+
+export async function executeAgentRollback(
+  projectId: string,
+  conversationId: string,
+  request: AgentRollbackExecuteRequest,
+): Promise<RollbackResponse> {
+  const resp = await fetch(
+    `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/agent-rollback-execute`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     },
   );
+  return readRollbackResponse(resp);
+}
+
+async function readRollbackResponse(resp: Response): Promise<RollbackResponse> {
   const json = (await resp.json().catch(() => null)) as
     | RollbackResponse
     | RollbackConflictResponse

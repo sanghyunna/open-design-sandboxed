@@ -5,6 +5,7 @@ import type {
   AgentCliEnvPrefs,
   AgentModelPrefs,
   AgentTestRequest,
+  AgentRollbackRequestEvent,
   AppVersionInfo,
   AppVersionResponse,
   ChatAttachment,
@@ -84,6 +85,7 @@ export type {
   PreviewAnnotationStyle,
   PreviewCommentSelectionKind,
   PreviewVisualMarkKind,
+  AgentRollbackRequestEvent,
 } from '@open-design/contracts';
 
 export type ExecMode = 'daemon' | 'api';
@@ -331,7 +333,7 @@ export interface ComposioSettings {
   apiKeyTail?: string;
 }
 
-export type AgentEvent = PersistedAgentEvent;
+export type AgentEvent = PersistedAgentEvent | AgentRollbackRequestEvent;
 
 export type {
   ChatAttachment,

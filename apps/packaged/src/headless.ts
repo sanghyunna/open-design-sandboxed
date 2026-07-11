@@ -133,6 +133,7 @@ async function main(): Promise<void> {
     amrProfile: activeConfig.amrProfile,
     daemonCliEntry: activeConfig.daemonCliEntry,
     daemonSidecarEntry: activeConfig.daemonSidecarEntry,
+    desktopApprovalToken: null,
     nodeCommand: activeConfig.nodeCommand,
     pathsAlreadyEnsured: false,
     // PR #974 round-5 (lefarcen P2): headless packaged mode runs daemon

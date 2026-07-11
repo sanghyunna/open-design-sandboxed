@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
 import type { ChatMessage } from '../types';
+import type { RollbackMode } from '@open-design/contracts';
 import {
+  executeAgentRollback,
   fetchProjectCheckpointDiff,
   listProjectCheckpoints,
   rollbackConversation,
@@ -13,7 +15,6 @@ import {
   type ProjectCheckpointSummary,
   type RollbackConflictPolicy,
   type RollbackResponse,
-  type RollbackRestoreMode,
 } from '../state/projects';
 import { Icon } from './Icon';
 import styles from './RollbackModal.module.css';
@@ -22,9 +23,16 @@ interface Props {
   projectId: string;
   conversationId: string;
   targetMessage: ChatMessage;
-  onBeforeRollback?: () => Promise<void> | void;
   onClose: () => void;
   onSuccess: (response: RollbackResponse) => Promise<void> | void;
+  /** When true the modal shows the diff preview without allowing a rollback. */
+  readOnly?: boolean;
+  /** Pre-selected restore mode (used for agent-requested rollbacks). */
+  initialMode?: RollbackMode;
+  /** Pre-selected checkpoint id (used for agent-requested rollbacks). */
+  initialCheckpointId?: string | null;
+  /** Opaque daemon-issued handle for an agent-requested rollback. */
+  agentRequestId?: string | null;
 }
 
 type DiffCounts = {
@@ -45,16 +53,19 @@ export function RollbackModal({
   projectId,
   conversationId,
   targetMessage,
-  onBeforeRollback,
   onClose,
   onSuccess,
+  readOnly = false,
+  initialMode,
+  initialCheckpointId,
+  agentRequestId = null,
 }: Props) {
   const t = useT();
   const [checkpoints, setCheckpoints] = useState<ProjectCheckpointSummary[]>([]);
   const [checkpointsLoaded, setCheckpointsLoaded] = useState(false);
-  const [selectedCheckpointId, setSelectedCheckpointId] = useState<string | null>(null);
-  const [mode, setMode] = useState<RollbackRestoreMode>('chat_only');
-  const [modeTouched, setModeTouched] = useState(false);
+  const [selectedCheckpointId, setSelectedCheckpointId] = useState<string | null>(initialCheckpointId ?? null);
+  const [mode, setMode] = useState<RollbackMode>(initialMode ?? 'chat_only');
+  const [modeTouched, setModeTouched] = useState(initialMode !== undefined);
   const [diff, setDiff] = useState<ProjectCheckpointDiffResponse | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffFailed, setDiffFailed] = useState(false);
@@ -62,6 +73,8 @@ export function RollbackModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rollbackConflicts, setRollbackConflicts] = useState<ProjectCheckpointConflict[]>([]);
+  const isAgentRequest = Boolean(agentRequestId);
+  const restoreMode: RollbackMode = isAgentRequest ? 'files_only' : mode;
 
   useEffect(() => {
     let cancelled = false;
@@ -72,15 +85,15 @@ export function RollbackModal({
       setCheckpoints(items);
       setCheckpointsLoaded(true);
       const match = selectCheckpointForMessage(items, targetMessage.id);
-      setSelectedCheckpointId(match?.id ?? null);
-      if (!modeTouched) {
+      setSelectedCheckpointId(initialCheckpointId !== undefined ? initialCheckpointId : match?.id ?? null);
+      if (!modeTouched && initialMode === undefined) {
         setMode(match ? 'files_and_chat' : 'chat_only');
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [conversationId, modeTouched, projectId, targetMessage.id]);
+  }, [conversationId, initialCheckpointId, initialMode, modeTouched, projectId, targetMessage.id]);
 
   useEffect(() => {
     if (!selectedCheckpointId) {
@@ -108,6 +121,19 @@ export function RollbackModal({
   }, [projectId, selectedCheckpointId]);
 
   useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+      setModeTouched(true);
+    }
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (initialCheckpointId !== undefined) {
+      setSelectedCheckpointId(initialCheckpointId);
+    }
+  }, [initialCheckpointId]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !submitting) onClose();
     };
@@ -130,31 +156,27 @@ export function RollbackModal({
     ? rollbackConflicts
     : diff?.conflicts ?? [];
   const conflictCount = Math.max(counts.conflicts, conflicts.length);
-  const fileModeUnavailable = !hasFileCheckpoint && mode !== 'chat_only';
+  const fileModeUnavailable = !hasFileCheckpoint && restoreMode !== 'chat_only';
   // Genuine file conflicts only matter for a restore that writes files.
-  const hasFileConflicts = conflictCount > 0 && mode !== 'chat_only';
-  // Rollback intentionally overwrites the working tree, so conflicts must never
-  // leave Confirm a permanent dead end. We surface an explicit resolution
-  // (overwrite = discard my edits and restore the checkpoint; keep_current =
-  // keep my edits and skip those files) plus a visible data-loss warning, and
-  // keep Confirm reachable. We never silently restore: the warning stays up and
-  // a safety checkpoint is always captured server-side.
+  const hasFileConflicts = conflictCount > 0 && restoreMode !== 'chat_only';
+  const agentConflictChoiceRequired =
+    isAgentRequest && hasFileConflicts && conflictPolicy === 'fail';
+  // Manual rollback keeps its existing overwrite default. An agent request
+  // stays blocked until the user explicitly chooses how to resolve conflicts.
   const confirmDisabled =
     submitting ||
     !checkpointsLoaded ||
     fileModeUnavailable ||
-    diffLoading;
+    diffLoading ||
+    agentConflictChoiceRequired;
 
   useEffect(() => {
-    // When a files restore reveals genuine conflicts, default to an actionable
-    // resolution ('overwrite' matches the rollback intent: restore the
-    // checkpoint) instead of stranding the user on the blocking 'fail' policy.
-    // The user can still switch to 'keep_current'; the data-loss warning stays
-    // visible the whole time.
-    if (hasFileConflicts && conflictPolicy === 'fail') {
+    // Keep the existing manual rollback default; agent requests require an
+    // explicit user choice above.
+    if (!isAgentRequest && hasFileConflicts && conflictPolicy === 'fail') {
       setConflictPolicy('overwrite');
     }
-  }, [hasFileConflicts, conflictPolicy]);
+  }, [isAgentRequest, hasFileConflicts, conflictPolicy]);
 
   const targetTime = formatMessageTime(targetMessage);
   const targetAgent = targetMessage.agentName ?? targetMessage.agentId ?? t('assistant.role');
@@ -165,14 +187,21 @@ export function RollbackModal({
     setError(null);
     setRollbackConflicts([]);
     try {
-      await onBeforeRollback?.();
-      const response = await rollbackConversation(projectId, conversationId, {
-        targetMessageId: targetMessage.id,
-        ...(mode === 'chat_only' || !selectedCheckpointId ? {} : { targetCheckpointId: selectedCheckpointId }),
-        mode,
-        conflictPolicy,
-        createSafetyCheckpoint: true,
-      });
+      let response: RollbackResponse;
+      if (agentRequestId) {
+        response = await executeAgentRollback(projectId, conversationId, {
+          requestId: agentRequestId,
+          conflictPolicy,
+        });
+      } else {
+        response = await rollbackConversation(projectId, conversationId, {
+          targetMessageId: targetMessage.id,
+          ...(restoreMode === 'chat_only' || !selectedCheckpointId ? {} : { targetCheckpointId: selectedCheckpointId }),
+          mode: restoreMode,
+          conflictPolicy,
+          createSafetyCheckpoint: true,
+        });
+      }
       await onSuccess(response);
       onClose();
     } catch (err) {
@@ -221,42 +250,58 @@ export function RollbackModal({
             {targetTime ? <span>{targetTime}</span> : null}
           </div>
 
-          <fieldset className={styles.section}>
-            <legend>{t('rollback.modeLabel')}</legend>
-            <div className={styles.segmented} role="group" aria-label={t('rollback.modeLabel')}>
-              <ModeButton
-                active={mode === 'files_only'}
-                disabled={!hasFileCheckpoint}
-                label={t('rollback.mode.filesOnly')}
-                onClick={() => {
-                  setModeTouched(true);
-                  setMode('files_only');
-                }}
-              />
-              <ModeButton
-                active={mode === 'chat_only'}
-                label={t('rollback.mode.chatOnly')}
-                onClick={() => {
-                  setModeTouched(true);
-                  setMode('chat_only');
-                }}
-              />
-              <ModeButton
-                active={mode === 'files_and_chat'}
-                disabled={!hasFileCheckpoint}
-                label={t('rollback.mode.filesAndChat')}
-                onClick={() => {
-                  setModeTouched(true);
-                  setMode('files_and_chat');
-                }}
-              />
+          {!isAgentRequest && !readOnly ? (
+            <fieldset className={styles.section}>
+              <legend>{t('rollback.modeLabel')}</legend>
+              <div className={styles.segmented} role="group" aria-label={t('rollback.modeLabel')}>
+                <ModeButton
+                  active={mode === 'files_only'}
+                  disabled={!hasFileCheckpoint}
+                  label={t('rollback.mode.filesOnly')}
+                  onClick={() => {
+                    setModeTouched(true);
+                    setMode('files_only');
+                  }}
+                />
+                <ModeButton
+                  active={mode === 'chat_only'}
+                  label={t('rollback.mode.chatOnly')}
+                  onClick={() => {
+                    setModeTouched(true);
+                    setMode('chat_only');
+                  }}
+                />
+                <ModeButton
+                  active={mode === 'files_and_chat'}
+                  disabled={!hasFileCheckpoint}
+                  label={t('rollback.mode.filesAndChat')}
+                  onClick={() => {
+                    setModeTouched(true);
+                    setMode('files_and_chat');
+                  }}
+                />
+              </div>
+            </fieldset>
+          ) : (
+            <div className={styles.status}>
+              <Icon name="info" size={14} />
+              <span>
+                {t('rollback.modeLabel')}: {restoreMode === 'files_only'
+                  ? t('rollback.mode.filesOnly')
+                  : restoreMode === 'chat_only'
+                    ? t('rollback.mode.chatOnly')
+                    : t('rollback.mode.filesAndChat')}
+              </span>
             </div>
-          </fieldset>
+          )}
 
           {!checkpointsLoaded ? (
             <StatusLine icon="spinner" text={t('rollback.loading')} />
           ) : !hasFileCheckpoint ? (
-            <StatusLine icon="info" text={t('rollback.noCheckpointChatOnly')} />
+            <StatusLine
+              icon="info"
+              text={t(isAgentRequest ? 'rollback.noCheckpointFilesOnly' : 'rollback.noCheckpointChatOnly')}
+            />
           ) : diffLoading ? (
             <StatusLine icon="spinner" text={t('rollback.loading')} />
           ) : diffFailed ? (
@@ -295,11 +340,20 @@ export function RollbackModal({
               <div className={styles.conflictHead}>
                 <strong>{t('rollback.conflictsTitle')}</strong>
                 <select
-                  value={conflictPolicy === 'fail' ? 'overwrite' : conflictPolicy}
+                  value={
+                    isAgentRequest
+                      ? conflictPolicy
+                      : conflictPolicy === 'fail'
+                        ? 'overwrite'
+                        : conflictPolicy
+                  }
                   onChange={(event) => setConflictPolicy(event.currentTarget.value as RollbackConflictPolicy)}
-                  disabled={submitting || mode === 'chat_only'}
+                  disabled={readOnly || submitting || restoreMode === 'chat_only'}
                   aria-label={t('rollback.conflictPolicyLabel')}
                 >
+                  {isAgentRequest ? (
+                    <option value="fail" disabled>{t('rollback.conflictPolicyFail')}</option>
+                  ) : null}
                   <option value="overwrite">{t('rollback.conflictPolicyOverwrite')}</option>
                   <option value="keep_current">{t('rollback.conflictPolicyKeepCurrent')}</option>
                 </select>
@@ -329,14 +383,16 @@ export function RollbackModal({
           ) : null}
         </div>
 
-        <footer className={styles.foot}>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            {t('common.cancel')}
-          </Button>
-          <Button variant="primary" onClick={() => void handleSubmit()} disabled={confirmDisabled}>
-            {submitting ? t('rollback.restoring') : confirmLabel(mode, t)}
-          </Button>
-        </footer>
+        {!readOnly ? (
+          <footer className={styles.foot}>
+            <Button variant="ghost" onClick={onClose} disabled={submitting}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="primary" onClick={() => void handleSubmit()} disabled={confirmDisabled}>
+              {submitting ? t('rollback.restoring') : confirmLabel(restoreMode, t)}
+            </Button>
+          </footer>
+        ) : null}
       </section>
     </div>
   );
@@ -459,7 +515,7 @@ function formatMessageTime(message: ChatMessage): string {
 }
 
 function confirmLabel(
-  mode: RollbackRestoreMode,
+  mode: RollbackMode,
   t: (key: 'rollback.confirmFiles' | 'rollback.confirmChat' | 'rollback.confirmCombined') => string,
 ): string {
   if (mode === 'files_only') return t('rollback.confirmFiles');

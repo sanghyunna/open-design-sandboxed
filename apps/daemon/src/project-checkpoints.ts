@@ -29,8 +29,10 @@ import {
   deleteMessagesAfterPosition,
   deletePreviewCommentsAfter,
   findProjectCheckpointForMessage,
+  getAgentRollbackRestoreCountForRun,
   getConversation,
   getMessagePosition,
+  getMessageRunId,
   getProject,
   getProjectCheckpoint,
   insertProjectCheckpoint,
@@ -74,6 +76,27 @@ export class ProjectCheckpointConflictError extends ProjectCheckpointError {
   }
 }
 
+export class ProjectCheckpointRunMismatchError extends ProjectCheckpointError {
+  constructor() {
+    super(403, 'ROLLBACK_RUN_MISMATCH', 'rollback target does not belong to the specified run');
+    this.name = 'ProjectCheckpointRunMismatchError';
+  }
+}
+
+export class ProjectCheckpointLoopError extends ProjectCheckpointError {
+  constructor() {
+    super(429, 'ROLLBACK_LOOP_PREVENTED', 'agent rollback limit reached for this run');
+    this.name = 'ProjectCheckpointLoopError';
+  }
+}
+
+export class ProjectCheckpointActiveRunError extends ProjectCheckpointError {
+  constructor() {
+    super(409, 'ACTIVE_RUN', 'cannot rollback while a run is active');
+    this.name = 'ProjectCheckpointActiveRunError';
+  }
+}
+
 interface ProjectCheckpointServiceOptions {
   db: SqliteDb;
   dataDir: string;
@@ -99,6 +122,12 @@ interface RollbackInput {
    * Kept for wire/back-compat. File rollback always creates a safety checkpoint.
    */
   createSafetyCheckpoint?: boolean;
+  /** Scope the rollback to the current run; required for actor='agent'. */
+  runId?: string | null;
+  /** Who initiated the rollback. Defaults to 'user'. */
+  actor?: 'user' | 'agent';
+  /** Trusted desktop approval attached to the restore audit row. */
+  approvalRequestId?: string | null;
 }
 
 interface SnapshotFileEntry {
@@ -291,7 +320,26 @@ export function createProjectCheckpointService(
       if (!targetMessage) {
         throw new ProjectCheckpointError(404, 'MESSAGE_NOT_FOUND', 'message not found');
       }
+      const actor = input.actor === 'agent' ? 'agent' : 'user';
       const mode = normalizeRollbackMode(input.mode);
+      if (input.runId) {
+        const messageRunId = getMessageRunId(options.db, input.conversationId, input.targetMessageId);
+        if (messageRunId !== input.runId) {
+          throw new ProjectCheckpointRunMismatchError();
+        }
+      }
+      if (actor === 'agent') {
+        if (!input.runId) {
+          throw new ProjectCheckpointError(400, 'BAD_REQUEST', 'runId is required for agent rollback');
+        }
+        if (mode !== 'files_only') {
+          throw new ProjectCheckpointError(400, 'BAD_REQUEST', 'agent rollback only supports files_only');
+        }
+        const agentRestoreCount = getAgentRollbackRestoreCountForRun(options.db, input.runId);
+        if (agentRestoreCount >= 1) {
+          throw new ProjectCheckpointLoopError();
+        }
+      }
       const conflictPolicy = normalizeRollbackConflictPolicy(
         input.conflictPolicy === undefined ? 'fail' : input.conflictPolicy,
       );
@@ -317,7 +365,11 @@ export function createProjectCheckpointService(
               projectId: input.projectId,
               conversationId: input.conversationId,
               messageId: input.targetMessageId,
-              kinds: ['after_message', 'after_run_unfinalized', 'before_run'],
+              // Inferred targets exclude safety snapshots. Users may still
+              // explicitly select one to recover from a manual rollback.
+              kinds: actor === 'agent'
+                ? ['before_run']
+                : ['after_message', 'after_run_unfinalized', 'before_run'],
             });
         if (!targetCheckpoint) {
           throw new ProjectCheckpointError(404, 'CHECKPOINT_NOT_FOUND', 'checkpoint not found');
@@ -326,6 +378,14 @@ export function createProjectCheckpointService(
           conversationId: input.conversationId,
           targetMessageId: input.targetMessageId,
         });
+        if (actor === 'agent') {
+          if (targetCheckpoint.runId !== input.runId) {
+            throw new ProjectCheckpointRunMismatchError();
+          }
+          if (targetCheckpoint.kind !== 'before_run') {
+            throw new ProjectCheckpointError(404, 'CHECKPOINT_NOT_FOUND', 'checkpoint not found');
+          }
+        }
         targetManifest = await readManifest(targetCheckpoint);
         await assertManifestRootMatchesProject(project, targetManifest);
         targetBlobSources = await preflightTargetBlobs(targetManifest);
@@ -388,8 +448,12 @@ export function createProjectCheckpointService(
         conflictPolicy,
         fileChanges,
         deletedMessageIds,
+        actor,
         metadata: {
           conflicts: conflicts.length,
+          ...(input.approvalRequestId
+            ? { approvalRequestId: input.approvalRequestId }
+            : {}),
         },
       });
 
@@ -404,6 +468,8 @@ export function createProjectCheckpointService(
         clearedAgentSessions,
         fileChanges,
         conflicts,
+        actor,
+        approvalRequestId: input.approvalRequestId ?? null,
       };
     });
   }

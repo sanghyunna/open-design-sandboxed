@@ -1,5 +1,6 @@
 import type { SseErrorPayload } from '../errors.js';
 import type { SseTransportEvent } from './common.js';
+import type { RollbackMode } from '../api/checkpoints.js';
 
 /**
  * Emitted by the daemon on `/api/projects/:id/events` when a new
@@ -67,7 +68,23 @@ export type DaemonAgentPayload =
   | { type: 'tool_result'; toolUseId: string; content: string; isError?: boolean }
   | { type: 'usage'; usage?: { input_tokens?: number; output_tokens?: number }; costUsd?: number; durationMs?: number }
   | { type: 'fabricated_role_marker'; marker: string; messageId?: string }
-  | { type: 'raw'; line: string };
+  | { type: 'raw'; line: string }
+  /**
+   * Emitted when the agent requests a rollback of its own current run.
+   * The restore itself still requires explicit user confirmation.
+   */
+  | {
+      type: 'rollback_request';
+      requestId: string;
+      expiresAt: number;
+      runId: string;
+      projectId: string;
+      conversationId: string;
+      targetMessageId: string;
+      targetCheckpointId: string;
+      mode: RollbackMode;
+      reason: string;
+    };
 
 export type ChatSseEvent =
   | SseTransportEvent<'start', ChatSseStartPayload>

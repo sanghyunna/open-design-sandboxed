@@ -33,6 +33,11 @@ import {
 } from './prompts/system.js';
 import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
 import { emittedRenderableQuestionForm } from './question-form-detect.js';
+import {
+  RollingAgentRollbackDetector,
+} from './agent-rollback-detect.js';
+
+const ROLLBACK_MODE_VALUES = new Set(['files_only', 'chat_only', 'files_and_chat']);
 import { resolveProjectRoot } from './project-root.js';
 import {
   applyBakedPreviews,
@@ -43,7 +48,11 @@ import { userFacingAgentLabel } from './user-facing-agent-label.js';
 
 // @dsp func-27acb8ad
 export { resolveProjectRoot };
-import { createCommandInvocation } from '@open-design/platform';
+import {
+  createCommandInvocation,
+  probeIsolatedAgentSupport,
+  spawnIsolatedAgent,
+} from '@open-design/platform';
 import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
 import {
   buildConnectorsMcpServersForAgent,
@@ -243,7 +252,22 @@ import { subscribe as subscribeFileEvents } from './project-watchers.js';
 import { renderDesignSystemPreview } from './design-system-preview.js';
 import { renderDesignSystemShowcase } from './design-system-showcase.js';
 import { createChatRunService } from './runs.js';
-import { createProjectCheckpointService } from './project-checkpoints.js';
+import {
+  createProjectCheckpointService,
+  ProjectCheckpointError,
+} from './project-checkpoints.js';
+import {
+  consumeDesktopApprovalToken,
+  DesktopApprovalBroker,
+  registerDesktopApprovalRoutes,
+  stripDesktopApprovalToken,
+} from './desktop-approval.js';
+import {
+  isolatedBrokerHostPathsAreProtected,
+  isolatedAgentEnv,
+  isolatedRunPaths,
+  startIsolatedToolBroker,
+} from './isolated-agent-runtime.js';
 import { deriveRunErrorCode, runResultFromStatus } from './run-result.js';
 import { classifyRunFailure, isResumableFailure } from './run-failure-classification.js';
 import { decideSafeRunRetry } from './run-retry-policy.js';
@@ -1103,6 +1127,9 @@ export function resolveDaemonPluginPreviewsDir({ env = process.env, resourceRoot
 }
 
 const DAEMON_RESOURCE_ROOT = resolveDaemonResourceRoot();
+const PACKAGED_AGENT_ISOLATOR_PATH = DAEMON_RESOURCE_ROOT
+  ? path.join(DAEMON_RESOURCE_ROOT, 'bin', 'od-agent-isolator.exe')
+  : undefined;
 // Built web app lives in `out/` — that's where Next.js writes the static
 // export configured in next.config.ts. The folder name used to be `dist/`
 // when this project shipped with Vite; the daemon serves whatever the
@@ -1581,6 +1608,8 @@ export function createAgentRuntimeEnv(
     delete env.OD_TOOL_TOKEN;
   }
 
+  stripDesktopApprovalToken(env);
+
   return env;
 }
 
@@ -1588,7 +1617,17 @@ export function createAgentRuntimeEnv(
 export function createAgentRuntimeToolPrompt(
   daemonUrl: string,
   toolTokenGrant: { token?: string } | null = null,
+  isolated = false,
 ): string {
+  if (isolated) {
+    return [
+      '## Runtime tool environment',
+      '',
+      '- Open Design tools are available only through the run-scoped broker.',
+      '- Run wrappers with `OD_NODE_BIN` + `OD_BIN`; the broker accepts only `tools ...` subcommands and does not expose the daemon URL or bearer tokens.',
+      '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
+    ].join('\n');
+  }
   const tokenLine = toolTokenGrant?.token
     ? '- `OD_TOOL_TOKEN` is available in your environment for this run. Use it only through project wrapper commands; do not print, persist, or override it.'
     : '- `OD_TOOL_TOKEN` is not available for this run, so `/api/tools/*` wrapper commands may be unavailable.';
@@ -2364,7 +2403,7 @@ function runSseEventToPersistedAgentEvent(event, data) {
   return daemonAgentPayloadToPersistedAgentEvent(data);
 }
 
-function daemonAgentPayloadToPersistedAgentEvent(data) {
+export function daemonAgentPayloadToPersistedAgentEvent(data) {
   const type = data?.type;
   if (type === 'status' && typeof data.label === 'string') {
     const detail =
@@ -2417,6 +2456,34 @@ function daemonAgentPayloadToPersistedAgentEvent(data) {
     };
   }
   if (type === 'raw' && typeof data.line === 'string') return { kind: 'raw', line: data.line };
+  if (
+    type === 'rollback_request'
+    && typeof data.requestId === 'string'
+    && data.requestId
+    && typeof data.expiresAt === 'number'
+    && Number.isFinite(data.expiresAt)
+    && typeof data.runId === 'string'
+    && typeof data.projectId === 'string'
+    && typeof data.conversationId === 'string'
+    && typeof data.targetMessageId === 'string'
+    && typeof data.targetCheckpointId === 'string'
+  ) {
+    const mode = typeof data.mode === 'string' && ROLLBACK_MODE_VALUES.has(data.mode)
+      ? data.mode
+      : 'files_only';
+    return {
+      kind: 'agent_rollback_request',
+      requestId: data.requestId,
+      expiresAt: data.expiresAt,
+      runId: data.runId,
+      projectId: data.projectId,
+      conversationId: data.conversationId,
+      targetMessageId: data.targetMessageId,
+      targetCheckpointId: data.targetCheckpointId,
+      mode,
+      reason: typeof data.reason === 'string' ? data.reason : '',
+    };
+  }
   return null;
 }
 
@@ -3623,6 +3690,8 @@ export interface StartServerOptions {
   port?: number;
   returnServer?: boolean;
   runtime?: DaemonRuntimeContext | null;
+  isolatedAgentProbe?: typeof probeIsolatedAgentSupport;
+  isolatedAgentSpawn?: typeof spawnIsolatedAgent;
 }
 
 const DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -3821,7 +3890,20 @@ export async function startServer({
   returnServer = false,
   desktopPdfExporter = null,
   runtime = null,
+  isolatedAgentProbe = probeIsolatedAgentSupport,
+  isolatedAgentSpawn = spawnIsolatedAgent,
 }: StartServerOptions = {}) {
+  const desktopApprovalToken = consumeDesktopApprovalToken(process.env);
+  const isolatedAgentSupport = desktopApprovalToken
+    ? await isolatedAgentProbe({
+        helperPath: PACKAGED_AGENT_ISOLATOR_PATH && fs.existsSync(PACKAGED_AGENT_ISOLATOR_PATH)
+          ? PACKAGED_AGENT_ISOLATOR_PATH
+          : undefined,
+      })
+    : { supported: false, reason: 'trusted desktop approval is not configured' };
+  if (desktopApprovalToken && !isolatedAgentSupport.supported) {
+    console.warn(`[rollback] secure agent isolation unavailable: ${isolatedAgentSupport.reason}`);
+  }
   let resolvedPort = port;
   let daemonShuttingDown = false;
   const extraAllowedOrigins = configuredAllowedOrigins();
@@ -4774,6 +4856,12 @@ export async function startServer({
     dataDir: RUNTIME_DATA_DIR,
     projectsRoot: PROJECTS_DIR,
   });
+  const desktopApprovalBroker = new DesktopApprovalBroker({
+    db,
+    design,
+    checkpoints: checkpointService,
+    token: isolatedAgentSupport.supported ? desktopApprovalToken : null,
+  });
 
   // Interactive Terminal sessions (node-pty). In-memory, process-local, and
   // killed on daemon shutdown — see shutdownDaemonRuns below.
@@ -4947,6 +5035,13 @@ export async function startServer({
     requireLocalDaemonRequest,
     isLocalSameOrigin,
     resolvedPortRef,
+  };
+  const sendDesktopApprovalError = (res, error) => {
+    if (error instanceof ProjectCheckpointError) {
+      sendApiError(res, error.status, error.code, error.message);
+      return;
+    }
+    sendApiError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : String(error));
   };
   const pathDeps = {
     PROJECT_ROOT,
@@ -5126,6 +5221,7 @@ export async function startServer({
     projectStore: projectStoreDeps,
     projectFiles: projectFileDeps,
     checkpoints: checkpointService,
+    approvals: desktopApprovalBroker,
     conversations: conversationDeps,
     templates: templateDeps,
     status: projectStatusDeps,
@@ -5135,6 +5231,7 @@ export async function startServer({
     appConfig: appConfigDeps,
     validation: validationDeps,
   });
+  registerDesktopApprovalRoutes(app, desktopApprovalBroker, sendDesktopApprovalError);
   registerTerminalRoutes(app, {
     db,
     http: httpDeps,
@@ -9000,6 +9097,7 @@ export async function startServer({
     sessionMode,
     connectedExternalMcp,
     appliedPluginSnapshotId,
+    agentRollbackEnabled,
   }) => {
     const project =
       typeof projectId === 'string' && projectId
@@ -9426,6 +9524,7 @@ export async function startServer({
       ...(pluginBlock ? { pluginBlock } : {}),
       ...(activeStageBlocks ? { activeStageBlocks } : {}),
       userInstructions,
+      agentRollbackEnabled,
     });
     // The chat handler also needs to know where the active skill lives
     // on disk so it can stage a per-project copy of its side files
@@ -9724,13 +9823,31 @@ export async function startServer({
           ...(pluginGrantContext ?? {}),
         })
       : null;
+    const agentRollbackIsolationEnabled = Boolean(
+      isolatedAgentSupport.supported
+      && def.id === 'codex'
+      && toolTokenGrant?.token
+      && cwd
+      && isolatedBrokerHostPathsAreProtected({ cwd, hostNodeBin: OD_NODE_BIN, hostOdBin: OD_BIN })
+      && typeof projectId === 'string'
+      && projectId
+      && typeof conversationId === 'string'
+      && conversationId,
+    );
+    const isolatedPaths = agentRollbackIsolationEnabled
+      ? isolatedRunPaths(`${run.id}-${run.retryAttemptCount ?? 0}`)
+      : null;
     let toolTokenRevoked = false;
     const revokeToolToken = (reason) => {
       if (toolTokenRevoked || !toolTokenGrant) return;
       toolTokenRevoked = true;
       toolTokenRegistry.revokeToken(toolTokenGrant.token, reason);
     };
-    const runtimeToolPrompt = createAgentRuntimeToolPrompt(daemonUrl, toolTokenGrant);
+    const runtimeToolPrompt = createAgentRuntimeToolPrompt(
+      daemonUrl,
+      toolTokenGrant,
+      agentRollbackIsolationEnabled,
+    );
     const commentHint = renderCommentAttachmentHint(safeCommentAttachments);
 
     // Resolve external MCP config + stored OAuth tokens up-front so the
@@ -9830,6 +9947,7 @@ export async function startServer({
         // prompt composer can splice in `## Active stage` blocks.
         // Default ON; set OD_BUNDLED_ATOM_PROMPTS=0 to opt out.
         appliedPluginSnapshotId: run?.appliedPluginSnapshotId ?? null,
+        agentRollbackEnabled: agentRollbackIsolationEnabled,
       });
 
     // Make skill side files reachable through three layers, in order of
@@ -10077,7 +10195,9 @@ export async function startServer({
     // `emittedRenderableQuestionForm`).
     const CLARIFYING_QUESTION_BUFFER_CAP = 256 * 1024;
     let clarifyingQuestionText = '';
-    const send = (event, data) => {
+    let agentRollbackRequested = false;
+    const rollbackDetector = new RollingAgentRollbackDetector();
+    const emitRunEvent = (event, data) => {
       if (
         event === 'agent' &&
         data &&
@@ -10092,6 +10212,67 @@ export async function startServer({
       }
       persistRunEventToAssistantMessage(db, run, event, data);
       design.runs.emit(run, event, data);
+    };
+    let emitRollbackTail = (text: string) => {
+      emitRunEvent('agent', { type: 'text_delta', delta: text });
+    };
+    const filterAgentRollbackText = (text: string) => {
+      if (!agentRollbackIsolationEnabled) return text;
+      const { visible, requests } = rollbackDetector.process(text);
+      for (const detected of requests) {
+        if (
+          !agentRollbackRequested &&
+          typeof run.projectId === 'string' &&
+          typeof run.conversationId === 'string'
+        ) {
+          agentRollbackRequested = true;
+          try {
+            const { kind: _kind, ...payload } = desktopApprovalBroker.createAgentRequest({
+              projectId: run.projectId,
+              conversationId: run.conversationId,
+              runId: run.id,
+              mode: detected.mode,
+              reason: detected.reason,
+            });
+            emitRunEvent('agent', { type: 'rollback_request', ...payload });
+          } catch (err) {
+            emitRunEvent('agent', {
+              type: 'status',
+              label: 'rollback_request_failed',
+              detail: err instanceof Error ? err.message : String(err),
+            });
+          }
+        } else {
+          emitRunEvent('agent', {
+            type: 'status',
+            label: 'rollback_request_ignored',
+            detail: 'agent rollback already requested for this run',
+          });
+        }
+      }
+      return visible;
+    };
+    // This is the one output seam shared by structured adapters, ACP, plain
+    // stdout, buffered stdout, and run-injected agent events.
+    const send = (event, data) => {
+      const isAgentText = event === 'agent' && data?.type === 'text_delta' && typeof data.delta === 'string';
+      const isPlainText = event === 'stdout' && typeof data?.chunk === 'string';
+      if (!isAgentText && !isPlainText) {
+        emitRunEvent(event, data);
+        return;
+      }
+
+      const text = isAgentText ? data.delta : data.chunk;
+      emitRollbackTail = isAgentText
+        ? (tail) => emitRunEvent('agent', { ...data, delta: tail })
+        : (tail) => emitRunEvent('stdout', { ...data, chunk: tail });
+      const visible = filterAgentRollbackText(text);
+      if (visible) emitRollbackTail(visible);
+    };
+    const flushAgentRollbackText = () => agentRollbackIsolationEnabled ? rollbackDetector.flush() : '';
+    const flushAgentRollbackTail = () => {
+      const visible = flushAgentRollbackText();
+      if (visible) emitRollbackTail(visible);
     };
     const retryAnalyticsBase = (decision, failure, errorCode) => {
       const runProjectKind = resolveRunProjectKindForAnalytics({
@@ -10306,8 +10487,8 @@ export async function startServer({
     };
     const mcpServers = buildConnectorsMcpServersForAgent(def, {
       enabled: Boolean(toolTokenGrant?.token),
-      command: process.execPath,
-      argsPrefix: [OD_BIN],
+      command: isolatedPaths?.nodeBin ?? process.execPath,
+      argsPrefix: [isolatedPaths?.clientPath ?? OD_BIN],
     });
 
     // External MCP servers configured by the user in Settings → External MCP.
@@ -10978,9 +11159,9 @@ export async function startServer({
       }
     }
     const odMediaEnv = {
-      OD_BIN,
+      OD_BIN: isolatedPaths?.clientPath ?? OD_BIN,
       OD_NODE_BIN,
-      OD_DAEMON_URL: daemonUrl,
+      ...(agentRollbackIsolationEnabled ? {} : { OD_DAEMON_URL: daemonUrl }),
       ...(typeof projectId === 'string' && projectId && cwd
         ? {
             OD_PROJECT_ID: projectId,
@@ -10993,6 +11174,35 @@ export async function startServer({
       revokeToolToken('child_exit');
       unregisterChatAgentEventSink();
       return;
+    }
+
+    let isolatedToolBroker = null;
+    if (agentRollbackIsolationEnabled) {
+      try {
+        isolatedToolBroker = await startIsolatedToolBroker({
+          agentEnv: agentSpawnEnv,
+          agentId: def.id,
+          cwd: effectiveCwd,
+          daemonUrl,
+          hostEnv: process.env,
+          hostNodeBin: OD_NODE_BIN,
+          hostOdBin: OD_BIN,
+          projectDir: cwd,
+          projectId,
+          runId: `${run.id}-${run.retryAttemptCount ?? 0}`,
+          toolToken: toolTokenGrant.token,
+        });
+      } catch (err) {
+        cleanupPromptFile();
+        revokeToolToken('child_exit');
+        unregisterChatAgentEventSink();
+        send('error', createSseErrorPayload(
+          'AGENT_ISOLATION_UNAVAILABLE',
+          `Secure agent isolation could not start: ${err instanceof Error ? err.message : String(err)}`,
+          { retryable: false },
+        ));
+        return design.runs.finish(run, 'failed', 1, null);
+      }
     }
 
     run.status = 'running';
@@ -11036,7 +11246,7 @@ export async function startServer({
         def.promptViaStdin || def.streamFormat === 'acp-json-rpc'
           ? 'pipe'
           : 'ignore';
-      const env = applyAgentLaunchEnv({
+      const launchEnv = applyAgentLaunchEnv({
         ...agentSpawnEnv,
         ...(mmdRouteLaunchEnv || {}),
         ...odMediaEnv,
@@ -11060,6 +11270,9 @@ export async function startServer({
           ? { OPENCODE_CONFIG_CONTENT: opencodeConfigContent }
           : {}),
       }, agentLaunch);
+      const env = agentRollbackIsolationEnabled
+        ? isolatedAgentEnv(launchEnv, isolatedToolBroker, def.id)
+        : launchEnv;
       spawnedAgentEnv = env;
       const invocation = createCommandInvocation({
         command: agentLaunch.launchPath,
@@ -11070,16 +11283,49 @@ export async function startServer({
         ...(run.analyticsTelemetry ?? {}),
         processSpawnStartedAt: Date.now(),
       };
-      child = spawn(invocation.command, invocation.args, {
-        env,
-        stdio: [stdinMode, 'pipe', 'pipe'],
-        cwd: effectiveCwd,
-        shell: false,
-        // Required when invocation wraps a Windows .cmd/.bat shim through
-        // cmd.exe; without this, Node re-escapes the inner command line and
-        // breaks paths containing spaces (issue #315).
-        windowsVerbatimArguments: invocation.windowsVerbatimArguments,
-      });
+      if (agentRollbackIsolationEnabled) {
+        const systemReadRoots = [
+          process.env.ProgramFiles,
+          process.env['ProgramFiles(x86)'],
+          process.env.SystemRoot,
+        ].filter((candidate) => typeof candidate === 'string' && candidate).map((candidate) => path.resolve(candidate).toLowerCase());
+        const readExecutePaths = [...new Set([
+          path.dirname(process.execPath),
+          path.dirname(agentLaunch.launchPath),
+          path.dirname(resolvedBin),
+          ...agentLaunch.childPathPrepend,
+          ...isolatedToolBroker.readExecutePaths,
+          ...activeSkillDirs,
+          ...extraAllowedDirs,
+          ...promptImagePaths,
+        ].filter((candidate) => typeof candidate === 'string' && fs.existsSync(candidate))
+          .map((candidate) => path.resolve(candidate))
+          .filter((candidate) => !systemReadRoots.some((root) => candidate.toLowerCase() === root || candidate.toLowerCase().startsWith(`${root}${path.sep}`))))];
+        child = await isolatedAgentSpawn({
+          args,
+          command: agentLaunch.launchPath,
+          cwd: effectiveCwd,
+          env,
+          helperPath: PACKAGED_AGENT_ISOLATOR_PATH && fs.existsSync(PACKAGED_AGENT_ISOLATOR_PATH)
+            ? PACKAGED_AGENT_ISOLATOR_PATH
+            : undefined,
+          broker: isolatedToolBroker.ipc,
+          readExecutePaths,
+          writablePaths: [effectiveCwd, isolatedToolBroker.paths.root],
+        });
+        if (stdinMode === 'ignore') child.stdin.end();
+      } else {
+        child = spawn(invocation.command, invocation.args, {
+          env,
+          stdio: [stdinMode, 'pipe', 'pipe'],
+          cwd: effectiveCwd,
+          shell: false,
+          // Required when invocation wraps a Windows .cmd/.bat shim through
+          // cmd.exe; without this, Node re-escapes the inner command line and
+          // breaks paths containing spaces (issue #315).
+          windowsVerbatimArguments: invocation.windowsVerbatimArguments,
+        });
+      }
       run.analyticsTelemetry = {
         ...(run.analyticsTelemetry ?? {}),
         processSpawnedAt: Date.now(),
@@ -11159,10 +11405,15 @@ export async function startServer({
         writePromptToChildStdin = true;
       }
     } catch (err) {
+      await isolatedToolBroker?.close();
       cleanupPromptFile();
       revokeToolToken('child_exit');
       unregisterChatAgentEventSink();
-      send('error', createSseErrorPayload('AGENT_EXECUTION_FAILED', `spawn failed: ${err.message}`));
+      send('error', createSseErrorPayload(
+        agentRollbackIsolationEnabled ? 'AGENT_ISOLATION_UNAVAILABLE' : 'AGENT_EXECUTION_FAILED',
+        `spawn failed: ${err.message}`,
+        { retryable: !agentRollbackIsolationEnabled },
+      ));
       design.runs.finish(run, 'failed', 1, null);
       return;
     }
@@ -11251,7 +11502,12 @@ export async function startServer({
         const critiqueProjectKey = typeof projectId === 'string' && projectId ? projectId : critiqueRunId;
         const critiqueArtifactDir = path.join(ARTIFACTS_DIR, critiqueProjectKey, critiqueRunId);
         const stdoutIterable = (async function* () {
-          for await (const chunk of child.stdout) yield String(chunk);
+          for await (const chunk of child.stdout) {
+            const visible = filterAgentRollbackText(String(chunk));
+            if (visible) yield visible;
+          }
+          const tail = flushAgentRollbackText();
+          if (tail) yield tail;
         })();
         // Forward each CritiqueSseEvent on its own contract-defined channel
         // (critique.run_started, critique.ship, critique.failed, ...) rather
@@ -11567,7 +11823,6 @@ export async function startServer({
       if (ev?.type && SUBSTANTIVE_AGENT_EVENT_TYPES.has(ev.type)) {
         agentProducedOutput = true;
       }
-      // Role-marker guard for qoder / json-event-stream / pi-rpc (#3247).
       if (ev?.type === 'text_delta' && typeof ev.delta === 'string') {
         emitGuardedTextDelta(ev.delta);
         return;
@@ -11812,6 +12067,7 @@ export async function startServer({
 
     child.on('error', (err) => {
       clearInactivityWatchdog();
+      flushAgentRollbackTail();
       cleanupPromptFile();
       flushVisibleAgentStderr();
       revokeToolToken('child_exit');
@@ -11822,6 +12078,7 @@ export async function startServer({
     child.on('close', async (code, signal) => {
       try {
       clearInactivityWatchdog();
+      flushAgentRollbackTail();
       flushVisibleAgentStderr();
       if (watchdogRetryRestarted) {
         // The inactivity watchdog already failed this attempt and the same-run
@@ -12157,6 +12414,7 @@ export async function startServer({
       for (const chunk of plaintextStdoutBuffer) {
         send('stdout', { chunk });
       }
+      flushAgentRollbackTail();
       // Capture the pi session file path for conversational continuity.
       // The session path is discovered by attachPiRpcSession when it
       // processes agent_end; persist it under (conversationId, agentId) so
@@ -12185,6 +12443,7 @@ export async function startServer({
         if (agentLogFilePath) {
           fs.promises.unlink(agentLogFilePath).catch(() => {});
         }
+        await isolatedToolBroker?.close();
         cleanupPromptFile();
       }
     });

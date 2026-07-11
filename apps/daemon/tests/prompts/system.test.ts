@@ -127,6 +127,14 @@ describe('composeSystemPrompt', () => {
     expect(prompt).toContain('`brand_spec` / `reference_match` without a provided source → ask for the source and stop; do not guess brand tokens.');
   });
 
+  it('advertises only files_only agent rollback', () => {
+    expect(composeSystemPrompt({})).not.toContain('<od-rollback-request');
+    const prompt = composeSystemPrompt({ agentRollbackEnabled: true });
+    expect(prompt).toContain('<od-rollback-request mode="files_only"');
+    expect(prompt).toContain('agent-requested chat restoration is not supported');
+    expect(prompt).not.toContain('`chat_only`, `files_and_chat`');
+  });
+
   // The daemon composer (this file) is what apps/daemon/src/server.ts wires
   // into live chat runs. The contracts copy at packages/contracts/src/prompts
   // /system.ts exists for non-daemon contexts, so keep deck metadata behavior

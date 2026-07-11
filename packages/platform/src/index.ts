@@ -5,6 +5,8 @@ import { homedir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
+export * from "./isolated-process.js";
+
 export type CommandInvocation = {
   args: string[];
   command: string;
