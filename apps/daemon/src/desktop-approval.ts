@@ -7,17 +7,13 @@ import type {
   DesktopRollbackApprovalPlan,
   RollbackConflictPolicy,
   RollbackMode,
-  RollbackRequest,
   RollbackResponse,
 } from '@open-design/contracts';
 import { SIDECAR_ENV } from '@open-design/sidecar-proto';
 import {
   findProjectCheckpointForMessage,
-  getAgentRollbackRestoreCountForRun,
   getConversation,
   getMessagePosition,
-  getMessageRunId,
-  listMessages,
 } from './db.js';
 import {
   ProjectCheckpointError,
@@ -47,11 +43,6 @@ interface StoredAgentRequest extends AgentRequestBinding {
   expiresAt: number;
   retainUntil: number;
   state: 'available' | 'in_flight' | 'consumed';
-}
-
-interface PreparedRollback {
-  plan: Omit<DesktopRollbackApprovalPlan, 'approvalRequestId' | 'expiresAt'>;
-  fingerprint: string;
 }
 
 interface PendingApproval {
@@ -179,54 +170,58 @@ export class DesktopApprovalBroker {
       if (!sameAgentBinding(request, current)) {
         throw drifted();
       }
-      const prepared = await this.prepareRollback({
-        actor: 'agent',
+      const run = this.design.runs?.get?.(request.runId);
+      if (run && !isTerminalRunStatus(run.status)) await this.cancelAndWait(run);
+      const afterCancel = this.resolveAgentBinding(request, false);
+      if (!sameAgentBinding(request, afterCancel)) throw drifted();
+      const prepared = await this.checkpoints.prepareAgentRollback({
         projectId: request.projectId,
         conversationId: request.conversationId,
         targetMessageId: request.targetMessageId,
         targetCheckpointId: request.targetCheckpointId,
+        runId: request.runId,
+      });
+      const approvalRequestId = randomUUID();
+      const approved = await this.requestApproval({
+        actor: 'agent',
+        projectId: request.projectId,
+        conversationId: request.conversationId,
+        targetMessageId: request.targetMessageId,
+        targetCheckpointId: prepared.targetCheckpointId,
         mode: 'files_only',
         conflictPolicy,
         runId: request.runId,
+        revision: prepared.revision,
+        fileChanges: prepared.fileChanges,
+        conflictCount: prepared.conflicts.length,
         reason: request.reason,
+        approvalRequestId,
+        expiresAt: this.now() + this.approvalTtlMs,
       });
-      return await this.approveAndExecute(prepared, () => {
-        request.state = 'consumed';
+      if (!approved) {
+        throw new DesktopApprovalError(403, 'ROLLBACK_APPROVAL_DENIED', 'rollback approval was denied');
+      }
+      const result = await this.checkpoints.rollback({
+        projectId: request.projectId,
+        conversationId: request.conversationId,
+        targetMessageId: request.targetMessageId,
+        targetCheckpointId: prepared.targetCheckpointId,
+        mode: 'files_only',
+        conflictPolicy,
+        createSafetyCheckpoint: true,
+        runId: request.runId,
+        actor: 'agent',
+        approvalRequestId,
+        expectedRevision: prepared.revision,
       });
+      request.state = 'consumed';
+      return result;
     } catch (error) {
       if (request.state === 'in_flight' || isRetryableRollbackFailure(error)) {
         request.state = 'available';
       }
       throw error;
     }
-  }
-
-  async executeManual(input: {
-    projectId: string;
-    conversationId: string;
-    request: RollbackRequest;
-  }): Promise<RollbackResponse> {
-    this.requireAvailable();
-    if (
-      input.request.mode !== 'files_only'
-      && input.request.mode !== 'chat_only'
-      && input.request.mode !== 'files_and_chat'
-    ) {
-      throw new ProjectCheckpointError(400, 'BAD_REQUEST', 'invalid rollback mode');
-    }
-    assertConflictPolicy(input.request.conflictPolicy ?? 'fail');
-    const prepared = await this.prepareRollback({
-      actor: 'user',
-      projectId: input.projectId,
-      conversationId: input.conversationId,
-      targetMessageId: input.request.targetMessageId,
-      targetCheckpointId: input.request.targetCheckpointId ?? null,
-      mode: input.request.mode,
-      conflictPolicy: input.request.conflictPolicy ?? 'fail',
-      runId: null,
-      reason: 'Manual rollback',
-    });
-    return this.approveAndExecute(prepared);
   }
 
   async nextApproval(
@@ -359,142 +354,6 @@ export class DesktopApprovalBroker {
       mode: 'files_only',
       reason: (input.reason ?? '').trim().slice(0, MAX_REASON_LENGTH),
     };
-  }
-
-  private async prepareRollback(
-    input: Omit<DesktopRollbackApprovalPlan, 'approvalRequestId' | 'expiresAt'>,
-  ): Promise<PreparedRollback> {
-    const conversation = getConversation(this.db, input.conversationId);
-    if (!conversation || conversation.projectId !== input.projectId) {
-      throw new ProjectCheckpointError(404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
-    }
-    const targetMessage = getMessagePosition(this.db, input.conversationId, input.targetMessageId);
-    if (!targetMessage) {
-      throw new ProjectCheckpointError(404, 'MESSAGE_NOT_FOUND', 'message not found');
-    }
-    const messageRunId = getMessageRunId(this.db, input.conversationId, input.targetMessageId);
-    if (input.actor === 'agent') {
-      if (!input.runId || messageRunId !== input.runId) throw drifted();
-      if (getAgentRollbackRestoreCountForRun(this.db, input.runId) >= 1) {
-        throw new ProjectCheckpointError(429, 'ROLLBACK_LOOP_PREVENTED', 'agent rollback limit reached for this run');
-      }
-    }
-
-    let targetCheckpointId = input.targetCheckpointId;
-    if (input.mode !== 'chat_only' && !targetCheckpointId) {
-      targetCheckpointId = findProjectCheckpointForMessage(this.db, {
-        projectId: input.projectId,
-        conversationId: input.conversationId,
-        messageId: input.targetMessageId,
-        kinds: input.actor === 'agent'
-          ? ['before_run']
-          : ['after_message', 'after_run_unfinalized', 'before_run'],
-      })?.id ?? null;
-    }
-    if (input.mode !== 'chat_only' && !targetCheckpointId) {
-      throw new ProjectCheckpointError(404, 'CHECKPOINT_NOT_FOUND', 'checkpoint not found');
-    }
-
-    const plan = { ...input, targetCheckpointId };
-    const fingerprint = await this.fingerprint(plan);
-    return { plan, fingerprint };
-  }
-
-  private async fingerprint(
-    plan: Omit<DesktopRollbackApprovalPlan, 'approvalRequestId' | 'expiresAt'>,
-  ): Promise<string> {
-    const targetMessage = getMessagePosition(this.db, plan.conversationId, plan.targetMessageId);
-    if (!targetMessage) throw drifted();
-    const messageRunId = getMessageRunId(this.db, plan.conversationId, plan.targetMessageId);
-    let checkpoint: unknown = null;
-    let fileState: unknown = null;
-    if (plan.targetCheckpointId) {
-      const summary = this.checkpoints.getCheckpoint(plan.projectId, plan.targetCheckpointId);
-      if (summary.conversationId !== plan.conversationId) {
-        if (plan.actor === 'agent') throw drifted();
-        throw new ProjectCheckpointError(404, 'CHECKPOINT_NOT_FOUND', 'checkpoint not found');
-      }
-      if (summary.messageId !== plan.targetMessageId) {
-        if (plan.actor === 'agent') throw drifted();
-        throw new ProjectCheckpointError(400, 'CHECKPOINT_MESSAGE_MISMATCH', 'checkpoint does not belong to target message');
-      }
-      if (plan.actor === 'agent' && (summary.kind !== 'before_run' || summary.runId !== plan.runId)) {
-        throw drifted();
-      }
-      checkpoint = summary;
-      if (plan.mode !== 'chat_only') {
-        const diff = await this.checkpoints.diffCheckpoint(plan.projectId, plan.targetCheckpointId);
-        fileState = {
-          // Run finalization creates these derived sidecars after cancellation;
-          // binding them would make every otherwise-stable approval drift.
-          files: diff.files.filter((file) => !file.path.endsWith('.artifact.json')),
-          pathConflicts: diff.conflicts.filter((conflict) =>
-            conflict.reason !== 'current_changed_since_checkpoint'
-            && conflict.reason !== 'current_deleted_since_checkpoint'
-          ),
-        };
-      }
-    }
-    const chatState = plan.mode === 'chat_only' || plan.mode === 'files_and_chat'
-      ? listMessages(this.db, plan.conversationId).map((message: any) => ({
-          id: message.id,
-          position: message.position,
-          createdAt: message.createdAt ?? null,
-          runId: message.runId ?? null,
-        }))
-      : null;
-    const fingerprintState = {
-      plan,
-      targetMessage,
-      messageRunId,
-      checkpoint,
-      fileState,
-      chatState,
-    };
-    return createHash('sha256').update(JSON.stringify(fingerprintState)).digest('base64url');
-  }
-
-  private async approveAndExecute(
-    prepared: PreparedRollback,
-    beginMutation?: () => void,
-  ): Promise<RollbackResponse> {
-    const approvalRequestId = randomUUID();
-    const approved = await this.requestApproval({
-      ...prepared.plan,
-      approvalRequestId,
-      expiresAt: this.now() + this.approvalTtlMs,
-    });
-    if (!approved) {
-      throw new DesktopApprovalError(403, 'ROLLBACK_APPROVAL_DENIED', 'rollback approval was denied');
-    }
-    if (prepared.plan.actor === 'agent' && prepared.plan.runId) {
-      if (getAgentRollbackRestoreCountForRun(this.db, prepared.plan.runId) >= 1) {
-        throw new ProjectCheckpointError(429, 'ROLLBACK_LOOP_PREVENTED', 'agent rollback limit reached for this run');
-      }
-      const run = this.design.runs?.get?.(prepared.plan.runId);
-      if (run) await this.cancelAndWait(run);
-    } else {
-      const active = this.design.runs?.list?.({
-        projectId: prepared.plan.projectId,
-        conversationId: prepared.plan.conversationId,
-        status: 'active',
-      }) ?? [];
-      for (const run of active) await this.cancelAndWait(run);
-    }
-    if (await this.fingerprint(prepared.plan) !== prepared.fingerprint) throw drifted();
-    beginMutation?.();
-    return this.checkpoints.rollback({
-      projectId: prepared.plan.projectId,
-      conversationId: prepared.plan.conversationId,
-      targetMessageId: prepared.plan.targetMessageId,
-      targetCheckpointId: prepared.plan.targetCheckpointId,
-      mode: prepared.plan.mode,
-      conflictPolicy: prepared.plan.conflictPolicy,
-      createSafetyCheckpoint: true,
-      runId: prepared.plan.runId,
-      actor: prepared.plan.actor,
-      approvalRequestId,
-    });
   }
 
   private async cancelAndWait(run: any): Promise<void> {
@@ -667,5 +526,6 @@ function isTerminalRunStatus(status: unknown): boolean {
 }
 
 function isRetryableRollbackFailure(error: unknown): boolean {
-  return error instanceof ProjectCheckpointError && error.code === 'ROLLBACK_CONFLICT';
+  return error instanceof ProjectCheckpointError
+    && (error.code === 'ROLLBACK_CONFLICT' || error.code === 'ROLLBACK_PLAN_CHANGED');
 }

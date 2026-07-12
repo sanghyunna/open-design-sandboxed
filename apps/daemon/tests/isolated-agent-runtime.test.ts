@@ -96,12 +96,14 @@ describe('isolated agent tool broker', () => {
     try {
       const agentEnv = isolatedAgentEnv({
         Od_Data_Dir: 'protected',
+        Od_Api_Token: 'api-secret',
         OD_DAEMON_URL: 'http://127.0.0.1:7456',
         OD_DESKTOP_APPROVAL_TOKEN: 'approval-secret',
         OD_SIDECAR_IPC_PATH: '\\\\.\\pipe\\privileged',
         OD_TOOL_TOKEN: 'tool-secret',
       }, broker, 'codex');
       expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('OD_DATA_DIR');
+      expect(Object.keys(agentEnv).map((key) => key.toUpperCase())).not.toContain('OD_API_TOKEN');
       expect(agentEnv.OD_DAEMON_URL).toBeUndefined();
       expect(agentEnv.OD_DESKTOP_APPROVAL_TOKEN).toBeUndefined();
       expect(agentEnv.OD_SIDECAR_IPC_PATH).toBeUndefined();

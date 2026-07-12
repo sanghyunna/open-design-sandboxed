@@ -12,7 +12,7 @@ const RETRY_DELAY_MS = 1_000;
 const APPROVE_BUTTON_ID = 1;
 
 const DESKTOP_ROLLBACK_SAFETY_WARNING =
-  "Approving can overwrite current files and remove later chat messages. Open Design creates a safety checkpoint before the rollback.";
+  "Approving can overwrite current files. Open Design creates a safety checkpoint before the rollback.";
 
 type DesktopRollbackApproval = Readonly<
   NonNullable<DesktopRollbackApprovalNextResponse["approval"]>
@@ -56,10 +56,13 @@ function desktopRollbackApprovalDialogOptions(
       `Project: ${approval.projectId}`,
       `Conversation: ${approval.conversationId}`,
       `Message: ${approval.targetMessageId}`,
-      `Checkpoint: ${approval.targetCheckpointId ?? "none"}`,
+      `Checkpoint: ${approval.targetCheckpointId}`,
       `Mode: ${approval.mode}`,
       `Conflict policy: ${approval.conflictPolicy}`,
-      `Run: ${approval.runId ?? "none"}`,
+      `Run: ${approval.runId}`,
+      `Revision: ${approval.revision.slice(0, 12)}`,
+      `Files: ${approval.fileChanges.added} added, ${approval.fileChanges.modified} modified, ${approval.fileChanges.deleted} deleted, ${approval.fileChanges.unchanged} unchanged`,
+      `Conflicts: ${approval.conflictCount}`,
       `Reason: ${JSON.stringify(approval.reason)}`,
       `Expiry: ${approval.expiresAt} (${new Date(approval.expiresAt).toISOString()})`,
       `Safety warning: ${DESKTOP_ROLLBACK_SAFETY_WARNING}`,
@@ -186,9 +189,9 @@ function parseDesktopApprovalResponse(value: unknown): DesktopRollbackApproval |
   const approval = record(response.approval);
   if (!approval) throw new Error("invalid desktop approval plan");
 
-  const actor = oneOf(approval.actor, ["agent", "user"] as const);
+  const actor = oneOf(approval.actor, ["agent"] as const);
   const conflictPolicy = oneOf(approval.conflictPolicy, ["fail", "keep_current", "overwrite"] as const);
-  const mode = oneOf(approval.mode, ["chat_only", "files_and_chat", "files_only"] as const);
+  const mode = oneOf(approval.mode, ["files_only"] as const);
   const expiresAt = approval.expiresAt;
   if (!Number.isSafeInteger(expiresAt)) throw new Error("invalid desktop approval expiry");
 
@@ -199,11 +202,14 @@ function parseDesktopApprovalResponse(value: unknown): DesktopRollbackApproval |
     conversationId: requiredString(approval.conversationId),
     decisionToken: requiredString(approval.decisionToken),
     expiresAt: expiresAt as number,
+    fileChanges: fileChangeCounts(approval.fileChanges),
+    conflictCount: nonNegativeInteger(approval.conflictCount),
     mode,
     projectId: requiredString(approval.projectId),
+    revision: sha256(approval.revision),
     reason: stringValue(approval.reason),
-    runId: nullableString(approval.runId),
-    targetCheckpointId: nullableString(approval.targetCheckpointId),
+    runId: requiredString(approval.runId),
+    targetCheckpointId: requiredString(approval.targetCheckpointId),
     targetMessageId: requiredString(approval.targetMessageId),
   });
 }
@@ -232,8 +238,26 @@ function stringValue(value: unknown): string {
   return value;
 }
 
-function nullableString(value: unknown): string | null {
-  return value === null ? null : requiredString(value);
+function nonNegativeInteger(value: unknown): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) throw new Error("invalid desktop approval count");
+  return value as number;
+}
+
+function fileChangeCounts(value: unknown) {
+  const counts = record(value);
+  if (!counts) throw new Error("invalid desktop approval file changes");
+  return Object.freeze({
+    added: nonNegativeInteger(counts.added),
+    modified: nonNegativeInteger(counts.modified),
+    deleted: nonNegativeInteger(counts.deleted),
+    unchanged: nonNegativeInteger(counts.unchanged),
+  });
+}
+
+function sha256(value: unknown): string {
+  const revision = requiredString(value);
+  if (!/^[a-f0-9]{64}$/.test(revision)) throw new Error("invalid desktop approval revision");
+  return revision;
 }
 
 function oneOf<const T extends readonly string[]>(value: unknown, choices: T): T[number] {

@@ -2171,6 +2171,7 @@ export const ko: Dict = {
   'rollback.success': 'Rollback complete',
   'rollback.successDetails': 'Safety checkpoint: {id}',
   'rollback.failed': 'Rollback failed.',
+  'rollback.planChangedRetry': '롤백 계획이 변경되었습니다. diff를 다시 불러왔으니 검토한 뒤 다시 승인하세요.',
   'rollback.noCheckpointChatOnly': 'No file checkpoint is available for this message. Chat-only restore is available.',
   'rollback.noCheckpointFilesOnly': 'No file checkpoint is available for this rollback request.',
   'rollback.agentRequestTitle': '에이전트가 마지막 편집을 실행 취소하려 합니다',

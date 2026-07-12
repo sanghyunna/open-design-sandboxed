@@ -2654,6 +2654,7 @@ export interface Dict {
   'rollback.success': string;
   'rollback.successDetails': string;
   'rollback.failed': string;
+  'rollback.planChangedRetry': string;
   'rollback.noCheckpointChatOnly': string;
   'rollback.noCheckpointFilesOnly': string;
   'rollback.agentRequestTitle': string;

@@ -1738,17 +1738,16 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         'actor and runId are server-derived; use the agent rollback execution endpoint',
       );
     }
+    cancelActiveConversationRuns(design, req.params.id, req.params.cid);
     try {
-      res.json(await approvals.executeManual({
+      res.json(await checkpoints.rollback({
         projectId: req.params.id,
         conversationId: req.params.cid,
-        request: {
-          targetMessageId: body.targetMessageId,
-          targetCheckpointId: typeof body.targetCheckpointId === 'string' ? body.targetCheckpointId : undefined,
-          mode: body.mode,
-          conflictPolicy: body.conflictPolicy,
-          createSafetyCheckpoint: true,
-        },
+        targetMessageId: body.targetMessageId,
+        targetCheckpointId: typeof body.targetCheckpointId === 'string' ? body.targetCheckpointId : undefined,
+        mode: body.mode,
+        conflictPolicy: body.conflictPolicy,
+        createSafetyCheckpoint: true,
       }));
     } catch (err) {
       sendCheckpointError(res, err);

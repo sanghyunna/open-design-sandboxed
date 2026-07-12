@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -49,6 +49,10 @@ async function writeFixtureFile(projectDir: string, relativePath: string, conten
   const target = path.join(projectDir, ...relativePath.split('/'));
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, content);
+}
+
+async function listTree(root: string): Promise<string[]> {
+  return readdir(root, { recursive: true }).then((entries) => entries.sort(), () => []);
 }
 
 function seedConversationMessages(db: ReturnType<typeof openDatabase>) {
@@ -145,6 +149,131 @@ describe('project checkpoint capture', () => {
 });
 
 describe('project checkpoint restore', () => {
+  it('requires a valid approved revision before an agent restore can mutate state', async () => {
+    const { db, service, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    upsertMessage(db, 'conv-1', {
+      id: 'assistant-1',
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'target');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'before_run',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'current');
+    const checkpointCount = (db.prepare('SELECT COUNT(*) AS count FROM project_checkpoints').get() as { count: number }).count;
+
+    await expect(service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      runId: 'run-1',
+      actor: 'agent',
+    })).rejects.toMatchObject({ status: 400, code: 'BAD_REQUEST' });
+    await expect(service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      runId: 'run-1',
+      actor: 'agent',
+      expectedRevision: 'not-a-revision',
+    })).rejects.toMatchObject({ status: 400, code: 'BAD_REQUEST' });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('current');
+    expect((db.prepare('SELECT COUNT(*) AS count FROM project_checkpoints').get() as { count: number }).count).toBe(checkpointCount);
+    expect((db.prepare('SELECT COUNT(*) AS count FROM project_checkpoint_restores').get() as { count: number }).count).toBe(0);
+  });
+
+  it('atomically rejects an approved agent plan when the working tree revision changes', async () => {
+    const { db, service, dataDir, projectId, projectDir } = await makeFixture();
+    seedConversationMessages(db);
+    upsertMessage(db, 'conv-1', {
+      id: 'assistant-1',
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'target');
+    const target = await service.captureCheckpoint({
+      projectId,
+      conversationId: 'conv-1',
+      messageId: 'assistant-1',
+      runId: 'run-1',
+      kind: 'before_run',
+    });
+    await writeFixtureFile(projectDir, 'index.html', 'approved current');
+    const prepared = await service.prepareAgentRollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      runId: 'run-1',
+    });
+    expect(prepared).toMatchObject({
+      targetCheckpointId: target.id,
+      revision: expect.stringMatching(/^[a-f0-9]{64}$/),
+      fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
+    });
+
+    await writeFixtureFile(projectDir, 'index.html', 'changed after approval');
+    const blobTree = await listTree(path.join(dataDir, 'checkpoints', 'blobs'));
+    const checkpointCount = (db.prepare('SELECT COUNT(*) AS count FROM project_checkpoints').get() as { count: number }).count;
+    const restoreCount = (db.prepare('SELECT COUNT(*) AS count FROM project_checkpoint_restores').get() as { count: number }).count;
+    await expect(service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      runId: 'run-1',
+      actor: 'agent',
+      approvalRequestId: 'approval-1',
+      expectedRevision: prepared.revision,
+    })).rejects.toMatchObject({ status: 409, code: 'ROLLBACK_PLAN_CHANGED' });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('changed after approval');
+    expect((db.prepare('SELECT COUNT(*) AS count FROM project_checkpoints').get() as { count: number }).count).toBe(checkpointCount);
+    expect((db.prepare('SELECT COUNT(*) AS count FROM project_checkpoint_restores').get() as { count: number }).count).toBe(restoreCount);
+    expect(await listTree(path.join(dataDir, 'checkpoints', 'blobs'))).toEqual(blobTree);
+
+    const retry = await service.prepareAgentRollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      runId: 'run-1',
+    });
+    const restored = await service.rollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: target.id,
+      mode: 'files_only',
+      conflictPolicy: 'overwrite',
+      runId: 'run-1',
+      actor: 'agent',
+      approvalRequestId: 'approval-2',
+      expectedRevision: retry.revision,
+    });
+    expect(restored).toMatchObject({ actor: 'agent', safetyCheckpointId: expect.any(String) });
+    expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('target');
+    const safetyManifest = await readManifest(db, restored.safetyCheckpointId!);
+    const safetyFile = safetyManifest.files.find((file) => file.path === 'index.html');
+    expect(await readFile(path.join(dataDir, 'checkpoints', 'blobs', safetyFile!.blob), 'utf8'))
+      .toBe('changed after approval');
+  });
+
   it.each(['chat_only', 'files_and_chat'] as const)(
     'rejects agent %s rollback without deleting chat',
     async (mode) => {
@@ -215,6 +344,14 @@ describe('project checkpoint restore', () => {
     });
     await writeFixtureFile(projectDir, 'index.html', 'current');
 
+    const prepared = await service.prepareAgentRollback({
+      projectId,
+      conversationId: 'conv-1',
+      targetMessageId: 'assistant-1',
+      targetCheckpointId: beforeRun.id,
+      runId: 'run-1',
+    });
+
     const agentRestore = await service.rollback({
       projectId,
       conversationId: 'conv-1',
@@ -223,6 +360,7 @@ describe('project checkpoint restore', () => {
       conflictPolicy: 'overwrite',
       actor: 'agent',
       runId: 'run-1',
+      expectedRevision: prepared.revision,
     });
     expect(agentRestore.restoredCheckpointId).toBe(beforeRun.id);
     expect(await readFile(path.join(projectDir, 'index.html'), 'utf8')).toBe('before run');

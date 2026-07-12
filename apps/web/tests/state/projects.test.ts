@@ -83,6 +83,19 @@ describe('project checkpoints', () => {
     });
   });
 
+  it('classifies a changed rollback plan for a safe UI retry', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify({ error: { code: 'ROLLBACK_PLAN_CHANGED', message: 'Plan changed.' } }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    )));
+
+    await expect(executeAgentRollback('proj-1', 'conv-1', {
+      requestId: 'request-1',
+    })).rejects.toMatchObject({
+      code: 'ROLLBACK_PLAN_CHANGED',
+      message: 'Plan changed.',
+    });
+  });
   it('executes an agent rollback with only its opaque request and conflict policy', async () => {
     const payload = {
       projectId: 'proj-1',

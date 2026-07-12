@@ -166,6 +166,29 @@ setInterval(() => {}, 1000);
     });
   });
 
+  it('cancels an active run before a user-initiated rollback', async () => {
+    const { projectId, conversationId } = await createProject('checkpoint-active-manual');
+
+    await withActiveRun(projectId, conversationId, async (runId, assistantMessageId) => {
+      await writeProjectText(projectId, 'index.html', '<h1>Agent edit</h1>');
+      const response = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetMessageId: assistantMessageId,
+          mode: 'files_only',
+          conflictPolicy: 'overwrite',
+        }),
+      });
+
+      expect(response.status, await response.clone().text()).toBe(200);
+      expect(await response.json()).toMatchObject({ actor: 'user' });
+      const runResponse = await fetch(`${baseUrl}/api/runs/${runId}`);
+      expect(runResponse.status).toBe(200);
+      expect(await runResponse.json()).toMatchObject({ status: 'canceled' });
+    });
+  });
+
   it('rejects project-bound /api/runs requests when checkpoint message binding is unavailable', async () => {
     const { projectId, conversationId } = await createProject('checkpoint-run-binding');
     const deleteConversation = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}`, {

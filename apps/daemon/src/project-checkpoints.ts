@@ -128,6 +128,15 @@ interface RollbackInput {
   actor?: 'user' | 'agent';
   /** Trusted desktop approval attached to the restore audit row. */
   approvalRequestId?: string | null;
+  /** Working-tree revision approved by the trusted desktop for an agent restore. */
+  expectedRevision?: string | null;
+}
+
+export interface PreparedAgentRollback {
+  targetCheckpointId: string;
+  revision: string;
+  fileChanges: RollbackFileChangeCounts;
+  conflicts: ProjectCheckpointConflict[];
 }
 
 interface SnapshotFileEntry {
@@ -173,6 +182,11 @@ interface SnapshotResult {
   totalBytes: number;
 }
 
+interface SnapshotOptions {
+  blobWriter?: (blob: string, buffer: Buffer) => Promise<void>;
+  persistManifest?: boolean;
+}
+
 interface FileMaps {
   target: Map<string, SnapshotFileEntry>;
   current: Map<string, SnapshotFileEntry>;
@@ -196,6 +210,13 @@ export interface ProjectCheckpointService {
   listCheckpoints(projectId: string, conversationId?: string | null): ProjectCheckpointSummary[];
   getCheckpoint(projectId: string, checkpointId: string): ProjectCheckpointSummary;
   diffCheckpoint(projectId: string, checkpointId: string): Promise<ProjectCheckpointDiffResponse>;
+  prepareAgentRollback(input: {
+    projectId: string;
+    conversationId: string;
+    targetMessageId: string;
+    targetCheckpointId: string;
+    runId: string;
+  }): Promise<PreparedAgentRollback>;
   rollback(input: RollbackInput): Promise<RollbackResponse>;
 }
 
@@ -246,21 +267,26 @@ export function createProjectCheckpointService(
       kind: input.kind,
       createdAt,
     });
+    return insertCapturedCheckpoint(snapshot, createdAt);
+  }
+
+  function insertCapturedCheckpoint(snapshot: SnapshotResult, createdAt: number): ProjectCheckpointSummary {
+    const manifest = snapshot.manifest;
     const row = insertProjectCheckpoint(options.db, {
-      id: checkpointId,
-      projectId: input.projectId,
-      conversationId: input.conversationId ?? null,
-      messageId: input.messageId ?? null,
-      runId: input.runId ?? null,
-      kind: input.kind,
-      rootPathHash: snapshot.manifest.rootPathHash,
+      id: manifest.checkpointId,
+      projectId: manifest.projectId,
+      conversationId: manifest.conversationId,
+      messageId: manifest.messageId,
+      runId: manifest.runId,
+      kind: manifest.kind,
+      rootPathHash: manifest.rootPathHash,
       manifestHash: snapshot.manifestHash,
       manifestPath: snapshot.manifestPath,
-      fileCount: snapshot.manifest.files.length,
+      fileCount: manifest.files.length,
       totalBytes: snapshot.totalBytes,
       createdAt,
       metadata: {
-        excludedCount: snapshot.manifest.excluded.length,
+        excludedCount: manifest.excluded.length,
       },
     });
     return toSummary(row);
@@ -300,6 +326,48 @@ export function createProjectCheckpointService(
         checkpoint: toSummary(checkpoint),
         baseCheckpoint: baseline ? toSummary(baseline.row) : null,
         files: diffFileMaps(maps),
+        conflicts: mergeConflicts(detectConflicts(maps), pathPreflight.conflicts),
+      };
+    });
+  }
+
+  async function prepareAgentRollback(input: {
+    projectId: string;
+    conversationId: string;
+    targetMessageId: string;
+    targetCheckpointId: string;
+    runId: string;
+  }): Promise<PreparedAgentRollback> {
+    return withProjectLock(input.projectId, async () => {
+      const project = requireProject(input.projectId);
+      const conversation = getConversation(options.db, input.conversationId);
+      if (!conversation || conversation.projectId !== input.projectId) {
+        throw new ProjectCheckpointError(404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
+      }
+      if (getMessageRunId(options.db, input.conversationId, input.targetMessageId) !== input.runId) {
+        throw new ProjectCheckpointRunMismatchError();
+      }
+      if (getAgentRollbackRestoreCountForRun(options.db, input.runId) >= 1) {
+        throw new ProjectCheckpointLoopError();
+      }
+      const checkpoint = requireCheckpoint(input.projectId, input.targetCheckpointId);
+      assertCheckpointMatchesRollbackTarget(checkpoint, input);
+      if (checkpoint.kind !== 'before_run' || checkpoint.runId !== input.runId) {
+        throw new ProjectCheckpointRunMismatchError();
+      }
+      const target = await readManifest(checkpoint);
+      await assertManifestRootMatchesProject(project, target);
+      const current = await snapshotTransient(project, target);
+      const baseline = await selectBaselineManifest(input.projectId, checkpoint);
+      const maps = makeFileMaps(target, current, baseline);
+      const root = resolveProjectDir(options.projectsRoot, project.id, project.metadata);
+      const rootReal = await realpath(root).catch(() => root);
+      const pathPreflight = await detectRestorePathBlockers(root, rootReal, maps);
+      const files = diffFileMaps(maps);
+      return {
+        targetCheckpointId: checkpoint.id,
+        revision: manifestRevision(current),
+        fileChanges: countFileChanges(files),
         conflicts: mergeConflicts(detectConflicts(maps), pathPreflight.conflicts),
       };
     });
@@ -350,6 +418,8 @@ export function createProjectCheckpointService(
       let targetCheckpoint: DbProjectCheckpointRow | null = null;
       let targetManifest: CheckpointManifest | null = null;
       let targetBlobSources: VerifiedBlobSources | null = null;
+      let approvedCurrentManifest: CheckpointManifest | null = null;
+      let expectedRevision: string | null = null;
 
       if (input.targetCheckpointId) {
         targetCheckpoint = requireCheckpoint(input.projectId, input.targetCheckpointId);
@@ -391,14 +461,50 @@ export function createProjectCheckpointService(
         targetBlobSources = await preflightTargetBlobs(targetManifest);
       }
 
-      const safety = await captureCheckpointUnlocked({
-        projectId: input.projectId,
-        conversationId: input.conversationId,
-        messageId: input.targetMessageId,
-        runId: targetCheckpoint?.runId ?? null,
-        kind: 'before_restore',
-      });
-      safetyCheckpointId = safety.id;
+      if (actor === 'agent') {
+        if (typeof input.expectedRevision !== 'string' || !/^[a-f0-9]{64}$/i.test(input.expectedRevision)) {
+          throw new ProjectCheckpointError(400, 'BAD_REQUEST', 'expectedRevision is required for agent rollback');
+        }
+        expectedRevision = input.expectedRevision.toLowerCase();
+      }
+
+      if (expectedRevision && targetManifest) {
+        const checkpointId = randomUUID();
+        const createdAt = Date.now();
+        const stagingDir = path.join(options.dataDir, CHECKPOINTS_DIR_NAME, 'staging', checkpointId);
+        try {
+          const snapshot = await snapshotProject(project, {
+            checkpointId,
+            projectId: input.projectId,
+            conversationId: input.conversationId,
+            messageId: input.targetMessageId,
+            runId: targetCheckpoint?.runId ?? null,
+            kind: 'before_restore',
+            createdAt,
+          }, {
+            blobWriter: (blob, buffer) => writeStagedBlob(stagingDir, blob, buffer),
+            persistManifest: false,
+          });
+          if (manifestRevision(snapshot.manifest) !== expectedRevision) {
+            throw new ProjectCheckpointError(409, 'ROLLBACK_PLAN_CHANGED', 'rollback plan changed after approval');
+          }
+          await publishStagedBlobs(snapshot.manifest, stagingDir);
+          await writeSnapshotManifest(snapshot);
+          safetyCheckpointId = insertCapturedCheckpoint(snapshot, createdAt).id;
+          approvedCurrentManifest = snapshot.manifest;
+        } finally {
+          await rm(stagingDir, { recursive: true, force: true });
+        }
+      } else {
+        const safety = await captureCheckpointUnlocked({
+          projectId: input.projectId,
+          conversationId: input.conversationId,
+          messageId: input.targetMessageId,
+          runId: targetCheckpoint?.runId ?? null,
+          kind: 'before_restore',
+        });
+        safetyCheckpointId = safety.id;
+      }
 
       if (mode === 'files_only' || mode === 'files_and_chat') {
         if (!targetCheckpoint || !targetManifest || !targetBlobSources) {
@@ -411,6 +517,7 @@ export function createProjectCheckpointService(
           targetBlobSources,
           conflictPolicy,
           safetyCheckpointId,
+          currentManifest: approvedCurrentManifest,
         });
         fileChanges = result.fileChanges;
         conflicts = result.conflicts;
@@ -481,8 +588,10 @@ export function createProjectCheckpointService(
     targetBlobSources: VerifiedBlobSources;
     conflictPolicy: RollbackConflictPolicy;
     safetyCheckpointId: string;
+    currentManifest?: CheckpointManifest | null;
   }): Promise<RestoreFilesResult> {
-    const currentManifest = await snapshotTransient(input.project, input.targetManifest);
+    const currentManifest = input.currentManifest
+      ?? await snapshotTransient(input.project, input.targetManifest);
     const baseline = await selectBaselineManifest(input.project.id, input.targetCheckpoint);
     const maps = makeFileMaps(input.targetManifest, currentManifest, baseline);
     const root = resolveProjectDir(options.projectsRoot, input.project.id, input.project.metadata);
@@ -547,12 +656,19 @@ export function createProjectCheckpointService(
   async function snapshotProject(
     project: ProjectRecord,
     metadata: Omit<CheckpointManifest, 'schemaVersion' | 'rootPathHash' | 'files' | 'excluded'>,
+    snapshotOptions: SnapshotOptions = {},
   ): Promise<SnapshotResult> {
     const root = resolveProjectDir(options.projectsRoot, project.id, project.metadata);
     const rootReal = await realpath(root).catch(() => root);
     const files: SnapshotFileEntry[] = [];
     const excluded: SnapshotExcludedEntry[] = [];
-    await walkProject(root, '', files, excluded);
+    await walkProject(
+      root,
+      '',
+      files,
+      excluded,
+      snapshotOptions.blobWriter ? { blobWriter: snapshotOptions.blobWriter } : {},
+    );
     files.sort((a, b) => a.path.localeCompare(b.path));
     excluded.sort((a, b) => a.path.localeCompare(b.path));
     const manifest: CheckpointManifest = {
@@ -562,20 +678,21 @@ export function createProjectCheckpointService(
       files,
       excluded,
     };
-    const text = JSON.stringify(manifest, null, 2);
-    const manifestHash = prefixedHash(text);
-    const manifestDir = checkpointDir(project.id, metadata.checkpointId);
-    await mkdir(manifestDir, { recursive: true });
-    const manifestPath = path.join(manifestDir, 'manifest.json');
-    const temp = path.join(manifestDir, `manifest.${randomUUID()}.tmp`);
-    await writeFile(temp, text, 'utf8');
-    await rename(temp, manifestPath);
-    return {
+    const snapshot = {
       manifest,
-      manifestHash,
-      manifestPath,
+      manifestHash: prefixedHash(JSON.stringify(manifest, null, 2)),
+      manifestPath: path.join(checkpointDir(project.id, metadata.checkpointId), 'manifest.json'),
       totalBytes: files.reduce((sum, item) => sum + item.size, 0),
     };
+    if (snapshotOptions.persistManifest !== false) await writeSnapshotManifest(snapshot);
+    return snapshot;
+  }
+
+  async function writeSnapshotManifest(snapshot: SnapshotResult): Promise<void> {
+    await mkdir(path.dirname(snapshot.manifestPath), { recursive: true });
+    const temp = `${snapshot.manifestPath}.${randomUUID()}.tmp`;
+    await writeFile(temp, JSON.stringify(snapshot.manifest, null, 2), 'utf8');
+    await rename(temp, snapshot.manifestPath);
   }
 
   async function snapshotTransient(
@@ -610,7 +727,10 @@ export function createProjectCheckpointService(
     relDir: string,
     files: SnapshotFileEntry[],
     excluded: SnapshotExcludedEntry[],
-    optionsOverride: { writeBlobs?: boolean } = {},
+    optionsOverride: {
+      writeBlobs?: boolean;
+      blobWriter?: (blob: string, buffer: Buffer) => Promise<void>;
+    } = {},
   ): Promise<void> {
     const entries = await readdir(absoluteDir, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
       if (error?.code === 'ENOENT') return [];
@@ -664,7 +784,7 @@ export function createProjectCheckpointService(
       const hash = prefixedHash(buffer);
       const blob = blobRelativePath(hash);
       if (optionsOverride.writeBlobs !== false) {
-        await writeBlob(blob, buffer);
+        await (optionsOverride.blobWriter ?? writeBlob)(blob, buffer);
       }
       files.push({
         path: relPath.replace(/\\/g, '/'),
@@ -694,6 +814,22 @@ export function createProjectCheckpointService(
       if (error?.code === 'EEXIST') return;
       throw error;
     });
+  }
+
+  async function writeStagedBlob(stagingDir: string, blob: string, buffer: Buffer): Promise<void> {
+    const target = path.join(stagingDir, blob);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, buffer);
+  }
+
+  async function publishStagedBlobs(manifest: CheckpointManifest, stagingDir: string): Promise<void> {
+    for (const blob of new Set(manifest.files.map((file) => file.blob))) {
+      const buffer = await readFile(path.join(stagingDir, blob));
+      if (blobRelativePath(prefixedHash(buffer)) !== blob) {
+        throw new ProjectCheckpointError(410, 'CHECKPOINT_UNAVAILABLE', 'staged checkpoint blob hash mismatch');
+      }
+      await writeBlob(blob, buffer);
+    }
   }
 
   function checkpointDir(projectId: string, checkpointId: string): string {
@@ -820,6 +956,7 @@ export function createProjectCheckpointService(
     listCheckpoints,
     getCheckpoint,
     diffCheckpoint,
+    prepareAgentRollback,
     rollback,
   };
 }
@@ -988,6 +1125,28 @@ function diffFileMaps(maps: FileMaps): ProjectCheckpointFileDelta[] {
       toSize: target?.size ?? null,
     };
   });
+}
+
+function manifestRevision(manifest: CheckpointManifest): string {
+  return createHash('sha256').update(JSON.stringify({
+    rootPathHash: manifest.rootPathHash,
+    files: manifest.files
+      .map(({ path: filePath, hash }) => ({ path: filePath, hash }))
+      .sort((a, b) => a.path.localeCompare(b.path)),
+    excluded: manifest.excluded
+      .map(({ path: excludedPath, reason }) => ({ path: excludedPath, reason }))
+      .sort((a, b) => a.path.localeCompare(b.path) || a.reason.localeCompare(b.reason)),
+  })).digest('hex');
+}
+
+function countFileChanges(files: ProjectCheckpointFileDelta[]): RollbackFileChangeCounts {
+  const counts = emptyFileChanges();
+  for (const file of files) {
+    if (file.status === 'added') counts.deleted += 1;
+    else if (file.status === 'deleted') counts.added += 1;
+    else counts[file.status] += 1;
+  }
+  return counts;
 }
 
 function detectConflicts(maps: FileMaps): ProjectCheckpointConflict[] {

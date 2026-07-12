@@ -39,4 +39,40 @@ describe("desktop approval lifecycle", () => {
       webRunning: false,
     }).rotationRequired, false);
   });
+
+  it("rotates the live daemon and web before starting desktop", () => {
+    assert.deepEqual(planDesktopApprovalLifecycle({
+      daemonRunning: true,
+      desktopRunning: false,
+      startTargets: [APP_KEYS.DESKTOP],
+      webRunning: true,
+    }), {
+      rotationRequired: true,
+      startTargets: [APP_KEYS.DAEMON, APP_KEYS.WEB, APP_KEYS.DESKTOP],
+      stopTargets: [APP_KEYS.WEB, APP_KEYS.DAEMON],
+    });
+  });
+
+  it("does not rotate for an already-running desktop or a headless start", () => {
+    assert.deepEqual(planDesktopApprovalLifecycle({
+      daemonRunning: true,
+      desktopRunning: true,
+      startTargets: [APP_KEYS.DESKTOP],
+      webRunning: true,
+    }), {
+      rotationRequired: false,
+      startTargets: [APP_KEYS.DESKTOP],
+      stopTargets: [],
+    });
+    assert.deepEqual(planDesktopApprovalLifecycle({
+      daemonRunning: true,
+      desktopRunning: false,
+      startTargets: [APP_KEYS.DAEMON, APP_KEYS.WEB],
+      webRunning: false,
+    }), {
+      rotationRequired: false,
+      startTargets: [APP_KEYS.DAEMON, APP_KEYS.WEB],
+      stopTargets: [],
+    });
+  });
 });

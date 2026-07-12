@@ -435,6 +435,7 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
 
 const STRIPPED_ISOLATED_ENV_KEYS = new Set([
   'OD_BIN',
+  'OD_API_TOKEN',
   'OD_DAEMON_URL',
   'OD_DATA_DIR',
   'OD_DESKTOP_APPROVAL_TOKEN',

@@ -12,7 +12,10 @@ vi.mock("node:child_process", async (importOriginal) => ({
   spawn: spawnMock,
 }));
 
-import { probeIsolatedAgentSupport } from "../src/isolated-process.js";
+import {
+  isolatedHelperPathIsProtected,
+  probeIsolatedAgentSupport,
+} from "../src/isolated-process.js";
 
 const temporaryPaths: string[] = [];
 const originalPlatform = process.platform;
@@ -24,6 +27,63 @@ afterEach(() => {
 });
 
 describe("isolated process capability probe", () => {
+  it("rejects drive and UNC helpers inside agent-writable paths", () => {
+    expect(isolatedHelperPathIsProtected(
+      String.raw`C:\project\bin\od-agent-isolator.exe`,
+      [String.raw`C:\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\server\share\project\bin\od-agent-isolator.exe`,
+      [String.raw`\\server\share\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`C:\protected\od-agent-isolator.exe`,
+      [String.raw`C:\project`, String.raw`\\server\share\project`],
+    )).toBe(true);
+  });
+
+  it("canonicalizes extended-length drive and UNC aliases before containment checks", () => {
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\?\C:\project\bin\od-agent-isolator.exe`,
+      [String.raw`C:\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`C:\project\bin\od-agent-isolator.exe`,
+      [String.raw`\\?\C:\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\?\UNC\server\share\project\bin\od-agent-isolator.exe`,
+      [String.raw`\\server\share\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\server\share\project\bin\od-agent-isolator.exe`,
+      [String.raw`\\?\UNC\server\share\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\?\C:\protected\od-agent-isolator.exe`,
+      [String.raw`\\?\C:\project`],
+    )).toBe(true);
+  });
+
+  it("fails closed for unsupported or ambiguous Windows path forms", () => {
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\?\Volume{01234567-89ab-cdef-0123-456789abcdef}\od-agent-isolator.exe`,
+      [String.raw`C:\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`C:\protected\od-agent-isolator.exe`,
+      [String.raw`\\?\UNC\server`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\protected\od-agent-isolator.exe`,
+      [String.raw`C:\project`],
+    )).toBe(false);
+    expect(isolatedHelperPathIsProtected(
+      String.raw`\\.\C:\protected\od-agent-isolator.exe`,
+      [String.raw`C:\project`],
+    )).toBe(false);
+  });
+
   it("fails closed when any declared native capability is missing", async () => {
     Object.defineProperty(process, "platform", { value: "win32" });
     const directory = mkdtempSync(join(tmpdir(), "od-isolator-probe-"));

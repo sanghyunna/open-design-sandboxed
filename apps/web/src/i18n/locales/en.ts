@@ -2171,6 +2171,7 @@ export const en: Dict = {
   'rollback.success': 'Rollback complete',
   'rollback.successDetails': 'Safety checkpoint: {id}',
   'rollback.failed': 'Rollback failed.',
+  'rollback.planChangedRetry': 'The rollback plan changed. The diff was reloaded; review it and approve again.',
   'rollback.noCheckpointChatOnly': 'No file checkpoint is available for this message. Chat-only restore is available.',
   'rollback.noCheckpointFilesOnly': 'No file checkpoint is available for this rollback request.',
   'rollback.agentRequestTitle': 'Agent wants to undo its last edit',

@@ -92,14 +92,17 @@ export interface AgentRollbackExecuteRequest {
 
 export interface DesktopRollbackApprovalPlan {
   approvalRequestId: string;
-  actor: 'user' | 'agent';
+  actor: 'agent';
   projectId: string;
   conversationId: string;
   targetMessageId: string;
-  targetCheckpointId: string | null;
-  mode: RollbackMode;
+  targetCheckpointId: string;
+  mode: 'files_only';
   conflictPolicy: RollbackConflictPolicy;
-  runId: string | null;
+  runId: string;
+  revision: string;
+  fileChanges: RollbackFileChangeCounts;
+  conflictCount: number;
   reason: string;
   expiresAt: number;
 }
@@ -151,4 +154,13 @@ export interface RollbackConflictError {
 
 export interface RollbackConflictResponse {
   error: RollbackConflictError;
+}
+
+export interface RollbackPlanChangedError {
+  code: 'ROLLBACK_PLAN_CHANGED';
+  message: string;
+}
+
+export interface RollbackPlanChangedResponse {
+  error: RollbackPlanChangedError;
 }

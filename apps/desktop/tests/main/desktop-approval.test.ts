@@ -18,15 +18,18 @@ const PLAN = {
   conversationId: "conversation-1",
   decisionToken: "opaque-decision-token",
   expiresAt: Date.parse("2026-07-11T00:00:00.000Z"),
+  fileChanges: { added: 1, modified: 2, deleted: 3, unchanged: 4 },
+  conflictCount: 2,
   mode: "files_only",
   projectId: "project-1",
   reason: "Restore the last working implementation",
+  revision: "a".repeat(64),
   runId: "run-1",
   targetCheckpointId: "checkpoint-1",
   targetMessageId: "message-1",
 } as const satisfies NonNullable<DesktopRollbackApprovalNextResponse["approval"]>;
 const SAFETY_WARNING =
-  "Approving can overwrite current files and remove later chat messages. Open Design creates a safety checkpoint before the rollback.";
+  "Approving can overwrite current files. Open Design creates a safety checkpoint before the rollback.";
 
 async function runApproval(buttonResponse: number, plan: Record<string, unknown> = PLAN) {
   const requests: Array<{ init?: RequestInit; url: string }> = [];
@@ -55,6 +58,24 @@ async function runApproval(buttonResponse: number, plan: Record<string, unknown>
   return { requests, showMessageBox };
 }
 
+async function expectRejectedPlan(plan: Record<string, unknown>) {
+  let loop!: DesktopApprovalLoop;
+  const showMessageBox = vi.fn();
+  const fetchImpl = vi.fn(async () => {
+    queueMicrotask(() => loop.abort());
+    return new Response(JSON.stringify({ approval: plan }), { status: 200 });
+  }) as unknown as typeof fetch;
+  loop = startDesktopApprovalLoop({
+    discoverDaemonUrl: async () => "http://127.0.0.1:4123",
+    fetch: fetchImpl,
+    getParentWindow: () => PARENT,
+    retryDelayMs: 0,
+    showMessageBox,
+    token: TOKEN,
+  });
+  await loop.done;
+  expect(showMessageBox).not.toHaveBeenCalled();
+}
 describe("desktop rollback approval", () => {
   it("consumes every case variant before a BrowserWindow can inherit it", () => {
     const env = {
@@ -86,6 +107,9 @@ describe("desktop rollback approval", () => {
       "Mode: files_only",
       "Conflict policy: overwrite",
       "Run: run-1",
+      "Revision: aaaaaaaaaaaa",
+      "Files: 1 added, 2 modified, 3 deleted, 4 unchanged",
+      "Conflicts: 2",
       'Reason: "Restore the last working implementation"',
       `Expiry: ${PLAN.expiresAt} (2026-07-11T00:00:00.000Z)`,
       `Safety warning: ${SAFETY_WARNING}`,
@@ -215,5 +239,16 @@ describe("desktop rollback approval", () => {
     await loop.done;
 
     expect(observedSignal?.aborted).toBe(true);
+  });
+  it.each([
+    ["user actor", { ...PLAN, actor: "user" }],
+    ["chat mode", { ...PLAN, mode: "chat_only" }],
+    ["null checkpoint", { ...PLAN, targetCheckpointId: null }],
+    ["null run", { ...PLAN, runId: null }],
+    ["invalid revision", { ...PLAN, revision: "not-a-revision" }],
+    ["invalid file counts", { ...PLAN, fileChanges: { ...PLAN.fileChanges, modified: -1 } }],
+    ["invalid conflict count", { ...PLAN, conflictCount: -1 }],
+  ])("rejects a %s plan before opening the native dialog", async (_label, plan) => {
+    await expectRejectedPlan(plan);
   });
 });

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AssistantMessage } from '../../src/components/AssistantMessage';
 import { RollbackModal } from '../../src/components/RollbackModal';
+import { RollbackPlanChangedError } from '../../src/state/projects';
 import type { AgentEvent, ChatMessage } from '../../src/types';
 import type {
   ProjectCheckpointDiffResponse,
@@ -731,5 +732,39 @@ describe('RollbackModal', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
     expect(projectStateMocks.rollbackConversation).not.toHaveBeenCalled();
+  });
+  it('keeps the modal open and reloads the diff when the approved plan changed', async () => {
+    const checkpoint: ProjectCheckpointSummary = {
+      id: 'checkpoint-agent', projectId: 'proj-1', kind: 'before_run', messageId: 'msg-1',
+      runId: 'run-1', conversationId: 'conv-1', createdAt: 1_700_000_000_000,
+      rootPathHash: 'root-hash', fileCount: 1, totalBytes: 100, manifestHash: 'manifest-hash',
+      restoreModes: ['files_only'],
+    };
+    const onClose = vi.fn();
+    projectStateMocks.listProjectCheckpoints.mockResolvedValue([checkpoint]);
+    projectStateMocks.fetchProjectCheckpointDiff
+      .mockResolvedValueOnce({ checkpoint, files: [{ path: 'old.html', status: 'modified' }], conflicts: [] })
+      .mockResolvedValueOnce({ checkpoint, files: [{ path: 'new.html', status: 'added' }], conflicts: [] });
+    projectStateMocks.executeAgentRollback.mockRejectedValue(new RollbackPlanChangedError('Plan changed.'));
+
+    render(<RollbackModal
+      projectId="proj-1"
+      conversationId="conv-1"
+      targetMessage={baseMessage()}
+      initialMode="files_only"
+      initialCheckpointId={checkpoint.id}
+      agentRequestId="request-1"
+      onClose={onClose}
+      onSuccess={vi.fn()}
+    />);
+
+    const confirm = screen.getByRole('button', { name: 'Restore files' }) as HTMLButtonElement;
+    await waitFor(() => expect(confirm.disabled).toBe(false));
+    fireEvent.click(confirm);
+
+    expect(await screen.findByText('The rollback plan changed. The diff was reloaded; review it and approve again.')).toBeTruthy();
+    await waitFor(() => expect(projectStateMocks.fetchProjectCheckpointDiff).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('new.html')).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

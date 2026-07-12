@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { win32 } from "node:path";
 import type { Duplex, Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 
@@ -51,7 +51,7 @@ const helperCandidates = [
 
 function nativeHelperPath(explicitPath?: string): string | null {
   if (process.platform !== "win32") return null;
-  if (explicitPath) return isAbsolute(explicitPath) && existsSync(explicitPath) ? explicitPath : null;
+  if (explicitPath) return win32.isAbsolute(explicitPath) && existsSync(explicitPath) ? explicitPath : null;
   for (const candidate of helperCandidates) {
     const path = fileURLToPath(candidate);
     if (existsSync(path)) return path;
@@ -65,7 +65,7 @@ function invalidString(value: string): boolean {
 
 function validateOptions(options: SpawnIsolatedAgentOptions): void {
   if (invalidString(options.command)) throw new Error("isolated agent command must be non-empty and contain no NUL");
-  if (!isAbsolute(options.cwd)) throw new Error("isolated agent cwd must be absolute");
+  if (!win32.isAbsolute(options.cwd)) throw new Error("isolated agent cwd must be absolute");
   for (const [name, values] of [
     ["args", options.args ?? []],
     ["readExecutePaths", options.readExecutePaths],
@@ -73,7 +73,7 @@ function validateOptions(options: SpawnIsolatedAgentOptions): void {
   ] as const) {
     for (const value of values) {
       if (invalidString(value)) throw new Error(`isolated agent ${name} entries must be non-empty and contain no NUL`);
-      if (name !== "args" && !isAbsolute(value)) throw new Error(`isolated agent ${name} entries must be absolute`);
+      if (name !== "args" && !win32.isAbsolute(value)) throw new Error(`isolated agent ${name} entries must be absolute`);
     }
   }
   for (const [key, value] of Object.entries(options.env ?? process.env)) {
@@ -252,20 +252,49 @@ function attachBrokerControl(
   child.once("close", () => control.off("data", onData));
 }
 
+export function isolatedHelperPathIsProtected(
+  helperPath: string,
+  writablePaths: readonly string[],
+): boolean {
+  const canonicalHelperPath = canonicalWin32Path(helperPath);
+  if (!canonicalHelperPath) return false;
+  return !writablePaths.some((writablePath) => {
+    const canonicalWritablePath = canonicalWin32Path(writablePath);
+    if (!canonicalWritablePath) return true;
+    const helperRelative = win32.relative(canonicalWritablePath, canonicalHelperPath);
+    return helperRelative === ""
+      || (!win32.isAbsolute(helperRelative)
+        && helperRelative !== ".."
+        && !helperRelative.startsWith(`..${win32.sep}`));
+  });
+}
+
+function canonicalWin32Path(path: string): string | null {
+  const normalizedSeparators = path.replaceAll("/", "\\");
+  const extendedMatch = /^\\\\\?\\(.*)$/u.exec(normalizedSeparators);
+  if (!extendedMatch && /^\\\\(?:[?.]|\?\?)\\/u.test(normalizedSeparators)) return null;
+  const ordinaryPath = extendedMatch
+    ? /^UNC\\/iu.test(extendedMatch[1]!)
+      ? `\\\\${extendedMatch[1]!.slice(4)}`
+      : extendedMatch[1]!
+    : normalizedSeparators;
+  if (
+    !/^[A-Za-z]:\\/u.test(ordinaryPath)
+    && !/^\\\\[^\\]+\\[^\\]+(?:\\|$)/u.test(ordinaryPath)
+  ) return null;
+  return win32.resolve(ordinaryPath);
+}
+
 export async function spawnIsolatedAgent(
   options: SpawnIsolatedAgentOptions,
 ): Promise<ChildProcessWithoutNullStreams> {
   validateOptions(options);
-  if (options.helperPath && !isAbsolute(options.helperPath)) {
+  if (options.helperPath && !win32.isAbsolute(options.helperPath)) {
     throw new Error("Windows AppContainer helper path must be absolute");
   }
   const helper = nativeHelperPath(options.helperPath);
   if (!helper) throw new Error("Windows AppContainer helper is missing; run build:native:win32");
-  if (options.writablePaths.some((writablePath) => {
-    const helperRelative = relative(resolve(writablePath), resolve(helper));
-    return helperRelative === ""
-      || (!isAbsolute(helperRelative) && helperRelative !== ".." && !helperRelative.startsWith(`..${sep}`));
-  })) {
+  if (!isolatedHelperPathIsProtected(helper, options.writablePaths)) {
     throw new Error("Windows AppContainer helper must stay outside agent-writable paths");
   }
   const support = await probeIsolatedAgentSupport({ helperPath: helper });

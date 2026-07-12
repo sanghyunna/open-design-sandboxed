@@ -654,6 +654,7 @@ describe('od chat checkpoint CLI', () => {
     ['ROLLBACK_APPROVAL_TIMEOUT', 408, 'rollback-approval-timeout', 81],
     ['ROLLBACK_REQUEST_EXPIRED', 410, 'rollback-request-expired', 82],
     ['ROLLBACK_REQUEST_CONSUMED', 409, 'rollback-request-consumed', 83],
+    ['ROLLBACK_PLAN_CHANGED', 409, 'rollback-plan-changed', 84],
   ])('maps %s to a stable structured exit', async (daemonCode, status, cliCode, exitCode) => {
     stub.setResponder(() => ({
       status,

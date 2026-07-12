@@ -223,6 +223,7 @@ const RECOVERABLE_EXIT_CODES = {
   'rollback-approval-timeout': 81,
   'rollback-request-expired': 82,
   'rollback-request-consumed': 83,
+  'rollback-plan-changed':     84,
 };
 const PLUGIN_LIST_FILTER_FLAGS = new Set([
   ...PLUGIN_STRING_FLAGS,
@@ -942,6 +943,7 @@ async function structuredHttpFailure(resp, fallbackCode = 'daemon-not-running') 
 
 function normalizeRecoverableErrorCode(code, message) {
   if (code === 'ROLLBACK_CONFLICT') return 'rollback-conflict';
+  if (code === 'ROLLBACK_PLAN_CHANGED') return 'rollback-plan-changed';
   if (code === 'ROLLBACK_RUN_MISMATCH') return 'rollback-run-mismatch';
   if (code === 'ROLLBACK_LOOP_PREVENTED') return 'rollback-loop-prevented';
   if (code === 'ROLLBACK_APPROVAL_UNAVAILABLE') return 'rollback-approval-unavailable';

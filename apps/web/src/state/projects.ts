@@ -27,6 +27,7 @@ import type {
   RollbackConflictPolicy,
   RollbackConflictResponse,
   RollbackMode,
+  RollbackPlanChangedResponse,
   RollbackRequest,
   RollbackResponse,
   TerminalSession,
@@ -65,6 +66,14 @@ export class RollbackConflictError extends Error {
   }
 }
 
+export class RollbackPlanChangedError extends Error {
+  readonly code = 'ROLLBACK_PLAN_CHANGED';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'RollbackPlanChangedError';
+  }
+}
 export async function listProjects(): Promise<Project[]> {
   try {
     const resp = await fetch('/api/projects');
@@ -491,6 +500,7 @@ async function readRollbackResponse(resp: Response): Promise<RollbackResponse> {
   const json = (await resp.json().catch(() => null)) as
     | RollbackResponse
     | RollbackConflictResponse
+    | RollbackPlanChangedResponse
     | { error?: string | { code?: string; message?: string; conflicts?: ProjectCheckpointConflict[] }; message?: string }
     | null;
   if (resp.ok) return json as RollbackResponse;
@@ -498,13 +508,16 @@ async function readRollbackResponse(resp: Response): Promise<RollbackResponse> {
   const error = json && 'error' in json ? json.error : undefined;
   const code = typeof error === 'object' ? error.code : undefined;
   const conflicts =
-    (typeof error === 'object' && Array.isArray(error.conflicts) ? error.conflicts : undefined)
+    (typeof error === 'object' && 'conflicts' in error && Array.isArray(error.conflicts) ? error.conflicts : undefined)
     ?? [];
   const message =
     (json && 'message' in json ? json.message : undefined)
     ?? (typeof error === 'string' ? error : error?.message)
     ?? resp.statusText
     ?? 'Rollback failed.';
+  if (code === 'ROLLBACK_PLAN_CHANGED') {
+    throw new RollbackPlanChangedError(message);
+  }
   if (code === 'ROLLBACK_CONFLICT' || conflicts.length > 0) {
     throw new RollbackConflictError(message, conflicts);
   }

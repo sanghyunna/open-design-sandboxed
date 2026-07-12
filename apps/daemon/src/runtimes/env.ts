@@ -74,8 +74,12 @@ export function spawnEnvForAgent(
     baseEnv,
     expandConfiguredEnv(configuredEnv),
   );
+  const protectedKeys = new Set([
+    'OD_API_TOKEN',
+    SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN,
+  ]);
   for (const key of Object.keys(env)) {
-    if (key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN) delete env[key];
+    if (protectedKeys.has(key.toUpperCase())) delete env[key];
   }
   if (agentId === 'amr') {
     Object.assign(env, amrVelaProfileEnv(env));

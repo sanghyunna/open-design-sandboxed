@@ -19,9 +19,15 @@ export function planDesktopApprovalLifecycle(options: {
   stopTargets?: readonly ApprovalLifecycleApp[];
   webRunning: boolean;
 }): ApprovalLifecyclePlan {
-  const rotationRequired = options.desktopRunning
+  const rotationRequired = (
+    options.desktopRunning
     && options.startTargets.includes(APP_KEYS.DAEMON)
-    && (options.forceDaemonRestart === true || !options.daemonRunning);
+    && (options.forceDaemonRestart === true || !options.daemonRunning)
+  ) || (
+    !options.desktopRunning
+    && options.daemonRunning
+    && options.startTargets.includes(APP_KEYS.DESKTOP)
+  );
   if (!rotationRequired) {
     return {
       rotationRequired,
@@ -36,7 +42,7 @@ export function planDesktopApprovalLifecycle(options: {
   if (options.webRunning) start.add(APP_KEYS.WEB);
 
   const stop = new Set(options.stopTargets);
-  stop.add(APP_KEYS.DESKTOP);
+  if (options.desktopRunning) stop.add(APP_KEYS.DESKTOP);
   if (options.webRunning) stop.add(APP_KEYS.WEB);
   stop.add(APP_KEYS.DAEMON);
 

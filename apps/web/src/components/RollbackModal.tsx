@@ -9,6 +9,7 @@ import {
   listProjectCheckpoints,
   rollbackConversation,
   RollbackConflictError,
+  RollbackPlanChangedError,
   type ProjectCheckpointConflict,
   type ProjectCheckpointDiffResponse,
   type ProjectCheckpointFileDelta,
@@ -205,7 +206,17 @@ export function RollbackModal({
       await onSuccess(response);
       onClose();
     } catch (err) {
-      if (err instanceof RollbackConflictError) {
+      if (err instanceof RollbackPlanChangedError) {
+        setError(t('rollback.planChangedRetry'));
+        if (selectedCheckpointId) {
+          setDiffLoading(true);
+          setDiffFailed(false);
+          const next = await fetchProjectCheckpointDiff(projectId, selectedCheckpointId);
+          setDiff(next);
+          setDiffFailed(next == null);
+          setDiffLoading(false);
+        }
+      } else if (err instanceof RollbackConflictError) {
         setError(err.message);
         setRollbackConflicts(err.conflicts);
       } else {

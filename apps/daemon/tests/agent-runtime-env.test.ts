@@ -77,14 +77,22 @@ describe('agent runtime tool environment', () => {
     expect(env.OD_TOOL_TOKEN).toBeUndefined();
   });
 
-  it('strips the desktop approval bearer from inherited and configured agent env', () => {
+  it('strips daemon and desktop approval bearers from inherited and configured agent env', () => {
     const env = spawnEnvForAgent(
       'opencode',
-      { PATH: '/bin', [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: 'inherited-secret' },
-      { Od_Desktop_Approval_Token: 'configured-secret' },
+      {
+        PATH: '/bin',
+        OD_API_TOKEN: 'inherited-api-secret',
+        [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: 'inherited-approval-secret',
+      },
+      {
+        Od_Api_Token: 'configured-api-secret',
+        Od_Desktop_Approval_Token: 'configured-approval-secret',
+      },
       {},
     );
 
+    expect(Object.keys(env).some((key) => key.toUpperCase() === 'OD_API_TOKEN')).toBe(false);
     expect(Object.keys(env).some((key) => key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN)).toBe(false);
   });
 

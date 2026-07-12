@@ -51,13 +51,13 @@ describe('DesktopApprovalBroker', () => {
     expect(fixture.rollback).not.toHaveBeenCalled();
   });
 
-  it('approves once, binds the audit id, and cancels only after approval', async () => {
+  it('terminates and prepares before approval, then binds the audit id', async () => {
     const fixture = seedBroker();
     const request = fixture.broker.createAgentRequest(agentRequestInput());
     const execution = fixture.broker.executeAgent(request.requestId, 'overwrite');
     const approval = (await fixture.broker.nextApproval(AUTH)).approval!;
 
-    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.cancel).toHaveBeenCalledTimes(1);
     expect(fixture.rollback).not.toHaveBeenCalled();
     fixture.broker.decide(AUTH, approval.approvalRequestId, {
       approved: true,
@@ -112,7 +112,7 @@ describe('DesktopApprovalBroker', () => {
     });
 
     await expect(execution).rejects.toMatchObject({ code: 'ROLLBACK_APPROVAL_DENIED' });
-    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.cancel).toHaveBeenCalledTimes(1);
     expect(fixture.rollback).not.toHaveBeenCalled();
   });
 
@@ -145,7 +145,7 @@ describe('DesktopApprovalBroker', () => {
     });
     await fixture.broker.nextApproval(AUTH);
     await expect(first).rejects.toMatchObject({ code: 'ROLLBACK_APPROVAL_TIMEOUT' });
-    expect(fixture.cancel).not.toHaveBeenCalled();
+    expect(fixture.cancel).toHaveBeenCalledTimes(1);
     expect(fixture.rollback).not.toHaveBeenCalled();
 
     const retry = fixture.broker.executeAgent(request.requestId, 'overwrite');
@@ -189,9 +189,9 @@ describe('DesktopApprovalBroker', () => {
       approved: true,
       decisionToken: approval.decisionToken,
     });
-    await expect(execution).rejects.toMatchObject({ code: 'ROLLBACK_REQUEST_DRIFTED' });
+    await expect(execution).rejects.toMatchObject({ code: 'ROLLBACK_PLAN_CHANGED' });
     expect(drifted.cancel).toHaveBeenCalledTimes(1);
-    expect(drifted.rollback).not.toHaveBeenCalled();
+    expect(drifted.rollback).toHaveBeenCalledTimes(1);
 
     drifted.fileState.version = 1;
     const retry = drifted.broker.executeAgent(request.requestId, 'overwrite');
@@ -207,11 +207,6 @@ describe('DesktopApprovalBroker', () => {
     const fixture = seedBroker({ terminationResults: [false, true] });
     const request = fixture.broker.createAgentRequest(agentRequestInput());
     const first = fixture.broker.executeAgent(request.requestId, 'overwrite');
-    const firstApproval = (await fixture.broker.nextApproval(AUTH)).approval!;
-    fixture.broker.decide(AUTH, firstApproval.approvalRequestId, {
-      approved: true,
-      decisionToken: firstApproval.decisionToken,
-    });
     await expect(first).rejects.toMatchObject({ code: 'ROLLBACK_RUN_TERMINATION_TIMEOUT' });
     expect(fixture.rollback).not.toHaveBeenCalled();
 
@@ -247,7 +242,7 @@ describe('DesktopApprovalBroker', () => {
     await expect(retry).resolves.toMatchObject({ actor: 'agent' });
   });
 
-  it('recomputes drift only after the approved run has terminated', async () => {
+  it('prepares the approved revision only after the run has terminated', async () => {
     const order: string[] = [];
     const fixture = seedBroker({
       onCancelAndWait: async () => {
@@ -260,7 +255,7 @@ describe('DesktopApprovalBroker', () => {
     const request = fixture.broker.createAgentRequest(agentRequestInput());
     const execution = fixture.broker.executeAgent(request.requestId, 'overwrite');
     const approval = (await fixture.broker.nextApproval(AUTH)).approval!;
-    order.length = 0;
+    expect(order).toEqual(['terminated', 'fingerprint']);
     fixture.broker.decide(AUTH, approval.approvalRequestId, {
       approved: true,
       decisionToken: approval.decisionToken,
@@ -355,9 +350,11 @@ function seedBroker(options: {
   const terminationResults = [...(options.terminationResults ?? [true])];
   const cancelAndWait = vi.fn(async () => {
     if (run.status === 'succeeded' || run.status === 'failed' || run.status === 'canceled') return true;
-    cancel();
-    if (options.onCancelAndWait) return options.onCancelAndWait();
-    return terminationResults.shift() ?? true;
+    const stopped = options.onCancelAndWait
+      ? await options.onCancelAndWait()
+      : (terminationResults.shift() ?? true);
+    if (stopped) cancel();
+    return stopped;
   });
   const design = {
     runs: {
@@ -377,6 +374,9 @@ function seedBroker(options: {
     options.onRollback?.();
     const rollbackError = options.rollbackErrors?.shift();
     if (rollbackError) throw rollbackError;
+    if (input.expectedRevision !== String(fileState.version).padStart(64, '0')) {
+      throw new ProjectCheckpointError(409, 'ROLLBACK_PLAN_CHANGED', 'plan changed');
+    }
     return {
       projectId: input.projectId,
       conversationId: input.conversationId,
@@ -407,11 +407,12 @@ function seedBroker(options: {
       manifestHash: 'manifest-hash',
       restoreModes: ['files_only'],
     }),
-    diffCheckpoint: async () => {
+    prepareAgentRollback: async () => {
       options.onDiff?.();
       return {
-        checkpoint: { id: 'checkpoint-1' },
-        files: [{ path: 'index.html', status: 'modified', version: fileState.version }],
+        targetCheckpointId: 'checkpoint-1',
+        revision: String(fileState.version).padStart(64, '0'),
+        fileChanges: { added: 0, modified: 1, deleted: 0, unchanged: 0 },
         conflicts: [],
       };
     },
