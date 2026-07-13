@@ -10,6 +10,7 @@ import { RemixIcon } from './RemixIcon';
 import { ManualEditTextControls, type ManualEditRichFormatState } from './ManualEditTextControls';
 import { ManualEditShapeControls } from './ManualEditShapeControls';
 import { ManualEditPageSection } from './ManualEditPageSection';
+import inspectorStyles from './ManualEditLeftInspector.module.css';
 
 export interface ManualEditLeftInspectorProps {
   target: ManualEditTarget | null;
@@ -64,12 +65,12 @@ export function ManualEditLeftInspector({
       || !!target.textEditTargetId);
 
   return (
-    <aside className="manual-edit-left-inspector" aria-label={t('manualEdit.inspectorTitle')}>
-      <header className="manual-edit-inspector-head">
-        <span className="manual-edit-inspector-title" title={target?.label ?? t('manualEdit.inspectorTitle')}>
+    <aside className={`manual-edit-left-inspector ${inspectorStyles.root}`} aria-label={t('manualEdit.inspectorTitle')}>
+      <header className={inspectorStyles.header}>
+        <span className={inspectorStyles.title} title={target?.label ?? t('manualEdit.inspectorTitle')}>
           {target?.label ?? t('manualEdit.inspectorTitle')}
         </span>
-        <div className="manual-edit-inspector-actions">
+        <div className={inspectorStyles.actions}>
           <Button
             variant="subtle"
             size="icon"
@@ -93,7 +94,7 @@ export function ManualEditLeftInspector({
           {onExit ? (
             <button
               type="button"
-              className="manual-edit-inspector-exit"
+              className={inspectorStyles.exit}
               aria-label={t('manualEdit.exitEditMode')}
               title={t('manualEdit.exitEditMode')}
               onClick={onExit}
@@ -104,7 +105,7 @@ export function ManualEditLeftInspector({
         </div>
       </header>
 
-      <div className="manual-edit-inspector-scroll">
+      <div className={inspectorStyles.scroll}>
         {target ? (
           <>
             {isTextLike ? (
@@ -144,7 +145,7 @@ export function ManualEditLeftInspector({
             onInvalidStyle={onPageInvalidStyle}
           />
         )}
-        {error ? <div className="manual-edit-inspector-error" role="alert">{error}</div> : null}
+        {error ? <div className={inspectorStyles.error} role="alert">{error}</div> : null}
       </div>
     </aside>
   );

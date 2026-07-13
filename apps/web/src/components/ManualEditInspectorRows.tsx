@@ -19,18 +19,39 @@ import {
 
 export function Section({
   title,
+  description,
   children,
   inactive,
 }: {
   title: string;
+  description?: string;
   children: ReactNode;
   inactive?: boolean;
 }) {
   return (
     <section className={`cc-section${inactive ? ' cc-section-inactive' : ''}`}>
       <header className="cc-section-head">{title}</header>
+      {description ? <p className="cc-section-description">{description}</p> : null}
       <div className="cc-section-body">{children}</div>
     </section>
+  );
+}
+
+export function Subsection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="cc-subsection">
+      <h3 className="cc-subsection-title">{title}</h3>
+      <div className="cc-subsection-body">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ label, description }: { label: string; description?: string }) {
+  return (
+    <span className="cc-field-copy">
+      <span className="cc-label">{label}</span>
+      {description ? <small className="cc-description">{description}</small> : null}
+    </span>
   );
 }
 
@@ -38,6 +59,7 @@ export function Section({
 // `autoUnit` appends px to a bare number on commit (width/height/gap/etc.).
 export function NumberRow({
   label,
+  description,
   value,
   onChange,
   unit,
@@ -45,6 +67,7 @@ export function NumberRow({
   disabled,
 }: {
   label: string;
+  description?: string;
   value: string;
   onChange: (value: string) => void;
   unit: string;
@@ -71,7 +94,7 @@ export function NumberRow({
   };
   return (
     <label className="cc-row">
-      <span className="cc-label">{label}</span>
+      <FieldLabel label={label} description={description} />
       <span className="cc-value">
         <button
           type="button"
@@ -110,12 +133,14 @@ export function NumberRow({
 // so a pre-existing style is never silently dropped.
 export function SelectRow({
   label,
+  description,
   value,
   options,
   onChange,
   disabled,
 }: {
   label: string;
+  description?: string;
   value: string;
   options: ReadonlyArray<string>;
   onChange: (value: string) => void;
@@ -123,7 +148,7 @@ export function SelectRow({
 }) {
   return (
     <label className="cc-row">
-      <span className="cc-label">{label}</span>
+      <FieldLabel label={label} description={description} />
       <span className="cc-value cc-select">
         <select
           aria-label={label}
@@ -146,6 +171,7 @@ export function SelectRow({
 // Clicking the active value again clears it when `allowClear` is set.
 export function ToggleRow({
   label,
+  description,
   options,
   value,
   pressed,
@@ -154,6 +180,7 @@ export function ToggleRow({
   onSelect,
 }: {
   label: string;
+  description?: string;
   options: ReadonlyArray<{ value: string; icon: string; label: string }>;
   value?: string;
   pressed?: (value: string) => boolean;
@@ -165,7 +192,7 @@ export function ToggleRow({
     pressed ? pressed(optionValue) : value === optionValue;
   return (
     <div className="cc-row cc-row-toggle" role="group" aria-label={label}>
-      <span className="cc-label">{label}</span>
+      <FieldLabel label={label} description={description} />
       <span className="cc-value cc-toggle-group">
         {options.map((option) => {
           const on = isPressed(option.value);
@@ -192,11 +219,13 @@ export function ToggleRow({
 // Color swatch + text input + popover, matching the page inspector's ColorRow.
 export function ColorRow({
   label,
+  description,
   value,
   onChange,
   compact,
 }: {
   label: string;
+  description?: string;
   value: string;
   onChange: (v: string) => void;
   compact?: boolean;
@@ -215,7 +244,7 @@ export function ColorRow({
   }, [open]);
   return (
     <label className="cc-row">
-      {compact ? null : <span className="cc-label">{label}</span>}
+      {compact ? null : <FieldLabel label={label} description={description} />}
       <span className={`cc-value cc-color ${compact ? 'cc-color-compact' : ''}`} ref={ref}>
         <button
           type="button"
@@ -264,10 +293,12 @@ export function ColorRow({
 // Font family select with a curated list plus installed system fonts.
 export function FontSelectRow({
   label,
+  description,
   value,
   onChange,
 }: {
   label: string;
+  description?: string;
   value: string;
   onChange: (v: string) => void;
 }) {
@@ -280,7 +311,7 @@ export function FontSelectRow({
   const isSystem = systemOptions.some((option) => option.value === customValue);
   return (
     <label className="cc-row">
-      <span className="cc-label">{label}</span>
+      <FieldLabel label={label} description={description} />
       <span className="cc-value cc-select">
         <select
           aria-label={label}
@@ -310,18 +341,23 @@ export function FontSelectRow({
 // A labelled 2x2 group of small numeric fields (padding, margin, border widths).
 export function QuadField({
   label,
+  description,
   sideLabels,
   values,
   onChange,
 }: {
   label: string;
+  description?: string;
   sideLabels: { t: string; r: string; b: string; l: string };
   values: { t: string; r: string; b: string; l: string };
   onChange: (side: 't' | 'r' | 'b' | 'l', value: string) => void;
 }) {
   return (
     <div className="cc-quad">
-      <span className="cc-quad-label">{label}</span>
+      <div className="cc-quad-head">
+        <span className="cc-quad-label">{label}</span>
+        {description ? <small className="cc-description">{description}</small> : null}
+      </div>
       <div className="cc-quad-grid">
         <QuadInput label={sideLabels.t} value={values.t} onChange={(v) => onChange('t', v)} />
         <QuadInput label={sideLabels.r} value={values.r} onChange={(v) => onChange('r', v)} />
@@ -350,6 +386,7 @@ function QuadInput({
   };
   return (
     <label className="cc-row cc-quad-cell">
+      <span className="cc-quad-side">{label}</span>
       <span className="cc-value">
         <input
           aria-label={label}

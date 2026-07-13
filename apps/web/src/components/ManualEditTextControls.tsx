@@ -23,6 +23,7 @@ import {
   NumberRow,
   Section,
   SelectRow,
+  Subsection,
   ToggleRow,
 } from './ManualEditInspectorRows';
 import { useSystemFonts } from './useSystemFonts';
@@ -193,64 +194,79 @@ function TextStack({
   const t = useT();
   const richDisabled = !(richFormat.editing && richFormat.hasSelection);
   return (
-    <Section title={t('manualEdit.sectionText')}>
-      <FontSelectRow
-        label={t('manualEdit.typography.font')}
-        value={elementStyles.fontFamily}
-        onChange={(value) => onStyleField('fontFamily', value)}
-      />
-      <NumberRow
-        label={t('manualEdit.typography.fontSize')}
-        value={elementStyles.fontSize}
-        unit="px"
-        onChange={(v) => onStyleField('fontSize', v)}
-      />
-      <ToggleRow
-        label={t('manualEdit.typography.style')}
-        disabled={richDisabled}
-        options={[
-          { value: 'bold', icon: 'bold', label: t('manualEdit.typography.bold') },
-          { value: 'italic', icon: 'italic', label: t('manualEdit.typography.italic') },
-          { value: 'underline', icon: 'underline', label: t('manualEdit.typography.underline') },
-        ]}
-        pressed={(value) => richFormat[value as 'bold' | 'italic' | 'underline']}
-        onSelect={(value) => onRichFormat(value as 'bold' | 'italic' | 'underline')}
-      />
-      <SelectRow
-        label={t('manualEdit.typography.weight')}
-        value={elementStyles.fontWeight}
-        options={WEIGHT_OPTS}
-        onChange={(value) => onStyleField('fontWeight', value)}
-      />
-      <ColorRow
-        label={t('manualEdit.typography.textColor')}
-        value={elementStyles.color}
-        onChange={(value) => onStyleField('color', value)}
-      />
-      <ToggleRow
-        label={t('manualEdit.typography.alignment')}
-        value={elementStyles.textAlign}
-        allowClear
-        options={[
-          { value: ALIGN_OPTS[1]!, icon: 'align-left', label: t('manualEdit.typography.alignLeft') },
-          { value: ALIGN_OPTS[2]!, icon: 'align-center', label: t('manualEdit.typography.alignCenter') },
-          { value: ALIGN_OPTS[3]!, icon: 'align-right', label: t('manualEdit.typography.alignRight') },
-          { value: ALIGN_OPTS[4]!, icon: 'align-justify', label: t('manualEdit.typography.alignJustify') },
-        ]}
-        onSelect={(value, wasPressed) => onStyleField('textAlign', wasPressed ? '' : value)}
-      />
-      <NumberRow
-        label={t('manualEdit.typography.lineHeight')}
-        value={elementStyles.lineHeight}
-        unit=""
-        onChange={(v) => onStyleField('lineHeight', v)}
-      />
-      <NumberRow
-        label={t('manualEdit.typography.letterSpacing')}
-        value={elementStyles.letterSpacing}
-        unit="px"
-        onChange={(v) => onStyleField('letterSpacing', v)}
-      />
+    <Section
+      title={t('manualEdit.sectionText')}
+      description={t('manualEdit.sectionTextDescription')}
+    >
+      <Subsection title={t('manualEdit.groupAppearance')}>
+        <FontSelectRow
+          label={t('manualEdit.typography.font')}
+          description={t('manualEdit.typography.fontHelp')}
+          value={elementStyles.fontFamily}
+          onChange={(value) => onStyleField('fontFamily', value)}
+        />
+        <NumberRow
+          label={t('manualEdit.typography.fontSize')}
+          description={t('manualEdit.typography.fontSizeHelp')}
+          value={elementStyles.fontSize}
+          unit="px"
+          onChange={(v) => onStyleField('fontSize', v)}
+        />
+        <ToggleRow
+          label={t('manualEdit.typography.style')}
+          description={t('manualEdit.typography.styleHelp')}
+          disabled={richDisabled}
+          options={[
+            { value: 'bold', icon: 'bold', label: t('manualEdit.typography.bold') },
+            { value: 'italic', icon: 'italic', label: t('manualEdit.typography.italic') },
+            { value: 'underline', icon: 'underline', label: t('manualEdit.typography.underline') },
+          ]}
+          pressed={(value) => richFormat[value as 'bold' | 'italic' | 'underline']}
+          onSelect={(value) => onRichFormat(value as 'bold' | 'italic' | 'underline')}
+        />
+        <SelectRow
+          label={t('manualEdit.typography.weight')}
+          description={t('manualEdit.typography.weightHelp')}
+          value={elementStyles.fontWeight}
+          options={WEIGHT_OPTS}
+          onChange={(value) => onStyleField('fontWeight', value)}
+        />
+        <ColorRow
+          label={t('manualEdit.typography.textColor')}
+          description={t('manualEdit.typography.textColorHelp')}
+          value={elementStyles.color}
+          onChange={(value) => onStyleField('color', value)}
+        />
+      </Subsection>
+      <Subsection title={t('manualEdit.groupLayout')}>
+        <ToggleRow
+          label={t('manualEdit.typography.alignment')}
+          description={t('manualEdit.typography.alignmentHelp')}
+          value={elementStyles.textAlign}
+          allowClear
+          options={[
+            { value: ALIGN_OPTS[1]!, icon: 'align-left', label: t('manualEdit.typography.alignLeft') },
+            { value: ALIGN_OPTS[2]!, icon: 'align-center', label: t('manualEdit.typography.alignCenter') },
+            { value: ALIGN_OPTS[3]!, icon: 'align-right', label: t('manualEdit.typography.alignRight') },
+            { value: ALIGN_OPTS[4]!, icon: 'align-justify', label: t('manualEdit.typography.alignJustify') },
+          ]}
+          onSelect={(value, wasPressed) => onStyleField('textAlign', wasPressed ? '' : value)}
+        />
+        <NumberRow
+          label={t('manualEdit.typography.lineHeight')}
+          description={t('manualEdit.typography.lineHeightHelp')}
+          value={elementStyles.lineHeight}
+          unit=""
+          onChange={(v) => onStyleField('lineHeight', v)}
+        />
+        <NumberRow
+          label={t('manualEdit.typography.letterSpacing')}
+          description={t('manualEdit.typography.letterSpacingHelp')}
+          value={elementStyles.letterSpacing}
+          unit="px"
+          onChange={(v) => onStyleField('letterSpacing', v)}
+        />
+      </Subsection>
     </Section>
   );
 }

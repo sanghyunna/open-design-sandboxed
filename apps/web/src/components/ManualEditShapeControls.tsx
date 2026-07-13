@@ -23,6 +23,7 @@ import {
   QuadField,
   Section,
   SelectRow,
+  Subsection,
 } from './ManualEditInspectorRows';
 import styles from './ManualEditShapeControls.module.css';
 
@@ -253,57 +254,140 @@ function ShapeStack({
   const update = (key: keyof ManualEditStyles, value: string) => onStyleField(key, value);
 
   return (
-    <Section title={t('manualEdit.sectionShape')}>
-      <ColorRow label={t('manualEdit.shape.fill')} value={elementStyles.backgroundColor} onChange={(v) => update('backgroundColor', v)} />
-      <NumberRow label={t('manualEdit.shape.width')} value={elementStyles.width} unit="px" autoUnit onChange={(v) => update('width', v)} />
-      <NumberRow label={t('manualEdit.shape.height')} value={elementStyles.height} unit="px" autoUnit onChange={(v) => update('height', v)} />
-      <NumberRow label={t('manualEdit.shape.radius')} value={elementStyles.borderRadius} unit="px" autoUnit onChange={(v) => update('borderRadius', v)} />
-      <NumberRow label={t('manualEdit.shape.opacity')} value={elementStyles.opacity} unit="" onChange={(v) => update('opacity', v)} />
+    <Section
+      title={t('manualEdit.sectionShape')}
+      description={t('manualEdit.sectionShapeDescription')}
+    >
+      <Subsection title={t('manualEdit.groupAppearance')}>
+        <ColorRow
+          label={t('manualEdit.shape.fill')}
+          description={t('manualEdit.shape.fillHelp')}
+          value={elementStyles.backgroundColor}
+          onChange={(v) => update('backgroundColor', v)}
+        />
+        <NumberRow
+          label={t('manualEdit.shape.radius')}
+          description={t('manualEdit.shape.radiusHelp')}
+          value={elementStyles.borderRadius}
+          unit="px"
+          autoUnit
+          onChange={(v) => update('borderRadius', v)}
+        />
+        <NumberRow
+          label={t('manualEdit.shape.opacity')}
+          description={t('manualEdit.shape.opacityHelp')}
+          value={elementStyles.opacity}
+          unit=""
+          onChange={(v) => update('opacity', v)}
+        />
+      </Subsection>
 
-      <QuadField
-        label={t('manualEdit.shape.padding')}
-        sideLabels={{
-          t: t('manualEdit.shape.paddingTop'),
-          r: t('manualEdit.shape.paddingRight'),
-          b: t('manualEdit.shape.paddingBottom'),
-          l: t('manualEdit.shape.paddingLeft'),
-        }}
-        values={{ t: elementStyles.paddingTop, r: elementStyles.paddingRight, b: elementStyles.paddingBottom, l: elementStyles.paddingLeft }}
-        onChange={(side, value) => update(sideToProp('padding', side), value)}
-      />
-      <QuadField
-        label={t('manualEdit.shape.margin')}
-        sideLabels={{
-          t: t('manualEdit.shape.marginTop'),
-          r: t('manualEdit.shape.marginRight'),
-          b: t('manualEdit.shape.marginBottom'),
-          l: t('manualEdit.shape.marginLeft'),
-        }}
-        values={{ t: elementStyles.marginTop, r: elementStyles.marginRight, b: elementStyles.marginBottom, l: elementStyles.marginLeft }}
-        onChange={(side, value) => update(sideToProp('margin', side), value)}
-      />
+      <Subsection title={t('manualEdit.groupSize')}>
+        <NumberRow
+          label={t('manualEdit.shape.width')}
+          description={t('manualEdit.shape.widthHelp')}
+          value={elementStyles.width}
+          unit="px"
+          autoUnit
+          onChange={(v) => update('width', v)}
+        />
+        <NumberRow
+          label={t('manualEdit.shape.height')}
+          description={t('manualEdit.shape.heightHelp')}
+          value={elementStyles.height}
+          unit="px"
+          autoUnit
+          onChange={(v) => update('height', v)}
+        />
+      </Subsection>
 
-      <SelectRow label={t('manualEdit.shape.style')} value={elementStyles.borderStyle} options={BORDER_STYLE_OPTS} onChange={(v) => update('borderStyle', v)} />
-      <ColorRow label={t('manualEdit.shape.borderColor')} value={elementStyles.borderColor} onChange={(v) => update('borderColor', v)} />
-      <QuadField
-        label={t('manualEdit.shape.borderWidths')}
-        sideLabels={{
-          t: t('manualEdit.shape.borderWidthsTop'),
-          r: t('manualEdit.shape.borderWidthsRight'),
-          b: t('manualEdit.shape.borderWidthsBottom'),
-          l: t('manualEdit.shape.borderWidthsLeft'),
-        }}
-        values={{ t: elementStyles.borderTopWidth, r: elementStyles.borderRightWidth, b: elementStyles.borderBottomWidth, l: elementStyles.borderLeftWidth }}
-        onChange={(side, value) => update(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)}
-      />
+      <Subsection title={t('manualEdit.groupSpacing')}>
+        <QuadField
+          label={t('manualEdit.shape.padding')}
+          description={t('manualEdit.shape.paddingHelp')}
+          sideLabels={{
+            t: t('manualEdit.shape.paddingTop'),
+            r: t('manualEdit.shape.paddingRight'),
+            b: t('manualEdit.shape.paddingBottom'),
+            l: t('manualEdit.shape.paddingLeft'),
+          }}
+          values={{ t: elementStyles.paddingTop, r: elementStyles.paddingRight, b: elementStyles.paddingBottom, l: elementStyles.paddingLeft }}
+          onChange={(side, value) => update(sideToProp('padding', side), value)}
+        />
+        <QuadField
+          label={t('manualEdit.shape.margin')}
+          description={t('manualEdit.shape.marginHelp')}
+          sideLabels={{
+            t: t('manualEdit.shape.marginTop'),
+            r: t('manualEdit.shape.marginRight'),
+            b: t('manualEdit.shape.marginBottom'),
+            l: t('manualEdit.shape.marginLeft'),
+          }}
+          values={{ t: elementStyles.marginTop, r: elementStyles.marginRight, b: elementStyles.marginBottom, l: elementStyles.marginLeft }}
+          onChange={(side, value) => update(sideToProp('margin', side), value)}
+        />
+      </Subsection>
+
+      <Subsection title={t('manualEdit.groupBorder')}>
+        <SelectRow
+          label={t('manualEdit.shape.style')}
+          description={t('manualEdit.shape.styleHelp')}
+          value={elementStyles.borderStyle}
+          options={BORDER_STYLE_OPTS}
+          onChange={(v) => update('borderStyle', v)}
+        />
+        <ColorRow
+          label={t('manualEdit.shape.borderColor')}
+          description={t('manualEdit.shape.borderColorHelp')}
+          value={elementStyles.borderColor}
+          onChange={(v) => update('borderColor', v)}
+        />
+        <QuadField
+          label={t('manualEdit.shape.borderWidths')}
+          description={t('manualEdit.shape.borderWidthsHelp')}
+          sideLabels={{
+            t: t('manualEdit.shape.borderWidthsTop'),
+            r: t('manualEdit.shape.borderWidthsRight'),
+            b: t('manualEdit.shape.borderWidthsBottom'),
+            l: t('manualEdit.shape.borderWidthsLeft'),
+          }}
+          values={{ t: elementStyles.borderTopWidth, r: elementStyles.borderRightWidth, b: elementStyles.borderBottomWidth, l: elementStyles.borderLeftWidth }}
+          onChange={(side, value) => update(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)}
+        />
+      </Subsection>
 
       {target.isLayoutContainer ? (
-        <>
-          <NumberRow label={t('manualEdit.shape.gap')} value={elementStyles.gap} unit="px" autoUnit onChange={(v) => update('gap', v)} />
-          <SelectRow label={t('manualEdit.shape.direction')} value={elementStyles.flexDirection} options={DIRECTION_OPTS} onChange={(v) => update('flexDirection', v)} />
-          <SelectRow label={t('manualEdit.shape.justify')} value={elementStyles.justifyContent} options={JUSTIFY_OPTS} onChange={(v) => update('justifyContent', v)} />
-          <SelectRow label={t('manualEdit.shape.align')} value={elementStyles.alignItems} options={ITEMS_OPTS} onChange={(v) => update('alignItems', v)} />
-        </>
+        <Subsection title={t('manualEdit.groupLayout')}>
+          <NumberRow
+            label={t('manualEdit.shape.gap')}
+            description={t('manualEdit.shape.gapHelp')}
+            value={elementStyles.gap}
+            unit="px"
+            autoUnit
+            onChange={(v) => update('gap', v)}
+          />
+          <SelectRow
+            label={t('manualEdit.shape.direction')}
+            description={t('manualEdit.shape.directionHelp')}
+            value={elementStyles.flexDirection}
+            options={DIRECTION_OPTS}
+            onChange={(v) => update('flexDirection', v)}
+          />
+          <SelectRow
+            label={t('manualEdit.shape.justify')}
+            description={t('manualEdit.shape.justifyHelp')}
+            value={elementStyles.justifyContent}
+            options={JUSTIFY_OPTS}
+            onChange={(v) => update('justifyContent', v)}
+          />
+          <SelectRow
+            label={t('manualEdit.shape.align')}
+            description={t('manualEdit.shape.alignHelp')}
+            value={elementStyles.alignItems}
+            options={ITEMS_OPTS}
+            onChange={(v) => update('alignItems', v)}
+          />
+        </Subsection>
       ) : null}
 
       {target.kind === 'image' && onPickImage ? (

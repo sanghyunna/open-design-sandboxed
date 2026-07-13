@@ -1,0 +1,241 @@
+.root {
+  --manual-edit-field-bg: color-mix(in srgb, var(--bg-panel) 82%, var(--text) 18%);
+  --manual-edit-field-bg-hover: color-mix(in srgb, var(--bg-panel) 74%, var(--text) 26%);
+  --manual-edit-field-border: color-mix(in srgb, var(--border) 68%, var(--text) 22%);
+  --manual-edit-field-text: var(--text);
+  --manual-edit-field-muted: var(--text-muted);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--bg-panel);
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 12px 8px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.exit:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 14px 20px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.error {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  color: var(--danger, var(--text));
+  background: color-mix(in srgb, var(--danger, var(--text)) 12%, transparent);
+  font-size: 11px;
+}
+
+.root :global(.cc-section) {
+  gap: 12px;
+}
+
+.root :global(.cc-section + .cc-section) {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.root :global(.cc-section-head) {
+  padding: 0 2px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.root :global(.cc-section-description) {
+  margin: -8px 2px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+}
+
+.root :global(.cc-section-body),
+.root :global(.cc-subsection-body) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.root :global(.cc-subsection) {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.root :global(.cc-subsection + .cc-subsection) {
+  margin-top: 7px;
+  padding-top: 13px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.root :global(.cc-subsection-title) {
+  margin: 0 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.root :global(.cc-row) {
+  min-height: 44px;
+  height: auto;
+  padding: 7px 8px 7px 10px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 11px;
+  gap: 10px;
+}
+
+.root :global(.cc-field-copy) {
+  display: flex;
+  flex: 1 1 58%;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.root :global(.cc-label),
+.root :global(.cc-quad-label) {
+  padding: 0;
+  color: var(--manual-edit-field-text);
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.root :global(.cc-description) {
+  display: block;
+  color: var(--manual-edit-field-muted);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.root :global(.cc-value) {
+  flex: 1 1 42%;
+}
+
+.root :global(.cc-value > input),
+.root :global(.cc-value > select) {
+  min-height: 24px;
+  font-size: 11px;
+}
+
+.root :global(.cc-quad) {
+  padding: 10px;
+  border: 1px solid var(--manual-edit-field-border);
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--manual-edit-field-bg) 60%, transparent);
+  gap: 8px;
+}
+
+.root :global(.cc-quad-head) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.root :global(.cc-quad-grid) {
+  gap: 6px;
+}
+
+.root :global(.cc-quad-cell) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 44px;
+  height: auto;
+  padding: 5px 7px;
+  gap: 2px;
+}
+
+.root :global(.cc-quad-side) {
+  overflow: hidden;
+  color: var(--manual-edit-field-muted);
+  font-size: 9px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.root :global(.cc-quad-cell .cc-value) {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.root :global(.cc-quad-cell .cc-value > input) {
+  text-align: right;
+}
+
+.root :global(.cc-action) {
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.root :global(.cc-action-danger) {
+  border-color: color-mix(in srgb, var(--danger, var(--text)) 28%, var(--manual-edit-field-border));
+  background: color-mix(in srgb, var(--danger, var(--text)) 7%, var(--bg-panel));
+}
