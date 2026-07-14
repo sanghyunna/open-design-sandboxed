@@ -19,12 +19,13 @@ import {
 import {
   ActionRow,
   ColorRow,
+  DisclosureSection,
   NumberRow,
   QuadField,
-  Section,
   SelectRow,
-  Subsection,
 } from './ManualEditInspectorRows';
+import { ManualEditBoxModelControls } from './ManualEditBoxModelControls';
+import { ManualEditGeometryControls, sizeMode } from './ManualEditGeometryControls';
 import styles from './ManualEditShapeControls.module.css';
 
 export interface ManualEditShapeControlsProps {
@@ -38,6 +39,7 @@ export interface ManualEditShapeControlsProps {
   canRedo: boolean;
   getActiveTarget?: () => ManualEditTarget | null;
   onStyleField: (key: keyof ManualEditStyles, value: string) => void;
+  onStyleFields?: (styles: Partial<ManualEditStyles>) => void;
   onApplyPatch: (patch: ManualEditPatch, label: string) => void;
   onPickImage?: (file: File) => Promise<string | null>;
   onError: (message: string) => void;
@@ -232,7 +234,7 @@ function ShapeBar({
   );
 }
 
-// Vertical inspector section built from the shared cc- rows.
+// Vertical inspector: common actions stay visible, precision groups fold by default.
 function ShapeStack({
   target,
   styles: elementStyles,
@@ -240,6 +242,7 @@ function ShapeStack({
   busy,
   getActiveTarget,
   onStyleField,
+  onStyleFields,
   onApplyPatch,
   onPickImage,
   onError,
@@ -252,13 +255,89 @@ function ShapeStack({
     setConfirmingDelete(false);
   }, [target.id]);
   const update = (key: keyof ManualEditStyles, value: string) => onStyleField(key, value);
+  const isTextLike = target.kind === 'text'
+    || target.kind === 'link'
+    || target.kind === 'token'
+    || !!target.textEditTargetId;
+  const sizeSummary = `${dimensionSummary(elementStyles.width, target.authoredSize?.width, target.cssSize?.width, target.rect.width, t)} × ${dimensionSummary(elementStyles.height, target.authoredSize?.height, target.cssSize?.height, target.rect.height, t)}`;
+  const spacingSummary = `${t('manualEdit.shape.padding')} ${compactSpace(elementStyles, 'padding')} · ${t('manualEdit.shape.margin')} ${compactSpace(elementStyles, 'margin')}`;
+  const appearanceSummary = [elementStyles.backgroundColor || '—', elementStyles.borderRadius || '0px'].join(' · ');
 
   return (
-    <Section
-      title={t('manualEdit.sectionShape')}
-      description={t('manualEdit.sectionShapeDescription')}
-    >
-      <Subsection title={t('manualEdit.groupAppearance')}>
+    <div className={styles.stack}>
+      {!isTextLike ? (
+        <section className={`${styles.quickPanel} cc-section`}>
+          <header className={`${styles.quickHeader} cc-section-head`}>
+            <strong>{t('manualEdit.quickShape')}</strong>
+            <span>{t('manualEdit.sectionShape')}</span>
+          </header>
+          <div className={`${styles.quickBody} cc-section-body`}>
+            <div className={styles.quickGrid}>
+              <QuickColorField
+                icon="paint-fill"
+                label={t('manualEdit.shape.fill')}
+                value={elementStyles.backgroundColor}
+                onChange={(value) => update('backgroundColor', value)}
+              />
+              <QuickColorField
+                icon="pencil-ruler-2-line"
+                label={t('manualEdit.shape.borderColor')}
+                value={elementStyles.borderColor}
+                onChange={(value) => update('borderColor', value)}
+              />
+            </div>
+            <div className={styles.quickGrid}>
+              <QuickValueField
+                icon="rounded-corner"
+                label={t('manualEdit.shape.radius')}
+                value={stripPxUnit(elementStyles.borderRadius)}
+                unit="px"
+                onChange={(value) => update('borderRadius', emitUnitValue(value, 'px'))}
+              />
+              <QuickValueField
+                icon="contrast-drop-line"
+                label={t('manualEdit.shape.opacity')}
+                value={opacityPercent(elementStyles.opacity)}
+                unit="%"
+                onChange={(value) => update('opacity', opacityValue(value))}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <DisclosureSection
+        title={t('manualEdit.sizePosition')}
+        summary={sizeSummary}
+        icon="aspect-ratio-line"
+      >
+        <ManualEditGeometryControls
+          target={target}
+          styles={elementStyles}
+          onStyleField={onStyleField}
+          onStyleFields={onStyleFields}
+        />
+      </DisclosureSection>
+
+      <DisclosureSection
+        title={t('manualEdit.groupSpacing')}
+        summary={spacingSummary}
+        icon="box-3-line"
+      >
+        <ManualEditBoxModelControls
+          key={target.id}
+          styles={elementStyles}
+          onStyleField={onStyleField}
+          onStyleFields={onStyleFields}
+        />
+      </DisclosureSection>
+
+      <DisclosureSection
+        title={t('manualEdit.groupAppearance')}
+        summary={appearanceSummary}
+        icon="palette-line"
+      >
+        <div className={styles.detailRows}>
         <ColorRow
           label={t('manualEdit.shape.fill')}
           description={t('manualEdit.shape.fillHelp')}
@@ -276,59 +355,11 @@ function ShapeStack({
         <NumberRow
           label={t('manualEdit.shape.opacity')}
           description={t('manualEdit.shape.opacityHelp')}
-          value={elementStyles.opacity}
-          unit=""
-          onChange={(v) => update('opacity', v)}
+          value={opacityPercent(elementStyles.opacity)}
+          unit="%"
+          onChange={(v) => update('opacity', opacityValue(v))}
         />
-      </Subsection>
-
-      <Subsection title={t('manualEdit.groupSize')}>
-        <NumberRow
-          label={t('manualEdit.shape.width')}
-          description={t('manualEdit.shape.widthHelp')}
-          value={elementStyles.width}
-          unit="px"
-          autoUnit
-          onChange={(v) => update('width', v)}
-        />
-        <NumberRow
-          label={t('manualEdit.shape.height')}
-          description={t('manualEdit.shape.heightHelp')}
-          value={elementStyles.height}
-          unit="px"
-          autoUnit
-          onChange={(v) => update('height', v)}
-        />
-      </Subsection>
-
-      <Subsection title={t('manualEdit.groupSpacing')}>
-        <QuadField
-          label={t('manualEdit.shape.padding')}
-          description={t('manualEdit.shape.paddingHelp')}
-          sideLabels={{
-            t: t('manualEdit.shape.paddingTop'),
-            r: t('manualEdit.shape.paddingRight'),
-            b: t('manualEdit.shape.paddingBottom'),
-            l: t('manualEdit.shape.paddingLeft'),
-          }}
-          values={{ t: elementStyles.paddingTop, r: elementStyles.paddingRight, b: elementStyles.paddingBottom, l: elementStyles.paddingLeft }}
-          onChange={(side, value) => update(sideToProp('padding', side), value)}
-        />
-        <QuadField
-          label={t('manualEdit.shape.margin')}
-          description={t('manualEdit.shape.marginHelp')}
-          sideLabels={{
-            t: t('manualEdit.shape.marginTop'),
-            r: t('manualEdit.shape.marginRight'),
-            b: t('manualEdit.shape.marginBottom'),
-            l: t('manualEdit.shape.marginLeft'),
-          }}
-          values={{ t: elementStyles.marginTop, r: elementStyles.marginRight, b: elementStyles.marginBottom, l: elementStyles.marginLeft }}
-          onChange={(side, value) => update(sideToProp('margin', side), value)}
-        />
-      </Subsection>
-
-      <Subsection title={t('manualEdit.groupBorder')}>
+        <div className={styles.detailDivider} />
         <SelectRow
           label={t('manualEdit.shape.style')}
           description={t('manualEdit.shape.styleHelp')}
@@ -354,10 +385,78 @@ function ShapeStack({
           values={{ t: elementStyles.borderTopWidth, r: elementStyles.borderRightWidth, b: elementStyles.borderBottomWidth, l: elementStyles.borderLeftWidth }}
           onChange={(side, value) => update(`border${sideUpper(side)}Width` as keyof ManualEditStyles, value)}
         />
-      </Subsection>
+        {target.kind === 'image' && onPickImage ? (
+          <>
+            <ActionRow
+              icon="image-add-line"
+              label={uploadingImage ? t('manualEdit.uploadingImage') : t('manualEdit.uploadImage')}
+              disabled={busy || uploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className={styles.fileInput}
+              onChange={async (event) => {
+                const file = event.currentTarget.files?.[0];
+                if (!file) return;
+                event.currentTarget.value = '';
+                setUploadingImage(true);
+                try {
+                  const src = await onPickImage(file);
+                  const activeTarget = getActiveTarget?.() ?? target;
+                  if (!src) {
+                    onError(t('manualEdit.uploadImageFailed'));
+                    return;
+                  }
+                  if (activeTarget?.id !== target.id || activeTarget.kind !== 'image') return;
+                  onApplyPatch({ id: activeTarget.id, kind: 'set-image', src, alt: draftAlt }, t('manualEdit.uploadImage'));
+                } finally {
+                  setUploadingImage(false);
+                }
+              }}
+            />
+          </>
+        ) : null}
+        {confirmingDelete ? (
+          <div className={styles.confirmDelete}>
+            <ActionRow
+              icon="delete-bin-line"
+              label={t('manualEdit.deleteElement')}
+              danger
+              disabled={busy}
+              onClick={() => {
+                setConfirmingDelete(false);
+                onApplyPatch({ id: target.id, kind: 'remove-element' }, t('manualEdit.deleteElement'));
+              }}
+            />
+            <ActionRow
+              icon="close-line"
+              label={t('common.cancel')}
+              disabled={busy}
+              onClick={() => setConfirmingDelete(false)}
+            />
+          </div>
+        ) : (
+          <ActionRow
+            icon="delete-bin-line"
+            label={t('manualEdit.deleteElement')}
+            danger
+            disabled={busy}
+            onClick={() => setConfirmingDelete(true)}
+          />
+        )}
+        </div>
+      </DisclosureSection>
 
       {target.isLayoutContainer ? (
-        <Subsection title={t('manualEdit.groupLayout')}>
+        <DisclosureSection
+          title={t('manualEdit.groupLayout')}
+          summary={[elementStyles.flexDirection || '—', elementStyles.gap || '0px'].join(' · ')}
+          icon="layout-grid-line"
+        >
+          <div className={styles.detailRows}>
           <NumberRow
             label={t('manualEdit.shape.gap')}
             description={t('manualEdit.shape.gapHelp')}
@@ -387,74 +486,117 @@ function ShapeStack({
             options={ITEMS_OPTS}
             onChange={(v) => update('alignItems', v)}
           />
-        </Subsection>
+          </div>
+        </DisclosureSection>
       ) : null}
-
-      {target.kind === 'image' && onPickImage ? (
-        <>
-          <ActionRow
-            icon="image-add-line"
-            label={uploadingImage ? t('manualEdit.uploadingImage') : t('manualEdit.uploadImage')}
-            disabled={busy || uploadingImage}
-            onClick={() => fileInputRef.current?.click()}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className={styles.fileInput}
-            onChange={async (event) => {
-              const file = event.currentTarget.files?.[0];
-              if (!file) return;
-              event.currentTarget.value = '';
-              setUploadingImage(true);
-              try {
-                const src = await onPickImage(file);
-                const activeTarget = getActiveTarget?.() ?? target;
-                if (!src) {
-                  onError(t('manualEdit.uploadImageFailed'));
-                  return;
-                }
-                if (activeTarget?.id !== target.id || activeTarget.kind !== 'image') return;
-                onApplyPatch({ id: activeTarget.id, kind: 'set-image', src, alt: draftAlt }, t('manualEdit.uploadImage'));
-              } finally {
-                setUploadingImage(false);
-              }
-            }}
-          />
-        </>
-      ) : null}
-
-      {confirmingDelete ? (
-        <div className={styles.confirmDelete}>
-          <ActionRow
-            icon="delete-bin-line"
-            label={t('manualEdit.deleteElement')}
-            danger
-            disabled={busy}
-            onClick={() => {
-              setConfirmingDelete(false);
-              onApplyPatch({ id: target.id, kind: 'remove-element' }, t('manualEdit.deleteElement'));
-            }}
-          />
-          <ActionRow
-            icon="close-line"
-            label={t('common.cancel')}
-            disabled={busy}
-            onClick={() => setConfirmingDelete(false)}
-          />
-        </div>
-      ) : (
-        <ActionRow
-          icon="delete-bin-line"
-          label={t('manualEdit.deleteElement')}
-          danger
-          disabled={busy}
-          onClick={() => setConfirmingDelete(true)}
-        />
-      )}
-    </Section>
+    </div>
   );
+}
+
+function QuickColorField({
+  icon,
+  label,
+  value,
+  onChange,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className={styles.quickField}>
+      <RemixIcon name={icon} size={15} />
+      <span className={styles.quickLabel}>{label}</span>
+      <strong className={styles.quickValue}>{value || '—'}</strong>
+      <ColorControl label={label} value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+function QuickValueField({
+  icon,
+  label,
+  value,
+  unit,
+  onChange,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  unit: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={styles.quickField}>
+      <RemixIcon name={icon} size={15} />
+      <span className={styles.quickLabel}>{label}</span>
+      <input
+        className={styles.quickInput}
+        aria-label={label}
+        inputMode="decimal"
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      />
+      <em className={styles.quickUnit}>{unit}</em>
+    </label>
+  );
+}
+
+function emitUnitValue(raw: string, unit: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return `${trimmed}${unit}`;
+  return raw;
+}
+
+function opacityPercent(value: string): string {
+  const numeric = parsePlainDecimal(value);
+  if (numeric === undefined) return value;
+  return String(Math.round(numeric * 10000) / 100);
+}
+
+function opacityValue(value: string): string {
+  const numeric = parsePlainDecimal(value);
+  if (numeric === undefined) return value;
+  return String(Math.max(0, Math.min(100, numeric)) / 100);
+}
+
+function parsePlainDecimal(value: string): number | undefined {
+  const normalized = value.trim();
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(normalized)) return undefined;
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function dimensionSummary(
+  value: string,
+  authoredValue: string | undefined,
+  computed: string | undefined,
+  rectValue: number,
+  t: ReturnType<typeof useT>,
+): string {
+  const draftMode = sizeMode(value);
+  const mode = draftMode === 'fixed' && authoredValue !== undefined
+    ? sizeMode(authoredValue)
+    : draftMode;
+  if (mode === 'auto') {
+    const measured = stripPxUnit(computed || `${Math.round(rectValue)}px`);
+    return `${measured}px ${t('manualEdit.geometry.auto')}`;
+  }
+  if (mode === 'fill') return t('manualEdit.geometry.fill');
+  const numericPx = /^(-?\d+(?:\.\d+)?)px$/i.exec(value.trim());
+  if (!numericPx?.[1]) return value;
+  return `${Math.round(Number.parseFloat(numericPx[1]) * 10) / 10}px`;
+}
+
+function compactSpace(elementStyles: ManualEditStyles, kind: 'padding' | 'margin'): string {
+  const values = (['Top', 'Right', 'Bottom', 'Left'] as const).map((side) => (
+    stripPxUnit(elementStyles[`${kind}${side}` as keyof ManualEditStyles] || '0px') || '0'
+  ));
+  if (values.every((value) => value === values[0])) return values[0]!;
+  if (values[0] === values[2] && values[1] === values[3]) return `${values[0]}·${values[1]}`;
+  return values.join('·');
 }
 
 function ToolbarPopover({ label, icon, children }: { label: string; icon: string; children: ReactNode }) {

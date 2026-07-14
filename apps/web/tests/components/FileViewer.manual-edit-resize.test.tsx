@@ -98,6 +98,7 @@ describe('FileViewer manual edit resize handles', () => {
             width: expect.stringMatching(/px$/),
             height: expect.stringMatching(/px$/),
           }),
+          includeAuthoredSize: false,
         }),
         '*',
       );
@@ -128,6 +129,8 @@ describe('FileViewer manual edit resize handles', () => {
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await selectManualEditTarget();
 
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     const se = seHandle();
     fireEvent.pointerDown(se, { pointerId: 2, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(se, { pointerId: 2, clientX: 340, clientY: 170 });
@@ -138,9 +141,22 @@ describe('FileViewer manual edit resize handles', () => {
         '/api/projects/project-1/files',
         expect.objectContaining({ method: 'POST' }),
       );
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style',
+          id: 'hero',
+          includeAuthoredSize: true,
+        }),
+        '*',
+      );
     });
     expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*200px/);
     expect(savedContent).toMatch(/height:\s*68px/);
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Width') as HTMLInputElement).value).toBe('200');
+      expect((screen.getByLabelText('Height') as HTMLInputElement).value).toBe('68');
+    });
   });
 
   it('commits CSS-space px, not rect-space px, for targets under an ancestor transform', async () => {

@@ -76,6 +76,11 @@ export interface ManualEditTarget {
    * or ignored), this is what actually renders — the resize drag baseline.
    */
   cssSize?: { width: string; height: string };
+  /** Winning authored width/height declarations (inline or stylesheet), kept
+   * separate from computed size so the inspector can distinguish Auto, Fill,
+   * and an explicitly sized element without mistaking a used px value for an
+   * authored fixed size. */
+  authoredSize?: { width: string; height: string };
   /**
    * Main axis of the parent flex container when the element is a flex item
    * ('row' → width is the main axis, 'column' → height), else null. Main-axis
@@ -149,6 +154,8 @@ export interface ManualEditPreviewAppliedMessage {
    * layout clamps a request, this is the value that actually took effect.
    */
   cssSize?: { width: string; height: string };
+  /** Post-apply winning authored width/height declarations. */
+  authoredSize?: { width: string; height: string };
 }
 
 export interface ManualEditTextCommitMessage {

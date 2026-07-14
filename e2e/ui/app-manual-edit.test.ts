@@ -88,20 +88,28 @@ test('[P0] manual edit left inspector previews and persists page and selected el
   await expect(inspectorRow(page, 'Font').locator('select')).toHaveValue('Georgia, serif');
   await expect(inspectorRow(page, 'Base size').locator('input')).toHaveValue('18');
 
-  // Selecting a text element swaps the Page section for Text + Shape sections.
+  // Selecting a text element swaps Page controls for always-visible quick
+  // formatting plus folded precision controls.
   await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Text');
-  await expect(inspectorSection(page, 'Shape')).toBeVisible();
+  await expect(inspectorSurface(page, 'Shape')).toBeVisible();
   await expect(inspectorSection(page, 'Page')).toHaveCount(0);
 
-  const fontSizeInput = inspectorSection(page, 'Text').locator('.cc-row').filter({ hasText: 'Font size' }).locator('input');
+  const fontSizeInput = inspector.getByLabel('Font size', { exact: true });
   await fontSizeInput.fill('48');
-  await inspectorSection(page, 'Text').locator('.cc-row').filter({ hasText: 'Text color' }).locator('input:not([type="color"])').fill('#ef4444');
+  await inspector.getByLabel('Text color value', { exact: true }).fill('#ef4444');
   await expect(fontSizeInput).toHaveValue('48');
 
   // Edits preview live on the selected element.
   const title = frame.getByRole('heading', { name: 'Original Hero' });
   await expect.poll(async () => title.evaluate((el) => getComputedStyle(el).fontSize)).toBe('48px');
   await expect(title).toHaveCSS('color', 'rgb(239, 68, 68)');
+
+  // Computed px is still Auto until the user pins it. Switching to Fill must
+  // live-apply through the production style validator, not just toggle the UI.
+  await inspector.getByRole('button', { name: /Size & position/ }).click();
+  await expect(inspector.getByRole('button', { name: 'Auto Width' })).toHaveAttribute('aria-pressed', 'true');
+  await inspector.getByRole('button', { name: 'Fill Width' }).click();
+  await expect.poll(async () => title.evaluate((el) => (el as HTMLElement).style.width)).toBe('100%');
 
   // Exiting edit mode flushes staged edits to the file and restores chat.
   await page.getByTestId('manual-edit-mode-toggle').click();
@@ -111,6 +119,7 @@ test('[P0] manual edit left inspector previews and persists page and selected el
     // color as rgb() when the style attribute round-trips.
     'font-size: 48px',
     'rgb(239, 68, 68)',
+    'width: 100%',
     // Page edits (body) flushed when the element selection took over.
     'background-color: rgb(238, 242, 255)',
   ]);
@@ -418,7 +427,7 @@ async function selectPreviewElementThroughBridge(
 ) {
   await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
   await frame.locator(selector).click();
-  await expect(inspectorSection(page, section)).toBeVisible();
+  await expect(inspectorSurface(page, section)).toBeVisible();
   await expect(frame.locator(`${selector}[data-od-edit-selected="true"]`)).toHaveCount(1);
 }
 
@@ -491,10 +500,10 @@ async function selectStyleRowInput(
       },
     }, '*');
   });
-  await expect(inspectorSection(page, section)).toBeVisible();
-  const row = inspectorSection(page, section).locator('.cc-row').filter({ hasText: label }).locator('input');
-  await expect(row).toBeVisible();
-  return row;
+  await expect(inspectorSurface(page, section)).toBeVisible();
+  const input = page.locator('.manual-edit-left-inspector').getByLabel(label, { exact: true });
+  await expect(input).toBeVisible();
+  return input;
 }
 
 test('[P0] manual edit mode keeps deck navigation available for deck-shaped HTML', async ({ page }) => {
@@ -724,6 +733,13 @@ function inspectorRow(page: Page, label: string) {
 
 function inspectorSection(page: Page, title: string) {
   return page.locator('.manual-edit-left-inspector .cc-section').filter({ has: page.locator('.cc-section-head', { hasText: new RegExp(`^${title}$`, 'i') }) }).first();
+}
+
+function inspectorSurface(page: Page, title: string) {
+  const inspector = page.locator('.manual-edit-left-inspector');
+  if (title === 'Text') return inspector.getByText('Quick format', { exact: true });
+  if (title === 'Shape') return inspector.getByRole('button', { name: /^Size & position/ });
+  return inspectorSection(page, title);
 }
 
 function manualEditHtml(): string {

@@ -3,7 +3,8 @@
 // (Text / Shape / Page sections) so every section shares one visual language.
 // The horizontal docked toolbars keep their own compact primitives; these are
 // the stacked equivalents.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Button } from '@open-design/components';
 import { useT } from '../i18n';
 import { RemixIcon } from './RemixIcon';
 import { useSystemFonts } from './useSystemFonts';
@@ -33,6 +34,49 @@ export function Section({
       <header className="cc-section-head">{title}</header>
       {description ? <p className="cc-section-description">{description}</p> : null}
       <div className="cc-section-body">{children}</div>
+    </section>
+  );
+}
+
+export function DisclosureSection({
+  title,
+  summary,
+  icon,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  summary?: string;
+  icon: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  return (
+    <section className="cc-disclosure">
+      <Button
+        variant="subtle"
+        className="cc-disclosure-head"
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <RemixIcon name={icon} size={16} />
+        <strong>{title}</strong>
+        {summary ? <span className="cc-disclosure-summary">{summary}</span> : null}
+        <RemixIcon name="arrow-down-s-line" size={16} />
+      </Button>
+      <div
+        id={contentId}
+        className={`accordion-collapsible${open ? ' open' : ''}`}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <div className="accordion-collapsible-inner">
+          <div className="cc-disclosure-body">{children}</div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -75,7 +119,7 @@ export function NumberRow({
   disabled?: boolean;
 }) {
   const display = unit === 'px' ? stripPxUnit(value) : value;
-  const step = unit === 'px' ? 1 : 0.1;
+  const step = unit === 'px' || unit === '%' ? 1 : 0.1;
   const canStep = !disabled && isNumericInput(display);
   const valueFromDisplay = (raw: string) => {
     const trimmed = raw.trim();

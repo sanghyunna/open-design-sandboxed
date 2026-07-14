@@ -24,6 +24,7 @@ export interface ManualEditLeftInspectorProps {
   pageStylesEnabled: boolean;
   getActiveTarget?: () => ManualEditTarget | null;
   onStyleField: (key: keyof ManualEditStyles, value: string) => void;
+  onStyleFields?: (styles: Partial<ManualEditStyles>) => void;
   onRichFormat: (command: 'bold' | 'italic' | 'underline') => void;
   onApplyPatch: (patch: ManualEditPatch, label: string) => void;
   onPickImage?: (file: File) => Promise<string | null>;
@@ -47,6 +48,7 @@ export function ManualEditLeftInspector({
   pageStylesEnabled,
   getActiveTarget,
   onStyleField,
+  onStyleFields,
   onRichFormat,
   onApplyPatch,
   onPickImage,
@@ -63,13 +65,24 @@ export function ManualEditLeftInspector({
       || target.kind === 'link'
       || target.kind === 'token'
       || !!target.textEditTargetId);
+  const selectionType = target
+    ? t(isTextLike ? 'manualEdit.sectionText' : 'manualEdit.sectionShape')
+    : null;
 
   return (
     <aside className={`manual-edit-left-inspector ${inspectorStyles.root}`} aria-label={t('manualEdit.inspectorTitle')}>
       <header className={inspectorStyles.header}>
-        <span className={inspectorStyles.title} title={target?.label ?? t('manualEdit.inspectorTitle')}>
-          {target?.label ?? t('manualEdit.inspectorTitle')}
-        </span>
+        <div className={inspectorStyles.selectionCopy} title={target?.label ?? t('manualEdit.inspectorTitle')}>
+          {selectionType ? (
+            <span className={inspectorStyles.selectionType}>
+              <RemixIcon name={isTextLike ? 'text' : 'shapes-line'} size={13} />
+              {selectionType}
+            </span>
+          ) : null}
+          <span className={inspectorStyles.title}>
+            {target?.label ?? t('manualEdit.inspectorTitle')}
+          </span>
+        </div>
         <div className={inspectorStyles.actions}>
           <Button
             variant="subtle"
@@ -92,15 +105,16 @@ export function ManualEditLeftInspector({
             <RemixIcon name="arrow-go-forward-line" size={15} />
           </Button>
           {onExit ? (
-            <button
-              type="button"
+            <Button
+              variant="subtle"
+              size="icon"
               className={inspectorStyles.exit}
               aria-label={t('manualEdit.exitEditMode')}
               title={t('manualEdit.exitEditMode')}
               onClick={onExit}
             >
               <Icon name="close" size={16} />
-            </button>
+            </Button>
           ) : null}
         </div>
       </header>
@@ -110,6 +124,7 @@ export function ManualEditLeftInspector({
           <>
             {isTextLike ? (
               <ManualEditTextControls
+                key={`text:${target.id}`}
                 layout="stack"
                 target={target}
                 styles={styles}
@@ -119,6 +134,7 @@ export function ManualEditLeftInspector({
               />
             ) : null}
             <ManualEditShapeControls
+              key={`shape:${target.id}`}
               layout="stack"
               target={target}
               styles={styles}
@@ -129,6 +145,7 @@ export function ManualEditLeftInspector({
               canRedo={canRedo}
               getActiveTarget={getActiveTarget}
               onStyleField={onStyleField}
+              onStyleFields={onStyleFields}
               onApplyPatch={onApplyPatch}
               onPickImage={onPickImage}
               onError={onError}

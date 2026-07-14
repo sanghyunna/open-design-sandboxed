@@ -17,6 +17,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  document.getElementById('manual-edit-test-host')?.remove();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -270,9 +271,18 @@ describe('FileViewer manual edit move frame', () => {
     let savedContent = '';
     const fetchMock = savingFetch((c) => { savedContent = c; });
     vi.stubGlobal('fetch', fetchMock);
+    const inspectorHost = document.createElement('div');
+    inspectorHost.id = 'manual-edit-test-host';
+    document.body.appendChild(inspectorHost);
 
     render(
-      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={htmlPreviewFile()}
+        liveHtml={SOURCE}
+        manualEditPortalId="manual-edit-test-host"
+      />,
     );
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
@@ -298,6 +308,12 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(interior, { pointerId: 1, clientX: 330, clientY: 190 });
     await waitFor(() => {
       expect(savedContent).toMatch(/data-od-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Size & position/ }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Direct move' }).getAttribute('aria-pressed')).toBe('true');
+      expect((screen.getByLabelText('X offset') as HTMLInputElement).value).toBe('30');
+      expect((screen.getByLabelText('Y offset') as HTMLInputElement).value).toBe('40');
     });
 
     // Drag 2 on the still-selected element folds onto the just-committed base

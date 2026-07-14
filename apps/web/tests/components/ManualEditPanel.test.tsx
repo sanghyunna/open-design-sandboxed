@@ -2,8 +2,13 @@ import { JSDOM } from 'jsdom';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ManualEditPanel, normalizeManualEditStyles } from '../../src/components/ManualEditPanel';
-import type { ManualEditStyles } from '../../src/edit-mode/types';
+import {
+  ManualEditPanel,
+  applyManualEditStyleFields,
+  emptyManualEditDraft,
+  normalizeManualEditStyles,
+} from '../../src/components/ManualEditPanel';
+import type { ManualEditStyles, ManualEditTarget } from '../../src/edit-mode/types';
 
 type OnStyleChange = (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
 type OnInvalidStyle = (id: string, keys: Array<keyof ManualEditStyles>) => void;
@@ -110,6 +115,58 @@ describe('ManualEditPanel', () => {
       ok: true,
       styles: { lineHeight: '49px' },
     });
+    for (const opacity of ['0x10', '0b10', '1e2']) {
+      expect(normalizeManualEditStyles({ opacity }, { layoutEnabled: true })).toEqual({
+        ok: false,
+        error: 'Opacity must be a number.',
+      });
+    }
+  });
+
+  it('accepts the sizing modes emitted by the manual edit inspector', () => {
+    expect(normalizeManualEditStyles({
+      width: '100%',
+      height: 'auto',
+    }, { layoutEnabled: true })).toEqual({
+      ok: true,
+      styles: {
+        width: '100%',
+        height: 'auto',
+      },
+    });
+  });
+
+  it('dispatches linked style fields as one draft and preview update', () => {
+    const draft = emptyManualEditDraft();
+    const target = {
+      id: 'card',
+      label: 'Card',
+      isLayoutContainer: false,
+    } as ManualEditTarget;
+    const onDraftChange = vi.fn();
+    const onStyleChange = vi.fn<OnStyleChange>();
+    const onError = vi.fn<OnError>();
+
+    applyManualEditStyleFields({
+      target,
+      draft,
+      styles: { width: '400px', height: '200px' },
+      onDraftChange,
+      onStyleChange,
+      onError,
+    });
+
+    expect(onDraftChange).toHaveBeenCalledWith({
+      ...draft,
+      styles: { ...draft.styles, width: '400px', height: '200px' },
+    });
+    expect(onStyleChange).toHaveBeenCalledOnce();
+    expect(onStyleChange).toHaveBeenCalledWith(
+      'card',
+      { width: '400px', height: '200px' },
+      'Style: Card',
+    );
+    expect(onError).toHaveBeenCalledWith('');
   });
 
   it('rejects invalid style values before host preview and persistence', () => {

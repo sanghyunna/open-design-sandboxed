@@ -1,12 +1,25 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { NumberRow, QuadField, Section } from '../../src/components/ManualEditInspectorRows';
+import { DisclosureSection, NumberRow, QuadField, Section } from '../../src/components/ManualEditInspectorRows';
 
 afterEach(cleanup);
 
 describe('manual edit inspector rows', () => {
+  it('keeps precision controls folded until the user opens them', () => {
+    render(
+      <DisclosureSection title="Spacing" summary="Inside 12 · Outside 0" icon="box-3-line">
+        <button type="button">Inside spacing</button>
+      </DisclosureSection>,
+    );
+
+    const toggle = screen.getByRole('button', { name: /Spacing/ });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('keeps control help visible beside the property name', () => {
     render(
       <Section title="Shape" description="Change the selected element's appearance and box model.">
@@ -38,5 +51,20 @@ describe('manual edit inspector rows', () => {
     for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
       expect(screen.getByText(side)).toBeTruthy();
     }
+  });
+
+  it('steps percentage controls in familiar whole-percent increments', () => {
+    const onChange = vi.fn();
+    render(
+      <NumberRow
+        label="Opacity"
+        value="50"
+        unit="%"
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Opacity increase' }));
+    expect(onChange).toHaveBeenCalledWith('51');
   });
 });

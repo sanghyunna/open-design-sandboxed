@@ -17,15 +17,6 @@ import {
   normalizeColorForPicker,
   stripPxUnit,
 } from './ManualEditPanel';
-import {
-  ColorRow,
-  FontSelectRow,
-  NumberRow,
-  Section,
-  SelectRow,
-  Subsection,
-  ToggleRow,
-} from './ManualEditInspectorRows';
 import { useSystemFonts } from './useSystemFonts';
 import { quoteFontFamily, systemFontOptions, type FontOption } from './font-options';
 import styles from './ManualEditTextControls.module.css';
@@ -184,7 +175,7 @@ function TextBar({
   );
 }
 
-// Vertical inspector section built from the shared cc- rows.
+// Always-visible, Office-familiar quick formatting surface for the left inspector.
 function TextStack({
   styles: elementStyles,
   richFormat,
@@ -193,81 +184,149 @@ function TextStack({
 }: ManualEditTextControlsProps) {
   const t = useT();
   const richDisabled = !(richFormat.editing && richFormat.hasSelection);
-  return (
-    <Section
-      title={t('manualEdit.sectionText')}
-      description={t('manualEdit.sectionTextDescription')}
+  const { families } = useSystemFonts();
+  const systemFonts = useMemo(() => systemFontOptions(families, FONT_OPTS), [families]);
+  const fontOptions = useMemo(() => [...FONT_OPTS, ...systemFonts], [systemFonts]);
+  const richButton = (
+    command: 'bold' | 'italic' | 'underline',
+    icon: string,
+    label: string,
+    pressed: boolean,
+  ) => (
+    <Button
+      variant="subtle"
+      size="icon"
+      className={`${styles.quickIcon}${pressed ? ` ${styles.pressed}` : ''}`}
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      disabled={richDisabled}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => onRichFormat(command)}
     >
-      <Subsection title={t('manualEdit.groupAppearance')}>
-        <FontSelectRow
-          label={t('manualEdit.typography.font')}
-          description={t('manualEdit.typography.fontHelp')}
-          value={elementStyles.fontFamily}
-          onChange={(value) => onStyleField('fontFamily', value)}
-        />
-        <NumberRow
-          label={t('manualEdit.typography.fontSize')}
-          description={t('manualEdit.typography.fontSizeHelp')}
-          value={elementStyles.fontSize}
-          unit="px"
-          onChange={(v) => onStyleField('fontSize', v)}
-        />
-        <ToggleRow
-          label={t('manualEdit.typography.style')}
-          description={t('manualEdit.typography.styleHelp')}
-          disabled={richDisabled}
-          options={[
-            { value: 'bold', icon: 'bold', label: t('manualEdit.typography.bold') },
-            { value: 'italic', icon: 'italic', label: t('manualEdit.typography.italic') },
-            { value: 'underline', icon: 'underline', label: t('manualEdit.typography.underline') },
-          ]}
-          pressed={(value) => richFormat[value as 'bold' | 'italic' | 'underline']}
-          onSelect={(value) => onRichFormat(value as 'bold' | 'italic' | 'underline')}
-        />
-        <SelectRow
-          label={t('manualEdit.typography.weight')}
-          description={t('manualEdit.typography.weightHelp')}
-          value={elementStyles.fontWeight}
-          options={WEIGHT_OPTS}
-          onChange={(value) => onStyleField('fontWeight', value)}
-        />
-        <ColorRow
-          label={t('manualEdit.typography.textColor')}
-          description={t('manualEdit.typography.textColorHelp')}
-          value={elementStyles.color}
-          onChange={(value) => onStyleField('color', value)}
-        />
-      </Subsection>
-      <Subsection title={t('manualEdit.groupLayout')}>
-        <ToggleRow
-          label={t('manualEdit.typography.alignment')}
-          description={t('manualEdit.typography.alignmentHelp')}
-          value={elementStyles.textAlign}
-          allowClear
-          options={[
-            { value: ALIGN_OPTS[1]!, icon: 'align-left', label: t('manualEdit.typography.alignLeft') },
-            { value: ALIGN_OPTS[2]!, icon: 'align-center', label: t('manualEdit.typography.alignCenter') },
-            { value: ALIGN_OPTS[3]!, icon: 'align-right', label: t('manualEdit.typography.alignRight') },
-            { value: ALIGN_OPTS[4]!, icon: 'align-justify', label: t('manualEdit.typography.alignJustify') },
-          ]}
-          onSelect={(value, wasPressed) => onStyleField('textAlign', wasPressed ? '' : value)}
-        />
-        <NumberRow
-          label={t('manualEdit.typography.lineHeight')}
-          description={t('manualEdit.typography.lineHeightHelp')}
-          value={elementStyles.lineHeight}
-          unit=""
-          onChange={(v) => onStyleField('lineHeight', v)}
-        />
-        <NumberRow
-          label={t('manualEdit.typography.letterSpacing')}
-          description={t('manualEdit.typography.letterSpacingHelp')}
-          value={elementStyles.letterSpacing}
-          unit="px"
-          onChange={(v) => onStyleField('letterSpacing', v)}
-        />
-      </Subsection>
-    </Section>
+      <RemixIcon name={icon} size={15} />
+    </Button>
+  );
+  const alignButton = (value: string, icon: string, label: string) => {
+    const pressed = elementStyles.textAlign === value;
+    return (
+      <Button
+        variant="subtle"
+        size="icon"
+        className={`${styles.quickIcon}${pressed ? ` ${styles.pressed}` : ''}`}
+        aria-label={label}
+        aria-pressed={pressed}
+        title={label}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => onStyleField('textAlign', pressed ? '' : value)}
+      >
+        <RemixIcon name={icon} size={15} />
+      </Button>
+    );
+  };
+  return (
+    <section className={`${styles.quickPanel} cc-section`}>
+      <header className={`${styles.quickHeader} cc-section-head`}>
+        <strong>{t('manualEdit.quickFormat')}</strong>
+        <span>{t('manualEdit.sectionText')}</span>
+      </header>
+      <div className={`${styles.quickBody} cc-section-body`}>
+        <div className={`${styles.quickField} ${styles.quickFont}`}>
+          <RemixIcon name="font-size-2" size={15} />
+          <span className={styles.quickLabel}>{t('manualEdit.typography.font')}</span>
+          <FontCombobox
+            stacked
+            label={t('manualEdit.typography.font')}
+            value={elementStyles.fontFamily}
+            options={fontOptions}
+            onChange={(value) => onStyleField('fontFamily', value)}
+          />
+        </div>
+
+        <div className={styles.quickGrid}>
+          <div className={styles.quickField}>
+            <RemixIcon name="font-size" size={15} />
+            <Stepper
+              label={t('manualEdit.typography.fontSize')}
+              increaseLabel={`${t('manualEdit.typography.fontSize')} ${t('manualEdit.typography.increase').toLowerCase()}`}
+              decreaseLabel={`${t('manualEdit.typography.fontSize')} ${t('manualEdit.typography.decrease').toLowerCase()}`}
+              value={elementStyles.fontSize}
+              unit="px"
+              onChange={(value) => onStyleField('fontSize', value)}
+            />
+            <em className={styles.quickUnit}>px</em>
+          </div>
+          <div className={styles.quickField}>
+            <RemixIcon name="palette-line" size={15} />
+            <span className={styles.quickLabel}>{t('manualEdit.typography.textColor')}</span>
+            <input
+              className={styles.quickColorInput}
+              aria-label={t('manualEdit.typography.textColorValue')}
+              value={elementStyles.color}
+              placeholder="—"
+              onChange={(event) => onStyleField('color', event.currentTarget.value)}
+            />
+            <ColorControl
+              label={t('manualEdit.typography.textColor')}
+              value={elementStyles.color}
+              onChange={(value) => onStyleField('color', value)}
+            />
+          </div>
+        </div>
+
+        <div className={styles.quickSplit}>
+          <div className={styles.quickStrip} role="group" aria-label={t('manualEdit.typography.style')}>
+            {richButton('bold', 'bold', t('manualEdit.typography.bold'), richFormat.bold)}
+            {richButton('italic', 'italic', t('manualEdit.typography.italic'), richFormat.italic)}
+            {richButton('underline', 'underline', t('manualEdit.typography.underline'), richFormat.underline)}
+          </div>
+          <div className={styles.quickStrip} role="group" aria-label={t('manualEdit.typography.alignment')}>
+            {alignButton(ALIGN_OPTS[1]!, 'align-left', t('manualEdit.typography.alignLeft'))}
+            {alignButton(ALIGN_OPTS[2]!, 'align-center', t('manualEdit.typography.alignCenter'))}
+            {alignButton(ALIGN_OPTS[3]!, 'align-right', t('manualEdit.typography.alignRight'))}
+            {alignButton(ALIGN_OPTS[4]!, 'align-justify', t('manualEdit.typography.alignJustify'))}
+          </div>
+        </div>
+
+        <div className={styles.quickGrid}>
+          <label className={styles.quickField}>
+            <RemixIcon name="line-height" size={15} />
+            <span className={styles.quickLabel}>{t('manualEdit.typography.lineHeight')}</span>
+            <input
+              className={styles.quickInput}
+              aria-label={t('manualEdit.typography.lineHeight')}
+              inputMode="decimal"
+              value={elementStyles.lineHeight}
+              onChange={(event) => onStyleField('lineHeight', event.currentTarget.value)}
+            />
+          </label>
+          <label className={styles.quickField}>
+            <RemixIcon name="text-spacing" size={15} />
+            <span className={styles.quickLabel}>{t('manualEdit.typography.letterSpacing')}</span>
+            <input
+              className={styles.quickInput}
+              aria-label={t('manualEdit.typography.letterSpacing')}
+              inputMode="decimal"
+              value={elementStyles.letterSpacing === 'normal' ? '0' : stripPxUnit(elementStyles.letterSpacing)}
+              onChange={(event) => onStyleField('letterSpacing', emitStepperValue(event.currentTarget.value, 'px'))}
+            />
+            <em className={styles.quickUnit}>px</em>
+          </label>
+        </div>
+
+        <label className={`${styles.quickField} ${styles.quickWeight}`}>
+          <RemixIcon name="font-size-2" size={15} />
+          <span className={styles.quickLabel}>{t('manualEdit.typography.weight')}</span>
+          <select
+            aria-label={t('manualEdit.typography.weight')}
+            value={elementStyles.fontWeight}
+            onChange={(event) => onStyleField('fontWeight', event.currentTarget.value)}
+          >
+            {WEIGHT_OPTS.map((option) => <option key={option || '__'} value={option}>{option || '—'}</option>)}
+          </select>
+        </label>
+      </div>
+    </section>
   );
 }
 
@@ -314,12 +373,13 @@ export function fontValueFromComboboxInput(
 }
 
 function FontCombobox({
-  label, value, options, onChange,
+  label, value, options, onChange, stacked = false,
 }: {
   label: string;
   value: string;
   options: ReadonlyArray<FontOption>;
   onChange: (value: string) => void;
+  stacked?: boolean;
 }) {
   const listboxId = useId();
   const ref = useRef<HTMLSpanElement | null>(null);
@@ -360,9 +420,9 @@ function FontCombobox({
   }, [open, resolveTypedInput]);
 
   return (
-    <span className={styles.fontCombobox} ref={ref}>
+    <span className={`${styles.fontCombobox}${stacked ? ` ${styles.fontComboboxStacked}` : ''}`} ref={ref}>
       <input
-        className={styles.fontInput}
+        className={`${styles.fontInput}${stacked ? ` ${styles.fontInputStacked}` : ''}`}
         role="combobox"
         aria-label={label}
         aria-autocomplete="list"
