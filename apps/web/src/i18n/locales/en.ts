@@ -1919,6 +1919,7 @@ export const en: Dict = {
   'manualEdit.showPanels': 'Show panels',
   'manualEdit.systemFontsGroup': 'System fonts',
   'manualEdit.shape.fill': 'Fill',
+  'manualEdit.shape.noFill': 'No fill',
   'manualEdit.shape.width': 'Width',
   'manualEdit.shape.height': 'Height',
   'manualEdit.shape.padding': 'Padding',

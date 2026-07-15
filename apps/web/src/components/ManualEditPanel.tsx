@@ -219,6 +219,10 @@ export function normalizeManualEditStyles(
       normalized[rawKey] = px;
       continue;
     }
+    if (rawKey === 'backgroundColor' && value.toLowerCase() === 'transparent') {
+      normalized.backgroundColor = 'transparent';
+      continue;
+    }
     if (COLOR_STYLE_PROPS.has(rawKey)) {
       const color = normalizeHexColor(value);
       if (!color) return { ok: false, error: `${styleLabel(rawKey)} must be a hex color.` };

@@ -118,6 +118,18 @@ describe('ManualEditLeftInspector', () => {
     expect(onStyleField).toHaveBeenCalledWith('width', '240px');
   });
 
+  it('offers an explicit no-fill option for shape appearance', () => {
+    const styles = { ...emptyManualEditStyles(), backgroundColor: '#ef4444' };
+    const { getByRole, onStyleField } = renderInspector({ target: target({ kind: 'container' }), styles });
+
+    fireEvent.click(getByRole('button', { name: /Appearance/ }));
+    const noFill = getByRole('checkbox', { name: 'No fill' });
+    expect((noFill as HTMLInputElement).checked).toBe(false);
+
+    fireEvent.click(noFill);
+    expect(onStyleField).toHaveBeenLastCalledWith('backgroundColor', 'transparent');
+  });
+
   it('does not coerce malformed quick opacity values into valid percentages', () => {
     const { getByText, onStyleField } = renderInspector({ target: target({ kind: 'container' }) });
     const quickShape = getByText('Quick shape').closest('section');

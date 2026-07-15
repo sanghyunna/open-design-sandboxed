@@ -2393,6 +2393,7 @@ export interface Dict {
   'manualEdit.showPanels': string;
   'manualEdit.systemFontsGroup': string;
   'manualEdit.shape.fill': string;
+  'manualEdit.shape.noFill': string;
   'manualEdit.shape.width': string;
   'manualEdit.shape.height': string;
   'manualEdit.shape.padding': string;

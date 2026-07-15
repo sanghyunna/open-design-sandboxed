@@ -1919,6 +1919,7 @@ export const ko: Dict = {
   'manualEdit.showPanels': '패널 표시',
   'manualEdit.systemFontsGroup': '시스템 글꼴',
   'manualEdit.shape.fill': '채우기',
+  'manualEdit.shape.noFill': '채우지 않음',
   'manualEdit.shape.width': '너비',
   'manualEdit.shape.height': '높이',
   'manualEdit.shape.padding': '안쪽 여백',

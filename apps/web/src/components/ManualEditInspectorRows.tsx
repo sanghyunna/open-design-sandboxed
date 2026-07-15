@@ -267,12 +267,14 @@ export function ColorRow({
   value,
   onChange,
   compact,
+  disabled = false,
 }: {
   label: string;
   description?: string;
   value: string;
   onChange: (v: string) => void;
   compact?: boolean;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement | null>(null);
@@ -286,6 +288,9 @@ export function ColorRow({
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
   return (
     <label className="cc-row">
       {compact ? null : <FieldLabel label={label} description={description} />}
@@ -296,15 +301,17 @@ export function ColorRow({
           style={{ background: value || 'transparent' }}
           onClick={() => setOpen((v) => !v)}
           aria-label={`Pick ${label}`}
+          disabled={disabled}
         />
         <input
           value={value}
           placeholder="#000000"
           aria-label={label}
+          disabled={disabled}
           onChange={(e) => onChange(e.currentTarget.value)}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { if (!disabled) setOpen(true); }}
         />
-        {open ? (
+        {open && !disabled ? (
           <div className="cc-color-popover">
             <div className="cc-color-grid">
               {EDITOR_SWATCH_COLORS.map((hex) => (
@@ -325,6 +332,7 @@ export function ColorRow({
               type="color"
               className="cc-color-native"
               value={normalizeColorForPicker(value)}
+              disabled={disabled}
               onChange={(e) => onChange(e.currentTarget.value)}
             />
           </div>

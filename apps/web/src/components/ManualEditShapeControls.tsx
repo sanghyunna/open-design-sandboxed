@@ -251,9 +251,16 @@ function ShapeStack({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const noFill = isNoFill(elementStyles.backgroundColor);
+  const lastFillRef = useRef(noFill ? '#000000' : normalizeColorForPicker(elementStyles.backgroundColor));
   useEffect(() => {
     setConfirmingDelete(false);
   }, [target.id]);
+  useEffect(() => {
+    if (!isNoFill(elementStyles.backgroundColor)) {
+      lastFillRef.current = normalizeColorForPicker(elementStyles.backgroundColor);
+    }
+  }, [elementStyles.backgroundColor]);
   const update = (key: keyof ManualEditStyles, value: string) => onStyleField(key, value);
   const isTextLike = target.kind === 'text'
     || target.kind === 'link'
@@ -261,7 +268,7 @@ function ShapeStack({
     || !!target.textEditTargetId;
   const sizeSummary = `${dimensionSummary(elementStyles.width, target.authoredSize?.width, target.cssSize?.width, target.rect.width, t)} × ${dimensionSummary(elementStyles.height, target.authoredSize?.height, target.cssSize?.height, target.rect.height, t)}`;
   const spacingSummary = `${t('manualEdit.shape.padding')} ${compactSpace(elementStyles, 'padding')} · ${t('manualEdit.shape.margin')} ${compactSpace(elementStyles, 'margin')}`;
-  const appearanceSummary = [elementStyles.backgroundColor || '—', elementStyles.borderRadius || '0px'].join(' · ');
+  const appearanceSummary = [noFill ? t('manualEdit.shape.noFill') : elementStyles.backgroundColor, elementStyles.borderRadius || '0px'].join(' · ');
 
   return (
     <div className={styles.stack}>
@@ -338,12 +345,26 @@ function ShapeStack({
         icon="palette-line"
       >
         <div className={styles.detailRows}>
-        <ColorRow
-          label={t('manualEdit.shape.fill')}
-          description={t('manualEdit.shape.fillHelp')}
-          value={elementStyles.backgroundColor}
-          onChange={(v) => update('backgroundColor', v)}
-        />
+        <div className={styles.fillField}>
+          <ColorRow
+            label={t('manualEdit.shape.fill')}
+            description={t('manualEdit.shape.fillHelp')}
+            value={noFill ? '' : elementStyles.backgroundColor}
+            disabled={noFill}
+            onChange={(value) => {
+              lastFillRef.current = normalizeColorForPicker(value);
+              update('backgroundColor', value);
+            }}
+          />
+          <label className={styles.noFillToggle}>
+            <input
+              type="checkbox"
+              checked={noFill}
+              onChange={(event) => update('backgroundColor', event.currentTarget.checked ? 'transparent' : lastFillRef.current)}
+            />
+            <span>{t('manualEdit.shape.noFill')}</span>
+          </label>
+        </div>
         <NumberRow
           label={t('manualEdit.shape.radius')}
           description={t('manualEdit.shape.radiusHelp')}
@@ -548,6 +569,11 @@ function emitUnitValue(raw: string, unit: string): string {
   if (!trimmed) return '';
   if (/^-?\d+(\.\d+)?$/.test(trimmed)) return `${trimmed}${unit}`;
   return raw;
+}
+
+function isNoFill(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized === '' || normalized === 'transparent';
 }
 
 function opacityPercent(value: string): string {

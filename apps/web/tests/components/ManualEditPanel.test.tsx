@@ -111,6 +111,10 @@ describe('ManualEditPanel', () => {
         lineHeight: '1.4',
       },
     });
+    expect(normalizeManualEditStyles({ backgroundColor: 'transparent' }, { layoutEnabled: true })).toEqual({
+      ok: true,
+      styles: { backgroundColor: 'transparent' },
+    });
     expect(normalizeManualEditStyles({ lineHeight: '49px' }, { layoutEnabled: true })).toEqual({
       ok: true,
       styles: { lineHeight: '49px' },
