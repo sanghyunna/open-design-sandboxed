@@ -7128,6 +7128,7 @@ function HtmlViewer({
         mode={manualEditMoveMode}
         interactive={selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'}
         label={t('manualEdit.move.frame')}
+        selectBehindHint={t('manualEdit.selectBehindHint')}
         onMoveStart={() => {
           beginManualEditMoveBaseline(selectedManualEditTarget);
           // Dragging the border while editing commits the text and promotes to
@@ -7157,6 +7158,17 @@ function HtmlViewer({
           const frameRect = frame.getBoundingClientRect();
           win.postMessage({
             type: 'od-edit-alt-click',
+            clientX: (clientX - frameRect.left) / overlayPreviewScale,
+            clientY: (clientY - frameRect.top) / overlayPreviewScale,
+          }, '*');
+        }}
+        onClick={({ clientX, clientY }) => {
+          const frame = iframeRef.current;
+          const win = frame?.contentWindow;
+          if (!frame || !win) return;
+          const frameRect = frame.getBoundingClientRect();
+          win.postMessage({
+            type: 'od-edit-click',
             clientX: (clientX - frameRect.left) / overlayPreviewScale,
             clientY: (clientY - frameRect.top) / overlayPreviewScale,
           }, '*');

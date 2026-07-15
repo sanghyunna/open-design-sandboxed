@@ -10,6 +10,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
   const onMoveCommit = vi.fn();
   const onMoveCancel = vi.fn();
   const onAltClick = vi.fn();
+  const onClick = vi.fn();
   const onSurfaceClick = vi.fn();
   const onSurfaceDoubleClick = vi.fn();
   const utils = render(
@@ -24,6 +25,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
       onMoveCommit={onMoveCommit}
       onMoveCancel={onMoveCancel}
       onAltClick={onAltClick}
+      onClick={onClick}
       onSurfaceClick={onSurfaceClick}
       onSurfaceDoubleClick={onSurfaceDoubleClick}
       {...overrides}
@@ -31,7 +33,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
   );
   const ring = utils.container.querySelector('[data-region="ring"]') as HTMLElement;
   const interior = utils.container.querySelector('[data-region="interior"]') as HTMLElement | null;
-  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onAltClick, onSurfaceClick, onSurfaceDoubleClick };
+  return { ...utils, ring, interior, onMoveStart, onMovePreview, onMoveCommit, onMoveCancel, onAltClick, onClick, onSurfaceClick, onSurfaceDoubleClick };
 }
 
 beforeEach(() => {
@@ -193,15 +195,42 @@ describe('ManualEditMoveFrame', () => {
     expect(editingBand).toBeLessThan(selectedBand);
   });
 
-  it('does not emit onSurfaceClick for a non-interactive interior click, but still does for a ring click', () => {
-    const { interior, ring, onSurfaceClick } = renderFrame({ interactive: false });
+  it('forwards a non-interactive interior click for z-stack cycling, but still reports a ring click', () => {
+    vi.useFakeTimers();
+    const { interior, ring, onClick, onSurfaceClick } = renderFrame({ interactive: false });
 
     fireEvent.pointerDown(interior!, { pointerId: 8, clientX: 200, clientY: 100 });
     fireEvent.pointerUp(interior!, { pointerId: 8, clientX: 200, clientY: 100 });
+    expect(onClick).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(350);
+    expect(onClick).toHaveBeenCalledWith({ clientX: 200, clientY: 100 });
     expect(onSurfaceClick).not.toHaveBeenCalled();
 
     fireEvent.pointerDown(ring, { pointerId: 9, clientX: 100, clientY: 50 });
     fireEvent.pointerUp(ring, { pointerId: 9, clientX: 100, clientY: 50 });
     expect(onSurfaceClick).toHaveBeenCalledWith('ring');
+
+    vi.useRealTimers();
+  });
+
+  it('does not forward a non-interactive interior click that is part of a double-click', () => {
+    vi.useFakeTimers();
+    const { interior, onClick, onSurfaceDoubleClick } = renderFrame({ interactive: false });
+
+    fireEvent.pointerDown(interior!, { pointerId: 8, clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(interior!, { pointerId: 8, clientX: 200, clientY: 100 });
+    fireEvent.click(interior!);
+    fireEvent.pointerDown(interior!, { pointerId: 9, clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(interior!, { pointerId: 9, clientX: 200, clientY: 100 });
+    fireEvent.click(interior!);
+    fireEvent.doubleClick(interior!);
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onSurfaceDoubleClick).toHaveBeenCalledWith('interior');
+
+    vi.advanceTimersByTime(350);
+    expect(onClick).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
   });
 });

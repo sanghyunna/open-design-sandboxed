@@ -2021,6 +2021,7 @@ export const en: Dict = {
   'manualEdit.resize.sw': 'Resize bottom-left corner',
   'manualEdit.resize.w': 'Resize left edge',
   'manualEdit.move.frame': 'Move element',
+  'manualEdit.selectBehindHint': 'Click again to select the layer behind',
   'fileViewer.zoomOut': 'Zoom out',
   'fileViewer.zoomIn': 'Zoom in',
   'fileViewer.resetZoom': 'Reset zoom',
