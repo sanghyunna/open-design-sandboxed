@@ -396,7 +396,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('uses the topmost target for plain clicks and the next lower target for Alt+click', () => {
+  it('cycles plain clicks at the same point through the z-stack top-to-bottom', () => {
     const dom = new JSDOM(
       `<main>
         <div data-od-id="bottom" data-od-edit="container"><span>Bottom</span></div>
@@ -419,9 +419,17 @@ describe('manual edit bridge target normalization', () => {
     );
 
     postMessage.mockClear();
-    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
+    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
     expect(postMessage).toHaveBeenLastCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'bottom' }) }),
+      '*',
+    );
+
+    // A third click at the same spot wraps back to the topmost target.
+    postMessage.mockClear();
+    top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'top' }) }),
       '*',
     );
 
@@ -500,7 +508,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('resets Alt+click cycling when the click point moves beyond tolerance', () => {
+  it('resets cycling when the click point moves beyond tolerance', () => {
     const dom = new JSDOM(
       `<main>
         <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
@@ -530,7 +538,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('resets Alt+click cycling when the stack composition changes', () => {
+  it('resets cycling when the stack composition changes', () => {
     const dom = new JSDOM(
       `<main>
         <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
@@ -607,6 +615,62 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('does not enter inline edit when a cycled plain click lands on a text target', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="card" data-od-edit="container"><span>Card</span></div>
+        <h1 data-od-id="title">Title</h1>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const card = dom.window.document.querySelector('[data-od-id="card"]') as HTMLElement;
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [card, title],
+    });
+
+    card.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(card.getAttribute('data-od-edit-selected')).toBe('true');
+
+    card.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(title.getAttribute('data-od-edit-selected')).toBe('true');
+    expect(title.hasAttribute('data-od-editing')).toBe(false);
+    expect(title.hasAttribute('contenteditable')).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('cycles a forwarded od-edit-click message from the overlay', () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="back" data-od-edit="container"><span>Back</span></div>
+        <div data-od-id="front" data-od-edit="container"><span>Front</span></div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]') as HTMLElement;
+    const back = dom.window.document.querySelector('[data-od-id="back"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [front, back],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    front.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10 },
+    }));
+
+    const selectedIds = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; target?: { id?: string } })
+      .filter((message) => message.type === 'od-edit-select')
+      .map((message) => message.target?.id);
+    expect(selectedIds).toEqual(['front', 'back']);
+
+    dom.window.close();
+  });
+
   it('emits a background message for empty click regions', () => {
     const dom = new JSDOM(
       `<main><div>Empty</div></main>${buildManualEditBridge(true)}`,
@@ -621,7 +685,7 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('moves the selected marker to the deeper Alt+click target', () => {
+  it('moves the selected marker to the deeper target on Alt+click', () => {
     const dom = new JSDOM(
       `<main>
         <div data-od-id="bottom" data-od-edit="container"><span>Bottom</span></div>

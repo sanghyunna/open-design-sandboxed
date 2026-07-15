@@ -485,10 +485,6 @@ export function buildManualEditBridge(enabled: boolean): string {
       && clickCycle.signature === signature;
   }
   function clickTarget(event){
-    if (!event.altKey) {
-      resetClickCycle();
-      return closestTarget(event);
-    }
     var stack = targetsAtPoint(event.clientX, event.clientY);
     if (!stack.length) {
       var fallback = closestTarget(event);
@@ -496,14 +492,15 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     if (!stack.length) {
       resetClickCycle();
-      return null;
+      return { el: null, cycled: false };
     }
     var signature = stackSignature(stack);
-    var index = sameClickCycle(event.clientX, event.clientY, signature)
+    var cycled = sameClickCycle(event.clientX, event.clientY, signature);
+    var index = cycled
       ? (clickCycle.index + 1) % stack.length
-      : (stack.length > 1 ? 1 : 0);
+      : (event.altKey && stack.length > 1 ? 1 : 0);
     clickCycle = { x: event.clientX, y: event.clientY, signature: signature, index: index };
-    return stack[index];
+    return { el: stack[index], cycled: cycled };
   }
   function currentSelectedRange(){
     try {
@@ -755,7 +752,8 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
   }
   function handleClick(event){
-    var el = clickTarget(event);
+    var result = clickTarget(event);
+    var el = result.el;
     if (!el) {
       resetClickCycle();
       // Clicking empty canvas (no source-mapped ancestor) is the gesture for
@@ -767,7 +765,10 @@ export function buildManualEditBridge(enabled: boolean): string {
     var kind = inferKind(el);
     setSelectedTarget(stableId(el));
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
-    if (!event.altKey && (kind === 'text' || kind === 'link')) makeEditable(el, event);
+    // Only enter inline edit on a fresh, non-modified click on the topmost
+    // text/link target. Cycled clicks are explicitly drilling the z-stack;
+    // Alt/Option clicks are an explicit "select without editing" gesture.
+    if (!event.altKey && !result.cycled && (kind === 'text' || kind === 'link')) makeEditable(el, event);
   }
   window.addEventListener('message', function(ev){
     if (!ev.data) return;
@@ -780,12 +781,12 @@ export function buildManualEditBridge(enabled: boolean): string {
       if (enabled) setTimeout(postTargets, 0);
       return;
     }
-    if (ev.data.type === 'od-edit-alt-click') {
+    if (ev.data.type === 'od-edit-click' || ev.data.type === 'od-edit-alt-click') {
       var clickX = Number(ev.data.clientX);
       var clickY = Number(ev.data.clientY);
       if (!enabled || !isFinite(clickX) || !isFinite(clickY)) return;
       var clickEl = document.elementFromPoint ? document.elementFromPoint(clickX, clickY) : null;
-      handleClick({ target: clickEl, altKey: true, clientX: clickX, clientY: clickY });
+      handleClick({ target: clickEl, altKey: ev.data.type === 'od-edit-alt-click', clientX: clickX, clientY: clickY });
       return;
     }
     if (ev.data.type === 'od-edit-select-target') {
