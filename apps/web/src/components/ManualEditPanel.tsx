@@ -206,6 +206,10 @@ export function normalizeManualEditStyles(
       normalized[rawKey] = '';
       continue;
     }
+    if ((rawKey === 'width' || rawKey === 'height') && (value === 'auto' || value === '100%')) {
+      normalized[rawKey] = value;
+      continue;
+    }
     if (PX_STYLE_PROPS.has(rawKey)) {
       const px = normalizePxValue(value);
       if (!px) return { ok: false, error: `${styleLabel(rawKey)} must be a number or px value.` };
@@ -215,6 +219,10 @@ export function normalizeManualEditStyles(
       normalized[rawKey] = px;
       continue;
     }
+    if (rawKey === 'backgroundColor' && value.toLowerCase() === 'transparent') {
+      normalized.backgroundColor = 'transparent';
+      continue;
+    }
     if (COLOR_STYLE_PROPS.has(rawKey)) {
       const color = normalizeHexColor(value);
       if (!color) return { ok: false, error: `${styleLabel(rawKey)} must be a hex color.` };
@@ -222,6 +230,9 @@ export function normalizeManualEditStyles(
       continue;
     }
     if (rawKey === 'opacity') {
+      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
+        return { ok: false, error: 'Opacity must be a number.' };
+      }
       const n = Number(value);
       if (!Number.isFinite(n)) return { ok: false, error: 'Opacity must be a number.' };
       normalized.opacity = String(Math.max(0, Math.min(1, n)));
@@ -256,11 +267,33 @@ export function applyManualEditStyleField(params: {
   onStyleChange?: (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
 }): void {
   const { target, draft, key, value, onDraftChange, onError, onInvalidStyle, onStyleChange } = params;
-  onDraftChange({ ...draft, styles: { ...draft.styles, [key]: value } });
-  const normalized = normalizeManualEditStyles({ [key]: value }, { layoutEnabled: target.isLayoutContainer });
+  applyManualEditStyleFields({
+    target,
+    draft,
+    styles: { [key]: value },
+    onDraftChange,
+    onError,
+    onInvalidStyle,
+    onStyleChange,
+  });
+}
+
+export function applyManualEditStyleFields(params: {
+  target: ManualEditTarget;
+  draft: ManualEditDraft;
+  styles: Partial<ManualEditStyles>;
+  onDraftChange: (draft: ManualEditDraft) => void;
+  onError: (message: string) => void;
+  onInvalidStyle?: (id: string, keys: Array<keyof ManualEditStyles>) => void;
+  onStyleChange?: (id: string, styles: Partial<ManualEditStyles>, label: string) => void;
+}): void {
+  const { target, draft, styles, onDraftChange, onError, onInvalidStyle, onStyleChange } = params;
+  const keys = Object.keys(styles) as Array<keyof ManualEditStyles>;
+  onDraftChange({ ...draft, styles: { ...draft.styles, ...styles } });
+  const normalized = normalizeManualEditStyles(styles, { layoutEnabled: target.isLayoutContainer });
   if (!normalized.ok) {
     onError('error' in normalized ? normalized.error : 'Invalid style value.');
-    onInvalidStyle?.(target.id, [key]);
+    onInvalidStyle?.(target.id, keys);
     return;
   }
   onError('');

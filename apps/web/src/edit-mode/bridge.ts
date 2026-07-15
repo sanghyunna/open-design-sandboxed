@@ -68,6 +68,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','translate','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
+  var authoredSizeProbeSeq = 0;
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   var decorativeTextlessTags = { div:1, svg:1, g:1, path:1, circle:1, ellipse:1, rect:1, line:1, polyline:1, polygon:1, defs:1, lineargradient:1, radialgradient:1, stop:1, clippath:1, mask:1, use:1 };
   function isHostNode(el){
@@ -255,7 +256,124 @@ export function buildManualEditBridge(enabled: boolean): string {
     var computed = window.getComputedStyle(el);
     return { width: computed.width || '', height: computed.height || '' };
   }
-  function targetFrom(el, includeOuterHtml){
+  function mediaTextFor(media){
+    if (!media) return '';
+    if (typeof media === 'string') return media.trim();
+    return typeof media.mediaText === 'string' ? media.mediaText.trim() : '';
+  }
+  function wrapRulesForMedia(rules, media){
+    var text = mediaTextFor(media);
+    if (!rules || !text || text.toLowerCase() === 'all') return rules;
+    return '@media ' + text + '{' + rules + '}';
+  }
+  function authoredCssValueFor(el, propertyName){
+    // getComputedStyle only exposes the USED value, so an undeclared auto
+    // width and a stylesheet-authored 320px width both look like px. Mirror
+    // every author declaration onto a unique custom property and let the
+    // browser's own cascade choose the winner (specificity, !important,
+    // active @media/@supports/@container rules, and inline style included).
+    // The zero-specificity marker declaration prevents a matching ancestor's
+    // custom property from inheriting onto a target whose width is actually
+    // undeclared.
+    authoredSizeProbeSeq += 1;
+    var probeName = '--od-authored-size-' + authoredSizeProbeSeq;
+    var markerName = 'data-od-authored-size-probe';
+    var markerValue = 'p' + authoredSizeProbeSeq;
+    var values = [''];
+    function declarationRule(selector, declaration){
+      if (!declaration || !declaration.getPropertyValue) return '';
+      var value = declaration.getPropertyValue(propertyName);
+      if (!value || !value.trim()) return '';
+      values.push(value.trim());
+      var priority = declaration.getPropertyPriority(propertyName) === 'important' ? ' !important' : '';
+      return selector + '{' + probeName + ':' + (values.length - 1) + priority + ';}';
+    }
+    function mirroredRules(ruleList){
+      var output = '';
+      if (!ruleList) return output;
+      for (var i = 0; i < ruleList.length; i++) {
+        var rule = ruleList[i];
+        if (!rule) continue;
+        if (rule.type === 1 && rule.selectorText && rule.style) {
+          output += declarationRule(rule.selectorText, rule.style);
+          continue;
+        }
+        if (rule.type === 3 && rule.styleSheet) {
+          try {
+            output += wrapRulesForMedia(mirroredRules(rule.styleSheet.cssRules), rule.media);
+          } catch (_importError) {}
+          continue;
+        }
+        if (!rule.cssRules) continue;
+        var cssText = rule.cssText || '';
+        var brace = cssText.indexOf('{');
+        var header = brace >= 0 ? cssText.slice(0, brace).trim() : '';
+        if (!/^@(media|supports|container|layer|scope|starting-style)\\b/i.test(header)) continue;
+        var inner = mirroredRules(rule.cssRules);
+        if (inner) output += header + '{' + inner + '}';
+      }
+      return output;
+    }
+    var previousMarker = el.getAttribute(markerName);
+    var previousProbe = el.style.getPropertyValue(probeName);
+    var previousProbePriority = el.style.getPropertyPriority(probeName);
+    var probeStyle = document.createElement('style');
+    probeStyle.setAttribute('data-od-authored-size-probe-style', '');
+    try {
+      el.setAttribute(markerName, markerValue);
+      var css = ':where([' + markerName + '=\"' + markerValue + '\"]){' + probeName + ':0;}';
+      var sheets = Array.prototype.slice.call(document.styleSheets || []);
+      for (var sheetIndex = 0; sheetIndex < sheets.length; sheetIndex++) {
+        var sheet = sheets[sheetIndex];
+        if (!sheet || sheet.disabled) continue;
+        try {
+          var sheetRules = mirroredRules(sheet.cssRules);
+          var sheetMedia = mediaTextFor(sheet.media);
+          if (!sheetMedia && sheet.ownerNode && typeof sheet.ownerNode.media === 'string') {
+            sheetMedia = sheet.ownerNode.media.trim();
+          }
+          css += wrapRulesForMedia(sheetRules, sheetMedia);
+        } catch (_sheetError) {}
+      }
+      probeStyle.textContent = css;
+      (document.head || document.documentElement).appendChild(probeStyle);
+      var inlineValue = el.style.getPropertyValue(propertyName);
+      if (inlineValue && inlineValue.trim()) {
+        values.push(inlineValue.trim());
+        el.style.setProperty(
+          probeName,
+          String(values.length - 1),
+          el.style.getPropertyPriority(propertyName),
+        );
+      }
+      var winner = Number.parseInt(window.getComputedStyle(el).getPropertyValue(probeName).trim(), 10);
+      return Number.isInteger(winner) && winner > 0 ? values[winner] || '' : '';
+    } finally {
+      probeStyle.remove();
+      if (previousProbe) el.style.setProperty(probeName, previousProbe, previousProbePriority);
+      else el.style.removeProperty(probeName);
+      if (previousMarker === null) el.removeAttribute(markerName);
+      else el.setAttribute(markerName, previousMarker);
+    }
+  }
+  function htmlSizeHintFor(el, propertyName){
+    if (!el.tagName || el.tagName.toLowerCase() !== 'img') return '';
+    var raw = el.getAttribute && el.getAttribute(propertyName);
+    if (!raw) return '';
+    var value = raw.trim();
+    if (!/^\\d+$/.test(value)) return '';
+    var numeric = Number.parseInt(value, 10);
+    return Number.isFinite(numeric) ? numeric + 'px' : '';
+  }
+  function authoredSizeFor(el){
+    var width = authoredCssValueFor(el, 'width');
+    var height = authoredCssValueFor(el, 'height');
+    return {
+      width: width || htmlSizeHintFor(el, 'width'),
+      height: height || htmlSizeHintFor(el, 'height')
+    };
+  }
+  function targetFrom(el, includeOuterHtml, includeAuthoredSize){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
     var id = stableId(el);
@@ -271,7 +389,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     } else {
       fields.text = (el.textContent || '').trim();
     }
-    return {
+    var target = {
       id: id,
       kind: kind,
       label: labelFor(el, id, kind),
@@ -290,6 +408,10 @@ export function buildManualEditBridge(enabled: boolean): string {
       isHidden: hidden,
       outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-od-runtime-id="[^"]*"/g, '').replace(/\\sdata-od-source-path="[^"]*"/g, '').replace(/\\sdata-od-edit-selected="[^"]*"/g, '') : ''
     };
+    // Only selected targets need cascade provenance for the inspector;
+    // discovery and hover broadcasts intentionally skip the CSSOM probe.
+    if (includeAuthoredSize) target.authoredSize = authoredSizeFor(el);
+    return target;
   }
   function allTargets(){
     var nodes = document.body ? document.body.querySelectorAll(discoverySelector) : [];
@@ -299,7 +421,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       if (!isSourceMappable(nodes[i])) continue;
       if (targetForInlineText(nodes[i]) !== nodes[i]) continue;
       if (!isHiddenTarget(nodes[i], rect) && (rect.width < 4 || rect.height < 4)) continue;
-      targets.push(targetFrom(nodes[i], false));
+      targets.push(targetFrom(nodes[i], false, false));
     }
     return targets;
   }
@@ -313,7 +435,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var id = stableId(el);
     if (id === lastHoverId) return;
     lastHoverId = id;
-    window.parent.postMessage({ type: 'od-edit-hover', target: targetFrom(el, true) }, '*');
+    window.parent.postMessage({ type: 'od-edit-hover', target: targetFrom(el, true, false) }, '*');
   }
   function clearSelectedTarget(){
     var selected = document.querySelectorAll('[data-od-edit-selected]');
@@ -593,7 +715,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     return null;
   }
-  function applyPreviewStyles(id, styles, version){
+  function applyPreviewStyles(id, styles, version, includeAuthoredSize){
     var el = findById(id);
     if (!el) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id || '', version: Number(version) || 0, ok: false, error: 'Target not found' }, '*');
@@ -618,14 +740,16 @@ export function buildManualEditBridge(enabled: boolean): string {
       // element's REAL box (flex/grid/min-content can clamp or ignore the
       // requested size), so every ack feeds the applied geometry back.
       var applied = el.getBoundingClientRect();
-      window.parent.postMessage({
+      var appliedMessage = {
         type: 'od-edit-preview-style-applied',
         id: id,
         version: Number(version) || 0,
         ok: true,
         rect: { x: Math.round(applied.x), y: Math.round(applied.y), width: Math.round(applied.width), height: Math.round(applied.height) },
         cssSize: cssSizeFor(el)
-      }, '*');
+      };
+      if (includeAuthoredSize) appliedMessage.authoredSize = authoredSizeFor(el);
+      window.parent.postMessage(appliedMessage, '*');
     } catch (e) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
@@ -642,7 +766,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     el = targetForSelection(el);
     var kind = inferKind(el);
     setSelectedTarget(stableId(el));
-    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true) }, '*');
+    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
     if (!event.altKey && (kind === 'text' || kind === 'link')) makeEditable(el, event);
   }
   window.addEventListener('message', function(ev){
@@ -664,6 +788,15 @@ export function buildManualEditBridge(enabled: boolean): string {
       handleClick({ target: clickEl, altKey: true, clientX: clickX, clientY: clickY });
       return;
     }
+    if (ev.data.type === 'od-edit-select-target') {
+      if (!enabled) return;
+      var requestedEl = findById(ev.data.id);
+      if (!requestedEl) return;
+      requestedEl = targetForSelection(requestedEl);
+      setSelectedTarget(stableId(requestedEl));
+      window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(requestedEl, true, true) }, '*');
+      return;
+    }
     if (ev.data.type === 'od-edit-selected-target') {
       if (!ev.data.id) resetClickCycle();
       setSelectedTarget(ev.data.id || null);
@@ -676,7 +809,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     if (ev.data.type === 'od-edit-preview-style') {
-      applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version);
+      applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version, ev.data.includeAuthoredSize === true);
       return;
     }
     if (ev.data.type === 'od-edit-rich-format') {

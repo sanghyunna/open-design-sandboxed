@@ -202,12 +202,29 @@ describe('FileViewer manual edit regressions', () => {
     );
 
     clickManualTool('manual-edit-mode-toggle');
+    const frame = await previewFrame();
+    const postMessage = vi.spyOn(frame.contentWindow!, 'postMessage');
     await hoverManualEditTarget();
     // No panel until the affordance is clicked.
     expect(document.querySelector('.manual-edit-right')).toBeNull();
 
     fireEvent.click(screen.getByTestId('manual-edit-hover-open'));
 
+    await waitFor(() => {
+      expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'od-edit-select-target',
+        id: 'hero',
+      }), '*');
+    });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-select',
+          target: { ...heroTarget(), authoredSize: { width: '', height: '' } },
+        },
+        source: frame.contentWindow,
+      }));
+    });
     // A pinned text target gets both docked typography and shape controls.
     await findStyleInput('Width');
     expect(document.querySelector('.manual-edit-right')).toBeNull();
@@ -356,6 +373,7 @@ describe('FileViewer manual edit regressions', () => {
         type: 'od-edit-preview-style',
         id: 'hero',
         styles: { paddingTop: '16px' },
+        includeAuthoredSize: true,
       }),
       '*',
     );

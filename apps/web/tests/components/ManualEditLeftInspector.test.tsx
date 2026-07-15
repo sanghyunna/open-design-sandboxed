@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, within } from '@testing-library/react';
 import { ManualEditLeftInspector } from '../../src/components/ManualEditLeftInspector';
 import type { ManualEditRichFormatState } from '../../src/components/ManualEditTextControls';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
@@ -94,23 +94,60 @@ describe('ManualEditLeftInspector', () => {
     expect(queryByLabelText('Pick Background')).toBeNull();
   });
 
-  it('shows Text and Shape sections for a text target', () => {
-    const { getByText, getByLabelText } = renderInspector({ target: target({ kind: 'text', label: 'Title' }) });
-    expect(getByText('Text')).toBeTruthy();
-    expect(getByText('Shape')).toBeTruthy();
+  it('keeps quick text formatting visible and precision controls folded', () => {
+    const { getByText, getAllByText, getByLabelText, getByRole } = renderInspector({ target: target({ kind: 'text', label: 'Title' }) });
+    expect(getAllByText('Text').length).toBeGreaterThan(0);
+    expect(getByText('Quick format')).toBeTruthy();
     expect(getByLabelText('Font')).toBeTruthy();
+    expect(getByRole('button', { name: /Size & position/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(getByRole('button', { name: /Spacing/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(getByRole('button', { name: /Appearance/ }).getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('shows only the Shape section for a non-text target', () => {
-    const { getByText, queryByText } = renderInspector({ target: target({ kind: 'container' }) });
+  it('shows quick shape controls instead of typography for a non-text target', () => {
+    const { getByText, getAllByText, queryByText } = renderInspector({ target: target({ kind: 'container' }) });
     expect(queryByText('Text')).toBeNull();
-    expect(getByText('Shape')).toBeTruthy();
+    expect(getAllByText('Shape').length).toBeGreaterThan(0);
+    expect(getByText('Quick shape')).toBeTruthy();
+    expect(queryByText('Quick format')).toBeNull();
   });
 
   it('routes a shape style-field change through onStyleField', () => {
     const { getByLabelText, onStyleField } = renderInspector({ target: target({ kind: 'container' }) });
     fireEvent.change(getByLabelText('Width'), { target: { value: '240' } });
     expect(onStyleField).toHaveBeenCalledWith('width', '240px');
+  });
+
+  it('offers an explicit no-fill option for shape appearance', () => {
+    const styles = { ...emptyManualEditStyles(), backgroundColor: '#ef4444' };
+    const { getByRole, onStyleField } = renderInspector({ target: target({ kind: 'container' }), styles });
+
+    fireEvent.click(getByRole('button', { name: /Appearance/ }));
+    const noFill = getByRole('checkbox', { name: 'No fill' });
+    expect((noFill as HTMLInputElement).checked).toBe(false);
+
+    fireEvent.click(noFill);
+    expect(onStyleField).toHaveBeenLastCalledWith('backgroundColor', 'transparent');
+  });
+
+  it('does not coerce malformed quick opacity values into valid percentages', () => {
+    const { getByText, onStyleField } = renderInspector({ target: target({ kind: 'container' }) });
+    const quickShape = getByText('Quick shape').closest('section');
+    if (!quickShape) throw new Error('Quick shape section not found');
+    const opacity = within(quickShape).getByLabelText('Opacity');
+
+    fireEvent.change(opacity, { target: { value: '12x' } });
+    expect(onStyleField).toHaveBeenLastCalledWith('opacity', '12x');
+    fireEvent.change(opacity, { target: { value: '1e2' } });
+    expect(onStyleField).toHaveBeenLastCalledWith('opacity', '1e2');
+    fireEvent.change(opacity, { target: { value: '50' } });
+    expect(onStyleField).toHaveBeenLastCalledWith('opacity', '0.5');
+  });
+
+  it('keeps the quick text color value directly editable', () => {
+    const { getByLabelText, onStyleField } = renderInspector({ target: target({ kind: 'text', label: 'Title' }) });
+    fireEvent.change(getByLabelText('Text color value'), { target: { value: '#ef4444' } });
+    expect(onStyleField).toHaveBeenCalledWith('color', '#ef4444');
   });
 
   it('routes a page font change through onPageStyleChange', () => {

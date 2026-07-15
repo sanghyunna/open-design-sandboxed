@@ -265,15 +265,16 @@ describe('manual edit bridge target normalization', () => {
   it('omits selected outerHTML from bulk target posts but includes it for selected targets', () => {
     const bridge = buildManualEditBridge(true);
 
-    expect(bridge).toContain('targets.push(targetFrom(nodes[i], false))');
-    expect(bridge).toContain("target: targetFrom(el, true)");
+    expect(bridge).toContain('targets.push(targetFrom(nodes[i], false, false))');
+    expect(bridge).toContain("type: 'od-edit-hover', target: targetFrom(el, true, false)");
+    expect(bridge).toContain("type: 'od-edit-select', target: targetFrom(el, true, true)");
     expect(bridge).toContain('if (!isSourceMappable(nodes[i])) continue;');
     expect(bridge).toContain('return el;');
     expect(bridge).not.toContain('if (isPrimaryTarget(el)) return el;');
   });
 
   it('prefers the deepest source-mapped child over an annotated group on hover', async () => {
-    const posts: Array<{ type?: string; target?: { id: string; label?: string } }> = [];
+    const posts: Array<{ type?: string; target?: { id: string; label?: string; authoredSize?: unknown } }> = [];
     const dom = new JSDOM(
       `<main>
         <section data-od-id="hero-group">
@@ -283,8 +284,9 @@ describe('manual edit bridge target normalization', () => {
       { runScripts: 'dangerously', url: 'http://localhost' },
     );
     const span = dom.window.document.querySelector('span')!;
+    const createElement = vi.spyOn(dom.window.document, 'createElement');
     dom.window.parent.postMessage = ((message: unknown) => {
-      posts.push(message as { type?: string; target?: { id: string; label?: string } });
+      posts.push(message as { type?: string; target?: { id: string; label?: string; authoredSize?: unknown } });
     }) as typeof dom.window.parent.postMessage;
 
     span.dispatchEvent(new dom.window.Event('pointerover', { bubbles: true }));
@@ -292,6 +294,8 @@ describe('manual edit bridge target normalization', () => {
     const hover = posts.find((message) => message.type === 'od-edit-hover');
     expect(hover?.target?.id).toBe('path-0-0-0');
     expect(hover?.target?.label).toBe('Small label');
+    expect(hover?.target).not.toHaveProperty('authoredSize');
+    expect(createElement.mock.calls.filter(([tag]) => tag === 'style')).toHaveLength(0);
 
     dom.window.close();
   });
@@ -1132,7 +1136,13 @@ describe('manual edit bridge target normalization', () => {
     const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
 
     dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-preview-style', id: 'hero', styles: { width: '300px' }, version: 9 },
+      data: {
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: { width: '300px' },
+        version: 9,
+        includeAuthoredSize: true,
+      },
     }));
 
     expect(postMessage).toHaveBeenCalledWith(
@@ -1145,6 +1155,7 @@ describe('manual edit bridge target normalization', () => {
         // Post-apply computed width/height: the host's resize baseline needs
         // the value layout actually used, not the (possibly clamped) request.
         cssSize: { width: expect.any(String), height: expect.any(String) },
+        authoredSize: { width: '300px', height: '' },
       }),
       '*',
     );
@@ -1152,9 +1163,61 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
-  it('includes the computed css size on selected targets', () => {
+  it('omits authored-size work for high-frequency sizing preview frames', () => {
     const dom = new JSDOM(
-      `<main><h1 data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      `<style>.hero { width: 320px; }</style><main><h1 class="hero" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const createElement = vi.spyOn(dom.window.document, 'createElement');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-preview-style', id: 'hero', styles: { width: '340px' }, version: 10 },
+    }));
+
+    const ack = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; authoredSize?: unknown })
+      .find((message) => message.type === 'od-edit-preview-style-applied');
+    expect(ack).toBeTruthy();
+    expect(ack).not.toHaveProperty('authoredSize');
+    expect(createElement.mock.calls.filter(([tag]) => tag === 'style')).toHaveLength(0);
+
+    dom.window.close();
+  });
+
+  it('probes the winning authored size once for low-frequency inspector updates', () => {
+    const dom = new JSDOM(
+      `<style>.hero { width: 320px !important; }</style><main><h1 class="hero" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    for (const width of ['100%', '']) {
+      postMessage.mockClear();
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style',
+          id: 'hero',
+          styles: { width },
+          version: 11,
+          includeAuthoredSize: true,
+        },
+      }));
+      expect(postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style-applied',
+          authoredSize: { width: '320px', height: '' },
+        }),
+        '*',
+      );
+    }
+
+    dom.window.close();
+  });
+
+  it('includes computed and stylesheet-authored sizes on selected targets', () => {
+    const dom = new JSDOM(
+      `<style>.hero-size { width: 320px; height: 100%; }</style><main><h1 class="hero-size" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
     );
     const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
@@ -1169,10 +1232,122 @@ describe('manual edit bridge target normalization', () => {
         target: expect.objectContaining({
           id: 'hero',
           cssSize: { width: expect.any(String), height: expect.any(String) },
+          authoredSize: { width: '320px', height: '100%' },
         }),
       }),
       '*',
     );
+
+    dom.window.close();
+  });
+
+  it('hydrates a lightweight hover target when the host selects its affordance', () => {
+    const dom = new JSDOM(
+      `<style>.hero-size { width: 320px; }</style><main><h1 class="hero-size" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-select-target', id: 'hero' },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({
+          id: 'hero',
+          authoredSize: { width: '320px', height: '' },
+        }),
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('preserves stylesheet activation conditions when resolving authored sizes', () => {
+    const dom = new JSDOM(
+      `<style>.hero-size { height: 48px; }</style>
+       <style media="print">.hero-size { width: 900px; }</style>
+       <style id="disabled-size">.hero-size { width: 800px; }</style>
+       <main><h1 class="hero-size" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const disabledSheet = (dom.window.document.getElementById('disabled-size') as HTMLStyleElement).sheet;
+    if (!disabledSheet) throw new Error('Expected disabled test stylesheet');
+    Object.defineProperty(disabledSheet, 'disabled', { configurable: true, value: true });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.querySelector('[data-od-id="hero"]')!.dispatchEvent(
+      new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({
+          authoredSize: { width: '', height: '48px' },
+        }),
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('uses HTML width and height hints below winning CSS declarations', () => {
+    const dom = new JSDOM(
+      `<style>.photo { width: 50%; }</style>
+       <main><img class="photo" data-od-id="photo" width="640" height="360" alt="Preview"></main>
+       ${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.document.querySelector('[data-od-id="photo"]')!.dispatchEvent(
+      new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({
+          authoredSize: { width: '50%', height: '360px' },
+        }),
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('ignores width attributes that are not valid image pixel hints', () => {
+    const dom = new JSDOM(
+      `<main>
+         <div data-od-id="box" width="640">Box</div>
+         <img data-od-id="photo" width="50%" height="360" alt="Preview">
+       </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    for (const [id, authoredSize] of [
+      ['box', { width: '', height: '' }],
+      ['photo', { width: '', height: '360px' }],
+    ] as const) {
+      postMessage.mockClear();
+      dom.window.document.querySelector(`[data-od-id="${id}"]`)!.dispatchEvent(
+        new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+      expect(postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-select',
+          target: expect.objectContaining({ authoredSize }),
+        }),
+        '*',
+      );
+    }
 
     dom.window.close();
   });

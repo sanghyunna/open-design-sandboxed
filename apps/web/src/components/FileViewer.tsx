@@ -123,7 +123,7 @@ import type {
   PreviewCommentMember,
   PreviewCommentTarget,
 } from '../types';
-import { ManualEditPanel, applyManualEditStyleField, emptyManualEditDraft, normalizeManualEditStyles, type ManualEditDraft } from './ManualEditPanel';
+import { ManualEditPanel, applyManualEditStyleField, applyManualEditStyleFields, emptyManualEditDraft, normalizeManualEditStyles, type ManualEditDraft } from './ManualEditPanel';
 import { ManualEditShapeToolbar } from './ManualEditShapeToolbar';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
 import { ManualEditMoveFrame } from './ManualEditMoveFrame';
@@ -4506,10 +4506,15 @@ function HtmlViewer({
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null);
   }, [manualEditMode, selectedManualEditTarget?.id, srcDoc, useUrlLoadPreview]);
 
-  const previewStyleToIframe = useCallback((id: string, styles: Partial<ManualEditStyles>, version: number) => {
+  const previewStyleToIframe = useCallback((
+    id: string,
+    styles: Partial<ManualEditStyles>,
+    version: number,
+    includeAuthoredSize = false,
+  ) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od-edit-preview-style', id, styles, version }, '*');
+    win.postMessage({ type: 'od-edit-preview-style', id, styles, version, includeAuthoredSize }, '*');
     return true;
   }, []);
 
@@ -4896,9 +4901,17 @@ function HtmlViewer({
         // Target broadcasts can be briefly empty while the iframe/save path is
         // settling; keep the user's inspector selection unless a fresh copy is
         // available to update its metadata.
-        setSelectedManualEditTarget((current) =>
-          current ? data.targets.find((target) => target.id === current.id) ?? current : current,
-        );
+        setSelectedManualEditTarget((current) => {
+          if (!current) return current;
+          const fresh = data.targets.find((target) => target.id === current.id);
+          if (!fresh) return current;
+          // Discovery broadcasts intentionally omit the relatively expensive
+          // authored-size cascade probe. Preserve the selected target's last
+          // full selection/preview metadata while refreshing its geometry.
+          return fresh.authoredSize || !current.authoredSize
+            ? fresh
+            : { ...fresh, authoredSize: current.authoredSize };
+        });
         const selectedId = selectedManualEditTargetIdRef.current;
         if (selectedId) setTimeout(() => postSelectedManualEditTargetToIframe(selectedId), 0);
         return;
@@ -4971,9 +4984,12 @@ function HtmlViewer({
           const cssSize = data.cssSize && typeof data.cssSize.width === 'string' && typeof data.cssSize.height === 'string'
             ? { width: data.cssSize.width, height: data.cssSize.height }
             : undefined;
+          const authoredSize = data.authoredSize && typeof data.authoredSize.width === 'string' && typeof data.authoredSize.height === 'string'
+            ? { width: data.authoredSize.width, height: data.authoredSize.height }
+            : undefined;
           setSelectedManualEditTarget((current) =>
             current && current.id === data.id
-              ? { ...current, rect, ...(cssSize ? { cssSize } : {}) }
+              ? { ...current, rect, ...(cssSize ? { cssSize } : {}), ...(authoredSize ? { authoredSize } : {}) }
               : current);
         }
         if (!data.ok && version === manualEditPreviewVersionRef.current) {
@@ -5030,7 +5046,7 @@ function HtmlViewer({
       repairStyles[key] = sourceValue;
     }
     if (Object.keys(repairStyles).length === 0) return;
-    previewStyleToIframe(id, repairStyles, nextManualEditPreviewVersion());
+    previewStyleToIframe(id, repairStyles, nextManualEditPreviewVersion(), true);
     setManualEditDraft((current) => ({
       ...current,
       styles: { ...current.styles, ...repairStyles },
@@ -5056,7 +5072,10 @@ function HtmlViewer({
     const pending: ManualEditPendingStyleSave = { id, styles: pendingStyles, label, version };
     manualEditPendingStyleRef.current = pending;
     setManualEditError(null);
-    previewStyleToIframe(id, styles, version);
+    // Panel changes are low-frequency and need the exact winning declaration
+    // (including stylesheet !important / a cleared inline size). Drag frames
+    // deliberately skip this CSSOM probe and request it once on commit below.
+    previewStyleToIframe(id, styles, version, true);
   }
 
   // Translate a drag result (rect-space px) into CSS width/height, anchored on
@@ -5126,6 +5145,13 @@ function HtmlViewer({
       if (!current || current.id !== target.id) return current;
       return { ...current, styles: { ...current.styles, ...styles } };
     });
+    if (selectedManualEditTargetIdRef.current === target.id) {
+      setManualEditDraft((current) => ({
+        ...current,
+        styles: { ...current.styles, ...styles },
+      }));
+    }
+    previewStyleToIframe(target.id, styles, nextManualEditPreviewVersion(), true);
   }
 
   // Escape / pointercancel: repaint the iframe with the width/height that were
@@ -5200,6 +5226,12 @@ function HtmlViewer({
       if (!current || current.id !== target.id) return current;
       return { ...current, styles: { ...current.styles, ...styles } };
     });
+    if (selectedManualEditTargetIdRef.current === target.id) {
+      setManualEditDraft((current) => ({
+        ...current,
+        styles: { ...current.styles, ...styles },
+      }));
+    }
   }
 
   function revertManualEditMovePreview(target: ManualEditTarget) {
@@ -5236,7 +5268,7 @@ function HtmlViewer({
       acc[key] = sourceStyles[key] ?? '';
       return acc;
     }, {});
-    previewStyleToIframe(pending.id, resetStyles, nextManualEditPreviewVersion());
+    previewStyleToIframe(pending.id, resetStyles, nextManualEditPreviewVersion(), true);
     if (!target || target.id === selectedManualEditTarget?.id) {
       setManualEditDraft((current) => ({
         ...current,
@@ -7029,7 +7061,9 @@ function HtmlViewer({
         onClick={() => {
           const target = manualEditHoverTarget;
           setManualEditHoverTarget(null);
-          void selectManualEditTarget(target);
+          const win = iframeRef.current?.contentWindow;
+          if (win) win.postMessage({ type: 'od-edit-select-target', id: target.id }, '*');
+          else void selectManualEditTarget(target);
         }}
       >
         <Icon name="sliders" size={15} />
@@ -7601,6 +7635,18 @@ function HtmlViewer({
                   onError: setManualEditError,
                   onInvalidStyle: cancelManualEditPendingStyles,
                   onStyleChange: (id, styleUpdates, label) => { void handleManualEditStyleChange(id, styleUpdates, label); },
+                });
+              }}
+              onStyleFields={(styleUpdates) => {
+                if (!selectedManualEditTarget) return;
+                applyManualEditStyleFields({
+                  target: selectedManualEditTarget,
+                  draft: manualEditDraft,
+                  styles: styleUpdates,
+                  onDraftChange: setManualEditDraft,
+                  onError: setManualEditError,
+                  onInvalidStyle: cancelManualEditPendingStyles,
+                  onStyleChange: (id, normalizedStyles, label) => { void handleManualEditStyleChange(id, normalizedStyles, label); },
                 });
               }}
               onRichFormat={sendManualEditRichFormat}
