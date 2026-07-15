@@ -16,6 +16,7 @@ import {
   type DesktopExportPdfInput,
   type DesktopScreenshotInput,
   type DesktopUpdateInput,
+  type DaemonStatusSnapshot,
   type RegisterDesktopAuthResult,
   type SidecarStamp,
   type WebStatusSnapshot,
@@ -35,6 +36,11 @@ import {
 import { readProcessStamp } from "@open-design/platform";
 
 import { createDesktopRuntime, type DesktopRuntime } from "./runtime.js";
+import {
+  consumeDesktopApprovalToken,
+  startDesktopApprovalLoop,
+  type DesktopApprovalLoop,
+} from "./desktop-approval.js";
 import { attachDesktopProcessErrorFilter } from "./uncaught-exception.js";
 import { createDesktopUpdater, createDesktopUpdaterScheduler, type DesktopUpdaterScheduler } from "./updater.js";
 import {
@@ -59,6 +65,8 @@ export {
   // @dsp func-13f69c32
   resolveDesktopStatusUrl,
 } from "./runtime.js";
+
+export { consumeDesktopApprovalToken } from "./desktop-approval.js";
 
 // Re-export the path-validation helpers for the same reason (#974).
 // shell.openPath is privileged main-process behaviour; pinning the
@@ -121,6 +129,8 @@ export function applyOsLocaleSwitch(electronApp: Electron.App): string {
 
 export type DesktopMainOptions = {
   beforeShutdown?: () => Promise<void>;
+  /** Pre-consumed packaged bearer; tools-dev supplies it through process env. */
+  desktopApprovalToken?: string | null;
   discoverWebUrl?: () => Promise<string | null>;
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): packaged builds report the
@@ -196,6 +206,22 @@ function createWebDiscovery(runtime: SidecarRuntimeContext<SidecarStamp>): () =>
     });
     const web = await requestJsonIpc<WebStatusSnapshot>(webIpc, { type: SIDECAR_MESSAGES.STATUS }, { timeoutMs: 600 }).catch(() => null);
     return web?.url ?? null;
+  };
+}
+
+function createDaemonDiscovery(runtime: SidecarRuntimeContext<SidecarStamp>): () => Promise<string | null> {
+  return async () => {
+    const daemonIpc = resolveAppIpcPath({
+      app: APP_KEYS.DAEMON,
+      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      namespace: runtime.namespace,
+    });
+    const daemon = await requestJsonIpc<DaemonStatusSnapshot>(
+      daemonIpc,
+      { type: SIDECAR_MESSAGES.STATUS },
+      { timeoutMs: 600 },
+    ).catch(() => null);
+    return daemon?.url ?? null;
   };
 }
 
@@ -528,6 +554,10 @@ export async function runDesktopMain(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   options: DesktopMainOptions = {},
 ): Promise<void> {
+  const inheritedApprovalToken = consumeDesktopApprovalToken(process.env);
+  const desktopApprovalToken = options.desktopApprovalToken === undefined
+    ? inheritedApprovalToken
+    : options.desktopApprovalToken?.trim() || null;
   // Install the defensive uncaughtException filter BEFORE awaiting
   // app.whenReady, so a setTypeOfService EINVAL thrown by undici during
   // the renderer's first fetch is intercepted rather than surfacing as
@@ -608,6 +638,7 @@ export async function runDesktopMain(
   const rendererLogPath = join(dirname(desktopLogPath), "renderer.log");
 
   let desktop: DesktopRuntime | null = null;
+  let approvalLoop: DesktopApprovalLoop | null = null;
   let disposeMenu: () => void = () => undefined;
   let updateScheduler: DesktopUpdaterScheduler | null = null;
   let removeDiagnosticsIpc: () => void = () => undefined;
@@ -617,6 +648,7 @@ export async function runDesktopMain(
   async function shutdown(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
+    approvalLoop?.abort();
     await options.beforeShutdown?.().catch((error: unknown) => {
       console.error("desktop beforeShutdown failed", error);
     });
@@ -625,6 +657,7 @@ export async function runDesktopMain(
     removeDiagnosticsIpc();
     await ipcServer?.close().catch(() => undefined);
     await desktop?.close().catch(() => undefined);
+    await approvalLoop?.done.catch(() => undefined);
     app.quit();
   }
 
@@ -650,6 +683,14 @@ export async function runDesktopMain(
     splashStartedAt: options.splashStartedAt,
     updater,
   });
+  if (desktopApprovalToken) {
+    approvalLoop = startDesktopApprovalLoop({
+      discoverDaemonUrl: options.discoverDaemonUrl ?? createDaemonDiscovery(runtime),
+      getParentWindow: () => desktop?.approvalParent() ?? null,
+      showMessageBox: (parent, dialogOptions) => dialog.showMessageBox(parent, dialogOptions),
+      token: desktopApprovalToken,
+    });
+  }
   options.onDesktopReady?.({ show: () => desktop?.show() });
   disposeMenu = installDesktopMenu(runtime, options);
   removeDiagnosticsIpc = registerDesktopDiagnosticsIpc(runtime);

@@ -41,6 +41,10 @@ describe('DISCOVERY_AND_PHILOSOPHY (contracts copy) — TodoWrite plan item coun
       prompt.indexOf(DISCOVERY_AND_PHILOSOPHY),
     );
   });
+
+  it('does not advertise daemon-only rollback markers to API/BYOK agents', () => {
+    expect(composeSystemPrompt({})).not.toContain('<od-rollback-request');
+  });
 });
 
 describe('DISCOVERY_AND_PHILOSOPHY (contracts copy) — prompt routing parity', () => {

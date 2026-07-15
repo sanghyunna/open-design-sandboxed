@@ -149,6 +149,10 @@ const CHAT_STRING_FLAGS = new Set([
   'message',
   'mode',
   'conflict-policy',
+  'request',
+  'run',
+  'reason',
+  'prompt-file',
   'title',
   'seed-from',
   'fork-after',
@@ -212,6 +216,14 @@ const RECOVERABLE_EXIT_CODES = {
   'desktop-auth-pending':     74,
   'desktop-import-token-rejected': 75,
   'rollback-conflict':        76,
+  'rollback-run-mismatch':    77,
+  'rollback-loop-prevented':  78,
+  'rollback-approval-unavailable': 79,
+  'rollback-approval-denied': 80,
+  'rollback-approval-timeout': 81,
+  'rollback-request-expired': 82,
+  'rollback-request-consumed': 83,
+  'rollback-plan-changed':     84,
 };
 const PLUGIN_LIST_FILTER_FLAGS = new Set([
   ...PLUGIN_STRING_FLAGS,
@@ -931,6 +943,14 @@ async function structuredHttpFailure(resp, fallbackCode = 'daemon-not-running') 
 
 function normalizeRecoverableErrorCode(code, message) {
   if (code === 'ROLLBACK_CONFLICT') return 'rollback-conflict';
+  if (code === 'ROLLBACK_PLAN_CHANGED') return 'rollback-plan-changed';
+  if (code === 'ROLLBACK_RUN_MISMATCH') return 'rollback-run-mismatch';
+  if (code === 'ROLLBACK_LOOP_PREVENTED') return 'rollback-loop-prevented';
+  if (code === 'ROLLBACK_APPROVAL_UNAVAILABLE') return 'rollback-approval-unavailable';
+  if (code === 'ROLLBACK_APPROVAL_DENIED') return 'rollback-approval-denied';
+  if (code === 'ROLLBACK_APPROVAL_TIMEOUT') return 'rollback-approval-timeout';
+  if (code === 'ROLLBACK_REQUEST_EXPIRED') return 'rollback-request-expired';
+  if (code === 'ROLLBACK_REQUEST_CONSUMED') return 'rollback-request-consumed';
   if (code === 'DESKTOP_AUTH_PENDING') return 'desktop-auth-pending';
   if (code === 'FORBIDDEN' && /desktop import token rejected/i.test(String(message ?? ''))) {
     return 'desktop-import-token-rejected';
@@ -5572,7 +5592,8 @@ function printChatRollbackResult(data, context) {
   const fileChanges = data?.fileChanges ?? {};
   const deletedMessageIds = Array.isArray(data?.deletedMessageIds) ? data.deletedMessageIds : [];
   const conflicts = Array.isArray(data?.conflicts) ? data.conflicts : [];
-  console.log(`[chat rollback] restored ${data?.restoredCheckpointId ?? data?.targetMessageId ?? '-'}`);
+  const actor = data?.actor ?? 'user';
+  console.log(`[chat rollback] restored ${data?.restoredCheckpointId ?? data?.targetMessageId ?? '-'} (actor: ${actor})`);
   console.log(`mode\t${formatRollbackCliValue(data?.mode)}`);
   console.log(`targetMessage\t${data?.targetMessageId ?? ''}`);
   console.log(`safetyCheckpoint\t${data?.safetyCheckpointId ?? ''}`);
@@ -5586,7 +5607,9 @@ function printChatRollbackResult(data, context) {
       console.log(`conflict\t${conflict.reason ?? ''}\t${conflict.path ?? ''}`);
     }
   }
-  if (data?.safetyCheckpointId) {
+  if (data?.safetyCheckpointId && data?.mode !== 'chat_only') {
+    // Recovery is always a fresh manual restore; opaque agent requests are
+    // single-use. chat_only rollbacks have no file recovery path.
     console.log(`recovery\tod chat rollback --project ${context.projectId} --conversation ${context.conversationId} --message ${data.targetMessageId ?? '<messageId>'} --checkpoint ${data.safetyCheckpointId} --mode files-only`);
   }
 }
@@ -5638,6 +5661,19 @@ async function runChat(args) {
                    [--json]
                                            Restore files, chat history, or both
                                            through the daemon rollback API.
+  od chat rollback-request --project <id> --conversation <id> --run <runId>
+                           --mode files-only
+                           [--reason "..." | --prompt-file <path|->]
+                           [--json]
+                                           Request a files-only agent rollback
+                                           for a run, returning an opaque
+                                           request id and expiry.
+  od chat rollback-execute --project <id> --conversation <id>
+                           --request <id>
+                           [--conflict-policy fail|overwrite|keep-current]
+                           [--json]
+                                           Execute an opaque agent request after
+                                           trusted desktop approval.
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
@@ -5749,6 +5785,10 @@ Common options:
         console.error('--conflict-policy must be one of: fail | overwrite | keep-current');
         process.exit(2);
       }
+      if (flags.run) {
+        console.error('--run is not supported for manual rollback; use rollback-execute --request <id>');
+        process.exit(2);
+      }
       const body = {
         targetMessageId,
         mode,
@@ -5773,6 +5813,81 @@ Common options:
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       printChatRollbackResult(data, { projectId, conversationId });
+      return;
+    }
+    case 'rollback-execute': {
+      const usage = 'Usage: od chat rollback-execute --project <id> --conversation <id> --request <id> [--conflict-policy fail|overwrite|keep-current] [--json]';
+      const projectId = requireChatFlag(flags, 'project', usage);
+      const conversationId = requireChatFlag(flags, 'conversation', usage);
+      const requestId = requireChatFlag(flags, 'request', usage);
+      const conflictPolicy = normalizeRollbackConflictPolicy(flags['conflict-policy']);
+      if (flags['conflict-policy'] && !conflictPolicy) {
+        console.error('--conflict-policy must be one of: fail | overwrite | keep-current');
+        process.exit(2);
+      }
+      let resp;
+      try {
+        resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/agent-rollback-execute`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ requestId, conflictPolicy: conflictPolicy ?? 'fail' }),
+        });
+      } catch (err) {
+        surfaceFetchError(err, base);
+        process.exit(3);
+      }
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      printChatRollbackResult(data, { projectId, conversationId });
+      return;
+    }
+    case 'rollback-request': {
+      const usage = 'Usage: od chat rollback-request --project <id> --conversation <id> --run <runId> --mode files-only [--reason "..." | --prompt-file <path|->] [--json]';
+      const projectId = requireChatFlag(flags, 'project', usage);
+      const conversationId = requireChatFlag(flags, 'conversation', usage);
+      const runId = requireChatFlag(flags, 'run', usage);
+      const mode = normalizeRollbackMode(flags.mode);
+      if (!mode) {
+        console.error('--mode is required and must be files-only');
+        process.exit(2);
+      }
+      if (mode !== 'files_only') {
+        console.error('--mode must be files-only for rollback-request');
+        process.exit(2);
+      }
+      if (typeof flags.reason === 'string' && typeof flags['prompt-file'] === 'string') {
+        console.error('--reason and --prompt-file cannot be used together');
+        process.exit(2);
+      }
+      const reason = await readPromptFromFlags({
+        prompt: flags.reason,
+        'prompt-file': flags['prompt-file'],
+      });
+      const body = { runId, mode };
+      if (reason) {
+        body.reason = reason;
+      }
+      let resp;
+      try {
+        resp = await fetch(`${base}/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/agent-rollback-request`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        surfaceFetchError(err, base);
+        process.exit(3);
+      }
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      const data = await resp.json();
+      if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+      console.log(`[chat rollback-request] target msg ${data?.targetMessageId ?? '-'}, checkpoint ${data?.targetCheckpointId ?? '-'}, mode ${formatRollbackCliValue(data?.mode)}`);
+      console.log(`request\t${data?.requestId ?? ''}`);
+      console.log(`expiresAt\t${formatCheckpointTime(data?.expiresAt)}`);
+      if (data?.reason) {
+        console.log(`reason\t${data.reason}`);
+      }
       return;
     }
     default:

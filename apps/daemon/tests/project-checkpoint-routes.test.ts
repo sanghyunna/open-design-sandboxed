@@ -1,24 +1,36 @@
 import type http from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import Database from 'better-sqlite3';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { startServer } from '../src/server.js';
+import { withFakeAgent } from './helpers/fake-agent.js';
 
 describe('project checkpoint routes', () => {
   let server: http.Server;
   let baseUrl: string;
+  const approvalToken = randomBytes(32).toString('base64url');
+  const approvalAbort = new AbortController();
+  let approvalLoop: Promise<void>;
 
   beforeAll(async () => {
+    process.env.OD_DESKTOP_APPROVAL_TOKEN = approvalToken;
     const started = (await startServer({ port: 0, returnServer: true })) as {
       url: string;
       server: http.Server;
     };
     baseUrl = started.url;
     server = started.server;
+    approvalLoop = approveRollbacksUntilAborted(baseUrl, approvalToken, approvalAbort.signal);
   });
 
-  afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  afterAll(async () => {
+    approvalAbort.abort();
+    await approvalLoop;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
 
   async function createProject(prefix: string) {
     const projectId = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -72,6 +84,68 @@ describe('project checkpoint routes', () => {
     return ((await response.json()) as { checkpoints: Array<{ id: string; messageId: string | null }> }).checkpoints;
   }
 
+  function openTestDb() {
+    const dataDir = process.env.OD_DATA_DIR;
+    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    return new Database(path.join(dataDir, 'app.sqlite'));
+  }
+
+  function deleteConversationCheckpoints(conversationId: string) {
+    const db = openTestDb();
+    try {
+      db.prepare('DELETE FROM project_checkpoints WHERE conversation_id = ?').run(conversationId);
+    } finally {
+      db.close();
+    }
+  }
+
+  async function withActiveRun<T>(
+    projectId: string,
+    conversationId: string,
+    run: (runId: string, assistantMessageId: string) => Promise<T>,
+  ): Promise<T> {
+    return withFakeAgent(
+      'opencode',
+      `
+const args = process.argv.slice(2);
+if (args[0] === '--version') {
+  console.log('opencode 1.0.0');
+  process.exit(0);
+}
+if (args[0] === 'models') {
+  console.log('anthropic/claude-sonnet-4-5');
+  process.exit(0);
+}
+process.stdin.resume();
+process.stdin.on('end', () => {});
+setInterval(() => {}, 1000);
+`,
+      async () => {
+        const createResp = await fetch(`${baseUrl}/api/runs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agentId: 'opencode',
+            projectId,
+            conversationId,
+            message: 'test rollback request',
+          }),
+        });
+        expect(createResp.status).toBe(202);
+        const { runId, assistantMessageId } = (await createResp.json()) as {
+          runId: string;
+          assistantMessageId: string | null;
+        };
+        expect(assistantMessageId).toBeTruthy();
+        try {
+          return await run(runId, assistantMessageId!);
+        } finally {
+          await fetch(`${baseUrl}/api/runs/${runId}/cancel`, { method: 'POST' });
+        }
+      },
+    );
+  }
+
   it('rejects rollback when the target message is missing', async () => {
     const { projectId, conversationId } = await createProject('checkpoint-missing-target');
 
@@ -89,6 +163,29 @@ describe('project checkpoint routes', () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({
       error: { code: 'MESSAGE_NOT_FOUND' },
+    });
+  });
+
+  it('cancels an active run before a user-initiated rollback', async () => {
+    const { projectId, conversationId } = await createProject('checkpoint-active-manual');
+
+    await withActiveRun(projectId, conversationId, async (runId, assistantMessageId) => {
+      await writeProjectText(projectId, 'index.html', '<h1>Agent edit</h1>');
+      const response = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetMessageId: assistantMessageId,
+          mode: 'files_only',
+          conflictPolicy: 'overwrite',
+        }),
+      });
+
+      expect(response.status, await response.clone().text()).toBe(200);
+      expect(await response.json()).toMatchObject({ actor: 'user' });
+      const runResponse = await fetch(`${baseUrl}/api/runs/${runId}`);
+      expect(runResponse.status).toBe(200);
+      expect(await runResponse.json()).toMatchObject({ status: 'canceled' });
     });
   });
 
@@ -531,4 +628,308 @@ describe('project checkpoint routes', () => {
     ]);
     await expect(stat(filePath)).resolves.toMatchObject({});
   });
+
+  it('resolves an agent rollback request to the active run assistant message and checkpoint', async () => {
+    const { projectId, conversationId } = await createProject('agent-rollback-resolve');
+
+    await withActiveRun(projectId, conversationId, async (runId, assistantMessageId) => {
+      const response = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'files_only', reason: 'I overwrote the wrong file' }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toMatchObject({
+        kind: 'agent_rollback_request',
+        runId,
+        projectId,
+        conversationId,
+        targetMessageId: assistantMessageId,
+        targetCheckpointId: expect.any(String),
+        mode: 'files_only',
+        reason: 'I overwrote the wrong file',
+      });
+    });
+  });
+
+  it('returns 404 when no suitable checkpoint exists for an agent rollback request', async () => {
+    const { projectId, conversationId } = await createProject('agent-rollback-no-checkpoint');
+
+    await withActiveRun(projectId, conversationId, async (runId) => {
+      deleteConversationCheckpoints(conversationId);
+
+      const response = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'files_only' }),
+        },
+      );
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toMatchObject({
+        error: { code: 'CHECKPOINT_NOT_FOUND' },
+      });
+    });
+  });
+
+  it('does not fall back to a historical message checkpoint', async () => {
+    const { projectId, conversationId, messageId } = await createProject('agent-rollback-no-history-fallback');
+    await saveMessage(projectId, conversationId, {
+      id: messageId('old-assistant'),
+      role: 'assistant',
+      content: 'old answer',
+      runId: 'old-run',
+      runStatus: 'succeeded',
+      telemetryFinalized: true,
+    });
+
+    await withActiveRun(projectId, conversationId, async (runId, assistantMessageId) => {
+      const db = openTestDb();
+      try {
+        db.prepare(
+          `DELETE FROM project_checkpoints
+            WHERE conversation_id = ? AND message_id = ? AND kind = 'before_run'`,
+        ).run(conversationId, assistantMessageId);
+      } finally {
+        db.close();
+      }
+
+      const response = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'files_only' }),
+        },
+      );
+      expect(response.status).toBe(404);
+      expect(await response.json()).toMatchObject({
+        error: { code: 'CHECKPOINT_NOT_FOUND' },
+      });
+    });
+  });
+
+  it('rejects agent chat rollback requests', async () => {
+    const { projectId, conversationId } = await createProject('agent-rollback-chat-mode');
+
+    await withActiveRun(projectId, conversationId, async (runId) => {
+      const response = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'chat_only' }),
+        },
+      );
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: 'BAD_REQUEST' } });
+    });
+  });
+
+  it('returns 409 when the requested run is not active or belongs to another conversation', async () => {
+    const { projectId, conversationId } = await createProject('agent-rollback-inactive');
+
+    const response = await fetch(
+      `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId: 'does-not-exist', mode: 'files_only' }),
+      },
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'RUN_NOT_ACTIVE' },
+    });
+  });
+
+  it('executes an agent rollback only through its opaque request id', async () => {
+    const { projectId, conversationId } = await createProject('rollback-actor-agent');
+
+    await writeProjectText(projectId, 'index.html', '<h1>Before</h1>');
+    await withActiveRun(projectId, conversationId, async (runId, assistant1) => {
+      const requestResponse = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'files_only' }),
+        },
+      );
+      const request = await requestResponse.json() as { requestId: string };
+      const response = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: request.requestId,
+          conflictPolicy: 'overwrite',
+        }),
+      });
+
+      expect(response.status, await response.clone().text()).toBe(200);
+      const body = await response.json() as { approvalRequestId: string };
+      expect(body).toMatchObject({
+        actor: 'agent',
+        mode: 'files_only',
+        targetMessageId: assistant1,
+        approvalRequestId: expect.any(String),
+      });
+      const db = openTestDb();
+      try {
+        const row = db.prepare(
+          `SELECT metadata_json AS metadataJson
+             FROM project_checkpoint_restores
+            WHERE target_message_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1`,
+        ).get(assistant1) as { metadataJson: string };
+        expect(JSON.parse(row.metadataJson)).toMatchObject({
+          actor: 'agent',
+          approvalRequestId: body.approvalRequestId,
+        });
+      } finally {
+        db.close();
+      }
+    });
+  });
+
+  it('rejects actor and run spoofing on the manual rollback route', async () => {
+    const { projectId, conversationId, messageId } = await createProject('rollback-run-mismatch');
+    const assistant1 = messageId('assistant-1');
+
+    await writeProjectText(projectId, 'index.html', '<h1>Before</h1>');
+    await saveMessage(projectId, conversationId, {
+      id: assistant1,
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+      runStatus: 'succeeded',
+      telemetryFinalized: true,
+    });
+
+    const response = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/rollback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetMessageId: assistant1,
+        mode: 'files_only',
+        conflictPolicy: 'overwrite',
+        createSafetyCheckpoint: true,
+        runId: 'run-2',
+        actor: 'agent',
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'ROLLBACK_ACTOR_SPOOFED' },
+    });
+  });
+
+  it('consumes an opaque agent rollback request once', async () => {
+    const { projectId, conversationId } = await createProject('rollback-loop-prevented');
+
+    await writeProjectText(projectId, 'index.html', '<h1>Before</h1>');
+    await withActiveRun(projectId, conversationId, async (runId, assistant1) => {
+      const requestResponse = await fetch(
+        `${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-request`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runId, mode: 'files_only' }),
+        },
+      );
+      const request = await requestResponse.json() as { requestId: string };
+      const rollback = () => fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/agent-rollback-execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: request.requestId,
+          conflictPolicy: 'overwrite',
+        }),
+      });
+
+      const firstRollback = await rollback();
+      expect(firstRollback.status, await firstRollback.clone().text()).toBe(200);
+      const second = await rollback();
+      expect(second.status).toBe(409);
+      expect(await second.json()).toMatchObject({
+        error: { code: 'ROLLBACK_REQUEST_CONSUMED' },
+      });
+      expect(assistant1).toBeTruthy();
+    });
+  });
+
+  it('does not apply agent rollback loop prevention to user-initiated rollbacks', async () => {
+    const { projectId, conversationId, messageId } = await createProject('rollback-user-loop-ok');
+    const assistant1 = messageId('assistant-1');
+
+    await writeProjectText(projectId, 'index.html', '<h1>Before</h1>');
+    await saveMessage(projectId, conversationId, {
+      id: assistant1,
+      role: 'assistant',
+      content: 'first answer',
+      runId: 'run-1',
+      runStatus: 'succeeded',
+      telemetryFinalized: true,
+    });
+
+    for (let i = 0; i < 2; i += 1) {
+      const response = await fetch(`${baseUrl}/api/projects/${projectId}/conversations/${conversationId}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetMessageId: assistant1,
+          mode: 'files_only',
+          conflictPolicy: 'overwrite',
+          createSafetyCheckpoint: true,
+        }),
+      });
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toMatchObject({ actor: 'user', conflicts: [] });
+    }
+  });
 });
+
+async function approveRollbacksUntilAborted(
+  baseUrl: string,
+  token: string,
+  signal: AbortSignal,
+): Promise<void> {
+  while (!signal.aborted) {
+    try {
+      const response = await fetch(`${baseUrl}/api/desktop/rollback-approvals/next`, {
+        headers: { authorization: `Bearer ${token}` },
+        signal,
+      });
+      if (!response.ok) continue;
+      const { approval } = await response.json() as {
+        approval: { approvalRequestId: string; decisionToken: string } | null;
+      };
+      if (!approval) continue;
+      await fetch(
+        `${baseUrl}/api/desktop/rollback-approvals/${approval.approvalRequestId}/decision`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${token}`,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ approved: true, decisionToken: approval.decisionToken }),
+          signal,
+        },
+      );
+    } catch (error) {
+      if (!signal.aborted) throw error;
+    }
+  }
+}

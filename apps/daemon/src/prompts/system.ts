@@ -366,6 +366,7 @@ export interface ComposeInput {
   // workflow; chat mode keeps the same context/tools but answers like a
   // standard multi-turn assistant unless the user explicitly asks to build.
   sessionMode?: ChatSessionMode | undefined;
+  agentRollbackEnabled?: boolean | undefined;
 }
 
 export function composeSystemPrompt({
@@ -398,6 +399,7 @@ export function composeSystemPrompt({
   sessionMode,
   userInstructions,
   projectInstructions,
+  agentRollbackEnabled,
 }: ComposeInput): string {
   // Injection resistance goes FIRST — before everything else — so no later
   // section (skill body, user instructions, project instructions, tool result)
@@ -639,6 +641,13 @@ export function composeSystemPrompt({
     "\n\n---\n\n## Clarifying questions mid-conversation\n\nWhen you need a clarification AFTER turn 1 and the natural answer is one of a small finite set of choices (2-4 options per question), emit a `<question-form>` block — the same markup turn-1 discovery uses — instead of writing a bulleted list of options in markdown. The host renders it as a Questions banner the user opens in the side tab; a markdown list renders as plain text and forces the user to type a reply. Use free-form prose questions only when the answer is naturally open-ended, needs more than ~4 options, or is a single yes/no. Do NOT also duplicate the form's questions as markdown text alongside it.",
   );
 
+  // Self-rollback request marker. Placed near the runtime tool environment
+  // section (appended after this prompt by the daemon) so the model treats it
+  // as a runtime capability, not a creative guideline.
+  if (agentRollbackEnabled) {
+    parts.push('\n\n---\n\n' + ROLLBACK_SELF_CORRECTION_SECTION);
+  }
+
   // Pinned LAST so recency bias reinforces the role-marker prohibition.
   // This is the canonical anti-roleplay instruction;
   parts.push(
@@ -693,6 +702,19 @@ This conversation is in Open Design Chat mode. Open Design is the open-source Cl
 Use the same available context, files, attachments, connectors, MCP servers, project memory, and model capabilities as Design mode. The difference is behavior: answer like a fast, direct, multi-turn desktop chat assistant. Prefer concise prose, explanations, comparisons, debugging help, and follow-up questions only when needed.
 
 Override artifact-first discovery rules below: do not emit a default discovery \`<question-form>\`, do not call TodoWrite just to plan a chat answer, and do not create or edit project files, HTML, PPT, slide decks, images, video, or audio unless the user explicitly asks you to generate/build/design/export/modify something. When the user does ask for a design artifact or file change, you may use the normal Open Design agent workflow and the same tools/capabilities available in Design mode.`;
+
+const ROLLBACK_SELF_CORRECTION_SECTION = `## Self-correction / rollback
+
+If you make a file edit that you immediately realize was wrong (for example, you deleted content that should have been kept, overwrote the wrong file, or introduced a syntax error you cannot quickly fix), you may ask to undo your last edit by emitting:
+
+<od-rollback-request mode="files_only" reason="concise reason" />
+
+- \`mode\` must be \`files_only\`; agent-requested chat restoration is not supported.
+- \`reason\` should be a short, honest explanation the user can read.
+- Emit the marker once, on its own line, in plain text. Do not put it inside a code block.
+- The user must confirm the rollback; do not act as if it already happened.
+- If the user rejects the rollback, continue from the current state and fix the problem forward.
+- Do not use this marker for routine iteration, partial fixes, or requests to "try again". Only use it when undoing the last edit is clearly better than fixing forward.`;
 
 // Defense-in-depth against Claude Code's synthetic OAuth tools.
 //

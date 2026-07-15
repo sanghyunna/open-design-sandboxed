@@ -36,7 +36,7 @@ import {
   isDesignSystemWorkspacePrompt,
 } from '../design-system-auto-prompt';
 import { isTodoWriteToolName, latestTodoWriteInputForPinnedCard } from '../runtime/todos';
-import type { AppConfig, ChatAttachment, ChatCommentAttachment, ChatMessage, Conversation, DesignSystemSummary, PreviewComment, Project, ProjectFile, ProjectMetadata, SkillSummary } from '../types';
+import type { AgentRollbackRequestEvent, AppConfig, ChatAttachment, ChatCommentAttachment, ChatMessage, Conversation, DesignSystemSummary, PreviewComment, Project, ProjectFile, ProjectMetadata, SkillSummary } from '../types';
 import { exactDateTime, messageTime, shortTime } from '../utils/chatTime';
 import { commentTargetDisplayName, commentsToAttachments, simplePositionLabel } from '../comments';
 import { AssistantMessage, type QuestionFormOpenRequest } from './AssistantMessage';
@@ -360,6 +360,12 @@ interface Props {
   onArtifactDownload?: (fileName: string) => void;
   onForkFromMessage?: (assistantMessage: ChatMessage) => void;
   forkingMessageId?: string | null;
+  onAgentRollbackConfirm?: (
+    payload: AgentRollbackRequestEvent,
+    accepted: boolean,
+    dismiss: () => void,
+  ) => void;
+  onAgentRollbackShowDiff?: (payload: AgentRollbackRequestEvent) => void;
   // Header "+" button — kicks off ProjectView's create-conversation flow.
   onNewConversation?: () => void;
   newConversationDisabled?: boolean;
@@ -538,6 +544,8 @@ export function ChatPane({
   onArtifactDownload,
   onForkFromMessage,
   forkingMessageId = null,
+  onAgentRollbackConfirm,
+  onAgentRollbackShowDiff,
   onNewConversation,
   newConversationDisabled = false,
   conversations,
@@ -623,11 +631,15 @@ export function ChatPane({
     onContinueRemainingTasks,
     onArtifactShare,
     onForkFromMessage,
+    onAgentRollbackConfirm,
+    onAgentRollbackShowDiff,
   });
   assistantCallbacksRef.current = {
     onContinueRemainingTasks,
     onArtifactShare,
     onForkFromMessage,
+    onAgentRollbackConfirm,
+    onAgentRollbackShowDiff,
   };
   // Featured design-toolbox follow-up rows on the assistant "next step" card.
   // The toolbox left the "+" menu, so these route straight into the composer
@@ -1755,6 +1767,8 @@ export function ChatPane({
                 toolboxSkillNames={featuredToolboxSkillNames}
                 onForkFromMessage={onForkFromMessage}
                 forkingMessageId={forkingMessageId}
+                onAgentRollbackConfirm={onAgentRollbackConfirm}
+                onAgentRollbackShowDiff={onAgentRollbackShowDiff}
                 t={t}
                 onOpenQuestions={onOpenQuestions}
                 scrollContainerRef={logRef}
@@ -1971,6 +1985,12 @@ interface AssistantCallbacks {
     | undefined;
   onArtifactShare: ((fileName: string) => void) | undefined;
   onForkFromMessage: ((message: ChatMessage) => void) | undefined;
+  onAgentRollbackConfirm:
+    | ((payload: AgentRollbackRequestEvent, accepted: boolean, dismiss: () => void) => void)
+    | undefined;
+  onAgentRollbackShowDiff:
+    | ((payload: AgentRollbackRequestEvent) => void)
+    | undefined;
 }
 
 type ChatRenderItem = {
@@ -2031,6 +2051,8 @@ function ChatRows({
   toolboxSkillNames,
   onForkFromMessage,
   forkingMessageId,
+  onAgentRollbackConfirm,
+  onAgentRollbackShowDiff,
   t,
   onOpenQuestions,
   scrollContainerRef,
@@ -2068,6 +2090,12 @@ function ChatRows({
   toolboxSkillNames?: Partial<Record<DesignToolboxActionId, string | null>>;
   onForkFromMessage?: (message: ChatMessage) => void;
   forkingMessageId?: string | null;
+  onAgentRollbackConfirm?: (
+    payload: AgentRollbackRequestEvent,
+    accepted: boolean,
+    dismiss: () => void,
+  ) => void;
+  onAgentRollbackShowDiff?: (payload: AgentRollbackRequestEvent) => void;
   t: TranslateFn;
   onOpenQuestions?: (request?: QuestionFormOpenRequest) => void;
   scrollContainerRef: MutableRefObject<HTMLDivElement | null>;
@@ -2163,6 +2191,17 @@ function ChatRows({
             : undefined
         }
         forking={forkingMessageId === m.id}
+        onAgentRollbackConfirm={
+          onAgentRollbackConfirm
+            ? (payload, accepted, dismiss) =>
+                assistantCallbacksRef.current.onAgentRollbackConfirm?.(payload, accepted, dismiss)
+            : undefined
+        }
+        onAgentRollbackShowDiff={
+          onAgentRollbackShowDiff
+            ? (payload) => assistantCallbacksRef.current.onAgentRollbackShowDiff?.(payload)
+            : undefined
+        }
         onArtifactShare={
           onArtifactShare
             ? (fileName) => assistantCallbacksRef.current.onArtifactShare?.(fileName)

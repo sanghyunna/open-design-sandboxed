@@ -6,6 +6,7 @@
 // the UI can stay rendered when the daemon is briefly unreachable.
 
 import type {
+  AgentRollbackExecuteRequest,
   AppliedPluginSnapshot,
   ApplyResult,
   ChatSessionMode,
@@ -26,6 +27,7 @@ import type {
   RollbackConflictPolicy,
   RollbackConflictResponse,
   RollbackMode,
+  RollbackPlanChangedResponse,
   RollbackRequest,
   RollbackResponse,
   TerminalSession,
@@ -51,7 +53,6 @@ export type {
   RollbackRequest,
   RollbackResponse,
 } from '@open-design/contracts';
-export type RollbackRestoreMode = RollbackMode;
 
 export class RollbackConflictError extends Error {
   readonly code: string;
@@ -65,6 +66,14 @@ export class RollbackConflictError extends Error {
   }
 }
 
+export class RollbackPlanChangedError extends Error {
+  readonly code = 'ROLLBACK_PLAN_CHANGED';
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'RollbackPlanChangedError';
+  }
+}
 export async function listProjects(): Promise<Project[]> {
   try {
     const resp = await fetch('/api/projects');
@@ -457,12 +466,41 @@ export async function rollbackConversation(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetMessageId: request.targetMessageId,
+        ...(request.targetCheckpointId ? { targetCheckpointId: request.targetCheckpointId } : {}),
+        mode: request.mode,
+        ...(request.conflictPolicy ? { conflictPolicy: request.conflictPolicy } : {}),
+        ...(request.createSafetyCheckpoint !== undefined
+          ? { createSafetyCheckpoint: request.createSafetyCheckpoint }
+          : {}),
+      }),
+    },
+  );
+  return readRollbackResponse(resp);
+}
+
+export async function executeAgentRollback(
+  projectId: string,
+  conversationId: string,
+  request: AgentRollbackExecuteRequest,
+): Promise<RollbackResponse> {
+  const resp = await fetch(
+    `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/agent-rollback-execute`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     },
   );
+  return readRollbackResponse(resp);
+}
+
+async function readRollbackResponse(resp: Response): Promise<RollbackResponse> {
   const json = (await resp.json().catch(() => null)) as
     | RollbackResponse
     | RollbackConflictResponse
+    | RollbackPlanChangedResponse
     | { error?: string | { code?: string; message?: string; conflicts?: ProjectCheckpointConflict[] }; message?: string }
     | null;
   if (resp.ok) return json as RollbackResponse;
@@ -470,13 +508,16 @@ export async function rollbackConversation(
   const error = json && 'error' in json ? json.error : undefined;
   const code = typeof error === 'object' ? error.code : undefined;
   const conflicts =
-    (typeof error === 'object' && Array.isArray(error.conflicts) ? error.conflicts : undefined)
+    (typeof error === 'object' && 'conflicts' in error && Array.isArray(error.conflicts) ? error.conflicts : undefined)
     ?? [];
   const message =
     (json && 'message' in json ? json.message : undefined)
     ?? (typeof error === 'string' ? error : error?.message)
     ?? resp.statusText
     ?? 'Rollback failed.';
+  if (code === 'ROLLBACK_PLAN_CHANGED') {
+    throw new RollbackPlanChangedError(message);
+  }
   if (code === 'ROLLBACK_CONFLICT' || conflicts.length > 0) {
     throw new RollbackConflictError(message, conflicts);
   }

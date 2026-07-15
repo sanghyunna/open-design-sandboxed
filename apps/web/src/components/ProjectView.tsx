@@ -124,10 +124,11 @@ import {
   type SaveMessageOptions,
   waitGeneratedPluginShareTask,
 } from '../state/projects';
-import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, WorkspaceContextItem } from '@open-design/contracts';
+import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, RollbackMode, WorkspaceContextItem } from '@open-design/contracts';
 import type {
   AgentEvent,
   AgentInfo,
+  AgentRollbackRequestEvent,
   AppConfig,
   Artifact,
   ChatAttachment,
@@ -163,7 +164,7 @@ import { DesignSystemPicker } from './DesignSystemPicker';
 import { PluginDetailsModal } from './PluginDetailsModal';
 import { DesignSystemPreviewModal } from './DesignSystemPreviewModal';
 import { ChatPane } from './ChatPane';
-import type { QuestionFormOpenRequest } from './AssistantMessage';
+import { ASSISTANT_ROLLBACK_EVENT, type QuestionFormOpenRequest } from './AssistantMessage';
 import { RollbackModal } from './RollbackModal';
 import type { ChatSendMeta } from './ChatComposer';
 import {
@@ -343,7 +344,6 @@ const DESIGN_SYSTEM_AUDIT_AUTO_REPAIR_ATTEMPTS = 2;
 // Embedded-browser navigation bursts settle well within this; the local cache
 // is written immediately so nothing is lost if the daemon write is coalesced.
 const TAB_PERSIST_DEBOUNCE_MS = 400;
-const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
 const MIN_NORMAL_SPLIT_WIDTH =
   MIN_CHAT_PANEL_WIDTH + SPLIT_RESIZE_HANDLE_WIDTH + MIN_WORKSPACE_PANEL_WIDTH;
 type DesignSystemReviewEntry = NonNullable<ProjectMetadata['designSystemReview']>[string];
@@ -834,12 +834,21 @@ export function ProjectView({
       if (detail.projectId !== project.id) return;
       if (!activeConversationId || detail.conversationId !== activeConversationId) return;
       setRollbackTargetMessage(detail.message);
+      setRollbackModalReadOnly(false);
+      setRollbackModalInitialMode(undefined);
+      setRollbackModalInitialCheckpointId(undefined);
+      setRollbackAgentRequestId(null);
     };
     window.addEventListener(ASSISTANT_ROLLBACK_EVENT, onAssistantRollback);
     return () => window.removeEventListener(ASSISTANT_ROLLBACK_EVENT, onAssistantRollback);
   }, [activeConversationId, project.id]);
   useEffect(() => {
+    pendingAgentRollbackDismissRef.current = null;
     setRollbackTargetMessage(null);
+    setRollbackModalReadOnly(false);
+    setRollbackModalInitialMode(undefined);
+    setRollbackModalInitialCheckpointId(undefined);
+    setRollbackAgentRequestId(null);
   }, [activeConversationId]);
   const [attachedComments, setAttachedComments] = useState<PreviewComment[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -852,6 +861,11 @@ export function ProjectView({
   const [error, setError] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [rollbackTargetMessage, setRollbackTargetMessage] = useState<ChatMessage | null>(null);
+  const [rollbackModalReadOnly, setRollbackModalReadOnly] = useState(false);
+  const [rollbackModalInitialMode, setRollbackModalInitialMode] = useState<RollbackMode | undefined>(undefined);
+  const [rollbackModalInitialCheckpointId, setRollbackModalInitialCheckpointId] = useState<string | null | undefined>(undefined);
+  const [rollbackAgentRequestId, setRollbackAgentRequestId] = useState<string | null>(null);
+  const pendingAgentRollbackDismissRef = useRef<(() => void) | null>(null);
   const [filesRefresh, setFilesRefresh] = useState(0);
   // True while a working-dir replace is reindexing the new folder. Surfaced
   // to the Design Files panel so the file list shows a loading state instead
@@ -2283,6 +2297,10 @@ export function ProjectView({
 
   const handleRollbackSuccess = useCallback(
     async (response: RollbackResponse) => {
+      if (response.actor === 'agent') {
+        pendingAgentRollbackDismissRef.current?.();
+        pendingAgentRollbackDismissRef.current = null;
+      }
       const conversationId = response.conversationId || activeConversationId;
       if (!conversationId) return;
       const [serverMessages, nextFiles] = await Promise.all([
@@ -3791,6 +3809,43 @@ export function ProjectView({
       if (started) removeQueuedChatSend(id);
     })();
   }, [armSlideNavForQueuedSend, currentConversationBusy, handleSend, handleStop, prioritizeQueuedChatSend, project.id, removeQueuedChatSend]);
+
+  const handleAgentRollbackConfirm = useCallback(
+    (payload: AgentRollbackRequestEvent, accepted: boolean, dismiss: () => void) => {
+      if (!activeConversationId) return;
+      if (!accepted) {
+        void handleSend(t('rollback.agentRequestRejected'), [], []);
+        return;
+      }
+      if (payload.projectId !== project.id || payload.conversationId !== activeConversationId) return;
+      const target = messages.find(
+        (m) => m.id === payload.targetMessageId && m.role === 'assistant',
+      );
+      if (!target) return;
+      pendingAgentRollbackDismissRef.current = dismiss;
+      setRollbackTargetMessage(target);
+      setRollbackModalReadOnly(false);
+      setRollbackModalInitialMode(payload.mode);
+      setRollbackModalInitialCheckpointId(payload.targetCheckpointId);
+      setRollbackAgentRequestId(payload.requestId);
+    },
+    [activeConversationId, handleSend, messages, project.id, t],
+  );
+
+  const handleAgentRollbackShowDiff = useCallback(
+    (payload: AgentRollbackRequestEvent) => {
+      const target = messages.find(
+        (m) => m.id === payload.targetMessageId && m.role === 'assistant',
+      );
+      if (!target) return;
+      setRollbackTargetMessage(target);
+      setRollbackModalReadOnly(true);
+      setRollbackModalInitialMode(payload.mode);
+      setRollbackModalInitialCheckpointId(payload.targetCheckpointId);
+      setRollbackAgentRequestId(null);
+    },
+    [messages],
+  );
 
   useEffect(() => {
     if (currentConversationBusy) {
@@ -5442,6 +5497,8 @@ export function ProjectView({
               onArtifactDownload={handleArtifactDownload}
               onForkFromMessage={handleForkFromMessage}
               forkingMessageId={forkingMessageId}
+              onAgentRollbackConfirm={handleAgentRollbackConfirm}
+              onAgentRollbackShowDiff={handleAgentRollbackShowDiff}
               onNewConversation={handleNewConversation}
               newConversationDisabled={newConversationDisabled}
               conversations={conversations}
@@ -5682,9 +5739,19 @@ export function ProjectView({
           projectId={project.id}
           conversationId={activeConversationId}
           targetMessage={rollbackTargetMessage}
-          onBeforeRollback={handleStop}
-          onClose={() => setRollbackTargetMessage(null)}
+          onClose={() => {
+            pendingAgentRollbackDismissRef.current = null;
+            setRollbackTargetMessage(null);
+            setRollbackModalReadOnly(false);
+            setRollbackModalInitialMode(undefined);
+            setRollbackModalInitialCheckpointId(undefined);
+            setRollbackAgentRequestId(null);
+          }}
           onSuccess={handleRollbackSuccess}
+          readOnly={rollbackModalReadOnly}
+          initialMode={rollbackModalInitialMode}
+          initialCheckpointId={rollbackModalInitialCheckpointId}
+          agentRequestId={rollbackAgentRequestId}
         />
       ) : null}
       <AnimatePresence>

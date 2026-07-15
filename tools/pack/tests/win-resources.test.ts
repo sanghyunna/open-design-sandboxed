@@ -19,6 +19,15 @@ function stubExecPath(execPath: string): () => void {
 }
 
 async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
+  await mkdir(join(workspaceRoot, "packages", "platform", "dist", "native", "win32"), { recursive: true });
+  await mkdir(join(workspaceRoot, "packages", "platform", "native", "win32"), { recursive: true });
+  await writeFile(
+    join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "od-agent-isolator.exe"),
+    "fake deterministic isolator\n",
+    "utf8",
+  );
+  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "build.ps1"), "# build\n", "utf8");
+  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "od-agent-isolator.cpp"), "// source\n", "utf8");
   await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
   await mkdir(join(workspaceRoot, "design-templates", "orbit-general"), {
     recursive: true,
@@ -105,6 +114,9 @@ describe("prepareResourceTree", () => {
         readFile(join(result.resourceRoot, "community-pets", "dario", "pet.json"), "utf8"),
       ).resolves.toBe("{\"name\":\"dario\"}\n");
       await expect(access(join(result.resourceRoot, "bin", "node.exe"))).resolves.toBeUndefined();
+      await expect(
+        readFile(join(result.resourceRoot, "bin", "od-agent-isolator.exe"), "utf8"),
+      ).resolves.toBe("fake deterministic isolator\n");
       expect(cache.report().entries.at(-1)?.materialized).toEqual([]);
     } finally {
       await rm(root, { force: true, recursive: true });
@@ -272,6 +284,26 @@ describe("prepareResourceTree", () => {
       ]);
     } finally {
       restoreExecPath();
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("invalidates the Windows resource tree cache when the isolator source changes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "open-design-win-isolator-cache-"));
+    const workspaceRoot = join(root, "workspace");
+    const resourceRoot = join(root, "materialized", "open-design");
+    const cache = new ToolPackCache(join(root, "cache"));
+    const config = { workspaceRoot } as ToolPackConfig;
+    const paths = { resourceRoot } as WinPaths;
+    const source = join(workspaceRoot, "packages", "platform", "native", "win32", "od-agent-isolator.cpp");
+
+    try {
+      await createWorkspaceFixture(workspaceRoot);
+      await prepareResourceTree(config, paths, cache, { materialize: true });
+      await writeFile(source, "// changed source\n", "utf8");
+      await prepareResourceTree(config, paths, cache, { materialize: true });
+      expect(cache.report().entries.map((entry) => entry.status)).toEqual(["miss", "miss"]);
+    } finally {
       await rm(root, { force: true, recursive: true });
     }
   });

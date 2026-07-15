@@ -312,6 +312,7 @@ export type DesktopStatusSnapshot = {
 };
 
 export type DesktopRuntime = {
+  approvalParent(): BrowserWindow | null;
   close(): Promise<void>;
   click(input: DesktopClickInput): Promise<DesktopClickResult>;
   console(): DesktopConsoleResult;
@@ -1919,6 +1920,9 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   void tick();
 
   return {
+    approvalParent() {
+      return window.isDestroyed() ? null : window;
+    },
     async click(input) {
       if (window.isDestroyed()) return { clicked: false, found: false };
       const selector = JSON.stringify(input.selector);

@@ -77,6 +77,51 @@ export interface RollbackRequest {
   createSafetyCheckpoint?: boolean;
 }
 
+/** Agent intent submitted before the daemon resolves an opaque rollback handle. */
+export interface AgentRollbackIntentRequest {
+  runId: string;
+  mode: 'files_only';
+  reason?: string;
+}
+
+/** Public request for executing an already-resolved agent self-rollback. */
+export interface AgentRollbackExecuteRequest {
+  requestId: string;
+  conflictPolicy?: RollbackConflictPolicy;
+}
+
+export interface DesktopRollbackApprovalPlan {
+  approvalRequestId: string;
+  actor: 'agent';
+  projectId: string;
+  conversationId: string;
+  targetMessageId: string;
+  targetCheckpointId: string;
+  mode: 'files_only';
+  conflictPolicy: RollbackConflictPolicy;
+  runId: string;
+  revision: string;
+  fileChanges: RollbackFileChangeCounts;
+  conflictCount: number;
+  reason: string;
+  expiresAt: number;
+}
+
+/** Private daemon-to-desktop long-poll response. */
+export interface DesktopRollbackApprovalNextResponse {
+  approval: (DesktopRollbackApprovalPlan & { decisionToken: string }) | null;
+}
+
+/** Private desktop-to-daemon one-time decision. */
+export interface DesktopRollbackApprovalDecisionRequest {
+  approved: boolean;
+  decisionToken: string;
+}
+
+export interface DesktopRollbackApprovalDecisionResponse {
+  accepted: true;
+}
+
 export interface RollbackFileChangeCounts {
   added: number;
   modified: number;
@@ -95,6 +140,10 @@ export interface RollbackResponse {
   clearedAgentSessions: boolean;
   fileChanges: RollbackFileChangeCounts;
   conflicts: ProjectCheckpointConflict[];
+  /** Who initiated the rollback. */
+  actor: 'user' | 'agent';
+  /** Trusted desktop approval recorded with the rollback audit row. */
+  approvalRequestId?: string | null;
 }
 
 export interface RollbackConflictError {
@@ -105,4 +154,13 @@ export interface RollbackConflictError {
 
 export interface RollbackConflictResponse {
   error: RollbackConflictError;
+}
+
+export interface RollbackPlanChangedError {
+  code: 'ROLLBACK_PLAN_CHANGED';
+  message: string;
+}
+
+export interface RollbackPlanChangedResponse {
+  error: RollbackPlanChangedError;
 }

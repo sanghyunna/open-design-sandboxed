@@ -1,6 +1,8 @@
+import { randomBytes } from "node:crypto";
 import {
   APP_KEYS,
   OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_ENV,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
@@ -11,7 +13,11 @@ import {
   createSidecarLaunchEnv,
   resolveAppIpcPath,
 } from "@open-design/sidecar";
-import { applyOsLocaleSwitch, createSplashWindow } from "@open-design/desktop/main";
+import {
+  applyOsLocaleSwitch,
+  consumeDesktopApprovalToken,
+  createSplashWindow,
+} from "@open-design/desktop/main";
 import { addLoopbackNoProxyEnv, readProcessStamp } from "@open-design/platform";
 import { join } from "node:path";
 import { app, dialog } from "electron";
@@ -81,6 +87,10 @@ async function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portabl
 }
 
 async function main(): Promise<void> {
+  consumeDesktopApprovalToken(process.env);
+  process.env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN] = randomBytes(32).toString("base64url");
+  const desktopApprovalToken = consumeDesktopApprovalToken(process.env);
+  if (!desktopApprovalToken) throw new Error("failed to mint desktop approval bearer");
   const startupTiming = createPackagedStartupPhaseTimer({ buffer: true });
   flushStartupTimingOnFailure = startupTiming.flush;
 
@@ -156,6 +166,7 @@ async function main(): Promise<void> {
     amrProfile: activeConfig.amrProfile,
     daemonCliEntry: activeConfig.daemonCliEntry,
     daemonSidecarEntry: activeConfig.daemonSidecarEntry,
+    desktopApprovalToken,
     nodeCommand: activeConfig.nodeCommand,
     pathsAlreadyEnsured: true,
     // PR #974 round-5 (lefarcen P2): the Electron entry runs desktop
@@ -173,6 +184,7 @@ async function main(): Promise<void> {
   const { runDesktopMain } = await import("@open-design/desktop/main");
   startupTiming.mark("desktop-main-handoff");
   await runDesktopMain(runtime, {
+    desktopApprovalToken,
     splashWindow: splash.window,
     splashStartedAt: splash.startedAt,
     async beforeShutdown() {

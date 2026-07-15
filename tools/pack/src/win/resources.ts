@@ -11,9 +11,23 @@ import {
 } from "../vela-cli.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
-const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 9;
+const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 10;
+
+function nativeIsolatorPaths(workspaceRoot: string): {
+  binary: string;
+  buildScript: string;
+  source: string;
+} {
+  const root = join(workspaceRoot, "packages", "platform", "native", "win32");
+  return {
+    binary: join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "od-agent-isolator.exe"),
+    buildScript: join(root, "build.ps1"),
+    source: join(root, "od-agent-isolator.cpp"),
+  };
+}
 
 async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<string> {
+  const nativeIsolator = nativeIsolatorPaths(config.workspaceRoot);
   const velaCliBin = await resolveOptionalVelaCliBinary({
     requireBundled: config.requireVelaCli,
   });
@@ -28,6 +42,9 @@ async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<strin
     designSystems: await hashPath(join(config.workspaceRoot, "design-systems")),
     designTemplates: await hashPath(join(config.workspaceRoot, "design-templates")),
     nodeExecutable: await hashPath(process.execPath),
+    nativeIsolatorBinary: await hashPath(nativeIsolator.binary),
+    nativeIsolatorBuildScript: await hashPath(nativeIsolator.buildScript),
+    nativeIsolatorSource: await hashPath(nativeIsolator.source),
     node: "win.resource-tree",
     pluginOfficial: await hashPath(join(config.workspaceRoot, "plugins", "_official")),
     pluginPreviews: await hashPath(join(config.workspaceRoot, "data", "plugin-previews")),
@@ -72,6 +89,10 @@ export async function prepareResourceTree(
       });
       await mkdir(join(resourceRoot, "bin"), { recursive: true });
       await cp(process.execPath, join(resourceRoot, "bin", "node.exe"));
+      await cp(
+        nativeIsolatorPaths(config.workspaceRoot).binary,
+        join(resourceRoot, "bin", "od-agent-isolator.exe"),
+      );
       await cp(winResources.sevenZipExe, join(resourceRoot, "bin", "7z.exe"));
       await cp(winResources.sevenZipDll, join(resourceRoot, "bin", "7z.dll"));
       await copyOptionalVelaCliBinary({

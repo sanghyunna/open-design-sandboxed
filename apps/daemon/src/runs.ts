@@ -334,6 +334,12 @@ export function createChatRunService({
     }
   };
 
+  const cancelAndWait = async (run, { timeoutMs = 5_000 } = {}) => {
+    if (TERMINAL_RUN_STATUSES.has(run.status)) killChild(run, 'SIGTERM');
+    else cancel(run);
+    return waitForChildExit(run.child, Math.max(0, timeoutMs));
+  };
+
   const shutdownActive = async ({ graceMs = shutdownGraceMs } = {}) => {
     const activeRuns = Array.from(runs.values()).filter((run) => !TERMINAL_RUN_STATUSES.has(run.status));
     await Promise.all(activeRuns.map(async (run) => {
@@ -390,6 +396,7 @@ export function createChatRunService({
     list,
     stream,
     cancel,
+    cancelAndWait,
     shutdownActive,
     wait,
     emit,

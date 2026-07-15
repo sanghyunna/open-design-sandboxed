@@ -10,6 +10,7 @@ export type FakeAgentOptions = {
   isolated?: boolean;
   setAgentHome?: boolean;
   deleteEnv?: string[];
+  winInterpreter?: string;
 };
 
 export async function writeExecutableScript(
@@ -55,7 +56,12 @@ export async function withFakeAgent<T>(
   );
 
   try {
-    await writeExecutableScript(dir, binName, script);
+    await writeExecutableScript(
+      dir,
+      binName,
+      script,
+      options?.winInterpreter == null ? undefined : { winInterpreter: options.winInterpreter },
+    );
     process.env.PATH = options?.isolated
       ? dir
       : originalPath == null || originalPath === ''

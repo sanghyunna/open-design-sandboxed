@@ -12,6 +12,7 @@ import {
   normalizeSidecarStamp,
   OPEN_DESIGN_SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
+  SIDECAR_ENV,
   SIDECAR_SOURCES,
   SIDECAR_STAMP_FIELDS,
   STAMP_APP_FLAG,
@@ -45,6 +46,11 @@ describe("open-design sidecar contract", () => {
     expect(Object.values(DESKTOP_UPDATE_CHANNELS)).toEqual(["beta", "nightly", "preview", "stable"]);
     expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateModes).toBe(DESKTOP_UPDATE_MODES);
     expect(OPEN_DESIGN_SIDECAR_CONTRACT.updateStates).toBe(DESKTOP_UPDATE_STATES);
+  });
+
+  it("exports the desktop approval launch token key outside the process stamp", () => {
+    expect(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN).toBe("OD_DESKTOP_APPROVAL_TOKEN");
+    expect(SIDECAR_STAMP_FIELDS).not.toContain(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN);
   });
 
   it("accepts the explicit namespace contract", () => {

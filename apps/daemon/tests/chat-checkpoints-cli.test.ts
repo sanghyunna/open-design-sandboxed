@@ -1,11 +1,11 @@
 import http from 'node:http';
 import { execFile } from 'node:child_process';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
-import { promisify } from 'node:util';
+import { dirname, join, resolve as pathResolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-const execFileP = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DAEMON_ROOT = pathResolve(__dirname, '..');
 const REPO_ROOT = pathResolve(__dirname, '../../..');
@@ -71,11 +71,12 @@ async function startStubServer(): Promise<StubServer> {
 
 async function runCli(
   args: string[],
+  input = '',
 ): Promise<{ stdout: string; stderr: string; code: number | null }> {
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.NODE_OPTIONS;
-  try {
-    const { stdout, stderr } = await execFileP(
+  return await new Promise((resolve) => {
+    const child = execFile(
       process.execPath,
       [TSX_CLI, CLI_SRC, ...args],
       {
@@ -84,16 +85,13 @@ async function runCli(
         timeout: 15_000,
         maxBuffer: 4 * 1024 * 1024,
       },
+      (err, stdout, stderr) => {
+        const code = err && typeof err.code === 'number' ? err.code : err ? 1 : 0;
+        resolve({ stdout, stderr, code });
+      },
     );
-    return { stdout, stderr, code: 0 };
-  } catch (err) {
-    const failed = err as { stdout?: string; stderr?: string; code?: number | null };
-    return {
-      stdout: failed.stdout ?? '',
-      stderr: failed.stderr ?? '',
-      code: failed.code ?? 1,
-    };
-  }
+    child.stdin?.end(input);
+  });
 }
 
 describe('od chat checkpoint CLI', () => {
@@ -192,7 +190,7 @@ describe('od chat checkpoint CLI', () => {
     expect(JSON.parse(result.stdout)).toEqual(payload);
   });
 
-  it('POSTs rollback mode, checkpoint, and conflict policy to the daemon', async () => {
+  it('POSTs manual rollback without spoofable actor metadata', async () => {
     const payload = {
       projectId: 'proj-1',
       conversationId: 'conv-1',
@@ -282,7 +280,7 @@ describe('od chat checkpoint CLI', () => {
     ]);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('[chat rollback] restored cp-1');
+    expect(result.stdout).toContain('[chat rollback] restored cp-1 (actor: user)');
     expect(result.stdout).toContain('safetyCheckpoint\tcp-safe');
     expect(result.stdout).toContain('files\t1 added, 2 modified, 3 deleted, 4 unchanged');
     expect(result.stdout).toContain('recovery\tod chat rollback --project proj-1 --conversation conv-1 --message msg-1 --checkpoint cp-safe --mode files-only');
@@ -344,5 +342,343 @@ describe('od chat checkpoint CLI', () => {
     expect(result.code).toBe(2);
     expect(stub.requests).toHaveLength(0);
     expect(result.stderr).toContain('--mode is required');
+  });
+
+  it('executes an agent rollback using only the opaque request handle', async () => {
+    stub.setResponder((req) => {
+      if (
+        req.method === 'POST'
+        && req.url === '/api/projects/proj-1/conversations/conv-1/agent-rollback-execute'
+      ) {
+        return {
+          status: 200,
+          body: {
+            projectId: 'proj-1',
+            conversationId: 'conv-1',
+            mode: 'files_only',
+            targetMessageId: 'msg-1',
+            restoredCheckpointId: 'cp-1',
+            safetyCheckpointId: 'cp-safe',
+            deletedMessageIds: [],
+            clearedAgentSessions: false,
+            fileChanges: { added: 0, modified: 0, deleted: 0, unchanged: 0 },
+            conflicts: [],
+            actor: 'agent',
+          },
+        };
+      }
+      return { status: 404, body: { error: 'unexpected' } };
+    });
+
+    const result = await runCli([
+      'chat',
+      'rollback-execute',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--request',
+      'request-1',
+      '--conflict-policy',
+      'keep-current',
+      '--daemon-url',
+      stub.baseUrl,
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(stub.requests).toHaveLength(1);
+    expect(JSON.parse(stub.requests[0]!.body)).toEqual({
+      requestId: 'request-1',
+      conflictPolicy: 'keep_current',
+    });
+    expect(result.stdout).toContain('[chat rollback] restored cp-1 (actor: agent)');
+  });
+
+  it('rejects legacy actor spoofing before manual rollback reaches the daemon', async () => {
+    const result = await runCli([
+      'chat',
+      'rollback',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--message',
+      'msg-1',
+      '--mode',
+      'files-only',
+      '--actor',
+      'agent',
+      '--daemon-url',
+      stub.baseUrl,
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(stub.requests).toHaveLength(0);
+    expect(result.stderr).toContain('--actor');
+  });
+
+  it('rejects a run id on manual rollback instead of silently ignoring it', async () => {
+    const result = await runCli([
+      'chat',
+      'rollback',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--message',
+      'msg-1',
+      '--mode',
+      'files-only',
+      '--run',
+      'run-1',
+      '--daemon-url',
+      stub.baseUrl,
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(stub.requests).toHaveLength(0);
+    expect(result.stderr).toContain('--run is not supported for manual rollback');
+  });
+
+  it('POSTs an agent rollback request and prints its opaque id and expiry', async () => {
+    const payload = {
+      kind: 'agent_rollback_request',
+      requestId: 'request-1',
+      expiresAt: 1_700_000_300_000,
+      runId: 'run-1',
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      targetMessageId: 'msg-1',
+      targetCheckpointId: 'cp-1',
+      mode: 'files_only',
+      reason: 'I accidentally removed the hero section',
+    };
+    stub.setResponder((req) => {
+      if (
+        req.method === 'POST'
+        && req.url === '/api/projects/proj-1/conversations/conv-1/agent-rollback-request'
+      ) {
+        return { status: 200, body: payload };
+      }
+      return { status: 404, body: { error: 'unexpected' } };
+    });
+
+    const result = await runCli([
+      'chat',
+      'rollback-request',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--run',
+      'run-1',
+      '--mode',
+      'files-only',
+      '--reason',
+      'I accidentally removed the hero section',
+      '--daemon-url',
+      stub.baseUrl,
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(stub.requests).toHaveLength(1);
+    expect(JSON.parse(stub.requests[0]!.body)).toEqual({
+      runId: 'run-1',
+      mode: 'files_only',
+      reason: 'I accidentally removed the hero section',
+    });
+    expect(result.stdout).toContain('[chat rollback-request] target msg msg-1, checkpoint cp-1, mode files-only');
+    expect(result.stdout).toContain('request\trequest-1');
+    expect(result.stdout).toContain('expiresAt\t2023-11-14T22:18:20.000Z');
+    expect(result.stdout).toContain('reason\tI accidentally removed the hero section');
+  });
+
+  it('passes agent rollback request JSON through unchanged', async () => {
+    const payload = {
+      kind: 'agent_rollback_request',
+      requestId: 'request-1',
+      expiresAt: 1_700_000_300_000,
+      runId: 'run-1',
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      targetMessageId: 'msg-1',
+      targetCheckpointId: 'cp-1',
+      mode: 'files_only',
+      reason: '',
+    };
+    stub.setResponder((req) => {
+      if (
+        req.method === 'POST'
+        && req.url === '/api/projects/proj-1/conversations/conv-1/agent-rollback-request'
+      ) {
+        return { status: 200, body: payload };
+      }
+      return { status: 404, body: { error: 'unexpected' } };
+    });
+
+    const result = await runCli([
+      'chat',
+      'rollback-request',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--run',
+      'run-1',
+      '--mode',
+      'files-only',
+      '--daemon-url',
+      stub.baseUrl,
+      '--json',
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(payload);
+  });
+
+  it('reads rollback reason from a prompt file while preserving JSON output', async () => {
+    const reason = 'The generated layout removed the navigation hierarchy.\nRestore the prior files.';
+    const dir = await mkdtemp(join(tmpdir(), 'od-rollback-reason-'));
+    const promptFile = join(dir, 'reason.txt');
+    await writeFile(promptFile, reason, 'utf8');
+    const payload = {
+      kind: 'agent_rollback_request',
+      requestId: 'request-file',
+      expiresAt: 1_700_000_300_000,
+      runId: 'run-1',
+      projectId: 'proj-1',
+      conversationId: 'conv-1',
+      targetMessageId: 'msg-1',
+      targetCheckpointId: 'cp-1',
+      mode: 'files_only',
+      reason,
+    };
+    stub.setResponder(() => ({ status: 200, body: payload }));
+
+    try {
+      const result = await runCli([
+        'chat', 'rollback-request',
+        '--project', 'proj-1',
+        '--conversation', 'conv-1',
+        '--run', 'run-1',
+        '--mode', 'files-only',
+        '--prompt-file', promptFile,
+        '--daemon-url', stub.baseUrl,
+        '--json',
+      ]);
+
+      expect(result.code).toBe(0);
+      expect(JSON.parse(stub.requests[0]!.body)).toMatchObject({ reason });
+      expect(JSON.parse(result.stdout)).toEqual(payload);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reads rollback reason from stdin with --prompt-file -', async () => {
+    const reason = 'Restore the stable implementation from before this edit.';
+    stub.setResponder(() => ({
+      status: 200,
+      body: {
+        kind: 'agent_rollback_request',
+        requestId: 'request-stdin',
+        expiresAt: 1_700_000_300_000,
+        runId: 'run-1',
+        projectId: 'proj-1',
+        conversationId: 'conv-1',
+        targetMessageId: 'msg-1',
+        targetCheckpointId: 'cp-1',
+        mode: 'files_only',
+        reason,
+      },
+    }));
+
+    const result = await runCli([
+      'chat', 'rollback-request',
+      '--project', 'proj-1',
+      '--conversation', 'conv-1',
+      '--run', 'run-1',
+      '--mode', 'files-only',
+      '--prompt-file', '-',
+      '--daemon-url', stub.baseUrl,
+    ], reason);
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(stub.requests[0]!.body)).toMatchObject({ reason });
+  });
+
+  it('rejects ambiguous rollback reason inputs before calling the daemon', async () => {
+    const result = await runCli([
+      'chat', 'rollback-request',
+      '--project', 'proj-1',
+      '--conversation', 'conv-1',
+      '--run', 'run-1',
+      '--mode', 'files-only',
+      '--reason', 'inline',
+      '--prompt-file', '-',
+      '--daemon-url', stub.baseUrl,
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(stub.requests).toHaveLength(0);
+    expect(result.stderr).toContain('--reason and --prompt-file cannot be used together');
+  });
+
+  it.each(['chat-only', 'files-and-chat'])(
+    'rejects %s rollback-request before calling the daemon',
+    async (mode) => {
+      const result = await runCli([
+        'chat',
+        'rollback-request',
+        '--project',
+        'proj-1',
+        '--conversation',
+        'conv-1',
+        '--run',
+        'run-1',
+        '--mode',
+        mode,
+        '--daemon-url',
+        stub.baseUrl,
+      ]);
+
+      expect(result.code).toBe(2);
+      expect(stub.requests).toHaveLength(0);
+      expect(result.stderr).toContain('--mode must be files-only for rollback-request');
+    },
+  );
+
+  it.each([
+    ['ROLLBACK_APPROVAL_UNAVAILABLE', 503, 'rollback-approval-unavailable', 79],
+    ['ROLLBACK_APPROVAL_DENIED', 403, 'rollback-approval-denied', 80],
+    ['ROLLBACK_APPROVAL_TIMEOUT', 408, 'rollback-approval-timeout', 81],
+    ['ROLLBACK_REQUEST_EXPIRED', 410, 'rollback-request-expired', 82],
+    ['ROLLBACK_REQUEST_CONSUMED', 409, 'rollback-request-consumed', 83],
+    ['ROLLBACK_PLAN_CHANGED', 409, 'rollback-plan-changed', 84],
+  ])('maps %s to a stable structured exit', async (daemonCode, status, cliCode, exitCode) => {
+    stub.setResponder(() => ({
+      status,
+      body: { error: { code: daemonCode, message: `failure: ${daemonCode}` } },
+    }));
+
+    const result = await runCli([
+      'chat',
+      'rollback-execute',
+      '--project',
+      'proj-1',
+      '--conversation',
+      'conv-1',
+      '--request',
+      'request-1',
+      '--daemon-url',
+      stub.baseUrl,
+      '--json',
+    ]);
+
+    expect(result.code).toBe(exitCode);
+    expect(JSON.parse(result.stderr).error).toMatchObject({
+      code: cliCode,
+      message: `failure: ${daemonCode}`,
+    });
   });
 });

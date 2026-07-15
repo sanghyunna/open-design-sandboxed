@@ -5,6 +5,7 @@ import { SIDECAR_ENV } from '@open-design/sidecar-proto';
 
 import { createAgentRuntimeEnv, createAgentRuntimeToolPrompt } from '../src/server.js';
 import { applyAgentLaunchEnv } from '../src/runtimes/launch.js';
+import { spawnEnvForAgent } from '../src/runtimes/env.js';
 
 describe('agent runtime tool environment', () => {
   it('injects daemon URL and run-scoped tool token into agent sessions', () => {
@@ -74,6 +75,25 @@ describe('agent runtime tool environment', () => {
     expect(env.OD_DAEMON_URL).toBe('http://127.0.0.1:7456');
     expect(env.OD_NODE_BIN).toBe('/opt/open-design/bin/node');
     expect(env.OD_TOOL_TOKEN).toBeUndefined();
+  });
+
+  it('strips daemon and desktop approval bearers from inherited and configured agent env', () => {
+    const env = spawnEnvForAgent(
+      'opencode',
+      {
+        PATH: '/bin',
+        OD_API_TOKEN: 'inherited-api-secret',
+        [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: 'inherited-approval-secret',
+      },
+      {
+        Od_Api_Token: 'configured-api-secret',
+        Od_Desktop_Approval_Token: 'configured-approval-secret',
+      },
+      {},
+    );
+
+    expect(Object.keys(env).some((key) => key.toUpperCase() === 'OD_API_TOKEN')).toBe(false);
+    expect(Object.keys(env).some((key) => key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN)).toBe(false);
   });
 
   it('pins the daemon runtime data dir into agent sessions', () => {

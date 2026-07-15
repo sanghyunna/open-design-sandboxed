@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Express, Response } from 'express';
 import {
   defaultScenarioPluginIdForProjectMetadata,
+  type AgentRollbackRequestEvent,
   type ChatSessionMode,
   type PluginManifest,
 } from '@open-design/contracts';
@@ -35,7 +36,7 @@ import {
   ProjectCheckpointError,
 } from './project-checkpoints.js';
 
-export interface RegisterProjectRoutesDeps extends RouteDeps<'db' | 'design' | 'http' | 'paths' | 'projectStore' | 'projectFiles' | 'checkpoints' | 'conversations' | 'templates' | 'status' | 'events' | 'ids' | 'telemetry' | 'appConfig' | 'validation'> {}
+export interface RegisterProjectRoutesDeps extends RouteDeps<'db' | 'design' | 'http' | 'paths' | 'projectStore' | 'projectFiles' | 'checkpoints' | 'approvals' | 'conversations' | 'templates' | 'status' | 'events' | 'ids' | 'telemetry' | 'appConfig' | 'validation'> {}
 
 export function cancelActiveConversationRuns(
   design: any,
@@ -802,6 +803,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
   const { insertProject, validateLocalDirs, getProject, updateProject, dbDeleteProject, removeProjectDir } = ctx.projectStore;
   const { writeProjectFile, readProjectFile, ensureProject, listFiles, listTabs, setTabs, resolveProjectDir } = ctx.projectFiles;
   const checkpoints = ctx.checkpoints;
+  const approvals = ctx.approvals;
   const { insertConversation, getConversation, listConversations, updateConversation, deleteConversation, listMessages, upsertMessage, listPreviewComments, upsertPreviewComment, updatePreviewCommentStatus, deletePreviewComment } = ctx.conversations;
   const { getTemplate, listTemplates, deleteTemplate, insertTemplate, findTemplateByNameAndProject, updateTemplate } = ctx.templates;
   const { listLatestProjectRunStatuses, listProjectsAwaitingInput, normalizeProjectDisplayStatus, composeProjectDisplayStatus, listProjects } = ctx.status;
@@ -1713,10 +1715,12 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     if (!conv || conv.projectId !== req.params.id) {
       return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
     }
-    cancelActiveConversationRuns(design, req.params.id, req.params.cid);
     const body = req.body || {};
     if (typeof body.targetMessageId !== 'string' || !body.targetMessageId) {
       return sendApiError(res, 400, 'BAD_REQUEST', 'targetMessageId is required');
+    }
+    if (body.targetCheckpointId !== undefined && typeof body.targetCheckpointId !== 'string') {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'targetCheckpointId must be a string');
     }
     if (
       body.conflictPolicy !== undefined &&
@@ -1726,16 +1730,85 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     ) {
       return sendApiError(res, 400, 'BAD_REQUEST', 'invalid conflictPolicy');
     }
+    if (body.actor !== undefined || body.runId !== undefined) {
+      return sendApiError(
+        res,
+        400,
+        'ROLLBACK_ACTOR_SPOOFED',
+        'actor and runId are server-derived; use the agent rollback execution endpoint',
+      );
+    }
+    cancelActiveConversationRuns(design, req.params.id, req.params.cid);
     try {
       res.json(await checkpoints.rollback({
         projectId: req.params.id,
         conversationId: req.params.cid,
         targetMessageId: body.targetMessageId,
-        targetCheckpointId: typeof body.targetCheckpointId === 'string' ? body.targetCheckpointId : null,
+        targetCheckpointId: typeof body.targetCheckpointId === 'string' ? body.targetCheckpointId : undefined,
         mode: body.mode,
         conflictPolicy: body.conflictPolicy,
         createSafetyCheckpoint: true,
       }));
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
+  });
+
+  app.post('/api/projects/:id/conversations/:cid/agent-rollback-request', async (req, res) => {
+    const conv = getConversation(db, req.params.cid);
+    if (!conv || conv.projectId !== req.params.id) {
+      return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
+    }
+    const body = req.body || {};
+    if (typeof body.runId !== 'string' || !body.runId) {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'runId is required');
+    }
+    const mode = body.mode;
+    if (mode !== 'files_only') {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'invalid mode');
+    }
+    try {
+      const response: AgentRollbackRequestEvent = approvals.createAgentRequest({
+        projectId: req.params.id,
+        conversationId: req.params.cid,
+        runId: body.runId,
+        mode,
+        reason: typeof body.reason === 'string' ? body.reason : '',
+      });
+      res.json(response);
+    } catch (err) {
+      sendCheckpointError(res, err);
+    }
+  });
+
+  app.post('/api/projects/:id/conversations/:cid/agent-rollback-execute', async (req, res) => {
+    const conv = getConversation(db, req.params.cid);
+    if (!conv || conv.projectId !== req.params.id) {
+      return sendApiError(res, 404, 'CONVERSATION_NOT_FOUND', 'conversation not found');
+    }
+    const body = req.body || {};
+    if (
+      Object.keys(body).some((key) => key !== 'requestId' && key !== 'conflictPolicy')
+      || typeof body.requestId !== 'string'
+      || !body.requestId
+    ) {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'requestId is required and target fields are not accepted');
+    }
+    if (
+      body.conflictPolicy !== undefined
+      && body.conflictPolicy !== 'fail'
+      && body.conflictPolicy !== 'keep_current'
+      && body.conflictPolicy !== 'overwrite'
+    ) {
+      return sendApiError(res, 400, 'BAD_REQUEST', 'invalid conflictPolicy');
+    }
+    try {
+      const response = await approvals.executeAgent(
+        body.requestId,
+        body.conflictPolicy ?? 'fail',
+        { projectId: req.params.id, conversationId: req.params.cid },
+      );
+      res.json(response);
     } catch (err) {
       sendCheckpointError(res, err);
     }

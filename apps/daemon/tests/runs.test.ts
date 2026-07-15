@@ -95,6 +95,28 @@ describe('chat run service shutdown', () => {
     });
   });
 
+  it('cancels and waits for the child exit within a bounded deadline', async () => {
+    const runs = createRuns();
+    const child = new FakeChildProcess({ closeOn: 'SIGTERM' });
+    const run = runs.create();
+    run.status = 'running';
+    (run as any).child = child;
+
+    await expect(runs.cancelAndWait(run, { timeoutMs: 10 })).resolves.toBe(true);
+    expect(child.signals).toEqual(['SIGTERM']);
+  });
+
+  it('reports a child that ignores cancellation instead of permitting mutation', async () => {
+    const runs = createRuns();
+    const child = new FakeChildProcess({ closeOn: 'never' as any });
+    const run = runs.create();
+    run.status = 'running';
+    (run as any).child = child;
+
+    await expect(runs.cancelAndWait(run, { timeoutMs: 1 })).resolves.toBe(false);
+    expect(child.signals).toEqual(['SIGTERM']);
+  });
+
 
 
   it('stores a run-scoped tool bundle and returns a redacted status summary', () => {

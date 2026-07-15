@@ -19,6 +19,8 @@ import {
   type PluginFolderCandidate,
 } from "./design-files/pluginFolders";
 import type { PluginFolderAgentAction } from "./design-files/pluginFolderActions";
+import { Button } from "@open-design/components";
+import type { AgentRollbackRequestEvent } from "@open-design/contracts";
 import { Icon } from "./Icon";
 import { NextStepActions } from "./NextStepActions";
 import type { DesignToolboxActionId } from "../runtime/design-toolbox";
@@ -40,6 +42,7 @@ import type {
   ProjectFile,
   SkillSummary,
 } from "../types";
+import bannerStyles from "./AssistantMessage.module.css";
 
 type TranslateFn = (
   key: keyof Dict,
@@ -143,6 +146,14 @@ interface Props {
   onArtifactDownload?: (fileName: string) => void;
   nextStepSkills?: SkillSummary[];
   toolboxSkillNames?: Partial<Record<DesignToolboxActionId, string | null>>;
+  /** Called when the user accepts or rejects an agent-requested rollback. */
+  onAgentRollbackConfirm?: (
+    payload: AgentRollbackRequestEvent,
+    accepted: boolean,
+    dismiss: () => void,
+  ) => void;
+  /** Called when the user asks to preview the diff for an agent-requested rollback. */
+  onAgentRollbackShowDiff?: (payload: AgentRollbackRequestEvent) => void;
 }
 
 // Props compared by reference to decide whether a memoized AssistantMessage can
@@ -184,7 +195,7 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   // memo swallows the deltas and the card only updates on the final tool_use.
   'liveToolInput',
 ];
-const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
+export const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
 
 function areAssistantMessagePropsEqual(prev: Props, next: Props): boolean {
   for (const key of ASSISTANT_MESSAGE_COMPARED_PROPS) {
@@ -237,9 +248,66 @@ function AssistantMessageImpl({
   onArtifactDownload,
   nextStepSkills,
   toolboxSkillNames,
+  onAgentRollbackConfirm,
+  onAgentRollbackShowDiff,
 }: Props) {
   const t = useT();
   const events = message.events ?? [];
+  const rollbackEvent = events.find(
+    (e): e is AgentRollbackRequestEvent => e.kind === "agent_rollback_request",
+  );
+  const rollbackDismissalKey = `od:agent-rollback-dismissed:${rollbackEvent?.requestId ?? message.id}`;
+  const [rollbackDismissed, setRollbackDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(rollbackDismissalKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      setRollbackDismissed(window.localStorage.getItem(rollbackDismissalKey) === "1");
+    } catch {
+      setRollbackDismissed(false);
+    }
+  }, [rollbackDismissalKey]);
+  const canShowRollbackBanner =
+    !streaming && !!isLast && !!rollbackEvent && !rollbackDismissed;
+  const [rollbackExpired, setRollbackExpired] = useState(
+    () => !rollbackEvent || rollbackEvent.expiresAt <= Date.now(),
+  );
+  useEffect(() => {
+    if (!rollbackEvent) return;
+    const remaining = rollbackEvent.expiresAt - Date.now();
+    if (remaining <= 0) {
+      setRollbackExpired(true);
+      return;
+    }
+    setRollbackExpired(false);
+    const timer = window.setTimeout(() => setRollbackExpired(true), remaining);
+    return () => window.clearTimeout(timer);
+  }, [rollbackEvent]);
+  const dismissRollback = useCallback(() => {
+    setRollbackDismissed(true);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(rollbackDismissalKey, "1");
+      } catch {
+        // ignore
+      }
+    }
+  }, [rollbackDismissalKey]);
+  const handleRollbackAccept = useCallback(() => {
+    if (rollbackEvent) onAgentRollbackConfirm?.(rollbackEvent, true, dismissRollback);
+  }, [dismissRollback, rollbackEvent, onAgentRollbackConfirm]);
+  const handleRollbackReject = useCallback(() => {
+    dismissRollback();
+    if (rollbackEvent) onAgentRollbackConfirm?.(rollbackEvent, false, dismissRollback);
+  }, [dismissRollback, rollbackEvent, onAgentRollbackConfirm]);
+  const handleRollbackShowDiff = useCallback(() => {
+    if (rollbackEvent) onAgentRollbackShowDiff?.(rollbackEvent);
+  }, [rollbackEvent, onAgentRollbackShowDiff]);
   // ChatPane renders the canonical TodoWrite card as a standalone chat row, so
   // we strip TodoWrite tool-groups out of the per-message flow to avoid the
   // same task list rendering twice.
@@ -561,6 +629,15 @@ function AssistantMessageImpl({
             />
           </div>
         ) : null}
+        {canShowRollbackBanner ? (
+          <AgentRollbackRequestBanner
+            event={rollbackEvent}
+            onAccept={handleRollbackAccept}
+            onReject={handleRollbackReject}
+            onShowDiff={handleRollbackShowDiff}
+            expired={rollbackExpired}
+          />
+        ) : null}
         {showNextStepActions ? (
           <NextStepActions
             fileName={isLast ? nextStepArtifactName : null}
@@ -572,6 +649,57 @@ function AssistantMessageImpl({
             toolboxSkillNames={isLast ? toolboxSkillNames : undefined}
           />
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function AgentRollbackRequestBanner({
+  event,
+  onAccept,
+  onReject,
+  onShowDiff,
+  expired,
+}: {
+  event: AgentRollbackRequestEvent;
+  onAccept: () => void;
+  onReject: () => void;
+  onShowDiff: () => void;
+  expired: boolean;
+}) {
+  const t = useT();
+  return (
+    <div className={bannerStyles.agentRollbackBanner} role="status">
+      <div className={bannerStyles.agentRollbackBannerHead}>
+        <span className={bannerStyles.agentRollbackBannerIcon} aria-hidden>
+          <Icon name="history" size={14} />
+        </span>
+        <span>{t("rollback.agentRequestTitle")}</span>
+      </div>
+      {event.reason ? (
+        <p className={bannerStyles.agentRollbackBannerReason}>{event.reason}</p>
+      ) : null}
+      <div className={bannerStyles.agentRollbackBannerMeta}>
+        {t("rollback.agentRequestMode")}: {" "}
+        {event.mode === "files_only"
+          ? t("rollback.mode.filesOnly")
+          : event.mode === "chat_only"
+            ? t("rollback.mode.chatOnly")
+            : t("rollback.mode.filesAndChat")}
+      </div>
+      {expired ? (
+        <div className={bannerStyles.agentRollbackBannerMeta}>{t("rollback.agentRequestExpired")}</div>
+      ) : null}
+      <div className={bannerStyles.agentRollbackBannerActions}>
+        <Button variant="primary" onClick={onAccept} disabled={expired} aria-label={t("rollback.agentRequestAcceptAria")}>
+          {t("rollback.agentRequestAccept")}
+        </Button>
+        <Button variant="ghost" onClick={onReject} aria-label={t("rollback.agentRequestRejectAria")}>
+          {t("rollback.agentRequestReject")}
+        </Button>
+        <Button variant="subtle" onClick={onShowDiff} aria-label={t("rollback.agentRequestDiffAria")}>
+          {t("rollback.agentRequestDiff")}
+        </Button>
       </div>
     </div>
   );
