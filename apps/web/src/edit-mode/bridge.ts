@@ -916,10 +916,6 @@ export function buildManualEditBridge(enabled: boolean): string {
 export function buildManualEditBridgeStyle(): string {
   return `<style data-od-edit-bridge-style>
 html[data-od-edit-mode] body * { cursor: pointer !important; }
-html[data-od-edit-mode] [data-od-id],
-html[data-od-edit-mode] [data-od-runtime-id],
-html[data-od-edit-mode] [data-od-source-path] { outline: 1px dashed rgba(37, 99, 235, 0.35); outline-offset: 3px; }
-html[data-od-edit-mode] :is(${MANUAL_EDIT_TEXT_PASSAGE_SELECTOR}) :is(${MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR})[data-od-source-path] { outline: none; }
 html[data-od-edit-mode] [data-od-id]:hover,
 html[data-od-edit-mode] [data-od-runtime-id]:hover,
 html[data-od-edit-mode] [data-od-source-path]:hover { outline: 2px solid #2563eb; }
