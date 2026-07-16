@@ -113,8 +113,6 @@ const APPLY_RESPONSES: Record<string, unknown> = {
       assetsStaged: [],
       taskKind: 'new-generation',
       appliedAt: 0,
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       status: 'fresh',
     },

@@ -1231,8 +1231,6 @@ function makeApplyResult(pluginId: string, query = 'Make a design systems brief.
       assetsStaged: [],
       taskKind: 'new-generation',
       appliedAt: 0,
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       status: 'fresh',
     },

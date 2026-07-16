@@ -74,7 +74,7 @@ describe('ChatPane connect-repo CTA', () => {
     expect(onConnectRepo).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a disabled pending button until the connector status resolves', () => {
+  it('shows a disabled pending button until the repo status resolves', () => {
     const onConnectRepo = vi.fn();
     // githubConnected omitted -> undefined -> status still loading.
     renderPane({ connectRepoNeeded: true, onConnectRepo });

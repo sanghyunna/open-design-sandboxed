@@ -152,13 +152,13 @@ describe('TasksView automation templates', () => {
     render(<TasksView />);
 
     expect(await screen.findByText('Evolution proposals')).toBeTruthy();
-    expect(screen.getByText('Project memory from connector digest')).toBeTruthy();
+    expect(screen.getByText('Project memory from source digest')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
 
     await waitFor(() => {
       expect(applyCalls).toEqual(['/api/automation-proposals/proposal-memory-1/apply']);
-      expect(screen.queryByText('Project memory from connector digest')).toBeNull();
+      expect(screen.queryByText('Project memory from source digest')).toBeNull();
     });
   });
 

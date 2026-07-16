@@ -253,8 +253,6 @@ const AUTHORING_APPLY_RESULT = {
     assetsStaged: [],
     taskKind: 'new-generation',
     appliedAt: 0,
-    connectorsRequired: [],
-    connectorsResolved: [],
     mcpServers: [],
     status: 'fresh',
   },

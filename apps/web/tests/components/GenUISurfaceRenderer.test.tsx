@@ -5,8 +5,8 @@
 // Confirms:
 //   - confirmation surface renders Continue / Cancel buttons; each
 //     forwards the matching boolean through onAnswered.
-//   - oauth-prompt surface forwards { authorized: true, connectorId }
-//     for the connector route, matching the daemon's
+//   - oauth-prompt surface forwards { authorized: true, mcpServerId }
+//     for the mcp route, matching the daemon's
 //     genui_surfaces.value_json contract from spec §10.3.1.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -37,13 +37,13 @@ describe('GenUISurfaceRenderer', () => {
     await waitFor(() => expect(onAnswered).toHaveBeenLastCalledWith(false));
   });
 
-  it('oauth-prompt surface forwards the connectorId on Authorize', async () => {
+  it('oauth-prompt surface forwards the mcpServerId on Authorize', async () => {
     const surface: GenUISurfaceSpec = {
-      id: '__auto_connector_slack',
+      id: '__auto_mcp_fetch',
       kind: 'oauth-prompt',
       persist: 'project',
-      capabilitiesRequired: ['connector:slack'],
-      oauth: { route: 'connector', connectorId: 'slack' },
+      capabilitiesRequired: ['mcp:fetch'],
+      oauth: { route: 'mcp', mcpServerId: 'fetch' },
     };
     const onAnswered = vi.fn();
     render(
@@ -56,7 +56,7 @@ describe('GenUISurfaceRenderer', () => {
     await waitFor(() =>
       expect(onAnswered).toHaveBeenCalledWith({
         authorized: true,
-        connectorId: 'slack',
+        mcpServerId: 'fetch',
       }),
     );
   });

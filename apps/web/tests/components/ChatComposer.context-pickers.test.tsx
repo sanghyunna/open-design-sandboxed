@@ -117,8 +117,6 @@ const APPLY_RESULT = {
     assetsStaged: [],
     taskKind: 'new-generation',
     appliedAt: 0,
-    connectorsRequired: [],
-    connectorsResolved: [],
     mcpServers: [],
     status: 'fresh',
   },
@@ -159,8 +157,8 @@ function renderComposer(
     : render(tree);
 }
 
-// Flush the composer's lazy mount fetches (MCP servers, installed plugins,
-// connectors) so the @-picker lists are populated before we drive the editor.
+// Flush the composer's lazy mount fetches (MCP servers, installed plugins)
+// so the @-picker lists are populated before we drive the editor.
 async function flushMounts() {
   await act(async () => {
     await new Promise((r) => setTimeout(r, 0));
@@ -213,7 +211,7 @@ beforeEach(() => {
         headers: { 'content-type': 'application/json' },
       });
     }
-    // Any other lazy mount fetch (e.g. /api/connectors) returns an empty-OK
+    // Any other lazy mount fetch returns an empty-OK
     // body. flushMounts() awaits these, so throwing here would surface as an
     // unhandled rejection during the await; an empty payload keeps the picker
     // lists empty without breaking the render.
@@ -282,15 +280,13 @@ describe('ChatComposer context pickers', () => {
       'Plugins',
       'Skills',
       'MCP',
-      'Connectors',
     ]);
     expect(screen.getByRole('tab', { name: 'Plugins' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Skills' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'MCP' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Connectors' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Design files' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Tabs' })).toBeTruthy();
-    expect(screen.getByText('Search Design Files, tabs, plugins, skills, MCP servers, and connectors.')).toBeTruthy();
+    expect(screen.getByText('Search Design Files, tabs, plugins, skills, and MCP servers.')).toBeTruthy();
   });
 
   it('localizes @ panel tabs and empty states in Korean mode', async () => {

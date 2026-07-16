@@ -242,7 +242,7 @@ describe('FileWorkspace design-system project surface', () => {
     expect(markup).toContain('This section changed during the latest run. Review it before publishing.');
   });
 
-  it('blocks publishing GitHub-backed design systems until connector evidence snapshots exist', async () => {
+  it('blocks publishing GitHub-backed design systems until repo evidence snapshots exist', async () => {
     const container = renderWorkspace(
       <FileWorkspace
         projectId="ds-acme"
@@ -361,7 +361,7 @@ describe('FileWorkspace design-system project surface', () => {
     expect(container.textContent).toContain('Acme design system');
   });
 
-  it('offers a Connect GitHub action that routes to Connectors when repo evidence is missing', async () => {
+  it('offers a Connect GitHub action when repo evidence is missing', async () => {
     const onConnectRepo = vi.fn();
     const container = renderWorkspace(
       <FileWorkspace
