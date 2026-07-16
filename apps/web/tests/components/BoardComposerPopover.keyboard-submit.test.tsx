@@ -24,6 +24,7 @@ const target: PreviewCommentSnapshot = {
 function renderPopover({
   onSaveComment = () => {},
   onSendBatch = () => {},
+  onAttachImages,
   sending = false,
   selectionKind = 'element',
   targetOverride = {},
@@ -33,6 +34,7 @@ function renderPopover({
 }: {
   onSaveComment?: () => void;
   onSendBatch?: () => void;
+  onAttachImages?: (files: File[]) => void;
   sending?: boolean;
   selectionKind?: PreviewCommentSnapshot['selectionKind'];
   targetOverride?: Partial<PreviewCommentSnapshot>;
@@ -52,6 +54,7 @@ function renderPopover({
       onClose={() => {}}
       onSaveComment={onSaveComment}
       onSendBatch={onSendBatch}
+      onAttachImages={onAttachImages}
       onRemoveMember={() => {}}
       existingImages={existingImages}
       sending={sending}
@@ -62,16 +65,18 @@ function renderPopover({
 }
 
 describe('BoardComposerPopover keyboard submit', () => {
-  it('saves an element comment with Enter and keeps Shift+Enter for multiline text', () => {
+  it('sends an element comment to chat with Enter and keeps Shift+Enter for multiline text', () => {
     const onSaveComment = vi.fn();
-    renderPopover({ onSaveComment });
+    const onSendBatch = vi.fn();
+    renderPopover({ onSaveComment, onSendBatch });
 
     fireEvent.keyDown(screen.getByTestId('comment-popover-input'), { key: 'Enter' });
 
-    expect(onSaveComment).toHaveBeenCalledTimes(1);
+    expect(onSendBatch).toHaveBeenCalledTimes(1);
+    expect(onSaveComment).not.toHaveBeenCalled();
 
     fireEvent.keyDown(screen.getByTestId('comment-popover-input'), { key: 'Enter', shiftKey: true });
-    expect(onSaveComment).toHaveBeenCalledTimes(1);
+    expect(onSendBatch).toHaveBeenCalledTimes(1);
   });
 
   it('sends a pod comment with Enter', () => {
@@ -94,19 +99,20 @@ describe('BoardComposerPopover keyboard submit', () => {
     });
 
     fireEvent.keyDown(screen.getByTestId('comment-popover-input'), { key: 'Enter' });
-    expect(onSaveComment).toHaveBeenCalledTimes(1);
+    expect(onSendBatch).toHaveBeenCalledTimes(1);
+    expect(onSaveComment).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('comment-add-send'));
-    expect(onSendBatch).toHaveBeenCalledTimes(1);
+    expect(onSendBatch).toHaveBeenCalledTimes(2);
   });
 
   it('does not submit while disabled or while IME text is composing', () => {
-    const onSaveComment = vi.fn();
-    const { rerender } = renderPopover({ onSaveComment, sending: true });
+    const onSendBatch = vi.fn();
+    const { rerender } = renderPopover({ onSendBatch, sending: true });
     const input = screen.getByTestId('comment-popover-input');
 
     fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onSaveComment).not.toHaveBeenCalled();
+    expect(onSendBatch).not.toHaveBeenCalled();
 
     rerender(
       <BoardComposerPopover
@@ -118,8 +124,8 @@ describe('BoardComposerPopover keyboard submit', () => {
         onAddDraft={() => {}}
         onRemoveQueuedNote={() => {}}
         onClose={() => {}}
-        onSaveComment={onSaveComment}
-        onSendBatch={() => {}}
+        onSaveComment={() => {}}
+        onSendBatch={onSendBatch}
         onRemoveMember={() => {}}
         sending={false}
         t={((key: string) => String(key)) as never}
@@ -129,7 +135,28 @@ describe('BoardComposerPopover keyboard submit', () => {
     fireEvent.compositionStart(input);
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(onSaveComment).not.toHaveBeenCalled();
+    expect(onSendBatch).not.toHaveBeenCalled();
+  });
+
+  it('hides the element attachment picker without changing pod controls', () => {
+    const onAttachImages = vi.fn();
+    const { unmount } = renderPopover({ onAttachImages });
+
+    expect(screen.queryByLabelText('chat.annotationAttachImage')).toBeNull();
+    expect(document.querySelector('.comment-popover-actions-element')).toBeTruthy();
+
+    const image = new File(['image'], 'reference.png', { type: 'image/png' });
+    fireEvent.paste(screen.getByTestId('comment-popover-input'), {
+      clipboardData: { files: [image] },
+    });
+
+    expect(onAttachImages).toHaveBeenCalledWith([image]);
+
+    unmount();
+    renderPopover({ onAttachImages, selectionKind: 'pod' });
+
+    expect(screen.getByLabelText('chat.annotationAttachImage')).toBeTruthy();
+    expect(document.querySelector('.comment-popover-actions-element')).toBeNull();
   });
 
   it('keeps the full composer inside the visible preview bounds for low targets', () => {

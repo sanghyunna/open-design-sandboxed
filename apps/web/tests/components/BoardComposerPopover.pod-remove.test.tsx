@@ -158,7 +158,7 @@ describe('BoardComposerPopover captured-component removal', () => {
         onRemoveMember={() => {}}
         sending={false}
         t={((key: string) => {
-          if (key === 'chat.comments.comment') return 'Comment';
+          if (key === 'chat.comments.sendToCommentQueue') return 'Send to comment queue';
           if (key === 'chat.comments.sendToChat') return 'Send to chat';
           if (key === 'common.delete') return 'Delete';
           return String(key);
@@ -183,7 +183,7 @@ describe('BoardComposerPopover captured-component removal', () => {
         onRemoveMember={() => {}}
         sending={false}
         t={((key: string) => {
-          if (key === 'chat.comments.comment') return 'Comment';
+          if (key === 'chat.comments.sendToCommentQueue') return 'Send to comment queue';
           if (key === 'chat.comments.sendToChat') return 'Send to chat';
           if (key === 'common.delete') return 'Delete';
           return String(key);
