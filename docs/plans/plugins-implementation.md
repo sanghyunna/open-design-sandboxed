@@ -52,9 +52,8 @@ apps/daemon/src/plugins/             ← side-effect concentration zone
   ├── apply.ts                       ← pure resolver; emits ApplyResult + draft snapshot
   ├── snapshots.ts                   ← §8.2.1 — the **only** writer to applied_plugin_snapshots
   ├── pipeline.ts                    ← §10.1 stage scheduler + §10.2 devloop + until evaluator
-  ├── connector-gate.ts              ← §9 capability gate, called by tool-tokens.ts and /api/tools/connectors/execute
   ├── trust.ts                       ← installed_plugins.capabilities_granted writer
-  └── doctor.ts                      ← schema + connector catalog + MCP dry-launch + atom refs
+  └── doctor.ts                      ← schema + MCP dry-launch + atom refs
 
 apps/daemon/src/genui/               ← spec §10.3
   ├── registry.ts
@@ -66,7 +65,6 @@ Hard layering rules
 
 - `packages/plugin-runtime` does not import `node:fs`. It receives `loader: (relpath) => Promise<string>`. Daemon injects real FS, CI injects mocks, web preview sandbox injects fetch.
 - `apps/daemon/src/plugins/snapshots.ts` is the only file that issues `INSERT/UPDATE` against `applied_plugin_snapshots`. CI guard: `rg "applied_plugin_snapshots" --type ts -g '!**/*.test.ts'` may match `INSERT` only inside `snapshots.ts`.
-- `connector-gate.ts` is a stateless validator (`(snapshotId, connectorId) => allow | deny`); `tool-tokens.ts` calls it before issuing a token, and `/api/tools/connectors/execute` re-validates on every call to defeat token replacement.
 
 ---
 
@@ -80,7 +78,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 
 - **No plugin selected does not mean a naked agent.** `composeSystemPrompt()` still always layers the Open Design base designer/discovery prompt, project metadata, active design system/craft, and daemon-owned safety/tooling guidance. Plugin context is additive: a selected plugin contributes snapshot-derived `## Active plugin`, `## Plugin inputs`, and active-stage atom blocks. Home free-form runs route through the bundled hidden `od-default` scenario, which shapes task type and then returns to the normal design pipeline.
 - **The pipeline is plugin-assembled, not a fixed wizard.** The reference shorthand is `discovery -> plan -> generate -> critique`, but the runnable shape comes from `od.pipeline.stages[].atoms[]` on the applied plugin or bundled scenario fallback. `apps/daemon/src/plugins/pipeline-runner.ts` emits stage/GenUI events and `packages/contracts/src/prompts/atom-block.ts` renders the active stage body. Some atoms are still prompt fragments / permissive workers; observable atoms such as `diff-review`, `build-test`, and `handoff` now emit durable files or signals.
-- **GenUI is controlled rendering.** Agents/plugins emit structured surface requests (`form`, `choice`, `confirmation`, `oauth-prompt`) and OD renders them with product-owned React/CLI components. Inline `<question-form>` chat UI follows the same principle: parse structured data, render through `QuestionForm`, and keep styling in OD. Plugin-bundled custom components are a separate sandboxed path behind `genui:custom-component`.
+- **GenUI is controlled rendering.** Agents/plugins emit structured surface requests (`form`, `choice`, `confirmation`) and OD renders them with product-owned React/CLI components. Inline `<question-form>` chat UI follows the same principle: parse structured data, render through `QuestionForm`, and keep styling in OD. Plugin-bundled custom components are a separate sandboxed path behind `genui:custom-component`.
 - **AG-UI is interoperability, not the product UI runtime.** `packages/agui-adapter` and `GET /api/runs/:runId/agui` are shipped so CopilotKit / AG-UI clients can consume an OD run. The internal web/desktop UI remains OD-native; adding CopilotKit itself is only justified for an explicit external embed/demo/client.
 - **Scenario discovery still has one product gap.** `apps/web/src/components/home-hero/chips.ts` is a curated Home rail for high-frequency scenarios. `apps/web/src/components/plugins-home/facets.ts` is more data-driven and derives category/subcategory facets from plugin metadata. The desired next slice is a single scenario registry / manifest projection that feeds Home chips, plugin filters, composer tools, and `@search`.
 
@@ -104,8 +102,6 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/skills.ts` | exists | Phase 1: independent loader; Phase 2A folds into `plugins/registry.ts` |
 | `apps/daemon/src/design-systems.ts` | exists | same as above |
 | `apps/daemon/src/craft.ts` | exists | same as above |
-| `apps/daemon/src/connectors/` | exists | reused as-is by `connector-gate.ts` |
-| `apps/daemon/src/tool-tokens.ts` | exists | Phase 2A: wire to `connector-gate.ts` |
 | `apps/daemon/src/prompts/system.ts` | shipped | Phase 1 — `composeSystemPrompt()` accepts `pluginBlock` derived from snapshot |
 | `apps/daemon/src/server.ts` | shipped | Phase 1 — `/api/plugins/*`, `/api/atoms`, `/api/applied-plugins/:snapshotId` mounted |
 | `apps/daemon/src/cli.ts` | shipped | Phase 1 — `od plugin list/info/install/uninstall/apply/doctor` |
@@ -114,7 +110,6 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/plugins/apply.ts` | shipped | Phase 1 — pure resolver; emits `ApplyResult` + draft snapshot |
 | `apps/daemon/src/plugins/snapshots.ts` | shipped | Phase 1 — sole writer of `applied_plugin_snapshots`; PB2 expires_at stamping |
 | `apps/daemon/src/plugins/atoms.ts` | shipped | Phase 1 — first-party atom catalog (spec §10) |
-| `apps/daemon/src/plugins/connector-gate.ts` | shipped | Phase 2A — apply path connector resolution + token-issuance gate |
 | `apps/daemon/src/plugins/pipeline.ts` | shipped | Phase 2A — devloop scheduler + `until` evaluator + `OD_MAX_DEVLOOP_ITERATIONS` |
 | `apps/daemon/src/plugins/pipeline-runner.ts` | shipped | Phase 2A — runs pipeline against a live run, emits stage + GenUI events |
 | `apps/daemon/src/plugins/resolve-snapshot.ts` | shipped | Phase 2A — snapshot resolver wired into `POST /api/projects` + `/api/runs` |
@@ -161,7 +156,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `GET /api/plugins/:id/asset/*` | shipped | Phase 4 — sandboxed plugin asset endpoint (§9.2 CSP) |
 | `apps/daemon/src/plugins/trust.ts` | shipped | Phase 1 + Phase 2A — `validateCapabilityList`, `grantCapabilities`, `revokeCapabilities` |
 | `apps/daemon/src/plugins/doctor.ts` | shipped | Phase 1 (manifest + atom + ref checks) → expanded Phase 3 |
-| `apps/daemon/src/genui/registry.ts` | shipped | Phase 2A — F8 cross-conversation cache + lifecycle |
+| `apps/daemon/src/genui/registry.ts` | shipped | Phase 2A — F7 cross-conversation cache + lifecycle |
 | `apps/daemon/src/genui/events.ts` | shipped | Phase 2A — `genui_*` + `pipeline_stage_*` event payload helpers |
 | `apps/daemon/src/genui/store.ts` | shipped | Phase 2A — sole writer of `genui_surfaces`, prefill / lookup / revoke |
 
@@ -216,7 +211,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | --- | --- | --- |
 | `od plugin install/list/info/uninstall/apply/doctor` | shipped | Phase 1 + Phase 2A — install accepts local / `github:` / `https://*.tar.gz` / **bare plugin name** (Phase 3 resolution) |
 | `od plugin run` apply→start shorthand | shipped | Phase 2A — `--inputs`, `--input k=v`, `--grant-caps`, `--follow` |
-| `od plugin trust` (with `connector:<id>` form) + `--revoke` | shipped | Phase 2A — backed by `POST /api/plugins/:id/trust` |
+| `od plugin trust` + `--revoke` | shipped | Phase 2A — backed by `POST /api/plugins/:id/trust` |
 | `od plugin snapshots list / prune` | shipped | Phase 5 (early) — operator escape hatch |
 | `od plugin replay` | shipped | Phase 2A |
 | `od ui list/show/respond/revoke/prefill` | shipped | Phase 2A |
@@ -250,7 +245,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/web/src/components/PluginInputsForm.tsx` | shipped | Phase 2A |
 | `apps/web/src/components/PluginsSection.tsx` | shipped | Phase 2B — composable host-agnostic widget |
 | `applyPlugin()` helper in `apps/web/src/state/projects.ts` | shipped | Phase 2A — also exports `renderPluginBriefTemplate` |
-| `apps/web/src/components/GenUISurfaceRenderer.tsx` | shipped | Phase 2A (confirmation/oauth-prompt first-class; form/choice fall back to JSON Schema preview until Phase 2A.5) |
+| `apps/web/src/components/GenUISurfaceRenderer.tsx` | shipped | Phase 2A (confirmation first-class; form/choice fall back to JSON Schema preview until Phase 2A.5) |
 | `apps/web/src/components/GenUIInbox.tsx` | shipped | Phase 2A |
 | `NewProjectPanel` plugin rail mount | shipped | Phase 2B (entry slice) — `PluginsSection` mounted under the project-name input |
 | `ChatComposer` plugin rail mount | shipped | Phase 2B — `PluginsSection variant='strip'` rendered above the composer input when a `projectId` is bound |
@@ -273,13 +268,13 @@ These notes capture the product/implementation answers that otherwise get lost b
    registry   installer                  apply (pure)
        │          │                         │
        └────┬─────┘                         │
-            │                          snapshots ───── connector-gate
-            │                               │              │
-       composeSystemPrompt(snapshotId)       │         tool-tokens
-            │                               │              │
-            └─────────── runs ──────────────┘              │
-                          │                                │
-                  pipeline + devloop + genui ──────────────┘
+            │                          snapshots
+            │                               │
+       composeSystemPrompt(snapshotId)       │
+            │                               │
+            └─────────── runs ──────────────┘
+                          │
+                  pipeline + devloop + genui
                           │
                      SSE/ND-JSON events
                           │
@@ -289,8 +284,8 @@ These notes capture the product/implementation answers that otherwise get lost b
 
 Three reads from the graph (drove the §6 phase reorder)
 
-- `snapshots.ts` is the keystone. It must land in Phase 1 week 1, before pipeline / genui / connector-gate.
-- `pipeline.ts` and `genui/*` are co-required for the first marketable plugin (`make-a-deck` needs `direction-picker` + `oauth-prompt`); they must land in the same phase.
+- `snapshots.ts` is the keystone. It must land in Phase 1 week 1, before pipeline / genui.
+- `pipeline.ts` and `genui/*` are co-required for the first marketable plugin (`make-a-deck` needs `direction-picker` + `form`); they must land in the same phase.
 - CLI and Web parallelize cleanly once `ApplyResult` JSON is stable; the only sync point is the ND-JSON event schema in `packages/contracts/src/plugins/events.ts`.
 
 ---
@@ -303,9 +298,8 @@ Three reads from the graph (drove the §6 phase reorder)
 - [x] **F4. `PluginAssetRef.stageAt` defaults to `'run-start'`, never `'project-create'`.** Default baked into `packages/contracts/src/plugins/apply.ts`.
 - [ ] **F5. `--json` output uses contracts types; no inline reshape in `cli.ts`.** Phase 1 CLI ships `--json` for `list/info/apply/doctor` returning the daemon JSON verbatim; the next CLI rev imports `ApplyResult` etc. from contracts to satisfy the compile-time guarantee.
 - [x] **F6. `OD_MAX_DEVLOOP_ITERATIONS` lives in `apps/daemon/src/app-config.ts`, default 10, override via env.** Read via `readPluginEnvKnobs()`; consumed by Phase 2A `pipeline.ts`.
-- [ ] **F7. `od plugin doctor` validates `od.connectors.required[]` against `connectorService.listAll()` from Phase 1.** Phase 1 doctor validates manifest schema, atoms, and resolved skill / DS / craft refs; the connector lookup wires in once `connectorService` is exposed to the doctor module (Phase 1 cleanup PR).
-- [x] **F8. Cross-conversation cache (`genui_surfaces` lookup) goes live with the table — i.e. Phase 2A — and a daemon test asserts the second `oauth-prompt` does not broadcast.** Covered by `apps/daemon/tests/plugins-pipeline-runner.test.ts` (`reuses a project-tier surface answer across conversations`).
-- [x] **F9. Snapshot lifecycle env vars (PB2)** live in `apps/daemon/src/app-config.ts` from Phase 1: `OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, set to `0` to disable), `OD_SNAPSHOT_RETENTION_DAYS` (default unset, opt-in), `OD_SNAPSHOT_GC_INTERVAL_MS` (default `6 * 60 * 60 * 1000`). All three live in `readPluginEnvKnobs()`; `applied_plugin_snapshots.expires_at` is stamped on insert; the GC worker lands Phase 5.
+- [x] **F7. Cross-conversation cache (`genui_surfaces` lookup) goes live with the table — i.e. Phase 2A — and a daemon test asserts the second GenUI surface does not broadcast.** Covered by `apps/daemon/tests/plugins-pipeline-runner.test.ts` (`reuses a project-tier surface answer across conversations`).
+- [x] **F8. Snapshot lifecycle env vars (PB2)** live in `apps/daemon/src/app-config.ts` from Phase 1: `OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, set to `0` to disable), `OD_SNAPSHOT_RETENTION_DAYS` (default unset, opt-in), `OD_SNAPSHOT_GC_INTERVAL_MS` (default `6 * 60 * 60 * 1000`). All three live in `readPluginEnvKnobs()`; `applied_plugin_snapshots.expires_at` is stamped on insert; the GC worker lands Phase 5.
 
 ---
 
@@ -353,7 +347,7 @@ Deliverables (week 2: surface layer)
 - [x] HTTP: `GET /api/plugins`, `GET /api/plugins/:id`, `POST /api/plugins/install` (SSE), `POST /api/plugins/:id/uninstall`, `POST /api/plugins/:id/apply`, `POST /api/plugins/:id/doctor`, `GET /api/atoms`, `GET /api/applied-plugins/:snapshotId`. `POST /api/projects` / `POST /api/runs` continue to accept their existing payloads; the explicit `pluginId` / `appliedPluginSnapshotId` plumbing lands as a follow-up Phase 1 PR once the `runs` SQL migration is in place.
 - [x] `composeSystemPrompt()` in `apps/daemon/src/prompts/system.ts` accepts a `pluginBlock` rendered from the snapshot via `pluginPromptBlock(snapshot)` and emits `## Active plugin` + `## Plugin inputs` sections. Shape: pure assembler + content table (per I5).
 - [x] CLI: `od plugin install/list/info/uninstall/apply/doctor`. `od project / run / files` subcommands stay scheduled for the Phase 1 follow-up PR.
-- [ ] Phase 1 `od plugin doctor` covers: schema validation, SKILL.md parse, atom id existence check, resolved-context ref check, digest drift detection. MCP dry-launch and connector existence (F7) land in the Phase 1 cleanup PR.
+- [ ] Phase 1 `od plugin doctor` covers: schema validation, SKILL.md parse, atom id existence check, resolved-context ref check, digest drift detection. MCP dry-launch lands in the Phase 1 cleanup PR.
 
 Validation
 
@@ -383,24 +377,23 @@ Validation
 - [x] `apps/daemon/tests/daemon-lifecycle.test.ts` covers the `/api/daemon/status` shape and the loopback-only enforcement on `/api/daemon/shutdown`.
 - [ ] `apps/daemon/tests/plugins-headless-run.test.ts` covers e2e-3's HTTP-level walkthrough; the full Docker re-run is deferred to the Phase 5 cloud-deployment PR.
 
-### Phase 2A — Pipeline + devloop + GenUI(confirmation/oauth-prompt) + connector-gate + Web inline rail (4–6 d)
+### Phase 2A — Pipeline + devloop + GenUI(confirmation/form/choice) + Web inline rail (4–6 d)
 
 Deliverables (daemon)
 
 - [x] `apps/daemon/src/plugins/pipeline.ts` — stage scheduler; `until` evaluator; devloop with `OD_MAX_DEVLOOP_ITERATIONS` ceiling.
 - [x] `apps/daemon/src/plugins/pipeline-runner.ts` — bridges the scheduler onto a live run's SSE stream + GenUI cache.
-- [x] SQLite migration: `run_devloop_iterations`, `genui_surfaces` (3 indexes), `connectors_required_json` / `connectors_resolved_json` / `mcp_servers_json` columns on `applied_plugin_snapshots`.
-- [x] `apps/daemon/src/genui/{registry,events,store}.ts` — confirmation, oauth-prompt, form, choice surfaces; reuse the existing `apps/daemon/src/connectors/` flow for `oauth.route='connector'`.
-- [x] Cross-conversation cache (F8) — `lookupResolved` + emit `genui_surface_response { respondedBy: 'cache' }`.
-- [x] `apps/daemon/src/plugins/connector-gate.ts` — apply path connector resolution + token-issuance gate. `/api/tools/connectors/execute` re-validates per call (`CONNECTOR_NOT_GRANTED`).
+- [x] SQLite migration: `run_devloop_iterations`, `genui_surfaces` (3 indexes), `mcp_servers_json` column on `applied_plugin_snapshots`.
+- [x] `apps/daemon/src/genui/{registry,events,store}.ts` — confirmation, form, choice surfaces.
+- [x] Cross-conversation cache (F7) — `lookupResolved` + emit `genui_surface_response { respondedBy: 'cache' }`.
 - [x] HTTP: `GET /api/runs/:runId/genui`, `GET /api/projects/:projectId/genui`, `POST /api/runs/:runId/genui/:surfaceId/respond`, `POST /api/projects/:projectId/genui/:surfaceId/revoke`, `POST /api/projects/:projectId/genui/prefill`, `POST /api/runs/:runId/replay`, `GET /api/runs/:runId/devloop-iterations`.
 - [x] SSE / ND-JSON streams emit `pipeline_stage_started/completed`, `genui_surface_request/response/timeout`, `genui_state_synced` per F2.
-- [x] API-fallback rejection: `/api/proxy/*` returns `409 PLUGIN_REQUIRES_DAEMON` (e2e-7).
+- [x] API-fallback rejection: `/api/proxy/*` returns `409 PLUGIN_REQUIRES_DAEMON` (e2e-6).
 - [x] **PB1 — `renderPluginBlock(snapshot)` lives in `packages/contracts/src/prompts/plugin-block.ts`.** Both composers import it; v1 fallback still 409s.
 
 Deliverables (CLI)
 
-- [x] `od plugin trust <id> --capabilities …` (with `connector:<id>` form) + `--revoke`.
+- [x] `od plugin trust <id> --capabilities …` + `--revoke`.
 - [x] `od plugin apply --grant-caps a,b` + `--input k=v` (repeated).
 - [x] `od plugin replay <runId>`.
 - [x] `od ui list/show/respond/revoke/prefill`.
@@ -412,7 +405,7 @@ Deliverables (web)
 
 - [x] `applyPlugin(pluginId, projectId?)` helper in `apps/web/src/state/projects.ts`.
 - [x] `InlinePluginsRail`, `ContextChipStrip`, `PluginInputsForm`.
-- [x] `GenUISurfaceRenderer` for `confirmation` + `oauth-prompt` (cards / modal); `form` / `choice` ship a fallback JSON-Schema preview + textarea until Phase 2A.5.
+- [x] `GenUISurfaceRenderer` for `confirmation` (cards / modal); `form` / `choice` ship a fallback JSON-Schema preview + textarea until Phase 2A.5.
 - [x] `GenUIInbox` drawer.
 - [x] Mount the trio in `NewProjectPanel` and `ChatComposer` — `PluginsSection` wraps `InlinePluginsRail`/`ContextChipStrip`/`PluginInputsForm` and is mounted under the project-name input in `NewProjectPanel.tsx:467` and above the composer input in `ChatComposer.tsx:701` (variant='strip').
 
@@ -420,10 +413,9 @@ Validation
 
 - [x] **e2e-4 replay invariance** — `apps/daemon/tests/plugins-dod-e2e.test.ts`.
 - [x] **e2e-5 GenUI cross-conversation** — `apps/daemon/tests/plugins-pipeline-runner.test.ts`.
-- [x] **e2e-6 connector gate** — `apps/daemon/tests/plugins-dod-e2e.test.ts` + `plugins-tool-token-gate.test.ts`.
-- [x] **e2e-7 api-fallback rejection** — `apps/daemon/tests/proxy-routes.test.ts`.
+- [x] **e2e-6 api-fallback rejection** — `apps/daemon/tests/proxy-routes.test.ts`.
 - [x] Daemon unit test: pipeline stage scheduler converges on a critique signal in ≤3 iterations — `apps/daemon/tests/plugins-pipeline-runner.test.ts`.
-- [x] Daemon unit test: F8 cache hit does not broadcast — `apps/daemon/tests/plugins-pipeline-runner.test.ts`.
+- [x] Daemon unit test: F7 cache hit does not broadcast — `apps/daemon/tests/plugins-pipeline-runner.test.ts`.
 
 ### Phase 2A.5 — GenUI form + choice + JSON Schema renderer (2–3 d)
 
@@ -560,12 +552,10 @@ v1 ships when **all** of the following pass on a clean Linux CI container withou
   - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-4 replay invariance`).
 - [x] **e2e-5 GenUI cross-conversation** — second conversation in the same project does not broadcast a fresh `genui_surface_request`; it emits `genui_surface_response { respondedBy: 'cache' }` instead.
   - Test path: `apps/daemon/tests/plugins-pipeline-runner.test.ts` (`reuses a project-tier surface answer across conversations`).
-- [x] **e2e-6 connector trust gate** — `resolvePluginSnapshot` rejects with HTTP 409 / exit 66 / `capabilities-required` when the snapshot is restricted and `connector:<id>` is missing. Independently, `checkConnectorAccess` rejects the same call so a leaked tool token cannot bypass §5.3.
-  - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-6 connector trust gate`) + `apps/daemon/tests/plugins-tool-token-gate.test.ts`.
-- [x] **e2e-7 api-fallback rejection** — every `/api/proxy/*` entry returns `409 PLUGIN_REQUIRES_DAEMON` when a body smuggles `pluginId` or `appliedPluginSnapshotId`.
+- [x] **e2e-6 api-fallback rejection** — every `/api/proxy/*` entry returns `409 PLUGIN_REQUIRES_DAEMON` when a body smuggles `pluginId` or `appliedPluginSnapshotId`.
   - Test path: `apps/daemon/tests/proxy-routes.test.ts` (`API fallback rejects plugin runs`).
-- [x] **e2e-8 apply purity regression** — 100 applies grow the snapshot count by 100, leave the project cwd byte size unchanged, and emit no `.mcp.json`.
-  - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-8 apply purity regression`).
+- [x] **e2e-7 apply purity regression** — 100 applies grow the snapshot count by 100, leave the project cwd byte size unchanged, and emit no `.mcp.json`.
+  - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-7 apply purity regression`).
 
 Plus repo-wide gates
 

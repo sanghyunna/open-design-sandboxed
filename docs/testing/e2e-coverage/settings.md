@@ -14,7 +14,6 @@
 - `e2e/ui/settings-api-protocol.test.ts`
 - `e2e/ui/settings-memory-routines.test.ts`
 - `e2e/tests/localized-content.test.ts`
-- `apps/web/tests/components/App.connectors.test.tsx`
 - `apps/web/tests/components/MemorySection.test.tsx`
 - `apps/web/tests/components/SettingsDialog.test.ts`
 - `apps/web/tests/components/SettingsDialog.execution.test.tsx`
@@ -43,18 +42,10 @@
 | SET-018 | Configure execution 页面里的 `CLAUDE_CONFIG_DIR`、`CODEX_HOME` 可保存进配置 | `SettingsDialog.execution.test.tsx`, `SettingsDialog.test.ts` |
 | SET-019 | daemon offline 时 `Local CLI` 模式不可选，并展示 offline 文案 | `SettingsDialog.execution.test.tsx` |
 | SET-020 | Local CLI 保存后，首页左下角执行状态 pill 会联动展示当前 agent 与版本 | `settings-api-protocol.test.ts` |
-| SET-031 | Connectors 页面会展示已保存的 Composio key 尾号、替换占位文案、帮助说明和 `Get API Key` 外链 | `SettingsDialog.execution.test.tsx` |
-| SET-032 | Connectors 页面支持替换已保存的 Composio key，并在未保存时展示 pending 提示 | `SettingsDialog.execution.test.tsx` |
-| SET-033 | Connectors 页面支持清空已保存的 Composio key，并在保存 payload 中移除保存态标记 | `SettingsDialog.execution.test.tsx` |
-| SET-034 | Connectors 页面支持右上角关闭按钮和遮罩关闭，关闭入口不会误触额外保存动作 | `SettingsDialog.execution.test.tsx` |
-| SET-035 | App 启动时如果本地没有待保存 key，会优先使用 daemon 返回的 Composio 已保存态展示尾号 | `App.connectors.test.tsx` |
-| SET-036 | Settings 保存 Connectors key 时，本地只保留 `apiKeyConfigured/apiKeyTail`，同时把原始 key 同步给 daemon | `App.connectors.test.tsx` |
-| SET-037 | 清空 Connectors 已保存 key 后，会把 cleared composio 配置同步给 daemon | `App.connectors.test.tsx` |
 | SET-038 | MCP server 页面在 daemon 返回 install info 后，会默认渲染 Claude Code 的安装命令、重启提示和能力说明 | `SettingsDialog.execution.test.tsx` |
 | SET-039 | MCP server 页面切换不同 client 后，会联动更新安装方式说明和 snippet 内容 | `SettingsDialog.execution.test.tsx` |
 | SET-040 | MCP server 页面支持复制当前 snippet 到剪贴板，并展示 `Copied` 反馈 | `SettingsDialog.execution.test.tsx` |
 | SET-041 | MCP server 页面在 daemon 无法返回 install info 时，会展示错误提示和降级 snippet 文案 | `SettingsDialog.execution.test.tsx` |
-| SET-042 | 在 Settings 里保存 Connectors key 后，Entry 页 connectors gate 会立即解锁，且本地只保存尾号标记 | `entry-configuration-flows.test.ts` |
 | SET-043 | Language 页面展开下拉后，会渲染完整 locale 列表，并正确标记当前已选语言 | `SettingsDialog.execution.test.tsx` |
 | SET-044 | 在 Language 页面切换语言后，触发器文案会立即更新，同时把 locale 写入 `localStorage` 并同步 `html[lang]` | `SettingsDialog.execution.test.tsx` |
 | SET-045 | 切换到 `fa` 等 RTL 语言后，会同步更新 `html[dir=rtl]`，且语言菜单支持 `Escape` 关闭 | `SettingsDialog.execution.test.tsx` |
@@ -94,11 +85,6 @@
 | SET-082 | 手动创建 memory 失败时，编辑器保持打开，用户已输入内容不会丢失 | `settings-memory-routines.test.ts`, `MemorySection.test.tsx` |
 | SET-083 | Automations 主页面支持创建 automation、Run now，并在列表内展示最近一次运行入口 | `settings-memory-routines.test.ts` |
 | SET-084 | Automations 创建失败时，modal 保持打开并回显错误，不会误写入列表 | `settings-memory-routines.test.ts` |
-| SET-085 | `Import from apps` 页面支持通过 `Manage` 跳到 `Connectors`，并在重开后保留 connector authorization pending 状态 | `settings-memory-routines.test.ts`, `MemorySection.test.tsx` |
-| SET-086 | `Import from apps` 支持 connected app 的选择、扫描、失败诊断、`Suggested memories` 保存，以及 `Saved memory` extraction 的 `Refresh / Clear` 管理 | `settings-memory-routines.test.ts`, `MemorySection.test.tsx` |
-| SET-087 | `Import from apps` 支持 connector OAuth 完成后的回流：pending app 会在授权回调后变成 connected，并可立即继续扫描生成 suggested memories | `settings-memory-routines.test.ts` |
-| SET-088 | `Import from apps` 在 mixed connector state 下保持稳定：已连接、刚完成 OAuth、仍未连接的 app 会正确更新 `connected / selected` 计数，且扫描只提交已选中的 connected apps | `settings-memory-routines.test.ts` |
-| SET-089 | `Import from apps` 会在 connected app 断连/重连后自动收敛已选集合：失联 app 被移出 selected，恢复连接后不会误自动重新选中，扫描 payload 只包含当前仍选中的 connected apps | `settings-memory-routines.test.ts` |
 
 ## 自动化候选
 

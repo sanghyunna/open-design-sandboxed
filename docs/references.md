@@ -60,7 +60,7 @@ Every external project this spec leans on. Three questions per entry: what is it
 - **What it is:** Open-source personal AI assistant with many integrations, auto-fetch into a memory tree, local editable knowledge, and a TokenJuice-style compression layer before LLM use.
 - **Why it matters:** It is the clearest reference for "connect sources once, then the agent wakes up with compressed context already available."
 - **What we borrow:**
-  - Connector-driven ingestion as a first-class loop, not a prompt the user rewrites each time.
+  - Source-driven ingestion as a first-class loop, not a prompt the user rewrites each time.
   - Editable local memory tree rather than opaque vector-only recall.
   - Token compression as an optional stage before agent context injection.
 - **What we don't:**
@@ -91,7 +91,7 @@ Every external project this spec leans on. Three questions per entry: what is it
   - Layered memory and direct recall to reduce prompt size.
   - A bias toward small composable primitives instead of a heavy agent framework.
 - **What we don't:**
-  - Broad uncontrolled desktop authority. OD keeps daemon, connector, filesystem, and review gates explicit.
+  - Broad uncontrolled desktop authority. OD keeps daemon, filesystem, and review gates explicit.
 
 ### [cc-switch][ccsw] (farion1231)
 - **Repo:** [github.com/farion1231/cc-switch][ccsw]

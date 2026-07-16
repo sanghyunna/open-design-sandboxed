@@ -6756,39 +6756,6 @@
       "taskKind": "new-generation"
     },
     {
-      "name": "open-design/example-live-dashboard",
-      "title": "Live Dashboard",
-      "version": "0.1.0",
-      "source": "github:nexu-io/open-design@main/plugins/_official/examples/live-dashboard",
-      "publisher": {
-        "id": "open-design",
-        "url": "https://open-design.ai"
-      },
-      "capabilitiesSummary": [
-        "prompt:inject",
-        "fs:write"
-      ],
-      "description": "Notion-style team dashboard rendered as a Live Artifact. A single-page,\nself-contained HTML dashboard with KPIs, a 7-day sparkline, a real-time\nactivity feed and a linked-database task table — wired to Notion via the\nComposio connector catalog. Refreshes on demand and when the artifact\nis opened. Falls back to seeded mock data when no connector is bound,\nso it works offline / in screenshots / in the picker preview.",
-      "tags": [
-        "example",
-        "first-party",
-        "prototype",
-        "operation",
-        "web",
-        "desktop",
-        "team-dashboard",
-        "notion-dashboard",
-        "live-dashboard",
-        "ops-dashboard",
-        "team-workspace-dashboard",
-        "untitled",
-        "notion"
-      ],
-      "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/live-dashboard",
-      "license": "MIT",
-      "mode": "prototype",
-      "taskKind": "new-generation"
-    },
     {
       "name": "open-design/example-magazine-poster",
       "title": "Magazine Poster",
@@ -8483,3 +8450,4 @@
     }
   ]
 }
+

@@ -30,7 +30,6 @@ never own the atom implementations; they only reference them by id.
 | `file-write` | File write - write project files. | all |
 | `file-edit` | File edit - edit project files. | all |
 | `research-search` | Research search - Tavily-backed shallow research. | `new-generation` |
-| `connector` | Connector - Composio connector tool calls. | `new-generation`, `tune-collab` |
 | `critique-theater` | Critique theater - 5-dimension panel critique; emits the `critique.score` signal that drives devloop convergence. | all |
 | `code-import` | Code import - walk an existing repo into `<cwd>/code/index.json`. | `code-migration` |
 | `design-extract` | Design extract - extract design tokens into `<cwd>/code/tokens.json`. | `code-migration`, `figma-migration` |

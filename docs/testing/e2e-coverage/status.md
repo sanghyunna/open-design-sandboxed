@@ -12,7 +12,7 @@
   - 目标是快、稳、失败后容易定位
 - `test:ui:extended`
   - 放更重的 UI 回归
-  - 覆盖持久化、恢复、多项目隔离、Design Files、连接器配置、键盘流等
+  - 覆盖持久化、恢复、多项目隔离、Design Files、键盘流等
   - 最近这轮补强主要都落在这里
 - `vitest` 系统级 smoke
   - 用于验证 daemon / API / artifact 链路
@@ -111,9 +111,6 @@ Playwright 资源场景现在支持显式 contract：
 
 ### 6. Entry configuration 与 keyboard workflows
 
-- [e2e/ui/entry-configuration-flows.test.ts](/Users/mac/open-design/open-design/e2e/ui/entry-configuration-flows.test.ts)
-  - 确认 Composio key 流程不会把明文 key 留在 saved config
-  - 确认 replacement draft key 不会触发过早的全局持久化
 - [e2e/ui/workspace-keyboard-flows.test.ts](/Users/mac/open-design/open-design/e2e/ui/workspace-keyboard-flows.test.ts)
   - 确认 quick-switcher 场景保留预期的 per-project file sets
   - 确认 mixed artifact / file workspace 在 reload 后仍然完整
@@ -130,7 +127,6 @@ Playwright 资源场景现在支持显式 contract：
 - design files upload / delete / persistence
 - conversation persistence and recovery
 - project rename / delete / search / view toggle
-- connector configuration persistence
 - quick-switcher 跨 reload / 跨项目边界行为
 
 ## 已知且故意保留的缺口

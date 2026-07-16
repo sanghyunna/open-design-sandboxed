@@ -70,7 +70,6 @@ pnpm --dir apps/daemon exec vitest run -c vitest.config.ts \
   tests/plugins-marketplace-doctor.test.ts \
   tests/plugins-lockfile.test.ts \
   tests/plugins-upgrade.test.ts \
-  tests/plugins-connector-gate.test.ts \
   tests/plugins-tool-token-gate.test.ts \
   tests/plugins-pipeline-runner.test.ts \
   tests/plugins-code-migration-e2e.test.ts \
@@ -214,12 +213,10 @@ pnpm tools-dev run web --daemon-port 17456 --web-port 17573
 
 | ID | 场景 | 核心断言 | 覆盖 |
 | --- | --- | --- | --- |
-| PS-G01 | Restricted capability gate | restricted plugin 缺 `connector:<id>` 时 apply 409 / exit 66 | `apps/daemon/tests/plugins-dod-e2e.test.ts` |
-| PS-G02 | Tool token revalidation | 泄漏 token 也不能绕过 connector gate | `apps/daemon/tests/plugins-tool-token-gate.test.ts` |
-| PS-G03 | Capability grant/revoke | trust endpoint 可授予/撤销 capability，非法 capability 被拒 | `apps/daemon/tests/plugins-trust.test.ts` |
-| PS-G04 | Asset sandbox | plugin asset route 不允许路径穿越，返回合适 CSP/content-type | `apps/daemon/tests/plugins-asset-route.test.ts` |
-| PS-G05 | API token guard | public bind 没有 `OD_API_TOKEN` 被拒，loopback 跳过 bearer | `apps/daemon/tests/api-token-guard.test.ts` |
-| PS-G06 | Origin/CORS | daemon route origin validation 不放宽 | `apps/daemon/tests/origin-validation.test.ts`、`server-cors.test.ts` |
+| PS-G01 | Capability grant/revoke | trust endpoint 可授予/撤销 capability，非法 capability 被拒 | `apps/daemon/tests/plugins-trust.test.ts` |
+| PS-G02 | Asset sandbox | plugin asset route 不允许路径穿越，返回合适 CSP/content-type | `apps/daemon/tests/plugins-asset-route.test.ts` |
+| PS-G03 | API token guard | public bind 没有 `OD_API_TOKEN` 被拒，loopback 跳过 bearer | `apps/daemon/tests/api-token-guard.test.ts` |
+| PS-G04 | Origin/CORS | daemon route origin validation 不放宽 | `apps/daemon/tests/origin-validation.test.ts`、`server-cors.test.ts` |
 
 ### H. Web Product Surface
 
@@ -230,7 +227,7 @@ pnpm tools-dev run web --daemon-port 17456 --web-port 17573
 | PS-H03 | Sources operations | add/refresh/remove/trust 调用对应 API wrapper | `apps/web/tests/components/PluginsView.test.tsx` |
 | PS-H04 | Create plugin flow | Create plugin 进入 agent-assisted authoring，不打开旧 import modal | `apps/web/tests/components/PluginsView.test.tsx`、`e2e/ui/app.test.ts` |
 | PS-H05 | Detail modal dispatch | media/html/design/scenario 四种详情入口正确分派 | `apps/web/tests/components/PluginDetailsModal.dispatch.test.tsx` |
-| PS-H06 | Detail metadata | Source、capabilities、workflow、GenUI、connectors、author/provenance 可见 | 需补更细组件测试，当前由 detail component + manual 验收覆盖 |
+| PS-H06 | Detail metadata | Source、capabilities、workflow、GenUI、author/provenance 可见 | 需补更细组件测试，当前由 detail component + manual 验收覆盖 |
 | PS-H07 | Share menu | copy install command / id / link / markdown badge，source/homepage/marketplace link 可用 | `apps/web/tests/components/PluginShareMenu.test.tsx` |
 | PS-H08 | Home/Composer apply | Home `@` picker、ChatComposer plugin rail、input form 都能 apply plugin | `HomeHero.plugin-picker.test.tsx`、`InlinePluginsRail.test.tsx`、`PluginInputsForm.test.tsx` |
 | PS-H09 | Trust badge consistency | `official/trusted/restricted` 在 card/drawer/source/install confirm 语言一致 | 自动化不足，发布前手工验收 |
@@ -301,7 +298,6 @@ Registry v1 只有在以下额外条件满足后才能标为“fully done”：
 | install 成功但 Available/Installed 状态不对 | installed record 的 `sourceMarketplaceEntryName`、`sourceMarketplaceId`、`marketplaceTrust` |
 | apply 需要重复输入或 snapshot 丢失 | `resolve-snapshot.ts` 的 project-pinned fallback 和 `snapshots.ts` |
 | pipeline 事件缺失 | `firePipelineForRun()` 是否在 `POST /api/runs` 路径触发 |
-| connector token 绕过 | `connector-gate.ts`、`tool-tokens.ts`、`/api/tools/connectors/execute` 二次校验 |
 | UI 装完 plugin 后找不到 | `PluginsView` tab/test id、`buildAvailablePlugins()` name matching |
 | public registry 页面缺条目 | `plugins/registry/*/open-design-marketplace.json`、`apps/landing-page/app/plugin-registry.ts` |
 
