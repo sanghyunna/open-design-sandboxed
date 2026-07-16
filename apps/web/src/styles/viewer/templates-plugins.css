@@ -1462,8 +1462,7 @@
   overflow: auto;
 }
 .plugin-details-modal__inputs,
-.plugin-details-modal__surfaces,
-.plugin-details-modal__connectors {
+.plugin-details-modal__surfaces {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1858,9 +1857,6 @@
   font-style: italic;
   line-height: 1.5;
 }
-.plugin-details-modal__connector-group + .plugin-details-modal__connector-group {
-  margin-top: 12px;
-}
 .plugin-details-modal__sub-title {
   margin: 0 0 6px;
   font-size: 11.5px;
@@ -1871,16 +1867,6 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-.plugin-details-modal__connector {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm, 6px);
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 .plugin-details-modal__source {
   margin: 0;

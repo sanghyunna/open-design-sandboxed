@@ -310,12 +310,10 @@ describe('ChatComposer context pickers', () => {
       ko['chat.mentionTabPlugins'],
       ko['chat.mentionTabSkills'],
       ko['chat.mentionTabMcp'],
-      ko['chat.mentionTabConnectors'],
     ]);
     expect(screen.getByRole('tab', { name: ko['chat.mentionTabPlugins'] })).toBeTruthy();
     expect(screen.getByRole('tab', { name: ko['chat.mentionTabSkills'] })).toBeTruthy();
     expect(screen.getByRole('tab', { name: ko['chat.mentionTabMcp'] })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: ko['chat.mentionTabConnectors'] })).toBeTruthy();
     expect(screen.getByRole('tab', { name: ko['chat.mentionTabFiles'] })).toBeTruthy();
     expect(screen.getByRole('tab', { name: ko['chat.mentionTabTabs'] })).toBeTruthy();
     expect(screen.getByText(ko['chat.mentionSearchPrompt'])).toBeTruthy();

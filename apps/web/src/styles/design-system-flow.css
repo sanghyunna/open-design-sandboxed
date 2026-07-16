@@ -391,9 +391,6 @@
   gap: 8px;
   margin-top: 2px;
 }
-.ds-github-access-panel.has-connected-connector .ds-github-access-method:last-child .od-icon {
-  color: var(--green);
-}
 .ds-drop-zone-wrap {
   min-width: 0;
   display: grid;
