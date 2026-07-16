@@ -14,8 +14,8 @@ export interface ValidateResult {
 //   - Capability list must be an array of canonical capability strings;
 //     unknown ids land in `warnings[]` instead of `errors[]` so a forward
 //     spec patch can introduce new caps without breaking installs.
-//   - GenUI surface oauth.route='connector' references a connector id that
-//     the plugin actually declared (when od.connectors are present).
+//   - GenUI surface oauth.route='mcp' references an MCP server declared in
+//     od.context.mcp.
 
 const KNOWN_CAPABILITIES = new Set([
   'prompt:inject',
@@ -25,7 +25,6 @@ const KNOWN_CAPABILITIES = new Set([
   'subprocess',
   'bash',
   'network',
-  'connector',
 ]);
 
 // @dsp func-30ea3892
