@@ -288,19 +288,6 @@ await (async () => {
     return;
   }
 
-  if (argv[0] === 'tools' && argv[1] === 'connectors') {
-    import('./tools-connectors-cli.js')
-      .then(({ runConnectorsToolCli }) => runConnectorsToolCli(argv.slice(2)))
-      .then(({ exitCode }) => {
-        process.exitCode = exitCode;
-      })
-      .catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-        process.exitCode = 1;
-      });
-    return;
-  }
   if (argv[0] === 'tools' && argv[1] === 'design-systems') {
     import('./tools-design-systems-cli.js')
       .then(({ runDesignSystemsToolCli }) => runDesignSystemsToolCli(argv.slice(2)))
@@ -326,8 +313,6 @@ function printRootHelp() {
   od artifacts create --name <path> --input <file> [--project <id-or-name>]
       Create a normal project artifact through the local daemon.
 
-  od tools connectors <list|execute|github-design-context> [options]
-      Discover and execute configured connectors.
 
   od tools design-systems read --path <manifest-declared-path>
       Read active design-system pull-layer files through daemon wrapper commands.
@@ -7994,3 +7979,5 @@ async function runAutomation(args) {
       process.exit(2);
   }
 }
+
+

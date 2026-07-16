@@ -30,7 +30,7 @@ import {
   scanProjectLocation,
   writeProjectManifest,
 } from './project-locations.js';
-import { auditDesignSystemPackage } from './tools-connectors-cli.js';
+import { auditDesignSystemPackage } from './design-system-package-audit.js';
 import {
   ProjectCheckpointConflictError,
   ProjectCheckpointError,
