@@ -378,7 +378,7 @@ test('[P0] @critical comment attachment flow attaches preview comments to the ne
 });
 
 test('[P0] @critical element comment sends to chat with Enter from the primary action', async ({ page }) => {
-  test.setTimeout(75_000);
+  test.setTimeout(T.xlong);
   const entry = automatedUiScenarios().find((scenario) => scenario.id === 'comment-attachment-flow');
   if (!entry?.mockArtifact) {
     throw new Error('comment-attachment-flow scenario fixture is missing');
