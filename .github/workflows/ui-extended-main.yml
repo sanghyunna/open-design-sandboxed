@@ -75,17 +75,6 @@ jobs:
               ui/amr-logout-requires-relogin.test.ts
               ui/settings-local-cli-codex-fallback.test.ts
               --grep '\[P0\]'
-          - name: settings-connectors
-            smoke_command: >-
-              pnpm -C e2e exec playwright test -c playwright.config.ts
-              ui/critical-smoke.test.ts
-              --grep '\[P0\].*settings dialog'
-            command: >-
-              pnpm -C e2e exec playwright test -c playwright.config.ts
-              ui/settings-api-protocol.test.ts
-              ui/settings-connectors-auth-happy-path.test.ts
-              ui/settings-connectors-auth-recovery.test.ts
-              --grep '\[P0\]'
 
     steps:
       - name: Checkout

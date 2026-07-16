@@ -2,8 +2,8 @@
 //
 // Renders the typed `ContextItem` list above the brief input. Each chip
 // describes one piece of context the active plugin contributed: an
-// active skill, a design-system, a craft rule, an asset, an MCP server,
-// a connector, etc. Clicking the X button calls `onRemove(item)` so
+// active skill, a design-system, a craft rule, an asset, or an MCP server.
+// Clicking the X button calls `onRemove(item)` so
 // the parent can decide whether removing the chip should clear the
 // applied plugin (typical) or just hide it. Clicking the chip body
 // (when `onSelect` is wired) lets the host open a detail view —

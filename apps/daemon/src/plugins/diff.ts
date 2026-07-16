@@ -102,9 +102,6 @@ function diffManifest(out: PluginDiffEntry[], a: PluginManifest, b: PluginManife
     (a.od?.context?.assets ?? []).slice() as string[],
     (b.od?.context?.assets ?? []).slice() as string[]);
   diffPipeline(out, a.od?.pipeline, b.od?.pipeline);
-  diffArray (out, 'od.connectors.required',
-    (a.od?.connectors?.required ?? []).map((c) => c?.id ?? '').filter(Boolean),
-    (b.od?.connectors?.required ?? []).map((c) => c?.id ?? '').filter(Boolean));
   diffArray (out, 'od.genui.surfaces',
     (a.od?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean),
     (b.od?.genui?.surfaces ?? []).map((s) => s?.id ?? '').filter(Boolean));

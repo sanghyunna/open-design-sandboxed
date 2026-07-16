@@ -199,7 +199,7 @@ describe('MentionNode', () => {
           $createMentionNode({
             // Notion's curated brand is near-black (#0B0B0B) in light mode.
             mentionId: 'notion',
-            mentionKind: 'connector',
+            mentionKind: 'plugin',
             token: '@Notion',
             label: 'Notion',
           }),

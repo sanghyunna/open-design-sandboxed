@@ -1,6 +1,6 @@
 import type { JsonPrimitive } from '../common';
 
-/** Generic bounded-JSON value/object types shared by the connectors API. */
+/** Generic bounded-JSON value/object types shared by agent tool APIs. */
 export type BoundedJsonValue =
   | JsonPrimitive
   | BoundedJsonValue[]

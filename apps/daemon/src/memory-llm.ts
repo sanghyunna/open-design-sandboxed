@@ -1047,7 +1047,7 @@ async function collectProposedEntries(dataDir, input, options) {
     recordSkip({ userMessage, reason: 'memory-disabled', kind: extractionKind });
     return { status: 'skipped', attemptId: null, proposed: [], existingEntries: [] };
   }
-  if (extractionKind !== 'connector' && !cfg.chatExtractionEnabled) {
+  if (!cfg.chatExtractionEnabled) {
     return { status: 'skipped', attemptId: null, proposed: [], existingEntries: [] };
   }
   if (userMessage.length === 0) {

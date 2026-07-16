@@ -146,7 +146,6 @@ describe('routine routes', () => {
             skillIds: ['live-artifact'],
             pluginIds: ['od-new-generation'],
             mcpServerIds: ['figma-mcp'],
-            connectorIds: ['github'],
           },
           enabled: true,
         }),
@@ -162,7 +161,6 @@ describe('routine routes', () => {
             skillIds?: string[];
             pluginIds?: string[];
             mcpServerIds?: string[];
-            connectorIds?: string[];
           };
           nextRunAt: number;
         };
@@ -173,7 +171,6 @@ describe('routine routes', () => {
         skillIds: ['live-artifact'],
         pluginIds: ['od-new-generation'],
         mcpServerIds: ['figma-mcp'],
-        connectorIds: ['github'],
       });
       expect(json.routine.nextRunAt).toBe(new Date('2026-05-13T01:00:00.000Z').getTime());
 
@@ -439,7 +436,7 @@ describe('routine routes', () => {
         agentRunId: 'agent-run-failed',
         startedAt: Date.now() - 1000,
         completedAt: Date.now(),
-        summary: 'Connector auth failed',
+        summary: 'Provider auth failed',
         error: 'provider rejected credentials',
         errorCode: 'AGENT_AUTH_REQUIRED',
       });
@@ -469,7 +466,7 @@ describe('routine routes', () => {
         projectId: 'proj-failed',
         conversationId: 'conv-failed',
         agentRunId: 'agent-run-failed',
-        summary: 'Connector auth failed',
+        summary: 'Provider auth failed',
         error: 'provider rejected credentials',
         errorCode: 'AGENT_AUTH_REQUIRED',
       });

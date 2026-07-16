@@ -28,7 +28,7 @@ describe('automation evolution proposals', () => {
   it('creates a reviewable memory proposal and applies it into the memory store', async () => {
     const proposal = await createAutomationProposal(dataDir, {
       id: 'proposal-memory-1',
-      title: 'Project memory from connector digest',
+      title: 'Project memory from source digest',
       summary: 'Preserve a durable project decision found by an automation.',
       targetKind: 'memory-node',
       action: 'create',
@@ -36,8 +36,8 @@ describe('automation evolution proposals', () => {
       patch: {
         format: 'json',
         after: JSON.stringify({
-          name: 'Connector decision',
-          description: 'Decision captured from connector activity',
+          name: 'Source decision',
+          description: 'Decision captured from source activity',
           type: 'project',
           body: '- Decision: keep design-system extraction behind review.',
         }),
@@ -55,7 +55,7 @@ describe('automation evolution proposals', () => {
     const memoryId = (applied.result as { memoryId: string }).memoryId;
     const entry = await readMemoryEntry(dataDir, memoryId);
     expect(entry).toMatchObject({
-      name: 'Connector decision',
+      name: 'Source decision',
       type: 'project',
     });
     expect(entry?.body).toContain('keep design-system extraction behind review');
@@ -159,7 +159,7 @@ describe('automation evolution proposals', () => {
           description: 'Turn one trusted source into context proposals every day.',
           purpose: 'Self-evolve project context from recurring source material.',
           triggerKinds: ['schedule'],
-          sourceKinds: ['connector'],
+          sourceKinds: ['chat'],
           stages: [
             { id: 'ingest', kind: 'ingest', title: 'Capture source' },
             { id: 'propose', kind: 'propose', title: 'Create proposals' },

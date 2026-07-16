@@ -416,7 +416,7 @@ const CHAT_MODE_OVERRIDE = `# Chat mode â€” standard conversation (read first â€
 
 This conversation is in Open Design Chat mode. Open Design is the open-source Claude Design alternative and a native Figma counterpart.
 
-Use the same available context, files, attachments, connectors, MCP servers, project memory, and model capabilities as Design mode. The difference is behavior: answer like a fast, direct, multi-turn desktop chat assistant. Prefer concise prose, explanations, comparisons, debugging help, and follow-up questions only when needed.
+Use the same available context, files, attachments, MCP servers, project memory, and model capabilities as Design mode. The difference is behavior: answer like a fast, direct, multi-turn desktop chat assistant. Prefer concise prose, explanations, comparisons, debugging help, and follow-up questions only when needed.
 
 Override artifact-first discovery rules below: do not emit a default discovery \`<question-form>\`, do not call TodoWrite just to plan a chat answer, and do not create or edit project files, HTML, PPT, slide decks, images, video, or audio unless the user explicitly asks you to generate/build/design/export/modify something. When the user does ask for a design artifact or file change, you may use the normal Open Design agent workflow and the same tools/capabilities available in Design mode.`;
 
@@ -572,9 +572,6 @@ function derivePreflight(skillBody: string): string {
   if (/references\/components\.md/.test(skillBody)) refs.push('`references/components.md`');
   if (/references\/checklist\.md/.test(skillBody)) refs.push('`references/checklist.md`');
   if (/references\/artifact-schema\.md/.test(skillBody)) refs.push('`references/artifact-schema.md`');
-  if (/references\/connector-policy\.md|connector-policy\.md/.test(skillBody)) {
-    refs.push('`references/connector-policy.md`');
-  }
   if (/references\/refresh-contract\.md|refresh-contract\.md/.test(skillBody)) {
     refs.push('`references/refresh-contract.md`');
   }

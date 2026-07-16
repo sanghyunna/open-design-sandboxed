@@ -259,11 +259,11 @@ describe('pipeline-runner: Stage D registry runner integration', () => {
 describe('pipeline-runner: GenUI cross-conversation cache (e2e-5)', () => {
   it('reuses a project-tier surface answer across conversations without re-broadcasting', async () => {
     const surface: GenUISurfaceSpec = {
-      id: '__auto_connector_slack',
+      id: '__auto_mcp_fetch',
       kind: 'oauth-prompt',
       persist: 'project',
-      capabilitiesRequired: ['connector:slack'],
-      oauth: { route: 'connector', connectorId: 'slack' },
+      capabilitiesRequired: ['mcp:fetch'],
+      oauth: { route: 'mcp', mcpServerId: 'fetch' },
     };
     const snap = snapshotWith({
       genuiSurfaces: [surface],
@@ -294,7 +294,7 @@ describe('pipeline-runner: GenUI cross-conversation cache (e2e-5)', () => {
     expect(pending).not.toBeNull();
     respondSurface(db, {
       rowId: pending!.id,
-      value: { connectorId: 'slack', accountLabel: 'Acme' },
+      value: { mcpServerId: 'fetch', accountLabel: 'Acme' },
       respondedBy: 'user',
       runId: 'run-A',
     });

@@ -287,7 +287,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     bullets: [
       'Discovery: `./.claude/skills/` → `./skills/` → `~/.claude/skills/` (project wins).',
       'Symlink one skill into multiple projects to share it without copying.',
-      'Each skill can declare connectors, atoms, design-system requirements, and a `preview` example output for the gallery.',
+      'Each skill can declare atoms, design-system requirements, and a `preview` example output for the gallery.',
       'Headless: an agent with `od` on its PATH can call `od skills list` then run any skill; the daemon is optional for read-only flows.',
       '`pnpm seed:test-projects` exercises the same artifact shape with default plugin examples and community plugin examples, then stores the resulting `index.html` projects as reusable test data.',
     ],

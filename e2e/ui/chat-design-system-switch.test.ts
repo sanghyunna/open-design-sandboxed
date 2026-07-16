@@ -202,7 +202,7 @@ async function fetchCurrentProject(page: Page): Promise<{ id: string; designSyst
   // The web routes a live project as `/projects/:projectId/conversations/:conversationId`,
   // so naive `.pop()` extraction picks the conversation id and the subsequent
   // `/api/projects/:id` GET 404s. Match the segment explicitly the same way
-  // `project-management-flows.test.ts` and `entry-configuration-flows.test.ts` do.
+  // `project-management-flows.test.ts` does.
   const [, projectId] = url.pathname.match(/\/projects\/([^/]+)/) ?? [];
   if (!projectId) throw new Error(`unexpected project route: ${url.pathname}`);
   const response = await page.request.get(`/api/projects/${projectId}`);

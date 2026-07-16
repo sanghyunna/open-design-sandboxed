@@ -9,9 +9,8 @@
 //     stage timeline,
 //   - persists each iteration into `run_devloop_iterations`,
 //   - asks `requestOrReuseSurface()` for the matching GenUI surface
-//     before the stage runner fires (auto-derived `__auto_connector_*`
-//     prompts always go through the cross-conversation cache so a
-//     repeat-OAuth never re-broadcasts).
+//     before the stage runner fires (auto-derived surfaces always go
+//     through the cross-conversation cache so repeats never re-broadcast).
 //
 // The stage runner itself is supplied by the caller. In v1 the daemon
 // passes a stub that only records iteration counts; later phases can
@@ -56,11 +55,8 @@ export async function runPipelineForRun(
   input: PipelineRunnerInput,
 ): Promise<StageOutcomeRecord[]> {
   // Pre-stage GenUI: surfaces with no `trigger.stageId` get raised once
-  // up-front (typical example: the auto-derived `__auto_connector_*`
-  // oauth-prompts that the apply path created when a required connector
-  // was not yet connected). The cache short-circuit here is what makes
-  // e2e-5 pass: a second conversation in the same project skips the
-  // broadcast.
+  // up-front. The cache short-circuit here is what makes e2e-5 pass: a
+  // second conversation in the same project skips the broadcast.
   const surfaces = input.snapshot.genuiSurfaces ?? [];
   for (const surface of surfaces) {
     if (surface.trigger?.stageId) continue;

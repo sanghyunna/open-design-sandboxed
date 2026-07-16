@@ -62,8 +62,8 @@ export const exampleAutomationTemplate: AutomationTemplate = {
   title: 'Extract design system',
   description: 'Turn a trusted source into a reviewable DESIGN.md proposal.',
   purpose: 'Self-evolve project visual direction from source material and strong artifacts.',
-  triggerKinds: ['manual', 'connector', 'project-event'],
-  sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact'],
+  triggerKinds: ['manual', 'project-event'],
+  sourceKinds: ['upload', 'url', 'repo', 'artifact'],
   stages: [
     { id: 'ingest', kind: 'ingest', title: 'Ingest source' },
     { id: 'canonicalize', kind: 'canonicalize', title: 'Canonicalize to Markdown' },
@@ -94,7 +94,7 @@ export const exampleAutomationContentPacket: AutomationContentPacket = {
   ],
   attachments: [],
   sensitivity: 'workspace',
-  capabilityHints: ['connector:github'],
+  capabilityHints: ['fs:read'],
   tokenStats: {
     originalTokens: 4200,
     canonicalTokens: 1800,

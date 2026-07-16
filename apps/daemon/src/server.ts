@@ -9766,28 +9766,12 @@ export async function startServer({
       ? formatDesignFilesWorkspaceHint(cwd, existingProjectFiles, existingProjectFolders)
       : '';
     const attachmentHint = formatProjectAttachmentHint(safeAttachments);
-    // Plan §3.A3 / spec §9: thread plugin context onto every tool token
-    // so tool routes can re-validate the §5.3 capability gate without
-    // re-reading the SQLite snapshot row.
-    let pluginGrantContext = null;
-    if (cwd && typeof projectId === 'string' && projectId && run?.appliedPluginSnapshotId) {
-      const snap = getSnapshot(db, run.appliedPluginSnapshotId);
-      if (snap) {
-        const installed = getInstalledPlugin(db, snap.pluginId);
-        pluginGrantContext = {
-          pluginSnapshotId: snap.snapshotId,
-          pluginTrust: installed?.trust ?? 'restricted',
-          pluginCapabilitiesGranted: snap.capabilitiesGranted ?? [],
-        };
-      }
-    }
     const toolTokenGrant = cwd && typeof projectId === 'string' && projectId
       ? toolTokenRegistry.mint({
           runId,
           projectId,
           allowedEndpoints: CHAT_TOOL_ENDPOINTS,
           allowedOperations: CHAT_TOOL_OPERATIONS,
-          ...(pluginGrantContext ?? {}),
         })
       : null;
     const agentRollbackIsolationEnabled = Boolean(

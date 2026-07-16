@@ -412,7 +412,7 @@ describe('design systems registry', () => {
     await mkdir(contextDir, { recursive: true });
     await writeFile(
       path.join(contextDir, 'source-context.md'),
-      '# Source Context\n\nConnector evidence remains available as project context.\n',
+      '# Source Context\n\nSource evidence remains available as project context.\n',
       'utf8',
     );
 

@@ -103,7 +103,7 @@ export async function runFigmaExtract(opts: FigmaExtractOptions): Promise<FigmaE
     throw new Error('figma-extract: missing fileKey or fileUrl (Figma file URL must match https://figma.com/file/<KEY>)');
   }
   if (!opts.token) {
-    throw new Error('figma-extract: missing OAuth token (route through oauth-prompt with connectorId=figma)');
+    throw new Error('figma-extract: missing OAuth token (route through the figma oauth-prompt atom)');
   }
   const fetchFn = opts.fetchFn ?? globalThis.fetch;
   if (!fetchFn) throw new Error('figma-extract: no fetch implementation available');

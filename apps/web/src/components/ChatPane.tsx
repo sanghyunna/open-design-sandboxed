@@ -400,18 +400,17 @@ interface Props {
   // Same dialog, but landing on the External MCP tab. Forwarded to the
   // composer's `/mcp` slash and MCP picker button.
   onOpenMcpSettings?: () => void;
-  // The composer "+" menu's "add plugin" / "add connector" rows route to the
-  // home plugin-registry / connector-integration surfaces.
+  // The composer "+" menu's "add plugin" row routes to the home plugin-registry surface.
   onBrowsePlugins?: () => void;
   // True when this project is a GitHub-backed design system whose repository
   // evidence has not fully landed. Surfaces a "Connect your repo" CTA in the
   // empty chat state alongside the starter examples.
   connectRepoNeeded?: boolean;
-  // Live GitHub connector status, used only to pick the connect-repo CTA copy
+  // Live GitHub repo status, used only to pick the connect-repo CTA copy
   // (connect vs re-import). Undefined until the status fetch resolves.
   githubConnected?: boolean;
   // Fires when the connect-repo CTA button is clicked. The parent decides what
-  // it does based on connector status (open Connectors, or prefill the composer
+  // it does based on repo status (open settings, or prefill the composer
   // with the import instruction).
   onConnectRepo?: () => void;
   // Bumped by the parent to push a draft into the composer (used by the
@@ -2714,7 +2713,7 @@ function summarizeQueuedPrompt(item: QueuedSendItem, t: TranslateFn): string {
 }
 
 // Surfaces what a queued turn carries — attachments, visual marks, and the
-// staged plugin / skill / MCP / connector context from its meta — as compact
+// staged plugin / skill / MCP context from its meta — as compact
 // chips so the user can see (and trust) what will be sent without expanding it.
 // Counts use the same plain-English style as the rest of this strip.
 function QueuedSendMetaChips({ item }: { item: QueuedSendItem }) {
