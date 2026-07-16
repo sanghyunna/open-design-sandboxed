@@ -1767,7 +1767,7 @@ export interface Dict {
   'chat.comments.updateSend': string;
   'chat.comments.removeAttachment': string;
   'chat.comments.removeAttachmentAria': string;
-  'chat.comments.comment': string;
+  'chat.comments.sendToCommentQueue': string;
   'chat.comments.sendToChat': string;
   'chat.comments.sending': string;
   'chat.comments.edit': string;
