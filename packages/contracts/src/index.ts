@@ -7,7 +7,6 @@ export * from './api/artifacts.js';
 export * from './api/chat.js';
 export * from './api/checkpoints.js';
 export * from './api/context.js';
-export * from './api/connectors.js';
 export * from './api/comments.js';
 export * from './api/connectionTest.js';
 export * from './api/files.js';
