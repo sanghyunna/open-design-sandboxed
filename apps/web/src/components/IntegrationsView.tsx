@@ -1,49 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AppConfig } from '../types';
 import { useAnalytics } from '../analytics/provider';
 import {
-  trackIntegrationsConnectorsTabClick,
   trackIntegrationsSkillsTabClick,
   trackIntegrationsTabClick,
   trackPageView,
-  trackSettingsConnectorAuthResult,
 } from '../analytics/events';
-import { ConnectorSection } from './ConnectorSection';
 import { Icon } from './Icon';
 import { McpClientSection } from './McpClientSection';
 import { UseEverywhereGuidePanel } from './UseEverywhereModal';
 import { useT } from '../i18n';
 
-export type IntegrationTab = 'mcp' | 'connectors' | 'skills' | 'use-everywhere';
+export type IntegrationTab = 'mcp' | 'skills' | 'use-everywhere';
 
 interface Props {
-  config: AppConfig;
   initialTab?: IntegrationTab;
-  composioConfigLoading?: boolean;
-  onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
 }
 
 const INTEGRATION_TABS: ReadonlyArray<{
   id: IntegrationTab;
 }> = [
   { id: 'mcp' },
-  { id: 'connectors' },
   { id: 'skills' },
   { id: 'use-everywhere' },
 ];
 
 function integrationTabToTrackingElement(
   id: IntegrationTab,
-): 'mcp' | 'connectors' | 'skills' | 'use_everywhere' {
+): 'mcp' | 'skills' | 'use_everywhere' {
   if (id === 'use-everywhere') return 'use_everywhere';
   return id;
 }
 
 export function IntegrationsView({
-  config,
   initialTab = 'mcp',
-  composioConfigLoading = false,
-  onPersistComposioKey,
 }: Props) {
   const t = useT();
   const analytics = useAnalytics();
@@ -54,18 +43,10 @@ export function IntegrationsView({
     trackPageView(analytics.track, { page_name: 'integrations' });
   }, [analytics.track]);
   const [activeTab, setActiveTab] = useState<IntegrationTab>(initialTab);
-  const [localConfig, setLocalConfig] = useState<AppConfig>(config);
 
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
-
-  useEffect(() => {
-    setLocalConfig((curr) => ({
-      ...curr,
-      composio: config.composio,
-    }));
-  }, [config.composio]);
 
   const liveDaemonUrl =
     typeof window !== 'undefined' ? window.location.origin : undefined;
@@ -122,32 +103,6 @@ export function IntegrationsView({
       <div className="integrations-view__panel">
         {activeTab === 'mcp' ? <McpClientSection /> : null}
 
-        {activeTab === 'connectors' ? (
-          <ConnectorSection
-            cfg={localConfig}
-            setCfg={setLocalConfig}
-            composioConfigLoading={composioConfigLoading}
-            onPersistComposioKey={onPersistComposioKey}
-            onConnectorsTabClick={(element) =>
-              trackIntegrationsConnectorsTabClick(analytics.track, {
-                page_name: 'integrations',
-                area: 'connectors_tab',
-                element,
-              })
-            }
-            onConnectorAuthResult={({ connectorId, action, result, errorCode }) =>
-              trackSettingsConnectorAuthResult(analytics.track, {
-                page_name: 'settings',
-                area: 'connectors',
-                connector_id: connectorId,
-                action,
-                result,
-                ...(errorCode ? { error_code: errorCode } : {}),
-              })
-            }
-          />
-        ) : null}
-
         {activeTab === 'skills' ? <SkillsComingSoonPanel /> : null}
 
         {activeTab === 'use-everywhere' ? (
@@ -195,7 +150,6 @@ function SkillsComingSoonPanel() {
 function integrationTabLabel(id: IntegrationTab, t: ReturnType<typeof useT>): string {
   switch (id) {
     case 'mcp': return t('integrations.tabLabel.mcp');
-    case 'connectors': return t('entry.tabConnectors');
     case 'skills': return t('integrations.tabLabel.skills');
     case 'use-everywhere': return t('entry.useEverywhereTitle');
   }
@@ -204,7 +158,6 @@ function integrationTabLabel(id: IntegrationTab, t: ReturnType<typeof useT>): st
 function integrationTabHint(id: IntegrationTab, t: ReturnType<typeof useT>): string {
   switch (id) {
     case 'mcp': return t('integrations.tabHint.mcp');
-    case 'connectors': return t('integrations.tabHint.connectors');
     case 'skills': return t('tasks.comingSoon');
     case 'use-everywhere': return t('integrations.tabHint.useEverywhere');
   }

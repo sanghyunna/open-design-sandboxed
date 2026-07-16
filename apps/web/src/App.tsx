@@ -52,11 +52,9 @@ import { navigate, useRoute } from './router';
 import {
   fetchDaemonConfig,
   DEFAULT_PET,
-  fetchComposioConfigFromDaemon,
   loadConfig,
   mergeDaemonConfig,
   saveConfig,
-  syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from './state/config';
 import { applyAppearanceToDocument } from './state/appearance';
@@ -66,7 +64,6 @@ import {
 } from './state/apiProtocolConfig';
 import {
   buildPersistedConfig,
-  persistComposioConfigChange,
   resolveSettingsCloseConfig,
 } from './state/settings-persistence';
 import { isMacPlatform } from './utils/platform';
@@ -361,15 +358,6 @@ function AppInner() {
   // so they don't race ahead of the daemon-stored choice and overwrite it
   // with a freshly picked first-available agent.
   const [daemonConfigLoaded, setDaemonConfigLoaded] = useState(false);
-  // Narrower flag dedicated to the Composio API key hydration. The key is
-  // persisted by the daemon (and only reflected back via apiKeyConfigured
-  // + apiKeyTail), so after a dev-server restart there is a window where
-  // the dialog can render an empty Composio input even though a saved key
-  // exists. Settings → Connectors uses this to render a skeleton over the
-  // input + buttons instead of an empty input that the user might
-  // mistake for "no key saved" — and to disable Save/Clear so a misclick
-  // can't overwrite the saved state with `''` before hydration lands.
-  const [composioConfigLoading, setComposioConfigLoading] = useState(true);
   const route = useRoute();
   const analytics = useAnalytics();
 
@@ -669,10 +657,6 @@ function AppInner() {
         setProjectsLoading(false);
         setDaemonConfigLoaded(true);
         setStartupDeferredReady(true);
-        // Composio hydration also depends on the daemon. With no daemon
-        // we just keep whatever localStorage already held; drop the
-        // skeleton so the Settings → Connectors input reflects state.
-        setComposioConfigLoading(false);
         return;
       }
 
@@ -785,20 +769,7 @@ function AppInner() {
           setAppVersionInfo(info);
         });
 
-        void fetchComposioConfigFromDaemon().then((daemonComposioConfig) => {
-          if (cancelled) return;
-          const baseConfig = latestPersistedConfigRef.current;
-          const next = { ...baseConfig };
-          const hasLocalComposioKey = Boolean(next.composio?.apiKey?.trim());
-          if (!hasLocalComposioKey && daemonComposioConfig) {
-            next.composio = daemonComposioConfig;
-          }
-          saveConfig(next);
-          void syncComposioConfigToDaemon(next.composio);
-          latestPersistedConfigRef.current = next;
-          setConfig(next);
-          setComposioConfigLoading(false);
-        });
+
       });
     })();
     return () => {
@@ -926,44 +897,21 @@ function AppInner() {
   /**
    * Autosave-driven persistence path. The settings dialog calls this on
    * every committed edit (via a debounced effect) so localStorage and
-   * the daemon stay in lock-step with the user's draft. We deliberately
-   * do NOT touch the Composio secret here — it has its own gesture
-   * (handleConfigPersistComposioKey) so partial keys never leave the
-   * browser. Onboarding is also left alone; the dialog's close path
-   * is the canonical "I'm done" signal.
+   * the daemon stay in lock-step with the user's draft. Onboarding is
+   * left alone; the dialog's close path is the canonical "I'm done" signal.
    */
   const handleConfigPersist = useCallback(async (
     next: AppConfig,
   ) => {
-    // Strip the in-flight Composio secret before anything hits disk so
-    // a half-typed key can't survive in localStorage. If the dialog is
-    // closing, preserve any onboarding completion that the close gesture
-    // already committed so an unmount autosave cannot re-open the welcome flow.
+    // If the dialog is closing, preserve any onboarding completion that the
+    // close gesture already committed so an unmount autosave cannot re-open
+    // the welcome flow.
     const persisted = buildPersistedConfig(next, configRef.current);
     latestPersistedConfigRef.current = persisted;
     saveConfig(persisted);
     setConfig(persisted);
     await Promise.all([syncConfigToDaemon(persisted)]);
   }, []);
-
-  /**
-   * Explicit Composio API-key save. Called from the section-local
-   * "Save key" button so secrets never ride the autosave keystroke
-   * loop. Once the daemon confirms, we normalize the saved config
-   * (strip the secret, store apiKeyConfigured + apiKeyTail) and feed
-   * it back into local state so the saved-key badge appears.
-   */
-  const handleConfigPersistComposioKey = useCallback(
-    async (composio: AppConfig['composio']) => {
-      const next = await persistComposioConfigChange(config, composio);
-      setConfig((curr) => {
-        const merged: AppConfig = { ...curr, composio: next.composio };
-        saveConfig(merged);
-        return merged;
-      });
-    },
-    [config],
-  );
 
   const handleModeChange = useCallback(
     (mode: AppConfig['mode']) => {
@@ -1623,14 +1571,8 @@ function AppInner() {
     section: SettingsSection = 'execution',
     opts?: { highlight?: SettingsHighlight },
   ) => {
-    if (section === 'composio' || section === 'mcpClient' || section === 'integrations') {
-      setIntegrationInitialTab(
-        section === 'composio'
-          ? 'connectors'
-          : section === 'mcpClient'
-            ? 'mcp'
-            : 'use-everywhere',
-      );
+    if (section === 'mcpClient' || section === 'integrations') {
+      setIntegrationInitialTab(section === 'mcpClient' ? 'mcp' : 'use-everywhere');
       navigate({ kind: 'home', view: 'integrations' });
       return;
     }
@@ -1661,15 +1603,9 @@ function AppInner() {
     navigate({ kind: 'home', view: 'integrations' });
   }, []);
 
-  // The composer "+" menu's "add plugin" / "add connector" rows route to the
-  // home plugin-registry / connector-integration surfaces.
+  // The composer "+" menu's "add plugin" row routes to the home plugin-registry.
   const openPluginRegistry = useCallback(() => {
     navigate({ kind: 'home', view: 'plugins' });
-  }, []);
-
-  const openConnectorIntegrations = useCallback(() => {
-    setIntegrationInitialTab('connectors');
-    navigate({ kind: 'home', view: 'integrations' });
   }, []);
 
   const handleCompleteOnboarding = useCallback(() => {
@@ -1829,7 +1765,6 @@ function AppInner() {
         }}
         onSystemsRefresh={refreshDesignSystems}
         config={config}
-        onOpenConnectorsTab={() => openSettings('composio')}
       />
     );
   } else if (route.kind === 'design-system-detail') {
@@ -1872,7 +1807,6 @@ function AppInner() {
         onOpenAmrSettings={openAmrSettings}
         onOpenMcpSettings={openMcpSettings}
         onBrowsePlugins={openPluginRegistry}
-        onOpenConnectors={openConnectorIntegrations}
         onAdoptPetInline={handleAdoptPet}
         onTogglePet={handleTogglePet}
         onOpenPetSettings={openPetSettings}
@@ -1901,7 +1835,6 @@ function AppInner() {
         providerModelsCache={providerModelsCache}
         onProviderModelsCacheChange={setProviderModelsCache}
         integrationInitialTab={integrationInitialTab}
-        composioConfigLoading={composioConfigLoading}
         daemonLive={daemonLive}
         onModeChange={handleModeChange}
         onAgentChange={handleAgentChange}
@@ -1926,7 +1859,6 @@ function AppInner() {
         onCreateDesignSystem={() => navigate({ kind: 'design-system-create' })}
         onOpenDesignSystem={(id: string) => navigate({ kind: 'design-system-detail', designSystemId: id })}
         onDesignSystemsRefresh={refreshDesignSystems}
-        onPersistComposioKey={handleConfigPersistComposioKey}
         onOpenSettings={openSettings}
         onCompleteOnboarding={handleCompleteOnboarding}
       />
@@ -1966,9 +1898,7 @@ function AppInner() {
           welcome={settingsWelcome}
           initialSection={settingsInitialSection}
           initialHighlight={settingsHighlight}
-          composioConfigLoading={composioConfigLoading}
           onPersist={handleConfigPersist}
-          onPersistComposioKey={handleConfigPersistComposioKey}
           onClose={() => {
             // Closing the dialog is the canonical "I'm done" gesture
             // now that there is no global Save button. We mark

@@ -65,7 +65,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   theme: 'system',
   accentColorMode: 'theme',
   accentColor: DEFAULT_ACCENT_COLOR,
-  composio: {},
   agentModels: {},
   agentCliEnv: {},
   pet: DEFAULT_PET,
@@ -380,7 +379,6 @@ export function loadConfig(): AppConfig {
       ...DEFAULT_CONFIG,
       ...parsed,
       apiProtocolConfigs: { ...(parsed.apiProtocolConfigs ?? {}) },
-      composio: { ...(parsed.composio ?? {}) },
       agentModels: { ...(parsed.agentModels ?? {}) },
       agentCliEnv: { ...(parsed.agentCliEnv ?? {}) },
       theme: resolveThemeForStorage(parsed.theme),
@@ -433,45 +431,6 @@ export function loadConfig(): AppConfig {
       pet: normalizePet(DEFAULT_PET),
       notifications: normalizeNotifications(DEFAULT_NOTIFICATIONS),
     };
-  }
-}
-
-interface PublicComposioConfigResponse {
-  configured?: boolean;
-  apiKeyTail?: string;
-}
-
-export async function fetchComposioConfigFromDaemon(): Promise<AppConfig['composio'] | null> {
-  try {
-    const response = await fetch('/api/connectors/composio/config');
-    if (!response.ok) return null;
-    const payload = await response.json() as PublicComposioConfigResponse;
-    return {
-      apiKey: '',
-      apiKeyConfigured: Boolean(payload.configured),
-      apiKeyTail: payload.apiKeyTail ?? '',
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function syncComposioConfigToDaemon(
-  config: AppConfig['composio'] | undefined,
-): Promise<boolean> {
-  const apiKey = config?.apiKey ?? '';
-  const payload = {
-    ...(apiKey.trim() || !config?.apiKeyConfigured ? { apiKey } : {}),
-  };
-  try {
-    const response = await fetch('/api/connectors/composio/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return response.ok;
-  } catch {
-    return false;
   }
 }
 

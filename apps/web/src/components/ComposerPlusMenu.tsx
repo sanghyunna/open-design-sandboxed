@@ -9,7 +9,6 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import type {
-  ConnectorDetail,
   InstalledPluginRecord,
   McpServerConfig,
 } from '@open-design/contracts';
@@ -106,12 +105,6 @@ function getFlyoutPlacement(
 }
 
 export interface ComposerPlusMenuProps {
-  /** Connector context options shown under the "Connectors" submenu. */
-  connectors: ConnectorDetail[];
-  onPickConnector: (connector: ConnectorDetail) => void;
-  /** Opens the connector integration surface; omit to hide the add row. */
-  onAddConnector?: () => void;
-
   /** Installed plugin options shown under the "Plugins" submenu. */
   plugins: InstalledPluginRecord[];
   onPickPlugin: (plugin: InstalledPluginRecord) => void;
@@ -141,9 +134,8 @@ export interface ComposerPlusMenuProps {
 
   /**
    * Notified when the menu opens. The project composer uses this to latch its
-   * lazy plugin / MCP / connector fetches, so the Plugins / Connectors / MCP
-   * submenus aren't empty when the "+" menu is the first thing clicked on a
-   * cold composer.
+   * lazy plugin / MCP fetches, so the Plugins / MCP submenus aren't empty when
+   * the "+" menu is the first thing clicked on a cold composer.
    */
   onOpen?: () => void;
 }
@@ -171,9 +163,6 @@ function mcpMatches(server: McpServerConfig, needle: string): boolean {
  * project-only design-toolbox row.
  */
 export function ComposerPlusMenu({
-  connectors,
-  onPickConnector,
-  onAddConnector,
   plugins,
   onPickPlugin,
   onAddPlugin,
@@ -191,7 +180,7 @@ export function ComposerPlusMenu({
   const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<
-    'connectors' | 'plugins' | 'mcp' | 'toolbox' | null
+    'plugins' | 'mcp' | 'toolbox' | null
   >(null);
   const [query, setQuery] = useState('');
   // Id of the plugin row the preview column is mirroring. Defaults to the
@@ -269,7 +258,7 @@ export function ComposerPlusMenu({
   }
 
   function openSubmenu(
-    next: 'connectors' | 'plugins' | 'mcp' | 'toolbox',
+    next: 'plugins' | 'mcp' | 'toolbox',
     row: HTMLDivElement | null,
   ) {
     cancelSubmenuClose();
@@ -399,55 +388,6 @@ export function ComposerPlusMenu({
             />
             <span>{t('chat.attachAria')}</span>
           </button>
-          <PlusSubmenuRow
-            label={t('connectors.title')}
-            icon="link"
-            open={submenu === 'connectors'}
-            onOpen={(row) => openSubmenu('connectors', row)}
-            onClose={scheduleCloseSubmenu}
-          >
-            <div className="plus-menu__list">
-              {connectors.length === 0 ? (
-                <div className="plus-menu__empty">{t('homeHero.noConnectors')}</div>
-              ) : (
-                connectors.map((connector) => (
-                  <button
-                    key={connector.id}
-                    type="button"
-                    role="menuitem"
-                    className="plus-menu__item"
-                    // Keep focus on the editor so the pick handler's
-                    // insertMention lands at the caret, not the draft end.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      close();
-                      onPickConnector(connector);
-                    }}
-                  >
-                    <Icon name="link" size={15} className="plus-menu__item-icon" />
-                    <span>{connector.name}</span>
-                  </button>
-                ))
-              )}
-            </div>
-            {onAddConnector ? (
-              <>
-                <div className="plus-menu__divider" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="plus-menu__item"
-                  onClick={() => {
-                    close();
-                    onAddConnector();
-                  }}
-                >
-                  <Icon name="plus" size={15} className="plus-menu__item-icon" />
-                  <span>{t('homeHero.addConnectors')}</span>
-                </button>
-              </>
-            ) : null}
-          </PlusSubmenuRow>
           <PlusSubmenuRow
             label={t('entry.navPlugins')}
             icon="sparkles"

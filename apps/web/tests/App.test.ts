@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildPersistedConfig,
   isAutosaveDraftOnlyChange,
-  persistComposioConfigChange,
   resolveSettingsCloseConfig,
 } from '../src/state/settings-persistence';
 import type { AppConfig } from '../src/types';
@@ -19,34 +18,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
 };
-
-describe('persistComposioConfigChange', () => {
-  it('does not update local saved state when the daemon save fails', async () => {
-    await expect(
-      persistComposioConfigChange(
-        baseConfig,
-        { apiKey: 'cmp_new_key', apiKeyConfigured: false },
-        vi.fn(async () => false),
-      ),
-    ).rejects.toThrow('Composio config save failed');
-  });
-
-  it('normalizes the saved Composio key after a successful daemon save', async () => {
-    await expect(
-      persistComposioConfigChange(
-        baseConfig,
-        { apiKey: 'cmp_new_key', apiKeyConfigured: false },
-        vi.fn(async () => true),
-      ),
-    ).resolves.toMatchObject({
-      composio: {
-        apiKey: '',
-        apiKeyConfigured: true,
-        apiKeyTail: '_key',
-      },
-    });
-  });
-});
 
 describe('buildPersistedConfig', () => {
   it('preserves onboarding completion when a stale autosave snapshot says false', () => {
@@ -84,34 +55,13 @@ describe('buildPersistedConfig', () => {
 });
 
 describe('isAutosaveDraftOnlyChange', () => {
-  const savedComposio: AppConfig = {
-    ...baseConfig,
-    composio: { apiKey: '', apiKeyConfigured: true, apiKeyTail: 'beef' },
-  };
-
-  it('treats an in-flight Composio API key edit as draft-only', () => {
-    const typing: AppConfig = {
-      ...savedComposio,
-      composio: { ...savedComposio.composio, apiKey: '111' },
-    };
-    expect(isAutosaveDraftOnlyChange(typing, savedComposio)).toBe(true);
-  });
-
   it('flags a real change (non-draft field) as persist-worthy', () => {
-    const flipped: AppConfig = { ...savedComposio, model: 'claude-opus-4-7' };
-    expect(isAutosaveDraftOnlyChange(flipped, savedComposio)).toBe(false);
-  });
-
-  it('flags apiKeyConfigured / tail flips as persist-worthy', () => {
-    const cleared: AppConfig = {
-      ...savedComposio,
-      composio: { apiKey: '', apiKeyConfigured: false, apiKeyTail: '' },
-    };
-    expect(isAutosaveDraftOnlyChange(cleared, savedComposio)).toBe(false);
+    const flipped: AppConfig = { ...baseConfig, model: 'claude-opus-4-7' };
+    expect(isAutosaveDraftOnlyChange(flipped, baseConfig)).toBe(false);
   });
 
   it('returns true for an identical snapshot (no-op autosave tick)', () => {
-    expect(isAutosaveDraftOnlyChange(savedComposio, savedComposio)).toBe(true);
+    expect(isAutosaveDraftOnlyChange(baseConfig, baseConfig)).toBe(true);
   });
 });
 

@@ -403,7 +403,6 @@ interface Props {
   // The composer "+" menu's "add plugin" / "add connector" rows route to the
   // home plugin-registry / connector-integration surfaces.
   onBrowsePlugins?: () => void;
-  onOpenConnectors?: () => void;
   // True when this project is a GitHub-backed design system whose repository
   // evidence has not fully landed. Surfaces a "Connect your repo" CTA in the
   // empty chat state alongside the starter examples.
@@ -561,7 +560,6 @@ export function ChatPane({
   onLaunchAntigravityOauth,
   onOpenMcpSettings,
   onBrowsePlugins,
-  onOpenConnectors,
   connectRepoNeeded,
   githubConnected,
   onConnectRepo,
@@ -1466,7 +1464,6 @@ export function ChatPane({
       onOpenSettings={onOpenSettings}
       onOpenMcpSettings={onOpenMcpSettings}
       onBrowsePlugins={onBrowsePlugins}
-      onOpenConnectors={onOpenConnectors}
       petConfig={petConfig}
       onAdoptPet={onAdoptPet}
       onTogglePet={onTogglePet}
@@ -2727,7 +2724,6 @@ function QueuedSendMetaChips({ item }: { item: QueuedSendItem }) {
   const plugins = item.meta?.appliedPluginSnapshot ? 1 : ctx?.pluginIds?.length ?? 0;
   const skills = ctx?.skillIds?.length ?? 0;
   const mcp = ctx?.mcpServerIds?.length ?? 0;
-  const connectors = ctx?.connectorIds?.length ?? 0;
   const workspace = ctx?.workspaceItems?.length ?? 0;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const chips: Array<{ key: string; label: string }> = [];
@@ -2736,7 +2732,6 @@ function QueuedSendMetaChips({ item }: { item: QueuedSendItem }) {
   if (plugins > 0) chips.push({ key: 'plugins', label: plural(plugins, 'plugin') });
   if (skills > 0) chips.push({ key: 'skills', label: plural(skills, 'skill') });
   if (mcp > 0) chips.push({ key: 'mcp', label: `${mcp} MCP` });
-  if (connectors > 0) chips.push({ key: 'connectors', label: plural(connectors, 'connector') });
   if (workspace > 0) chips.push({ key: 'workspace', label: plural(workspace, 'workspace context') });
   if (chips.length === 0) return null;
   return (

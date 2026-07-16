@@ -4,9 +4,9 @@
 // the redesigned home view (left rail + sticky settings cog + hero +
 // recent projects + plugins section + new-project modal). It is
 // intentionally a sibling of `EntryView` so that upstream `main`
-// changes to `EntryView` (props, connector lifecycle, helpers, exports)
-// can be rebased without touching this file. `EntryView` becomes a
-// thin wrapper that passes data and callbacks through to this shell.
+// changes to `EntryView` (props, lifecycle, helpers, exports) can be
+// rebased without touching this file. `EntryView` becomes a thin wrapper
+// that passes data and callbacks through to this shell.
 
 import {
   useEffect,
@@ -23,7 +23,6 @@ import {
 import {
   defaultScenarioPluginIdForProjectMetadata,
   type ChatSessionMode,
-  type ConnectorDetail,
   type InstalledPluginRecord,
 } from '@open-design/contracts';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
@@ -217,10 +216,7 @@ interface Props {
   templates: ProjectTemplate[];
   onDeleteTemplate?: (id: string) => Promise<boolean>;
   defaultDesignSystemId: string | null;
-  connectors: ConnectorDetail[];
-  connectorsLoading: boolean;
   integrationInitialTab?: IntegrationTab;
-  composioConfigLoading?: boolean;
   skillsLoading?: boolean;
   designSystemsLoading?: boolean;
   projectsLoading?: boolean;
@@ -284,7 +280,6 @@ interface Props {
   // tab; do not re-thread an onboarding renderer here.
   onOpenDesignSystem?: (id: string) => void;
   onDesignSystemsRefresh?: () => Promise<void> | void;
-  onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
   onOpenSettings: (section?: EntrySettingsSection) => void;
   onCompleteOnboarding: () => void;
 }
@@ -341,10 +336,7 @@ export function EntryShell({
   templates,
   onDeleteTemplate,
   defaultDesignSystemId,
-  connectors,
-  connectorsLoading,
   integrationInitialTab = 'mcp',
-  composioConfigLoading = false,
   skillsLoading = false,
   designSystemsLoading = false,
   projectsLoading = false,
@@ -374,7 +366,6 @@ export function EntryShell({
   onCreateDesignSystem,
   onOpenDesignSystem,
   onDesignSystemsRefresh,
-  onPersistComposioKey,
   onOpenSettings,
   onCompleteOnboarding,
 }: Props) {
@@ -528,9 +519,6 @@ export function EntryShell({
       ...(payload.contextMcpServers && payload.contextMcpServers.length > 0
         ? { contextMcpServers: payload.contextMcpServers }
         : {}),
-      ...(payload.contextConnectors && payload.contextConnectors.length > 0
-        ? { contextConnectors: payload.contextConnectors }
-        : {}),
       ...(payload.examplePromptContext ? {
         examplePrompt: true,
         examplePromptTitle: payload.examplePromptContext.title,
@@ -663,7 +651,6 @@ export function EntryShell({
                 onOpenProject={onOpenProject}
                 onViewAllProjects={() => changeView('projects')}
                 onBrowseRegistry={() => changeView('plugins')}
-                onOpenIntegrations={() => openIntegrationTab('connectors')}
                 onOpenMcp={() => openIntegrationTab('mcp')}
                 onOpenNewProject={(tab) => {
                   openNewProject(tab);
@@ -671,7 +658,6 @@ export function EntryShell({
                 promptHandoff={homePromptHandoff}
                 skills={skills}
                 skillsLoading={skillsLoading}
-                connectors={connectors}
               />
             </div>
             <div data-testid="entry-view-projects" data-active={view === 'projects' ? 'true' : 'false'} {...inactiveViewProps(view === 'projects')}>
@@ -698,8 +684,6 @@ export function EntryShell({
               <TasksView
                 skills={skills}
                 designTemplates={designTemplates}
-                connectors={connectors}
-                connectorsLoading={connectorsLoading}
               />
             </div>
             <div data-testid="entry-view-plugins" data-active={view === 'plugins' ? 'true' : 'false'} {...inactiveViewProps(view === 'plugins')}>
@@ -731,12 +715,7 @@ export function EntryShell({
               )}
             </div>
             {view === 'integrations' ? (
-              <IntegrationsView
-                config={config}
-                initialTab={integrationTab}
-                composioConfigLoading={composioConfigLoading}
-                onPersistComposioKey={onPersistComposioKey}
-              />
+              <IntegrationsView initialTab={integrationTab} />
             ) : null}
           </div>
         </main>

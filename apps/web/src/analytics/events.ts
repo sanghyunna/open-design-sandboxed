@@ -52,7 +52,6 @@ import type {
   DesignSystemsCreateClickProps,
   IntegrationsTabClickProps,
   IntegrationsMcpTabClickProps,
-  IntegrationsConnectorsTabClickProps,
   IntegrationsSkillsTabClickProps,
   IntegrationsUseEverywhereTabClickProps,
   ChatPanelClickProps,
@@ -84,7 +83,6 @@ import type {
   SettingsByokProviderOptionClickProps,
   SettingsByokFieldClickProps,
   SettingsMediaProvidersClickProps,
-  SettingsConnectorsClickProps,
   SettingsLanguageClickProps,
   SettingsAppearanceClickProps,
   SettingsNotificationsClickProps,
@@ -104,7 +102,6 @@ import type {
   SettingsCliTestResultProps,
   SettingsByokModelsFetchResultProps,
   SettingsByokTestResultProps,
-  SettingsConnectorAuthResultProps,
   OnboardingClickProps,
   OnboardingRuntimeScanResultProps,
   OnboardingCompleteResultProps,
@@ -491,13 +488,6 @@ export function trackIntegrationsMcpTabClick(
   send(track, 'ui_click', props);
 }
 
-export function trackIntegrationsConnectorsTabClick(
-  track: Track,
-  props: IntegrationsConnectorsTabClickProps,
-): void {
-  send(track, 'ui_click', props);
-}
-
 export function trackIntegrationsSkillsTabClick(
   track: Track,
   props: IntegrationsSkillsTabClickProps,
@@ -694,13 +684,6 @@ export function trackSettingsMediaProvidersClick(
   send(track, 'ui_click', props);
 }
 
-export function trackSettingsConnectorsClick(
-  track: Track,
-  props: SettingsConnectorsClickProps,
-): void {
-  send(track, 'ui_click', props);
-}
-
 export function trackSettingsLanguageClick(
   track: Track,
   props: SettingsLanguageClickProps,
@@ -836,13 +819,6 @@ export function trackSettingsByokModelsFetchResult(
   props: SettingsByokModelsFetchResultProps,
 ): void {
   send(track, 'settings_byok_models_fetch_result', props);
-}
-
-export function trackSettingsConnectorAuthResult(
-  track: Track,
-  props: SettingsConnectorAuthResultProps,
-): void {
-  send(track, 'settings_connector_auth_result', props);
 }
 
 // ---- Onboarding ---------------------------------------------------------

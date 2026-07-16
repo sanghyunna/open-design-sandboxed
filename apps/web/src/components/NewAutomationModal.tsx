@@ -8,7 +8,6 @@ import { useI18n } from '../i18n';
 import { localizePluginDescription, localizePluginTitle } from './plugins-home/localization';
 import type {
   CreateRoutineRequest,
-  ConnectorDetail,
   InstalledPluginRecord,
   Routine,
   RoutineProjectTarget,
@@ -24,7 +23,7 @@ import { inlineMentionToken } from '../utils/inlineMentions';
 
 type ProjectSummary = { id: string; name: string };
 type ScheduleKind = RoutineSchedule['kind'];
-type CapabilityKind = 'skills' | 'plugins' | 'mcp' | 'connectors';
+type CapabilityKind = 'skills' | 'plugins' | 'mcp';
 type CapabilityPickerTab = 'all' | CapabilityKind;
 
 type ContextMention = {
@@ -242,7 +241,6 @@ interface Props {
   templates: AutomationTemplate[];
   projects: ProjectSummary[];
   skills: SkillSummary[];
-  connectors?: ConnectorDetail[];
   onClose: () => void;
   onSaved: (routine: Routine) => void;
 }
@@ -253,7 +251,6 @@ export function NewAutomationModal({
   templates,
   projects,
   skills,
-  connectors = [],
   onClose,
   onSaved,
 }: Props) {
@@ -271,7 +268,6 @@ export function NewAutomationModal({
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [selectedPluginIds, setSelectedPluginIds] = useState<string[]>([]);
   const [selectedMcpIds, setSelectedMcpIds] = useState<string[]>([]);
-  const [selectedConnectorIds, setSelectedConnectorIds] = useState<string[]>([]);
   const titleRef = useRef<HTMLInputElement | null>(null);
   const promptRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -315,7 +311,6 @@ export function NewAutomationModal({
       setSelectedSkillIds(initial.routine.context?.skillIds ?? (initial.routine.skillId ? [initial.routine.skillId] : []));
       setSelectedPluginIds(initial.routine.context?.pluginIds ?? []);
       setSelectedMcpIds(initial.routine.context?.mcpServerIds ?? []);
-      setSelectedConnectorIds(initial.routine.context?.connectorIds ?? []);
     } else if (initial?.template) {
       applyTemplate(initial.template, { closePopover: false });
     } else {
@@ -324,7 +319,6 @@ export function NewAutomationModal({
       setSelectedSkillIds([]);
       setSelectedPluginIds([]);
       setSelectedMcpIds([]);
-      setSelectedConnectorIds([]);
     }
     setError(null);
     setPopover(null);
@@ -429,16 +423,10 @@ export function NewAutomationModal({
     replaceMentionWithLabel(server.label || server.id);
   }
 
-  function pickConnector(connector: ConnectorDetail) {
-    setSelectedConnectorIds((current) => current.includes(connector.id) ? current : [...current, connector.id]);
-    replaceMentionWithLabel(connector.name);
-  }
-
   function removeSelectedContext(kind: CapabilityKind, id: string) {
     if (kind === 'skills') setSelectedSkillIds((current) => current.filter((item) => item !== id));
     if (kind === 'plugins') setSelectedPluginIds((current) => current.filter((item) => item !== id));
     if (kind === 'mcp') setSelectedMcpIds((current) => current.filter((item) => item !== id));
-    if (kind === 'connectors') setSelectedConnectorIds((current) => current.filter((item) => item !== id));
   }
 
   function handlePromptKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
@@ -476,7 +464,6 @@ export function NewAutomationModal({
           ...(selectedSkillIds.length > 0 ? { skillIds: selectedSkillIds } : {}),
           ...(selectedPluginIds.length > 0 ? { pluginIds: selectedPluginIds } : {}),
           ...(selectedMcpIds.length > 0 ? { mcpServerIds: selectedMcpIds } : {}),
-          ...(selectedConnectorIds.length > 0 ? { connectorIds: selectedConnectorIds } : {}),
         },
         enabled: true,
       };
@@ -532,21 +519,13 @@ export function NewAutomationModal({
     mentionQueryNorm,
     (server) => `${server.label || ''} ${server.id} ${server.url || ''} ${server.command || ''}`,
   ).slice(0, 10);
-  const connectedConnectors = connectors.filter((connector) => connector.status === 'connected');
-  const filteredConnectors = filterCapabilities(
-    connectedConnectors,
-    mentionQueryNorm,
-    (connector) => `${connector.name} ${connector.id} ${connector.provider} ${connector.category} ${connector.description ?? ''} ${connector.accountLabel ?? ''}`,
-  ).slice(0, 10);
   const showSkills = mentionTab === 'all' || mentionTab === 'skills';
   const showPlugins = mentionTab === 'all' || mentionTab === 'plugins';
   const showMcp = mentionTab === 'all' || mentionTab === 'mcp';
-  const showConnectors = mentionTab === 'all' || mentionTab === 'connectors';
   const hasMentionResults =
     (showSkills && filteredSkills.length > 0) ||
     (showPlugins && filteredPlugins.length > 0) ||
-    (showMcp && filteredMcp.length > 0) ||
-    (showConnectors && filteredConnectors.length > 0);
+    (showMcp && filteredMcp.length > 0);
   const selectedContextItems: SelectedContextItem[] = [
     ...selectedSkillIds.map((id) => {
       const skill = skills.find((item) => item.id === id);
@@ -575,16 +554,6 @@ export function NewAutomationModal({
         id,
         label: server?.label || id,
         meta: 'MCP',
-        icon: 'link' as IconName,
-      };
-    }),
-    ...selectedConnectorIds.map((id) => {
-      const connector = connectors.find((item) => item.id === id);
-      return {
-        kind: 'connectors' as const,
-        id,
-        label: connector?.name ?? id,
-        meta: connector?.accountLabel ? `Connector · ${connector.accountLabel}` : 'Connector',
         icon: 'link' as IconName,
       };
     }),
@@ -682,7 +651,6 @@ export function NewAutomationModal({
                   ['skills', 'Skills'],
                   ['plugins', 'Plugins'],
                   ['mcp', 'MCP'],
-                  ['connectors', 'Connectors'],
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -702,7 +670,7 @@ export function NewAutomationModal({
               <div className="automation-mention-results">
                 {!hasMentionResults ? (
                   <div className="automation-mention-empty">
-                    {mention.query ? `No results for "${mention.query}".` : 'Search skills, plugins, MCP servers, and connectors.'}
+                    {mention.query ? `No results for "${mention.query}".` : 'Search skills, plugins, and MCP servers.'}
                   </div>
                 ) : null}
                 {showSkills && filteredSkills.length > 0 ? (
@@ -743,20 +711,6 @@ export function NewAutomationModal({
                         meta={server.url || server.command || server.transport}
                         selected={selectedMcpIds.includes(server.id)}
                         onPick={() => pickMcp(server)}
-                      />
-                    ))}
-                  </MentionSection>
-                ) : null}
-                {showConnectors && filteredConnectors.length > 0 ? (
-                  <MentionSection label="Connectors">
-                    {filteredConnectors.map((connector) => (
-                      <MentionItem
-                        key={`connector-${connector.id}`}
-                        icon="link"
-                        label={connector.name}
-                        meta={connector.accountLabel ?? connector.provider ?? connector.id}
-                        selected={selectedConnectorIds.includes(connector.id)}
-                        onPick={() => pickConnector(connector)}
                       />
                     ))}
                   </MentionSection>

@@ -23,7 +23,6 @@ import { THEME_OPTIONS } from '../state/themes';
 
 export type EntrySettingsSection =
   | 'execution'
-  | 'composio'
   | 'integrations'
   | 'mcpClient'
   | 'language'

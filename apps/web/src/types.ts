@@ -285,7 +285,6 @@ export interface AppConfig {
   // least once (saved or skipped). Bootstrap skips the auto-popup when
   // this is set so refreshing the page doesn't re-prompt.
   onboardingCompleted?: boolean;
-  composio?: ComposioSettings;
   // Per-CLI model picker state, keyed by agent id (e.g. `gemini`, `codex`).
   // Pre-existing configs without this field fall through to the agent's
   // declared default.
@@ -325,12 +324,6 @@ export interface TelemetryConfig {
   metrics?: boolean;
   content?: boolean;
   artifactManifest?: boolean;
-}
-
-export interface ComposioSettings {
-  apiKey?: string;
-  apiKeyConfigured?: boolean;
-  apiKeyTail?: string;
 }
 
 export type AgentEvent = PersistedAgentEvent | AgentRollbackRequestEvent;
