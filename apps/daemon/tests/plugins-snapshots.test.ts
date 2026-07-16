@@ -61,8 +61,6 @@ const baseInput = (extra: Partial<Parameters<typeof createSnapshot>[1]> = {}) =>
   capabilitiesGranted: ['prompt:inject'],
   capabilitiesRequired: ['prompt:inject'],
   assetsStaged: [],
-  connectorsRequired: [],
-  connectorsResolved: [],
   mcpServers: [],
   query: 'Make a deck',
   ...extra,

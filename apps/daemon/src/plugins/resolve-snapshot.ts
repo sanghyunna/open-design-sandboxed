@@ -25,7 +25,6 @@ import type {
   AppliedPluginSnapshot,
   ApplyResult,
   InstalledPluginRecord,
-  PluginConnectorBinding,
 } from '@open-design/contracts';
 import {
   applyPlugin,
@@ -43,9 +42,6 @@ import {
   linkSnapshotToRun,
 } from './snapshots.js';
 import { getManifestContextCraft } from './context-craft.js';
-import {
-  type ConnectorProbe,
-} from './connector-gate.js';
 import type { RegistryView } from '@open-design/plugin-runtime';
 
 type SqliteDb = Database.Database;
@@ -62,7 +58,6 @@ export interface ResolveSnapshotInput {
   // Pluggable for tests; in production these are the daemon's live
   // skill / design-system catalogs (server.ts wires them).
   registry: RegistryView;
-  connectorProbe?: ConnectorProbe | undefined;
   // Optional active-project DS binding. Forwarded to `applyPlugin` so
   // plugins that declared `od.context.designSystem.primary: true` get
   // bound to the project's DS at apply time.
@@ -217,7 +212,6 @@ export function resolvePluginSnapshot(input: ResolveSnapshotInput): ResolveSnaps
       inputs: fields.pluginInputs ?? {},
       registry: input.registry,
       activeProjectDesignSystem: input.activeProjectDesignSystem,
-      connectorProbe: input.connectorProbe,
       locale: fields.locale,
     });
   } catch (err) {
@@ -281,8 +275,6 @@ export function resolvePluginSnapshot(input: ResolveSnapshotInput): ResolveSnaps
     capabilitiesGranted: merged,
     capabilitiesRequired: result.capabilitiesRequired,
     assetsStaged: result.appliedPlugin.assetsStaged,
-    connectorsRequired: result.appliedPlugin.connectorsRequired,
-    connectorsResolved: result.appliedPlugin.connectorsResolved,
     mcpServers: result.appliedPlugin.mcpServers,
     query: result.query,
   });
@@ -356,6 +348,3 @@ export function capabilitiesRequiredError(args: {
   };
 }
 
-// Convenience pass-through so tests that already imported the helper
-// don't need to reach into other files.
-export type { PluginConnectorBinding };

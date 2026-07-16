@@ -17,7 +17,6 @@
 import { manifestSourceDigest, resolveContext, validateSafe, type RegistryView } from '@open-design/plugin-runtime';
 import type { InstalledPluginRecord } from '@open-design/contracts';
 import { findAtom, isImplementedAtom, isKnownAtom } from './atoms.js';
-import { validateConnectorRefs, type ConnectorProbe } from './connector-gate.js';
 import { isParseableUntil } from './until.js';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
@@ -41,7 +40,6 @@ export function doctorPlugin(
   registry: RegistryView,
   options?: {
     warnOnMissingRefs?: boolean;
-    connectorProbe?: ConnectorProbe | undefined;
   },
 ): DoctorReport {
   const issues: Diagnostic[] = [];
@@ -99,17 +97,6 @@ export function doctorPlugin(
         code: 'pipeline.until-invalid',
         message: `Pipeline stage '${stage.id}' has an unparseable until expression: '${stage.until}'.`,
         field: `od.pipeline.stages.${stage.id}`,
-      });
-    }
-  }
-
-  if (options?.connectorProbe) {
-    for (const issue of validateConnectorRefs(manifest, options.connectorProbe)) {
-      issues.push({
-        severity: issue.code === 'unknown-connector' ? 'error' : 'warning',
-        code:     `connector.${issue.code}`,
-        message:  issue.message,
-        field:    'od.connectors',
       });
     }
   }

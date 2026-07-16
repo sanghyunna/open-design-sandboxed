@@ -72,13 +72,7 @@ export function diffSnapshots(input: DiffSnapshotsInput): SnapshotDiffReport {
     contextRefs(b.resolvedContext?.items),
   );
 
-  // Connectors / MCP.
-  diffArray(entries, 'connectorsRequired',
-    nonEmptyStrings((a.connectorsRequired ?? []).map((c) => safeString((c as { id?: unknown })?.id))),
-    nonEmptyStrings((b.connectorsRequired ?? []).map((c) => safeString((c as { id?: unknown })?.id))));
-  diffArray(entries, 'connectorsResolved',
-    nonEmptyStrings((a.connectorsResolved ?? []).map((c) => `${safeString((c as { id?: unknown })?.id)}:${safeString((c as { status?: unknown })?.status)}`)),
-    nonEmptyStrings((b.connectorsResolved ?? []).map((c) => `${safeString((c as { id?: unknown })?.id)}:${safeString((c as { status?: unknown })?.status)}`)));
+  // MCP.
   diffArray(entries, 'mcpServers',
     nonEmptyStrings((a.mcpServers ?? []).map((m) => safeString((m as { id?: unknown })?.id))),
     nonEmptyStrings((b.mcpServers ?? []).map((m) => safeString((m as { id?: unknown })?.id))));

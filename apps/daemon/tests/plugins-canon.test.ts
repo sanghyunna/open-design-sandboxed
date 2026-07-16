@@ -22,8 +22,6 @@ const snapshot = (over: Partial<AppliedPluginSnapshot> = {}): AppliedPluginSnaps
   assetsStaged: [],
   taskKind: 'new-generation',
   appliedAt: 1,
-  connectorsRequired: [],
-  connectorsResolved: [],
   mcpServers: [],
   status: 'fresh',
   ...over,

@@ -162,8 +162,6 @@ describe('Plan §8 e2e — daemon-side anchors', () => {
       capabilitiesGranted: a.result.appliedPlugin.capabilitiesGranted,
       capabilitiesRequired: a.result.appliedPlugin.capabilitiesRequired,
       assetsStaged: a.result.appliedPlugin.assetsStaged,
-      connectorsRequired: a.result.appliedPlugin.connectorsRequired,
-      connectorsResolved: a.result.appliedPlugin.connectorsResolved,
       mcpServers: a.result.appliedPlugin.mcpServers,
       query: a.result.query,
     });
@@ -285,8 +283,6 @@ describe('Plan §8 e2e — daemon-side anchors', () => {
         capabilitiesGranted: a.result.appliedPlugin.capabilitiesGranted,
         capabilitiesRequired: a.result.appliedPlugin.capabilitiesRequired,
         assetsStaged: a.result.appliedPlugin.assetsStaged,
-        connectorsRequired: a.result.appliedPlugin.connectorsRequired,
-        connectorsResolved: a.result.appliedPlugin.connectorsResolved,
         mcpServers: a.result.appliedPlugin.mcpServers,
         query: a.result.query,
         genuiSurfaces: [],

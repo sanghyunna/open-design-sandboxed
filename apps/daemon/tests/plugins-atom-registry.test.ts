@@ -78,8 +78,6 @@ function fakeSnapshot(): AppliedPluginSnapshot {
     capabilitiesGranted:  ['prompt:inject'],
     capabilitiesRequired: ['prompt:inject'],
     assetsStaged:         [],
-    connectorsRequired:   [],
-    connectorsResolved:   [],
     mcpServers:           [],
     query:                '',
     createdAt:            Date.now(),

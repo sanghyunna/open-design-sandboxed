@@ -79,8 +79,6 @@ function snapshotWith(extra: Partial<AppliedPluginSnapshot>): AppliedPluginSnaps
     capabilitiesGranted: ['prompt:inject'],
     capabilitiesRequired: ['prompt:inject'],
     assetsStaged: [],
-    connectorsRequired: [],
-    connectorsResolved: [],
     mcpServers: [],
     query: '',
   });

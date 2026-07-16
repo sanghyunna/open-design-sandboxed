@@ -172,7 +172,7 @@ const TEMPLATES_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 // automations headlessly without going through the web UI.
 const AUTOMATION_STRING_FLAGS = new Set([
   'daemon-url', 'name', 'prompt', 'prompt-file', 'schedule', 'target',
-  'project', 'skill', 'agent', 'limit', 'plugin', 'mcp', 'connector',
+  'project', 'skill', 'agent', 'limit', 'plugin', 'mcp',
   'status', 'reason', 'template', 'source-kind', 'source-ref', 'title',
   'body', 'body-file', 'compression', 'sensitivity', 'account',
   'candidate-sinks', 'memory-type',
@@ -264,18 +264,6 @@ const SUBCOMMAND_MAP = {
   config: runConfig,
   agent: runAgent,
 };
-
-if (argv[0] === 'mcp' && argv[1] === 'connectors') {
-  try {
-    const { runConnectorsMcpServer } = await import('./mcp-connectors-server.js');
-    const { exitCode } = await runConnectorsMcpServer();
-    process.exit(exitCode);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
-    process.exit(1);
-  }
-}
 
 const first = argv.find((a) => !a.startsWith('-'));
 await (async () => {
@@ -1946,7 +1934,7 @@ Prints an at-a-glance plugin + snapshot inventory:
   - Plugin counts by sourceKind, trust, taskKind.
   - Bundled vs. third-party split.
   - Plugins with elevated capabilities (fs:write, subprocess,
-    bash, network, connector:*).
+    bash, network).
   - Snapshot total, status breakdown, project / run linkage.
   - Oldest / newest applied snapshot timestamps.`);
     process.exit(0);
@@ -3902,13 +3890,13 @@ async function runPluginTrust(rest) {
     && a !== flags['snapshot-id']
     && a !== flags.capabilities);
   if (!id) {
-    console.error('Usage: od plugin trust <id> --capabilities connector:figma,connector:notion [--revoke]');
+    console.error('Usage: od plugin trust <id> --capabilities fs:write,mcp:name [--revoke]');
     process.exit(2);
   }
   const capsCsv = typeof flags.capabilities === 'string' ? flags.capabilities : '';
   const caps = capsCsv.split(',').map((c) => c.trim()).filter(Boolean);
   if (caps.length === 0) {
-    console.error('--capabilities is required (comma-separated, e.g. connector:figma,fs:read)');
+    console.error('--capabilities is required (comma-separated, e.g. fs:write,mcp:name)');
     process.exit(2);
   }
   const action = flags.revoke ? 'revoke' : 'grant';
@@ -7294,12 +7282,10 @@ function automationContextFromFlags(flags) {
   const skillIds = splitAutomationIds(flags.skill);
   const pluginIds = splitAutomationIds(flags.plugin);
   const mcpServerIds = splitAutomationIds(flags.mcp);
-  const connectorIds = splitAutomationIds(flags.connector);
   const context = {
     ...(skillIds.length > 0 ? { skillIds } : {}),
     ...(pluginIds.length > 0 ? { pluginIds } : {}),
     ...(mcpServerIds.length > 0 ? { mcpServerIds } : {}),
-    ...(connectorIds.length > 0 ? { connectorIds } : {}),
   };
   return Object.keys(context).length > 0 ? context : null;
 }
@@ -7346,7 +7332,7 @@ function printAutomationHelp() {
   od automation source ingest --source-kind <kind> --title <title>
                               [--source-ref <ref>] [--template <id>]
                               [--body <markdown> | --body-file <path|->]
-                              [--connector <id>] [--compression off|balanced|aggressive]
+                              [--compression off|balanced|aggressive]
                               [--json]
   od automation source list [--limit 20] [--json]             List ingested source packets.
   od automation source get <id> [--json]                      Print one source packet.
@@ -7362,12 +7348,12 @@ function printAutomationHelp() {
                        [--disabled] [--json]
                        [--prompt-file <path|->] (alternative to --prompt)
                        [--skill <id>[,<id>]] [--plugin <id>[,<id>]]
-                       [--mcp <id>[,<id>]] [--connector <id>[,<id>]]
+                       [--mcp <id>[,<id>]]
                        [--agent <id>]
   od automation update <id> [--name ...] [--prompt ...]
                             [--schedule ...] [--target ...]
                             [--skill ...] [--plugin ...] [--mcp ...]
-                            [--connector ...] [--enabled|--disabled]
+                            [--enabled|--disabled]
                             Patch fields.
   od automation run <id>                                       Trigger a manual run; prints projectId/conversationId.
   od automation runs <id> [--limit 10]                         Print run history.
@@ -7532,7 +7518,6 @@ async function runAutomation(args) {
               title: flags.title ?? flags.name,
               bodyMarkdown,
               projectId: flags.project,
-              connectorId: flags.connector,
               accountLabel: flags.account,
               sensitivity: flags.sensitivity,
               tokenCompression: flags.compression,
@@ -7886,7 +7871,7 @@ async function runAutomation(args) {
         patch.context = context;
       }
       if (Object.keys(patch).length === 0) {
-        console.error('update needs at least one of --name --prompt(--prompt-file) --schedule --target --skill --plugin --mcp --connector --enabled --disabled');
+        console.error('update needs at least one of --name --prompt(--prompt-file) --schedule --target --skill --plugin --mcp --enabled --disabled');
         process.exit(2);
       }
       let resp;

@@ -13,12 +13,10 @@ import { ArtifactRegressionError } from './artifact-stub-guard.js';
 import { listDesignSystems } from './design-systems.js';
 import {
   FIRST_PARTY_ATOMS,
-  buildConnectorProbe,
   getInstalledPlugin,
   listInstalledPlugins,
   resolvePluginSnapshot,
 } from './plugins/index.js';
-import { connectorService } from './connectors/service.js';
 import type { RouteDeps } from './server-context.js';
 import { listSkills } from './skills.js';
 import { isSafeId } from './projects.js';
@@ -1287,7 +1285,6 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
             typeof normalizedDesignSystemId === 'string' && normalizedDesignSystemId.length > 0
               ? { id: normalizedDesignSystemId }
               : undefined,
-          connectorProbe: buildConnectorProbe(connectorService),
         });
         if (resolved && !resolved.ok) {
           if (!explicitPlugin) {
