@@ -319,9 +319,10 @@ function printRootHelp() {
   od tools design-systems read --path <manifest-declared-path>
       Read active design-system pull-layer files through daemon wrapper commands.
 
-  od tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package]
-      Audit a design-system package for required files, manifest quality, and
-      gallery preview completeness.
+  od tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package] [--json]
+      Audit a design-system package locally for required files, manifest quality,
+      and gallery preview completeness. Use --project-id <id> to call the daemon
+      API instead (requires OD_DAEMON_URL and OD_TOOL_TOKEN).
 
   od research search --query <text> [--max-sources 5] [--daemon-url <url>]
       Run agent-callable Tavily research through the local daemon.

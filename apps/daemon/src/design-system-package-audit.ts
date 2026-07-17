@@ -981,29 +981,81 @@ function missingUiKitComponentRoles(componentFiles: string[]): string[] {
 
 export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ exitCode: number }> {
   let projectPath = process.cwd();
+  let projectId: string | undefined;
   let failOnWarnings = false;
   let referencePackage = false;
+  let json = false;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === '--path' && i + 1 < args.length) {
       projectPath = args[i + 1] ?? projectPath;
       i += 1;
+    } else if (arg === '--project-id' && i + 1 < args.length) {
+      projectId = args[i + 1];
+      i += 1;
     } else if (arg === '--fail-on-warnings') {
       failOnWarnings = true;
     } else if (arg === '--reference-package') {
       referencePackage = true;
+    } else if (arg === '--json') {
+      json = true;
     }
   }
 
   try {
-    const audit = await auditDesignSystemPackage(projectPath, { referencePackage });
-    const output = { ...audit, ok: audit.errors.length === 0 && (!failOnWarnings || audit.warnings.length === 0) };
-    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
-    return { exitCode: output.ok ? 0 : 1 };
+    let audit: DesignSystemPackageAudit;
+    if (projectId) {
+      audit = await fetchDaemonAudit(projectId);
+    } else {
+      audit = await auditDesignSystemPackage(projectPath, { referencePackage });
+    }
+    const ok = audit.errors.length === 0 && (!failOnWarnings || audit.warnings.length === 0);
+    if (json) {
+      process.stdout.write(`${JSON.stringify({ ...audit, ok }, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${summarizeDesignSystemPackageAudit(audit)}\n`);
+      if (!ok) {
+        for (const issue of [...audit.errors, ...audit.warnings]) {
+          const pathLabel = issue.path ? ` (${issue.path})` : '';
+          process.stdout.write(`  [${issue.severity}] ${issue.code}${pathLabel}: ${issue.message}\n`);
+        }
+      }
+    }
+    return { exitCode: ok ? 0 : 1 };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
     return { exitCode: 1 };
   }
+}
+
+async function fetchDaemonAudit(projectId: string): Promise<DesignSystemPackageAudit> {
+  const daemonUrl = process.env.OD_DAEMON_URL;
+  const token = process.env.OD_TOOL_TOKEN;
+  if (!daemonUrl) throw new Error('OD_DAEMON_URL is required for --project-id audit');
+  if (!token) throw new Error('OD_TOOL_TOKEN is required for --project-id audit');
+
+  const url = new URL(`/api/projects/${encodeURIComponent(projectId)}/design-system-package-audit`, daemonUrl);
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    },
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Audit request failed (${response.status}): ${body}`);
+  }
+  const json = await response.json() as { audit: DesignSystemPackageAudit };
+  return json.audit;
+}
+
+function summarizeDesignSystemPackageAudit(audit: DesignSystemPackageAudit): string {
+  const parts: string[] = [];
+  parts.push(`Inspected ${audit.filesInspected} file(s) in ${audit.projectPath}`);
+  if (audit.errors.length > 0) parts.push(`${audit.errors.length} error(s)`);
+  if (audit.warnings.length > 0) parts.push(`${audit.warnings.length} warning(s)`);
+  return parts.join('; ');
 }

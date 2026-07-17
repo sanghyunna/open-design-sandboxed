@@ -8113,7 +8113,7 @@
       },
       "capabilitiesSummary": [
         "prompt:inject",
-        "connector:figma",
+        "mcp:figma",
         "network"
       ],
       "description": "Default reference pipeline for the figma-migration taskKind.",

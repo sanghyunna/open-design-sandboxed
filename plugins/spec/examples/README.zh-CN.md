@@ -9,7 +9,6 @@
 - `import-screenshot-to-prototype` - import 主类。
 - `create-prototype-dashboard` - prototype create 模式。
 - `create-slides-pitch` - slide deck create 模式。
-- `create-connector-dashboard-ops` - connector-backed dashboard prototype 模式。
 - `export-nextjs-handoff` - export 主类。
 - `share-github-pr` - share 主类。
 - `deploy-vercel-static` - deploy 主类。

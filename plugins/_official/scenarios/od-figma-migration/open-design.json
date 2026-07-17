@@ -99,19 +99,14 @@
         }
       ]
     },
-    "connectors": {
-      "required": [
-        {
-          "id": "figma",
-          "tools": [
-            "files.get"
-          ]
-        }
+    "context": {
+      "mcp": [
+        { "name": "figma" }
       ]
     },
     "capabilities": [
       "prompt:inject",
-      "connector:figma",
+      "mcp:figma",
       "network"
     ],
     "useCase": {
