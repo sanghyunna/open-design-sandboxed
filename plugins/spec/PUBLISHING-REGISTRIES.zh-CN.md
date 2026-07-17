@@ -87,7 +87,7 @@ clawhub package publish <source> --family code-plugin
 为了适配 ClawHub：
 
 - 保持 `SKILL.md` metadata 准确。
-- 在 README 和 skill 正文中声明所需环境变量、工具、权限、connectors 或 network access。
+- 在 README 和 skill 正文中声明所需环境变量、工具、权限或 network access。
 - 公开 listing 前先跑 dry run 或 inspect。
 - 链回 canonical GitHub repo 和 Open Design PR。
 - changelog 诚实且版本化。

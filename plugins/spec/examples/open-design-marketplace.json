@@ -23,7 +23,7 @@
       "source": "./create-prototype-dashboard",
       "version": "0.1.0",
       "tags": ["create", "prototype", "dashboard"]
-    },,
+    },
     {
       "name": "create-slides-pitch",
       "source": "./create-slides-pitch",

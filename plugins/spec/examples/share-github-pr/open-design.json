@@ -20,18 +20,16 @@
     },
     "context": {
       "skills": [{ "path": "./SKILL.md" }],
-      "atoms": ["file-read", "todo-write", "handoff", "connector"]
+      "atoms": ["file-read", "todo-write", "handoff", "mcp"],
+      "mcp": [
+        { "name": "github", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"] }
+      ]
     },
     "pipeline": {
       "stages": [
         { "id": "inspect", "atoms": ["file-read", "todo-write"] },
-        { "id": "confirm", "atoms": ["connector"] },
+        { "id": "confirm", "atoms": ["mcp"] },
         { "id": "handoff", "atoms": ["handoff"] }
-      ]
-    },
-    "connectors": {
-      "required": [
-        { "id": "github", "tools": ["create-pull-request"] }
       ]
     },
     "genui": {
@@ -40,7 +38,7 @@
           "id": "confirm-pr",
           "kind": "confirmation",
           "persist": "run",
-          "trigger": { "stageId": "confirm", "atom": "connector" },
+          "trigger": { "stageId": "confirm", "atom": "mcp" },
           "prompt": "Open a GitHub PR with the prepared branch and summary?"
         }
       ]
@@ -48,7 +46,6 @@
     "inputs": [
       { "name": "targetRepo", "type": "string", "required": true, "label": "Target repository", "placeholder": "nexu-io/open-design" }
     ],
-    "capabilities": ["prompt:inject", "fs:read", "connector", "connector:github", "network"]
+    "capabilities": ["prompt:inject", "fs:read", "mcp", "mcp:github", "network"]
   }
 }
-
