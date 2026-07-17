@@ -212,7 +212,7 @@ const COMMUNITY_PLUGINS: SeedFixture[] = [
     name: 'Community plugin — founder pitch',
     pendingPrompt:
       'Run the community pitch slides plugin for a founder fundraising narrative.',
-  },
+  },
 ];
 
 interface Args {
