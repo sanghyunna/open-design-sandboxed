@@ -283,7 +283,7 @@ function subcategoryTest(slug: string): (record: MatchableRecord) => boolean {
 const SUBCATEGORY_SLUGS: Record<string, readonly string[]> = {
   'business-dashboards': [
     'dashboard', 'admin-panel', 'analytics', 'control-panel', 'team-dashboard',
-    'live-dashboard', 'refreshable-dashboard', 'ops-dashboard', 'github-dashboard',
+    'refreshable-dashboard', 'ops-dashboard', 'github-dashboard',
     'social-media-dashboard', 'data', 'chart',
   ],
   'app-prototypes': [

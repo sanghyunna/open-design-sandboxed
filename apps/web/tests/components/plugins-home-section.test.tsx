@@ -106,7 +106,7 @@ afterEach(() => {
 const sample: InstalledPluginRecord[] = [
   makePlugin({ id: 'prototype-dashboard', mode: 'prototype', tags: ['dashboard'] }),
   makePlugin({ id: 'prototype-app', mode: 'prototype', tags: ['mobile-app'] }),
-  makePlugin({ id: 'example-live-dashboard', mode: 'prototype', tags: ['live-dashboard'] }),
+  makePlugin({ id: 'example-flowai-live-dashboard-template', mode: 'prototype', tags: ['dashboard'] }),
   makePlugin({ id: 'example-live-artifact', mode: 'prototype', tags: ['live-artifact'] }),
   makePlugin({ id: 'deck-pitch', mode: 'deck', tags: ['pitch-deck'], featured: true }),
   makePlugin({ id: 'hidden-atom', mode: 'prototype', tags: ['dashboard'], kind: 'atom' }),
@@ -227,7 +227,7 @@ describe('PluginsHomeSection (category bar)', () => {
     expect(pluginIds().sort()).toEqual([
       'deck-pitch',
       'example-live-artifact',
-      'example-live-dashboard',
+      'example-flowai-live-dashboard-template',
       'prototype-app',
       'prototype-dashboard',
     ]);
@@ -258,7 +258,7 @@ describe('PluginsHomeSection (category bar)', () => {
     expect(pluginIds().sort()).toEqual([
       'deck-pitch',
       'example-live-artifact',
-      'example-live-dashboard',
+      'example-flowai-live-dashboard-template',
       'prototype-app',
       'prototype-dashboard',
     ]);

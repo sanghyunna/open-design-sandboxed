@@ -1,22 +1,12 @@
 import { stat, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import type {
+  DesignSystemPackageAuditIssue,
+  DesignSystemPackageAuditSeverity,
+  DesignSystemPackageAudit,
+} from '@open-design/contracts';
 
-export type DesignSystemAuditSeverity = 'error' | 'warning';
-
-export interface DesignSystemAuditIssue {
-  severity: DesignSystemAuditSeverity;
-  code: string;
-  message: string;
-  path?: string;
-}
-
-export interface DesignSystemPackageAudit {
-  ok: boolean;
-  projectPath: string;
-  filesInspected: number;
-  errors: DesignSystemAuditIssue[];
-  warnings: DesignSystemAuditIssue[];
-}
+export type { DesignSystemPackageAuditIssue, DesignSystemPackageAuditSeverity, DesignSystemPackageAudit };
 async function listAuditFiles(root: string): Promise<string[]> {
   const files: string[] = [];
   const walk = async (dir: string) => {
@@ -51,8 +41,8 @@ export async function auditDesignSystemPackage(
   }
   const files = await listAuditFiles(projectPath);
   const fileSet = new Set(files);
-  const issues: DesignSystemAuditIssue[] = [];
-  const addIssue = (severity: DesignSystemAuditSeverity, code: string, message: string, issuePath?: string) => {
+  const issues: DesignSystemPackageAuditIssue[] = [];
+  const addIssue = (severity: DesignSystemPackageAuditSeverity, code: string, message: string, issuePath?: string) => {
     issues.push({
       severity,
       code,
@@ -478,7 +468,7 @@ function requirePreviewCategory(
   pattern: RegExp,
   code: string,
   message: string,
-  addIssue: (severity: DesignSystemAuditSeverity, code: string, message: string, path?: string) => void,
+  addIssue: (severity: DesignSystemPackageAuditSeverity, code: string, message: string, path?: string) => void,
 ): void {
   if (!previewFiles.some((filePath) => pattern.test(filePath))) {
     addIssue('error', code, message, 'preview/');
@@ -986,4 +976,34 @@ function missingUiKitComponentRoles(componentFiles: string[]): string[] {
   return roles
     .filter(([, pattern]) => !normalized.some((fileName) => pattern.test(fileName)))
     .map(([role]) => role);
+}
+
+
+export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ exitCode: number }> {
+  let projectPath = process.cwd();
+  let failOnWarnings = false;
+  let referencePackage = false;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--path' && i + 1 < args.length) {
+      projectPath = args[i + 1] ?? projectPath;
+      i += 1;
+    } else if (arg === '--fail-on-warnings') {
+      failOnWarnings = true;
+    } else if (arg === '--reference-package') {
+      referencePackage = true;
+    }
+  }
+
+  try {
+    const audit = await auditDesignSystemPackage(projectPath, { referencePackage });
+    const output = { ...audit, ok: audit.errors.length === 0 && (!failOnWarnings || audit.warnings.length === 0) };
+    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+    return { exitCode: output.ok ? 0 : 1 };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
+    return { exitCode: 1 };
+  }
 }

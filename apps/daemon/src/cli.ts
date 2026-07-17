@@ -290,6 +290,20 @@ await (async () => {
     return;
   }
 
+  if (argv[0] === 'tools' && argv[1] === 'design-system-package-audit') {
+    import('./design-system-package-audit.js')
+      .then(({ runDesignSystemPackageAuditCli }) => runDesignSystemPackageAuditCli(argv.slice(2)))
+      .then(({ exitCode }) => {
+        process.exitCode = exitCode;
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`${JSON.stringify({ ok: false, error: { message } })}\n`);
+        process.exitCode = 1;
+      });
+    return;
+  }
+
   await runDaemonCliStartup(argv, { printHelp: printRootHelp });
 })();
 
@@ -304,6 +318,10 @@ function printRootHelp() {
 
   od tools design-systems read --path <manifest-declared-path>
       Read active design-system pull-layer files through daemon wrapper commands.
+
+  od tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package]
+      Audit a design-system package for required files, manifest quality, and
+      gallery preview completeness.
 
   od research search --query <text> [--max-sources 5] [--daemon-url <url>]
       Run agent-callable Tavily research through the local daemon.
