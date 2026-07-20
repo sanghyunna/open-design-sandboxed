@@ -6756,7 +6756,6 @@
       "taskKind": "new-generation"
     },
     {
-    {
       "name": "open-design/example-magazine-poster",
       "title": "Magazine Poster",
       "version": "0.1.0",
@@ -8113,7 +8112,7 @@
       },
       "capabilitiesSummary": [
         "prompt:inject",
-        "mcp:figma",
+        "mcp",
         "network"
       ],
       "description": "Default reference pipeline for the figma-migration taskKind.",
@@ -8450,4 +8449,3 @@
     }
   ]
 }
-

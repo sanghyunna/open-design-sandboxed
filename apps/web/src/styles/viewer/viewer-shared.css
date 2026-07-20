@@ -1,3 +1,13 @@
+/**
+ * viewer-shared.css
+ *
+ * Historically named composio.css, this stylesheet held styles shared across
+ * the artifact/viewer surfaces (deploy forms, preview chrome, file tree, etc.).
+ * It was renamed during issue #20 because the rules are not specific to the
+ * removed Composio connector subsystem. Deleting it outright would break
+ * non-Composio viewer surfaces that still depend on these rules.
+ */
+
 .deploy-form input,
 .deploy-form select {
   width: 100%;

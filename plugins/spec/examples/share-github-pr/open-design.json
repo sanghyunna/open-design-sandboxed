@@ -4,7 +4,7 @@
   "name": "share-github-pr",
   "title": "Share as GitHub PR",
   "version": "0.1.0",
-  "description": "Package an accepted artifact or plugin folder as a GitHub pull request.",
+  "description": "Package an accepted artifact or plugin folder as a GitHub pull request handoff.",
   "license": "MIT",
   "tags": ["share", "github-pr", "pull-request", "spec-plugin"],
   "compat": {
@@ -20,32 +20,17 @@
     },
     "context": {
       "skills": [{ "path": "./SKILL.md" }],
-      "atoms": ["file-read", "todo-write", "handoff", "mcp"],
-      "mcp": [
-        { "name": "github", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"] }
-      ]
+      "atoms": ["file-read", "todo-write", "handoff"]
     },
     "pipeline": {
       "stages": [
         { "id": "inspect", "atoms": ["file-read", "todo-write"] },
-        { "id": "confirm", "atoms": ["mcp"] },
         { "id": "handoff", "atoms": ["handoff"] }
-      ]
-    },
-    "genui": {
-      "surfaces": [
-        {
-          "id": "confirm-pr",
-          "kind": "confirmation",
-          "persist": "run",
-          "trigger": { "stageId": "confirm", "atom": "mcp" },
-          "prompt": "Open a GitHub PR with the prepared branch and summary?"
-        }
       ]
     },
     "inputs": [
       { "name": "targetRepo", "type": "string", "required": true, "label": "Target repository", "placeholder": "nexu-io/open-design" }
     ],
-    "capabilities": ["prompt:inject", "fs:read", "mcp", "mcp:github", "network"]
+    "capabilities": ["prompt:inject", "fs:read", "network"]
   }
 }

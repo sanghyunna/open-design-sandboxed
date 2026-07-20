@@ -36,12 +36,8 @@ reads both before producing the HTML artifact.
 The scenario expects two `oauth-prompt` / `form` surfaces from the
 plugin layer:
 
-  - `figma-oauth` — `oauth.route='mcp'`, `mcpServerId='figma'`,
-    persists at the project tier so multi-conversation work doesn't
-    re-prompt.
+  - `figma-oauth` — an `oauth-prompt` surface that captures Figma
+    credentials and persists at the project tier so multi-conversation
+    work doesn't re-prompt.
   - `file-pick` — `kind='form'`, captures the Figma file URL on the
     first turn so `figma-extract` knows where to read.
-
-The daemon auto-derives the `figma-oauth` surface when
-`od.context.mcp` includes a Figma MCP server and the server
-isn't yet authorised (spec §10.3.1 implicit oauth-prompt rule).

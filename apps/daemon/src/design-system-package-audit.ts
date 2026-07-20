@@ -984,7 +984,7 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
   let projectId: string | undefined;
   let failOnWarnings = false;
   let referencePackage = false;
-  let json = false;
+  let pretty = false;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -999,7 +999,10 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
     } else if (arg === '--reference-package') {
       referencePackage = true;
     } else if (arg === '--json') {
-      json = true;
+      // Accepted for explicitness; JSON is the default output format.
+      pretty = false;
+    } else if (arg === '--pretty') {
+      pretty = true;
     }
   }
 
@@ -1011,9 +1014,7 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
       audit = await auditDesignSystemPackage(projectPath, { referencePackage });
     }
     const ok = audit.errors.length === 0 && (!failOnWarnings || audit.warnings.length === 0);
-    if (json) {
-      process.stdout.write(`${JSON.stringify({ ...audit, ok }, null, 2)}\n`);
-    } else {
+    if (pretty) {
       process.stdout.write(`${summarizeDesignSystemPackageAudit(audit)}\n`);
       if (!ok) {
         for (const issue of [...audit.errors, ...audit.warnings]) {
@@ -1021,6 +1022,8 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
           process.stdout.write(`  [${issue.severity}] ${issue.code}${pathLabel}: ${issue.message}\n`);
         }
       }
+    } else {
+      process.stdout.write(`${JSON.stringify({ ...audit, ok }, null, 2)}\n`);
     }
     return { exitCode: ok ? 0 : 1 };
   } catch (error) {

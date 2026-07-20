@@ -99,14 +99,9 @@
         }
       ]
     },
-    "context": {
-      "mcp": [
-        { "name": "figma" }
-      ]
-    },
     "capabilities": [
       "prompt:inject",
-      "mcp:figma",
+      "mcp",
       "network"
     ],
     "useCase": {

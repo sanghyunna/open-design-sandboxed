@@ -377,21 +377,7 @@ function memoryCountLabel(count: number): string {
     return count === 1 ? 'memory' : 'memories';
 }
 function extractionCardTitle(record: MemoryExtractionRecord, t: Translate): string {
-    const kind = record.kind ?? 'llm';
-    if (record.phase === 'running')
-        return 'Scanning memory sources';
-    if (record.phase === 'failed')
-        return 'Memory scan failed';
-    if (record.phase === 'skipped')
-        return 'Memory scan skipped';
-    if (record.phase === 'success') {
-        const writtenCount = typeof record.writtenCount === 'number' ? record.writtenCount : null;
-        if (writtenCount && writtenCount > 0) {
-            return `Saved ${writtenCount} ${memoryCountLabel(writtenCount)}`;
-        }
-        return 'No new memories found';
-    }
-    return 'Connected app scan';
+    return record.userMessagePreview || t('settings.memoryExtractions');
 }
 function extractionCardMeta(record: MemoryExtractionRecord, now: number, t: Translate): string {
     const kind = record.kind ?? 'llm';

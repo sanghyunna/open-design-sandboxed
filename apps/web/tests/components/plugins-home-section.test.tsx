@@ -226,8 +226,8 @@ describe('PluginsHomeSection (category bar)', () => {
     fireEvent.click(screen.getByTestId('plugins-home-pill-category-all'));
     expect(pluginIds().sort()).toEqual([
       'deck-pitch',
-      'example-live-artifact',
       'example-flowai-live-dashboard-template',
+      'example-live-artifact',
       'prototype-app',
       'prototype-dashboard',
     ]);
@@ -257,8 +257,8 @@ describe('PluginsHomeSection (category bar)', () => {
 
     expect(pluginIds().sort()).toEqual([
       'deck-pitch',
-      'example-live-artifact',
       'example-flowai-live-dashboard-template',
+      'example-live-artifact',
       'prototype-app',
       'prototype-dashboard',
     ]);

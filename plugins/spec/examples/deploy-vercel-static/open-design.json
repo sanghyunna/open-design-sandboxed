@@ -20,33 +20,18 @@
     },
     "context": {
       "skills": [{ "path": "./SKILL.md" }],
-      "atoms": ["file-read", "build-test", "handoff", "mcp"],
-      "mcp": [
-        { "name": "vercel", "command": "npx", "args": ["-y", "@vercel/mcp"] }
-      ]
+      "atoms": ["file-read", "build-test", "handoff"]
     },
     "pipeline": {
       "stages": [
         { "id": "inspect", "atoms": ["file-read"] },
         { "id": "verify", "atoms": ["build-test"] },
-        { "id": "deploy", "atoms": ["mcp"] },
         { "id": "handoff", "atoms": ["handoff"] }
-      ]
-    },
-    "genui": {
-      "surfaces": [
-        {
-          "id": "confirm-deploy",
-          "kind": "confirmation",
-          "persist": "run",
-          "trigger": { "stageId": "deploy", "atom": "mcp" },
-          "prompt": "Deploy this artifact to Vercel now?"
-        }
       ]
     },
     "inputs": [
       { "name": "projectName", "type": "string", "required": true, "label": "Project name" }
     ],
-    "capabilities": ["prompt:inject", "fs:read", "bash", "mcp", "mcp:vercel", "network"]
+    "capabilities": ["prompt:inject", "fs:read", "bash", "network"]
   }
 }
