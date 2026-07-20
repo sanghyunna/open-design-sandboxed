@@ -109,7 +109,7 @@ my-plugin/
 | `deck` | 幻灯片 deck artifact |
 | `report` | 有证据支撑的分析或研究报告 |
 | `document` | 结构化 Markdown 或 HTML 文档 |
-| `dashboard` | connector-backed monitoring 或分析 dashboard |
+| `dashboard` | 数据驱动的 monitoring 或分析 dashboard |
 | `design-system` | 可复用品牌或界面系统 |
 | `template` | 可复用 starter、layout 或 artifact template |
 | `other` | 不适合当前模式的窄范围自定义输出 |

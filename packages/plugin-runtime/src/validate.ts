@@ -25,6 +25,7 @@ const KNOWN_CAPABILITIES = new Set([
   'subprocess',
   'bash',
   'network',
+  'connector',
 ]);
 
 // @dsp func-30ea3892
@@ -56,6 +57,9 @@ export function validateSafe(manifest: PluginManifest): ValidateResult {
 
     const caps = od.capabilities ?? [];
     for (const cap of caps) {
+      // Keep the parser generic: connector sources were removed, but the
+      // capability namespace is still recognised for forward compatibility.
+      if (cap.startsWith('connector:')) continue;
       if (!KNOWN_CAPABILITIES.has(cap)) {
         warnings.push(`capability '${cap}' is not in the v1 vocabulary; doctor will surface this to the operator`);
       }

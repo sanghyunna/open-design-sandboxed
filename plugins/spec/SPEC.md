@@ -109,7 +109,7 @@ Use `od.mode` for the main output surface:
 | `deck` | Slide deck artifact |
 | `report` | Evidence-backed analytical or research report |
 | `document` | Structured Markdown or HTML document |
-| `dashboard` | Connector-backed monitoring or analysis dashboard |
+| `dashboard` | Data-backed monitoring or analysis dashboard |
 | `design-system` | Reusable brand or interface system |
 | `template` | Reusable starter, layout, or artifact template |
 | `other` | Narrow custom output that does not fit the current modes |

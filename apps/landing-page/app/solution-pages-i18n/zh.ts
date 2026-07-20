@@ -167,7 +167,7 @@ export const ZH: SolutionLocaleCopy = {
       { title: "产品分析", body: "活跃、漏斗、留存——产品团队天天看的指标。", thumb: "example-dashboard" },
       { title: "仓库与研发指标", body: "Star、PR、CI 健康度——用你自己的数据做研发看板。", thumb: "example-github-dashboard" },
       { title: "财务报告", body: "收入、消耗、跑道，排成可分享的报告。", thumb: "example-finance-report" },
-      { title: "实时运营", body: "随底层数据变动而刷新的实时指标。", thumb: "example-live-dashboard" },
+      { title: "实时运营", body: "随底层数据变动而刷新的实时指标。", thumb: "example-live-artifact" },
       { title: "社交与营销", body: "渠道表现和投放追踪汇于一屏。", thumb: "example-social-media-dashboard" },
       { title: "领域报告", body: "任意领域的结构化报告——从临床到交易。", thumb: "example-clinical-case-report" },
     ],

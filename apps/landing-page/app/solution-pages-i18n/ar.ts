@@ -221,7 +221,7 @@ export const AR: SolutionLocaleCopy = {
       { title: "تحليلات المنتج", body: "المستخدمون النشطون، المسارات التحويلية، الاحتفاظ — المقاييس التي يعيش فيها فريق المنتج.", thumb: "example-dashboard" },
       { title: "مقاييس المستودع والتطوير", body: "النجوم، طلبات السحب، صحة CI — لوحات هندسية من بياناتك الخاصة.", thumb: "example-github-dashboard" },
       { title: "تقارير مالية", body: "الإيراد، معدل الإنفاق، المدى الزمني، معروضة كتقرير قابل للمشاركة.", thumb: "example-finance-report" },
-      { title: "عمليات حية", body: "مقاييس آنية تتحدّث مع تحرّك البيانات الأساسية.", thumb: "example-live-dashboard" },
+      { title: "عمليات حية", body: "مقاييس آنية تتحدّث مع تحرّك البيانات الأساسية.", thumb: "example-live-artifact" },
       { title: "التواصل الاجتماعي والتسويق", body: "أداء القنوات وتتبّع الحملات في عرض واحد.", thumb: "example-social-media-dashboard" },
       { title: "تقارير مجالية", body: "تقارير منظّمة لأي مجال — من السريري إلى التداول.", thumb: "example-clinical-case-report" },
     ],

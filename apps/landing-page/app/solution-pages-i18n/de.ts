@@ -221,7 +221,7 @@ export const DE: SolutionLocaleCopy = {
       { title: "Produktanalysen", body: "Aktive Nutzer, Funnels, Retention — die Kennzahlen, in denen ein Produktteam lebt.", thumb: "example-dashboard" },
       { title: "Repo- & Dev-Kennzahlen", body: "Sterne, PRs, CI-Status — Engineering-Dashboards aus deinen eigenen Daten.", thumb: "example-github-dashboard" },
       { title: "Finanzberichte", body: "Umsatz, Burn, Runway als teilbarer Bericht angeordnet.", thumb: "example-finance-report" },
-      { title: "Live-Betrieb", body: "Echtzeit-Kennzahlen, die sich aktualisieren, wenn sich die zugrunde liegenden Daten bewegen.", thumb: "example-live-dashboard" },
+      { title: "Live-Betrieb", body: "Echtzeit-Kennzahlen, die sich aktualisieren, wenn sich die zugrunde liegenden Daten bewegen.", thumb: "example-live-artifact" },
       { title: "Social & Marketing", body: "Kanal-Performance und Kampagnen-Tracking in einer Ansicht.", thumb: "example-social-media-dashboard" },
       { title: "Fachberichte", body: "Strukturierte Berichte für jedes Feld — von klinisch bis Trading.", thumb: "example-clinical-case-report" },
     ],
