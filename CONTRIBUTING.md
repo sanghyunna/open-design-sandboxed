@@ -36,7 +36,7 @@ pnpm typecheck            # tsc -b --noEmit
 pnpm --filter @open-design/web build  # web package build when needed
 ```
 
-Node `~24` and pnpm `10.33.x` are required. `nvm` / `fnm` are optional; use `nvm install 24 && nvm use 24` or `fnm install 24 && fnm use 24` if you prefer managing Node that way. macOS, Linux, and WSL2 are the primary paths. Windows native is supported; see [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) for the common setup gotchas.
+Node `~24` and pnpm `10.33.x` are required. `nvm` / `fnm` are optional; use `nvm install 24 && nvm use 24` or `fnm install 24 && fnm use 24` if you prefer managing Node that way. Windows native is the primary path; macOS, Linux, and WSL2 are best-effort. See [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) for common setup gotchas.
 
 ## Adding a new Skill
 
@@ -174,9 +174,9 @@ We're not pedantic about formatting (Prettier on save is fine), but two rules ar
 Beyond that:
 
 - **Don't narrate.** No `// import the module`, no `// loop through items`. If the code reads obviously, the comment is noise. Save comments for non-obvious intent or constraints the code can't express.
-- **TypeScript** for `apps/web/src/`. The daemon (`apps/daemon/`) is plain ESM JavaScript with JSDoc when types matter — keep it that way.
+- **TypeScript-first** for project-owned entrypoints, modules, scripts, tests, reporters, and configs, including `apps/web/` and `apps/daemon/`.
 - **No new top-level dependencies** without a paragraph in the PR description on what we get vs. what bytes we ship. The dep list in [`package.json`](package.json) is small on purpose.
-- **Run `pnpm typecheck`** before pushing. CI runs it; failing it earns a "please fix" comment.
+- **Run `pnpm typecheck`** before pushing and record the result in the PR validation section.
 
 ---
 
@@ -210,7 +210,7 @@ For prompt-stack bugs ("the agent emitted a purple gradient hero, the slop black
 
 ## Asking questions
 
-- Architecture question, design question, "is this a bug or a misuse" → [GitHub Discussions](https://github.com/nexu-io/open-design/discussions) (preferred — searchable for the next person).
+- Architecture question, design question, "is this a bug or a misuse" → [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions) (preferred — searchable for the next person).
 - "How do I write a skill that does X" → Open a discussion. We'll answer it and turn the answer into [`docs/skills-protocol.md`](docs/skills-protocol.md) if it's a missing pattern.
 
 ---
@@ -240,7 +240,7 @@ If you've been contributing consistently and want to know what the path to becom
 
 The tl;dr: ship good PRs, review thoughtfully, hang out in [Discussions][discussions] / [Discord][discord], and the rest takes care of itself.
 
-[discussions]: https://github.com/nexu-io/open-design/discussions
+[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

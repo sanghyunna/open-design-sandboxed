@@ -234,8 +234,8 @@ The script temporarily swaps one consumer to `lib.fakeHash`, runs the
 matching `nix build .#<consumer> --print-build-logs`, extracts the
 expected hash from the failure output, writes it back into
 `nix/pnpm-deps.nix`, and restores the consumer file. The script runs via
-`node --experimental-strip-types`, so CI can invoke it without first
-installing the workspace.
+`node --experimental-strip-types`, so it does not require a prior workspace
+install.
 
 ## Validation
 

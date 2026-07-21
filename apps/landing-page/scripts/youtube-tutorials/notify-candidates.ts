@@ -209,11 +209,10 @@ async function main(): Promise<void> {
   const { candidates, searchFailures, queryCount } = await fetchCandidates(key, since, existing);
 
   // Abort on ANY search failure (not just all). A partial failure is an
-  // incomplete sweep; posting + succeeding would advance the watermark past the
-  // failed query's window and skip those candidates forever. Failing instead
-  // holds the watermark so the next run re-covers the window.
+  // incomplete sweep, so posting it would give reviewers a false sense that the
+  // requested window was covered. Fix the query failure and rerun instead.
   if (searchFailures > 0) {
-    console.error(`${searchFailures}/${queryCount} search queries failed; aborting before posting so the watermark holds and the next run re-covers this window.`);
+    console.error(`${searchFailures}/${queryCount} search queries failed; aborting before posting an incomplete digest.`);
     process.exitCode = 1;
     return;
   }

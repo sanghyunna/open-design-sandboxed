@@ -578,7 +578,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 - 💬 **Discord** — دردشة يومية، مشاركة الإضافات، أسئلة ← [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — ملاحظات الإصدارات، المعالم، ما وراء الكواليس ← [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — أسئلة وأجوبة معمّقة، RFCs، "اعرض عملك" ← [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions** — أسئلة وأجوبة معمّقة، RFCs، "اعرض عملك" ← [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues** — تقارير الأخطاء، طلبات الميزات ← [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 تصنيفا [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) و[`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) هما أسهل طريق للدخول.

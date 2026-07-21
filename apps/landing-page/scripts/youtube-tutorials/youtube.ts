@@ -117,8 +117,7 @@ export interface CandidateResult {
  * `publishedAfter` (RFC 3339), already filtered against the existing catalogue
  * (caller passes known ids) and the LLM relevance gate. Each kept candidate is
  * scored (completeness + relevance + reach) and the list is sorted by that
- * suggested score descending. The caller owns the window start so it can derive
- * a gap-free watermark instead of a fixed wall-clock window.
+ * suggested score descending. The caller supplies the explicit window start.
  */
 export async function fetchCandidates(
   key: string,
@@ -137,9 +136,8 @@ export async function fetchCandidates(
     }
   }
   // Any search failure means this sweep is incomplete: the failed query's
-  // results for this window are unknown. Return early (caller aborts) so the
-  // watermark does not advance past an incomplete sweep and skip those
-  // candidates permanently — the next run re-covers the same window.
+  // results for this window are unknown. Return early so the caller aborts
+  // instead of publishing a partial digest; rerun with the same explicit window.
   if (searchFailures > 0) return { candidates: [], searchFailures, queryCount: queries.length };
 
   const fresh = [...idSet].filter((id) => !existingIds.has(id));

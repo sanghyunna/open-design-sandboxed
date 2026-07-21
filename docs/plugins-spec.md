@@ -1,6 +1,6 @@
 # Open Design Plugin & Marketplace Spec (v1)
 
-> **In one sentence:** Open Design plugins turn portable `SKILL.md` capabilities into marketplace-ready, one-click design workflows while preserving compatibility with existing agent skill catalogs, headless CLI use, and self-hosted deployment.
+> **In one sentence:** Open Design plugins turn portable `SKILL.md` capabilities into marketplace-ready, one-click design workflows while preserving compatibility with existing agent skill catalogs and headless CLI use.
 
 **Parent:** [`spec.md`](spec.md) · **Siblings:** [`skills-protocol.md`](skills-protocol.md) · [`architecture.md`](architecture.md) · [`agent-adapters.md`](agent-adapters.md) · [`modes.md`](modes.md)
 
@@ -112,7 +112,7 @@ All four scenarios share the same `ApplyResult`, the same run pipeline, and the 
 12. [CLI surface](#12-cli-surface)
 13. [Public web surface](#13-public-web-surface-open-designaimarketplace)
 14. [Publishing and catalog distribution](#14-publishing-and-catalog-distribution)
-15. [Deployment and portability — Docker, any cloud](#15-deployment-and-portability--docker-any-cloud)
+15. [Runtime storage and security boundary](#15-runtime-storage-and-security-boundary)
 16. [Phased implementation plan](#16-phased-implementation-plan)
 17. [Examples](#17-examples)
 18. [Risks and open questions](#18-risks-and-open-questions)
@@ -147,7 +147,7 @@ A second axis of the same vision: **the CLI is the canonical agent-facing API fo
 
 A third axis, derived from the second: **OD runs fully headless; the UI is a productivity layer, not a runtime dependency.** A user with nothing but Claude Code (or Cursor, Codex, Gemini CLI) and `od` installed can browse the marketplace, install a plugin, create a project, run a task, and consume the produced artifacts end-to-end without ever launching the desktop app. The desktop UI is exactly the same value-add Cursor's IDE adds on top of `cursor-agent` CLI: faster discovery, live artifact preview, chat/canvas side-by-side, marketplace browsing, direction-picker GUI, critique-theater panel — all sugar on the same primitives. Every UI feature is implementable as a CLI subcommand or a streaming event first; the UI consumes those primitives and adds presentation. The decoupling is enforced architecturally (§11.7).
 
-A fourth axis, the foundation for ecosystem reach and commercial viability: **OD is one Docker image, deployable to any cloud.** Because the headless mode of (3) has no electron and no GUI dependencies, a single multi-arch container image (`linux/amd64` + `linux/arm64`) brings up the full daemon + CLI + web UI on AWS, Google Cloud, Azure, Alibaba, Tencent, Huawei, or any self-hosted Kubernetes / docker-compose / k3s setup, with no per-cloud rewrite. Self-hosted enterprises can run a private marketplace; partners can embed OD inside their stack; CI pipelines can spin up ephemeral OD containers for "generate slides for the daily report"-shaped tasks. The technical contract is in §15.
+A fourth axis keeps the product **local-first and headless-capable**. The daemon, CLI, and web runtime share the same product contracts, while hosted/container deployment packaging remains outside this workspace (§15).
 
 A fifth axis is the product-shape co-evolution with the agent: **UI is requested by the agent but rendered by controlled product components (Generative UI), not by arbitrary agent-authored frontend code.** While running a long-horizon design pipeline, the agent will need to ask the user for information (figma OAuth, target-audience confirmation, etc.), seek authorization (approving an expensive media generation run), pick a direction (one of three critique alternatives), or fill missing content (a missing brand asset). These UIs are **not** pre-shipped marketplace chip strips; they are **declared by the plugin** in its manifest, **triggered by the agent** during the run, and **published by the daemon** through OD-native events that the web / desktop / CLI can render and external clients can consume through the AG-UI adapter (see §10.3). OD v1 ships four built-in surface kinds (`form` / `choice` / `confirmation` / `oauth-prompt`) as the minimum set; custom plugin-bundled React components stay behind the `genui:custom-component` capability gate and sandbox. Tied to this axis, the project record persists a layer of **GenUI surface state**: an authorization or confirmation the user once gave is reused across multi-turn conversations and runs in the same project, instead of re-asking. This is the natural landing point of "plugin = long-horizon task wrapper" plus "project = long-lived work artifact".
 
@@ -654,9 +654,9 @@ When a plugin upgrades, its resolved ref changes, or its source marketplace chan
 
 ### 9.1 Headless capability grant flow (CLI / automation)
 
-The UI capability gate is a modal + checklist; headless / CI / third-party code agent flows complete the same gate through the three mechanisms below. The behavior is locked here so it does not depend on an interactive prompt:
+The UI capability gate is a modal + checklist; headless and third-party code-agent flows complete the same gate through the three mechanisms below. The behavior is locked here so it does not depend on an interactive prompt:
 
-1. **Pre-trust** (recommended for hosted / CI).
+1. **Pre-trust** (recommended for non-interactive clients).
 
    ```bash
    od plugin trust make-a-deck   --caps fs:read,mcp,subprocess
@@ -1192,7 +1192,7 @@ What this unlocks:
 
 - A user with **only Claude Code** (or any code agent) plus `npm i -g @open-design/cli` plus a running headless daemon can do the entire user journey: install plugin → create project → run → consume artifacts. No OD desktop required.
 - The OD desktop UI installs the same daemon and the same CLI; it just adds a window. Users who later install the desktop find the same projects, plugins, and history that the headless flow produced — there is no "headless project format" vs. "desktop project format". Same `.od/projects/<id>/`, same SQLite db.
-- CI is a first-class citizen: a GitHub Action can `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`. No display, no electron, no per-step UI scripting.
+- Non-interactive automation is a first-class client: it can `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`. No display, no electron, no per-step UI scripting.
 - External products can embed OD by spawning a headless daemon and shelling out — `od` is the public surface, internals are free to evolve.
 
 The cost: a small handful of `od daemon` flags and one new lifecycle subcommand (`od daemon start/stop/status` with `--headless` / `--serve-web`). Implementation lands in Phase 2 alongside the CLI parity slice.
@@ -1206,9 +1206,9 @@ OD already has **two** `composeSystemPrompt()` implementations:
 
 If the `## Active plugin` block is added only to the daemon composer, web API-fallback runs would silently produce plugin-context-less prompts; if it is added to both, drift is almost guaranteed. The spec locks the rule:
 
-1. **v1: plugin-driven runs are supported only in daemon-orchestrated mode** (desktop / web both go through the daemon over HTTP; headless / Docker talk to the daemon directly). Web API-fallback (browser-to-provider, daemon out of the path) does **not** support `pluginId` in v1: when a fallback-mode client tries to create a run with `pluginId`, the web sidecar detects the missing daemon hop and returns `409 plugin-requires-daemon`; the UI prompts the user to start the daemon or switch to desktop / headless. Phase 2A validation explicitly tests this.
+1. **v1: plugin-driven runs are supported only in daemon-orchestrated mode** (desktop / web both go through the daemon over HTTP; headless clients talk to the daemon directly). Web API-fallback (browser-to-provider, daemon out of the path) does **not** support `pluginId` in v1: when a fallback-mode client tries to create a run with `pluginId`, the web sidecar detects the missing daemon hop and returns `409 plugin-requires-daemon`; the UI prompts the user to start the daemon or switch to desktop / headless. Phase 2A validation explicitly tests this.
 2. **Phase 2A lifts the plugin block renderer into contracts.** The pure function `renderPluginBlock(snapshot: AppliedPluginSnapshot): string` lives in [`packages/contracts/src/prompts/plugin-block.ts`](../packages/contracts/src/prompts/plugin-block.ts) and is imported by both `apps/daemon/src/prompts/system.ts` and `packages/contracts/src/prompts/system.ts`. The daemon composer calls it; the contracts composer holds the import but does not call it under the v1 fallback rejection rule (1). This eliminates the byte-equality drift class entirely — there is one definition of the plugin block, not two — at the cost of half a day of refactor, while preserving the v1 fallback rejection in (1).
-3. **Phase 4 turns on fallback support for plugins.** With the renderer already in contracts, enabling fallback-mode plugin runs is a one-line wiring change inside the contracts composer plus removal of the 409 in the web sidecar. No prompt-shape work; no new CI guards. (Originally the lift was scheduled for Phase 4 itself, with a Phase 1–4 byte-equality CI fixture between the two composers; the plan in `docs/plans/plugins-implementation.md` PB1 pulled the lift into Phase 2A so the fixture is never needed.)
+3. **Phase 4 turns on fallback support for plugins.** With the renderer already in contracts, enabling fallback-mode plugin runs is a one-line wiring change inside the contracts composer plus removal of the 409 in the web sidecar. No prompt-shape work; no new cross-composer guard. (Originally the lift was scheduled for Phase 4 itself, with a Phase 1–4 byte-equality fixture between the two composers; the plan in `docs/plans/plugins-implementation.md` PB1 pulled the lift into Phase 2A so the fixture is never needed.)
 
 The consequence: of the three consumption modes in §14.2 (skill-only / headless OD / full OD), only the latter two ever carry plugin context in v1 — consistent with §1, where a plugin is a wrapper around a long-running task that needs the daemon (or its headless equivalent) to assemble. Phase 4 closes that gap if and when fallback-mode plugin support is wanted.
 
@@ -1226,7 +1226,7 @@ The CLI (`od …`) is **the canonical agent-facing API** for Open Design. Plugin
 | **CLI (`od …`)**      | **Code agents shelling out, scripts, CI**             | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)            |
 | MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp`                                                         |
 
-When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and tested in CI; breaking changes follow a major-version bump of the `od` bin.
+When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and covered by package-scoped tests; breaking changes follow a major-version bump of the `od` bin.
 
 ### 12.2 Command groups
 
@@ -1423,7 +1423,7 @@ od files list "$PID" --json
 od files read "$PID" index.html > out.html
 ```
 
-This sequence works identically locally, in CI, in a Docker sidecar, or driven from inside another agent loop. No HTTP, no port discovery, no auth tokens — the CLI hides all of that behind the stable subcommand contract.
+This sequence works identically locally or when driven from inside another agent loop. No direct HTTP use, port discovery, or auth-token plumbing is required — the CLI hides those details behind the stable subcommand contract.
 
 ### 12.6 What this means for the existing CLI
 
@@ -1548,143 +1548,16 @@ The mental model:
 
 Both products are decoupled the same way: the terminal flow is sufficient; the IDE/desktop is the productivity multiplier. **Plugin authors never have to choose** — they write one SKILL.md plus optional sidecar, and reach all three consumption modes.
 
-## 15. Deployment and portability — Docker, any cloud
+## 15. Runtime storage and security boundary
 
-OD ships as a single multi-arch Docker image so the full plugin/marketplace system can be brought up with one command and run unchanged on every major cloud. This is the substrate for the ecosystem and commercial story: a partner self-hosts inside their VPC; an enterprise runs a private marketplace; a CI job spins up a per-job OD daemon. The image is the headless mode of §11.7 packaged for ops, optionally serving the web UI from §11.6 when `--serve-web` is set.
+This product workspace ships local daemon, web, desktop, and CLI runtime code. It does not ship Docker images, hosted deployment manifests, cloud bootstrap assets, or release-publishing automation; those belong in a separately owned operations repository.
 
-### 15.1 Image shape
+Product-owned runtime boundaries remain here:
 
-- **Tag**: `ghcr.io/open-design/od:<version>` plus moving `:latest` and `:edge`.
-- **Architectures**: `linux/amd64` and `linux/arm64` (single manifest list).
-- **Contents**:
-  - Node 24 runtime + the daemon `dist/` bundle.
-  - The `od` CLI on PATH.
-  - Web UI bundle (apps/web build) so the same image serves both API and UI.
-  - Bundled code-agent CLIs that OD supports as agent backends: Claude Code, Codex CLI, Gemini CLI. Selectable per run; default is `OD_AGENT_BACKEND`.
-  - Common runtime deps plugins assume: `ffmpeg`, `git`, `ripgrep`.
-- **Excluded**: electron, native macOS/Windows toolchains, dev tooling.
-
-The base image is `node:24-bookworm-slim`. The user inside the container is non-root (`uid 10001`).
-
-### 15.2 Persistence
-
-Three paths the operator should mount as volumes; they map onto existing OD env vars from the root [`AGENTS.md`](../AGENTS.md), so no daemon code change is needed.
-
-| Mount path        | Env var                  | Purpose                                                |
-| ----------------- | ------------------------ | ------------------------------------------------------ |
-| `/data/od`        | `OD_DATA_DIR`            | Projects, SQLite, artifacts, installed plugins (`<OD_DATA_DIR>/plugins`) |
-| `/data/config`    | `OD_MEDIA_CONFIG_DIR`    | Provider credentials (`media-config.json`)             |
-| `/data/marketplaces` | (under `OD_DATA_DIR`)  | Cached marketplace indexes                             |
-
-Mounting `/data/od` alone is the minimal config. Splitting `/data/config` separately is the recommended hosted-mode pattern so secrets follow a different lifecycle than data.
-
-### 15.3 Configuration
-
-All configuration flows through env vars and an optional pre-baked config file. Minimal hosted env:
-
-```env
-OD_PORT=17456
-OD_BIND_HOST=0.0.0.0                 # the variable the daemon already reads ([`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts))
-OD_DATA_DIR=/data/od
-OD_MEDIA_CONFIG_DIR=/data/config
-OD_TRUST_DEFAULT=restricted          # safe default for hosted (§9) — introduced in Phase 5
-OD_AGENT_BACKEND=claude              # default code agent backend
-OD_API_TOKEN=<random>                # required when OD_BIND_HOST != 127.0.0.1 — Phase 5 introduces the bearer middleware
-OD_SNAPSHOT_UNREFERENCED_TTL_DAYS=30 # see §11.4: unreferenced applied_plugin_snapshots expire after this window; set to 0 to keep forever
-OD_SNAPSHOT_RETENTION_DAYS=          # opt-in (default unset): also retire referenced snapshots once their run/conversation/project is terminal and applied_at is older than the window
-OD_SNAPSHOT_GC_INTERVAL_MS=21600000  # snapshot GC worker tick (Phase 5)
-ANTHROPIC_API_KEY=...                # provider keys; also storable via `od config set`
-TAVILY_API_KEY=...
-```
-
-> **Current implementation vs. spec (migration note):**
->
-> - `OD_BIND_HOST` already exists in the daemon ([`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts), [`apps/daemon/src/origin-validation.ts`](../apps/daemon/src/origin-validation.ts)). Earlier draft text referred to the same variable as `OD_HOST`; the correct name is `OD_BIND_HOST`, and this spec uses it everywhere. **No `OD_HOST` alias is introduced** — that would invite double-name drift.
-> - `OD_TRUST_DEFAULT`, `OD_API_TOKEN`, and the corresponding bearer-token middleware are **not yet implemented**; they are part of Phase 5 "Cloud deployment + pluggable storage" (§15.7, §16 Phase 5). Until landed, hosted deployments must rely on a reverse proxy / network ACL for access control; §15.7 explicitly calls out this prerequisite.
-
-Anything settable via the desktop UI is also settable via `docker exec od od config set ...` or by mounting a pre-baked `media-config.json` into `/data/config`.
-
-### 15.4 One-command deploy
-
-Local laptop:
-
-```bash
-docker run --rm -p 17456:17456 ghcr.io/open-design/od:latest
-open http://localhost:17456
-```
-
-Persistent server:
-
-```bash
-docker run -d --name od \
-  -p 17456:17456 \
-  -v od-data:/data/od \
-  -v od-config:/data/config \
-  -e OD_DATA_DIR=/data/od \
-  -e OD_MEDIA_CONFIG_DIR=/data/config \
-  -e OD_BIND_HOST=0.0.0.0 \
-  -e OD_API_TOKEN="$(openssl rand -hex 32)" \
-  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-  ghcr.io/open-design/od:latest
-```
-
-Reach the same surfaces inside the container:
-
-```bash
-docker exec od od plugin install github:open-design/plugins/make-a-deck
-docker exec od od project create --plugin make-a-deck --json
-docker exec od od status --json
-```
-
-### 15.5 Multi-cloud portability
-
-The image is deliberately cloud-agnostic. One container image runs on every major cloud's container service:
-
-| Cloud              | Container service                          | Persistent storage          | Secrets                |
-| ------------------ | ------------------------------------------ | --------------------------- | ---------------------- |
-| AWS                | ECS / Fargate / EKS / App Runner           | EFS (NFS), EBS, S3 adapter  | Secrets Manager / SSM  |
-| Google Cloud       | Cloud Run / GKE                            | Filestore, GCS-fuse         | Secret Manager         |
-| Azure              | Container Apps / AKS                       | Azure Files                 | Key Vault              |
-| Alibaba Cloud      | SAE / ACK                                  | NAS, OSS adapter            | KMS                    |
-| Tencent Cloud      | CloudRun / TKE                             | CFS, COS adapter            | SSM                    |
-| Huawei Cloud       | CCE / CCI                                  | SFS, OBS adapter            | KMS                    |
-| Self-hosted        | docker-compose, Docker Swarm, k3s, k0s     | Bind mounts, NFS, Longhorn  | env / SOPS / Vault     |
-
-Two reference manifests ship with OD and are versioned alongside the image:
-
-- New `tools/pack/docker-compose.yml` — daemon + optional reverse proxy + optional Postgres for §15.6.
-- New `tools/pack/helm/` — Helm chart with values presets for each cloud's volume + secret patterns. The chart deliberately stays generic — cloud-specific bootstrap (CloudFormation / Deployment Manager / ARM / Aliyun ROS / Tencent TIC / Huawei RFS) lives in a separate `open-design/deploy` repo so it can move at its own cadence.
-
-### 15.6 Pluggable storage and database (Phase 5)
-
-The daemon's filesystem and SQLite usage is encapsulated behind two narrow interfaces:
-
-- `ProjectStorage` — read/write/list project files.
-- `DaemonDb` — typed wrapper around SQLite (already exists today).
-
-v1 ships only the local-disk + SQLite implementation. Phase 5 adds:
-
-- **`ProjectStorage` adapter for S3-compatible blob stores.** Works for AWS S3, GCS (S3-compatible mode), Azure Blob (S3-compat shim or native), Aliyun OSS, Tencent COS, Huawei OBS — all speak the S3 API or have a thin shim.
-- **`DaemonDb` adapter for Postgres** so multiple daemon replicas can share state. Useful behind a load balancer or when running serverless containers that may scale to zero.
-
-The on-disk layout stays identical between adapters so a single-tenant deployment can migrate to multi-replica without re-importing projects.
-
-### 15.7 Hosted-mode security defaults
-
-Defaults shift toward safer behavior when the daemon runs in a container:
-
-- `OD_TRUST_DEFAULT=restricted` is the recommended default. Capabilities (`mcp`, `subprocess`, `bash`, `network`) require explicit operator opt-in via `od plugin trust <id>` or a `OD_TRUSTED_PLUGINS` allow-list env var.
-- The image runs as a non-root user; plugin sandboxes inherit this.
-- The HTTP API listens on `OD_BIND_HOST`; when set to `0.0.0.0`, **once Phase 5 lands** `OD_API_TOKEN` is required and is checked on every request via `Authorization: Bearer <token>`. When unset, the daemon refuses to bind to a public interface and exits with an error. Before Phase 5 (i.e., today's implementation), hosted deployments must isolate the daemon port behind a reverse proxy / network ACL.
-- A future hardening pass (Phase 5) optionally runs each plugin's bash/MCP work inside per-run nested containers (firecracker / gVisor / sysbox) so an untrusted plugin cannot escape the run boundary. Not required for v1 single-tenant deployments.
-- **Authentication scope (v1):** single-tenant only — one shared `OD_API_TOKEN`. **Multi-tenant auth** (per-user OAuth, RBAC, project ownership, billing) is **explicitly out of scope for v1** and tracked as an open item in §18.
-
-### 15.8 What this unlocks (ecosystem motions)
-
-1. **Self-hosted enterprise.** A company hosts a private OD instance, registers an internal `open-design-marketplace.json` (`od marketplace add https://internal/...`), restricting plugins to internally vetted ones. Their designers and PMs use the desktop client locally; their CI uses `docker exec od od …`.
-2. **Partner integrations.** Vendors (CMS, design tools, BI platforms, SaaS dashboards) embed OD inside their stack to add design generation. One image, no per-vendor port.
-3. **Cloud-native CI.** "Generate slides for the daily report" becomes a GitHub Action / GitLab pipeline / Tekton task that spins up an ephemeral OD container, applies a plugin, drops artifacts to S3 / OSS / COS / OBS.
-4. **Sovereign-cloud reach.** OD runs unchanged on Aliyun / Tencent / Huawei for customers in regulated regions — no rewrite, no separate distribution channel.
+- `OD_DATA_DIR` and `OD_MEDIA_CONFIG_DIR` control local runtime storage.
+- `ProjectStorage` and `DaemonDb` keep storage/database seams explicit; local disk and SQLite are the reachable defaults.
+- Non-loopback HTTP binding requires the product's API-token guard.
+- Plugin trust, snapshot retention, and audit behavior remain daemon concerns independent of deployment packaging.
 
 ## 16. Phased implementation plan
 
@@ -1793,23 +1666,14 @@ Validation: install plugin from a local mock marketplace.json, rotate ref, unins
 
 Validation: (a) install a published plugin → export from a real project that used it → diff the produced manifest against the original. (b) "UI vs CLI parity test": pick 5 desktop-UI workflows, replay each one through `od …` only, compare produced artifacts byte-for-byte (per the §12.6 implementation rule).
 
-### Phase 5 — Cloud deployment + pluggable storage (parallel, splittable)
+### Phase 5 — Runtime storage and non-loopback security
 
-This phase is independent of Phases 1–4 and can run in parallel as soon as Phase 1 lands (since the headless mode and the daemon contract are stable from Phase 1 on).
+- Keep the bound-API-token guard for non-loopback daemon binding.
+- Keep local-disk + SQLite as the reachable defaults behind `ProjectStorage` and `DaemonDb`.
+- Enforce snapshot retention and preserve the `od plugin snapshots prune --before <ts>` escape hatch.
+- Keep hosted/container deployment assets and publishing automation outside this product workspace.
 
-- **Container image (week 1):** multi-arch `linux/amd64` + `linux/arm64` Dockerfile with the contents listed in §15.1; CI to push `:edge` on every main commit and `:<version>` on tag.
-- **Reference manifests:** `tools/pack/docker-compose.yml` and `tools/pack/helm/`. The compose file demonstrates the daemon + reverse proxy pattern; the Helm chart parameterizes volume + secret patterns for any cloud.
-- **Bound-API-token guard (new in Phase 5):** daemon refuses to bind `OD_BIND_HOST=0.0.0.0` without `OD_API_TOKEN`; bearer-token middleware on `/api/*` (skipped only when host is loopback).
-- **`ProjectStorage` adapter for S3-compatible blob stores** (works for AWS S3, GCS S3-compat, Azure Blob via shim, Aliyun OSS, Tencent COS, Huawei OBS).
-- **`DaemonDb` adapter for Postgres** (so multi-replica deployments share state).
-- **`AppliedPluginSnapshot` retention enforcement worker:** the `expires_at` column added in Phase 1 is now enforced. A daemon background job (default every 6 h, knob `OD_SNAPSHOT_GC_INTERVAL_MS`) deletes rows where `expires_at IS NOT NULL AND expires_at <= now()`. Unreferenced snapshots get `expires_at = applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`; `0` disables) at insert time; referenced snapshots stay `NULL` (pinned per §8.2.1). Operators may set `OD_SNAPSHOT_RETENTION_DAYS` to additionally retire referenced rows once their referencing run/conversation/project is terminal. Each deletion writes an audit log entry. CLI escape hatch: `od plugin snapshots prune --before <ts>` for forced cleanup.
-- **Per-cloud one-click templates** in a separate `open-design/deploy` repo (CloudFormation, Deployment Manager, ARM, Aliyun ROS, Tencent TIC, Huawei RFS) — non-blocking; track separately.
-
-Validation:
-
-- `docker run` smoke: image starts, web UI renders, `od plugin install` works inside the container.
-- Multi-cloud smoke: deploy the compose file to AWS Fargate, GCP Cloud Run, Azure Container Apps, Aliyun SAE, Tencent CloudRun, Huawei CCE; run a fixed plugin → produced artifact bytes identical across clouds.
-- Pluggable storage smoke: same plugin, same project, alternating between local-disk + SQLite and S3 + Postgres adapters; produced artifacts identical.
+Validation uses the package-scoped storage, auth, and retention tests documented by the local workflow.
 
 ## 17. Examples
 
@@ -1870,7 +1734,7 @@ The installer fans out nested skills/design-systems/craft into the registry unde
 
 | Risk                                                        | Mitigation                                                                                          |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Schema drift between OD plugin and the broader skill spec   | `open-design.json` is sidecar-only; it never modifies SKILL.md. CI tests run against the public anthropics/skills repo. |
+| Schema drift between OD plugin and the broader skill spec   | `open-design.json` is sidecar-only; it never modifies SKILL.md. Package-scoped compatibility fixtures cover the public skill shape. |
 | Arbitrary GitHub install = supply-chain risk                | `restricted` default; capability prompt mandatory before bash/hooks/MCP; pinned-ref recording.       |
 | `composeSystemPrompt()` is already 200+ lines               | The `## Active plugin` block is appended in the existing place; no reordering of layers.             |
 | ExamplesTab vs Marketplace overlap                          | Phase 2 keeps ExamplesTab as is; Phase 3 folds it into Marketplace as a "Local skills" tab.         |
@@ -1879,12 +1743,11 @@ The installer fans out nested skills/design-systems/craft into the registry unde
 | Trust model leaves community plugins half-functional by default | Detail page surfaces a clear capability checklist with a one-click "Grant all" action; restricted-mode behavior is explicit, not silent. |
 | Plugins shipping their own MCP servers may fail to start | `od plugin doctor` runs a dry-launch of declared MCP commands; failures surfaced before "Use". |
 | Unbounded growth of `applied_plugin_snapshots` | Per PB2 (resolved): unreferenced snapshots auto-expire at `applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default 30 d); referenced snapshots stay pinned forever (reproducibility wins); GC worker lands in Phase 5 (§16). `od plugin snapshots prune --before <ts>` remains as a forced-cleanup escape hatch; rows with `status='stale'` can be archived to external storage in batch. |
-| Drift between daemon `composeSystemPrompt` and contracts `composeSystemPrompt` | Per PB1 (resolved): the plugin block renderer lives in `packages/contracts/src/prompts/plugin-block.ts` from Phase 2A onward; both composers import the same function. No CI byte-equality fixture needed — single-import compile-time guarantee. |
+| Drift between daemon `composeSystemPrompt` and contracts `composeSystemPrompt` | Per PB1 (resolved): the plugin block renderer lives in `packages/contracts/src/prompts/plugin-block.ts` from Phase 2A onward; both composers import the same function. No byte-equality fixture needed — single-import compile-time guarantee. |
 | `od.pipeline` devloop infinite loop burning quota | `until` is required and uses a restricted syntax; `OD_MAX_DEVLOOP_ITERATIONS` ceiling (default 10); both UI and CLI expose a "Stop refining" break action. |
-| `OD_HOST` / `OD_BIND_HOST` naming drift | Spec uses the variable the daemon already reads, `OD_BIND_HOST`; no `OD_HOST` alias is introduced; §15.3 explicitly notes the deviation from earlier draft text. |
-| Hosted deployments without the bound-API-token guard could leak the API publicly (pre-Phase 5 must rely on a reverse proxy) | Once Phase 5 lands, daemon refuses to bind `OD_BIND_HOST=0.0.0.0` without `OD_API_TOKEN`; bearer-token middleware enforced on `/api/*`; §15.3 / §15.7 record the current vs. target gap. |
+| `OD_HOST` / `OD_BIND_HOST` naming drift | Use the existing `OD_BIND_HOST`; no `OD_HOST` alias is introduced. |
+| Non-loopback binding without the API-token guard could expose the API | The daemon refuses non-loopback binding without `OD_API_TOKEN`; bearer-token middleware protects `/api/*`. |
 | Sovereign-cloud customers (Aliyun / Tencent / Huawei) need provider-specific secret + storage integrations | S3-compatible adapter covers all three for blob storage (Phase 5); env-var-based secrets work everywhere; cloud-specific KMS integrations are non-blocking (post-v1). |
-| Multi-cloud testing matrix is large                         | Phase 5 ships a single canonical compose smoke (one cloud), then adds clouds incrementally; per-cloud one-click templates live in `open-design/deploy` and can move at their own cadence (§15.5). |
 | Malicious plugins phishing the user via GenUI surfaces      | `od.genui.surfaces[]` must be declared in the manifest and pass `od plugin doctor`; runtime rejects undeclared surface kinds / surface ids; `oauth-prompt` and `confirmation` always show "from plugin <id>, vetted by marketplace <id>"; restricted plugins must explicitly grant `network` before raising an `oauth-prompt` (§9). |
 | AG-UI ecosystem may evolve, drifting OD's wire format from canonical AG-UI | OD-native `GenUIEvent` remains the internal source of truth. `@open-design/agui-adapter` is an external projection layer, so upstream protocol revs do not couple to the daemon or web renderer release cadence. |
 | Cross-conversation reuse via `genui_surfaces` may make users "forget what they authorized" | The web `GenUIInbox` and `od ui list --project <id>` must enumerate every `persist=project` resolved row with revoke entry points; hosted mode can default-expire via `OD_GENUI_PROJECT_TTL_DAYS`; revoke writes an audit log entry. |
@@ -1894,11 +1757,11 @@ Open questions worth confirming before code lands:
 - **Default trust tier** — keep tiered (current) or shift to capability-scoped from day 1?
 - **Marketplace JSON shape** — diverge from anthropic's `marketplace.json` shape, or stay byte-compatible so existing claude-plugin marketplaces are reusable as-is? (Default: stay byte-compatible.)
 - **`od plugin run` headless contract** — sufficient as-is, or also expose an HTTP POST endpoint for non-CLI agents? (Default: CLI only in v1; HTTP added in Phase 4 if needed.)
-- **Multi-tenant auth (per-user OAuth, RBAC, project ownership, billing)** is explicitly out of scope for v1. The Docker image is single-tenant by design (one `OD_API_TOKEN`). Multi-tenancy is a post-v1 story that needs its own spec — confirm this scoping is acceptable for the first ecosystem release.
-- **Trust propagation in hosted mode** — current spec locks arbitrary GitHub / URL / local plugins to `restricted` by default, and third-party marketplaces do not propagate trust by default. Confirm whether hosted deployments may trust individual plugins through `OD_TRUSTED_PLUGINS`, or whether operators must first trust the source marketplace.
+- **Multi-tenant auth (per-user OAuth, RBAC, project ownership, billing)** is explicitly out of scope for v1. The daemon API-token model is single-tenant; multi-tenancy needs its own spec.
+- **Trust propagation for non-local clients** — current spec locks arbitrary GitHub / URL / local plugins to `restricted` by default, and third-party marketplaces do not propagate trust by default. Confirm whether operators may trust individual plugins through `OD_TRUSTED_PLUGINS`, or must first trust the source marketplace.
 - **Discovery-time hot reload** — should the daemon watch `<daemonDataDir>/plugins/` for filesystem changes (developer ergonomics), or only reload after `od plugin install/update/uninstall` (stability)? (Default: watch, with a 500ms debounce.)
 - **Versioning policy** — pin to a tag/SHA on install, or always track the default branch with an opt-in pin? (Default: pin to the resolved ref at install time; `od plugin update` re-resolves.)
-- ~~**When to lift the plugin prompt block into contracts**~~ — **resolved (PB1, see `docs/plans/plugins-implementation.md` §7).** Lift in Phase 2A as a pure `renderPluginBlock(snapshot)` function in `packages/contracts/src/prompts/plugin-block.ts`; both composers import it; v1 fallback rejection rule (§11.8) is preserved; Phase 4 turns on fallback support as a one-line wiring change. The Phase 1–4 byte-equality CI fixture is no longer needed.
+- ~~**When to lift the plugin prompt block into contracts**~~ — **resolved (PB1, see `docs/plans/plugins-implementation.md` §7).** Lift in Phase 2A as a pure `renderPluginBlock(snapshot)` function in `packages/contracts/src/prompts/plugin-block.ts`; both composers import it; v1 fallback rejection rule (§11.8) is preserved; Phase 4 turns on fallback support as a one-line wiring change. The Phase 1–4 byte-equality fixture is no longer needed.
 - ~~**`AppliedPluginSnapshot` retention**~~ — **resolved (PB2, see `docs/plans/plugins-implementation.md` §7).** Snapshots referenced by any run / conversation / project stay pinned forever (`expires_at = NULL`); unreferenced snapshots get `expires_at = applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, `0` disables). The "expire even referenced rows" knob `OD_SNAPSHOT_RETENTION_DAYS` is operator-opt-in only (default unset), and applies only when the referencing row is terminal. The `expires_at` column lands in Phase 1 (§11.4); the GC worker lands in Phase 5 (§16). The `od plugin snapshots prune` CLI remains as a forced-cleanup escape hatch.
 - **Devloop billing granularity** — should each stage `iteration` be billed / audited / cancelled independently? (Default: independent audit + cancel; billing granularity follows the provider's actual consumption rather than introducing a new spec-level unit.)
 - **Whether `od.taskKind` becomes a first-class marketplace filter** — does the existing `kind` / `mode` / `scenario` UI need a reorder to surface the new `taskKind`? (Default: marketplace adds a top-level `taskKind` tab; existing filters drop to a secondary tier.)
@@ -2092,7 +1955,7 @@ The §16 phased plan stays as-is; this is a delta-only roadmap that maps the gap
 | 5 | New "Phase 7 — Production handoff contract (§20.3 §21.3.2)" | Implement `code-import`, `design-extract`, `rewrite-plan`, `patch-edit`, `diff-review`, `build-test`; freeze the target-stack contract; freeze the design-token mapping contract | Addresses scenario 2 natively and unblocks scenario 4 native path |
 | 6 | New "Phase 8 — Native production code delivery" | Repo-aware multi-file patch orchestration inside OD; native "review and apply" surface; promote `handoffKind: 'deployable-app'` from reservation to implementation | Closes scenario 4 natively; depends on Phase 7 |
 
-Phases 6, 7, 8 are deliberately enumerated **after** the existing §16 Phase 5 (cloud deployment) so they do not interleave with the headless / Docker stabilization story. Their internal ordering is fixed: 7 must precede 8; 6 can run in parallel with 7 because the two scenarios share only `parentArtifactId` chaining, not atom implementations.
+Phases 6, 7, 8 are deliberately enumerated **after** the existing §16 Phase 5 runtime-storage/security work. Their internal ordering is fixed: 7 must precede 8; 6 can run in parallel with 7 because the two scenarios share only `parentArtifactId` chaining, not atom implementations.
 
 ### 21.5 OD ↔ code-agent handoff as the v1 production-code path
 

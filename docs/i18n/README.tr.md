@@ -576,7 +576,7 @@ Her kanalın arkasında gerçek insanlar var.
 
 - 💬 **Discord** — günlük sohbet, eklenti paylaşımı, sorular → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — sürüm notları, kilometre taşları, perde arkası → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — derinlemesine soru-cevap, RFC'ler, "çalışmanı göster" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions** — derinlemesine soru-cevap, RFC'ler, "çalışmanı göster" → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues** — hata raporları, özellik istekleri → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ve [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) etiketleri başlamanın en kolay yoludur.

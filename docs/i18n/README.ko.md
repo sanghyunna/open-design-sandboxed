@@ -576,7 +576,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 - 💬 **Discord** — 매일의 대화, 플러그인 공유, 질문 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — 릴리스 노트, 마일스톤, 비하인드 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — 깊이 있는 Q&A, RFC, "당신의 작업을 보여주세요" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions** — 깊이 있는 Q&A, RFC, "당신의 작업을 보여주세요" → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues** — 버그 리포트, 기능 요청 → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)와 [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) 라벨이 가장 쉬운 진입로입니다.

@@ -346,8 +346,8 @@ Au-delà de ça :
 - **Pas de nouvelle dépendance top-level** sans paragraphe dans la description
   de la PR expliquant ce qu'elle apporte et combien d'octets elle coûte. La liste
   des dépendances dans [`package.json`](../../package.json) est petite volontairement.
-- **Lancez `pnpm typecheck`** avant de push. CI le lance aussi ; s'il échoue,
-  vous aurez un commentaire "please fix".
+- **Lancez `pnpm typecheck`** avant de push et consignez le résultat dans la
+  section de validation de la PR.
 
 ---
 
@@ -396,7 +396,7 @@ afin de voir si la violation vient du modèle ou du prompt.
 ## Poser des questions
 
 - Question d'architecture, question de design, "bug ou mauvaise utilisation ?" →
-  [GitHub Discussions](https://github.com/nexu-io/open-design/discussions)
+  [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)
   (préféré, car searchable pour la personne suivante).
 - "Comment écrire un Skill qui fait X ?" → ouvrez une discussion. Nous y
   répondrons et transformerons la réponse en ajout dans
@@ -453,7 +453,7 @@ Le tl;dr : livrez de bonnes PR, faites des reviews réfléchies, traînez
 dans les [Discussions][discussions] / sur [Discord][discord], et le reste
 se fait tout seul.
 
-[discussions]: https://github.com/nexu-io/open-design/discussions
+[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

@@ -28,7 +28,6 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const allowedE2eScripts = new Set([
   "e2e/scripts/playwright.ts",
   "e2e/scripts/release-smoke.ts",
-  "e2e/scripts/visual-report.ts",
 ]);
 
 type GuardCheck = {
@@ -86,9 +85,9 @@ const residualAllowedExactPaths = new Set([
   "apps/web/public/od-notifications-sw.js",
   // PostCSS loads Tailwind through a web-local .mjs compatibility config entry.
   "apps/web/postcss.config.mjs",
-  // CI-only plugin-preview renderer. Kept .mjs and run directly by Node so its
+  // Offline plugin-preview renderer. Kept .mjs and run directly by Node so its
   // runtime deps (puppeteer-core + a headless Chrome + ffmpeg) are provided by
-  // the CI environment and never pulled into the daemon/web TS build or bundle.
+  // the invoking environment and never pulled into the daemon/web TS build or bundle.
   "scripts/bake-plugin-previews.mjs",
   // AMR (vela) verifier: ad-hoc dev runner that imports the daemon's compiled
   // `dist/acp.js` and drives a real `vela agent run` against a live model.

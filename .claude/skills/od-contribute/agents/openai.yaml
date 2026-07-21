@@ -4,7 +4,7 @@
 
 interface:
   display_name: "Open Design — Contribute"
-  short_description: "Ship a Skill / Design System / translation / typo fix to nexu-io/open-design without writing code."
+  short_description: "Ship a Skill / Design System / translation / typo fix to sanghyunna/open-design-sandboxed without writing code."
   default_prompt: "I want to contribute to Open Design."
 
 policy:

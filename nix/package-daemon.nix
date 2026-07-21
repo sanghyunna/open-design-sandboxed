@@ -177,7 +177,7 @@ in
 
     meta = with lib; {
       description = "Open Design daemon — local agent orchestrator + API (`od` CLI)";
-      homepage = "https://github.com/nexu-io/open-design";
+      homepage = "https://github.com/sanghyunna/open-design-sandboxed";
       license = licenses.asl20;
       mainProgram = "od";
       platforms = platforms.linux ++ platforms.darwin;

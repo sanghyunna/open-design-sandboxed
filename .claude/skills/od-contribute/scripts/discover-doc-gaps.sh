@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Find low-effort doc improvements in nexu-io/open-design.
+# Find low-effort doc improvements in sanghyunna/open-design-sandboxed.
 # Usage: discover-doc-gaps.sh <workdir>
 # Stdout: NDJSON rows. Three classes:
 #   {"kind":"todo","file":"docs/foo.md","line":42,"text":"TODO: explain the daemon"}

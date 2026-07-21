@@ -576,7 +576,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 - 💬 **Discord** — 日々のチャット、プラグインの共有、質問 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — リリースノート、マイルストーン、舞台裏 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — 深い Q&A、RFC、「成果を見せて」 → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions** — 深い Q&A、RFC、「成果を見せて」 → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues** — バグ報告、機能リクエスト → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) と [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) のラベルが、最も入りやすい入口です。

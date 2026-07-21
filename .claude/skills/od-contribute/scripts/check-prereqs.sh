@@ -95,7 +95,7 @@ fi
 # with `gh auth status` green, `gh api user` can fail when the token has
 # insufficient scopes, has been revoked, or GitHub is unreachable. Returning
 # a fabricated GH_USER like `?` would propagate to TARGET_FORK and cause
-# downstream pushes to point at `?/open-design`, so we'd rather stop here.
+# downstream pushes to point at `?/open-design-sandboxed`, so we'd rather stop here.
 GH_USER="$(gh api user --jq .login 2>/dev/null)"
 if [[ -z "$GH_USER" ]]; then
   cat >&2 <<'EOF'

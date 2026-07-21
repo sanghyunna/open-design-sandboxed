@@ -2,7 +2,7 @@
 
 Reference for the `od-contribute` skill's `validate-design-system.sh` step.
 
-> **Authoritative source**: read 1–2 existing folders under `design-systems/` in `nexu-io/open-design` at runtime — the conventions evolve as new systems land.
+> **Authoritative source**: read 1–2 existing folders under `design-systems/` in `sanghyunna/open-design-sandboxed` at runtime — the conventions evolve as new systems land.
 
 ## Minimum viable design system
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clone (or reuse) nexu-io/open-design in an isolated workdir + create a feature branch.
+# Clone (or reuse) sanghyunna/open-design-sandboxed in an isolated workdir + create a feature branch.
 # Usage: setup-workspace.sh <type> <slug>
 #   <type>  one of: skill | design-system | i18n | docs
 #   <slug>  short kebab-case identifier (e.g. "translate-readme-es", "fix-typo-quickstart")

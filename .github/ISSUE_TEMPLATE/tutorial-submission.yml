@@ -55,5 +55,5 @@ body:
     attributes:
       label: Before you submit
       options:
-        - label: This video is actually about Open Design (nexu-io/open-design), not a different product.
+        - label: This video is actually about Open Design (sanghyunna/open-design-sandboxed), not a different product.
           required: true

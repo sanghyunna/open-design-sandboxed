@@ -23,7 +23,7 @@ These are the five rules that decide every downstream design decision. They sit 
 - [ ] **I4. CLI is the canonical agent-facing API; UI mirrors CLI, not the other way round.** Phase 1: `od plugin install/list/info/uninstall/apply/doctor` and the matching `/api/plugins/*` HTTP routes ship in the same PR. Remaining `od project/run/files/conversation/marketplace` subcommands roll in over Phase 1 / 2C / 3 PRs.
 - [x] **I5. Kernel/userspace boundary (spec §23) is drawn from day 1.** `composeSystemPrompt()` is structured as a pure assembler with a content table (DESIGN.md, craft, skill, plugin block, metadata); the new `pluginBlock` parameter slots in without restructuring. Phase 2A lifts the renderer into `packages/contracts/src/prompts/plugin-block.ts` (PB1).
 
-CI guard placement: each invariant must have at least one automated test that fails when the rule is violated. The test path is recorded next to the box when it lands.
+Validation guard placement: each invariant must have at least one automated test that fails when the rule is violated. The test path is recorded next to the box when it lands.
 
 ---
 
@@ -38,13 +38,13 @@ packages/contracts/src/plugins/      ← pure types + Zod schemas, no runtime de
   ├── installed.ts                   ← InstalledPluginRecord, TrustTier ('bundled' | 'trusted' | 'restricted')
   └── events.ts                      ← GenUIEvent + pipeline_stage_* variants joined into PersistedAgentEvent
 
-packages/plugin-runtime/             ← pure TS; reusable in web / daemon / CI
+packages/plugin-runtime/             ← pure TS; reusable in web / daemon / automation
   ├── parsers/{manifest,marketplace,frontmatter}.ts
   ├── adapters/{agent-skill,claude-plugin}.ts
   ├── merge.ts                       ← sidecar + adapter merge; open-design.json wins
   ├── resolve.ts                     ← ContextItem ref resolution (pure; no FS reads)
   ├── validate.ts                    ← JSON Schema validation
-  └── digest.ts                      ← manifestSourceDigest (frozen algorithm; CI fixtures)
+  └── digest.ts                      ← manifestSourceDigest (frozen algorithm; validation fixtures)
 
 apps/daemon/src/plugins/             ← side-effect concentration zone
   ├── registry.ts                    ← three-tier scan + hot reload (existing skills.ts/design-systems.ts/craft.ts delegate here)
@@ -63,8 +63,8 @@ apps/daemon/src/genui/               ← spec §10.3
 
 Hard layering rules
 
-- `packages/plugin-runtime` does not import `node:fs`. It receives `loader: (relpath) => Promise<string>`. Daemon injects real FS, CI injects mocks, web preview sandbox injects fetch.
-- `apps/daemon/src/plugins/snapshots.ts` is the only file that issues `INSERT/UPDATE` against `applied_plugin_snapshots`. CI guard: `rg "applied_plugin_snapshots" --type ts -g '!**/*.test.ts'` may match `INSERT` only inside `snapshots.ts`.
+- `packages/plugin-runtime` does not import `node:fs`. It receives `loader: (relpath) => Promise<string>`. Daemon injects real FS, tests inject mocks, web preview sandbox injects fetch.
+- `apps/daemon/src/plugins/snapshots.ts` is the only file that issues `INSERT/UPDATE` against `applied_plugin_snapshots`. Validation guard: `rg "applied_plugin_snapshots" --type ts -g '!**/*.test.ts'` may match `INSERT` only inside `snapshots.ts`.
 
 ---
 
@@ -138,7 +138,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/plugins/snapshot-diff.ts` | shipped | Phase 4 — `diffSnapshots` helper backing `od plugin snapshots diff <a> <b>` |
 | `apps/daemon/src/plugins/stats.ts` | shipped | Phase 4 — `pluginInventoryStats` / `snapshotInventoryStats` helpers backing `od plugin stats` |
 | `apps/daemon/src/plugins/simulate.ts` | shipped | Phase 4 — `simulatePipeline` / `parseSignalKv` helpers backing `od plugin simulate` |
-| `apps/daemon/src/plugins/verify.ts` | shipped | Phase 4 — `verifyPlugin` orchestrator backing `od plugin verify` (CI meta-command) |
+| `apps/daemon/src/plugins/verify.ts` | shipped | Phase 4 — `verifyPlugin` orchestrator backing `od plugin verify` (automation meta-command) |
 | `apps/daemon/src/storage/db-inspect.ts` | shipped | Phase 5 — `inspectSqliteDatabase` helper backing `od daemon db status` |
 | `apps/daemon/src/plugins/events.ts` | shipped | Phase 4 — in-memory plugin event ring buffer + SSE feed backing `od plugin events tail` |
 | `packages/plugin-runtime/src/pipeline-fallback.ts` | shipped | spec §23.3.3 — resolveAppliedPipeline falls back to a bundled scenario when od.pipeline is absent |
@@ -146,11 +146,6 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `plugins/_official/scenarios/<id>/{SKILL.md,open-design.json}` | shipped | Phase 4 (§23.3.3) — bundled scenario/router/export plugins, including the four taskKind defaults plus `od-default` Home free-form routing |
 | `packages/agui-adapter/` | shipped | Phase 4 — pure-TS AG-UI canonical event encoder |
 | `packages/contracts/src/prompts/atom-block.ts` | shipped | Phase 4 — `renderActiveStageBlock(stageId, bodies)` pure renderer |
-| `tools/pack/docker-compose.yml` | shipped | Phase 5 — hosted-mode reference manifest |
-| `tools/pack/helm/open-design/templates/**` | shipped | Phase 5 — Deployment / Service / Secret / ConfigMap / PVCs / Ingress / NOTES |
-| `tools/pack/helm/open-design/values-{aws,gcp,azure,aliyun,tencent,huawei,self}.yaml` | shipped | Phase 5 — per-cloud overrides (volume + ingress diffs) |
-| `deploy/Dockerfile` plugins/_official COPY | shipped | Phase 5 — bundled atoms travel with the image |
-| `.github/workflows/docker-image.yml` | shipped | Phase 5 — multi-arch ghcr.io push (:edge / :version) |
 | `apps/daemon/src/storage/project-storage.ts` | shipped | Phase 5 — ProjectStorage interface + Local impl + S3 stub |
 | `apps/daemon/src/storage/daemon-db.ts` | shipped | Phase 5 — DaemonDb config resolver (sqlite default, postgres stub) |
 | `GET /api/plugins/:id/asset/*` | shipped | Phase 4 — sandboxed plugin asset endpoint (§9.2 CSP) |
@@ -321,7 +316,7 @@ Validation
 
 - [x] `pnpm --filter @open-design/plugin-runtime test`
 - [x] `pnpm guard && pnpm typecheck`
-- [x] CI digest stability: re-running `digest()` on the fixtures matches the pinned hex.
+- [x] Digest stability: re-running `digest()` on the fixtures matches the pinned hex.
 
 Exit criterion
 
@@ -363,7 +358,7 @@ Exit criterion
 
 ### Phase 1.5 — Headless daemon lifecycle subset (1 d)
 
-Pulled out of spec §16 Phase 5 because Phase 1 e2e needs it. Avoids "Phase 1 looks green on macOS desktop, breaks on Linux CI" false positives.
+Pulled out of spec §16 Phase 5 because Phase 1 e2e needs it. Avoids "Phase 1 looks green on macOS desktop, breaks in Linux headless validation" false positives.
 
 Deliverables
 
@@ -375,7 +370,7 @@ Deliverables
 Validation
 
 - [x] `apps/daemon/tests/daemon-lifecycle.test.ts` covers the `/api/daemon/status` shape and the loopback-only enforcement on `/api/daemon/shutdown`.
-- [ ] `apps/daemon/tests/plugins-headless-run.test.ts` covers e2e-3's HTTP-level walkthrough; the full Docker re-run is deferred to the Phase 5 cloud-deployment PR.
+- [ ] `apps/daemon/tests/plugins-headless-run.test.ts` covers e2e-3's HTTP-level walkthrough; package-scoped headless validation is the product-workspace boundary.
 
 ### Phase 2A — Pipeline + devloop + GenUI(confirmation/form/choice) + Web inline rail (4–6 d)
 
@@ -493,23 +488,20 @@ Validation
 - [ ] **e2e-9 UI ↔ CLI parity**: pick 5 desktop UI workflows; replay each through `od …` only; produced artifacts byte-for-byte equal.
 - [ ] AG-UI smoke: a CopilotKit React client subscribes to `/api/runs/:runId/agui` and renders surfaces unmodified. This is an external-interop smoke, not a blocker for OD-native web/desktop rendering.
 
-### Phase 5 — Cloud deployment (parallel; can start after Phase 1.5)
+### Phase 5 — Runtime storage and non-loopback security
 
 Deliverables
 
-- [x] `linux/amd64` + `linux/arm64` Dockerfile per spec §15.1 (`deploy/Dockerfile`; entry-slice base is `node:24-alpine` with `NODE_IMAGE` build-arg override → `node:24-bookworm-slim`; bundled atom plugins ship inside the image).
-- [x] CI pushes `:edge` on main, `:<version>` on tag — `.github/workflows/docker-image.yml`.
-- [x] `tools/pack/docker-compose.yml`, `tools/pack/helm/` — chart templates (Deployment / Service / Secret / ConfigMap / PVCs / Ingress / NOTES) shipped, per-cloud `values-<cloud>.yaml` overrides shipped (AWS / GCP / Azure / Aliyun / Tencent / Huawei / self-hosted).
-- [x] Bound-API-token guard: daemon refuses to bind `OD_BIND_HOST=<non-loopback>` without `OD_API_TOKEN`; bearer middleware on `/api/*` skipped only on loopback peers and on the open probes (`/api/health`, `/api/version`, `/api/daemon/status`).
-- [x] `ProjectStorage` adapter substrate — `LocalProjectStorage` (v1 default) wired + tested; `S3ProjectStorage` interface-locked stub; `resolveProjectStorage` reads `OD_PROJECT_STORAGE`. AWS SDK wiring stays as the next Phase 5 PR.
-- [x] `DaemonDb` adapter substrate — `resolveDaemonDbConfig` reads `OD_DAEMON_DB` + `OD_PG_*`; the SQLite path is the only reachable backend until the postgres adapter lands.
-- [x] **Snapshot retention enforcement job (PB2).** Landed early (§3.A5): periodic worker (`OD_SNAPSHOT_GC_INTERVAL_MS`, default 6 h) deletes expired rows. Referenced-row TTL via `OD_SNAPSHOT_RETENTION_DAYS` stays opt-in. CLI escape hatch: `od plugin snapshots prune --before <ts>`.
+- [x] Bound-API-token guard: daemon refuses to bind `OD_BIND_HOST=<non-loopback>` without `OD_API_TOKEN`; bearer middleware on `/api/*` skips only loopback peers and open probes.
+- [x] `ProjectStorage` adapter substrate: `LocalProjectStorage` is the reachable v1 default; `resolveProjectStorage` reads `OD_PROJECT_STORAGE`.
+- [x] `DaemonDb` config resolver: SQLite remains the reachable backend; `resolveDaemonDbConfig` reads `OD_DAEMON_DB` and `OD_PG_*`.
+- [x] Snapshot retention enforcement and `od plugin snapshots prune --before <ts>`.
+
+Hosted/container deployment manifests and publishing automation are intentionally outside this product workspace.
 
 Validation
 
-- [ ] `docker run` smoke: image starts, web UI renders, `od plugin install` works inside container.
-- [ ] Multi-cloud smoke: deploy compose to AWS Fargate, GCP Cloud Run, Azure Container Apps; produce a fixed plugin's artifact byte-for-byte equal across clouds.
-- [ ] Pluggable storage smoke: same plugin alternated between local-disk + SQLite and S3 + Postgres; artifacts identical.
+- [ ] Package-scoped storage, auth, and snapshot-retention tests pass through the documented local validation commands.
 
 ### Phase 6 / 7 / 8 — Post-v1 native scenario coverage (per spec §21.4)
 
@@ -525,7 +517,7 @@ These are tracked but **not part of v1 sign-off**. Listed here so spec patches t
 
 These were originally spec §18 open questions; they are now resolved and propagated into both this plan and `docs/plugins-spec.md` proper. Future spec patches that revisit them must update both files in the same PR.
 
-- **PB1. Lift `## Active plugin` block into `packages/contracts/src/prompts/plugin-block.ts` in Phase 2A** (was Phase 4). **Decision: accepted as proposed.** Both `composeSystemPrompt()` implementations (daemon + contracts) import the same renderer. Spec §11.8 patched to drop the "Phase 4 lifts the block" bullet and the CI byte-equality cross-check fixture; spec §18 patched to mark the open question resolved. Plan §6 Phase 2A gains the deliverable; Phase 4 loses it.
+- **PB1. Lift `## Active plugin` block into `packages/contracts/src/prompts/plugin-block.ts` in Phase 2A** (was Phase 4). **Decision: accepted as proposed.** Both `composeSystemPrompt()` implementations (daemon + contracts) import the same renderer. Spec §11.8 patched to drop the "Phase 4 lifts the block" bullet and the byte-equality cross-check fixture; spec §18 patched to mark the open question resolved. Plan §6 Phase 2A gains the deliverable; Phase 4 loses it.
 - **PB2. `AppliedPluginSnapshot` unreferenced-row TTL.** **Decision: accepted with one modification** to preserve spec §8.2.1's reproducibility-first stance. Final shape:
   - `applied_plugin_snapshots.expires_at INTEGER` column lands in Phase 1 (NULL allowed).
   - Snapshots referenced by any `runs.applied_plugin_snapshot_id` / `conversations.applied_plugin_snapshot_id` / `projects.applied_plugin_snapshot_id` keep `expires_at = NULL` (pinned forever; reproducibility unchanged).
@@ -538,7 +530,7 @@ These were originally spec §18 open questions; they are now resolved and propag
 
 ## 8. Definition of done (the hard sign-off bar for v1)
 
-v1 ships when **all** of the following pass on a clean Linux CI container without electron. Each row links to the daemon / e2e test path that asserts it.
+v1 ships when **all** of the following pass through the documented local validation commands without electron. Each row links to the daemon / e2e test path that asserts it.
 
 - [x] **e2e-1 cold install** — `od plugin install ./fixtures/sample-plugin` →
   - `<OD_DATA_DIR>/plugins/sample-plugin/` exists.

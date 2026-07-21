@@ -209,7 +209,7 @@ Außerdem:
 - **Nicht erzählen.** Kein `// import the module`, kein `// loop through items`.
 - **TypeScript** für `apps/web/src/`. Der daemon (`apps/daemon/`) ist plain ESM JavaScript mit JSDoc, wenn Typen wichtig sind.
 - **Keine neuen Top-Level Dependencies** ohne Absatz in der PR-Beschreibung, was sie bringen und wie viele Bytes sie kosten.
-- **Vor dem Push `pnpm typecheck` ausführen.** CI tut es auch.
+- **Vor dem Push `pnpm typecheck` ausführen.** Das Ergebnis im Validierungsabschnitt der PR festhalten.
 
 ---
 
@@ -243,7 +243,7 @@ Für Prompt-Stack-Bugs fügen Sie die **vollständige Assistant Message** bei, d
 
 ## Fragen stellen
 
-- Architekturfrage, Designfrage, "Bug oder Fehlbenutzung?" → [GitHub Discussions](https://github.com/nexu-io/open-design/discussions) (bevorzugt, weil suchbar).
+- Architekturfrage, Designfrage, "Bug oder Fehlbenutzung?" → [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions) (bevorzugt, weil suchbar).
 - "Wie schreibe ich einen Skill für X?" → Discussion öffnen. Wir beantworten sie und übernehmen fehlende Muster in [`docs/skills-protocol.md`](../../docs/skills-protocol.md).
 
 ---
@@ -274,7 +274,7 @@ Wenn Sie kontinuierlich beigetragen haben und wissen möchten, wie der Weg zum M
 
 Das tl;dr: Liefern Sie gute PRs, prüfen Sie sorgfältig, halten Sie sich in [Discussions][discussions] / [Discord][discord] auf — und der Rest ergibt sich von selbst.
 
-[discussions]: https://github.com/nexu-io/open-design/discussions
+[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

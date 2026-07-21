@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Shared config for the od-contribute skill.
-# TARGET_REPO is hard-locked to nexu-io/open-design — this skill is OD-specific.
+# TARGET_REPO is hard-locked to sanghyunna/open-design-sandboxed — this skill is repository-specific.
 #
 # Override via env vars before invoking a script:
-#   TARGET_FORK   "<owner>/<name>"  push branches here. Defaults to $GH_USER/open-design at runtime.
+#   TARGET_FORK   "<owner>/<name>"  push branches here. Defaults to $GH_USER/open-design-sandboxed at runtime.
 #   OD_BASE_BRANCH                   default: main
 #   OD_WORK_ROOT                     default: $HOME/od-contrib-work
 #   OD_DISCORD_INVITE                default: https://discord.gg/qhbcCH8Am4
 
 set -euo pipefail
 
-readonly OD_TARGET_REPO="nexu-io/open-design"
+readonly OD_TARGET_REPO="sanghyunna/open-design-sandboxed"
 TARGET_REPO="$OD_TARGET_REPO"
 
 : "${TARGET_FORK:=}"

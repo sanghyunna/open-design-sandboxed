@@ -39,7 +39,7 @@ https://open-design.ai/ and developed at github.com/nexu-io/open-design.
 
 - GitHub repository: https://github.com/nexu-io/open-design
 - GitHub releases: https://github.com/nexu-io/open-design/releases
-- GitHub issues: https://github.com/nexu-io/open-design/issues
+- GitHub issues: https://github.com/sanghyunna/open-design-sandboxed/issues
 - Discord: https://discord.gg/9ptkbbqRu
 
 ## Key Blog Posts

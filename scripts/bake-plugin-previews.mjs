@@ -19,9 +19,8 @@
 //      speed) while a constant-velocity (linear) scroll pans top -> bottom.
 //   4. ffmpeg encodes the VFR frames to a 60fps VP9 .webm + a poster .jpg.
 //
-// Runtime deps are provided by the environment, NOT the repo: `puppeteer-core`
-// (the CI step `npm i puppeteer-core` ephemerally, or runs inside the
-// ghcr.io/puppeteer/puppeteer image), a Chrome/Chromium binary (CHROME env, or
+// Runtime deps are provided by the invoking environment, NOT the repo:
+// `puppeteer-core`, a Chrome/Chromium binary (CHROME env, or
 // auto-detected), and `ffmpeg` on PATH. We deliberately keep them out of
 // package.json so the daemon/web bundles never pull in a headless browser.
 //
@@ -31,8 +30,8 @@
 //
 // Output: <out>/<id>.mp4, <out>/<id>.poster.jpg, and <out>/manifest.json
 // ({ generatedAt, previews: { <id>: { video, poster, durationMs, holdMs } } }).
-// Uploading <out> to R2 + committing the manifest is the CI step's job; this
-// script only renders + encodes so it stays runnable locally and in CI alike.
+// Publishing <out> is an external operator concern; this script only renders
+// and encodes so it stays runnable in any prepared environment.
 
 import puppeteer from 'puppeteer-core';
 import { execFileSync } from 'node:child_process';
@@ -46,7 +45,7 @@ import path from 'node:path';
 //       force-load webfonts before capture (CJK templates were baking tofu).
 //   v3: bound the slide-walk — cap deckSignal's DOM scan + a wall-time cap — so a
 //       deck that renders every slide in one giant rail (#deck{width:10000vw})
-//       no longer drags the walk, and the clip, out to 20s+ in CI.
+//       no longer drags the walk, and the clip, out to 20s+ in automated runs.
 //   v4: honor an `od.preview.motion` ('scroll'|'deck'|'static') declaration;
 //       auto-detect deck-vs-scroll by viewport height (not by probing, which
 //       misread tall pages with a horizontal marquee as decks); pan via REAL
@@ -289,9 +288,9 @@ async function bakeOne(browser, id, hash, motion) {
       // CJK-heavy templates pull Noto Serif/Sans SC from Google Fonts with
       // display=swap; awaiting fonts.ready alone can resolve on the swap
       // fallback. Force every registered face to load, THEN await ready, so the
-      // capture isn't a fallback/tofu render. (The CI bake also installs
-      // fonts-noto-cjk so the fallback itself carries CJK glyphs if a webfont is
-      // slow or blocked, instead of rendering missing-glyph boxes.)
+      // capture isn't a fallback/tofu render. The invoking environment should
+      // provide Noto CJK fonts so fallback text does not render as missing glyphs
+      // when a webfont is slow or blocked.
       // Double-pass: await ready FIRST so faces registered by a late-arriving
       // Google Fonts stylesheet are present, force-load any still unloaded, then
       // await ready again — a single pass can enumerate before display=swap
@@ -467,17 +466,17 @@ let ok = 0, skip = 0, reused = 0;
 for (const id of ids) {
   const t0 = Date.now();
   // Content-hash skip: a plugin whose preview HTML (and the bake recipe) is
-  // unchanged reuses its existing clip — no render, and the CI step re-uploads
-  // nothing. Editing the page or bumping BAKE_VERSION invalidates the hash.
+  // unchanged reuses its existing clip, so no render is needed. Editing
+  // the page or bumping BAKE_VERSION invalidates the hash.
   let hash = null;
   try {
     const html = await (await fetch(`${BASE_URL}/api/plugins/${encodeURIComponent(id)}/preview`)).text();
     hash = createHash('sha256').update(html).update(` ${BAKE_VERSION} ${motionMap[id] || ''}`).digest('hex').slice(0, 16);
   } catch {}
   const prev = previews[id];
-  // In CI the unchanged clips already live on R2 (not on disk), so PREVIEW_REMOTE
-  // trusts the manifest hash without a local-file check; locally we also confirm
-  // the files are actually present before reusing.
+  // When unchanged clips live in remote storage, PREVIEW_REMOTE trusts the
+  // manifest hash without a local-file check; otherwise also confirm the files
+  // are present before reusing.
   const filesPresent = process.env.PREVIEW_REMOTE === '1'
     || (prev && existsSync(path.join(OUT, prev.video)) && existsSync(path.join(OUT, prev.poster)));
   if (hash && prev && prev.hash === hash && filesPresent) {

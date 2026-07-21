@@ -576,7 +576,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 - 💬 **Discord**——每日聊天、外掛分享、提問 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter**——發行說明、里程碑、幕後花絮 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions**——深入問答、RFC、「秀出你的成果」 → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions**——深入問答、RFC、「秀出你的成果」 → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues**——錯誤回報、功能請求 → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 與 [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) 這兩個標籤是最容易的入門方式。

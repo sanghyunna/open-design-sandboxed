@@ -235,7 +235,7 @@ Além disso:
 - **Não narre.** Sem `// import the module`, sem `// loop through items`. Se o código se lê obviamente, o comentário é ruído. Reserve comentários para intenção não-óbvia ou restrições que o código não consegue expressar.
 - **TypeScript** em `apps/web/src/`. O daemon (`apps/daemon/`) é JavaScript ESM puro com JSDoc onde tipos importam — mantenha assim.
 - **Sem novas dependências top-level** sem um parágrafo na descrição do PR sobre o que ganhamos vs. quantos bytes despachamos. A lista de deps em [`package.json`](../../package.json) é pequena de propósito.
-- **Rode `pnpm typecheck`** antes do push. CI roda; falhar lá rende um comentário "please fix".
+- **Rode `pnpm typecheck`** antes do push e registre o resultado na seção de validação do PR.
 
 ---
 
@@ -269,7 +269,7 @@ Para bugs da pilha de prompt ("o agente emitiu um hero com gradiente roxo, a bla
 
 ## Fazendo perguntas
 
-- Pergunta de arquitetura, pergunta de design, "isso é bug ou mau uso" → [GitHub Discussions](https://github.com/nexu-io/open-design/discussions) (preferido — pesquisável para o próximo).
+- Pergunta de arquitetura, pergunta de design, "isso é bug ou mau uso" → [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions) (preferido — pesquisável para o próximo).
 - "Como escrevo uma skill que faz X" → Abra uma discussion. Respondemos e transformamos a resposta em [`docs/skills-protocol.md`](../../docs/skills-protocol.md) se for um padrão faltante.
 
 ---
@@ -300,7 +300,7 @@ Se você vem contribuindo de forma consistente e quer saber como é o caminho pa
 
 O tl;dr: mande bons PRs, revise com cuidado, apareça nas [Discussions][discussions] / no [Discord][discord], e o resto se resolve sozinho.
 
-[discussions]: https://github.com/nexu-io/open-design/discussions
+[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

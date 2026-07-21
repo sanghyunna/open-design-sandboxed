@@ -69,7 +69,7 @@ A skill is a **recipe for producing one kind of artifact**. Not a feature, not a
 
 **Third option: ship as an external skill bundle.** If your workflow is genuinely a recipe (not a daemon feature) but is too vendor-specific or audience-narrow to land in-tree, the skills protocol supports user-global skills via `~/.claude/skills/` (see [`skills-protocol.md` §3](skills-protocol.md#3-skill-discovery--precedence)). Publishing your bundle as a standalone repo lets users `git clone` or `od skill add` it without us taking on the maintenance surface. This is the right path for payment-provider workflows, regional marketplace integrations, in-house design systems, and similar — not a rejection, just a different distribution channel.
 
-If you're not sure your idea fits, **open a discussion first** ([github.com/nexu-io/open-design/discussions](https://github.com/nexu-io/open-design/discussions)) — we'd rather spend 5 minutes redirecting than have you build the wrong thing for a week.
+If you're not sure your idea fits, **open a discussion first** ([github.com/sanghyunna/open-design-sandboxed/discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)) — we'd rather spend 5 minutes redirecting than have you build the wrong thing for a week.
 
 ---
 

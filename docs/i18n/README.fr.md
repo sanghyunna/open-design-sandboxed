@@ -576,7 +576,7 @@ De vraies personnes derrière chaque canal.
 
 - 💬 **Discord** — chat quotidien, partage de plugins, questions → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — notes de version, jalons, coulisses → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — Q&R approfondies, RFC, « montrez votre travail » → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions** — Q&R approfondies, RFC, « montrez votre travail » → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues** — rapports de bugs, demandes de fonctionnalités → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 Les labels [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) et [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) sont la façon la plus simple de se lancer.

@@ -6,8 +6,6 @@
  * verify-readiness, submit-sitemap, inspect-urls, render-status,
  * scheduled-window) stays focused.
  *
- * Authoritative reference: ~/.codex/skills/blog-indexing-automation/SKILL.md.
- *
  *   - Treat URL Inspection as a monitoring API, not a submission API.
  *   - Treat Google Indexing API as out of scope for normal blog posts.
  *   - One sitemap submission per deploy, not one per URL.

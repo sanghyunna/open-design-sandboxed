@@ -10,8 +10,8 @@
  * `ConformanceOutcome`. The synthetic fixtures from
  * `__fixtures__/adapters/` are the deterministic inputs the test
  * harness uses; production code in `runOrchestrator` already covers
- * the live path, so this helper exists to give CI a way to validate
- * end-to-end shape without depending on a network model.
+ * the live path, so this helper validates the end-to-end shape without
+ * depending on a network model.
  *
  * The plan's retry budget (one retry per degraded template, two
  * consecutive degraded counts as one failure, ≥ 90% shipped + ≥ 95%

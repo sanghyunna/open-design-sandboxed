@@ -575,7 +575,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 - 💬 **Discord**——日常聊天、插件分享、提问 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter**——发版说明、里程碑、幕后 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions**——深度问答、RFC、"展示你的作品" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
+- 🗣️ **GitHub Discussions**——深度问答、RFC、"展示你的作品" → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
 - 🐛 **GitHub Issues**——Bug 报告、功能请求 → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 和 [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) 标签是最简单的入门方式。

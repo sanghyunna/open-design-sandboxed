@@ -3,7 +3,7 @@
 
 <p align="center"><a href="../../MAINTAINERS.md">English</a> · <a href="MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <a href="MAINTAINERS.de.md">Deutsch</a> · <b>Français</b> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <a href="MAINTAINERS.ja-JP.md">日本語</a></p>
 
-Ce document définit les règles pour devenir Maintainer de `nexu-io/open-design`, exercer ce rôle et y renoncer. La liste nominative du Core Team est tenue en interne et n'est pas énumérée ici — ce qui compte publiquement, ce sont les règles que tout le monde respecte.
+Ce document définit les règles pour devenir Maintainer de `sanghyunna/open-design-sandboxed`, exercer ce rôle et y renoncer. La liste nominative du Core Team est tenue en interne et n'est pas énumérée ici — ce qui compte publiquement, ce sont les règles que tout le monde respecte.
 
 > **Statut** : v1, rédigé le 2026-05-11. Document complémentaire à [`CONTRIBUTING.md`](../../CONTRIBUTING.md#becoming-a-maintainer) — ce fichier renvoie les contributeurs ici pour les règles complètes.
 
@@ -34,7 +34,7 @@ Le reste de ce document concerne les **External Maintainers** sauf indication co
 Toute PR — quel que soit son auteur — nécessite **les trois** éléments suivants :
 
 1. Aucun conflit de code.
-2. CI entièrement au vert.
+2. Validation locale documentée entièrement au vert.
 3. Au moins une approbation d'un Maintainer ou d'un membre du Core Team.
 
 L'approbation d'un Maintainer est la voie empruntée par la plupart des PR pour être mergées — c'est la manière la plus directe dont la confiance d'un Maintainer se manifeste dans le quotidien du projet.
@@ -47,7 +47,7 @@ Il existe **trois** critères d'entrée. Tous les trois doivent être remplis.
 
 ### 1. Volume de contributions
 
-- **≥ 20 merged PRs** sur `nexu-io/open-design`.
+- **≥ 20 merged PRs** sur `sanghyunna/open-design-sandboxed`.
 
 Il s'agit d'un seuil minimal indicatif, et non d'un sésame automatique. Atteindre 20 PRs vous met dans la liste des candidats à examiner ; cela ne garantit pas le rôle.
 
@@ -67,7 +67,7 @@ Nous évaluons le profil GitHub du candidat selon sept dimensions. **Il faut pas
 
 #### Dérogation projet jeune (expire automatiquement quand le repo atteint 6 mois)
 
-Tant que `nexu-io/open-design` a moins de six mois depuis le commit initial, le veto sur l'**activité inter-projets** (#6) peut faire l'objet d'une dérogation par consensus du Core Team lorsque :
+Tant que `sanghyunna/open-design-sandboxed` a moins de six mois depuis le commit initial, le veto sur l'**activité inter-projets** (#6) peut faire l'objet d'une dérogation par consensus du Core Team lorsque :
 
 - Les dimensions 1, 2, 3 et 5 sont nettement au-dessus de la ligne d'admission ; **et**
 - La qualité des PRs du candidat sur ce repo est jugée élevée par la review pratique du Core Team.

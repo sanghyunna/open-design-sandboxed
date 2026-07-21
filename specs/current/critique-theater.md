@@ -186,7 +186,7 @@ const composite = present.reduce((s, r) => s + (weights[r] / totalWeight) * pane
 - `<CRITIQUE_RUN version="1">` is canonical for v1.
 - Parser dispatches to `parsers/v1.ts`. Future v2 lands in `parsers/v2.ts` alongside v1; the daemon supports both indefinitely.
 - Each artifact row stores `critique_protocol_version`. Old artifacts replay through their original parser, never the new one.
-- The prompt template exports `PROTOCOL_VERSION` as a TypeScript constant; CI fails if this constant is bumped without a new `parsers/v{n}.ts` file.
+- The prompt template exports `PROTOCOL_VERSION` as a TypeScript constant; the package validation fails if this constant is bumped without a new `parsers/v{n}.ts` file.
 
 ### Disagreement requirement
 
@@ -358,7 +358,7 @@ Numeric values come from `CritiqueConfig`, never hardcoded. The rule line uses a
 | Round divider | 11px / mono / uppercase / letter-spacing 0.1em | thin separator |
 | Ship rule explainer | 12px / mono / 1.55 line-height | dashed-border explanatory block |
 
-Label sizes ≤ 11px are reserved for tags, badges, and uppercase chrome only. **Body text is never below 12px in production.** This rule is enforced by a CI lint that grep-fails any new `font-size: <= 11px` rule outside the explicit chrome class allowlist (`role-tag`, `dim-dot`, `round-divider`, `meta-pill`).
+Label sizes ≤ 11px are reserved for tags, badges, and uppercase chrome only. **Body text is never below 12px in production.** This rule is enforced by a package-scoped lint that grep-fails any new `font-size: <= 11px` rule outside the explicit chrome class allowlist (`role-tag`, `dim-dot`, `round-divider`, `meta-pill`).
 
 ### Demo-only chrome (must not ship)
 
@@ -368,7 +368,7 @@ The visual companion mockup includes affordances that are **not part of the prod
 - Any footer pill labeled "demo · click tabs to walk every state".
 - The state-walking keyboard shortcut.
 
-These exist purely to let reviewers walk every state in one page. The production Theater renders exactly one phase at a time, driven by the SSE stream. CI fails if any string matching `data-demo` or class `demo-tabs` appears in production bundles. The mockup HTML lives under `.superpowers/brainstorm/` (gitignored) and never ships.
+These exist purely to let reviewers walk every state in one page. The production Theater renders exactly one phase at a time, driven by the SSE stream. Package validation fails if any string matching `data-demo` or class `demo-tabs` appears in production bundles. The mockup HTML lives under `.superpowers/brainstorm/` (gitignored) and never ships.
 
 ### Accessibility
 
@@ -376,14 +376,14 @@ These exist purely to let reviewers walk every state in one page. The production
 - A single offscreen status node carries `aria-live="polite"`. It announces only `round_end` and `ship` events, never per-dim.
 - Keyboard map: `Tab` cycles lanes, `Enter` toggles dim detail, `Esc` triggers Interrupt with confirm, `[` / `]` step through rounds in collapsed and replay mode.
 - Color is never the only signal: must-fix counts use both color and a numeric badge; dim bars carry both color and width; scores always show as text.
-- The Theater UI is itself audited by a CI test that pipes its rendered DOM through the same WCAG AA rule set the A11y panelist applies.
+- The Theater UI is itself audited by an automated test that pipes its rendered DOM through the same WCAG AA rule set the A11y panelist applies.
 
 ### Performance budget
 
 | Metric | Budget | Enforcement |
 | --- | --- | --- |
-| Stage component bundle | ≤ 18 KiB gzipped | `size-limit` in CI |
-| Reducer hot path | p99 ≤ 2 ms per event | vitest bench in CI |
+| Stage component bundle | ≤ 18 KiB gzipped | package-scoped `size-limit` command |
+| Reducer hot path | p99 ≤ 2 ms per event | package-scoped vitest bench |
 | First lane visible from first SSE event | ≤ 200 ms | Playwright trace in `e2e/critique-theater.spec.ts` |
 | Transcript scrub at 1 MiB transcript | 60 fps, no dropped frames | Playwright `Page.metrics` |
 
@@ -413,7 +413,7 @@ Reopening an artifact loads the badge from SQLite columns. Clicking expand trigg
 | User Interrupt | `POST /api/projects/:id/critique/:runId/interrupt` | cascade `SIGTERM`, persist partial state, ship best-so-far if any round closed, otherwise mark `interrupted` with no final. |
 | CLI process crash | spawn handle exits non-zero before `<SHIP>` | persist partial transcript, mark `failed` with `rounds_json.cause`, emit `critique.failed`, never silently retry. |
 | Daemon restart mid-run | next boot scans SQLite for rows in state `running` older than `totalTimeoutMs` | mark `interrupted` with `rounds_json.recoveryReason = "daemon_restart"`. Never auto-resume. |
-| Adapter unsupported | adapter fails conformance test in nightly CI | adapter marked `critique:degraded` in adapter registry with 24h TTL. UI shows the degraded banner once per session per adapter. |
+| Adapter unsupported | adapter repeatedly fails the package conformance suite | adapter marked `critique:degraded` in adapter registry with 24h TTL. UI shows the degraded banner once per session per adapter. |
 
 ### Failure-mode rate targets and recovery
 
@@ -528,7 +528,7 @@ Rollback at any milestone flips the master env var. SQLite columns are additive,
 
 ## Documentation deliverables
 
-Every item is a CI gate. Missing documentation fails the build.
+Every item is required by the local validation and review checklist.
 
 - `docs/critique-theater.md`, user-facing how-it-works with screenshots of all five states and an adapter compatibility table.
 - `docs/spec.md`, adds a "Critique Theater protocol v1" section with the full wire grammar.
@@ -539,7 +539,7 @@ Every item is a CI gate. Missing documentation fails the build.
 - `apps/daemon/src/critique/AGENTS.md`, module-level guide per the existing `AGENTS.md` convention.
 - `apps/web/src/components/Theater/AGENTS.md`, same.
 - `README.md`, single line in the "What you get" table: Critique Theater, every artifact panel-tempered, scored, replayable.
-- All six locales (DE, JA, KO, zh-CN, zh-TW, EN) gain new strings in the same PR. Existing duplicate-key i18n CI gate covers consistency.
+- All six locales (DE, JA, KO, zh-CN, zh-TW, EN) gain new strings in the same PR. The existing i18n checks cover consistency.
 
 ## Open questions
 

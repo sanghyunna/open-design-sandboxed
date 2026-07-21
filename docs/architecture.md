@@ -11,100 +11,45 @@ This doc describes the system topology, runtime modes, data flow, and file layou
 
 ---
 
-## 1. Three deployment topologies
+## 1. Local runtime topology
 
-OD is a web app plus a local daemon. The split means the same UI can run in three shapes:
-
-### Topology A — Fully local (the default)
-
-```
-┌────────────────── user's machine ──────────────────┐
-│                                                    │
-│   browser ──► Next.js dev server (localhost:3000)  │
-│                       │                            │
-│                       │ http://localhost:7456      │
-│                       ▼                            │
-│            od daemon (Node, long-running)         │
-│                       │                            │
-│                       ▼                            │
-│            spawns: claude / codex / cursor / …     │
-└────────────────────────────────────────────────────┘
-```
-
-One `pnpm tools-dev run web` starts both the Next.js app and the daemon. `pnpm tools-dev` adds the desktop shell. Zero config. No accounts.
-
-### Topology B — Web on Vercel + daemon on user's machine
+Open Design runs as a local web app and daemon, with optional Electron desktop
+and packaged shells. The browser and `od` CLI use the same daemon `/api/*`
+surface; the daemon owns filesystem access, persistence, skills, artifacts, and
+agent processes.
 
 ```
-browser ──► od.yourdomain.com (Vercel)
-              │
-              │ ws(s):// user-provided URL (e.g. cloudflared tunnel)
-              ▼
-        od daemon on user's laptop
-              │
-              ▼
-        spawns: claude / codex / …
+browser / desktop / od CLI
+             |
+        HTTP + SSE
+             |
+        local daemon
+        /     |     \
+  agent CLIs storage  skills
 ```
 
-The user runs `od daemon --expose` which prints a tunnel URL; they paste the URL into the deployed web app's "Connect daemon" screen. Daemon holds secrets; Vercel holds nothing sensitive.
-
-### Topology C — Web on Vercel + direct API (no daemon)
-
-```
-browser ──► od.yourdomain.com (Vercel serverless)
-                       │
-                       ▼
-              Anthropic Messages API (BYOK stored in browser)
-```
-
-No local CLI, no daemon. Degraded experience — no Claude Code skills, no filesystem artifacts (stored in IndexedDB), no PPTX export. But it's the "just try it" path. Keys stored `localStorage` with explicit warning.
-
-The three topologies share the same web bundle; the difference is which transports are enabled.
+Use `pnpm tools-dev` for the development lifecycle. Runtime ports and paths are
+selected by the control plane and must not be treated as persistent identity.
 
 ## 2. Component diagram (logical)
 
 ```
-┌─────────────────────────────── Web App ─────────────────────────────┐
-│                                                                     │
-│  ┌──────────┐  ┌─────────────┐  ┌───────────┐  ┌────────────────┐  │
-│  │ chat pane│  │ artifact    │  │ preview   │  │ comment /      │  │
-│  │          │  │ tree        │  │ iframe    │  │ slider overlay │  │
-│  └────┬─────┘  └──────┬──────┘  └─────┬─────┘  └────────┬───────┘  │
-│       │               │               │                  │           │
-│       └─────────── session bus (in-memory) ──────────────┘           │
-│                        │                                             │
-│                        ▼                                             │
-│              Transport layer (daemon SSE | api-direct | browser)      │
-└─────────────────────────┬───────────────────────────────────────────┘
-                          │
-  ┌───────────────────────┴────────────────────────────────┐
-  │                                                        │
-  ▼ (topology A/B)                                         ▼ (topology C)
-┌─────────────────────── Daemon ───────────────────────┐  ┌────────────┐
-│                                                      │  │ browser-   │
-│  session manager      skill registry                 │  │ only       │
-│  agent adapter pool   design-system resolver         │  │ runtime    │
-│  artifact store       preview compile pipeline       │  │ (limited)  │
-│  export pipeline      detection service              │  └────────────┘
-│                                                      │
-└─┬────────────────────────────────────────────────┬───┘
-  │                                                │
-  ▼                                                ▼
-┌─ agent CLIs ─┐                           ┌─ filesystem ─┐
-│ claude       │                           │ ./.od/      │
-│ codex        │                           │ ~/.od/      │
-│ cursor-agent │                           │ skills/      │
-│ gemini       │                           │ DESIGN.md    │
-│ opencode     │                           └──────────────┘
-│ qwen         │
-└──────────────┘
+Web app / desktop / packaged shell / od CLI
+                    |
+               HTTP + SSE
+                    |
+               Local daemon
+        /-----------+-----------\
+ agent adapters   persistence   registries
+        |                          |
+ code-agent CLIs       skills / design systems / artifacts
 ```
 
 ## 3. Key components
 
 ### 3.1 Web app (Next.js 16, App Router)
 
-- **Why Next.js, not Vite SPA?** We want SSR for the marketing landing page + serverless routes for Topology C's direct-API path + Vercel deployment as a first-class citizen. An SPA would need a separate server for any of that.
+- **Why Next.js, not Vite SPA?** The App Router provides the web application boundary and local daemon proxy while sharing the same UI with the desktop shells.
 - **State:** React/browser state for UI config, with projects/conversations/files hydrated from the daemon APIs.
 - **Iframe preview:** Vendored React 18 + Babel standalone for JSX artifacts, following [Open CoDesign][ocod]'s approach. HTML artifacts load raw. See [§5](#5-preview-renderer).
 - **Comment mode:** Click captures `[data-od-id]` on preview DOM, opens a popover, sends `{artifact_id, element_id, note}` to daemon → agent gets a surgical edit instruction.
@@ -392,53 +337,22 @@ fronted by an HMAC gate when the daemon is paired with a desktop:
 
 Shared API contract types live in [`packages/contracts/src`](../packages/contracts/src).
 
-## 8. Deployment
+## 8. Local packaging and validation
 
-### Local
-```sh
-pnpm install
-pnpm tools-dev run web       # starts daemon + web foreground loop
-```
-
-When a reverse proxy sits in front of the daemon, `/api/*` includes SSE streams and must stay unbuffered. The daemon sends `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`, and also emits SSE comment keepalives, but nginx can still break chunked streams if gzip is enabled. For nginx, set `proxy_buffering off;`, `gzip off;`, and long `proxy_read_timeout` / `proxy_send_timeout` values on the API location. Otherwise browsers can report `net::ERR_INCOMPLETE_CHUNKED_ENCODING 200 (OK)` on long generations.
-
-### Docker
-```yaml
-# docker-compose.yml
-services:
-  daemon:
-    image: openclaudedesign/daemon
-    volumes: [ "~/.open-design:/root/.open-design", "./:/workspace" ]
-    ports: ["7456:7456"]
-  web:
-    image: openclaudedesign/web
-    ports: ["3000:3000"]
-    environment: [ "OD_DAEMON_URL=http://daemon:7456" ]
-```
-
-### Vercel + local daemon (Topology B)
-```sh
-vercel deploy                     # web only
-od daemon --expose               # user runs locally; prints tunnel URL
-# user pastes URL into /connect UI
-```
-
-### Vercel direct (Topology C)
-```sh
-vercel deploy                     # same bundle
-# flip VERCEL env flag OD_MODE=direct to hide daemon-connect UI
-```
+The repository's packaging boundary is local build and validation through
+`pnpm tools-pack`. Packaged updater tests consume deterministic fixture
+metadata from `pnpm tools-serve`. This workspace does not own hosted
+deployment, container orchestration, or release publication.
 
 ## 9. Security model
 
 | Surface | Threat | Mitigation |
 |---|---|---|
-| Daemon HTTP/SSE API | Arbitrary local process talks to daemon | Bind to localhost by default; add auth/tunnel hardening before exposing beyond the machine |
+| Daemon HTTP/SSE API | Arbitrary local process talks to daemon | Bind to localhost by default; require explicit authentication and origin controls before any non-loopback use |
 | Artifact code in preview | XSS/cookie theft from host | `<iframe sandbox="allow-scripts">`, no `allow-same-origin` |
 | Agent running on user's machine | Agent reads/writes outside project | Adapter sets `cwd` to artifact dir; relies on agent's own permission system (Claude Code's `--allowed-tools` etc.) |
-| User secrets | Leak to cloud | BYOK stored only in daemon's `config.toml` (mode 0600) or browser `localStorage` in Topology C, never sent to OD's own servers (we don't have any) |
+| User secrets | Exposed through logs or diagnostics | Store credentials in daemon-owned configuration and redact them from diagnostics |
 | Skill from untrusted source | Malicious skill in `~/.claude/skills/` | Install-time warning; skills run under the agent's permission model, not ours |
-| Vercel web bundle | Compromised build | Standard Vercel integrity; bundle has zero secrets |
 
 We inherit the agent's permission model on purpose — we don't invent our own sandbox, because Claude Code's `--permission-mode` / Codex's sandboxing / Cursor's containment already exist and are maintained.
 

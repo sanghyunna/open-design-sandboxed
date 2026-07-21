@@ -3,7 +3,7 @@
 
 <p align="center"><a href="../../MAINTAINERS.md">English</a> · <a href="MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <b>Deutsch</b> · <a href="MAINTAINERS.fr.md">Français</a> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <a href="MAINTAINERS.ja-JP.md">日本語</a></p>
 
-Dieses Dokument legt die Regeln dafür fest, wie man Maintainer von `nexu-io/open-design` wird, diese Rolle ausübt und sich aus ihr zurückzieht. Die individuelle Zusammensetzung des Core Teams wird intern verwaltet und ist hier nicht aufgeführt — was öffentlich zählt, sind die Regeln, an die sich alle halten.
+Dieses Dokument legt die Regeln dafür fest, wie man Maintainer von `sanghyunna/open-design-sandboxed` wird, diese Rolle ausübt und sich aus ihr zurückzieht. Die individuelle Zusammensetzung des Core Teams wird intern verwaltet und ist hier nicht aufgeführt — was öffentlich zählt, sind die Regeln, an die sich alle halten.
 
 > **Status**: v1, entworfen am 2026-05-11. Begleitdokument zu [`CONTRIBUTING.md`](../../CONTRIBUTING.md#becoming-a-maintainer) — diese Datei verweist Beitragende für die vollständigen Regeln hierher.
 
@@ -34,7 +34,7 @@ Der Rest dieses Dokuments bezieht sich auf **External Maintainers**, sofern nich
 Jeder PR — unabhängig davon, wer ihn verfasst hat — benötigt **alle drei** der folgenden Punkte:
 
 1. Keine Code-Konflikte.
-2. CI vollständig grün.
+2. Dokumentierte lokale Validierung vollständig grün.
 3. Mindestens eine Approval von einem Maintainer oder einem Core-Team-Mitglied.
 
 Die Approval eines Maintainers ist der Weg, den die meisten PRs zum Merge nehmen — sie ist die direkteste Art, wie sich das Vertrauen eines Maintainers im täglichen Projektgeschehen zeigt.
@@ -47,7 +47,7 @@ Es gibt **drei** Aufnahmekriterien. Alle drei müssen erfüllt sein.
 
 ### 1. Beitragsumfang
 
-- **≥ 20 merged PRs** zu `nexu-io/open-design`.
+- **≥ 20 merged PRs** zu `sanghyunna/open-design-sandboxed`.
 
 Dies ist eine weiche Untergrenze, kein automatisches Ticket. Das Erreichen von 20 PRs bringt Sie in die Betrachtung; es garantiert die Rolle nicht.
 
@@ -67,7 +67,7 @@ Wir prüfen das GitHub-Profil des Kandidaten anhand von sieben Dimensionen. **Mi
 
 #### Frühphasen-Ausnahme (läuft automatisch ab, wenn das Repo 6 Monate alt wird)
 
-Solange `nexu-io/open-design` jünger als sechs Monate seit dem initialen Commit ist, kann das Veto zur **projektübergreifenden Aktivität** (#6) durch Konsens des Core Teams ausgesetzt werden, wenn:
+Solange `sanghyunna/open-design-sandboxed` jünger als sechs Monate seit dem initialen Commit ist, kann das Veto zur **projektübergreifenden Aktivität** (#6) durch Konsens des Core Teams ausgesetzt werden, wenn:
 
 - Die Dimensionen 1, 2, 3 und 5 deutlich über der Aufnahmelinie liegen; **und**
 - Die PR-Qualität des Kandidaten in diesem Repo vom Core Team nach praxisnaher Prüfung als hoch beurteilt wird.

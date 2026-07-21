@@ -39,8 +39,14 @@ od plugin publish vendor/plugin-name --to open-design --repo https://github.com/
 ```
 
 v1 会打开 GitHub registry review flow。发布 payload 包含插件 ID、版本、
-源码仓库、能力摘要、包 digest 和 registry entry path。合并之后，CI 重新生成
-`open-design-marketplace.json`。
+源码仓库、能力摘要、包 digest 和 registry entry path。维护者在 registry 变更中
+显式更新 catalog：
+
+```bash
+od plugin publish vendor/plugin-name --to marketplace-json \
+  --catalog plugins/registry/community/open-design-marketplace.json \
+  --repo https://github.com/vendor/plugin-name
+```
 
 ## 5. 从 registry 安装
 

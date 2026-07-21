@@ -1937,7 +1937,7 @@ The conformance harness runs against every adapter listed `status: production` i
 
 **Retry budget:** any single template that emits `critique.degraded` is retried once with the same brief and adapter. Two consecutive `degraded` runs count as one failure for the rate calculation. Templates that emit `critique.interrupted` due to user action do not count toward conformance (interrupts are user-initiated, not adapter regressions).
 
-**Synthetic adapter fixtures** under `apps/daemon/src/critique/__fixtures__/adapters/` provide deterministic inputs for the harness in CI: `synthetic-good.ts` emits the canonical `happy-3-rounds.txt` content; `synthetic-bad.ts` emits `malformed-unbalanced.txt` to assert the degraded path fires.
+**Synthetic adapter fixtures** under `apps/daemon/src/critique/__fixtures__/adapters/` provide deterministic inputs for the conformance harness: `synthetic-good.ts` emits the canonical `happy-3-rounds.txt` content; `synthetic-bad.ts` emits `malformed-unbalanced.txt` to assert the degraded path fires.
 
 ### Task 10.1: Synthetic CLI fixture
 
@@ -2066,7 +2066,7 @@ git commit -m "feat(observability): Grafana dashboard for Critique Theater"
 
 - [ ] **Step 2: Run** `pnpm size-limit`. Confirm pass below budget.
 
-- [ ] **Step 3: Add CI step** in `.github/workflows/<existing>.yml` that fails on regression.
+- [ ] **Step 3: Add a package-scoped validation command** that fails on regression.
 
 - [ ] **Step 4: Commit.**
 
@@ -2076,15 +2076,15 @@ git commit -m "ci(perf): 18 KiB gz budget for Theater bundle"
 
 ### Task 13.2: Reducer benchmark gate
 
-- [ ] **Step 1–5:** Add `apps/web/src/components/Theater/state/__bench__/reducer.bench.ts` running the full happy fixture through the reducer 10k times. Fail CI if p99 exceeds 2 ms. Commit.
+- [ ] **Step 1–5:** Add `apps/web/src/components/Theater/state/__bench__/reducer.bench.ts` running the full happy fixture through the reducer 10k times. Make the command fail if p99 exceeds 2 ms. Commit.
 
 ```bash
 git commit -m "ci(perf): reducer p99 bench gate at 2ms"
 ```
 
-### Task 13.3: `ts-prune` scoped CI step
+### Task 13.3: `ts-prune` scoped validation
 
-- [ ] **Step 1–5:** Add `pnpm check:dead-exports` script invoking `ts-prune` scoped to `apps/daemon/src/critique` and `apps/web/src/components/Theater`. Fail on any unreferenced export. Wire into the existing CI pipeline. Commit.
+- [ ] **Step 1–5:** Add `pnpm check:dead-exports` script invoking `ts-prune` scoped to `apps/daemon/src/critique` and `apps/web/src/components/Theater`. Fail on any unreferenced export and document the command in the local validation checklist. Commit.
 
 ```bash
 git commit -m "ci(quality): ts-prune dead-code gate for critique modules"
@@ -2101,7 +2101,7 @@ git commit -m "ci(quality): ts-prune dead-code gate for critique modules"
 
 - [ ] **Step 3: Add to root `package.json` scripts:** `"check:critique-coverage": "tsx tools/dev/scripts/check-critique-coverage.ts"`.
 
-- [ ] **Step 4: Wire into CI.**
+- [ ] **Step 4: Document the command in the local validation checklist.**
 
 - [ ] **Step 5: Commit.**
 

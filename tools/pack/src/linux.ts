@@ -496,7 +496,7 @@ async function writeAssembledApp(
     author: "Open Design Team",
     repository: {
       type: "git",
-      url: "https://github.com/nexu-io/open-design.git"
+      url: "https://github.com/sanghyunna/open-design-sandboxed.git"
     }
   };
   await writeFile(paths.assembledPackageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
