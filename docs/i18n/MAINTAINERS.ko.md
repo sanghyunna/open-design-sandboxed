@@ -2,7 +2,7 @@
 
 <p align="center"><a href="MAINTAINERS.md">English</a> · <a href="MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <a href="MAINTAINERS.de.md">Deutsch</a> · <a href="MAINTAINERS.fr.md">Français</a> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <a href="MAINTAINERS.ja-JP.md">日本語</a> · <b>한국어</b></p>
 
-이 문서는 `nexu-io/open-design`의 Maintainer가 되고, 그 역할을 맡고, 물러나는 규칙을 정합니다. Core Team의 개별 명단은 내부에서 관리하므로 여기에 적지 않습니다. 공개적으로 중요한 건 모두가 따르는 규칙 그 자체입니다.
+이 문서는 `sanghyunna/open-design-sandboxed`의 Maintainer가 되고, 그 역할을 맡고, 물러나는 규칙을 정합니다. Core Team의 개별 명단은 내부에서 관리하므로 여기에 적지 않습니다. 공개적으로 중요한 건 모두가 따르는 규칙 그 자체입니다.
 
 > **상태**: v1, 2026-05-11 초안 작성. [`CONTRIBUTING.ko.md`](CONTRIBUTING.ko.md#maintainer-되기)와 짝을 이루는 문서입니다. CONTRIBUTING.ko.md는 전체 규칙을 확인하려는 기여자를 이 문서로 안내합니다.
 
@@ -33,7 +33,7 @@
 PR은 누가 작성했든 다음 **세 가지를 모두** 만족해야 합니다.
 
 1. 코드 충돌이 없을 것.
-2. CI가 완전히 통과(green)할 것.
+2. 문서화된 로컬 검증을 모두 통과할 것.
 3. Maintainer 또는 Core Team 멤버의 승인이 최소 1건 있을 것.
 
 대부분의 PR은 Maintainer의 승인을 거쳐 머지됩니다. Maintainer의 신뢰가 프로젝트의 일상에 가장 직접적으로 드러나는 방식입니다.
@@ -46,7 +46,7 @@ PR은 누가 작성했든 다음 **세 가지를 모두** 만족해야 합니다
 
 ### 1. 기여량
 
-- `nexu-io/open-design`에 머지된 PR **20건 이상**.
+- `sanghyunna/open-design-sandboxed`에 머지된 PR **20건 이상**.
 
 이 수치는 자동 통과 기준이 아니라 최소선입니다. PR 20건을 넘기면 검토 대상에 오를 뿐, 역할이 보장되지는 않습니다.
 
@@ -66,7 +66,7 @@ PR은 누가 작성했든 다음 **세 가지를 모두** 만족해야 합니다
 
 #### 초기 프로젝트 면제(저장소가 6개월이 되면 자동 만료)
 
-`nexu-io/open-design`이 최초 커밋으로부터 6개월 미만인 동안에는, 다음 조건에서 **다른 프로젝트 활동**(#6) 거부 기준을 Core Team 합의로 면제할 수 있습니다.
+`sanghyunna/open-design-sandboxed`가 최초 커밋으로부터 6개월 미만인 동안에는, 다음 조건에서 **다른 프로젝트 활동**(#6) 거부 기준을 Core Team 합의로 면제할 수 있습니다.
 
 - 항목 1, 2, 3, 5가 통과 기준을 명확히 넘을 것, **그리고**
 - 이 저장소에서의 PR 품질이 Core Team의 직접 리뷰로 높게 평가될 것.

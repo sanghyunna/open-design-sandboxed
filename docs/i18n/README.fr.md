@@ -312,21 +312,10 @@ Ensuite, à l'intérieur de l'agent :
 
 L'agent lit `skills/`, choisit le bon `SKILL.md`, lie le `DESIGN.md` que vous avez nommé, et émet un `<artifact>` prévisualisable à `http://localhost:7456`.
 
-### 🐳 Exécutez avec Docker
-
-```bash
-git clone https://github.com/nexu-io/open-design.git
-cd open-design/deploy
-cp .env.example .env
-echo "OD_API_TOKEN=$(openssl rand -hex 32)" >> .env
-docker compose up -d
-# open http://localhost:7456
-```
-
 ### 🧑‍💻 Exécutez depuis les sources
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable && pnpm install
 pnpm tools-dev run web
@@ -587,10 +576,10 @@ De vraies personnes derrière chaque canal.
 
 - 💬 **Discord** — chat quotidien, partage de plugins, questions → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — notes de version, jalons, coulisses → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — Q&R approfondies, RFC, « montrez votre travail » → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
-- 🐛 **GitHub Issues** — rapports de bugs, demandes de fonctionnalités → [**Issues**](https://github.com/nexu-io/open-design/issues)
+- 🗣️ **GitHub Discussions** — Q&R approfondies, RFC, « montrez votre travail » → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
+- 🐛 **GitHub Issues** — rapports de bugs, demandes de fonctionnalités → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
-Les labels [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) et [`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) sont la façon la plus simple de se lancer.
+Les labels [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) et [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) sont la façon la plus simple de se lancer.
 
 ---
 
@@ -606,7 +595,7 @@ Open Design continue d'avancer parce que des contributeurs — designers, ingén
 | Un nouveau **système de design** | Déposez un `DESIGN.md` utilisant le schéma en 9 sections | [`design-systems/<brand>/`](../../design-systems/) |
 | Un nouveau **plugin** | Déposez `open-design.json` + manifeste sous un dossier de catégorie | [`plugins/community/`](../../plugins/community/) · spec dans [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · guide de dev agent dans [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | Prendre en charge un nouveau **CLI d'agent de code** | Une entrée d'adaptateur + un parseur de flux | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| Corriger un bug ou peaufiner l'UI | Parcourez le label [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/nexu-io/open-design/issues) |
+| Corriger un bug ou peaufiner l'UI | Parcourez le label [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Traduire la documentation | Mettez à jour les fichiers `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 Contribuer en tant qu'agent
@@ -615,7 +604,7 @@ Si *vous êtes l'agent qui lit ceci*, la voie la plus rapide est :
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design && corepack enable && pnpm install
 pnpm tools-dev run web
 
@@ -679,8 +668,6 @@ Merci à toutes les personnes qui ont pris part — code, documentation, retours
 <picture>
   <img alt="Open Design — métriques du dépôt" src="https://repo-assets.open-design.ai/resources/images/github-metrics.svg" />
 </picture>
-
-Le SVG ci-dessus est régénéré quotidiennement par [`.github/workflows/metrics.yml`](../../.github/workflows/metrics.yml) à l'aide de [`lowlighter/metrics`](https://github.com/lowlighter/metrics).
 
 ---
 

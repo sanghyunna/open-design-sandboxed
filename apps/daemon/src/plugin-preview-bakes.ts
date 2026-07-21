@@ -9,8 +9,9 @@
 // untouched and keep the live-iframe path as the fallback.
 //
 // Files + a `manifest.json` live under `<dir>` (OD_PLUGIN_PREVIEWS_DIR, default
-// `<project>/.od/plugin-previews`). CI bakes them and uploads to R2; the daemon
-// serves whatever is present locally at `/api/plugin-previews/<file>`.
+// `<project>/.od/plugin-previews`). An external operator may publish baked clips
+// to remote storage; the daemon serves whatever is present locally at
+// `/api/plugin-previews/<file>`.
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -38,9 +39,9 @@ export interface BakedPreviewBlock {
 export function resolvePluginPreviewsDir(projectRoot: string): string {
   const env = process.env.OD_PLUGIN_PREVIEWS_DIR;
   if (env) return path.isAbsolute(env) ? env : path.resolve(projectRoot, env);
-  // Default to the checked-in manifest dir (CI commits manifest.json here; the
-  // clips themselves live on R2). Local dev overrides OD_PLUGIN_PREVIEWS_DIR to
-  // a freshly-baked dir that also holds the mp4/poster files for local serving.
+  // Default to the checked-in manifest dir. Externally published clips may live
+  // in remote storage; local runs override OD_PLUGIN_PREVIEWS_DIR with a freshly
+  // baked directory that also holds the mp4/poster files for local serving.
   return path.join(projectRoot, 'data', 'plugin-previews');
 }
 

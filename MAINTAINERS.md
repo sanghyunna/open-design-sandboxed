@@ -3,7 +3,7 @@
 <p align="center"><b>English</b> · <a href="docs/i18n/MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <a href="docs/i18n/MAINTAINERS.de.md">Deutsch</a> · <a href="docs/i18n/MAINTAINERS.fr.md">Français</a> · <a href="docs/i18n/MAINTAINERS.zh-CN.md">简体中文</a> · <a href="docs/i18n/MAINTAINERS.ja-JP.md">日本語</a></p>
 
 This document defines the rules for becoming, serving as, and stepping down from
-a Maintainer of `nexu-io/open-design`. The Core Team's individual roster is
+a Maintainer of `sanghyunna/open-design-sandboxed`. The Core Team's individual roster is
 maintained internally and is not enumerated here — what matters publicly are
 the rules everyone plays by.
 
@@ -36,7 +36,7 @@ The rest of this document is about **External Maintainers** unless stated otherw
 Any PR — regardless of who authored it — needs **all three** of:
 
 1. No code conflicts.
-2. CI fully green.
+2. Documented local validation fully green.
 3. At least one approval from a Maintainer or Core Team member.
 
 A Maintainer's approval is the path most PRs take to merge — it's the most direct way a Maintainer's trust shows up in the project's day-to-day.
@@ -49,7 +49,7 @@ There are **three** entry criteria. All three must be met.
 
 ### 1. Contribution volume
 
-- **≥ 20 merged PRs** to `nexu-io/open-design`.
+- **≥ 20 merged PRs** to `sanghyunna/open-design-sandboxed`.
 
 This is a soft floor, not an automatic ticket. Hitting 20 PRs gets you into
 consideration; it does not guarantee the role.
@@ -71,7 +71,7 @@ least 5 of 7 admission lines, and trigger zero veto lines.**
 
 #### Early-project waiver (auto-expires when repo turns 6 months old)
 
-While `nexu-io/open-design` is younger than six months from initial commit,
+While `sanghyunna/open-design-sandboxed` is younger than six months from initial commit,
 the **cross-project activity** veto (#6) may be waived by Core Team consensus
 when:
 

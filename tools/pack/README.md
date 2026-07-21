@@ -159,10 +159,10 @@ Electron 41 on Linux requires `kernel.unprivileged_userns_clone=1` (default on A
 
 AppImages built natively on a rolling distro (e.g., Arch / CachyOS) link against recent glibc and may not run on stable distros (Ubuntu 22.04, Debian 12). Use `--containerized` to build against the `electronuserland/builder:base` baseline (Ubuntu 18.04 / glibc 2.27), which is the compatibility target for release AppImages rather than a guarantee for every Linux distribution.
 
-Verified smoke coverage in this repository currently includes:
+Available local smoke coverage includes:
 
-- PR lane: Ubuntu GitHub-hosted runner, headless Linux runtime.
-- Release lane: Ubuntu GitHub-hosted runner, containerized AppImage build plus Xvfb AppImage runtime smoke when the Linux release lane is enabled.
+- Headless Linux packaged-runtime validation.
+- An optional containerized AppImage build plus Xvfb AppImage runtime smoke.
 - Manual AppImage behavior used to choose `--appimage-extract-and-run`: Ubuntu 24.04 and Arch Linux.
 
 ### Format choice: why AppImage first
@@ -174,8 +174,8 @@ Linux desktop apps in this space split across formats: VS Code ships `.deb` + `.
 - AppImage signing (`--signed`) — deferred pending a GPG key infrastructure decision and a user-facing verification flow design (no ETA).
 - AppImage auto-update feed (`latest-linux.yml`) — the linux electron-builder config has no `publish` block wired, so a generated feed would point users at a feed that never updates. Tracked alongside signing.
 - Additional package formats: `.deb`, `.rpm`, Snap, Flatpak — deferred until there is demand and an owner for per-distro metadata, signing/store/repository plumbing, install/remove hooks, and release validation.
-- Full Linux AppImage PR smoke remains release-lane only; PR validation runs the Linux headless packaged smoke because it does not require a display server.
+- Run the full Linux AppImage smoke explicitly when changing AppImage packaging; the lighter headless smoke does not require a display server.
 
 `--to dmg` is manual-install DMG output only. Any builder-generated updater metadata such as `latest-mac.yml` or
-`.blockmap` files is treated as scratch and cleaned from the builder directory; release-beta generates the authoritative
-`latest-mac.yml` feed during release asset preparation, pointing at the update ZIP.
+`.blockmap` files is treated as scratch and cleaned from the builder directory. Use `pnpm tools-serve start updater`
+for deterministic local updater metadata and artifacts; `tools-pack` does not publish release feeds.

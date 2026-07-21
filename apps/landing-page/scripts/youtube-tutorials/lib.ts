@@ -1,14 +1,14 @@
 /*
- * youtube-tutorials/lib — shared core for backfilling and the daily cron that
+ * youtube-tutorials/lib — shared core for backfilling and the manual digest that
  * keeps `app/content/tutorials/*.md` in sync with the latest community YouTube
  * tutorials about Open Design.
  *
  * Two entry points consume this module:
  *   - backfill-tutorials.ts      one-off, reads pre-fetched yt-dlp JSON lines
- *   - fetch-youtube-tutorials.ts daily cron, queries the YouTube Data API v3
+ *   - notify-candidates.ts       manual digest, queries the YouTube Data API v3
  *
  * Both share the same relevance gate, LLM copy generation, slug rules, and
- * markdown writer so the backfilled entries and the cron-authored entries are
+ * markdown writer so the backfilled and manually selected entries are
  * indistinguishable.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';

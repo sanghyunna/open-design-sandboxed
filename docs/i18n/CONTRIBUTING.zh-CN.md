@@ -18,7 +18,7 @@
 | 加功能、修 bug、从 [`open-codesign`][ocod] 移植一个 UX 模式 | 代码 | `apps/web/src/`、`apps/daemon/` | 普通 PR |
 | 改文档、补法语 / 德语 / 中文翻译、修错别字 | 文档 | `README.md`、`README.fr.md`、`README.de.md`、`README.zh-CN.md`、`docs/`、`QUICKSTART.zh-CN.md` | 一个 PR |
 
-不确定自己想做的属于哪一桶？[先开 issue / discussion](https://github.com/nexu-io/open-design/issues/new)，我们告诉你该改哪个面。
+不确定自己想做的属于哪一桶？[先开 issue / discussion](https://github.com/sanghyunna/open-design-sandboxed/issues/new)，我们告诉你该改哪个面。
 
 ---
 
@@ -27,7 +27,7 @@
 完整的一页式 setup 在 [`QUICKSTART.zh-CN.md`](QUICKSTART.zh-CN.md)。给贡献者的 TL;DR：
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # 使用 packageManager 固定的 pnpm
 pnpm install
@@ -226,7 +226,7 @@ node --experimental-strip-types scripts/sync-litellm-models.ts
 - **不要写废话注释。** 不要 `// 引入这个模块`、不要 `// 遍历元素`。如果代码本身一眼能读，注释就是噪音。注释只用来说明非显而易见的意图、或者代码本身表达不出来的约束。
 - **`apps/web/src/` 用 TypeScript。** Daemon (`apps/daemon/`) 是纯 ESM JavaScript，类型重要的地方用 JSDoc —— 保持这样。
 - **不要随便加顶层依赖。** PR 描述里至少要有一段，说明引入它能换到什么、又新增了多少 bundle 字节。[`package.json`](../../package.json) 的依赖少是有意为之。
-- **推之前跑 `pnpm typecheck`。** CI 会跑；挂了会换来一句「请修一下」。
+- **推之前跑 `pnpm typecheck`。** 在 PR 的验证部分记录结果。
 
 ---
 
@@ -260,7 +260,7 @@ node --experimental-strip-types scripts/sync-litellm-models.ts
 
 ## 提问
 
-- 架构问题、设计问题、「这是 bug 还是误用」 → 请用 [GitHub Discussions](https://github.com/nexu-io/open-design/discussions)（首选 —— 下一个人能搜到）。
+- 架构问题、设计问题、「这是 bug 还是误用」 → 请用 [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)（首选 —— 下一个人能搜到）。
 - 「我想写一个干 X 的 skill 怎么写」 → 开一个 discussion。我们会回答，且如果是缺失的模式，答案会被收进 [`docs/skills-protocol.md`](../../docs/skills-protocol.md)。
 
 ---
@@ -290,7 +290,7 @@ node --experimental-strip-types scripts/sync-litellm-models.ts
 
 tl;dr：好好提 PR、认真 review、在 [Discussions][discussions] / [Discord][discord] 多冒泡，剩下的自然会发生。
 
-[discussions]: https://github.com/nexu-io/open-design/discussions
+[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

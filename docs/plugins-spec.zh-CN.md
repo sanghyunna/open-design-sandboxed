@@ -1,6 +1,6 @@
 # Open Design 插件与 Marketplace 规范（v1）
 
-> **一句话总结：** Open Design 插件把可移植的 `SKILL.md` 能力包装成 marketplace 可发现、一键可用的设计工作流，同时保留对现有 agent skill 生态、headless CLI 使用方式和自托管部署的兼容性。
+> **一句话总结：** Open Design 插件把可移植的 `SKILL.md` 能力包装成 marketplace 可发现、一键可用的设计工作流，同时保留对现有 agent skill 生态和 headless CLI 使用方式的兼容性。
 
 **父文档：** [`spec.md`](spec.md) · **同级文档：** [`skills-protocol.md`](skills-protocol.md) · [`architecture.md`](architecture.md) · [`agent-adapters.md`](agent-adapters.md) · [`modes.md`](modes.md)
 
@@ -112,7 +112,7 @@ OD 的核心不是「一次 prompt 一次输出」，而是 **long-running desig
 12. [CLI 表面](#12-cli-表面)
 13. [公网 Web 表面](#13-公网-web-表面-open-designaimarketplace)
 14. [发布与目录分发](#14-发布与目录分发)
-15. [部署与可移植性：Docker，任意云](#15-部署与可移植性docker任意云)
+15. [Runtime storage 与 security boundary](#15-runtime-storage-与-security-boundary)
 16. [分阶段实现计划](#16-分阶段实现计划)
 17. [示例](#17-示例)
 18. [风险与开放问题](#18-风险与开放问题)
@@ -147,7 +147,7 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 
 第三条轴线来自第二条：**OD 可以完全 headless 运行；UI 是效率层，而不是运行时依赖。** 用户只有 Claude Code（或 Cursor、Codex、Gemini CLI）和已安装的 `od`，也能浏览 marketplace、安装插件、创建 project、拉起任务、消费产物，全流程不需要启动 desktop app。OD desktop UI 的价值类似 Cursor IDE 相对于 `cursor-agent` CLI：更快发现、实时 artifact preview、chat/canvas 并排、marketplace 浏览、direction-picker GUI、critique-theater 面板。这些都是同一批 primitives 之上的体验增强。每个 UI 功能都必须先能表达为 CLI 子命令或 streaming event；UI 消费这些 primitives 并添加呈现层。这个解耦由架构规则强制（§11.7）。
 
-第四条轴线是生态覆盖与商业价值的基础：**OD 是一个 Docker image，可以部署到任意云。** 因为第三条轴线里的 headless mode 没有 electron、没有 GUI 依赖，一个 multi-arch container image（`linux/amd64` + `linux/arm64`）就能在 AWS、Google Cloud、Azure、阿里云、腾讯云、华为云，或任何自托管 Kubernetes / docker-compose / k3s 环境里启动完整 daemon + CLI + web UI，不需要针对云厂商重写。自托管企业可以运行私有 marketplace；合作伙伴可以把 OD 嵌入自己的 stack；CI pipeline 可以拉起临时 OD container 来完成「为日报生成 slides」这类任务。技术 contract 见 §15。
+第四条轴线保持产品 **local-first 且支持 headless**。Daemon、CLI 与 web runtime 共享同一套产品 contract，而 hosted/container deployment packaging 不属于本 workspace（§15）。
 
 第五条轴线是与 agent 共演进的产品形态：**UI 由 agent 请求，但由产品内的受控组件渲染 (Generative UI)，而不是任意 agent-authored frontend code。** 长程 design agent 在跑 pipeline 的过程中，会随时需要向用户索取信息（例：figma OAuth、确认目标受众）、寻求授权（例：批准一次 high-cost media 生成）、收敛方向（例：从 3 个 critique 选项里选一个）、补内容（例：缺失的品牌资产）；这些 UI **不是**预制的 marketplace chip strip，而是 plugin 在 manifest 中**声明**、agent 在 run 中**触发**、daemon 用 OD 原生事件**发布**给前端 / CLI 渲染，并通过 AG-UI adapter 供外部 client 消费的 surface（详见 §10.3）。OD v1 提供 4 类内置 surface（`form` / `choice` / `confirmation` / `oauth-prompt`）作为最小集；plugin 自带 React 组件必须经过 `genui:custom-component` capability gate 与 sandbox。对应这条轴线，project 表多记录一组 GenUI surface 的 **persisted state**：用户做过一次的授权与确认在同一 project 的多轮对话、多次 run 之间复用，不会被反复打扰；这是「插件 = 长程任务封装」与「project = 长期工作产物」的自然落点。
 
@@ -653,9 +653,9 @@ flowchart LR
 
 ### 9.1 Headless capability grant flow（CLI / 自动化场景）
 
-UI 上的 capability gate 是 modal + checklist；headless / CI / 第三方 code agent 则通过下面三种方式完成同一动作，其行为在 spec 里钉死，不依赖 interactive prompt：
+UI 上的 capability gate 是 modal + checklist；headless 与第三方 code agent 则通过下面三种方式完成同一动作，其行为在 spec 里钉死，不依赖 interactive prompt：
 
-1. **预先 trust**（推荐 hosted / CI）。
+1. **预先 trust**（推荐用于非交互式客户端）。
 
    ```bash
    od plugin trust make-a-deck --caps fs:read,mcp,subprocess
@@ -1190,7 +1190,7 @@ OD 运行在三种 operating modes，它们共享**同一个** daemon、**同一
 
 - 用户只有 **Claude Code**（或任意 code agent）加 `npm i -g @open-design/cli`，再启动一个 headless daemon，就能完成 install plugin → create project → run → consume artifacts 全流程。不需要 OD desktop。
 - OD desktop UI 安装相同 daemon 与相同 CLI；它只是加了一个窗口。用户之后安装 desktop 时，会看到 headless 流程创建的同一批 projects、plugins、history。不存在「headless project format」与「desktop project format」之分。都是同一个 `.od/projects/<id>/`、同一个 SQLite db。
-- CI 是一等公民：GitHub Action 可以 `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`。无 display、无 electron、无 UI scripting。
+- 非交互式自动化是一等客户端：它可以 `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`。无 display、无 electron、无 UI scripting。
 - 外部产品可以通过启动 headless daemon 并 shell out 嵌入 OD：`od` 是 public surface，internals 可以自由演进。
 
 代价：少量 `od daemon` flags，以及一个新的 lifecycle subcommand（`od daemon start/stop/status`，带 `--headless` / `--serve-web`）。实现与 Phase 2 的 CLI parity slice 一起落地。
@@ -1204,9 +1204,9 @@ OD 当前有**两份** `composeSystemPrompt()` 实现：
 
 如果把 `## Active plugin` block 只加到 daemon composer，API fallback 模式生成的 prompt 会缺失 plugin context；如果两边各加一套，几乎必然漂移。spec 锁定如下规则：
 
-1. **v1：plugin 驱动的 run 仅在 daemon-orchestrated mode 下支持**（desktop / web 走 daemon HTTP；headless / Docker 走 daemon directly）。Web API-fallback 模式（浏览器直连 provider，daemon 不在路径上）在 v1 中**不**支持 `pluginId`：当客户端在 fallback 模式下尝试创建带 `pluginId` 的 run 时，daemon 缺席使得请求落在 web sidecar 上，sidecar 检测到该 fallback path 必须回 `409 plugin-requires-daemon`，UI 提示用户启动 daemon 或切换到 desktop/headless。这条限制在 §16 Phase 2A validation 中明确测试。
+1. **v1：plugin 驱动的 run 仅在 daemon-orchestrated mode 下支持**（desktop / web 走 daemon HTTP；headless client 直接访问 daemon）。Web API-fallback 模式（浏览器直连 provider，daemon 不在路径上）在 v1 中**不**支持 `pluginId`：当客户端在 fallback 模式下尝试创建带 `pluginId` 的 run 时，daemon 缺席使得请求落在 web sidecar 上，sidecar 检测到该 fallback path 必须回 `409 plugin-requires-daemon`，UI 提示用户启动 daemon 或切换到 desktop/headless。这条限制在 §16 Phase 2A validation 中明确测试。
 2. **Phase 2A：把 plugin prompt block renderer 提到 contracts 共享层。** 纯函数 `renderPluginBlock(snapshot: AppliedPluginSnapshot): string` 位于 [`packages/contracts/src/prompts/plugin-block.ts`](../packages/contracts/src/prompts/plugin-block.ts)，并被 `apps/daemon/src/prompts/system.ts` 与 `packages/contracts/src/prompts/system.ts` 同时 import。daemon composer 会调用它；contracts composer 保留 import，但在 v1 fallback rejection 规则 (1) 下不调用它。这样 plugin context 的 prompt 表达只有一处定义，不再需要两边 byte-for-byte fixture 防漂移，同时保留 v1 fallback 拒绝策略。
-3. **Phase 4：打开 fallback plugin support。** renderer 已在 contracts 中后，支持 fallback-mode plugin run 只需要在 contracts composer 里接线并移除 web sidecar 的 409；不再需要 prompt shape 重构或新的 cross-check guard。（最初计划是 Phase 4 才迁出 block，并在 Phase 1-4 之间用 CI fixture 防漂移；实施计划 PB1 已把迁移提前到 Phase 2A，因此 fixture 不再需要。）
+3. **Phase 4：打开 fallback plugin support。** renderer 已在 contracts 中后，支持 fallback-mode plugin run 只需要在 contracts composer 里接线并移除 web sidecar 的 409；不再需要 prompt shape 重构或新的 cross-check guard。（最初计划是 Phase 4 才迁出 block，并在 Phase 1-4 之间用 byte-equality fixture 防漂移；实施计划 PB1 已把迁移提前到 Phase 2A，因此 fixture 不再需要。）
 
 由此，§14.2 列出的「skill-only consumption / headless OD / full OD」三种消费模式中，只有后两者拥有 plugin context；这与 §1 中「插件是 long-task design agent 的封装」一致——长程任务必须有 daemon 或 daemon 等价物（headless）才能被组装。
 
@@ -1224,7 +1224,7 @@ CLI（`od …`）是 **Open Design 面向 agent 的 canonical API**。Plugin ver
 | **CLI (`od …`)** | **Code agents shelling out、scripts、CI** | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) |
 | MCP stdio | MCP-aware agents（Claude Code、Cursor 等） | `od mcp` |
 
-当新能力发布时，CLI subcommand 是 primary contract。HTTP route 用于支撑 CLI；MCP server 把一组精选 CLI subcommands 暴露为 tools。版本策略：subcommand names、argument names、`--json` schemas 由 `packages/contracts` 管理并在 CI 中测试；breaking changes 跟随 `od` bin 的 major-version bump。
+当新能力发布时，CLI subcommand 是 primary contract。HTTP route 用于支撑 CLI；MCP server 把一组精选 CLI subcommands 暴露为 tools。版本策略：subcommand names、argument names、`--json` schemas 由 `packages/contracts` 管理并由 package-scoped tests 覆盖；breaking changes 跟随 `od` bin 的 major-version bump。
 
 ### 12.2 Command groups
 
@@ -1421,7 +1421,7 @@ od files list "$PID" --json
 od files read "$PID" index.html > out.html
 ```
 
-这段 sequence 可以在本机、CI、Docker sidecar、另一个 agent loop 内等同运行。不需要 HTTP、不需要端口发现、不需要 auth tokens：CLI 把这些都藏在稳定 subcommand contract 之后。
+这段 sequence 可以在本机或另一个 agent loop 内等同运行。无需直接处理 HTTP、端口发现或 auth token plumbing：CLI 把这些细节藏在稳定 subcommand contract 之后。
 
 ### 12.6 对现有 CLI 的含义
 
@@ -1546,140 +1546,16 @@ open slides.html      # or however the user wants to view the file
 
 两者以相同方式解耦：terminal flow 已经足够；IDE/desktop 是生产力倍增器。**插件作者不需要做选择**：他们写一个 SKILL.md 加可选 sidecar，就能覆盖三种消费模式。
 
-## 15. 部署与可移植性：Docker，任意云
+## 15. Runtime storage 与 security boundary
 
-OD 以单个 multi-arch Docker image 发布，使完整 plugin/marketplace system 可以一条命令启动，并在每个主流云上不经修改地运行。这是生态与商业故事的 substrate：合作伙伴在自己的 VPC 内自托管；企业运行私有 marketplace；CI job 启动 per-job OD daemon。这个 image 是 §11.7 headless mode 的 ops 包装，并在设置 `--serve-web` 时可选择服务 §11.6 的 web UI。
+本产品 workspace 提供本地 daemon、web、desktop 与 CLI runtime code。它不提供 Docker image、hosted deployment manifest、cloud bootstrap 资源或 release publishing automation；这些内容属于独立维护的 operations repository。
 
-### 15.1 Image shape
+产品自身继续负责以下 runtime boundary：
 
-- **Tag**：`ghcr.io/open-design/od:<version>`，以及 moving `:latest` 与 `:edge`。
-- **Architectures**：`linux/amd64` 与 `linux/arm64`（single manifest list）。
-- **Contents**：
-  - Node 24 runtime + daemon `dist/` bundle。
-  - PATH 上的 `od` CLI。
-  - Web UI bundle（apps/web build），因此同一个 image 同时服务 API 与 UI。
-  - OD 支持作为 agent backends 的 bundled code-agent CLIs：Claude Code、Codex CLI、Gemini CLI。每次 run 可选；默认是 `OD_AGENT_BACKEND`。
-  - 插件常假设存在的通用 runtime deps：`ffmpeg`、`git`、`ripgrep`。
-- **Excluded**：electron、native macOS/Windows toolchains、dev tooling。
-
-base image 是 `node:24-bookworm-slim`。container 内用户是 non-root（`uid 10001`）。
-
-### 15.2 Persistence
-
-operator 应挂载三个 volumes；它们映射到根 [`AGENTS.md`](../AGENTS.md) 中已有的 OD env vars，因此 daemon 不需要改代码。
-
-| Mount path | Env var | Purpose |
-| --- | --- | --- |
-| `/data/od` | `OD_DATA_DIR` | Projects、SQLite、artifacts、installed plugins（`<OD_DATA_DIR>/plugins`） |
-| `/data/config` | `OD_MEDIA_CONFIG_DIR` | Provider credentials（`media-config.json`） |
-| `/data/marketplaces` | （位于 `OD_DATA_DIR` 下） | Cached marketplace indexes |
-
-只挂载 `/data/od` 是最小配置。推荐 hosted-mode 把 `/data/config` 拆开，使 secrets 与 data 的生命周期不同。
-
-### 15.3 Configuration
-
-所有配置通过 env vars 和可选预置 config file 传入。最小 hosted env：
-
-```env
-OD_PORT=17456
-OD_BIND_HOST=0.0.0.0                 # 当前 daemon 已读取的变量名（[`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts)）
-OD_DATA_DIR=/data/od
-OD_MEDIA_CONFIG_DIR=/data/config
-OD_TRUST_DEFAULT=restricted          # safe default for hosted (§9) — Phase 5 引入
-OD_AGENT_BACKEND=claude              # default code agent backend
-OD_API_TOKEN=<random>                # required when OD_BIND_HOST != 127.0.0.1 — Phase 5 引入 bearer middleware
-ANTHROPIC_API_KEY=...                # provider keys; also storable via `od config set`
-TAVILY_API_KEY=...
-```
-
-> **当前实现 vs. spec 的差异（migration note）：**
->
-> - `OD_BIND_HOST` 已经存在于 daemon 代码（[`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts)、[`apps/daemon/src/origin-validation.ts`](../apps/daemon/src/origin-validation.ts)）。早期 spec 草稿曾以 `OD_HOST` 引用同一变量；正确名称是 `OD_BIND_HOST`，本 spec 全部采用此名称。**不**新增 `OD_HOST` 别名，避免双名漂移。
-> - `OD_TRUST_DEFAULT`、`OD_API_TOKEN` 与对应 bearer-token middleware 当前**尚未实现**；它们是 Phase 5「Cloud deployment + pluggable storage」的一部分（§15.7、§16 Phase 5）。在落地前 hosted deployments 仍依赖 reverse proxy / network ACL 做访问控制，hosted-mode security defaults 章节（§15.7）会显式调用此前置条件。
-
-任何能通过 desktop UI 设置的内容，也都能通过 `docker exec od od config set ...` 设置，或通过把预置 `media-config.json` 挂载到 `/data/config`。
-
-### 15.4 一条命令部署
-
-本地 laptop：
-
-```bash
-docker run --rm -p 17456:17456 ghcr.io/open-design/od:latest
-open http://localhost:17456
-```
-
-持久服务器：
-
-```bash
-docker run -d --name od \
-  -p 17456:17456 \
-  -v od-data:/data/od \
-  -v od-config:/data/config \
-  -e OD_DATA_DIR=/data/od \
-  -e OD_MEDIA_CONFIG_DIR=/data/config \
-  -e OD_BIND_HOST=0.0.0.0 \
-  -e OD_API_TOKEN="$(openssl rand -hex 32)" \
-  -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
-  ghcr.io/open-design/od:latest
-```
-
-在 container 内触达相同 surfaces：
-
-```bash
-docker exec od od plugin install github:open-design/plugins/make-a-deck
-docker exec od od project create --plugin make-a-deck --json
-docker exec od od status --json
-```
-
-### 15.5 Multi-cloud portability
-
-image 故意保持 cloud-agnostic。一个 container image 可以运行在每个主流云的 container service 上：
-
-| Cloud | Container service | Persistent storage | Secrets |
-| --- | --- | --- | --- |
-| AWS | ECS / Fargate / EKS / App Runner | EFS (NFS), EBS, S3 adapter | Secrets Manager / SSM |
-| Google Cloud | Cloud Run / GKE | Filestore, GCS-fuse | Secret Manager |
-| Azure | Container Apps / AKS | Azure Files | Key Vault |
-| Alibaba Cloud | SAE / ACK | NAS, OSS adapter | KMS |
-| Tencent Cloud | CloudRun / TKE | CFS, COS adapter | SSM |
-| Huawei Cloud | CCE / CCI | SFS, OBS adapter | KMS |
-| Self-hosted | docker-compose, Docker Swarm, k3s, k0s | Bind mounts, NFS, Longhorn | env / SOPS / Vault |
-
-OD 随 image 版本发布两个 reference manifests：
-
-- 新 `tools/pack/docker-compose.yml`：daemon + optional reverse proxy + optional Postgres for §15.6。
-- 新 `tools/pack/helm/`：Helm chart，values presets 用于每个云的 volume + secret patterns。chart 保持 generic；cloud-specific bootstrap（CloudFormation / Deployment Manager / ARM / Aliyun ROS / Tencent TIC / Huawei RFS）放在独立 `open-design/deploy` repo 中，允许单独演进。
-
-### 15.6 Pluggable storage and database（Phase 5）
-
-daemon 的 filesystem 与 SQLite 使用被封装在两个窄接口后：
-
-- `ProjectStorage`：读/写/list project files。
-- `DaemonDb`：SQLite typed wrapper（今天已经存在）。
-
-v1 只发布 local-disk + SQLite 实现。Phase 5 增加：
-
-- **S3-compatible blob stores 的 `ProjectStorage` adapter。** 适用于 AWS S3、GCS（S3-compatible mode）、Azure Blob（S3-compat shim 或 native）、Aliyun OSS、Tencent COS、Huawei OBS；它们都支持 S3 API 或薄 shim。
-- **Postgres 的 `DaemonDb` adapter**，使多个 daemon replicas 可以共享 state。适合负载均衡后面或 serverless containers scale-to-zero 的场景。
-
-adapter 之间保持相同 on-disk layout，因此 single-tenant deployment 迁移到 multi-replica 时不需要重新导入 projects。
-
-### 15.7 Hosted-mode security defaults
-
-当 daemon 跑在 container 中时，默认行为偏安全：
-
-- 推荐默认 `OD_TRUST_DEFAULT=restricted`。能力（`mcp`、`subprocess`、`bash`、`network`）需要 operator 通过 `od plugin trust <id>` 显式 opt-in，或通过 `OD_TRUSTED_PLUGINS` allow-list env var 授权。
-- image 以 non-root user 运行；plugin sandboxes 继承这一点。
-- HTTP API 监听 `OD_BIND_HOST`；当设置为 `0.0.0.0` 时，**Phase 5 落地后**必须设置 `OD_API_TOKEN`，并且每个 request 都通过 `Authorization: Bearer <token>` 检查。若缺失，daemon 拒绝绑定 public interface 并退出。在 Phase 5 之前（即当前实现），hosted deployments 必须依赖 reverse proxy / network ACL 隔离 daemon 端口。
-- 未来 hardening pass（Phase 5）可选地把每个 plugin 的 bash/MCP work 跑在 per-run nested containers（firecracker / gVisor / sysbox）中，使不可信插件不能逃出 run boundary。v1 single-tenant deployments 不要求。
-- **Authentication scope（v1）：** 仅 single-tenant：一个共享 `OD_API_TOKEN`。**Multi-tenant auth**（per-user OAuth、RBAC、project ownership、billing）**明确不属于 v1**，作为 §18 中的开放问题跟踪。
-
-### 15.8 解锁的生态动作
-
-1. **Self-hosted enterprise。** 企业托管私有 OD instance，注册内部 `open-design-marketplace.json`（`od marketplace add https://internal/...`），限制插件只来自内部审过的集合。设计师和 PM 本地使用 desktop client；CI 使用 `docker exec od od …`。
-2. **Partner integrations。** 厂商（CMS、设计工具、BI 平台、SaaS dashboards）把 OD 嵌入自己的 stack，增加 design generation。一个 image，无需 per-vendor port。
-3. **Cloud-native CI。** 「为日报生成 slides」变成 GitHub Action / GitLab pipeline / Tekton task：启动 ephemeral OD container，apply plugin，把 artifacts 放到 S3 / OSS / COS / OBS。
-4. **Sovereign-cloud reach。** OD 可以在阿里云 / 腾讯云 / 华为云上不经修改运行，服务受监管区域客户；不需要重写，也不需要单独分发渠道。
+- `OD_DATA_DIR` 与 `OD_MEDIA_CONFIG_DIR` 控制本地 runtime storage。
+- `ProjectStorage` 与 `DaemonDb` 保持 storage/database seam 清晰；local disk 与 SQLite 是可达的默认实现。
+- 非 loopback HTTP bind 必须经过产品的 API-token guard。
+- Plugin trust、snapshot retention 与 audit behavior 仍由 daemon 负责，与 deployment packaging 无关。
 
 ## 16. 分阶段实现计划
 
@@ -1789,22 +1665,14 @@ Validation：
 (a) install a published plugin → export from a real project that used it → diff produced manifest against original。  
 (b) 「UI vs CLI parity test」：挑 5 个 desktop-UI workflows，仅通过 `od …` 重放，byte-for-byte 比较 produced artifacts（对应 §12.6 implementation rule）。
 
-### Phase 5 — Cloud deployment + pluggable storage（并行，可拆）
+### Phase 5 — Runtime storage 与 non-loopback security
 
-此 phase 独立于 Phases 1–4；Phase 1 落地后即可并行，因为 headless mode 与 daemon contract 从 Phase 1 起就稳定。
+- 保留 non-loopback daemon bind 的 API-token guard。
+- 在 `ProjectStorage` 与 `DaemonDb` seam 后继续以 local disk + SQLite 作为可达默认实现。
+- 执行 snapshot retention，并保留 `od plugin snapshots prune --before <ts>` escape hatch。
+- Hosted/container deployment 资源与 publishing automation 保持在本产品 workspace 之外。
 
-- **Container image（第 1 周）：** multi-arch `linux/amd64` + `linux/arm64` Dockerfile，内容见 §15.1；CI 在每次 main commit 推 `:edge`，tag 时推 `:<version>`。
-- **Reference manifests：** `tools/pack/docker-compose.yml` 与 `tools/pack/helm/`。compose file 展示 daemon + reverse proxy pattern；Helm chart 参数化任意云的 volume + secret patterns。
-- **Bound-API-token guard（Phase 5 新增能力）：** daemon 在没有 `OD_API_TOKEN` 时拒绝绑定 `OD_BIND_HOST=0.0.0.0`；`/api/*` 上 bearer-token middleware（仅 loopback host 跳过）。
-- **S3-compatible blob stores 的 `ProjectStorage` adapter**（适用于 AWS S3、GCS S3-compat、Azure Blob via shim、Aliyun OSS、Tencent COS、Huawei OBS）。
-- **Postgres 的 `DaemonDb` adapter**（让 multi-replica deployments 共享 state）。
-- **Per-cloud one-click templates** 放在独立 `open-design/deploy` repo（CloudFormation、Deployment Manager、ARM、Aliyun ROS、Tencent TIC、Huawei RFS），非阻塞，单独跟踪。
-
-Validation：
-
-- `docker run` smoke：image starts、web UI renders、`od plugin install` works inside the container。
-- Multi-cloud smoke：把 compose file 部署到 AWS Fargate、GCP Cloud Run、Azure Container Apps、Aliyun SAE、Tencent CloudRun、Huawei CCE；运行固定 plugin → produced artifact bytes across clouds identical。
-- Pluggable storage smoke：同一 plugin、同一 project，在 local-disk + SQLite 与 S3 + Postgres adapters 间切换；produced artifacts identical。
+验证使用本地 workflow 文档规定的 package-scoped storage、auth 与 retention tests。
 
 ## 17. 示例
 
@@ -1865,7 +1733,7 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 
 | Risk | Mitigation |
 | --- | --- |
-| OD plugin schema 与更广义 skill spec 发生 drift | `open-design.json` 仅为 sidecar；永不修改 SKILL.md。CI against public anthropics/skills repo。 |
+| OD plugin schema 与更广义 skill spec 发生 drift | `open-design.json` 仅为 sidecar；永不修改 SKILL.md。Package-scoped compatibility fixtures 覆盖 public skill shape。 |
 | 任意 GitHub install = supply-chain risk | 默认 `restricted`；bash/hooks/MCP 前必须 capability prompt；记录 pinned-ref。 |
 | `composeSystemPrompt()` 已经超过 200 行 | `## Active plugin` block 追加在现有位置；不重排 layers。 |
 | ExamplesTab 与 Marketplace overlap | Phase 2 保持 ExamplesTab；Phase 3 折叠为 Marketplace 的「Local skills」tab。 |
@@ -1876,10 +1744,9 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 | `applied_plugin_snapshots` 表无界增长 | 按 PB2（已决）：未被引用的 snapshot 默认 30 天后过期；被 run / conversation / project 引用的 snapshot 永久 pin（reproducibility 优先）；GC worker 与 `od plugin snapshots prune --before <ts>` 提供清理通道。 |
 | daemon `composeSystemPrompt` 与 contracts `composeSystemPrompt` 漂移 | 按 PB1（已决）：plugin block renderer 从 Phase 2A 起位于 `packages/contracts/src/prompts/plugin-block.ts`；两份 composer import 同一个函数，不再需要 byte-for-byte fixture。 |
 | `od.pipeline` devloop 无限循环烧 quota | `until` 必填且 syntax 受限；`OD_MAX_DEVLOOP_ITERATIONS` 上限（默认 10）；UI 与 CLI 提供「Stop refining」打断。 |
-| `OD_HOST` / `OD_BIND_HOST` 命名漂移 | Spec 全部使用现有 daemon 已读取的 `OD_BIND_HOST`；不引入 `OD_HOST` 别名；§15.3 显式标注与历史草稿的差异。 |
-| 没有 bound-API-token guard 的 hosted deployments 可能公开泄露 API（Phase 5 之前依赖 reverse proxy） | Phase 5 落地后 daemon 在无 `OD_API_TOKEN` 时拒绝绑定 `OD_BIND_HOST=0.0.0.0`；`/api/*` enforce bearer-token middleware；§15.3 / §15.7 记录当前 vs. 目标差异。 |
+| `OD_HOST` / `OD_BIND_HOST` 命名漂移 | 使用现有 `OD_BIND_HOST`；不引入 `OD_HOST` 别名。 |
+| 没有 API-token guard 的 non-loopback bind 可能公开泄露 API | Daemon 在无 `OD_API_TOKEN` 时拒绝 non-loopback bind；`/api/*` enforce bearer-token middleware。 |
 | Sovereign-cloud customers（阿里云 / 腾讯云 / 华为云）需要 provider-specific secret + storage integrations | S3-compatible adapter 覆盖三者的 blob storage（Phase 5）；env-var secrets 各云都可用；cloud-specific KMS integrations post-v1。 |
-| Multi-cloud testing matrix 太大 | Phase 5 先发布一个 canonical compose smoke（单云），再逐步加云；per-cloud one-click templates 放在 `open-design/deploy` 独立演进（§15.5）。 |
 | 恶意 plugin 通过 GenUI surface 钓鱼用户敏感信息 | `od.genui.surfaces[]` schema 必须列入 manifest 并由 `od plugin doctor` 校验；运行时拒绝未声明 surface kind / surface id；`oauth-prompt` 与 `confirmation` 的 issuer / capability 信息显示「来自 plugin <id>，由 marketplace <id> 验证」；restricted 插件触发 `oauth-prompt` 前还需要 `network` capability 显式 grant（§9）。 |
 | AG-UI 协议生态可能演进，OD 自有 wire-format 与 AG-UI canonical 漂移 | OD-native `GenUIEvent` 仍是内部 source of truth；`@open-design/agui-adapter` 是外部投影层，因此 upstream 协议升级不绑死 daemon 或 web renderer release cadence。 |
 | `genui_surfaces` 表 跨 conversation 复用导致用户「忘记自己授过权」 | UI 的 `GenUIInbox`、CLI 的 `od ui list --project <id>` 必须列出所有 `persist=project` 的 resolved row 与 revoke 入口；hosted mode 提供 `OD_GENUI_PROJECT_TTL_DAYS` 让 operator 设置默认过期；revoke 操作写 audit 日志。 |
@@ -1889,8 +1756,8 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 - **Default trust tier**：保持 tiered（当前），还是从 day 1 就切到 capability-scoped？
 - **Marketplace JSON shape**：是否偏离 anthropic 的 `marketplace.json` shape，还是保持 byte-compatible，从而复用现有 claude-plugin marketplaces？（默认：保持 byte-compatible。）
 - **`od plugin run` headless contract**：当前是否足够，还是也为非 CLI agents 暴露 HTTP POST endpoint？（默认：v1 只 CLI；Phase 4 如需要再补 HTTP。）
-- **Multi-tenant auth（per-user OAuth、RBAC、project ownership、billing）** 明确不属于 v1。Docker image 设计为 single-tenant（一个 `OD_API_TOKEN`）。Multi-tenancy 是 post-v1 story，需要单独 spec。请确认 first ecosystem release 这个 scope 是否可接受。
-- **Hosted mode 的 trust propagation**：当前 spec 已锁定 arbitrary GitHub / URL / local 插件默认 `restricted`，第三方 marketplace 也默认不传递 trust。还需确认 hosted deployments 是否允许 operator 通过 `OD_TRUSTED_PLUGINS` 直接 trust 单个插件，还是必须先 trust 它所属 marketplace。
+- **Multi-tenant auth（per-user OAuth、RBAC、project ownership、billing）** 明确不属于 v1。Daemon API-token model 是 single-tenant；multi-tenancy 需要单独 spec。
+- **Non-local client 的 trust propagation**：当前 spec 已锁定 arbitrary GitHub / URL / local 插件默认 `restricted`，第三方 marketplace 也默认不传递 trust。还需确认 operator 是否允许通过 `OD_TRUSTED_PLUGINS` 直接 trust 单个插件，还是必须先 trust 它所属 marketplace。
 - **Discovery-time hot reload**：daemon 是否 watch `<daemonDataDir>/plugins/`（开发体验好），还是只在 `od plugin install/update/uninstall` 后 reload（稳定性高）？（默认：watch，500ms debounce。）
 - **Versioning policy**：安装时 pin tag/SHA，还是默认跟踪 default branch 并提供 opt-in pin？（默认：安装时 pin resolved ref；`od plugin update` 重新 resolve。）
 - ~~**Plugin prompt block 提到 contracts 共享层的时机**~~：**已按 PB1 解决。** Phase 2A 已把 `renderPluginBlock(snapshot)` 放到 `packages/contracts/src/prompts/plugin-block.ts`；两份 composer import 同一函数；v1 fallback rejection 规则保留。
@@ -2087,7 +1954,7 @@ v1 显式**不解决**的部分（一次性写明，避免歧义）：
 | 5 | 新增 "Phase 7 — 生产 handoff 契约（§20.3 §21.3.2）" | 实现 `code-import`、`design-extract`、`rewrite-plan`、`patch-edit`、`diff-review`、`build-test`；冻结目标技术栈契约；冻结 design-token mapping 契约 | 把场景 2 落成 native，并解锁场景 4 的 native 路径 |
 | 6 | 新增 "Phase 8 — 原生生产代码交付" | 在 OD 内部做 repo-aware 多文件 patch 编排；提供 native "review and apply" 表面；把 `handoffKind: 'deployable-app'` 从预留升格为实现 | 闭环场景 4 native 路径；依赖 Phase 7 |
 
-Phase 6、7、8 故意排在 §16 既有 Phase 5（云部署）之后，避免与 headless / Docker 稳定线索相互干扰。它们之间的内部顺序固定：7 必须先于 8；6 可与 7 并行，因为两个场景仅共享 `parentArtifactId` 链，不共享 atom 实现。
+Phase 6、7、8 故意排在 §16 既有 Phase 5 runtime-storage/security 工作之后。它们之间的内部顺序固定：7 必须先于 8；6 可与 7 并行，因为两个场景仅共享 `parentArtifactId` 链，不共享 atom 实现。
 
 ### 21.5 OD ↔ code-agent 接力作为 v1 的生产代码路径
 

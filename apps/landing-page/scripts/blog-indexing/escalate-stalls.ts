@@ -139,7 +139,7 @@ function main() {
         '3. If the page looks fine, improve the underlying SEO/content signals: title/query fit, internal links, canonical clarity, and content depth.',
         '4. Redeploy the fix, then let the scheduled monitor re-inspect the URL.',
         '',
-        'This issue is auto-updated by `.github/workflows/blog-indexing-monitor.yml`. It will close itself once all listed URLs reach `indexed` status.',
+        'Re-run the blog indexing monitor scripts to update or close this issue once all listed URLs reach `indexed` status.',
       ].join('\n')
     : '';
 

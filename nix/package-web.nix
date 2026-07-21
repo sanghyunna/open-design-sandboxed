@@ -80,7 +80,7 @@ in
 
     meta = with lib; {
       description = "Open Design — Next.js static SPA (apps/web)";
-      homepage = "https://github.com/nexu-io/open-design";
+      homepage = "https://github.com/sanghyunna/open-design-sandboxed";
       license = licenses.asl20;
       platforms = platforms.linux ++ platforms.darwin;
     };

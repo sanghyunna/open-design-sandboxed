@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create a bug-report issue on nexu-io/open-design from a rendered body file.
+# Create a bug-report issue on sanghyunna/open-design-sandboxed from a rendered body file.
 # Usage:
 #   create-issue.sh --title "<issue title>" --body-file <rendered .md>
 #                   [--allow-duplicates] [--dedupe-keywords "<kw>"]

@@ -1,6 +1,5 @@
 import { cac } from "cac";
 
-import { startReleaseStorageFixtureServer } from "./release-storage-fixture.js";
 import { startUpdaterFixtureServer } from "./updater-fixture.js";
 
 type CliOptions = {
@@ -35,25 +34,6 @@ function parsePlatform(value: string | undefined): "mac" | "win" {
 }
 
 async function start(service: string, options: CliOptions): Promise<void> {
-  if (service === "release-storage") {
-    const server = await startReleaseStorageFixtureServer({
-      host: options.host,
-      port: parsePort(options.port),
-    });
-    if (options.json === true) {
-      printJson(server.info);
-    } else {
-      process.stdout.write(`tools-serve release-storage: ${server.info.endpointUrl} bucket=${server.info.bucket}\n`);
-    }
-
-    const shutdown = () => {
-      void server.close().finally(() => process.exit(0));
-    };
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-    return;
-  }
-
   if (service !== "updater") throw new Error(`unsupported tools-serve service: ${service}`);
   const server = await startUpdaterFixtureServer({
     artifactPath: options.artifactPath,

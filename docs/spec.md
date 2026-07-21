@@ -31,7 +31,7 @@ Other docs:
 
 | # | Bet | [Anthropic Claude Design][cd] | [Open CoDesign][ocod] | OD |
 |---|---|---|---|---|
-| 1 | Where the product runs | claude.ai only | Local Electron app | **Next.js web app + local daemon + desktop loop** — `pnpm tools-dev`, Vercel web deploy |
+| 1 | Where the product runs | claude.ai only | Local Electron app | **Next.js web app + local daemon + desktop loop** — `pnpm tools-dev` |
 | 2 | Who owns the agent loop | Anthropic, closed | [Open CoDesign][ocod] itself, via [`pi-ai`][piai] | **The user's existing code agent CLI** (Claude Code, Codex, Devin for Terminal, Cursor Agent, Gemini CLI, OpenCode, OpenClaw); direct Anthropic API as fallback |
 | 3 | What "design skills" are | Proprietary internal tools | TypeScript modules baked into the app | **File-based skills** that follow Claude Code's `SKILL.md` spec — forkable, versionable, shareable, installable by symlink |
 | 4 | How design systems are authored | Implicit in prompt | N/A | **`DESIGN.md` files** following the [awesome-claude-design][acd] 9-section schema |
@@ -44,7 +44,7 @@ The differentiation is not "yet another design generator." It is **an integratio
 - **Indie devs / designers** who already pay for one coding agent and don't want a second subscription or a second model router just to get design output.
 - **Design system maintainers** who want to codify their system as a `DESIGN.md` and have every skill respect it automatically.
 - **Skill authors** who want to publish a design skill (e.g. "SaaS marketing page with glassmorphism") and have it run inside any compatible agent without porting.
-- **Teams self-hosting AI tooling** who need a web deployment, not an Electron binary, and who need to keep keys in their own infra.
+- **Teams embedding local AI tooling** through the web UI or `od` CLI while keeping keys and runtime data on their own machines.
 
 ## 4. User scenarios
 
@@ -90,7 +90,7 @@ The fifth is the cross-product loop described in [`automation-self-evolution.md`
 
 Module responsibilities:
 
-- **Web app** — chat UI, artifact tree, sandboxed iframe preview, comment mode, slider controls, export UI. Stateless; all state lives in the daemon or in the browser's IndexedDB for cloud deploys.
+- **Web app** — chat UI, artifact tree, sandboxed iframe preview, comment mode, slider controls, export UI. Durable state lives in the daemon.
 - **Daemon** — long-running local process. Detects agents, registers skills, manages artifacts on disk, resolves the active design system, and brokers REST/SSE requests.
 - **Agent adapters** — one adapter per supported CLI; see [`agent-adapters.md`](agent-adapters.md).
 - **Skill registry** — scans `~/.claude/skills/`, `./skills/`, and `./.claude/skills/`; merges and exposes a typed catalog.
@@ -104,7 +104,7 @@ Module responsibilities:
 ## 6. Non-goals
 
 - **We do not ship a model router.** If the user's agent supports 20 providers, great. If it only supports Anthropic, that's the ceiling. We don't layer our own provider abstraction on top of someone else's.
-- **We do not ship a desktop app.** No Electron, no Tauri. The "local" story is a Next.js dev server + a Node daemon. If someone wants a tray icon, that's [`cc-switch`][ccsw]'s job, not ours.
+- **We do not own hosted deployment or container orchestration in this repository.** The supported workspace boundary is the local web, daemon, desktop, and packaged runtime.
 - **We do not reinvent the agent loop.** No custom tool-use harness, no bespoke context-manager. Everything goes through the detected agent's native loop.
 - **We do not maintain a skill marketplace in v1.** Skills are git URLs and local folders. A browsable UI is v2.
 - **We do not try to compete with Figma.** Output is code (HTML/JSX) and content (`DESIGN.md`, Markdown, PPTX), not editable vector canvases.
@@ -125,7 +125,7 @@ We keep the good parts: comment mode, slider-emitted parameters, multi-frame pre
 
 We are **not** trying to out-feature [Claude Design][cd]. Claude Design has Anthropic's model team, internal tooling, and a rendering pipeline we can't match. What we offer instead:
 
-- **Self-hostable.** Run on your laptop, your Vercel, your k8s. Secrets never leave.
+- **Local-first.** Run on your machine through the web, desktop, or CLI surfaces. Secrets remain in daemon-owned configuration.
 - **BYO-agent.** If you're already paying for Cursor, that's your agent. If you've standardized on Codex inside your company, use Codex. No mandatory Anthropic subscription.
 - **Skills as files.** Version them in git. Fork them. Ship them to teammates as a repo. Run your team's branded deck skill without rebuilding a product.
 - **Design systems as files.** A `DESIGN.md` is an artifact you can review in a PR. Claude Design's "design system" lives in an ephemeral chat.
@@ -137,14 +137,13 @@ In short: Claude Design is a product; OD is a **substrate**.
 - One developer can `git clone && corepack enable && pnpm install && pnpm tools-dev run web`, point at their Claude Code install, and produce a prototype in under 5 minutes.
 - A third party can author a skill in a separate git repo, publish it, and have a user install it by running `od skill add <git-url>` without touching OD's source.
 - A design system author can write a `DESIGN.md`, point OD at it, and have the style propagate across prototype / deck / template outputs.
-- Deploying to Vercel with a local daemon works end-to-end (the daemon is reachable via localhost tunnel or a user-provided URL).
+- The web UI and `od` CLI drive the same daemon contracts end-to-end.
 - Swapping the underlying agent from Claude Code to Codex requires zero skill changes.
 
 ## 10. Open questions (to resolve before coding)
 
-- **Daemon ↔ Vercel bridge.** Do we ship a reverse-tunnel helper (like `cloudflared`), require the user to set one up, or punt to "run locally for now"? My current lean: punt for MVP, helper in v1.
 - **Artifact versioning.** Git, or SQLite, or both? [Open CoDesign][ocod] uses SQLite; that's easier but less reviewable. Lean: write artifacts as plain files + a `.od/history.jsonl` log. Git is the user's business.
 - **Comment mode on non-Claude-Code agents.** Claude Code supports surgical edits via its tool loop. Codex and Gemini CLI are less graceful. Do we degrade to "regenerate whole file" for weaker agents? Lean: yes, document clearly in the adapter table.
 - **Skill trust model.** Skills can shell out via the agent. We should at minimum warn on install, and probably sandbox the agent's cwd to the project directory. Claude Code's permission mode handles this for us if we use it; Codex is looser. Needs a per-adapter note.
 
-These go on the roadmap as Phase 0 discovery items.
+Open questions that remain relevant should be tracked through the current roadmap and issue tracker.

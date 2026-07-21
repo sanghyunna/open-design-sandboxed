@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Commit, push, and open a PR against nexu-io/open-design.
+# Commit, push, and open a PR against sanghyunna/open-design-sandboxed.
 # Usage: create-pr.sh --workdir <dir> --type <skill|design-system|i18n|docs> \
 #                     --title "<pr title>" --body-file <rendered PR body .md>
 #

@@ -1,6 +1,6 @@
 # OD repo map — what goes where
 
-Mirrors `nexu-io/open-design` `CONTRIBUTING.md` so the skill doesn't need to re-fetch it on every run. **If this drifts from upstream CONTRIBUTING.md, upstream wins** — re-read the live file when in doubt.
+Mirrors `sanghyunna/open-design-sandboxed` `CONTRIBUTING.md` so the skill doesn't need to re-fetch it on every run. **If this drifts from the target repository's CONTRIBUTING.md, the target repository wins** — re-read the live file when in doubt.
 
 ## Three high-leverage contribution surfaces (per OD's CONTRIBUTING.md)
 

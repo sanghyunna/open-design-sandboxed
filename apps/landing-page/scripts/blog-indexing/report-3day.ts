@@ -347,9 +347,8 @@ function plusDaysIso(iso: string, delta: number): string {
 
 const HEADER = `# Blog traffic digest
 
-Daily Search Console snapshot for posts on https://open-design.ai/blog/.
-Refreshed by [\`.github/workflows/blog-3day-report.yml\`](../.github/workflows/blog-3day-report.yml)
-once per day at 10:00 Asia/Shanghai.
+Search Console snapshot for posts on https://open-design.ai/blog/.
+Refresh by running \`apps/landing-page/scripts/blog-indexing/report-3day.ts\`.
 
 How to read this file:
 

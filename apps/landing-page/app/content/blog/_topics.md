@@ -4,7 +4,7 @@ _Last reviewed: 2026-05-22 (0.8.0 release scoring pass)_
 
 This file is the single source of truth for what we're considering, drafting, and have shipped on the Open Design blog. The leading underscore keeps Astro's content collection from treating it as a post.
 
-Maintained by the `open-design-blog-factory` skill (`~/.codex/skills/open-design-blog-factory/SKILL.md`). Update on every scoring pass, draft start, and ship.
+Update this ledger on every topic-scoring pass, draft start, and publish.
 
 Scoring rubric (4 dimensions × 5 = 20):
 
@@ -38,7 +38,6 @@ Scored, not yet drafting. Sorted by total descending. Pick from the top when sta
 | 13 | **Claude Design self-hosted? What Anthropic's tool isn't, and what is** (A4) | Guides (comparison) | 5 | 4 | 3 | 4 | **16** | local-first / privacy angle; Anthropic only ships hosted | Anchors the local-first claim against a current named product. CTA = `Try the open-source workflow`. |
 | 14 | **Using Open Design with Claude Code — the open handoff to engineering** (C1) | Use cases | 5 | 4 | 3 | 4 | **16** | Anthropic users in OD overlap; Claude Code = handoff target in Claude Design tutorial | Catches "claude code design" searchers; pairs naturally with A1. |
 | 15 | How @Romantin shipped a collapsible comments panel in one day | Community (contributor) | 4 | 2 | 4 | 5 | **15** | gh issue #1605 → PR #1607 | Get Romantin's consent before publishing. Use the actual PR diff as a screenshot, link the original issue + the leveling card. CTA = `Contribute a skill`. |
-| 16 | Deploying a pnpm monorepo Astro app to Vercel — the output directory gotcha | Guides (tutorial) | 4 | 4 | 3 | 4 | **15** | gh issue #1628 (live) | Pure how-to. Cover root vs `apps/web` Vercel project root, `vercel.json#outputDirectory`, and the actual Open Design `vercel.json`. Useful long-tail SEO. |
 | 17 | **Claude Design limitations — what the research preview can't do yet** (B2) | Guides (comparison) | 4 | 4 | 4 | 3 | **15** | Anthropic itself calls it "research preview" | Honest counter-take to the official tutorial. Stay observational, not snarky (per skill comparison rules). |
 | 18 | Taste memory for design agents — a community proposal worth shipping | Community (proposal) | 4 | 2 | 4 | 4 | **14** | gh issue #1637 (itsmeved24) | Profile the proposal, cite the author, do not promise we'll build it. Get itsmeved24's consent. Frames Open Design as a place where serious proposals get serious replies. |
 | 19 | **Should designers use Claude Design? A field test** (B3) | Use cases | 4 | 4 | 3 | 3 | **14** | own dogfooding | Run the same brief on Claude Design + Open Design, publish both artefacts. Requires actually buying a Claude Pro seat for the test. |
@@ -129,10 +128,10 @@ Keep this list short — only entries useful as guard-rails so we don't re-litig
 ## Source URL list (for the agent's "find topics" pass)
 
 P0 — every find-topics pass (mandatory):
-- `gh issue list --repo nexu-io/open-design --state open --limit 30` — current pain, BYOK, contributor work
-- `gh issue list --repo nexu-io/open-design --state closed --limit 30 --search "closed:>=$(date -v-7d +%Y-%m-%d)"` — recent shipped wins worth narrating
-- `gh issue list --repo nexu-io/open-design --label blog --state all` — direct content requests
-- https://github.com/nexu-io/open-design/issues — same data via web for skim/triage
+- `gh issue list --repo sanghyunna/open-design-sandboxed --state open --limit 30` — current pain, BYOK, contributor work
+- `gh issue list --repo sanghyunna/open-design-sandboxed --state closed --limit 30 --search "closed:>=$(date -v-7d +%Y-%m-%d)"` — recent shipped wins worth narrating
+- `gh issue list --repo sanghyunna/open-design-sandboxed --label blog --state all` — direct content requests
+- https://github.com/sanghyunna/open-design-sandboxed/issues — same data via web for skim/triage
 
 P0 — daily:
 - https://www.anthropic.com/news

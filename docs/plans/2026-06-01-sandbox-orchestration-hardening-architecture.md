@@ -243,8 +243,8 @@ should check one live daemon against the same fixture.
 - Mirror these surfaces in the external maintainer PR-duty workflow so review
   output marks them as sandbox-orchestration-sensitive. Do not restore
   `tools/pr` without a separate maintainer decision.
-- Ensure every new guard or smoke is invoked by `.github/workflows/ci.yml`; an
-  uncalled guard is documentation, not enforcement.
+- Ensure every new guard or smoke is reachable through the documented local
+  validation commands; an uncalled guard is documentation, not enforcement.
 
 ### Phase 4: Raw Project-File Regression Coverage
 

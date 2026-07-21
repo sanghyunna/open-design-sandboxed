@@ -651,7 +651,7 @@ Example:
 
 ### Review Process
 
-**Native-speaker review is strongly preferred but not blocking.** Maintainers may merge a locale PR with a `nit` label if no native speaker has reviewed within ~7 days and CI passes. Subsequent fixes are welcome as separate PRs.
+**Native-speaker review is strongly preferred but not blocking.** Maintainers may merge a locale PR with a `nit` label if no native speaker has reviewed within ~7 days and the documented local checks pass. Subsequent fixes are welcome as separate PRs.
 
 > The 7-day window is a starting point, not a hard policy. Adjust based on your locale's contributor availability and the size of the change.
 
@@ -682,7 +682,7 @@ When a PR changes English copy, check which surface changed and update the match
 
 ### Automated Checks
 
-**P0 check (hard-fail in CI):**
+**P0 check (required local validation):**
 ```bash
 pnpm i18n:check
 ```
@@ -715,7 +715,7 @@ When the English README or UI dict gains new sections/keys, contributors are **n
 
 A locale is considered drifted when **either**:
 
-- **≥20 untranslated UI keys** vs. `en.ts` (today this is checked manually with a key-diff; a CI warning is tracked as a follow-up — see [Open questions](#open-questions)), **or**
+- **≥20 untranslated UI keys** vs. `en.ts` (today this is checked manually with a key-diff; an automated warning is tracked as a follow-up — see [Open questions](#open-questions)), **or**
 - **No refresh PR in 6+ months** while the English README or dict has changed
 
 These are tripwires for moving a locale to **stale** status (below); they're not auto-rejection rules.
@@ -863,10 +863,10 @@ If yes to all, it's good enough!
 
 ## 🆘 Getting Help
 
-- **Questions?** Open a [GitHub Discussion](https://github.com/nexu-io/open-design/discussions)
-- **Found an issue?** Open a [GitHub Issue](https://github.com/nexu-io/open-design/issues)
+- **Questions?** Open a [GitHub Discussion](https://github.com/sanghyunna/open-design-sandboxed/discussions)
+- **Found an issue?** Open a [GitHub Issue](https://github.com/sanghyunna/open-design-sandboxed/issues)
 - **Want to chat?** Join our [Discord](https://discord.gg/qhbcCH8Am4)
-- **Need a review?** Tag `@nexu-io/maintainers` in your PR
+- **Need a review?** Request review from `@sanghyunna` in your PR
 
 ---
 
@@ -874,7 +874,7 @@ If yes to all, it's good enough!
 
 Genuinely undecided — flagged so contributors know they're live design discussions:
 
-- **Source-of-truth drift CI.** A `pnpm i18n:diff` script that compares each locale's keys to `en.ts` and warns (not fails) when a locale exceeds the 20-key drift threshold. Tracked as a follow-up after this doc lands.
+- **Source-of-truth drift automation.** A `pnpm i18n:diff` script that compares each locale's keys to `en.ts` and warns (not fails) when a locale exceeds the 20-key drift threshold. Tracked as a follow-up after this doc lands.
 - **README freshness signal.** A small badge or front-matter timestamp on each `README.<code>.md` could help readers gauge how current a translation is.
 - **Native-speaker review window.** Whether `~7 days` is too short for smaller language communities — adjust if real data shows otherwise.
 

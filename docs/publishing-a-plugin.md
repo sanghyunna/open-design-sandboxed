@@ -43,7 +43,13 @@ od plugin publish figma-workflow --to open-design --repo https://github.com/acme
 
 v1 opens the GitHub registry review flow. The publish payload includes the
 plugin ID, version, repo, capability summary, and target registry entry path.
-After merge, CI regenerates `open-design-marketplace.json`.
+As part of the registry change, maintainers update the catalog explicitly:
+
+```bash
+od plugin publish acme/figma-workflow --to marketplace-json \
+  --catalog plugins/registry/community/open-design-marketplace.json \
+  --repo https://github.com/acme/figma-workflow
+```
 
 ## 5. Install From The Registry
 

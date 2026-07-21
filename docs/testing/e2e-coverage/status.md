@@ -54,9 +54,9 @@ Playwright 资源场景现在支持显式 contract：
 
 相关文件：
 
-- [e2e/lib/playwright/resources.ts](/Users/mac/open-design/open-design/e2e/lib/playwright/resources.ts)
-- [e2e/resources/playwright.ts](/Users/mac/open-design/open-design/e2e/resources/playwright.ts)
-- [e2e/ui/app.test.ts](/Users/mac/open-design/open-design/e2e/ui/app.test.ts)
+- [e2e/lib/playwright/resources.ts](../../../e2e/lib/playwright/resources.ts)
+- [e2e/resources/playwright.ts](../../../e2e/resources/playwright.ts)
+- [e2e/ui/app.test.ts](../../../e2e/ui/app.test.ts)
 
 这意味着 `app.test.ts` 里的不少 flow 已经不再停留在“元素可见”，而是会一起验证持久化状态。
 
@@ -64,8 +64,8 @@ Playwright 资源场景现在支持显式 contract：
 
 更深的 real-run 校验落在：
 
-- [e2e/ui/real-daemon-run.test.ts](/Users/mac/open-design/open-design/e2e/ui/real-daemon-run.test.ts)
-- [e2e/tests/dialog/artifact-consistency.test.ts](/Users/mac/open-design/open-design/e2e/tests/dialog/artifact-consistency.test.ts)
+- [e2e/ui/real-daemon-run.test.ts](../../../e2e/ui/real-daemon-run.test.ts)
+- [e2e/tests/dialog/artifact-consistency.test.ts](../../../e2e/tests/dialog/artifact-consistency.test.ts)
 
 现在这里覆盖了：
 
@@ -77,7 +77,7 @@ Playwright 资源场景现在支持显式 contract：
 
 ### 3. Design Files 持久化
 
-[e2e/ui/app-design-files.test.ts](/Users/mac/open-design/open-design/e2e/ui/app-design-files.test.ts) 现在有了 API-backed 校验，覆盖：
+[e2e/ui/app-design-files.test.ts](../../../e2e/ui/app-design-files.test.ts) 现在有了 API-backed 校验，覆盖：
 
 - upload persistence
 - delete persistence
@@ -87,7 +87,7 @@ Playwright 资源场景现在支持显式 contract：
 
 ### 4. Restoration 与会话恢复
 
-[e2e/ui/app-restoration.test.ts](/Users/mac/open-design/open-design/e2e/ui/app-restoration.test.ts) 现在对下面这些点补了更强的 persisted-state 断言：
+[e2e/ui/app-restoration.test.ts](../../../e2e/ui/app-restoration.test.ts) 现在对下面这些点补了更强的 persisted-state 断言：
 
 - reload 后 latest conversation 选择
 - 删除 active conversation
@@ -102,7 +102,7 @@ Playwright 资源场景现在支持显式 contract：
 
 ### 5. Project management 持久化
 
-[e2e/ui/project-management-flows.test.ts](/Users/mac/open-design/open-design/e2e/ui/project-management-flows.test.ts) 现在对这些行为补了轻量 API 校验：
+[e2e/ui/project-management-flows.test.ts](../../../e2e/ui/project-management-flows.test.ts) 现在对这些行为补了轻量 API 校验：
 
 - rename persistence
 - search recovery
@@ -111,7 +111,7 @@ Playwright 资源场景现在支持显式 contract：
 
 ### 6. Entry configuration 与 keyboard workflows
 
-- [e2e/ui/workspace-keyboard-flows.test.ts](/Users/mac/open-design/open-design/e2e/ui/workspace-keyboard-flows.test.ts)
+- [e2e/ui/workspace-keyboard-flows.test.ts](../../../e2e/ui/workspace-keyboard-flows.test.ts)
   - 确认 quick-switcher 场景保留预期的 per-project file sets
   - 确认 mixed artifact / file workspace 在 reload 后仍然完整
 
@@ -133,7 +133,7 @@ Playwright 资源场景现在支持显式 contract：
 
 当前仍有一个明确的产品级缺口，以 `fixme` 的形式保留在：
 
-- [e2e/ui/real-daemon-run.test.ts](/Users/mac/open-design/open-design/e2e/ui/real-daemon-run.test.ts)
+- [e2e/ui/real-daemon-run.test.ts](../../../e2e/ui/real-daemon-run.test.ts)
 
 跳过的场景是：
 
@@ -149,7 +149,7 @@ Playwright 资源场景现在支持显式 contract：
 
 ## 验证命令
 
-从 `/Users/mac/open-design/open-design` 运行：
+从仓库根目录运行：
 
 ```bash
 pnpm --filter @open-design/e2e typecheck

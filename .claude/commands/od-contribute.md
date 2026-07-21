@@ -1,5 +1,5 @@
 ---
-description: Open a first-contribution PR (or bug issue) on nexu-io/open-design — works for non-coders too.
+description: Open a first-contribution PR (or bug issue) on sanghyunna/open-design-sandboxed — works for non-coders too.
 argument-hint: "[skill | design-system | i18n | docs | bug — optional, otherwise the skill will ask]"
 ---
 

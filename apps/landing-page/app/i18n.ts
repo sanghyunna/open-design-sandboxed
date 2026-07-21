@@ -173,7 +173,7 @@ export interface HeaderCopy {
     /** Standalone link to the YouTube tutorials channel. */
     tutorials: string;
     blog: string;
-    /** External community / contributors page (currently a Vercel deploy). */
+    /** External community / contributors page. */
     community: string;
     contact: string;
     /** Community dropdown sub-items. */
@@ -1988,15 +1988,15 @@ const HOME_FAQ_COPY: Record<LandingLocaleCode, HomeFaqTemplate[]> = {
     },
     {
       q: 'Can I run Open Design without installing the CLI or desktop app?',
-      a: 'Not today. Open Design is local-first by design — the minimum is a local daemon plus an agent (Claude Code, Codex, Cursor, Gemini CLI, or one of the 17 supported adapters). A hosted sandbox is on the roadmap but not the priority: artifacts in your repo beat documents in someone else\'s database.',
+      a: 'Not today. Open Design is local-first by design — the minimum is a local daemon plus an agent (Claude Code, Codex, Cursor, Gemini CLI, or one of the 17 supported adapters).',
     },
     {
       q: 'How much does Open Design cost?',
       a: 'The product is free and Apache-2.0 — there is no Open Design subscription. You pay the API costs of whichever provider you use (Anthropic, OpenAI, Google, Mistral, xAI, Moonshot, etc.), billed directly to your account. BYOK keeps both the credentials and the spend on your side of the line.',
     },
     {
-      q: 'Can I self-host Open Design on Vercel, Cloudflare, or my own server?',
-      a: 'Yes. The daemon runs anywhere Node 24 runs, and the landing page is a static Astro build that deploys to Cloudflare Pages, Vercel, or Netlify as-is. Teams running shared deployments typically pin the daemon to a machine inside their network and point each developer\'s CLI at it.',
+      q: 'Can I run Open Design locally without a hosted service?',
+      a: 'Yes. The supported workspace boundary is the local daemon, web UI, desktop shells, and `od` CLI. Runtime data and credentials remain on your machine.',
     },
     {
       q: 'How do I move my brand into Open Design?',
@@ -2008,7 +2008,7 @@ const HOME_FAQ_COPY: Record<LandingLocaleCode, HomeFaqTemplate[]> = {
     },
     {
       q: 'What\'s on the Open Design roadmap?',
-      a: 'The live roadmap is at docs/roadmap.md in the GitHub repo, and weekly release notes ship through GitHub Releases. Major themes for the next quarter: more agent adapters, richer template families (3D, video, audio), and an optional shared-daemon mode for design teams.',
+      a: 'The current roadmap is at docs/roadmap.md in the GitHub repository. Detailed accepted work is tracked in specs/current, docs/plans, and focused issues.',
     },
   ],
   zh: [
@@ -2522,7 +2522,7 @@ const HOME_PAGE_COPY_EN: HomePageCopy = {
     titleCollaborator: 'collaborator,',
     titleSuffix: 'not a black box',
     lead:
-      'The strongest coding agents already live on your laptop. We don’t ship one — we wire them into a skill-driven design workflow that runs locally with pnpm tools-dev, deploys the web layer to Vercel, and stays BYOK at every layer.',
+      'The strongest coding agents already live on your laptop. We don’t ship one — we wire them into a skill-driven design workflow that runs locally with pnpm tools-dev and stays BYOK at every layer.',
     approach: 'Read our approach',
     practice: 'Research · Design · Engineering · Repeat',
     stampTop: 'Studio practice',
@@ -2825,7 +2825,7 @@ const HOME_PAGE_COPY: Partial<Record<LandingLocaleCode, HomePageCopy>> = {
       titleCollaborator: '协作者，',
       titleSuffix: '而不是黑盒',
       lead:
-        '最强的编码 Agent 已经在你的电脑上。我们不再交付另一个封闭 Agent，而是把它们接入 Skill 驱动的设计工作流：本地用 pnpm tools-dev 运行，Web 层可部署到 Vercel，并且每一层都保持 BYOK。',
+        '最强的编码 Agent 已经在你的电脑上。我们不再交付另一个封闭 Agent，而是把它们接入 Skill 驱动的设计工作流：本地用 pnpm tools-dev 运行，并且每一层都保持 BYOK。',
       approach: '阅读我们的做法',
       practice: '研究 · 设计 · 工程 · 循环',
       stampTop: '工作室实践',
@@ -3132,7 +3132,7 @@ HOME_PAGE_COPY['zh-tw'] = {
     titleCollaborator: '協作者，',
     titleSuffix: '而不是黑盒',
     lead:
-      '最強的 coding agent 已經在你的電腦上。我們不再交付另一個封閉 Agent，而是把它們接入 Skill 驅動的設計工作流：本地用 pnpm tools-dev 執行，Web 層可部署到 Vercel，並且每一層都保持 BYOK。',
+      '最強的 coding agent 已經在你的電腦上。我們不再交付另一個封閉 Agent，而是把它們接入 Skill 驅動的設計工作流：本地用 pnpm tools-dev 執行，並且每一層都保持 BYOK。',
     approach: '閱讀我們的做法',
     practice: '研究 · 設計 · 工程 · 循環',
     stampBottom: '始於 MMXXVI',
@@ -5806,7 +5806,7 @@ const LOCALIZED_HOME_BODY_COPY: Partial<Record<LandingLocaleCode, DeepPartial<Ho
       titleCollaborator: '共同制作者',
       titleSuffix: 'として扱います',
       lead:
-        '強力な coding agent はすでにあなたの laptop にあります。私たちは別の閉じた agent を出荷するのではなく、それらを Skill 駆動のデザインワークフローに接続します。ローカルでは pnpm tools-dev で動き、Web 層は Vercel に展開でき、すべての層で BYOK を保ちます。',
+        '強力な coding agent はすでにあなたの laptop にあります。私たちは別の閉じた agent を出荷するのではなく、それらを Skill 駆動のデザインワークフローに接続します。ローカルでは pnpm tools-dev で動き、すべての層で BYOK を保ちます。',
       approach: '私たちの方法を読む',
       practice: 'リサーチ · デザイン · エンジニアリング · 反復',
       stampTop: 'スタジオ実践',
@@ -5962,7 +5962,7 @@ LOCALIZED_HOME_BODY_COPY.ko = homeFallbackCopy({
     titleCollaborator: '협업자',
     titleSuffix: '로 다룹니다',
     lead:
-      '가장 강력한 coding agent는 이미 당신의 노트북에 있습니다. 우리는 또 하나의 닫힌 agent를 제공하지 않고, 기존 agent를 Skill 기반 디자인 워크플로에 연결합니다. 로컬에서는 pnpm tools-dev로 실행하고, 웹 레이어는 Vercel에 배포할 수 있으며, 모든 계층은 BYOK를 유지합니다.',
+      '가장 강력한 coding agent는 이미 당신의 노트북에 있습니다. 우리는 또 하나의 닫힌 agent를 제공하지 않고, 기존 agent를 Skill 기반 디자인 워크플로에 연결합니다. 로컬에서는 pnpm tools-dev로 실행하고 모든 계층은 BYOK를 유지합니다.',
     approach: '방식 읽기',
     practice: '리서치 · 디자인 · 엔지니어링 · 반복',
     stampTop: '스튜디오 실천',
@@ -6117,7 +6117,7 @@ LOCALIZED_HOME_BODY_COPY.de = homeFallbackCopy({
     titleCollaborator: 'Mitarbeiter',
     titleSuffix: 'nicht als Blackbox',
     lead:
-      'Die stärksten Coding-Agents liegen bereits auf deinem Laptop. Wir liefern keinen weiteren geschlossenen Agent aus, sondern verbinden sie mit einem Skill-getriebenen Design-Workflow: lokal mit pnpm tools-dev, als Web-Layer auf Vercel deploybar und auf jeder Ebene BYOK.',
+      'Die stärksten Coding-Agents liegen bereits auf deinem Laptop. Wir liefern keinen weiteren geschlossenen Agent aus, sondern verbinden sie mit einem Skill-getriebenen Design-Workflow: lokal mit pnpm tools-dev und auf jeder Ebene BYOK.',
     approach: 'Unsere Methode lesen',
     practice: 'Recherche · Design · Engineering · Wiederholen',
     stampTop: 'Studiopraxis',

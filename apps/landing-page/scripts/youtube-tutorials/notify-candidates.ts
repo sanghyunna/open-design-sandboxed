@@ -1,5 +1,5 @@
 /*
- * notify-candidates — daily cron entry. Discovers new Open-Design tutorial
+ * notify-candidates — manual digest entry. Discovers new Open-Design tutorial
  * candidates from YouTube, then posts a numbered digest to a Feishu (Lark)
  * webhook for a human to review. It does NOT generate entries or open a PR:
  * a maintainer replies with which numbers to publish, and the selected videos
@@ -13,6 +13,7 @@
  *   ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY + ANTHROPIC_BASE_URL   relevance gate
  *   FEISHU_TUTORIALS_WEBHOOK               Feishu custom-bot incoming webhook URL
  *   FEISHU_TUTORIALS_SECRET                optional, if the bot has signing enabled
+ *   GITHUB_TOKEN + GITHUB_REPOSITORY        include tutorial issues and PRs
  *
  * --print skips Feishu and writes the digest to stdout (used locally to
  * reproduce the candidate numbering before generating selected entries).
@@ -171,91 +172,19 @@ async function postToFeishu(
   }
 }
 
-// This workflow's file name, used to look up its own prior runs.
-const WORKFLOW_FILE = 'tutorials-youtube-sync.yml';
-// Window used only when there is no watermark source (local runs, or a CI run
-// with no prior successful run yet) — wide enough that a single delayed/skipped
-// run can't open a gap, narrow enough not to dump history on a first run.
+// Default window for manual runs that do not specify --days.
 const FALLBACK_DAYS = 2;
 
 function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 86400_000).toISOString();
 }
 
-/**
- * Start time (RFC 3339) of the most recent successful run of this workflow that
- * isn't the current run, via the Actions API. Returns null when unavailable
- * (no token, no prior success, or an API error).
- */
-export async function lastSuccessfulRunStart(): Promise<string | null> {
-  const token = process.env.GITHUB_TOKEN;
-  const repo = process.env.GITHUB_REPOSITORY;
-  if (!token || !repo) return null;
-  const currentRunId = process.env.GITHUB_RUN_ID;
-  // Scope to this run's ref so only the canonical digest branch (main, for the
-  // schedule) advances its own watermark. Without this, a successful
-  // workflow_dispatch run on a feature branch could become main's watermark and
-  // permanently skip the range that branch run "covered".
-  const branch = process.env.GITHUB_REF_NAME ?? 'main';
-  const url = `https://api.github.com/repos/${repo}/actions/workflows/${WORKFLOW_FILE}/runs?status=success&branch=${encodeURIComponent(branch)}&per_page=10`;
-  const res = await fetch(url, {
-    headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' },
-  });
-  if (!res.ok) throw new Error(`Actions API HTTP ${res.status}`);
-  const data = (await res.json()) as {
-    workflow_runs?: { id: number; created_at: string; run_started_at?: string }[];
+function resolveWindowStart(explicitDays: number | null): { since: string; reason: string } {
+  const days = explicitDays ?? FALLBACK_DAYS;
+  return {
+    since: isoDaysAgo(days),
+    reason: explicitDays == null ? `default ${days}-day window` : `--days ${days}`,
   };
-  // Use run_started_at (actual execution start), NOT created_at (queue/creation
-  // time). They differ by the queue wait, which can be 10-15 min; deriving the
-  // watermark from created_at would re-emit candidates published while a run sat
-  // queued. Fall back to created_at only if run_started_at is absent.
-  const prior = (data.workflow_runs ?? [])
-    .filter((r) => String(r.id) !== currentRunId)
-    .map((r) => r.run_started_at ?? r.created_at)
-    .sort();
-  return prior.length ? prior[prior.length - 1] : null;
-}
-
-type WindowResult = { since: string; reason: string } | { fail: string };
-
-/**
- * Resolve the digest window start.
- * - Explicit --days always wins, with no upper clamp, so a manual catch-up after
- *   a long outage actually covers the requested range.
- * - In CI (a watermark source exists), the last successful run is the gap-free
- *   watermark. If that lookup ERRORS, fail the job rather than silently sweeping
- *   a wrong (short) window — dedupe only covers already-published videos, so a
- *   bad window would drop or duplicate notifications while the run looks green.
- * - The short FALLBACK_DAYS window is used only when there is genuinely no
- *   watermark (local run, or a CI run with no prior successful run yet).
- */
-async function resolveWindowStart(explicitDays: number | null): Promise<WindowResult> {
-  if (explicitDays != null) {
-    return { since: isoDaysAgo(explicitDays), reason: `--days ${explicitDays}` };
-  }
-  const hasWatermarkSource = Boolean(process.env.GITHUB_TOKEN && process.env.GITHUB_REPOSITORY);
-  if (hasWatermarkSource) {
-    let watermark: string | null;
-    try {
-      watermark = await lastSuccessfulRunStart();
-    } catch (e) {
-      return { fail: `watermark lookup failed: ${(e as Error).message}` };
-    }
-    if (watermark) {
-      // Lower bound = prior successful run's start. Windows are contiguous, so
-      // delayed/skipped runs stay gap-free. A residual overlap equal to the prior
-      // run's setup time (start → search call, ~1 min) can re-list a video once
-      // if it was published in that minute and not yet acted on. That is bounded
-      // and cosmetic here: the digest is human-reviewed, so a rare duplicate line
-      // is simply not picked twice, and once published it's filtered by the
-      // catalogue. Eliminating it fully needs a durable already-notified store,
-      // which is out of scope for this window-tuning change (follow-up if it ever
-      // proves noisy).
-      return { since: watermark, reason: `since last successful run ${watermark}` };
-    }
-    return { since: isoDaysAgo(FALLBACK_DAYS), reason: `no prior successful run; ${FALLBACK_DAYS}-day window` };
-  }
-  return { since: isoDaysAgo(FALLBACK_DAYS), reason: `no watermark source; ${FALLBACK_DAYS}-day window` };
 }
 
 async function main(): Promise<void> {
@@ -273,25 +202,17 @@ async function main(): Promise<void> {
   const key = await loadYoutubeKey();
   const existing = await readExistingVideoIds();
 
-  // Window start = last successful run (gap-free across delayed/skipped runs),
-  // or a short fallback window. --days overrides for manual catch-up.
-  const window = await resolveWindowStart(explicitDays);
-  if ('fail' in window) {
-    console.error(`Cannot resolve a safe window: ${window.fail}; aborting.`);
-    process.exitCode = 1;
-    return;
-  }
+  const window = resolveWindowStart(explicitDays);
   const { since, reason } = window;
   console.log(`Window start: ${since} (${reason})`);
 
   const { candidates, searchFailures, queryCount } = await fetchCandidates(key, since, existing);
 
   // Abort on ANY search failure (not just all). A partial failure is an
-  // incomplete sweep; posting + succeeding would advance the watermark past the
-  // failed query's window and skip those candidates forever. Failing instead
-  // holds the watermark so the next run re-covers the window.
+  // incomplete sweep, so posting it would give reviewers a false sense that the
+  // requested window was covered. Fix the query failure and rerun instead.
   if (searchFailures > 0) {
-    console.error(`${searchFailures}/${queryCount} search queries failed; aborting before posting so the watermark holds and the next run re-covers this window.`);
+    console.error(`${searchFailures}/${queryCount} search queries failed; aborting before posting an incomplete digest.`);
     process.exitCode = 1;
     return;
   }
@@ -300,9 +221,8 @@ async function main(): Promise<void> {
 
   // Also surface user submissions (form issues + contribution PRs) when a GitHub
   // token is present. If a lookup fails, abort before posting rather than send a
-  // digest that silently omits submissions — the run goes red (observable) and
-  // the next run re-queries (submissions are not windowed, so nothing is lost;
-  // YouTube candidates are re-covered via the unchanged watermark).
+  // digest that silently omits submissions. Submissions are not windowed, so a
+  // maintainer can correct the credentials and rerun the command without loss.
   let issues: SubmissionIssue[] = [];
   let prs: ContributionPR[] = [];
   const ghToken = process.env.GITHUB_TOKEN;
