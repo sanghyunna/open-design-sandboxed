@@ -21,8 +21,8 @@ generate-selected.ts  (run by the maintainer / agent)
     → write *.md  → open a pull request
 ```
 
-The cron **never** generates entries or opens PRs on its own — selection is the
-human review step, done in Feishu before any content is written.
+The script **never** generates entries or opens PRs on its own — selection is
+the human review step, done in Feishu before any content is written.
 
 The same daily digest also lists **user submissions** so they enter the same
 review flow:
@@ -59,18 +59,20 @@ before it ever reaches the digest.
 
 | Var | Where | Purpose |
 | --- | --- | --- |
-| `YOUTUBE_API_KEY` | repo secret + `~/.youtube/.env` | YouTube Data API v3 |
-| `ANTHROPIC_AUTH_TOKEN` (or `ANTHROPIC_API_KEY`) + `ANTHROPIC_BASE_URL` | repo secret + local env | relevance gate + copy generation (Claude Haiku) |
-| `FEISHU_TUTORIALS_WEBHOOK` | repo secret | Feishu custom-bot incoming webhook for the digest |
-| `FEISHU_TUTORIALS_SECRET` | repo secret (optional) | only if the Feishu bot has signature verification on |
+| `YOUTUBE_API_KEY` | local env or `~/.youtube/.env` | YouTube Data API v3 |
+| `ANTHROPIC_AUTH_TOKEN` (or `ANTHROPIC_API_KEY`) + `ANTHROPIC_BASE_URL` | local env | relevance gate + copy generation (Claude Haiku) |
+| `FEISHU_TUTORIALS_WEBHOOK` | local env | Feishu custom-bot incoming webhook for the digest |
+| `FEISHU_TUTORIALS_SECRET` | local env (optional) | only if the Feishu bot has signature verification on |
+| `GITHUB_TOKEN` + `GITHUB_REPOSITORY` | local env | include tutorial submission issues and PRs |
 
 ## Manual runs
 
 ```bash
-# Reproduce the candidate digest locally (no Feishu post). Without a run-history
-# watermark (i.e. locally), it uses a 2-day fallback window; pass --days N for a
-# wider catch-up sweep.
-npx tsx scripts/youtube-tutorials/notify-candidates.ts --days 14 --print
+# Reproduce the complete candidate digest locally (no Feishu post). --days is
+# required for an intentional manual window; the GitHub env includes user
+# submission issues and PRs.
+GITHUB_TOKEN="$(gh auth token)" GITHUB_REPOSITORY="sanghyunna/open-design-sandboxed" \
+  npx tsx scripts/youtube-tutorials/notify-candidates.ts --days 14 --print
 
 # Generate approved entries (ids or URLs), then open a PR with the new files
 npx tsx scripts/youtube-tutorials/generate-selected.ts dQw4w9WgXcQ https://youtu.be/XXXXXXXXXXX

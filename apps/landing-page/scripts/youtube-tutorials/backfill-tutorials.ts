@@ -1,7 +1,7 @@
 /*
  * backfill-tutorials — one-off importer that turns pre-fetched yt-dlp JSON
  * lines into `app/content/tutorials/*.md` entries, reusing the same LLM copy
- * generation and slug rules as the daily cron.
+ * generation and slug rules as the manual digest flow.
  *
  * Usage:
  *   tsx scripts/youtube-tutorials/backfill-tutorials.ts <videos.jsonl> [--dry-run]
