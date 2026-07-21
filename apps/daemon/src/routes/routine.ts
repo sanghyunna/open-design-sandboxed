@@ -57,7 +57,6 @@ function normalizeRoutineContext(value: unknown) {
     skillIds: cleanStringList(input.skillIds, 'context.skillIds'),
     pluginIds: cleanStringList(input.pluginIds, 'context.pluginIds'),
     mcpServerIds: cleanStringList(input.mcpServerIds, 'context.mcpServerIds'),
-    connectorIds: cleanStringList(input.connectorIds, 'context.connectorIds'),
   };
   return Object.fromEntries(
     Object.entries(context).filter(([, ids]) => ids.length > 0),

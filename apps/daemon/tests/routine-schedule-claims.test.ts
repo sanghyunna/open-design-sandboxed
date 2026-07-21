@@ -123,8 +123,6 @@ describe('routine scheduled loser cleanup', () => {
       capabilitiesGranted: ['prompt:inject'],
       capabilitiesRequired: ['prompt:inject'],
       assetsStaged: [],
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       query: 'Previous {{prompt}}',
     });
@@ -210,8 +208,6 @@ describe('routine scheduled loser cleanup', () => {
       capabilitiesGranted: ['prompt:inject'],
       capabilitiesRequired: ['prompt:inject'],
       assetsStaged: [],
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       query: 'Previous {{prompt}}',
     });
@@ -392,8 +388,6 @@ describe('routine scheduled loser cleanup', () => {
       capabilitiesGranted: ['prompt:inject'],
       capabilitiesRequired: ['prompt:inject'],
       assetsStaged: [],
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       query: 'Previous {{prompt}}',
     });
@@ -500,8 +494,6 @@ describe('routine scheduled loser cleanup', () => {
       capabilitiesGranted: ['prompt:inject'],
       capabilitiesRequired: ['prompt:inject'],
       assetsStaged: [],
-      connectorsRequired: [],
-      connectorsResolved: [],
       mcpServers: [],
       query: 'Previous {{prompt}}',
     });

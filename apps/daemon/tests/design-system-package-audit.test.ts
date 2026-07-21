@@ -3,9 +3,10 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises
 import os from 'node:os';
 import path from 'node:path';
 
-import { runConnectorsToolCli } from '../src/tools-connectors-cli.js';
+import { auditDesignSystemPackage, runDesignSystemPackageAuditCli } from '../src/design-system-package-audit.js';
 
-const ORIGINAL_ENV = { ...process.env };
+
+
 
 const AUDIT_DESIGN_MD = `# Cherry Studio Design System
 
@@ -427,16 +428,14 @@ function auditUiKitComponent(componentName: string): string {
   return baseName === 'App' ? auditAppComponent() : auditComponent(baseName);
 }
 
-describe('connectors tool CLI', () => {
+describe('design-system package audit', () => {
   let stdoutWrite: { mockRestore: () => void };
   let stderrWrite: { mockRestore: () => void };
   let stdoutOutput: string[];
   let stderrOutput: string[];
-  let fetchMock: ReturnType<typeof vi.fn>;
   let cwd: string;
 
   beforeEach(() => {
-    process.env = { ...ORIGINAL_ENV };
     cwd = process.cwd();
     stdoutOutput = [];
     stderrOutput = [];
@@ -448,351 +447,18 @@ describe('connectors tool CLI', () => {
       stderrOutput.push(String(chunk));
       return true;
     });
-    fetchMock = vi.fn(async () => new Response(JSON.stringify({ connectors: [] }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     stdoutWrite.mockRestore();
     stderrWrite.mockRestore();
-    process.env = ORIGINAL_ENV;
     process.chdir(cwd);
   });
-
-  async function installFailingLocalGithubTools(tmpDir: string): Promise<void> {
-    const fakeBinDir = path.join(tmpDir, 'bin');
-    await mkdir(fakeBinDir, { recursive: true });
-    const fakeGitPath = path.join(fakeBinDir, 'git');
-    await writeShellShim(fakeGitPath, `#!/bin/sh
-echo "fatal: repository not found" >&2
-exit 128
-`);
-    await writeCmdShim(fakeGitPath, '@echo off\r\necho fatal: repository not found 1>&2\r\nexit /b 128\r\n');
-    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
-  }
-
-  async function writeShellShim(commandPath: string, script: string): Promise<void> {
-    await writeFile(commandPath, script, 'utf8');
-    await chmod(commandPath, 0o755);
-    if (process.platform !== 'win32') return;
-
-    await writeFile(`${commandPath}.cmd`, `@echo off\r\nsh "%~dp0${path.basename(commandPath)}" %*\r\nexit /b %ERRORLEVEL%\r\n`, 'utf8');
-  }
-
-  async function writeCmdShim(commandPath: string, script: string): Promise<void> {
-    if (process.platform === 'win32') {
-      await writeFile(`${commandPath}.cmd`, script, 'utf8');
-    }
-  }
 
   async function cleanupTempDir(tmpDir: string): Promise<void> {
     process.chdir(cwd);
     await rm(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
-
-  it('appends curated useCase query params for connector listing', async () => {
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456/base/';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ connectors: [] }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-
-    const result = await runConnectorsToolCli(['list', '--use-case', 'personal_daily_digest']);
-
-    expect(result.exitCode).toBe(0);
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:7456/base/api/tools/connectors/list?useCase=personal_daily_digest',
-      expect.objectContaining({
-        method: 'GET',
-        headers: expect.objectContaining({ Authorization: 'Bearer agent-run-token' }),
-      }),
-    );
-  });
-
-  it('includes curation in compact connector output', async () => {
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
-      connectors: [{
-        id: 'slack',
-        name: 'Slack',
-        provider: 'composio',
-        category: 'Communication',
-        status: 'connected',
-        tools: [{
-          name: 'slack.slack_list_channels',
-          description: 'List Slack channels',
-          safety: { sideEffect: 'read', approval: 'auto', reason: 'read-only' },
-          curation: { useCases: ['personal_daily_digest'], reason: 'Digest source' },
-        }],
-      }],
-    }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-
-    const result = await runConnectorsToolCli(['list']);
-
-    expect(result.exitCode).toBe(0);
-    expect(JSON.parse(stdoutOutput.join(''))).toEqual({
-      ok: true,
-      connectors: [{
-        id: 'slack',
-        name: 'Slack',
-        provider: 'composio',
-        category: 'Communication',
-        status: 'connected',
-        accountLabel: undefined,
-        tools: [{
-          name: 'slack.slack_list_channels',
-          description: 'List Slack channels',
-          safety: { sideEffect: 'read', approval: 'auto', reason: 'read-only' },
-          curation: { useCases: ['personal_daily_digest'], reason: 'Digest source' },
-          inputSchema: undefined,
-        }],
-      }],
-    });
-    expect(stderrOutput.join('')).toBe('');
-  });
-
-  it('writes GitHub design evidence through connected connector tools', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-    await installFailingLocalGithubTools(tmpDir);
-
-    const encode = (value: string) => Buffer.from(value, 'utf8').toString('base64');
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-          tools: [{ name: 'github.github_get_repository_content' }],
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { default_branch: 'main', html_url: 'https://github.com/acme/ui' } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { path: 'README.md', encoding: 'base64', content: encode('# Acme UI') } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { tree: [
-          { path: 'build/logo.png', type: 'blob' },
-          { path: 'package.json', type: 'blob' },
-          { path: 'src/pages/home/HomePage.tsx', type: 'blob' },
-          { path: 'src/components/Button.tsx', type: 'blob' },
-          { path: 'src/styles.css', type: 'blob' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { encoding: 'base64', content: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64') } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: 'export function HomePage(){ return <main className="workspace" /> }' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: ':root { --color-brand: #ff5500; --radius-md: 8px; }' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: { mimetype: 'text/plain', name: 'Button.tsx', s3url: 'https://signed.example/Button.tsx' } } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response('export function Button(){ return <button className="rounded-md" /> }', { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: '{"dependencies":{"@radix-ui/react-slot":"latest"}}' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/ui', '--max-files', '5']);
-
-    expect(result.exitCode).toBe(0);
-    const stdout = JSON.parse(stdoutOutput.join(''));
-    expect(stdout).toEqual(expect.objectContaining({
-      ok: true,
-      repo: 'acme/ui',
-      method: 'connector',
-      outputPath: 'context/github/acme-ui.md',
-      snapshotFiles: expect.arrayContaining([
-        'context/github/acme-ui/files/build/logo.png',
-        'context/github/acme-ui/files/src/pages/home/HomePage.tsx',
-      ]),
-      materializedFiles: expect.arrayContaining([
-        'build/logo.png',
-        'source_examples/src/pages/home/HomePage.tsx',
-      ]),
-    }));
-    const evidenceNote = await readFile(path.join(tmpDir, 'context/github/acme-ui.md'), 'utf8');
-    expect(evidenceNote).toContain('Connector platform fallback was used');
-    expect(evidenceNote).toContain('Source Evidence Inventory');
-    expect(evidenceNote).toContain('Package Files Materialized');
-    expect(evidenceNote).toContain('`build/logo.png`');
-    expect(evidenceNote).toContain('`source_examples/src/pages/home/HomePage.tsx`');
-    expect(evidenceNote).toContain('Theme, tokens, and styling');
-    expect(evidenceNote).toContain('Reusable components');
-    expect(evidenceNote).toContain('ui_kits/app/index.html` must be a browser-reviewable component entry');
-    expect(evidenceNote).toContain('ui_kits/app/components/App.jsx` (or equivalent app shell) must compose source-backed role components');
-    expect(evidenceNote).toContain('Claude-style UI-kit entry skeleton for direct JSX kits');
-    expect(evidenceNote).toContain('<script type="text/babel" src="components/ComponentName.jsx"></script>');
-    expect(evidenceNote).toContain('ReactDOM.createRoot(document.getElementById("root"))');
-    expect(evidenceNote).toContain('source_examples/');
-    const materializedLogo = await readFile(path.join(tmpDir, 'build/logo.png'));
-    expect([...materializedLogo]).toEqual([0x89, 0x50, 0x4e, 0x47]);
-    await expect(readFile(path.join(tmpDir, 'source_examples/src/pages/home/HomePage.tsx'), 'utf8')).resolves.toContain('HomePage');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-ui/files/src/components/Button.tsx'), 'utf8')).resolves.toContain('rounded-md');
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:7456/api/tools/connectors/execute',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('github.github_get_raw_repository_content'),
-      }),
-    );
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('writes bounded local design evidence snapshots from a linked folder', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-local-context-'));
-    process.chdir(tmpDir);
-    const sourceDir = path.join(tmpDir, 'cherry-studio');
-    await mkdir(path.join(sourceDir, 'src/components'), { recursive: true });
-    await mkdir(path.join(sourceDir, 'src/pages/home'), { recursive: true });
-    await mkdir(path.join(sourceDir, 'src/assets/fonts/ubuntu'), { recursive: true });
-    await mkdir(path.join(sourceDir, 'build'), { recursive: true });
-    await mkdir(path.join(tmpDir, 'build'), { recursive: true });
-    await writeFile(path.join(sourceDir, 'README.md'), '# Cherry Studio\n\nDesktop AI chat workspace.');
-    await writeFile(path.join(sourceDir, 'package.json'), JSON.stringify({ name: 'cherry-studio' }));
-    await writeFile(path.join(sourceDir, 'src/styles.css'), ':root { --color-primary: #db6f57; }');
-    await writeFile(path.join(sourceDir, 'src/components/Button.tsx'), 'export function Button() { return <button className="rounded-lg" />; }');
-    await writeFile(path.join(sourceDir, 'src/pages/home/HomePage.tsx'), 'export function HomePage() { return <main />; }');
-    await writeFile(path.join(sourceDir, 'src/assets/fonts/ubuntu/Ubuntu-Regular.ttf'), Buffer.from('font-data'));
-    await writeFile(path.join(sourceDir, 'build/icon.png'), Buffer.from('source-icon'));
-    await writeFile(path.join(sourceDir, 'build/logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-    await writeFile(path.join(tmpDir, 'build/icon.png'), Buffer.from('existing-icon'));
-
-    const result = await runConnectorsToolCli([
-      'local-design-context',
-      '--path',
-      sourceDir,
-      '--output',
-      'context/local-code/cherry-studio.md',
-      '--max-files',
-      '10',
-    ]);
-
-    expect(result.exitCode).toBe(0);
-    const output = JSON.parse(stdoutOutput.join(''));
-    expect(output).toMatchObject({
-      ok: true,
-      sourcePath: sourceDir,
-      method: 'local-folder',
-      outputPath: 'context/local-code/cherry-studio.md',
-      snapshotFiles: expect.arrayContaining([
-        'context/local-code/cherry-studio/files/package.json',
-        'context/local-code/cherry-studio/files/src/styles.css',
-        'context/local-code/cherry-studio/files/src/components/Button.tsx',
-        'context/local-code/cherry-studio/files/src/pages/home/HomePage.tsx',
-        'context/local-code/cherry-studio/files/src/assets/fonts/ubuntu/Ubuntu-Regular.ttf',
-        'context/local-code/cherry-studio/files/build/logo.png',
-      ]),
-      materializedFiles: expect.arrayContaining([
-        'build/logo.png',
-        'fonts/ubuntu/Ubuntu-Regular.ttf',
-        'source_examples/src/pages/home/HomePage.tsx',
-      ]),
-    });
-    expect(output.materializedFiles).not.toEqual(expect.arrayContaining(['build/icon.png']));
-    const evidenceNote = await readFile(path.join(tmpDir, 'context/local-code/cherry-studio.md'), 'utf8');
-    expect(evidenceNote).toContain('Local Design Evidence');
-    expect(evidenceNote).toContain('Source Evidence Inventory');
-    expect(evidenceNote).toContain('Package Files Materialized');
-    expect(evidenceNote).toContain('`build/logo.png`');
-    expect(evidenceNote).toContain('`fonts/ubuntu/Ubuntu-Regular.ttf`');
-    expect(evidenceNote).toContain('`source_examples/src/pages/home/HomePage.tsx`');
-    expect(evidenceNote).toContain('Brand assets and icons');
-    expect(evidenceNote).toContain('root `build/` with their original filenames');
-    expect(evidenceNote).toContain('Fonts');
-    expect(evidenceNote).toContain('Claude Design-style package');
-    expect(evidenceNote).toContain('ui_kits/app/index.html` must be a browser-reviewable component entry');
-    expect(evidenceNote).toContain('ui_kits/app/components/App.jsx` (or equivalent app shell) must compose source-backed role components');
-    expect(evidenceNote).toContain('Claude-style UI-kit entry skeleton for direct JSX kits');
-    expect(evidenceNote).toContain('<script type="text/babel" src="components/ComponentName.jsx"></script>');
-    expect(evidenceNote).toContain('ReactDOM.createRoot(document.getElementById("root"))');
-    expect(evidenceNote).toContain('source_examples/');
-    expect(evidenceNote).toContain('context/.../files/build/icon.png` -> `build/icon.png`');
-    await expect(readFile(path.join(tmpDir, 'context/local-code/cherry-studio/files/src/styles.css'), 'utf8')).resolves.toContain('--color-primary');
-    await expect(readFile(path.join(tmpDir, 'source_examples/src/pages/home/HomePage.tsx'), 'utf8')).resolves.toContain('HomePage');
-    const materializedLogo = await readFile(path.join(tmpDir, 'build/logo.png'));
-    expect([...materializedLogo]).toEqual([0x89, 0x50, 0x4e, 0x47]);
-    await expect(readFile(path.join(tmpDir, 'build/icon.png'), 'utf8')).resolves.toBe('existing-icon');
-    const materializedFont = await readFile(path.join(tmpDir, 'fonts/ubuntu/Ubuntu-Regular.ttf'));
-    expect(materializedFont.toString()).toBe('font-data');
-    const fontBytes = await readFile(path.join(tmpDir, 'context/local-code/cherry-studio/files/src/assets/fonts/ubuntu/Ubuntu-Regular.ttf'));
-    expect(fontBytes.length).toBeGreaterThan(0);
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('prioritizes core app surfaces over nested tool buttons during local intake', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-local-core-context-'));
-    process.chdir(tmpDir);
-    const sourceDir = path.join(tmpDir, 'cherry-core');
-    const writeSource = async (relativePath: string, content = `export const marker = ${JSON.stringify(relativePath)};\n`) => {
-      const fullPath = path.join(sourceDir, ...relativePath.split('/'));
-      await mkdir(path.dirname(fullPath), { recursive: true });
-      await writeFile(fullPath, content);
-    };
-    await writeSource('README.md', '# Cherry Core\n');
-    await writeSource('package.json', JSON.stringify({ name: 'cherry-core' }));
-    await writeSource('src/renderer/src/pages/home/HomePage.tsx');
-    await writeSource('src/renderer/src/pages/home/Chat.tsx');
-    await writeSource('src/renderer/src/pages/home/Inputbar/Inputbar.tsx');
-    await writeSource('src/renderer/src/pages/home/Messages/Messages.tsx');
-    await writeSource('src/renderer/src/pages/home/Tabs/components/AssistantList.tsx');
-    await writeSource('src/renderer/src/pages/home/Inputbar/tools/components/AttachmentButton.tsx');
-    await writeSource('src/renderer/src/pages/settings/AgentSettings/components/AdvancedSettings.tsx');
-    await writeSource('src/renderer/src/pages/home/Messages/__tests__/MessageGroup.test.tsx');
-
-    const result = await runConnectorsToolCli([
-      'local-design-context',
-      '--path',
-      sourceDir,
-      '--max-files',
-      '7',
-    ]);
-
-    expect(result.exitCode).toBe(0);
-    const output = JSON.parse(stdoutOutput.join(''));
-    expect(output.snapshotFiles).toEqual(expect.arrayContaining([
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/HomePage.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Chat.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Inputbar/Inputbar.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Messages/Messages.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Tabs/components/AssistantList.tsx',
-    ]));
-    expect(output.snapshotFiles).not.toEqual(expect.arrayContaining([
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Inputbar/tools/components/AttachmentButton.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/settings/AgentSettings/components/AdvancedSettings.tsx',
-      'context/local-code/cherry-core/files/src/renderer/src/pages/home/Messages/__tests__/MessageGroup.test.tsx',
-    ]));
-    expect(output.materializedFiles).toEqual(expect.arrayContaining([
-      'source_examples/src/renderer/src/pages/home/HomePage.tsx',
-      'source_examples/src/renderer/src/pages/home/Chat.tsx',
-      'source_examples/src/renderer/src/pages/home/Inputbar/Inputbar.tsx',
-    ]));
-    await expect(readFile(path.join(tmpDir, 'source_examples/src/renderer/src/pages/home/HomePage.tsx'), 'utf8')).resolves.toContain('HomePage.tsx');
-    const evidenceNote = await readFile(path.join(tmpDir, 'context/local-code/cherry-core.md'), 'utf8');
-    expect(evidenceNote).toContain('App shell and navigation');
-    expect(evidenceNote).toContain('Chat and input surfaces');
-
-    await cleanupTempDir(tmpDir);
-  });
 
   it('passes a Claude Design-style design-system package audit', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-pass-'));
@@ -866,7 +532,7 @@ exit 128
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/pages/home/Chat.tsx'), 'export function Chat(){ return <main><InputBar /><Messages /></main>; }');
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/icon.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join(''))).toMatchObject({
@@ -919,7 +585,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components/Button.tsx'), 'export function Button(){ return <button />; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -954,7 +620,7 @@ exit 128
     }
     await writeFile(path.join(tmpDir, 'ui_kits/app/index.html'), auditUiKitIndex());
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -996,7 +662,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1038,7 +704,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1080,7 +746,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1122,7 +788,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1164,7 +830,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1209,7 +875,7 @@ exit 128
       );
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1266,7 +932,7 @@ exit 128
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/icon.ico'), Buffer.from([0x00, 0x00, 0x01, 0x00]));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/tray_icon.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1326,7 +992,7 @@ exit 128
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/icon.png'), Buffer.from('source-icon'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/tray_icon.png'), Buffer.from('source-tray'));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1388,7 +1054,7 @@ exit 128
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/icon.png'), sourceIcon);
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/build/tray_icon.png'), sourceTray);
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).not.toEqual(expect.arrayContaining([
@@ -1432,7 +1098,7 @@ exit 128
     await writeFile(path.join(tmpDir, 'assets/logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     await writeFile(path.join(tmpDir, 'build/icon.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -1485,7 +1151,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components/Button.tsx'), 'export function Button(){ return <button />; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1534,7 +1200,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components/Button.tsx'), 'export function Button(){ return <button />; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1592,7 +1258,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components/Button.tsx'), 'export function Button(){ return <button />; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1654,7 +1320,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/pages/home/Chat.tsx'), 'export function Chat(){ return <main><InputBar /><Messages /></main>; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1708,7 +1374,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/pages/home/Chat.tsx'), 'export function Chat(){ return <main><InputBar /><Messages /></main>; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1765,7 +1431,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/pages/home/Chat.tsx'), 'export function Chat(){ return <main><InputBar /><Messages /></main>; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1818,7 +1484,7 @@ exit 128
     ].join('\n'));
     await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/pages/home/Chat.tsx'), 'export function Chat(){ return <main><InputBar /><Messages /></main>; }');
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1888,7 +1554,7 @@ exit 128
       '- src/assets/fonts/ubuntu/Ubuntu-Bold.ttf -> `context/local-code/cherry/files/src/assets/fonts/ubuntu/Ubuntu-Bold.ttf` (binary asset)',
     ].join('\n'));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -1940,7 +1606,7 @@ exit 128
       '- fonts/ubuntu/Ubuntu-Regular.ttf -> `context/local-code/cherry/files/fonts/ubuntu/Ubuntu-Regular.ttf` (binary asset)',
     ].join('\n'));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
@@ -2000,7 +1666,7 @@ exit 128
       await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components', `${componentName}.tsx`), `export function ${componentName}(){ return null; }`);
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -2012,7 +1678,7 @@ exit 128
     ]));
 
     stdoutOutput = [];
-    const strictResult = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir, '--fail-on-warnings']);
+    const strictResult = await runDesignSystemPackageAuditCli([ '--path', tmpDir, '--fail-on-warnings']);
 
     expect(strictResult.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join(''))).toMatchObject({
@@ -2073,7 +1739,7 @@ exit 128
       await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components', `${componentName}.tsx`), `export function ${componentName}(){ return null; }`);
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -2134,7 +1800,7 @@ exit 128
       await writeFile(path.join(tmpDir, 'context/local-code/cherry/files/src/components', `${componentName}.tsx`), `export function ${componentName}(){ return null; }`);
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -2199,7 +1865,7 @@ exit 128
       await writeFile(path.join(tmpDir, 'source_examples', `${componentName}.tsx`), `export function ${componentName}(){ return null; }\n`);
     }
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join('')).warnings).toEqual(expect.arrayContaining([
@@ -2235,7 +1901,7 @@ exit 128
       '- /tmp/acme-ui',
     ].join('\n'));
 
-    const result = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const result = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
 
     expect(result.exitCode).toBe(1);
     const output = JSON.parse(stdoutOutput.join(''));
@@ -2285,14 +1951,14 @@ exit 128
     await writeFile(path.join(tmpDir, 'assets/logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     await writeFile(path.join(tmpDir, 'fonts/ubuntu/Ubuntu-Regular.ttf'), Buffer.from('font-data'));
 
-    const strict = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir]);
+    const strict = await runDesignSystemPackageAuditCli([ '--path', tmpDir]);
     expect(strict.exitCode).toBe(1);
     expect(JSON.parse(stdoutOutput.join('')).errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: 'missing_required_file', path: 'DESIGN.md' }),
     ]));
 
     stdoutOutput = [];
-    const reference = await runConnectorsToolCli(['design-system-package-audit', '--path', tmpDir, '--reference-package']);
+    const reference = await runDesignSystemPackageAuditCli([ '--path', tmpDir, '--reference-package']);
     expect(reference.exitCode).toBe(0);
     expect(JSON.parse(stdoutOutput.join(''))).toMatchObject({
       ok: true,
@@ -2301,442 +1967,6 @@ exit 128
         expect.objectContaining({ code: 'missing_open_design_rules', path: 'DESIGN.md' }),
       ]),
     });
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('falls back to bounded connector directory browsing when the repository tree is too large', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-    await installFailingLocalGithubTools(tmpDir);
-
-    const encode = (value: string) => Buffer.from(value, 'utf8').toString('base64');
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-          tools: [{ name: 'github.github_get_repository_content' }],
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { default_branch: 'main', html_url: 'https://github.com/acme/ui' } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { path: 'README.md', encoding: 'base64', content: encode('# Acme UI') } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_OUTPUT_TOO_LARGE', message: 'connector output exceeds max serialized size' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 502 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'package.json', type: 'file' },
-          { path: 'src', type: 'dir' },
-          { path: 'docs', type: 'dir' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'src/styles.css', type: 'file' },
-          { path: 'src/components', type: 'dir' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [{ path: 'src/components/Button.tsx', type: 'file' }] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: '{"dependencies":{"@radix-ui/react-slot":"latest"}}' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: ':root { --color-brand: #ff5500; }' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: 'export function Button(){ return <button /> }' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/ui', '--max-files', '3', '--require-connector']);
-
-    expect(result.exitCode).toBe(0);
-    const stdout = JSON.parse(stdoutOutput.join(''));
-    expect(stdout).toEqual(expect.objectContaining({
-      ok: true,
-      method: 'connector',
-      warnings: expect.arrayContaining([
-        expect.stringContaining('Recursive tree connector read failed'),
-      ]),
-    }));
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-ui.md'), 'utf8')).resolves.toContain('bounded directory browsing');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-ui.md'), 'utf8')).resolves.toContain('src/components/Button.tsx');
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:7456/api/tools/connectors/execute',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('github.github_get_repository_content'),
-      }),
-    );
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('continues bounded GitHub intake when repository metadata is too large', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-    await installFailingLocalGithubTools(tmpDir);
-
-    const encode = (value: string) => Buffer.from(value, 'utf8').toString('base64');
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-          tools: [{ name: 'github.github_get_repository_content' }],
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_OUTPUT_TOO_LARGE', message: 'connector output exceeds max serialized size' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 502 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { path: 'README.md', encoding: 'base64', content: encode('# Huge Repo UI') } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_OUTPUT_TOO_LARGE', message: 'connector output exceeds max serialized size' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 502 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'package.json', type: 'file' },
-          { path: 'src', type: 'dir' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'src/styles.css', type: 'file' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: ':root { --color-brand: #ff5500; }' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: '{"dependencies":{"@radix-ui/react-slot":"latest"}}' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/huge-ui', '--max-files', '2', '--require-connector']);
-
-    expect(result.exitCode).toBe(0);
-    const stdout = JSON.parse(stdoutOutput.join(''));
-    expect(stdout).toEqual(expect.objectContaining({
-      ok: true,
-      method: 'connector',
-      warnings: expect.arrayContaining([
-        expect.stringContaining('Repository metadata connector read failed'),
-        expect.stringContaining('Recursive tree connector read failed'),
-      ]),
-    }));
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-huge-ui.md'), 'utf8')).resolves.toContain('Huge Repo UI');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-huge-ui/files/src/styles.css'), 'utf8')).resolves.toContain('--color-brand');
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('uses shallow local git clone before connector-backed intake', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-
-    const fakeBinDir = path.join(tmpDir, 'bin');
-    await mkdir(fakeBinDir, { recursive: true });
-    const fakeGitPath = path.join(fakeBinDir, 'git');
-    await writeShellShim(fakeGitPath, `#!/bin/sh
-for last do :; done
-mkdir -p "$last/src"
-mkdir -p "$last/build"
-mkdir -p "$last/fonts/ubuntu"
-cat > "$last/README.md" <<'EOF'
-# Fallback UI
-EOF
-cat > "$last/package.json" <<'EOF'
-{"dependencies":{"@radix-ui/react-dialog":"latest"}}
-EOF
-cat > "$last/src/styles.css" <<'EOF'
-:root { --color-brand: #dc5b3e; --radius-md: 10px; }
-EOF
-printf '\\211PNG\\r\\n\\032\\n' > "$last/build/icon.png"
-printf '\\211PNG\\r\\n\\032\\n' > "$last/build/logo.png"
-printf 'font-data' > "$last/fonts/ubuntu/Ubuntu-Regular.ttf"
-`);
-    await writeCmdShim(fakeGitPath, [
-      '@echo off',
-      'for %%A in (%*) do set "last=%%~A"',
-      'mkdir "%last%\\src"',
-      'mkdir "%last%\\build"',
-      'mkdir "%last%\\fonts\\ubuntu"',
-      '> "%last%\\README.md" echo # Fallback UI',
-      '> "%last%\\package.json" echo {"dependencies":{"@radix-ui/react-dialog":"latest"}}',
-      '> "%last%\\src\\styles.css" echo :root { --color-brand: #dc5b3e; --radius-md: 10px; }',
-      '> "%last%\\build\\icon.png" echo PNG',
-      '> "%last%\\build\\logo.png" echo PNG',
-      '> "%last%\\fonts\\ubuntu\\Ubuntu-Regular.ttf" echo font-data',
-      'exit /b 0',
-      '',
-    ].join('\r\n'));
-    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
-
-    const encode = (value: string) => Buffer.from(value, 'utf8').toString('base64');
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-          tools: [{ name: 'github.github_get_repository_content' }],
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { default_branch: 'main', html_url: 'https://github.com/acme/rate-limited-ui' } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { path: 'README.md', encoding: 'base64', content: encode('# Connector README') } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_OUTPUT_TOO_LARGE', message: 'connector output exceeds max serialized size' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 502 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'package.json', type: 'file' },
-          { path: 'src', type: 'dir' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true,
-        output: { data: { content: [
-          { path: 'src/styles.css', type: 'file' },
-        ] } },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_RATE_LIMITED', message: 'connector tool rate limit exceeded' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 429 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { code: 'CONNECTOR_RATE_LIMITED', message: 'connector tool rate limit exceeded' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 429 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/rate-limited-ui', '--max-files', '6', '--require-connector']);
-
-    expect(result.exitCode).toBe(0);
-    const stdout = JSON.parse(stdoutOutput.join(''));
-    expect(stdout).toEqual(expect.objectContaining({
-      ok: true,
-      method: 'git-clone',
-      localCloneMethod: 'git',
-      snapshotFiles: expect.arrayContaining([
-        'context/github/acme-rate-limited-ui/files/package.json',
-        'context/github/acme-rate-limited-ui/files/build/icon.png',
-        'context/github/acme-rate-limited-ui/files/build/logo.png',
-        'context/github/acme-rate-limited-ui/files/fonts/ubuntu/Ubuntu-Regular.ttf',
-        'context/github/acme-rate-limited-ui/files/src/styles.css',
-      ]),
-      warnings: [],
-    }));
-    const evidenceNote = await readFile(path.join(tmpDir, 'context/github/acme-rate-limited-ui.md'), 'utf8');
-    expect(evidenceNote).toContain('This-device intake was used through local git or GitHub CLI.');
-    expect(evidenceNote).toContain('Source Evidence Inventory');
-    expect(evidenceNote).toContain('Brand assets and icons');
-    expect(evidenceNote).toContain('root `build/` with their original filenames');
-    expect(evidenceNote).toContain('Fonts');
-    expect(evidenceNote).toContain('Binary Assets Preserved');
-    expect(evidenceNote).toContain('build/icon.png');
-    expect(evidenceNote).toContain('Claude Design-style package');
-    expect(evidenceNote).toContain('context/.../files/build/icon.png` -> `build/icon.png`');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-rate-limited-ui/files/src/styles.css'), 'utf8')).resolves.toContain('--color-brand');
-    const iconBytes = await readFile(path.join(tmpDir, 'context/github/acme-rate-limited-ui/files/build/icon.png'));
-    expect(iconBytes.length).toBeGreaterThan(0);
-    const fontBytes = await readFile(path.join(tmpDir, 'context/github/acme-rate-limited-ui/files/fonts/ubuntu/Ubuntu-Regular.ttf'));
-    expect(fontBytes.length).toBeGreaterThan(0);
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('uses GitHub CLI authenticated clone before connector fallback', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-
-    const fakeBinDir = path.join(tmpDir, 'bin');
-    await mkdir(fakeBinDir, { recursive: true });
-    const fakeGitPath = path.join(fakeBinDir, 'git');
-    await writeShellShim(fakeGitPath, `#!/bin/sh
-echo "fatal: could not read Username for 'https://github.com': terminal prompts disabled" >&2
-exit 128
-`);
-    await writeCmdShim(fakeGitPath, "@echo off\r\necho fatal: could not read Username for 'https://github.com': terminal prompts disabled 1>&2\r\nexit /b 128\r\n");
-    const fakeGhPath = path.join(fakeBinDir, 'gh');
-    await writeShellShim(fakeGhPath, `#!/bin/sh
-if [ "$1" = "--version" ]; then
-  echo "gh version 2.0.0"
-  exit 0
-fi
-if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
-  echo "Logged in to github.com account qiongyu" >&2
-  exit 0
-fi
-if [ "$1" = "repo" ] && [ "$2" = "clone" ]; then
-  dest="$4"
-  mkdir -p "$dest/src"
-  cat > "$dest/README.md" <<'EOF'
-# Private UI
-EOF
-  cat > "$dest/package.json" <<'EOF'
-{"dependencies":{"@radix-ui/react-tabs":"latest"}}
-EOF
-  cat > "$dest/src/theme.css" <<'EOF'
-:root { --color-brand: #f15a24; --space-md: 16px; }
-EOF
-  exit 0
-fi
-echo "unexpected gh args: $*" >&2
-exit 1
-`);
-    await writeCmdShim(fakeGhPath, [
-      '@echo off',
-      'if "%~1"=="--version" echo gh version 2.0.0& exit /b 0',
-      'if "%~1"=="auth" if "%~2"=="status" echo Logged in to github.com account qiongyu 1>&2& exit /b 0',
-      'if "%~1"=="repo" if "%~2"=="clone" (',
-      '  mkdir "%~4\\src"',
-      '  > "%~4\\README.md" echo # Private UI',
-      '  > "%~4\\package.json" echo {"dependencies":{"@radix-ui/react-tabs":"latest"}}',
-      '  > "%~4\\src\\theme.css" echo :root { --color-brand: #f15a24; --space-md: 16px; }',
-      '  exit /b 0',
-      ')',
-      'echo unexpected gh args: %* 1>&2',
-      'exit /b 1',
-      '',
-    ].join('\r\n'));
-    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
-
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { message: 'repository access denied' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 403 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/private-ui', '--require-connector']);
-
-    expect(result.exitCode).toBe(0);
-    const stdout = JSON.parse(stdoutOutput.join(''));
-    expect(stdout).toEqual(expect.objectContaining({
-      ok: true,
-      method: 'git-clone',
-      localCloneMethod: 'gh-cli',
-      snapshotFiles: expect.arrayContaining([
-        'context/github/acme-private-ui/files/package.json',
-        'context/github/acme-private-ui/files/src/theme.css',
-      ]),
-      warnings: expect.arrayContaining([
-        expect.stringContaining('GitHub CLI clone'),
-      ]),
-    }));
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-private-ui.md'), 'utf8')).resolves.toContain('GitHub CLI authenticated clone');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-private-ui.md'), 'utf8')).resolves.toContain('This-device intake was used through local git or GitHub CLI.');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-private-ui/files/src/theme.css'), 'utf8')).resolves.toContain('--color-brand');
-    expect(fetchMock).not.toHaveBeenCalled();
-
-    await cleanupTempDir(tmpDir);
-  });
-
-  it('reports GitHub CLI login when connector and local clone cannot read a repository', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-connectors-cli-'));
-    process.chdir(tmpDir);
-    process.env.OD_DAEMON_URL = 'http://127.0.0.1:7456';
-    process.env.OD_TOOL_TOKEN = 'agent-run-token';
-
-    const fakeBinDir = path.join(tmpDir, 'bin');
-    await mkdir(fakeBinDir, { recursive: true });
-    const fakeGitPath = path.join(fakeBinDir, 'git');
-    await writeShellShim(fakeGitPath, `#!/bin/sh
-echo "fatal: repository not found" >&2
-exit 128
-`);
-    await writeCmdShim(fakeGitPath, '@echo off\r\necho fatal: repository not found 1>&2\r\nexit /b 128\r\n');
-    const fakeGhPath = path.join(fakeBinDir, 'gh');
-    await writeShellShim(fakeGhPath, `#!/bin/sh
-if [ "$1" = "--version" ]; then
-  echo "gh version 2.0.0"
-  exit 0
-fi
-if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
-  echo "You are not logged into any GitHub hosts" >&2
-  exit 1
-fi
-echo "unexpected gh args: $*" >&2
-exit 1
-`);
-    await writeCmdShim(fakeGhPath, [
-      '@echo off',
-      'if "%~1"=="--version" echo gh version 2.0.0& exit /b 0',
-      'if "%~1"=="auth" if "%~2"=="status" echo You are not logged into any GitHub hosts 1>&2& exit /b 1',
-      'echo unexpected gh args: %* 1>&2',
-      'exit /b 1',
-      '',
-    ].join('\r\n'));
-    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
-
-    fetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        connectors: [{
-          id: 'github',
-          name: 'GitHub',
-          provider: 'composio',
-          category: 'Developer',
-          status: 'connected',
-        }],
-      }), { headers: { 'Content-Type': 'application/json' }, status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        error: { message: 'repository access denied' },
-      }), { headers: { 'Content-Type': 'application/json' }, status: 403 }));
-
-    const result = await runConnectorsToolCli(['github-design-context', '--repo', 'acme/private-ui', '--require-connector']);
-
-    expect(result.exitCode).toBe(1);
-    expect(stderrOutput.join('')).toContain('Required GitHub repository intake could not read the repository through git, GitHub CLI, or connector');
-    expect(stderrOutput.join('')).toContain('gh auth login --web');
-    await expect(readFile(path.join(tmpDir, 'context/github/acme-private-ui.md'), 'utf8')).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
 
     await cleanupTempDir(tmpDir);
   });

@@ -14,7 +14,6 @@
 //                       claude plugins)
 //   - Workflow         (pipeline stages + atoms)
 //   - GenUI surfaces   (interactive prompts the plugin may surface)
-//   - Connectors       (required + optional)
 //   - Capabilities     (granted permissions)
 //   - Source           (origin, fs path, ref, marketplace id,
 //                       installed timestamp, contribute link)
@@ -28,7 +27,6 @@ import type {
   InputField,
   InstalledPluginRecord,
   McpServerSpec,
-  PluginConnectorRef,
   PluginManifest,
 } from '@open-design/contracts';
 import { Icon } from '../Icon';
@@ -72,7 +70,7 @@ interface Props {
   /**
    * 'minimal' keeps the designer-relevant blocks (author, example
    * query) inline and tucks the developer-oriented manifest detail
-   * (inputs, context bundles, workflow, GenUI, connectors,
+   * (inputs, context bundles, workflow, GenUI,
    * capabilities, source) behind a collapsed "Developer details"
    * disclosure. Defaults to 'full' so the scenario / media / design
    * variants keep their existing flat inspector.
@@ -93,8 +91,6 @@ export function PluginMetaSections({ record, omit, compact, heading, variant = '
   const ctx = od.context ?? {};
   const stages = od.pipeline?.stages ?? [];
   const surfaces = od.genui?.surfaces ?? [];
-  const required = (od.connectors?.required ?? []) as PluginConnectorRef[];
-  const optional = (od.connectors?.optional ?? []) as PluginConnectorRef[];
   const capabilities = od.capabilities ?? [];
 
   const hasContext = useMemo(() => {
@@ -455,17 +451,6 @@ export function PluginMetaSections({ record, omit, compact, heading, variant = '
         </Section>
       ) : null}
 
-      {required.length > 0 || optional.length > 0 ? (
-        <Section title="Connectors">
-          {required.length > 0 ? (
-            <ConnectorList label="Required" items={required} variant="required" />
-          ) : null}
-          {optional.length > 0 ? (
-            <ConnectorList label="Optional" items={optional} variant="optional" />
-          ) : null}
-        </Section>
-      ) : null}
-
       {capabilities.length > 0 ? (
         <Section
           title="Capabilities"
@@ -706,36 +691,3 @@ function githubProfileLabel(url: string): string {
   }
 }
 
-interface ConnectorListProps {
-  label: string;
-  items: PluginConnectorRef[];
-  variant: 'required' | 'optional';
-}
-
-function ConnectorList({ label, items, variant }: ConnectorListProps) {
-  return (
-    <div className="plugin-details-modal__connector-group">
-      <h4 className="plugin-details-modal__sub-title">
-        {label}
-        <span className={`plugin-details-modal__badge is-${variant}`}>
-          {items.length}
-        </span>
-      </h4>
-      <ul className="plugin-details-modal__connectors">
-        {items.map((c) => (
-          <li
-            key={`${variant}-${c.id}`}
-            className="plugin-details-modal__connector"
-          >
-            <code>{c.id}</code>
-            {c.tools && c.tools.length > 0 ? (
-              <span className="plugin-details-modal__muted plugin-details-modal__small">
-                · {c.tools.join(', ')}
-              </span>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}

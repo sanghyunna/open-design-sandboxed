@@ -9,7 +9,6 @@ Coverage:
 - `import-screenshot-to-prototype` - import lane.
 - `create-prototype-dashboard` - prototype create mode.
 - `create-slides-pitch` - slide deck create mode.
-- `create-connector-dashboard-ops` - connector-backed dashboard prototype mode.
 - `export-nextjs-handoff` - export lane.
 - `share-github-pr` - share lane.
 - `deploy-vercel-static` - deploy lane.

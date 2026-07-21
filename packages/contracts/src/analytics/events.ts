@@ -47,7 +47,6 @@ export type AnalyticsEventName =
   | 'settings_cli_test_result'
   | 'settings_byok_test_result'
   | 'settings_byok_models_fetch_result'
-  | 'settings_connector_auth_result'
   // Onboarding-only result events. UI clicks + page_views inside the
   // onboarding flow reuse the generic `ui_click` / `page_view` shapes
   // with `page_name=onboarding`; the three `onboarding_*` names below
@@ -739,7 +738,7 @@ export type TrackingDesignSystemTotalSizeBucket =
 // `partial_success` reserved for ingests that captured some files but
 // dropped others (e.g. a GitHub fetch that hit a per-file size cap on a
 // subset). Daemon currently emits success/failed only; partial kept
-// in the contract for the connector follow-up.
+// in the contract for future partial-ingest support.
 export type TrackingDesignSystemSourceIngestResult =
   | 'success'
   | 'partial_success'
@@ -1153,13 +1152,13 @@ export interface HomeChatComposerClickProps {
     | 'example_prompt'
     // The "+" menu on the home composer (same control as the in-project
     // composer's `plus_*` events): opening it, inserting a
-    // connector/plugin/mcp mention (`resource_kind` + `resource_id`), or
+    // plugin/mcp mention (`resource_kind` + `resource_id`), or
     // jumping to the add-resource surface (`resource_kind`).
     | 'plus_menu_open'
     | 'plus_pick'
     | 'plus_add';
   // For `plus_pick` / `plus_add`: which kind of resource (and its id on pick).
-  resource_kind?: 'connector' | 'plugin' | 'mcp';
+  resource_kind?: 'plugin' | 'mcp';
   resource_id?: string;
   // For plugin / action / task chips, the specific id (e.g. prototype,
   // from_figma).
@@ -1320,7 +1319,6 @@ export interface AutomationsClickProps {
     | 'memory'
     | 'design-system'
     | 'skills'
-    | 'connectors'
     | 'compression'
     | 'release'
     | 'quality';
@@ -1535,7 +1533,7 @@ export interface DesignSystemsCreateClickProps {
 export interface IntegrationsTabClickProps {
   page_name: 'integrations';
   area: 'integrations_tab';
-  element: 'mcp' | 'connectors' | 'skills' | 'use_everywhere';
+  element: 'mcp' | 'skills' | 'use_everywhere';
 }
 
 // Shared element vocabulary for the External MCP panel. McpClientSection
@@ -1556,18 +1554,6 @@ export interface IntegrationsMcpTabClickProps {
   // `pick_template`, and for `remove_server` when the removed row came
   // from a template. Omitted for blank/custom rows.
   template_id?: string;
-}
-
-export interface IntegrationsConnectorsTabClickProps {
-  page_name: 'integrations';
-  area: 'connectors_tab';
-  element:
-    | 'api_key_input'
-    | 'save_key'
-    | 'clear'
-    | 'get_api_key'
-    | 'provider_chip'
-    | 'search_connectors';
 }
 
 export interface IntegrationsSkillsTabClickProps {
@@ -1628,7 +1614,7 @@ export interface ComposerSessionModeClickProps {
 // The "设计百宝箱" (Design toolbox) flyout inside the composer's "+" menu.
 // `design_toolbox_open` fires when the panel is opened; `..._action` when a
 // predefined follow-up action is picked (`toolbox_action_id`); `..._resource`
-// when a skill / plugin / mcp / connector / file is inserted
+// when a skill / plugin / mcp / file is inserted
 // (`resource_kind` + `resource_id`).
 export interface DesignToolboxClickProps {
   page_name: 'chat_panel';
@@ -1643,7 +1629,6 @@ export interface DesignToolboxClickProps {
     | 'plugin'
     | 'mcp'
     | 'mcp-template'
-    | 'connector'
     | 'file';
   resource_id?: string;
   project_id?: string;
@@ -1652,7 +1637,7 @@ export interface DesignToolboxClickProps {
 // The rest of the in-project composer bottom bar (not the mode toggle or the
 // design toolbox, which have their own events above):
 //   - `plus_menu_open` / `plus_pick` / `plus_add`: the "+" menu — opening it,
-//     inserting a connector/plugin/mcp mention (`resource_kind` + `resource_id`),
+//     inserting a plugin/mcp mention (`resource_kind` + `resource_id`),
 //     or jumping to the add-resource surface (`resource_kind`).
 //   - `design_system_switch`: picked a design system from the composer
 //     (`design_system_id`).
@@ -1675,7 +1660,6 @@ export interface ComposerBarClickProps {
     | 'agent_model_select'
     | 'context_remove';
   resource_kind?:
-    | 'connector'
     | 'plugin'
     | 'mcp'
     | 'skill'
@@ -2032,7 +2016,6 @@ export type TrackingSettingsArea =
   | 'skills'
   | 'design_review'
   | 'external_mcp'
-  | 'connectors'
   | 'mcp_server'
   | 'language'
   | 'appearance'
@@ -2098,19 +2081,6 @@ export interface SettingsMediaProvidersClickProps {
   element: 'reload' | 'key_input' | 'url_input' | 'clear';
   providers_id?: string;
   is_configured?: boolean;
-}
-
-export interface SettingsConnectorsClickProps {
-  page_name: TrackingSettingsPage;
-  area: 'connectors';
-  element:
-    | 'api_key_input'
-    | 'save_key'
-    | 'clear'
-    | 'get_api_key'
-    | 'provider_chip'
-    | 'search_connectors';
-  connector_id?: string;
 }
 
 export interface SettingsLanguageClickProps {
@@ -2236,7 +2206,6 @@ export type UiClickProps =
   | DesignSystemsCreateClickProps
   | IntegrationsTabClickProps
   | IntegrationsMcpTabClickProps
-  | IntegrationsConnectorsTabClickProps
   | IntegrationsSkillsTabClickProps
   | IntegrationsUseEverywhereTabClickProps
   | ChatPanelClickProps
@@ -2267,7 +2236,6 @@ export type UiClickProps =
   | SettingsByokProviderOptionClickProps
   | SettingsByokFieldClickProps
   | SettingsMediaProvidersClickProps
-  | SettingsConnectorsClickProps
   | SettingsLanguageClickProps
   | SettingsAppearanceClickProps
   | SettingsNotificationsClickProps
@@ -2419,7 +2387,6 @@ export interface ProjectCreateResultProps {
   target_platforms?: string;
   companion_surfaces?: string;
   fidelity: TrackingFidelity;
-  connectors?: string;
   use_speaker_notes?: boolean;
   include_animations?: boolean;
   reference_template?: string;
@@ -2506,7 +2473,6 @@ export interface RunCreatedProps {
   target_platforms?: string;
   companion_surfaces?: string;
   fidelity?: TrackingFidelity;
-  connectors?: string;
   use_speaker_notes?: boolean;
   include_animations?: boolean;
   reference_template?: string;
@@ -2866,15 +2832,6 @@ export interface SettingsByokModelsFetchResultProps {
   duration_ms: number;
 }
 
-export interface SettingsConnectorAuthResultProps {
-  page_name: TrackingSettingsPage;
-  area: 'connectors';
-  connector_id: string;
-  action: 'connect' | 'disconnect' | 'refresh';
-  result: TrackingRunResult;
-  error_code?: string;
-}
-
 // ---- Discriminated union of all event payloads ---------------------------
 
 export type AnalyticsEventPayload =
@@ -2914,7 +2871,6 @@ export type AnalyticsEventPayload =
       event: 'settings_byok_models_fetch_result';
       props: SettingsByokModelsFetchResultProps;
     }
-  | { event: 'settings_connector_auth_result'; props: SettingsConnectorAuthResultProps }
   | { event: 'amr_auth_result'; props: AmrAuthResultProps }
   | { event: 'onboarding_runtime_scan_result'; props: OnboardingRuntimeScanResultProps }
   | { event: 'onboarding_complete_result'; props: OnboardingCompleteResultProps }
@@ -3129,10 +3085,6 @@ export function settingsSectionToTracking(
       return 'pets';
     case 'about':
       return 'about';
-    case 'composio':
-    case 'integrations':
-    case 'connectors':
-      return 'connectors';
     case 'mcpClient':
       return 'external_mcp';
     case 'mcp_server':

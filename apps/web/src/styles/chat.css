@@ -1136,7 +1136,6 @@
 .composer-inline-mention--design,
 .composer-inline-mention--mcp        { --m-hue: var(--purple);  --m-tint: var(--purple-bg); }
 .composer-inline-mention--file       { --m-hue: var(--blue);    --m-tint: var(--blue-bg); }
-.composer-inline-mention--connector  { --m-hue: var(--green);   --m-tint: var(--green-bg); }
 .composer-inline-mention--asset      { --m-hue: var(--text-soft); --m-tint: var(--bg-subtle); }
 /* Working-directory picker row, directly below the input and above the
    controls — mirrors the Home composer's placement. */
@@ -1926,14 +1925,6 @@
 .staged-context--mcp .staged-icon {
   background: color-mix(in srgb, var(--purple) 10%, var(--bg-subtle));
   color: var(--purple);
-}
-.staged-context--connector {
-  background: color-mix(in srgb, var(--green-bg) 34%, var(--bg-panel));
-  border-color: color-mix(in srgb, var(--green) 18%, var(--border));
-}
-.staged-context--connector .staged-icon {
-  background: color-mix(in srgb, var(--green) 10%, var(--bg-subtle));
-  color: var(--green);
 }
 /* Applied-plugin chip — accent-tinted, sitting inline in the staged-context
    row next to the design-system picker. The chip itself is a plain container;

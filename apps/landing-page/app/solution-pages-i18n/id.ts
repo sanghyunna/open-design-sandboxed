@@ -221,7 +221,7 @@ export const ID: SolutionLocaleCopy = {
       { title: "Analitik produk", body: "Pengguna aktif, funnel, retensi — metrik yang menjadi keseharian tim produk.", thumb: "example-dashboard" },
       { title: "Metrik repo dan dev", body: "Bintang, PR, kesehatan CI — dashboard rekayasa dari data Anda sendiri.", thumb: "example-github-dashboard" },
       { title: "Laporan keuangan", body: "Pendapatan, burn, runway ditata sebagai laporan yang bisa dibagikan.", thumb: "example-finance-report" },
-      { title: "Operasi langsung", body: "Metrik real-time yang menyegar saat data dasarnya bergerak.", thumb: "example-live-dashboard" },
+      { title: "Operasi langsung", body: "Metrik real-time yang menyegar saat data dasarnya bergerak.", thumb: "example-live-artifact" },
       { title: "Sosial dan pemasaran", body: "Kinerja kanal dan pelacakan kampanye dalam satu tampilan.", thumb: "example-social-media-dashboard" },
       { title: "Laporan bidang", body: "Laporan terstruktur untuk bidang apa pun — dari klinis hingga trading.", thumb: "example-clinical-case-report" },
     ],

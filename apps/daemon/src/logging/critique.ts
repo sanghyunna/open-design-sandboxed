@@ -3,7 +3,7 @@
  *
  * Six events, one JSON object per line on stdout, namespaced
  * `critique`. Matches the JSON-line convention `cli.ts` and
- * `mcp-connectors-server.ts` already write so an operator's
+ * `mcp-config.ts` already write so an operator's
  * existing log pipeline (Loki, Cloudwatch, Datadog, etc.) ingests
  * critique events without a new adapter.
  *

@@ -3,9 +3,9 @@ import type { DesignSystemSummary } from '../types';
 export interface DesignSystemGithubEvidence {
   /** The design system references at least one GitHub repo in its provenance. */
   required: boolean;
-  /** Connector notes and file snapshots have both been captured. */
+  /** Repo notes and file snapshots have both been captured. */
   ready: boolean;
-  /** Count of `context/github/<repo>.md` connector notes present. */
+  /** Count of `context/github/<repo>.md` repo notes present. */
   noteCount: number;
   /** Count of `context/github/<repo>/files/...` snapshot files present. */
   snapshotCount: number;
@@ -104,7 +104,7 @@ export interface RepoConnectCopy {
 }
 
 /**
- * Copy for the "Connect your repo" CTA, split by live GitHub connector status.
+ * Copy for the "Connect your repo" CTA, split by live GitHub repo status.
  * `undefined` means the status fetch has not resolved yet: show a neutral,
  * pending label so a fast click can't fire the wrong action (connect vs import)
  * before we know whether GitHub is connected. Once known, connected copy points

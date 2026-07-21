@@ -198,7 +198,7 @@ export const NL: SolutionLocaleCopy = {
       {
         capability: 'Data koppelen',
         withOd: 'CSV / JSON / geplakte rijen, gerenderd naar live HTML',
-        without: 'Leverancierconnectors of maatwerk dataleidingen',
+        without: 'Externe integraties of maatwerk dataleidingen',
       },
       {
         capability: 'Hosten en delen',
@@ -221,7 +221,7 @@ export const NL: SolutionLocaleCopy = {
       { title: "Productanalyse", body: "Actieve gebruikers, funnels, retentie — de metrics waar een productteam in leeft.", thumb: "example-dashboard" },
       { title: "Repo- en dev-metrics", body: "Sterren, PR’s, CI-gezondheid — engineeringdashboards uit je eigen data.", thumb: "example-github-dashboard" },
       { title: "Financiële rapporten", body: "Omzet, burn, runway uitgewerkt als een deelbaar rapport.", thumb: "example-finance-report" },
-      { title: "Live operations", body: "Realtime metrics die verversen wanneer de onderliggende data beweegt.", thumb: "example-live-dashboard" },
+      { title: "Live operations", body: "Realtime metrics die verversen wanneer de onderliggende data beweegt.", thumb: "example-live-artifact" },
       { title: "Social en marketing", body: "Kanaalprestaties en campagnetracking in één overzicht.", thumb: "example-social-media-dashboard" },
       { title: "Domeinrapporten", body: "Gestructureerde rapporten voor elk vakgebied — van klinisch tot trading.", thumb: "example-clinical-case-report" },
     ],

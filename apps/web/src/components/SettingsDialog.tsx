@@ -17,7 +17,6 @@ import {
   trackSettingsCliTestResult,
   trackSettingsByokFieldClick,
   trackSettingsByokProviderOptionClick,
-  trackSettingsConnectorAuthResult,
   trackSettingsDesignReviewClick,
   trackSettingsLanguageClick,
   trackSettingsLocalCliClick,
@@ -49,7 +48,6 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_NOTIFICATIONS,
   KNOWN_PROVIDERS,
-  syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../state/config';
 import type { KnownProvider } from '../state/config';
@@ -94,7 +92,6 @@ import type { AgentCatalogItem } from '@open-design/contracts';
 import { testAgent, testApiProvider } from '../providers/connection-test';
 import { fetchProviderModels } from '../providers/provider-models';
 import {
-  fetchConnectors,
   fetchDesignTemplates,
   openExternalUrl,
 } from '../providers/registry';
@@ -105,7 +102,6 @@ import { SkillsSection } from './SkillsSection';
 import { DesignSystemsSection } from './DesignSystemsSection';
 import { ProjectLocationsSection } from './ProjectLocationsSection';
 import { RoutinesSection } from './RoutinesSection';
-import { ConnectorSection } from './ConnectorSection';
 import { MemoryModelInline } from './MemoryModelInline';
 import { MemorySection } from './MemorySection';
 import { ByokConnectionTestControl } from './byok/ByokConnectionTestControl';
@@ -148,7 +144,6 @@ import { THEME_OPTIONS } from '../state/themes';
 export type SettingsSection =
   | 'execution'
   | 'instructions'
-  | 'composio'
   | 'routines'
   | 'integrations'
   | 'mcpClient'
@@ -194,22 +189,6 @@ interface Props {
    * incremental save, not a final commit.
    */
   onPersist: (cfg: AppConfig) => Promise<void> | void;
-  /**
-   * Persist the Composio API key separately from the broader autosave
-   * loop. Composio secrets need an explicit user gesture so half-typed
-   * keys never leave the browser, so this is wired to a section-local
-   * "Save key" button rather than the autosave channel.
-   */
-  onPersistComposioKey: (composio: AppConfig['composio']) => Promise<void> | void;
-  /**
-   * True while the daemon-backed Composio config is still hydrating on
-   * first paint after a dev-server / app restart. The Connectors section
-   * renders a skeleton over the input + buttons during this window so
-   * the user does not mistake the temporarily empty input for "no key
-   * saved" and so accidental Save/Clear clicks cannot overwrite the
-   * saved state with `''` before the daemon's response lands.
-   */
-  composioConfigLoading?: boolean;
   onClose: () => void;
   onRefreshAgents: (
     options?: AgentRefreshOptions,
@@ -753,7 +732,7 @@ function codexPathRepairState(
  * The mode-completeness check (BYOK requires apiKey + model + valid baseUrl;
  * Local CLI requires a selected available agent) is only meaningful on the
  * execution-mode section, where the user is actively editing those fields.
- * On every other sidebar section (language, appearance, composio,
+ * On every other sidebar section (language, appearance,
  * integrations, notifications, pet, library, about), partial state from a
  * draft mode toggle (e.g. user clicked BYOK on the execution section without
  * filling in fields, then navigated to language) must NOT block saving
@@ -828,8 +807,6 @@ export function SettingsDialog({
   initialSection = 'execution',
   initialHighlight = null,
   onPersist,
-  onPersistComposioKey,
-  composioConfigLoading = false,
   onClose,
   onRefreshAgents,
   onAmrLoginStatusChange,
@@ -1994,8 +1971,8 @@ export function SettingsDialog({
   // sync to localStorage + the daemon. We keep a 400ms debounce so rapid
   // typing in text fields doesn't flood the daemon with PUTs while still
   // feeling near-instant for toggles/selects (which fire once and settle).
-  // The Composio API key field is intentionally excluded from this loop —
-  // see ConnectorSection for the explicit "Save key" gesture.
+  // Secret fields are intentionally excluded from this loop and require an
+  // explicit section-local save gesture.
   // The status here drives the footer indicator: 'idle' = no draft to
   // flush, 'pending' = scheduled, 'saving' = request in flight, 'saved'
   // = recent successful sync, 'error' = recent failure.
@@ -2011,9 +1988,9 @@ export function SettingsDialog({
   // Baseline used by the draft-only detector: the snapshot at the most
   // recent successful autosave (or the initial cfg on mount). Compared
   // against the current snapshot to decide whether the only edits
-  // since last save are intentionally-stripped fields like the
-  // Composio API key — in which case we must NOT flash "All changes
-  // saved", because the draft has not actually been persisted.
+  // since last save are intentionally-stripped secret fields — in which
+  // case we must NOT flash "All changes saved", because the draft has
+  // not actually been persisted.
   const autosaveLastSavedRef = useRef<AppConfig>(cfg);
   autosaveLatestRef.current = cfg;
   useEffect(() => {
@@ -2035,12 +2012,13 @@ export function SettingsDialog({
       autosavePendingFlushRef.current = false;
       autosaveTimerRef.current = null;
       const snapshot = autosaveLatestRef.current;
-      // Draft-only edit (e.g. the user is mid-typing the Composio API
-      // key, which only commits via the explicit "Save key" gesture):
-      // the persisted shape would be identical to what is already on
-      // disk, so a save would be a no-op that mis-reports "Saved" and
-      // makes users trust that a sensitive key was persisted when it
-      // was not. Skip the persist and settle the indicator to idle.
+      // Draft-only edit (e.g. the user is mid-typing a secret API
+      // key that only commits via an explicit section-local save
+      // gesture): the persisted shape would be identical to what is
+      // already on disk, so a save would be a no-op that mis-reports
+      // "Saved" and makes users trust that a sensitive key was
+      // persisted when it was not. Skip the persist and settle the
+      // indicator to idle.
       if (isAutosaveDraftOnlyChange(snapshot, autosaveLastSavedRef.current)) {
         setAutosaveStatus('idle');
         return;
@@ -2432,7 +2410,6 @@ export function SettingsDialog({
       title: t('settings.instructionsTitle'),
       subtitle: t('settings.instructionsSubtitle'),
     },
-    composio: { title: t('connectors.title'), subtitle: t('connectors.subtitle') },
     routines: {
       title: t('routines.title'),
       subtitle: t('routines.subtitle'),
@@ -2840,17 +2817,6 @@ export function SettingsDialog({
               <span>
                 <strong>{t('settings.externalMcpTitle')}</strong>
                 <small>{t('settings.externalMcpHint')}</small>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`settings-nav-item${activeSection === 'composio' ? ' active' : ''}`}
-              onClick={() => setActiveSection('composio')}
-            >
-              <Icon name="sliders" size={18} />
-              <span>
-                <strong>{t('connectors.title')}</strong>
-                <small>{t('settings.connectorsNavHint')}</small>
               </span>
             </button>
             <button
@@ -3939,25 +3905,6 @@ export function SettingsDialog({
 
           {activeSection === 'mcpClient' ? <McpClientSection surface="settings" /> : null}
 
-          {activeSection === 'composio' ? (
-            <ConnectorSection
-              cfg={cfg}
-              setCfg={setCfg}
-              composioConfigLoading={composioConfigLoading}
-              onPersistComposioKey={onPersistComposioKey}
-              onConnectorAuthResult={({ connectorId, action, result, errorCode }) =>
-                trackSettingsConnectorAuthResult(analytics.track, {
-                  page_name: 'settings',
-                  area: 'connectors',
-                  connector_id: connectorId,
-                  action,
-                  result,
-                  ...(errorCode ? { error_code: errorCode } : {}),
-                })
-              }
-            />
-          ) : null}
-
           {activeSection === 'routines' ? <RoutinesSection onClose={onClose} /> : null}
 
           {activeSection === 'language' ? (
@@ -4068,7 +4015,6 @@ export function SettingsDialog({
 
           {activeSection === 'memory' ? (
             <MemorySection
-              onOpenConnectors={() => setActiveSection('composio')}
               chatAgentId={cfg.mode === 'daemon' ? cfg.agentId ?? null : null}
               chatModel={selectedMemoryChatModel}
             />

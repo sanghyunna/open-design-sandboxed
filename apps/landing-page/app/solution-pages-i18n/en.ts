@@ -198,7 +198,7 @@ export const EN: SolutionLocaleCopy = {
       {
         capability: 'Connect data',
         withOd: 'CSV / JSON / pasted rows, rendered to live HTML',
-        without: 'Vendor connectors or bespoke data plumbing',
+        without: 'External integrations or bespoke data plumbing',
       },
       {
         capability: 'Hosting & sharing',
@@ -221,7 +221,7 @@ export const EN: SolutionLocaleCopy = {
       { title: "Product analytics", body: "Active users, funnels, retention — the metrics a product team lives in.", thumb: "example-dashboard" },
       { title: "Repo & dev metrics", body: "Stars, PRs, CI health — engineering dashboards from your own data.", thumb: "example-github-dashboard" },
       { title: "Finance reports", body: "Revenue, burn, runway laid out as a shareable report.", thumb: "example-finance-report" },
-      { title: "Live operations", body: "Real-time metrics that refresh as the underlying data moves.", thumb: "example-live-dashboard" },
+      { title: "Live operations", body: "Real-time metrics that refresh as the underlying data moves.", thumb: "example-live-artifact" },
       { title: "Social & marketing", body: "Channel performance and campaign tracking in one view.", thumb: "example-social-media-dashboard" },
       { title: "Domain reports", body: "Structured reports for any field — from clinical to trading.", thumb: "example-clinical-case-report" },
     ],

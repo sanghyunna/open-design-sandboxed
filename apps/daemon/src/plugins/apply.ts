@@ -27,19 +27,11 @@ import {
   type InstalledPluginRecord,
   type McpServerSpec,
   type PluginAssetRef,
-  type PluginConnectorBinding,
-  type PluginConnectorRef,
   type PluginManifest,
   type PluginProjectMetadataPatch,
   type TrustTier,
 } from '@open-design/contracts';
 import { resolveCapabilitiesGranted, requiredCapabilities } from './trust.js';
-import {
-  deriveAutoOAuthPrompts,
-  mergeAutoOAuthPrompts,
-  resolveConnectorBindings,
-  type ConnectorProbe,
-} from './connector-gate.js';
 import { deriveAutoAtomSurfaces } from './atoms/auto-surfaces.js';
 import { getManifestContextCraft } from './context-craft.js';
 
@@ -69,13 +61,6 @@ export interface ApplyInput {
   // UI locale used to resolve localized manifest strings. Snapshots store
   // the resolved string so historical runs never change when translations do.
   locale?: string | undefined;
-  // Sync probe over the connector catalog + status maps. When supplied,
-  // apply resolves `od.connectors.*` against the live catalog and
-  // auto-derives an `oauth-prompt` GenUI surface for any not-yet-connected
-  // required connector (spec §10.3.1). When omitted (legacy callers, unit
-  // tests), the connector bindings stay in `pending` status and no
-  // auto-prompt is derived.
-  connectorProbe?: ConnectorProbe | undefined;
 }
 
 export interface ApplyComputed {
@@ -113,8 +98,6 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
 
   const assets = buildAssetRefs(manifest);
   const mcpServers = manifest.od?.context?.mcp?.slice() ?? [];
-  const { resolved: connectorsResolved, required: connectorsRequired } =
-    resolveConnectorBindings(manifest, input.connectorProbe);
   const required = requiredCapabilities(manifest);
   const granted = resolveCapabilitiesGranted({ manifest, trust });
   const taskKind = (manifest.od?.taskKind ?? 'new-generation') as AppliedPluginSnapshot['taskKind'];
@@ -132,20 +115,18 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   const appliedPipeline = pipelineResolution.pipeline;
 
   const declaredSurfaces = manifest.od?.genui?.surfaces ?? [];
-  const autoOAuth = input.connectorProbe
-    ? deriveAutoOAuthPrompts(connectorsResolved)
-    : [];
   // Spec §10.3.1 / §21.5: auto-derive surfaces for first-party atom
   // stages (diff-review → choice surface). Plugin-author surfaces
-  // with the same id win; the merge helper handles the dedupe.
-  // We use the EFFECTIVE pipeline (appliedPipeline) so a plugin that
-  // inherits the bundled scenario's diff-review stage still gets
-  // the auto-surface.
+  // with the same id win; explicit ids take precedence over auto-derived
+  // ones. We use the EFFECTIVE pipeline (appliedPipeline) so a plugin that
+  // inherits the bundled scenario's diff-review stage still gets the
+  // auto-surface.
   const autoAtom = deriveAutoAtomSurfaces({ pipeline: appliedPipeline });
-  const genuiSurfaces = mergeAutoOAuthPrompts(
-    mergeAutoOAuthPrompts(declaredSurfaces, autoOAuth),
-    autoAtom,
-  );
+  const declaredIds = new Set(declaredSurfaces.map((s) => s.id.toLowerCase()));
+  const genuiSurfaces = [
+    ...declaredSurfaces,
+    ...autoAtom.filter((s) => !declaredIds.has(s.id.toLowerCase())),
+  ];
 
   const pluginTitle = resolveLocalizedText(manifest.title_i18n, input.locale) || (manifest.title ?? manifest.name);
   const pluginDescription =
@@ -187,8 +168,6 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
     assetsStaged:         assets,
     taskKind,
     appliedAt,
-    connectorsRequired,
-    connectorsResolved,
     mcpServers,
     pipeline:             appliedPipeline,
     genuiSurfaces,

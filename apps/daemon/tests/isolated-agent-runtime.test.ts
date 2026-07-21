@@ -114,33 +114,13 @@ describe('isolated agent tool broker', () => {
 
       const token = broker.clientEnv.OD_ISOLATED_TOOL_BROKER_TOKEN!;
       const allowed = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
-        args: ['tools', 'connectors', 'list', '--format', 'compact'],
+        args: ['tools', 'design-systems', 'read', '--path', 'preview/colors.html'],
         token,
       })));
       expect(allowed).toMatchObject({ code: 0, stderr: '' });
-      expect(JSON.parse(allowed.stdout)).toEqual({
-        hasDaemonUrl: true,
-        hasToolToken: true,
-        projectId: 'project-1',
-      });
       expect(JSON.parse(await readFile(invoked, 'utf8'))).toEqual({
-        args: ['tools', 'connectors', 'list', '--format', 'compact'],
+        args: ['tools', 'design-systems', 'read', '--path', 'preview/colors.html'],
       });
-
-      const execute = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
-        args: [
-          'tools', 'connectors', 'execute', '--connector', 'github', '--tool', 'read', '--input', 'request.json',
-        ],
-        input: '{"owner":"open-design"}',
-        token,
-      })));
-      expect(execute.code).toBe(0);
-      const executeArgs = JSON.parse(await readFile(invoked, 'utf8')).args as string[];
-      expect(executeArgs.slice(0, 7)).toEqual([
-        'tools', 'connectors', 'execute', '--connector', 'github', '--tool', 'read',
-      ]);
-      expect(executeArgs[8]).toContain('open-design-isolated-broker-host');
-      expect(executeArgs[8]).not.toContain('request.json');
 
       const designSystem = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
         args: ['tools', 'design-systems', 'read', '--path', 'preview/colors.html'],
@@ -150,15 +130,13 @@ describe('isolated agent tool broker', () => {
 
       for (const args of [
         ['project', 'list'],
-        ['tools', 'connectors', 'local-design-context', '--path', '.'],
-        ['tools', 'connectors', 'design-system-package-audit', '--path', '.'],
-        ['tools', 'connectors', 'execute', '--connector', 'github', '--tool', 'read', '--input', 'C:\\protected.json'],
+        ['tools', 'design-systems', 'read', '--path', 'C:\\protected.json'],
       ]) {
         const result = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({ args, input: '{}', token })));
         expect(result.code, args.join(' ')).toBe(126);
       }
       expect(JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
-        args: ['tools', 'connectors', 'list'],
+        args: ['tools', 'design-systems', 'read', '--path', 'preview/colors.html'],
         token: 'wrong-token',
       }))).code).toBe(126);
     } finally {
@@ -246,8 +224,8 @@ describe('isolated agent tool broker', () => {
           '--preserve-symlinks-main',
           broker.paths.clientPath,
           'tools',
-          'connectors',
-          'list',
+          'design-systems',
+          'read',
         ],
         command: nativeHelper,
         cwd: project,

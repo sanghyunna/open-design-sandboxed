@@ -21,8 +21,6 @@ import {
   type GenUISurfaceSpec,
   type McpServerSpec,
   type PluginAssetRef,
-  type PluginConnectorBinding,
-  type PluginConnectorRef,
   type PluginPipeline,
   type ResolvedContext,
 } from '@open-design/contracts';
@@ -57,8 +55,6 @@ export interface CreateSnapshotInput {
   capabilitiesGranted: string[];
   capabilitiesRequired: string[];
   assetsStaged: PluginAssetRef[];
-  connectorsRequired: PluginConnectorRef[];
-  connectorsResolved: PluginConnectorBinding[];
   mcpServers: McpServerSpec[];
   query?: string | undefined;
 }
@@ -83,12 +79,11 @@ export function createSnapshot(db: SqliteDb, input: CreateSnapshotInput): Applie
       source_marketplace_entry_version, marketplace_trust, resolved_source,
       resolved_ref, archive_integrity, pinned_ref, task_kind,
       inputs_json, resolved_context_json, craft_requires_json, pipeline_json, genui_surfaces_json,
-      capabilities_granted, capabilities_required, assets_staged_json,
-      connectors_required_json, connectors_resolved_json, mcp_servers_json,
+      capabilities_granted, capabilities_required, assets_staged_json, mcp_servers_json,
       plugin_title, plugin_description, query_text,
       status, applied_at, expires_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'fresh', ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'fresh', ?, ?)
   `).run(
     id,
     input.projectId,
@@ -115,8 +110,6 @@ export function createSnapshot(db: SqliteDb, input: CreateSnapshotInput): Applie
     JSON.stringify(input.capabilitiesGranted),
     JSON.stringify(input.capabilitiesRequired),
     JSON.stringify(input.assetsStaged),
-    JSON.stringify(input.connectorsRequired),
-    JSON.stringify(input.connectorsResolved),
     JSON.stringify(input.mcpServers),
     input.pluginTitle ?? null,
     input.pluginDescription ?? null,
@@ -355,8 +348,6 @@ function buildSnapshot(args: {
     assetsStaged:         input.assetsStaged,
     taskKind:             input.taskKind,
     appliedAt,
-    connectorsRequired:   input.connectorsRequired,
-    connectorsResolved:   input.connectorsResolved,
     mcpServers:           input.mcpServers,
     pipeline:             input.pipeline,
     genuiSurfaces:        input.genuiSurfaces,
@@ -392,8 +383,6 @@ export function rowToSnapshot(row: DbRow): AppliedPluginSnapshot {
     assetsStaged:         parseJsonOr<PluginAssetRef[]>(row['assets_staged_json'], []),
     taskKind:             row['task_kind'] as AppliedPluginSnapshot['taskKind'],
     appliedAt:            Number(row['applied_at']),
-    connectorsRequired:   parseJsonOr<PluginConnectorRef[]>(row['connectors_required_json'], []),
-    connectorsResolved:   parseJsonOr<PluginConnectorBinding[]>(row['connectors_resolved_json'], []),
     mcpServers:           parseJsonOr<McpServerSpec[]>(row['mcp_servers_json'], []),
     pipeline,
     genuiSurfaces:        parseJsonOr<GenUISurfaceSpec[]>(row['genui_surfaces_json'], []),

@@ -3964,7 +3964,7 @@ describe('FileViewer tweaks toolbar', () => {
     });
   });
 
-  it('lets element comments queue to chat while a task is running', async () => {
+  it('lets Enter queue element comments to chat while a task is running', async () => {
     const onSendBoardCommentAttachments = vi.fn().mockResolvedValue(undefined);
     render(
       <FileViewer
@@ -3997,7 +3997,7 @@ describe('FileViewer tweaks toolbar', () => {
     const send = screen.getByTestId('comment-add-send') as HTMLButtonElement;
     expect(send.disabled).toBe(false);
 
-    fireEvent.click(send);
+    fireEvent.keyDown(input, { key: 'Enter' });
 
     await waitFor(() => expect(onSendBoardCommentAttachments).toHaveBeenCalledTimes(1));
     expect(onSendBoardCommentAttachments.mock.calls[0]?.[0]?.[0]).toMatchObject({

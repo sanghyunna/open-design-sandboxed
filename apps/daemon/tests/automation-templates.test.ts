@@ -11,7 +11,7 @@ import {
 } from '../src/automation-templates.js';
 
 describe('automation templates catalog', () => {
-  it('exposes self-evolution templates for memory, design systems, skills, connectors, and compression', () => {
+  it('exposes self-evolution templates for memory, design systems, skills, and compression', () => {
     const templates = listAutomationTemplates();
     const ids = templates.map((template) => template.id);
 
@@ -19,7 +19,6 @@ describe('automation templates catalog', () => {
       'ingest-source-memory-tree',
       'extract-design-system',
       'crystallize-run-into-skill',
-      'connector-digest-design-context',
       'compress-project-context',
       'promote-artifact-style',
     ]));
@@ -27,7 +26,6 @@ describe('automation templates catalog', () => {
     expect(templates.some((template) => template.outputSinks.includes('memory'))).toBe(true);
     expect(templates.some((template) => template.outputSinks.includes('design-system'))).toBe(true);
     expect(templates.some((template) => template.outputSinks.includes('skill'))).toBe(true);
-    expect(templates.some((template) => template.sourceKinds.includes('connector'))).toBe(true);
     expect(templates.some((template) => template.tokenCompression === 'aggressive')).toBe(true);
   });
 
@@ -50,7 +48,7 @@ describe('automation templates catalog', () => {
         description: 'A reviewed automation template persisted under runtime data.',
         purpose: 'Let accepted automation patterns become reusable templates.',
         triggerKinds: ['schedule'],
-        sourceKinds: ['connector'],
+        sourceKinds: ['chat'],
         stages: [
           { id: 'ingest', kind: 'ingest', title: 'Capture source' },
           { id: 'propose', kind: 'propose', title: 'Create proposals' },

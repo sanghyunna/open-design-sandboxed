@@ -7,7 +7,7 @@
 //     to `restricted` until an explicit `od plugin trust <id>` flips it. Phase
 //     2A wires the marketplace trust roll-up; we just expose the helpers now.
 //   - `restricted` plugins ship the prompt:inject capability only. Apply-time
-//     adds explicit grants (e.g. `mcp:<name>`, `connector:<id>`) onto the
+//     adds explicit grants (e.g. `mcp:<name>`) onto the
 //     snapshot; we never widen the registry-stored cache here.
 
 import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@open-design/contracts';
@@ -15,7 +15,6 @@ import type { InstalledPluginRecord, PluginManifest, TrustTier } from '@open-des
 export const TRUSTED_DEFAULT_CAPABILITIES: ReadonlyArray<string> = [
   'prompt:inject',
   'mcp:*',
-  'connector:*',
   'genui:*',
   'pipeline:*',
 ];
@@ -40,12 +39,6 @@ export function requiredCapabilities(manifest: PluginManifest): string[] {
 
   for (const mcp of od?.context?.mcp ?? []) {
     if (mcp?.name) required.add(`mcp:${mcp.name}`);
-  }
-  for (const ref of od?.connectors?.required ?? []) {
-    if (ref?.id) required.add(`connector:${ref.id}`);
-  }
-  for (const ref of od?.connectors?.optional ?? []) {
-    if (ref?.id) required.add(`connector:${ref.id}?`);
   }
   for (const surface of od?.genui?.surfaces ?? []) {
     if (surface?.kind) required.add(`genui:${surface.kind}`);
@@ -90,14 +83,12 @@ const KNOWN_TOP_LEVEL_CAPABILITIES = new Set<string>([
   'subprocess',
   'bash',
   'network',
-  'connector',
   // Plan §3.K3 / spec §10.3.5 — plugin-bundled React component
   // surfaces require an explicit capability so a restricted plugin
   // cannot smuggle arbitrary UI through the GenUI layer.
   'genui:custom-component',
 ]);
 
-const SCOPED_CONNECTOR_RE = /^connector:[a-z0-9][a-z0-9_-]*$/;
 const SCOPED_MCP_RE = /^mcp:[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export interface InvalidCapabilityIssue {
@@ -130,7 +121,7 @@ export function validateCapabilityList(
       accepted.push(trimmed);
       continue;
     }
-    if (SCOPED_CONNECTOR_RE.test(trimmed) || SCOPED_MCP_RE.test(trimmed)) {
+    if (SCOPED_MCP_RE.test(trimmed)) {
       seen.add(trimmed);
       accepted.push(trimmed);
       continue;

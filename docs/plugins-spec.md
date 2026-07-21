@@ -73,7 +73,7 @@ OD's core unit is not "one prompt, one output" — it is a **long-running design
 
 Concretely, this spec promotes the existing "first-party atoms" from a flat capability list into an **atomic pipeline that plugins assemble**:
 
-- **Atom (§10):** a named capability exposed by the OD daemon and first-party tools (discovery-question-form, direction-picker, todo-write, file-read/write, research-search, connector, critique-theater, etc.), plus deliverable families such as report, prototype, deck, and template.
+- **Atom (§10):** a named capability exposed by the OD daemon and first-party tools (discovery-question-form, direction-picker, todo-write, file-read/write, research-search, critique-theater, etc.), plus deliverable families such as report, prototype, deck, and template.
 - **Pipeline (§5 / §10.1):** the plugin uses `od.pipeline` to compose atoms into ordered stages. The spec ships a default reference pipeline of `discovery → plan → generate → critique`; plugins can add, reorder, or loop over any stage.
 - **Devloop (§10.2):** when a stage is marked `repeat: true` with an `until` termination condition (critique score, user confirmation, preview load success, etc.), the agent automatically iterates on the previous artifact until the condition holds or the user explicitly cancels.
 - **Generative UI (§10.3):** when a stage needs human-in-the-loop input (information, authorization, direction picking, optimization confirmation), the agent triggers a surface that the plugin **declares ahead of time** in its manifest's `od.genui.surfaces[]`. The daemon broadcasts the request through OD's native event stream, which can also be projected into AG-UI canonical events for external clients. Once the user answers, the daemon writes the answer back to the project; the surface's `persist` field decides whether the answer is remembered at run / conversation / project tier so that multi-turn chats do not pester the user with the same question twice.
@@ -319,23 +319,6 @@ Rules of authorship:
             "properties": { "direction": { "type": "string" } }
           }
         },
-        {
-          "id": "connector-export-approval",
-          "kind": "confirmation",
-          "persist": "run",
-          "trigger": { "atom": "connector" },
-          "capabilitiesRequired": ["connector:slack"]
-        }
-      ]
-    },
-
-    "connectors": {
-      "required": [
-        { "id": "slack",  "tools": ["channels.list", "messages.search"] },
-        { "id": "notion", "tools": ["pages.create", "blocks.append"] }
-      ],
-      "optional": [
-        { "id": "google_drive", "tools": ["files.list"] }
       ]
     },
 
@@ -345,7 +328,7 @@ Rules of authorship:
         "options": ["VC", "Customer", "Internal"] }
     ],
 
-    "capabilities": ["prompt:inject", "fs:read", "connector:slack", "connector:notion"]
+    "capabilities": ["prompt:inject", "fs:read"]
   }
 }
 ```
@@ -364,7 +347,6 @@ Rules of authorship:
 - `od.context.atoms` — **unordered set** declaring the atoms a plugin needs. The daemon uses them in default order; intended for simple plugins that don't customize flow.
 - `od.pipeline` — **ordered pipeline** in which the plugin author explicitly composes atoms into stages, loops, and termination conditions (§10.1). When both `od.pipeline` and `od.context.atoms` are present, `pipeline` wins; `context.atoms` is treated only as chip-strip metadata.
 - `od.genui.surfaces[]` — **Generative UI declaration**: the set of surfaces the agent may trigger during a run (§10.3). Each entry's `kind` is one of the v1 built-ins (`form` / `choice` / `confirmation` / `oauth-prompt`); `persist` decides where the answer is remembered (`run` / `conversation` / `project`); `trigger` binds the surface to a specific stage / atom so the agent cannot summon arbitrary UI; `schema` is a JSON Schema used to render the default form and validate the answer. **Surface kinds not declared in the manifest cannot be raised at runtime** — `od plugin doctor` plus daemon runtime jointly enforce that no unknown UI is ever produced.
-- `od.connectors` — **connector dependency declaration**: `required[]` lists the daemon-built-in connectors ([`apps/daemon/src/connectors/`](../apps/daemon/src/connectors/), currently Composio-backed) the plugin needs, each `{ id, tools[] }` mapping to `ConnectorCatalogDefinition.id` and a subset of its `allowedToolNames`; `optional[]` is "use if connected, degrade gracefully if not". `od plugin doctor` validates at install/apply time: (a) every `id` exists in `connectorService.listAll()`; (b) every `tools[]` is a subset of that connector's `allowedToolNames`; (c) every `required[].id` has a matching `connector:<id>` capability declared (§5.3 / §9). Required connectors that are not yet connected at apply time auto-derive an `oauth-prompt` GenUI surface (§10.3.1 with `route: 'connector'`); optional connectors do not, but the agent can trigger one explicitly during the run. **Plugins never hold OAuth tokens directly** — tokens stay in `<dataDir>/connectors/credentials.json`; the plugin only declares dependencies.
 - `od.inputs` — surfaced as form fields on the detail page; their values template `useCase.query` and any string-valued context entries.
 - `od.capabilities` — declarative; defaults to `['prompt:inject']` if omitted on a `restricted` plugin.
 
@@ -394,8 +376,6 @@ Lives in a new `packages/contracts/src/plugins/context.ts` (TypeScript-only, no 
 | `mcp`                  | Daemon writes `.mcp.json` during run start so MCP servers from the plugin start |
 | `subprocess` / `bash`  | Claude-plugin hooks execute, agent-callable bash tools enabled                |
 | `network`              | Plugin scripts may make outbound HTTP                                         |
-| `connector`            | Coarse: allow the plugin to call any connected Composio tool through the daemon connector subsystem ([`apps/daemon/src/connectors/`](../apps/daemon/src/connectors/)) |
-| `connector:<id>`       | Scoped (recommended): allow only the connector named `<id>` (e.g. `connector:slack`). When a plugin declares multiple `connector:<id>` capabilities, only those listed get a tool token; `connector:<id>` takes precedence over the coarse `connector`. |
 
 Capabilities are not isolated strings; the resolver must compute **implied capabilities**:
 
@@ -403,9 +383,7 @@ Capabilities are not isolated strings; the resolver must compute **implied capab
 - MCP commands that use `npx`, `uvx`, `pipx`, remote URLs, or package-manager installs imply `network`.
 - Declaring `.claude-plugin` hooks implies `subprocess`; if a hook reads bundled assets, it also requires `fs:read`.
 - `bash` and `subprocess` are elevated capabilities: once granted, a plugin can effectively bypass fine-grained `fs:*` / `network` limits. The UI and CLI must present them as elevated capabilities and must not preselect them in a low-risk "Grant all" path.
-- Declaring `od.connectors.required[]` implies a `connector:<id>` for each `required[].id`; the resolver appends any missing `connector:<id>` to `capabilitiesRequired`, and `restricted` plugins fail with exit 66 / §9.1 unless the user grants them.
-- `connector:<id>` does **not** imply `network`: connector calls always go through the daemon's HTTP path, so the plugin itself never opens an outbound socket. The coarse `connector` capability, on the other hand, is treated as elevated (any connected provider becomes reachable) and must be confirmed explicitly in UI/CLI.
-- Provider credentials are not a v1 capability. Plugins cannot directly declare access to `ANTHROPIC_API_KEY`, media provider keys, or connector secrets. Capabilities that need credentials must go through OD-owned first-party atoms / tools.
+- Provider credentials are not a v1 capability. Plugins cannot directly declare access to `ANTHROPIC_API_KEY` or media provider keys. Capabilities that need credentials must go through OD-owned first-party atoms / tools.
 
 ### 5.4 `SKILL.md` frontmatter to `PluginManifest` mapping
 
@@ -580,20 +558,7 @@ export interface AppliedPluginSnapshot {
 
   // Mirror of the §11.4 SQLite columns; the snapshot freezes the apply-time view so replay is reproducible
   // even after the plugin upgrades.
-  connectorsRequired: PluginConnectorRef[];     // from manifest od.connectors.required[]
-  connectorsResolved: PluginConnectorBinding[]; // (id, accountLabel, status) actually connected at apply time
   mcpServers: McpServerSpec[];                  // MCP server set that was active at apply time; same payload as ApplyResult.mcpServers but frozen
-}
-
-export interface PluginConnectorRef {
-  id: string;          // must exist in the daemon connector catalog
-  tools: string[];     // must be a subset of the connector's allowedToolNames
-  required: boolean;   // false = came from od.connectors.optional[]
-}
-
-export interface PluginConnectorBinding extends PluginConnectorRef {
-  accountLabel?: string;       // taken from ConnectorDetail.accountLabel
-  status: 'connected' | 'pending' | 'unavailable';
 }
 
 export interface PluginAssetRef {
@@ -627,7 +592,7 @@ Lives in `packages/contracts/src/plugins/apply.ts`. Re-exported from [`packages/
 
 The daemon therefore must:
 
-1. **At apply time** — hash the hydrated manifest plus inputs into `manifestSourceDigest`, then write `pluginSpecVersion`, `pluginVersion`, `pinnedRef`, `sourceMarketplaceId`, `resolvedContext`, `capabilitiesGranted`, `assetsStaged`, **`connectorsRequired` / `connectorsResolved` (cross-checked against the connector subsystem's current `status`)**, and **`mcpServers` (the MCP server set active at apply time)** into `appliedPlugin` and return it to the caller.
+1. **At apply time** — hash the hydrated manifest plus inputs into `manifestSourceDigest`, then write `pluginSpecVersion`, `pluginVersion`, `pinnedRef`, `sourceMarketplaceId`, `resolvedContext`, `capabilitiesGranted`, `assetsStaged`, and **`mcpServers` (the MCP server set active at apply time)** into `appliedPlugin` and return it to the caller.
 2. **At project create / run start** — write the client-supplied `appliedPlugin` (or the daemon's server-side re-resolved snapshot) into the SQLite `applied_plugin_snapshots` table (§11.4) and FK-link it from `runs` / `conversations`.
 3. **Replay** — `od run replay <runId>` and `od plugin export <runId>` must reconstruct prompt and assets from the snapshot rather than the live manifest, so old runs remain reproducible after plugin upgrades.
 4. **Audit** — UI ProjectView shows snapshot id + version + digest at the top; artifact provenance (§11.5 ArtifactManifest) reverse-resolves plugin source via the snapshot id.
@@ -671,13 +636,10 @@ flowchart LR
   C -->|"+ fs:read"| P2[stage assets into cwd]
   C -->|"+ mcp"| P3[write .mcp.json]
   C -->|"+ subprocess / bash"| P4[register claude plugin commands/hooks]
-  C -->|"+ connector:&lt;id&gt;"| P5[issue scoped tool token<br/>for /api/tools/connectors/execute]
-  P1 & P2 & P3 & P4 & P5 --> R[run agent]
+  P1 & P2 & P3 & P4 --> R[run agent]
 ```
 
-A `restricted` plugin can never reach P3/P4/P5 unless the user grants the capability — either through `od plugin trust <id>` or "Grant capabilities" on the detail page. Only two sources are trusted by default: repo-bundled first-party plugins and the official OD marketplace. User-added third-party marketplaces are discovery sources; plugins from them still install as `restricted` unless the marketplace itself is explicitly trusted, or an individual plugin is granted capabilities by id + version + capability.
-
-**Connector capability gate.** Plugin calls into Composio connectors travel through daemon HTTP (`/api/tools/connectors/execute`, served by [`apps/daemon/src/tool-tokens.ts`](../apps/daemon/src/tool-tokens.ts) issuing scoped tool tokens) — a different path from MCP. A `restricted` plugin granted `mcp` does **not** automatically gain connector access; it must hold either the coarse `connector` capability or the specific `connector:<id>`. When the daemon issues a tool token for a plugin run, it embeds the `applied_plugin_snapshot_id` and the current `capabilitiesGranted`; on each `/api/tools/connectors/execute` call, the daemon re-checks that the requested `connector_id` is on the granted list (a `trusted` plugin implicitly carries `connector:*`). Otherwise the call returns `403`. The daemon module that owns this check is `apps/daemon/src/plugins/connector-gate.ts` (§11.3).
+A `restricted` plugin can never reach P3/P4 unless the user grants the capability — either through `od plugin trust <id>` or "Grant capabilities" on the detail page. Only two sources are trusted by default: repo-bundled first-party plugins and the official OD marketplace. User-added third-party marketplaces are discovery sources; plugins from them still install as `restricted` unless the marketplace itself is explicitly trusted, or an individual plugin is granted capabilities by id + version + capability.
 
 Trust records must bind to provenance, not just a name:
 
@@ -688,7 +650,7 @@ Trust records must bind to provenance, not just a name:
 - granted capabilities
 - granted at / updated at
 
-When a plugin upgrades, its resolved ref changes, or its source marketplace changes, elevated capabilities (`mcp`, `subprocess`, `bash`, `network`, `connector`, `connector:<id>`) must be confirmed again.
+When a plugin upgrades, its resolved ref changes, or its source marketplace changes, elevated capabilities (`mcp`, `subprocess`, `bash`, `network`) must be confirmed again.
 
 ### 9.1 Headless capability grant flow (CLI / automation)
 
@@ -698,17 +660,15 @@ The UI capability gate is a modal + checklist; headless / CI / third-party code 
 
    ```bash
    od plugin trust make-a-deck   --caps fs:read,mcp,subprocess
-   od plugin trust make-a-digest --caps fs:read,connector:slack,connector:notion
    od plugin trust make-a-deck   --caps all          # equivalent to all capabilities the manifest declares
    ```
 
-   Writes to SQLite `installed_plugins.capabilities_granted`. Applies to all subsequent apply / run calls until the plugin is upgraded or the source marketplace changes (§9 provenance rules), at which point re-confirmation is required. `connector:<id>` is given as the full id (`connector:slack`, `connector:notion`); globs are not accepted.
+   Writes to SQLite `installed_plugins.capabilities_granted`. Applies to all subsequent apply / run calls until the plugin is upgraded or the source marketplace changes (§9 provenance rules), at which point re-confirmation is required.
 
 2. **Per-call temporary grant**.
 
    ```bash
    od plugin apply make-a-deck   --project p_abc --grant-caps fs:read,mcp --json
-   od plugin apply make-a-digest --project p_abc --grant-caps fs:read,connector:slack --json
    od plugin run   make-a-deck   --project p_abc --grant-caps fs:read --follow
    ```
 
@@ -737,7 +697,7 @@ The UI capability gate is a modal + checklist; headless / CI / third-party code 
 
    On reading exit 66, a code agent can retry with `--grant-caps`, degrade gracefully, or surface the remediation text to the upstream user. The HTTP equivalent is `409 Conflict` with the same body shape; desktop UI uses it to auto-build the capability checklist.
 
-Elevated capabilities (`bash` / `subprocess` / `network`, plus the coarse `connector` **without** an `:<id>` suffix) **never** support `--grant-caps all` shorthand on its own: the CLI requires each one to be listed explicitly to prevent scripted over-authorization. `connector:<id>` is the scoped form of an elevated capability and may appear inside `--caps all`, but hosted operators typically prefer enumerating each connector id for audit.
+Elevated capabilities (`bash` / `subprocess` / `network`) **never** support `--grant-caps all` shorthand on its own: the CLI requires each one to be listed explicitly to prevent scripted over-authorization.
 
 ### 9.2 Preview sandbox
 
@@ -760,7 +720,6 @@ Promote what already exists in [`apps/daemon/src/prompts/system.ts`](../apps/dae
 | `todo-write` | same | TodoWrite-driven plan | all |
 | `file-read` / `file-write` / `file-edit` | code-agent native | File ops | all |
 | `research-search` | `od research search` ([`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)) | Tavily web research | new-generation |
-| `connector` | `od tools connectors` / `od mcp connectors` | Composio connector tool calls through the daemon gate | new-generation, tune-collab |
 | `critique-theater` | `system.ts` critique addendum | 5-dim panel critique; devloop convergence signal | all |
 | `code-import` *(planned)* | tbd: repo handle ingestion | Clone / read existing repo, extract design-relevant structure | code-migration |
 | `design-extract` *(planned)* | tbd | Extract design tokens from source code / Figma / screenshot | code-migration, figma-migration |
@@ -827,8 +786,8 @@ The product rule is: **agent/plugin output is data; OD owns the renderer.** A pl
 | --- | --- | --- | --- | --- |
 | `form` | Collect structured info (audience, brand, target, resolution, etc.) | JSON-Schema–driven form rendered from `schema` | `discovery-question-form`, `research-search`, any atom needing parameters | `conversation` |
 | `choice` | Pick one of N options (direction, headline, version) | Card grid or radio list | `direction-picker`, `critique-theater` | `conversation` |
-| `confirmation` | Two-way confirm (continue / cancel, approve / reject) | Inline Yes/No buttons | High-cost atoms such as `connector` or `subprocess`-class hooks | `run` |
-| `oauth-prompt` | Launch third-party OAuth (Figma, Notion, Slack, etc.) | Modal + guidance copy | Connector / MCP authorization | `project` |
+| `confirmation` | Two-way confirm (continue / cancel, approve / reject) | Inline Yes/No buttons | High-cost atoms such as `subprocess`-class hooks | `run` |
+| `oauth-prompt` | Launch third-party OAuth (Figma, Notion, Slack, etc.) | Modal + guidance copy | MCP authorization | `project` |
 
 Each surface carries the following v1 fields:
 
@@ -840,15 +799,14 @@ export interface GenUISurfaceSpec {
   trigger?: { stageId?: string; atom?: string };
   schema?: object;                             // JSON Schema (required for form / choice)
   prompt?: string;                             // question / instruction shown by the default renderer
-  capabilitiesRequired?: string[];             // e.g. oauth-prompt with route='connector' needs 'connector:<id>'
+  capabilitiesRequired?: string[];             // e.g. oauth-prompt with route='mcp' needs 'mcp'
   timeout?: number;                            // ms, default 300_000
   onTimeout?: 'abort' | 'default' | 'skip';    // default 'abort'
   default?: unknown;                           // fallback value when onTimeout='default'
 
   // oauth-prompt only: which existing OAuth subsystem the daemon should route through
   oauth?: {
-    route: 'connector' | 'mcp';                // v1 ships these two; 'plugin' is reserved for Phase 4
-    connectorId?: string;                      // required when route='connector'; references od.connectors.required[].id
+    route: 'mcp' | 'plugin';                   // v1 ships 'mcp'; 'plugin' is reserved for Phase 4
     mcpServerId?: string;                      // required when route='mcp'; references a name from the plugin's MCP server set
   };
 }
@@ -858,13 +816,10 @@ export interface GenUISurfaceSpec {
 
 | `oauth.route` | Daemon behavior | UI behavior | Persistence |
 | --- | --- | --- | --- |
-| `connector` | Reuses the existing `apps/daemon/src/connectors/` flow: hits `POST /api/connectors/:connectorId/connect/start` for the redirect URL; on completion the token lands in `<dataDir>/connectors/credentials.json` | Renders the connector card (the visual style of [`apps/web/src/components/ConnectorsBrowser.tsx`](../apps/web/src/components/ConnectorsBrowser.tsx)) inside a modal or drawer; the user clicks through the standard connector OAuth | `genui_surfaces.value_json = { connectorId, accountLabel }`; the token never enters SQLite |
 | `mcp` | Reuses `POST /api/mcp/oauth/start`; the token lands in `<dataDir>/mcp-tokens.json` | Reuses the Settings → MCP servers OAuth visuals | `genui_surfaces.value_json = { mcpServerId }`; the token never enters SQLite |
 | `plugin` (Phase 4) | Plugin supplies arbitrary third-party OAuth metadata; daemon goes through a generic PKCE adapter | TBD | TBD |
 
-`od plugin doctor` enforces at install / apply time that: (1) when `oauth.route === 'connector'`, `oauth.connectorId` is present in the plugin's own `od.connectors.required[]` or `od.connectors.optional[]`; (2) when `oauth.route === 'mcp'`, `oauth.mcpServerId` matches a name in the plugin's MCP server set.
-
-**Auto-derivation from `od.connectors.required[]`.** If a plugin declares `od.connectors.required[]` but does **not** declare an explicit `oauth-prompt` surface, the daemon auto-derives one for each not-yet-connected required connector at apply time, with `kind: 'oauth-prompt'`, `persist: 'project'`, `oauth.route: 'connector'`, and `id: __auto_connector_<connectorId>`. These implicit surfaces are still recorded in `AppliedPluginSnapshot.genuiSurfaces`, and they receive the same §10.3.3 cross-conversation reuse — **a one-time authorization for the same connector inside a project means subsequent runs do not re-prompt.** A plugin author may also declare a same-id surface explicitly to override the implicit one (custom `prompt` / `schema`).
+`od plugin doctor` enforces at install / apply time that when `oauth.route === 'mcp'`, `oauth.mcpServerId` matches a name in the plugin's MCP server set.
 
 #### 10.3.2 Runtime events (joined into the SSE / ND-JSON `PersistedAgentEvent` union)
 
@@ -981,7 +936,6 @@ Pure TypeScript, no Next/Express/SQLite/browser deps:
 | New `apps/daemon/src/plugins/snapshots.ts` | §8.2.1 immutable snapshot read/write; `status='stale'` flips driven by `od plugin doctor`; provides the replay helper backing `POST /api/runs/:runId/replay`. |
 | New `apps/daemon/src/plugins/pipeline.ts` | Parses `od.pipeline` (including the `until` expression evaluator), schedules stages, and drives §10.2 devloop (with `OD_MAX_DEVLOOP_ITERATIONS` ceiling and break signaling). |
 | New `apps/daemon/src/genui/{registry,events,store}.ts` | §10.3 GenUI: registers surfaces from `od.genui.surfaces[]`, publishes `genui_surface_*` events, reads/writes the cross-conversation persisted state, and serializes the AG-UI–inspired event union. |
-| New `apps/daemon/src/plugins/connector-gate.ts` | §9 connector capability gate: (a) `apply.ts` calls into it to resolve `od.connectors.required[]` against `connectorService.listAll()`, populating `connectorsResolved` and deriving the implicit `oauth-prompt` GenUI surface (§10.3.1) for any not-yet-connected required connector; (b) before [`apps/daemon/src/tool-tokens.ts`](../apps/daemon/src/tool-tokens.ts) issues a connector tool token, this module validates plugin trust × `connector:<id>` capability (a `trusted` plugin implicitly carries `connector:*`; a `restricted` plugin must list each id explicitly); (c) `/api/tools/connectors/execute` re-validates on every call, so a token replacement attack never bypasses the gate. This module is the runtime landing point for the P5 path in §9. |
 | [`apps/daemon/src/prompts/system.ts`](../apps/daemon/src/prompts/system.ts) `composeSystemPrompt()` | Assembles the base OD designer/discovery prompt, optional design system/craft/skill blocks, snapshot-derived `renderPluginBlock(snapshot)`, and active-stage atom blocks from `renderActiveStageBlock(stageId, bodies)`. Existing layer order remains intentional; plugin-driven fallback mode is still rejected per §11.8 even though the plugin-block renderer now lives in contracts. |
 | New SQLite migration | `installed_plugins`, `plugin_marketplaces`, `applied_plugin_snapshots`, `run_devloop_iterations`, plus `applied_plugin_snapshot_id` ALTERs on `runs` / `conversations` / `projects` (§11.4). |
 | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts) | Mount new endpoints (§11.5); `POST /api/projects` and `POST /api/runs` accept optional `pluginId` / `pluginInputs` / `appliedPluginSnapshotId`; new `GET /api/applied-plugins/:snapshotId`, `POST /api/runs/:runId/replay`, `GET /api/runs/:runId/devloop-iterations`. |
@@ -1032,8 +986,6 @@ CREATE TABLE applied_plugin_snapshots (
   pipeline_json           TEXT,                        -- materialized PluginPipeline; if absent, the reference pipeline used
   capabilities_granted    TEXT NOT NULL,               -- JSON array
   assets_staged_json      TEXT NOT NULL,               -- assets actually staged into cwd
-  connectors_required_json TEXT NOT NULL DEFAULT '[]', -- §5 od.connectors.required + optional, frozen as PluginConnectorRef[]
-  connectors_resolved_json TEXT NOT NULL DEFAULT '[]', -- PluginConnectorBinding[] (id, accountLabel, status) at apply time
   mcp_servers_json        TEXT NOT NULL DEFAULT '[]',  -- MCP server set active at apply time, frozen as McpServerSpec[]
   status                  TEXT NOT NULL DEFAULT 'fresh', -- fresh | stale (set by `od plugin doctor` after upgrade)
   applied_at              INTEGER NOT NULL,
@@ -1272,7 +1224,7 @@ The CLI (`od …`) is **the canonical agent-facing API** for Open Design. Plugin
 | --------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
 | HTTP (`/api/*`)       | Desktop web app, internal tooling, the CLI's own use  | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts)      |
 | **CLI (`od …`)**      | **Code agents shelling out, scripts, CI**             | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)            |
-| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp` and `od mcp connectors`                                 |
+| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp`                                                         |
 
 When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and tested in CI; breaking changes follow a major-version bump of the `od` bin.
 
@@ -1413,9 +1365,7 @@ od config get|set|list|unset  [--key ...] [--value ...]     # backed by media-co
 
 ```
 od research search ...
-od tools connectors  ...
 od mcp                       # stdio MCP server
-od mcp connectors            # connector MCP server
 ```
 
 ### 12.3 Output conventions
@@ -1477,7 +1427,7 @@ This sequence works identically locally, in CI, in a Docker sidecar, or driven f
 
 ### 12.6 What this means for the existing CLI
 
-Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `od` (start daemon + open web UI) remains unchanged. Existing `od research`, `od tools connectors`, and `od mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
+Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `od` (start daemon + open web UI) remains unchanged. Existing `od research` and `od mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
 
 > **Implementation rule:** if a code agent can do something through the desktop UI, it MUST be doable through `od …` with the same arguments and equivalent output. No silent UI-only capabilities.
 
@@ -1785,14 +1735,6 @@ Validation:
   - Web: `GenUISurfaceRenderer` mounted inside the `ProjectView` chat stream; `GenUIInbox` drawer lists project-tier persisted surfaces; revoke entry is functional.
   - CLI: `od ui list/show/respond/revoke/prefill`; `od run watch` ND-JSON includes `genui_*` events; exit code 73 wired in.
   - **Persistence behavior verification:** after one project completes an `oauth-prompt`, a second conversation triggering the same surface id **does not** broadcast a new request; the event stream still emits `genui_surface_response { respondedBy: 'cache' }`.
-- **§9 connector capability gate lands:**
-  - New `apps/daemon/src/plugins/connector-gate.ts` (§11.3 table): apply reads `od.connectors.required[]`, calls `connectorService.listAll()` to compute `connectorsResolved`, and auto-derives an implicit `oauth-prompt` GenUI surface (§10.3.1, `oauth.route='connector'`) for each required connector that is not yet connected.
-  - SQLite migration: `applied_plugin_snapshots` gains `connectors_required_json` / `connectors_resolved_json` / `mcp_servers_json` (§11.4).
-  - [`apps/daemon/src/tool-tokens.ts`](../apps/daemon/src/tool-tokens.ts) calls `connector-gate` before issuing a connector tool token, validating plugin trust × `connector:<id>`. `/api/tools/connectors/execute` re-validates on every call.
-  - `od plugin doctor` enforces: (a) every `od.connectors.required[].id` exists in `connectorService` catalog; (b) every `tools[]` is a subset of that connector's `allowedToolNames`; (c) when an `oauth-prompt` surface has `oauth.route='connector'`, its `oauth.connectorId` is one of the plugin's declared connectors.
-  - Exit code 66 / `409 capabilities-required` `data.required` includes `connector:<id>` entries.
-  - `od plugin trust` and `od plugin apply --grant-caps` accept the `connector:<id>` form (§9.1).
-
 Validation: e2e in `e2e/`:
 
 (a) install local plugin → Home inline rail → click plugin → home prefilled → run produces design; the run carries `applied_plugin_snapshot_id` in SQLite, and the `applied_plugin_snapshots` row contains `manifest_source_digest` and `inputs_json`.
@@ -1804,13 +1746,6 @@ Validation: e2e in `e2e/`:
 (d) In web API-fallback mode (OD daemon stopped, browser talking provider directly), the inline rail still renders plugin cards but clicking "Use" pops a daemon-required notice; resuming the daemon restores normal behavior.
 
 (e) A plugin declares both `oauth-prompt` and `confirmation` surfaces: after conversation A completes them, conversation B (same project) re-applies the plugin. In the new run the `oauth-prompt` (`persist=project`) is served from cache; the `confirmation` (`persist=run`) re-asks. After `od ui revoke`, the next run re-asks the `oauth-prompt`.
-
-(f) **Connector trust gate.** A local plugin declares `od.connectors.required = [{ id: 'slack', tools: ['channels.list'] }]` but **does not** explicitly grant `connector:slack`:
-
-  - `apply` (no `--grant-caps`) → exit 66 / 409 with `data.required` including `connector:slack` and `data.remediation` listing `od plugin trust <id> --caps connector:slack`.
-  - `apply --grant-caps connector:slack` while the connector is not connected yet → daemon auto-derives an implicit `oauth-prompt` (surface id `__auto_connector_slack`, `persist=project`); the user completes the existing connector OAuth flow in the UI; the surface flips to `resolved`; `applied_plugin_snapshots.connectors_resolved_json` contains `{ id:'slack', accountLabel:..., status:'connected' }`.
-  - Re-applying the same plugin in the same project: `connector:slack` is connected → no oauth-prompt is derived; the snapshot's `connectors_resolved_json[0].status='connected'` hits cache.
-  - A second plugin declares `od.connectors.required = [{ id: 'notion', tools: [...] }]` but **does not** declare `connector:notion` capability → `apply` fails with exit 66; additionally the token-issuance path is verified by `curl /api/tools/connectors/execute` directly (simulating a bypass attempt) which returns `403 connector-not-granted`.
 
 ### Phase 2B — Marketplace deep UI + ChatComposer apply (4–6 days)
 
@@ -2037,7 +1972,7 @@ The four "core agent-native design problems" the OD product targets, restated to
 | --- | --- | --- | --- | --- | --- |
 | 1 | Figma migration | `figma-migration` | yes (§1, §10 atoms reserved) | **partial** — `figma-extract` and `token-map` are `(planned)` in §10; pipeline shape and provenance are ready | Need to implement the two `(planned)` atoms; everything else (DS injection, GenUI OAuth, devloop, snapshot) is already in v1 |
 | 2 | Existing-codebase refresh | `code-migration` | yes (§1, §10, §20.3) | **not in v1** — `code-import` / `rewrite-plan` / `patch-edit` / `diff-review` all `(planned)`; `build-test` evaluator is §20.2 | Need the §20.3 stricter contract end-to-end (target stack, token mapping, component mapping, patch safety, build evidence) |
-| 3 | 0→1 design (prototype, deck, report, template) | `new-generation` | yes (§1 default reference pipeline) | **shipped in v1** — every required atom (`discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `connector`, `critique-theater`) is already implemented | Optional: lift §20.2 `visual-diff` / `brand-consistency-check` into Phase 2 so critique gains an objective signal |
+| 3 | 0→1 design (prototype, deck, report, template) | `new-generation` | yes (§1 default reference pipeline) | **shipped in v1** — every required atom (`discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `critique-theater`) is already implemented | Optional: lift §20.2 `visual-diff` / `brand-consistency-check` into Phase 2 so critique gains an objective signal |
 | 4 | Design → deliverable production code | `tune-collab` (handoff side) | partial (§20.3 explicitly post-v1) | **not in v1** — v1 caps at `handoffKind: 'design-only' \| 'implementation-plan' \| 'patch'`; `'deployable-app'` is post-v1 | Either land §20.3 in full, or formalize the §14.3 OD ↔ external code-agent handoff as the v1 production-code path |
 
 Reading rule: **scenario 3 is the only one v1 fully covers natively**. Scenarios 1 and 2 have correct contracts and naming reserved by v1 but require additional atom implementations; scenario 4 is explicitly post-v1 and leans on §14.3 in the meantime.
@@ -2068,14 +2003,13 @@ What v1 explicitly does **not** solve, listed once so it is unambiguous:
 - The `figma-migration` `taskKind` is a first-class enum member in `AppliedPluginSnapshot` (§8.2.1), `ArtifactManifest` (§11.5.1), and the marketplace filters (§18 open question on top-level `taskKind` filter).
 - The recommended pipeline shape is locked: `figma-extract → token-map → generate → critique` (§1).
 - The active design system is injected into the prompt by the existing `composeSystemPrompt()` chain, so once `token-map` lands, "consistency with the chosen DESIGN.md" is a downstream effect, not new infrastructure.
-- The Figma OAuth flow already routes through the GenUI `oauth-prompt` surface kind with `oauth.route='connector'` once a Figma connector is registered (§10.3.1). Cross-conversation persistence is automatic via `genui_surfaces` (§10.3.3).
+- The Figma OAuth flow already routes through the GenUI `oauth-prompt` surface kind with `oauth.route='mcp'` once the bundled MCP server supports OAuth (§10.3.1). Cross-conversation persistence is automatic via `genui_surfaces` (§10.3.3).
 - `parentArtifactId` chaining (§11.5.1) lets a migrated artifact become the seed for a follow-up `tune-collab` run without re-extracting.
 
 **What is missing for v1 native delivery:**
 
 - `figma-extract` atom — extract Figma node tree, tokens, and assets from a Figma file URL through Figma REST. Spec reserves the id; implementation is out of v1 scope.
 - `token-map` atom — map the extracted tokens onto the active OD design system (`design-systems/<id>/DESIGN.md`). Spec reserves the id.
-- The Figma connector itself, if not already registered in `apps/daemon/src/connectors/`. (If yes, only the two atoms above are missing.)
 
 **Why this scenario is the easiest of the three "missing" ones to land:**
 
@@ -2114,7 +2048,7 @@ What v1 explicitly does **not** solve, listed once so it is unambiguous:
 
 **What v1 already gives you for free (this is the v1 native scenario):**
 
-- All required atoms are already implemented: `discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `connector`, `critique-theater`. See §10 atom table.
+- All required atoms are already implemented: `discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `critique-theater`. See §10 atom table.
 - The default reference pipeline `discovery → plan → generate → critique` matches the typical `new-generation` flow; plugins do not have to declare `od.pipeline` to get a working pipeline.
 - All four GenUI built-in surface kinds (`form` / `choice` / `confirmation` / `oauth-prompt`) target this scenario directly.
 - File-backed previews and the `od files` CLI primitives (§12) mean generated prototypes, reports, decks, and templates can be inspected and consumed in v1.
@@ -2185,7 +2119,7 @@ This section is the **single source of truth for "what is shipped vs. what is re
 
 The distinction this section formalizes:
 
-- **Substrate** = the primitives the v1 spec hands to plugin authors: manifest fields, capability vocabulary, atom catalog, pipeline / devloop / GenUI / connector / MCP / `od files` / `parentArtifactId` / `AppliedPluginSnapshot` (§5–§11.5.1).
+- **Substrate** = the primitives the v1 spec hands to plugin authors: manifest fields, capability vocabulary, atom catalog, pipeline / devloop / GenUI / MCP / `od files` / `parentArtifactId` / `AppliedPluginSnapshot` (§5–§11.5.1).
 - **Implementation** = which atoms are built into the daemon as one-line `od.pipeline` entries (§10).
 
 A scenario is "v1 native" only when both substrate and implementation are present. A scenario is "v1 community-buildable" when the substrate is present and the implementation gap can be filled by a plugin author using the substrate's escape hatches. Scenarios 1, 2, and 4 are community-buildable today; the implementation gaps live in atom ergonomics, not capability gates.
@@ -2197,10 +2131,10 @@ What plugin authors actually reach for to fill missing first-party behavior:
 | Plugin author need | v1 primitive that fills it | Spec reference |
 | --- | --- | --- |
 | Call a tool OD does not provide (Figma REST, AST parsing, SVG conversion, etc.) | Bundle an MCP server in `od.context.mcp[]` | §5 / §5.3 (`mcp` + `subprocess` + `network`) |
-| Call a third-party API (Slack / Notion / GitHub / Figma / Drive) | `od.connectors.required[]` riding the existing Composio subsystem | §5 / §9 / §10.3.1 `oauth.route='connector'` |
+| Call a third-party API (Slack / Notion / GitHub / Figma / Drive) | Bundle an MCP server in `od.context.mcp[]` | §5 / §5.3 (`mcp` + `subprocess` + `network`) |
 | Operate on the user's real repo | `od project import <path>` brings the repo into OD's project model; `od files` and agent file ops then work in-place | §12 / §11.7 / §14.3 |
 | Run arbitrary build / test / lint / scripts | `bash` / `subprocess` capabilities | §5.3 |
-| Drive a third-party OAuth flow | GenUI `oauth-prompt` surface, route `connector` or `mcp` | §10.3.1 |
+| Drive a third-party OAuth flow | GenUI `oauth-prompt` surface, route `mcp` | §10.3.1 |
 | Custom HITL form / picker / confirmation | GenUI `form` / `choice` / `confirmation` surface declaration | §10.3 |
 | Don't pester the user across conversations / runs | `genui_surfaces` table + `persist: 'project' \| 'conversation' \| 'run'` | §10.3.3 |
 | Multi-stage flow with iterative convergence | `od.pipeline.stages[]` + `repeat: true` + `until` | §10.1 / §10.2 |
@@ -2229,11 +2163,10 @@ Manifest sketch:
           "args": ["-y", "@community/figma-mcp"] }
       ]
     },
-    "connectors": { "required": [{ "id": "figma", "tools": ["files.get"] }] },
     "genui": {
       "surfaces": [
         { "id": "figma-oauth", "kind": "oauth-prompt", "persist": "project",
-          "oauth": { "route": "connector", "connectorId": "figma" } },
+          "oauth": { "route": "mcp", "mcpServerId": "figma-rest" } },
         { "id": "file-pick",   "kind": "form",         "persist": "conversation",
           "schema": { "type": "object",
             "properties": { "fileUrl": { "type": "string" } } } }
@@ -2247,7 +2180,7 @@ Manifest sketch:
         "repeat": true, "until": "critique.score>=4 || iterations>=3" }
     ]},
     "capabilities": ["prompt:inject", "fs:read", "fs:write", "mcp",
-                     "subprocess", "network", "connector:figma"]
+                     "subprocess", "network"]
   }
 }
 ```
@@ -2320,7 +2253,7 @@ Three categories cover everything OD does today:
 | **B. Kernel (must stay in daemon)** | `apps/daemon/src/...` | snapshot SQLite writes, GenUI persistence + reuse, capability gate + tool-token issuance, devloop scheduler + `until` evaluator + ceiling, OAuth token storage, `composeSystemPrompt()` *as assembler*, project metadata block |
 | **C. Already plugin-driven in v1** | Already in `<daemonDataDir>/plugins/...` or per-project plugin folders | Active SKILL.md, DESIGN.md, craft .md, plugin-declared MCP servers, plugin-declared GenUI surfaces, plugin-declared pipelines |
 
-The category-B list is the **kernel boundary**: not "these things would be hard to plugin-ize", but "these things must stay in the daemon for security, persistence, or runtime-state reasons." A plugin runtime that lets plugins write `applied_plugin_snapshots` rows or issue connector tool tokens is a broken runtime.
+The category-B list is the **kernel boundary**: not "these things would be hard to plugin-ize", but "these things must stay in the daemon for security, persistence, or runtime-state reasons." A plugin runtime that lets plugins write `applied_plugin_snapshots` rows is a broken runtime.
 
 The category-A list is what **moves** when the spec commits to self-bootstrapping. Most of it is `apps/daemon/src/prompts/system.ts`'s string constants today.
 
@@ -2329,7 +2262,7 @@ The category-A list is what **moves** when the spec commits to self-bootstrappin
 Category C is the half v1 has shipped, and the first pieces of category A have also moved. As of this spec:
 
 - The active SKILL.md, DESIGN.md, and craft .md files are loaded by `apps/daemon/src/skills.ts` / `design-systems.ts` / `craft.ts`, which §11.3 already refactors to delegate to `apps/daemon/src/plugins/registry.ts`. After Phase 1, every active behavioral artifact in the prompt is plugin-loaded, even if its content is bundled.
-- Plugin-declared MCP servers, connector requirements, GenUI surfaces, and `od.pipeline.stages[]` are all consumed via the same registry and resolver paths that a third-party plugin uses.
+- Plugin-declared MCP servers, GenUI surfaces, and `od.pipeline.stages[]` are all consumed via the same registry and resolver paths that a third-party plugin uses.
 - The active design system + craft injection that drives "consistency" in §1's product brief is already a plugin-substrate read: there is no privileged path for first-party DESIGN.md vs. third-party DESIGN.md.
 - First-party atom plugins under `plugins/_official/atoms/**` carry atom SKILL.md bodies and manifest metadata; `packages/contracts/src/prompts/atom-block.ts` renders active stage blocks from those bodies.
 - Bundled scenario plugins under `plugins/_official/scenarios/**` carry default pipeline shapes, including `od-default` for Home free-form routing and task shaping. `packages/plugin-runtime/src/pipeline-fallback.ts` resolves an applied pipeline through these bundled scenarios when a plugin omits `od.pipeline`.
@@ -2347,7 +2280,7 @@ Today §5's `od.kind` enum lists `'atom'` but never defines an atom plugin's sha
 
 - An atom plugin is a folder with `open-design.json` (`od.kind: 'atom'`) plus `SKILL.md`.
 - The `SKILL.md` body is the atom's prompt fragment, injected by the daemon assembler when a stage references the atom by id.
-- Optional `od.context.mcp[]` declares MCP tools the atom uses (e.g. `connector`).
+- Optional `od.context.mcp[]` declares MCP tools the atom uses.
 - Optional `od.atom.untilSignals[]` declares the named signal variables this atom emits, contributing to the `until` vocabulary in §10.1. This is how patch 1 also lifts §22.4's limit 1: each atom owns its own signals (e.g. `build-test` declares `build.passing` and `tests.passing`), and the `until` evaluator looks them up against the active stage's atoms instead of a hard-coded list.
 - Optional `od.atom.toolGating[]` declares which agent-side tools (file-read/write/edit, bash) the atom expects to be available.
 

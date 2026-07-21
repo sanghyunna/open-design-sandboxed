@@ -149,7 +149,7 @@ export function GenUISurfaceRenderer(props: Props) {
   //
   // The pluginId is read from the surface's `component.pluginId` field
   // (when the daemon stamps it during apply) or from the implicit
-  // surface id prefix `__auto_connector_<id>` etc. v1 expects the
+  // surface id prefix `__auto_mcp_<id>` etc. v1 expects the
   // host to inject it through PendingSurface.componentPluginId.
   if (surface.component) {
     const pluginId = props.pending.componentPluginId;
@@ -181,14 +181,12 @@ export function GenUISurfaceRenderer(props: Props) {
     return (
       <div className="genui-surface genui-surface--oauth" role="dialog" aria-label={surface.id}>
         <div className="genui-surface__prompt">
-          {surface.prompt ?? `Authorize ${surface.oauth?.connectorId ?? surface.oauth?.mcpServerId ?? 'the connector'}`}
+          {surface.prompt ?? `Authorize ${surface.oauth?.mcpServerId ?? 'the MCP server'}`}
         </div>
         <div className="genui-surface__hint">
-          {surface.oauth?.route === 'connector'
-            ? `connector: ${surface.oauth.connectorId}`
-            : surface.oauth?.route === 'mcp'
-              ? `mcp server: ${surface.oauth.mcpServerId}`
-              : null}
+          {surface.oauth?.route === 'mcp' && surface.oauth.mcpServerId
+            ? `mcp server: ${surface.oauth.mcpServerId}`
+            : null}
         </div>
         <div className="genui-surface__actions">
           <button
@@ -197,9 +195,6 @@ export function GenUISurfaceRenderer(props: Props) {
             disabled={submitting}
             onClick={() => submit({
               authorized: true,
-              ...(surface.oauth?.route === 'connector' && surface.oauth.connectorId
-                ? { connectorId: surface.oauth.connectorId }
-                : {}),
               ...(surface.oauth?.route === 'mcp' && surface.oauth.mcpServerId
                 ? { mcpServerId: surface.oauth.mcpServerId }
                 : {}),

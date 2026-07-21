@@ -148,14 +148,6 @@ type ProjectMetadata = {
     url?: string | null;
     command?: string | null;
   }> | null;
-  contextConnectors?: Array<{
-    id?: string | null;
-    name?: string | null;
-    provider?: string | null;
-    category?: string | null;
-    status?: string | null;
-    accountLabel?: string | null;
-  }> | null;
 };
 type ProjectTemplate = { name: string; description?: string | null; files: Array<{ name: string; content: string }> };
 type ExclusiveSurfaceMode = 'deck';
@@ -699,7 +691,7 @@ const CHAT_MODE_OVERRIDE = `# Chat mode — standard conversation (read first �
 
 This conversation is in Open Design Chat mode. Open Design is the open-source Claude Design alternative and a native Figma counterpart.
 
-Use the same available context, files, attachments, connectors, MCP servers, project memory, and model capabilities as Design mode. The difference is behavior: answer like a fast, direct, multi-turn desktop chat assistant. Prefer concise prose, explanations, comparisons, debugging help, and follow-up questions only when needed.
+Use the same available context, files, attachments, MCP servers, project memory, and model capabilities as Design mode. The difference is behavior: answer like a fast, direct, multi-turn desktop chat assistant. Prefer concise prose, explanations, comparisons, debugging help, and follow-up questions only when needed.
 
 Override artifact-first discovery rules below: do not emit a default discovery \`<question-form>\`, do not call TodoWrite just to plan a chat answer, and do not create or edit project files, HTML, PPT, slide decks, images, video, or audio unless the user explicitly asks you to generate/build/design/export/modify something. When the user does ask for a design artifact or file change, you may use the normal Open Design agent workflow and the same tools/capabilities available in Design mode.`;
 
@@ -888,25 +880,6 @@ function renderMetadataBlock(
         ? ` — ${server.transport.trim()}`
         : '';
       lines.push(`- ${label}${id ? ` (\`${id}\`)` : ''}${transport}`);
-    }
-  }
-
-  if (Array.isArray(metadata.contextConnectors) && metadata.contextConnectors.length > 0) {
-    lines.push('');
-    lines.push('### @ connector context');
-    lines.push(
-      'The user selected these connectors as context. Use daemon connector tools through the OD CLI wrapper when data from these sources is needed; do not ask the user to identify a source that is already selected.',
-    );
-    for (const connector of metadata.contextConnectors) {
-      const id = typeof connector.id === 'string' ? connector.id : '';
-      const name = typeof connector.name === 'string' && connector.name.trim().length > 0
-        ? connector.name.trim()
-        : id;
-      if (!id && !name) continue;
-      const meta = [connector.provider, connector.status, connector.accountLabel]
-        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-        .join(' · ');
-      lines.push(`- ${name}${id ? ` (\`${id}\`)` : ''}${meta ? ` — ${meta}` : ''}`);
     }
   }
 

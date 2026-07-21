@@ -4,7 +4,6 @@ export type InlineMentionKind =
   | 'mcp'
   | 'file'
   | 'workspace'
-  | 'connector'
   | 'unknown';
 
 export interface InlineMentionEntity {
@@ -253,7 +252,7 @@ function isMentionSubmitRightBoundary(text: string, end: number): boolean {
 /**
  * Whether `@label` appears in `text` as a standalone inline mention (proper
  * left boundary, not a substring of a longer word). Used to reconcile selected
- * context (plugins/MCP/connectors) against the prompt at submit time: a context
+ * context (plugins/MCP) against the prompt at submit time: a context
  * whose mention pill the user deleted should not be sent to the agent. Unlike
  * the parser's `isMentionRightBoundary`, this treats trailing punctuation after
  * a still-visible pill (e.g. `@Slack,`) as present — see

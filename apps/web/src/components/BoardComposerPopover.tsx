@@ -499,19 +499,13 @@ export function BoardComposerPopover({
                 !event.altKey
               ) {
                 event.preventDefault();
-                // Enter triggers the primary CTA: comment (save) for element
-                // selections, send-to-chat for pod selections.
-                if (isPodSelection) {
-                  if (!sendBlocked) void onSendBatch();
-                } else if (!saveDisabled) {
-                  void onSaveComment();
-                }
+                if (!sendBlocked) void onSendBatch();
               }
             }}
           />
-          <div className="comment-popover-actions">
+          <div className={`comment-popover-actions${isPodSelection ? '' : ' comment-popover-actions-element'}`}>
             <div className="comment-popover-actions-start">
-              {onAttachImages ? (
+              {onAttachImages && isPodSelection ? (
                 <>
                   <input
                     ref={imageInputRef}
@@ -577,23 +571,21 @@ export function BoardComposerPopover({
                 </>
               ) : (
                 <>
-                  {/* Element: comment (save) is the primary CTA (also Enter);
-                      send-to-chat is secondary. */}
                   <Button
                     variant="ghost"
+                    data-testid="comment-popover-save"
+                    disabled={saveDisabled}
+                    onClick={() => void onSaveComment()}
+                  >
+                    {t('chat.comments.sendToCommentQueue')}
+                  </Button>
+                  <Button
+                    variant="primary"
                     data-testid="comment-add-send"
                     disabled={sendBlocked}
                     onClick={() => void onSendBatch()}
                   >
                     {primaryLabel}
-                  </Button>
-                  <Button
-                    variant="primary"
-                    data-testid="comment-popover-save"
-                    disabled={saveDisabled}
-                    onClick={() => void onSaveComment()}
-                  >
-                    {t('chat.comments.comment')}
                   </Button>
                 </>
               )}

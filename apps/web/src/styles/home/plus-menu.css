@@ -3,7 +3,7 @@
 
    Neutral styling for the ComposerPlusMenu component used by both the
    home hero and the project chat composer: a trigger button, a popup
-   with an attach row + connector / plugin / MCP submenus, and (project
+   with an attach row + plugin / MCP submenus, and (project
    only) a design-toolbox submenu. Mirrors the original home-hero__plus-*
    styling so both surfaces look identical.
    ============================================================ */

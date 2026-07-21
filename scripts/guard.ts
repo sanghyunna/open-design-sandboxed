@@ -984,7 +984,6 @@ const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
   "apps/web/src/components/workspace/TerminalViewer.tsx",
   "apps/web/src/state/appearance.ts",
   "apps/web/src/state/themes.ts",
-  "apps/web/src/utils/connectorBrandColor.ts",
 ]);
 const stylePolicyCheckedDirectoryPrefixes = [
   ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes]),
@@ -1106,11 +1105,6 @@ const hardcodedColorAllowlist: StylePolicyAllowlistEntry[] = [
     pathPattern: /^apps\/web\/src\/state\/themes\.ts$/,
     valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
     reason: "theme picker swatches mirror the named theme token files for previews",
-  },
-  {
-    pathPattern: /^apps\/web\/src\/utils\/connectorBrandColor\.ts$/,
-    valuePattern: /^#[0-9a-fA-F]{3,8}\b$/,
-    reason: "connector colors are third-party brand identifiers, not app chrome palette tokens",
   },
   {
     pathPattern: /^apps\/web\/tests\//,

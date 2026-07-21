@@ -316,7 +316,6 @@ test('[P2] captures the integrations page surface', async ({ page }) => {
   await page.getByTestId('entry-nav-integrations').click();
   await expect(page).toHaveURL(/\/integrations$/);
   await expect(page.getByRole('heading', { name: 'Integrations' })).toBeVisible();
-  await expect(page.getByTestId('integrations-tab-connectors')).toBeVisible();
   await waitForVisualFonts(page);
 
   await captureVisual(page, 'visual-integrations');

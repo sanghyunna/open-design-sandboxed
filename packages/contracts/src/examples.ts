@@ -7,7 +7,6 @@ import type {
   AutomationTemplate,
   MemoryTreeNode,
 } from './api/automations';
-import type { ConnectorDetail } from './api/connectors';
 import type { ProjectFile } from './api/files';
 import type { HealthResponse } from './api/registry';
 import type { ApiErrorResponse } from './errors';
@@ -63,8 +62,8 @@ export const exampleAutomationTemplate: AutomationTemplate = {
   title: 'Extract design system',
   description: 'Turn a trusted source into a reviewable DESIGN.md proposal.',
   purpose: 'Self-evolve project visual direction from source material and strong artifacts.',
-  triggerKinds: ['manual', 'connector', 'project-event'],
-  sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact'],
+  triggerKinds: ['manual', 'project-event'],
+  sourceKinds: ['upload', 'url', 'repo', 'artifact'],
   stages: [
     { id: 'ingest', kind: 'ingest', title: 'Ingest source' },
     { id: 'canonicalize', kind: 'canonicalize', title: 'Canonicalize to Markdown' },
@@ -95,7 +94,7 @@ export const exampleAutomationContentPacket: AutomationContentPacket = {
   ],
   attachments: [],
   sensitivity: 'workspace',
-  capabilityHints: ['connector:github'],
+  capabilityHints: ['fs:read'],
   tokenStats: {
     originalTokens: 4200,
     canonicalTokens: 1800,
@@ -155,38 +154,4 @@ export const exampleAutomationSourceIngestionResponse: AutomationSourceIngestion
   packet: exampleAutomationContentPacket,
   compressionReport: exampleAutomationCompressionReport,
   proposals: [exampleAutomationEvolutionProposal],
-};
-
-export const exampleConnectorDetail: ConnectorDetail = {
-  id: 'github',
-  name: 'GitHub',
-  provider: 'composio',
-  category: 'developer',
-  description: 'Search repositories, issues, pull requests, commits, and releases from a connected GitHub account via Composio.',
-  status: 'available',
-  toolCount: 1,
-  tools: [
-    {
-      name: 'github.search_issues_and_pull_requests',
-      title: 'Search issues and pull requests',
-      description: 'Search issues and pull requests across repositories visible to the connected account.',
-      inputSchemaJson: { type: 'object', additionalProperties: true },
-      outputSchemaJson: { type: 'object', additionalProperties: true },
-      safety: {
-        sideEffect: 'read',
-        approval: 'auto',
-        reason: 'Tool name, scope, or description indicates explicit read-only behavior.',
-      },
-      refreshEligible: true,
-      curation: {
-        useCases: ['personal_daily_digest'],
-        reason: 'Curated for recent personal GitHub activity in a daily digest.',
-      },
-    },
-  ],
-  auth: { provider: 'composio', configured: false },
-  allowedToolNames: ['github.search_issues_and_pull_requests'],
-  curatedToolNames: ['github.search_issues_and_pull_requests'],
-  featuredToolNames: ['github.search_issues_and_pull_requests'],
-  minimumApproval: 'auto',
 };

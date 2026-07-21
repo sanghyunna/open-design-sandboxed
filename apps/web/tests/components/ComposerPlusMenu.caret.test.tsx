@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ComposerPlusMenu } from '../../src/components/ComposerPlusMenu';
 import type {
-  ConnectorDetail,
   InstalledPluginRecord,
   McpServerConfig,
 } from '@open-design/contracts';
@@ -23,15 +22,6 @@ import type {
 // directly: each mention-inserting picker row must `preventDefault()` on
 // mousedown so a real browser never transfers focus before the click handler
 // runs.
-
-const CONNECTOR: ConnectorDetail = {
-  id: 'github',
-  name: 'GitHub',
-  provider: 'github',
-  category: 'dev',
-  status: 'connected',
-  tools: [],
-};
 
 const PLUGIN: InstalledPluginRecord = {
   id: 'sample-plugin',
@@ -64,8 +54,6 @@ const MCP_SERVER: McpServerConfig = {
 function renderMenu() {
   return render(
     <ComposerPlusMenu
-      connectors={[CONNECTOR]}
-      onPickConnector={vi.fn()}
       plugins={[PLUGIN]}
       onPickPlugin={vi.fn()}
       mcpServers={[MCP_SERVER]}
@@ -106,13 +94,6 @@ afterEach(() => {
 });
 
 describe('ComposerPlusMenu picker mousedown protection (#3195)', () => {
-  it('the connectors picker prevents default on mousedown so the caret survives focus transfer', () => {
-    renderMenu();
-    openMenu();
-    openSubmenu('Connectors');
-    expectMousedownPrevented(pickerRow('GitHub'));
-  });
-
   it('the plugins picker prevents default on mousedown so the caret survives focus transfer', () => {
     renderMenu();
     openMenu();

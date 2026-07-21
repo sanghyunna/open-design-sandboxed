@@ -491,7 +491,7 @@ describe('classifyRunFailure', () => {
         result: 'failed',
         status: {
           status: 'failed',
-          error: 'Tool error: MCP connector failed while listing files.',
+          error: 'Tool error: MCP server failed while listing files.',
           exitCode: 1,
           signal: null,
           errorCode: 'AGENT_EXECUTION_FAILED',
@@ -502,7 +502,7 @@ describe('classifyRunFailure', () => {
           errorEvent('AGENT_EXECUTION_FAILED', 'tool bootstrap failed', false),
           errorEvent(
             'AGENT_EXECUTION_FAILED',
-            'Tool error: MCP connector failed while listing files.',
+            'Tool error: MCP server failed while listing files.',
             true,
           ),
         ],

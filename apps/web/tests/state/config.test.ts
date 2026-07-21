@@ -4,7 +4,6 @@ import {
   loadConfig,
   mergeDaemonConfig,
   saveConfig,
-  syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../../src/state/config';
 import { THEME_OPTIONS } from '../../src/state/themes';
@@ -24,39 +23,6 @@ vi.stubGlobal('localStorage', {
   clear: vi.fn(() => {
     store.clear();
   }),
-});
-
-describe('syncComposioConfigToDaemon', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.stubGlobal('fetch', originalFetch);
-  });
-
-  it('sends a pending Composio API key to the daemon', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await syncComposioConfigToDaemon({ apiKey: 'cmp_secret', apiKeyConfigured: false });
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/connectors/composio/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ apiKey: 'cmp_secret' }),
-    });
-  });
-
-  it('does not clear a daemon-saved key when local state only has the saved marker', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await syncComposioConfigToDaemon({ apiKey: '', apiKeyConfigured: true, apiKeyTail: 'test' });
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/connectors/composio/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-  });
 });
 
 describe('syncConfigToDaemon', () => {

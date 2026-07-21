@@ -5,7 +5,6 @@ import { createRef, type ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatComposer, type ChatComposerHandle } from '../../src/components/ChatComposer';
-import { CONNECTORS_CHANGED_EVENT } from '../../src/components/connectors-events';
 import { composerText, flushMounts } from '../helpers/lexical-composer';
 
 const DESIGN_TASTE_SKILL = {
@@ -82,31 +81,6 @@ const HIGGSFIELD_MCP = {
   transport: 'http',
   enabled: true,
   url: 'https://mcp.higgsfield.ai/mcp',
-};
-
-const FIGMA_CONNECTOR = {
-  id: 'figma',
-  name: 'Figma',
-  provider: 'composio',
-  category: 'design',
-  description: 'Reads Figma files and design references.',
-  status: 'connected',
-  accountLabel: 'Design Team',
-  tools: [],
-  allowedToolNames: ['FIGMA_GET_FILE'],
-  curatedToolNames: ['FIGMA_GET_FILE'],
-  toolCount: 1,
-};
-
-const GMAIL_CONNECTOR = {
-  ...FIGMA_CONNECTOR,
-  id: 'gmail',
-  name: 'Gmail',
-  category: 'email',
-  description: 'Reads Gmail messages.',
-  accountLabel: 'Inbox',
-  allowedToolNames: ['GMAIL_FETCH_EMAILS'],
-  curatedToolNames: ['GMAIL_FETCH_EMAILS'],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -191,24 +165,6 @@ beforeEach(() => {
         headers: { 'content-type': 'application/json' },
       });
     }
-    if (url === '/api/connectors') {
-      return new Response(JSON.stringify({ connectors: [FIGMA_CONNECTOR] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    if (url === '/api/connectors/status') {
-      return new Response(JSON.stringify({ statuses: { figma: { status: 'connected' } } }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    if (url === '/api/connectors/discovery?refresh=true') {
-      return new Response(JSON.stringify({ connectors: [FIGMA_CONNECTOR, GMAIL_CONNECTOR] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
     throw new Error(`unexpected fetch ${url}`);
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -278,28 +234,9 @@ describe('ChatComposer design toolbox', () => {
       expect(composerText()).toContain('spreadsheet-ops');
       expect(composerText()).toContain('Research Asset Plugin');
       expect(composerText()).toContain('Higgsfield Video MCP');
-      expect(composerText()).toContain('Figma');
       expect(composerText()).toContain('data/proof.csv');
       expect(composerText()).toContain('Do not only use design toolbox recommendations');
     });
   });
 
-  it('refreshes connected connectors when connector auth changes in another surface', async () => {
-    const { ref } = renderComposer();
-    await flushMounts();
-
-    openToolbox(ref);
-    await waitFor(() => {
-      expect(screen.getByText('Figma')).toBeTruthy();
-    });
-
-    window.dispatchEvent(new Event(CONNECTORS_CHANGED_EVENT));
-
-    const search = screen.getByLabelText('Search design toolbox resources');
-    fireEvent.change(search, { target: { value: 'gmail' } });
-
-    await waitFor(() => {
-      expect(screen.getByText('Gmail')).toBeTruthy();
-    });
-  });
 });

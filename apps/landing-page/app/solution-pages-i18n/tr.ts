@@ -197,7 +197,7 @@ export const TR: SolutionLocaleCopy = {
       { title: "Ürün analitiği", body: "Etkin kullanıcılar, hunidiler, elde tutma — bir ürün ekibinin içinde yaşadığı metrikler.", thumb: "example-dashboard" },
       { title: "Depo ve geliştirici metrikleri", body: "Yıldızlar, PR’lar, CI sağlığı — kendi verinizden mühendislik panoları.", thumb: "example-github-dashboard" },
       { title: "Finans raporları", body: "Gelir, harcama, pist; paylaşılabilir bir rapor olarak yerleştirilir.", thumb: "example-finance-report" },
-      { title: "Canlı operasyonlar", body: "Altta yatan veri hareket ettikçe yenilenen gerçek zamanlı metrikler.", thumb: "example-live-dashboard" },
+      { title: "Canlı operasyonlar", body: "Altta yatan veri hareket ettikçe yenilenen gerçek zamanlı metrikler.", thumb: "example-live-artifact" },
       { title: "Sosyal ve pazarlama", body: "Kanal performansı ve kampanya takibi tek bir görünümde.", thumb: "example-social-media-dashboard" },
       { title: "Alan raporları", body: "Her alan için yapılandırılmış raporlar — klinikten alım satıma.", thumb: "example-clinical-case-report" },
     ],

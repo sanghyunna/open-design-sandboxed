@@ -917,6 +917,7 @@
   gap: 10px;
   margin-top: 8px;
 }
+.comment-popover-actions-element { gap: 2px; }
 .comment-popover-actions > * {
   /* Buttons may carry labels longer than their natural fair-share of the
      320px popover width (Save comment, Send to chat, Sending..., Add note,

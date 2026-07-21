@@ -105,14 +105,6 @@ async function routeBootstrapApis(
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
       return;
     }
-    if (path === '/api/connectors/composio/config') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: '{"configured":false,"apiKeyTail":""}',
-      });
-      return;
-    }
     if (path === '/api/skills') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"skills":[]}' });
       return;

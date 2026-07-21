@@ -89,7 +89,7 @@ describe('pluginInventoryStats', () => {
       make('a', { capabilities: ['prompt:inject'] }),
       make('b', { capabilities: ['fs:write'] }),
       make('c', { capabilities: ['network'] }),
-      make('d', { capabilities: ['connector:slack'] }),
+      make('d', { capabilities: ['mcp:fetch'] }),
       make('e', { capabilities: ['subprocess', 'bash'] }),
     ];
     const stats = pluginInventoryStats(plugins);

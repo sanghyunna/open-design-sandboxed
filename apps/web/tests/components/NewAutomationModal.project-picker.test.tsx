@@ -43,7 +43,6 @@ describe('NewAutomationModal project picker', () => {
           { id: 'p-2', name: 'Short' },
         ]}
         skills={[]}
-        connectors={[]}
         onClose={() => undefined}
         onSaved={() => undefined}
       />,

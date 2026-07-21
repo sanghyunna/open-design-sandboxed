@@ -167,9 +167,9 @@ v2 isn't promised. It's the direction if v1 lands.
 
 The newer Automations direction is tracked in
 [`specs/current/automation-self-evolution.md`](../specs/current/automation-self-evolution.md).
-It folds routines, scheduled connector digests, artifact review checks,
-memory extraction, skill creation, token compression, and design-system
-extraction into one Automation template model.
+It folds routines, artifact review checks, memory extraction, skill creation,
+token compression, and design-system extraction into one Automation template
+model.
 
 Milestones:
 
@@ -179,8 +179,7 @@ Milestones:
 | SE1 | Editable memory tree that agents actually consume through the daemon and BYOK/API-mode prompt resolver. |
 | SE2 | Automation template registry exposed in both web UI and `od automation`. |
 | SE3 | Design-system extraction and skill crystallization proposals with review gates. |
-| SE4 | Connector-driven ingestion into memory/design-system/skill proposals with provenance. |
-| SE5 | Optional token compression with before/after token reports and rollback-safe stored originals. |
+| SE4 | Optional token compression with before/after token reports and rollback-safe stored originals. |
 
 SE1 starts from the existing Markdown memory store: `/api/memory/tree` and
 `od memory tree list/view/edit/move` expose a derived editable tree while the
@@ -192,17 +191,17 @@ and design-system proposals. Accepted memory proposals write into the memory
 tree; accepted skill and design-system proposals write reviewed drafts under
 the user-owned runtime roots.
 
-SE3/SE4 start closing the source loop through `/api/automation-ingestions`,
+SE3 starts closing the source loop through `/api/automation-ingestions`,
 `/api/automation-source-packets`, and `od automation source ingest/list/get`.
 The Automations page now has a source-ingestion panel that can turn pasted
-connector/repo/artifact/chat context into stored source packets plus reviewable
-memory, skill, and design-system proposals. Each ingestion can choose
+repo/artifact/chat context into stored source packets plus reviewable memory,
+skill, and design-system proposals. Each ingestion can choose
 off/balanced/aggressive compression and records before/after token counts while
 preserving the original packet.
 
-Exit criteria: a connected or uploaded source can become reviewable memory,
-skill, and design-system proposals; accepted proposals are visible in the tree
-and are consumed by a later agent run without extra prompting.
+Exit criteria: an uploaded source can become reviewable memory, skill, and
+design-system proposals; accepted proposals are visible in the tree and are
+consumed by a later agent run without extra prompting.
 
 ---
 

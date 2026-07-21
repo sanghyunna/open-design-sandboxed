@@ -87,7 +87,7 @@ clawhub package publish <source> --family code-plugin
 For ClawHub-ready skills:
 
 - Keep `SKILL.md` metadata accurate.
-- Declare required environment variables, tools, permissions, connectors, or network access in the README and skill body.
+- Declare required environment variables, tools, permissions, or network access in the README and skill body.
 - Run the dry run or inspect command before making a listing public.
 - Link back to the canonical GitHub repo and Open Design PR.
 - Keep changelog text honest and versioned.

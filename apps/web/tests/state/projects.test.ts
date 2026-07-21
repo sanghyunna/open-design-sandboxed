@@ -159,8 +159,6 @@ describe('applyPlugin', () => {
           assetsStaged: [],
           taskKind: 'new-generation',
           appliedAt: 0,
-          connectorsRequired: [],
-          connectorsResolved: [],
           mcpServers: [],
           status: 'fresh',
         },

@@ -110,26 +110,7 @@
 3. `renders the routine target and last-run status in the row summary`
    - 覆盖 row summary 的 target / status 信息
 
-### 7. Integrations：连接、恢复、退化状态
-
-文件：
-- [e2e/ui/settings-connectors-auth-happy-path.test.ts](/Users/mac/open-design/open-design-amr-runtime-acp/e2e/ui/settings-connectors-auth-happy-path.test.ts)
-- [e2e/ui/settings-connectors-auth-recovery.test.ts](/Users/mac/open-design/open-design-amr-runtime-acp/e2e/ui/settings-connectors-auth-recovery.test.ts)
-
-新增 happy-path 覆盖：
-
-1. `disconnecting and reconnecting keeps the connector usable without stale pending state`
-   - 覆盖 connect -> disconnect -> reconnect 后不残留 pending 状态
-
-新增 recovery 覆盖：
-
-1. `keeps a pending authorization visible when the connector enters authorization-pending state`
-2. `shows a continue-in-browser CTA for pending authorizations that include a redirect URL`
-3. `settles a pending authorization into Disconnect when status polling reports the connector as connected`
-4. `returns a pending authorization to Connect and clears session storage after a successful cancel`
-5. `surfaces a connector error state when credentials have degraded`
-
-### 8. Design systems：Settings 导入/重命名/坏导入
+### 7. Design systems：Settings 导入/重命名/坏导入
 
 文件：
 - [e2e/ui/settings-design-systems.test.ts](/Users/mac/open-design/open-design-amr-runtime-acp/e2e/ui/settings-design-systems.test.ts)
@@ -140,7 +121,7 @@
 2. `renames an editable design system and keeps the new title after reopening settings`
 3. `shows an inline error when importing a broken local design system package`
 
-### 9. Design systems manager：发布、过滤、删除 fallback
+### 8. Design systems manager：发布、过滤、删除 fallback
 
 文件：
 - [e2e/ui/design-systems-manager.test.ts](/Users/mac/open-design/open-design-amr-runtime-acp/e2e/ui/design-systems-manager.test.ts)
@@ -151,7 +132,7 @@
 2. `filters user design systems by draft and published status in the manager`
 3. `deleting the active design system falls back to another user system`
 
-### 10. main 最新功能回归补测
+### 9. main 最新功能回归补测
 
 文件：
 - [e2e/ui/project-management-flows.test.ts](/Users/mac/open-design/open-design-amr-runtime-acp/e2e/ui/project-management-flows.test.ts)
@@ -189,7 +170,6 @@
 - 评论模式下预览不再刷新
 - diagnostics 导出丢主日志
 - automations 新建后顺序/摘要不稳定
-- connector pending / degraded / reconnect 状态错乱
 - design systems 导入、重命名、发布和删除 fallback 回归
 
 ## 运行命令
@@ -259,16 +239,6 @@ pnpm exec playwright test -c playwright.config.ts ui/app-manual-edit.test.ts --g
 pnpm exec playwright test -c playwright.config.ts ui/settings-api-protocol.test.ts --grep "BYOK fetched models are searchable inside the Settings model dropdown"
 ```
 
-### Connectors：happy path + recovery
-
-```bash
-pnpm exec playwright test -c playwright.config.ts ui/settings-connectors-auth-happy-path.test.ts --grep "switches from Connect to Disconnect on success, then returns to Connect after a successful disconnect|disconnecting and reconnecting keeps the connector usable without stale pending state"
-```
-
-```bash
-pnpm exec playwright test -c playwright.config.ts ui/settings-connectors-auth-recovery.test.ts
-```
-
 ### Design systems：settings + manager
 
 ```bash
@@ -282,16 +252,6 @@ pnpm exec playwright test -c playwright.config.ts ui/design-systems-manager.test
 ## 当前测试依赖的产品事实
 
 这批用例不是建立在“理想设计”上，而是建立在当前主线真实实现上。后续改产品时，需要一起更新测试假设。
-
-### Connectors
-
-- Connectors 页面是否可用，当前取决于 `savedApiKeyConfigured`
-- `GitHub` 这类 Composio connector 不展示 `accountLabel`
-- degraded/error connector 当前会显示：
-  - `status-error`
-  - error pill
-  - 无 `Disconnect`
-- 当前 UI 不保证 degraded 卡片一定有 `is-locked`
 
 ### Automations
 

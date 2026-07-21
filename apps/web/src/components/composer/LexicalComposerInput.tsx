@@ -599,7 +599,7 @@ function OnChangePlugin({
   return null;
 }
 
-// Plugin/skill/mcp/connector mentions are inserted as plain `@token` text
+// Plugin/skill/mcp mentions are inserted as plain `@token` text
 // (matching the old `replaceMentionWithText` byte-for-byte), so they aren't
 // MentionNodes in the tree. To prune their staged chips on delete, fold the
 // plain @tokens that still match a known entity into the present list.

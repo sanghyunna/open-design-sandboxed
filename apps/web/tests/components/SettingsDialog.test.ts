@@ -10,7 +10,6 @@ import {
   testStatusVariant,
   updateAgentCliEnvValue,
 } from '../../src/components/SettingsDialog';
-import { deriveComposioCredentialState } from '../../src/components/ConnectorSection';
 import {
   mergeProviderModelOptions,
   providerModelsCacheKey,
@@ -419,54 +418,6 @@ describe('SettingsDialog agent CLI env settings', () => {
   });
 });
 
-describe('deriveComposioCredentialState', () => {
-  // Issue #741: when a Composio API key is already saved and the user
-  // starts typing a draft replacement, the saved-key indicator must
-  // stay visible. The previous code conflated `saved + draft` with
-  // `draft only` and made the badge vanish on the first keystroke.
-
-  it('returns "empty" when nothing is configured and the field is empty', () => {
-    expect(deriveComposioCredentialState({})).toBe('empty');
-    expect(deriveComposioCredentialState(null)).toBe('empty');
-    expect(deriveComposioCredentialState(undefined)).toBe('empty');
-    expect(deriveComposioCredentialState({ apiKey: '' })).toBe('empty');
-    expect(deriveComposioCredentialState({ apiKey: '   ' })).toBe('empty');
-  });
-
-  it('returns "saved" when a key is configured and no draft is being typed', () => {
-    expect(
-      deriveComposioCredentialState({ apiKeyConfigured: true }),
-    ).toBe('saved');
-    expect(
-      deriveComposioCredentialState({ apiKey: '', apiKeyConfigured: true }),
-    ).toBe('saved');
-    expect(
-      deriveComposioCredentialState({ apiKey: '   ', apiKeyConfigured: true }),
-    ).toBe('saved');
-  });
-
-  it('returns "pending-new" when only a draft is being typed (no saved key)', () => {
-    expect(deriveComposioCredentialState({ apiKey: 'sk-draft' })).toBe('pending-new');
-    expect(
-      deriveComposioCredentialState({ apiKey: 'sk-draft', apiKeyConfigured: false }),
-    ).toBe('pending-new');
-  });
-
-  it('returns "saved-pending" when a key is saved AND a draft is being typed', () => {
-    // Regression: this is the state that previously masqueraded as
-    // "pending-new" and made the saved-key badge disappear.
-    expect(
-      deriveComposioCredentialState({ apiKey: 'sk-replacement', apiKeyConfigured: true }),
-    ).toBe('saved-pending');
-  });
-
-  it('treats whitespace-only drafts as no draft so the badge is anchored on "saved"', () => {
-    expect(
-      deriveComposioCredentialState({ apiKey: '   \t\n', apiKeyConfigured: true }),
-    ).toBe('saved');
-  });
-});
-
 describe('shouldEnableSettingsSave', () => {
   // Issue #739: when the user toggles BYOK on the execution section without
   // filling required fields and then navigates to a different sidebar section
@@ -498,10 +449,9 @@ describe('shouldEnableSettingsSave', () => {
 
   it('returns true on any non-execution section regardless of mode completeness (the fix for #739)', () => {
     // The exact scenario from the issue: incomplete BYOK on execution must
-    // not block save on language, appearance, composio, etc.
+    // not block save on language, appearance, integrations, etc.
     expect(shouldEnableSettingsSave(incompleteApiCfg, 'language', [availableAgent], true)).toBe(true);
     expect(shouldEnableSettingsSave(incompleteApiCfg, 'appearance', [availableAgent], true)).toBe(true);
-    expect(shouldEnableSettingsSave(incompleteApiCfg, 'composio', [availableAgent], true)).toBe(true);
     expect(shouldEnableSettingsSave(incompleteApiCfg, 'integrations', [availableAgent], true)).toBe(true);
     expect(shouldEnableSettingsSave(incompleteApiCfg, 'notifications', [availableAgent], true)).toBe(true);
     expect(shouldEnableSettingsSave(incompleteApiCfg, 'pet', [availableAgent], true)).toBe(true);
@@ -645,7 +595,6 @@ describe('sanitizeSettingsSavePayload', () => {
     // fields, otherwise a save from any one of them could leak the
     // incomplete BYOK draft.
     const sections: Array<Parameters<typeof sanitizeSettingsSavePayload>[2]> = [
-      'composio',
       'integrations',
       'language',
       'appearance',

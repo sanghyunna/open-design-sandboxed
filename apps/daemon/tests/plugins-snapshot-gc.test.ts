@@ -59,8 +59,6 @@ const baseInput = (extra = {}) => ({
   capabilitiesGranted: ['prompt:inject'],
   capabilitiesRequired: ['prompt:inject'],
   assetsStaged: [],
-  connectorsRequired: [],
-  connectorsResolved: [],
   mcpServers: [],
   query: 'Make a deck',
   ...extra,

@@ -9,7 +9,6 @@ import type {
   AutomationsClickProps,
   AutomationTemplate as ContractAutomationTemplate,
   AutomationTemplateListResponse,
-  ConnectorDetail,
   Routine,
   RoutineRun,
   RoutineRunCrystallizeResponse,
@@ -37,7 +36,6 @@ type TemplateFilter =
   | 'memory'
   | 'design-system'
   | 'skills'
-  | 'connectors'
   | 'compression'
   | 'release'
   | 'quality';
@@ -51,8 +49,6 @@ interface Props {
   projects?: ProjectSummary[];
   skills?: SkillSummary[];
   designTemplates?: SkillSummary[];
-  connectors?: ConnectorDetail[];
-  connectorsLoading?: boolean;
 }
 
 function buildStaticTemplates(t: TranslateFn): ReadonlyArray<AutomationTemplate> {
@@ -110,7 +106,6 @@ function templateFilters(t: TranslateFn): ReadonlyArray<{ id: TemplateFilter; la
     { id: 'memory', label: t('automations.filterMemory') },
     { id: 'design-system', label: t('automations.filterDesignSystems') },
     { id: 'skills', label: t('automations.filterSkills') },
-    { id: 'connectors', label: t('automations.filterConnectors') },
     { id: 'compression', label: t('automations.filterCompression') },
     { id: 'release', label: t('automations.filterRelease') },
     { id: 'quality', label: t('automations.filterQuality') },
@@ -169,12 +164,6 @@ function automationTemplateCategory(template: ContractAutomationTemplate): strin
     return 'skills';
   }
   if (
-    tags.has('connectors') ||
-    (template.sourceKinds.length > 0 && template.sourceKinds.every((kind) => kind === 'connector'))
-  ) {
-    return 'connectors';
-  }
-  if (
     template.tokenCompression === 'aggressive' ||
     tags.has('compression') ||
     tags.has('tokens')
@@ -190,7 +179,6 @@ function automationTemplateCategory(template: ContractAutomationTemplate): strin
 function automationTemplateIcon(category: string): IconName {
   if (category === 'design-system') return 'sliders';
   if (category === 'skills') return 'sparkles';
-  if (category === 'connectors') return 'link';
   if (category === 'compression') return 'reload';
   if (category === 'memory') return 'history';
   return 'history';
@@ -275,7 +263,7 @@ function proposalActionLabel(action: AutomationEvolutionProposal['action'], t: T
   return t('automations.proposalActionPromote');
 }
 
-export function TasksView({ skills = [], designTemplates = [], connectors = [] }: Props) {
+export function TasksView({ skills = [], designTemplates = [] }: Props) {
   const t = useT();
   const analytics = useAnalytics();
   // P2 page_view page_name=automations. Ref-keyed so re-renders don't
@@ -875,7 +863,6 @@ export function TasksView({ skills = [], designTemplates = [], connectors = [] }
         templates={templates}
         projects={projects}
         skills={skills}
-        connectors={connectors}
         onClose={() => setModal(null)}
         onSaved={(routine) => {
           void (async () => {

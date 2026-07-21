@@ -100,9 +100,8 @@ const PAYLOAD_ENTRIES: readonly string[] = [
   'media-config.json',
   'projects',
   'artifacts',
-  'connectors',
-  'composio',
 ];
+
 
 function isExistingDir(p: string): boolean {
   try {

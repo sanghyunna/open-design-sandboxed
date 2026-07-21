@@ -139,12 +139,10 @@ vi.mock('../../src/state/config', async () => {
   );
   return {
     ...actual,
-    fetchComposioConfigFromDaemon: vi.fn().mockResolvedValue(null),
     loadConfig: vi.fn(),
     mergeDaemonConfig: vi.fn(),
     saveConfig: vi.fn(),
     fetchDaemonConfig: vi.fn().mockResolvedValue({}),
-    syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -174,7 +172,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  composio: {},
   agentModels: {},
   agentCliEnv: {},
 };

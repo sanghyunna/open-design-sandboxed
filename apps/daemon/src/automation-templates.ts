@@ -14,10 +14,10 @@ export const BUILT_IN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'ingest-source-memory-tree',
     title: 'Ingest source into memory tree',
-    description: 'Turn uploaded, URL, repo, connector, artifact, or chat content into reviewable memory nodes.',
+    description: 'Turn uploaded, URL, repo, artifact, or chat content into reviewable memory nodes.',
     purpose: 'Keep durable project and user knowledge available to future agent runs.',
-    triggerKinds: ['manual', 'schedule', 'connector'],
-    sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact', 'chat'],
+    triggerKinds: ['manual', 'schedule'],
+    sourceKinds: ['upload', 'url', 'repo', 'artifact', 'chat'],
     stages: [
       { id: 'ingest', kind: 'ingest', title: 'Capture source' },
       { id: 'canonicalize', kind: 'canonicalize', title: 'Canonicalize content' },
@@ -32,10 +32,10 @@ export const BUILT_IN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: 'extract-design-system',
     title: 'Extract design system',
-    description: 'Draft a DESIGN.md from brand docs, screenshots, repos, connectors, websites, or strong artifacts.',
+    description: 'Draft a DESIGN.md from brand docs, screenshots, repos, websites, or strong artifacts.',
     purpose: 'Make the design-system tree evolve from real source material and successful outputs.',
-    triggerKinds: ['manual', 'connector', 'project-event'],
-    sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact'],
+    triggerKinds: ['manual', 'project-event'],
+    sourceKinds: ['upload', 'url', 'repo', 'artifact'],
     stages: [
       { id: 'ingest', kind: 'ingest', title: 'Capture design source' },
       { id: 'compress', kind: 'compress', title: 'Compact source context' },
@@ -65,30 +65,12 @@ export const BUILT_IN_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     tags: ['skills', 'crystallization'],
   },
   {
-    id: 'connector-digest-design-context',
-    title: 'Connector digest to design context',
-    description: 'Pull trusted connector updates into memory and artifact-ready design context.',
-    purpose: 'Use scheduled connector activity as input for later design work without manual prompting.',
-    triggerKinds: ['schedule', 'connector'],
-    sourceKinds: ['connector'],
-    stages: [
-      { id: 'ingest', kind: 'ingest', title: 'Pull connector updates' },
-      { id: 'redact', kind: 'redact', title: 'Redact sensitive details' },
-      { id: 'compress', kind: 'compress', title: 'Summarize high-volume updates' },
-      { id: 'propose', kind: 'propose', title: 'Propose memory updates' },
-    ],
-    outputSinks: ['memory', 'artifact'],
-    reviewPolicy: 'trusted-source',
-    tokenCompression: 'aggressive',
-    tags: ['connectors', 'digest'],
-  },
-  {
     id: 'compress-project-context',
     title: 'Compress project context',
     description: 'Rewrite oversized source packets and memory nodes into compact, traceable context.',
     purpose: 'Control token pressure while preserving originals and provenance.',
     triggerKinds: ['manual', 'schedule'],
-    sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact', 'chat'],
+    sourceKinds: ['upload', 'url', 'repo', 'artifact', 'chat'],
     stages: [
       { id: 'classify', kind: 'classify', title: 'Select oversized context' },
       { id: 'compress', kind: 'compress', title: 'Apply compression policy' },
@@ -132,14 +114,12 @@ const SAFE_ID = /^[a-z0-9][a-z0-9._-]{1,95}$/;
 const TRIGGER_KINDS = new Set<AutomationTriggerKind>([
   'manual',
   'schedule',
-  'connector',
   'project-event',
 ]);
 const SOURCE_KINDS = new Set<AutomationSourceKind>([
   'upload',
   'url',
   'repo',
-  'connector',
   'artifact',
   'chat',
 ]);

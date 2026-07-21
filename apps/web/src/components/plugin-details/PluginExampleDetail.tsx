@@ -121,7 +121,7 @@ export function PluginExampleDetail({
       onClose={onClose}
       sidebar={{
         // Surface every plugin-common manifest field — workflow, context
-        // bundles, connectors, file paths, source provenance — alongside
+        // bundles, file paths, source provenance — alongside
         // the rendered HTML preview. Designers are the primary audience
         // here, so the sidebar starts COLLAPSED — the preview is the
         // hero and gets the full stage by default — and when opened it

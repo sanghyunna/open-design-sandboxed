@@ -1,6 +1,5 @@
 import type { ChatMessage, ChatRunStatus, ChatSessionMode } from './chat.js';
 import type {
-  ProjectContextConnectorRef,
   ProjectContextMcpServerRef,
   ProjectContextPluginRef,
 } from './context.js';
@@ -117,7 +116,6 @@ export interface ProjectMetadata {
   // remains the primary executable plugin for the run.
   contextPlugins?: ProjectContextPluginRef[];
   contextMcpServers?: ProjectContextMcpServerRef[];
-  contextConnectors?: ProjectContextConnectorRef[];
   // Stored on design-system projects so the review overview can remember
   // which generated sections were accepted or sent back for another pass.
   designSystemReview?: Record<string, DesignSystemReviewEntry>;

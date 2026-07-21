@@ -55,7 +55,6 @@ import {
 } from '@open-design/platform';
 import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
 import {
-  buildConnectorsMcpServersForAgent,
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
   checkWindowsDirectExeCommandLineBudget,
@@ -163,7 +162,6 @@ import { prepareDesignTokenContractRebuild } from './design-token-contract-rebui
 import {
   applyDiffReviewDecisionToCwd,
   applyPlugin,
-  buildConnectorProbe,
   defaultBundledRoot,
   doctorPlugin,
   FIRST_PARTY_ATOMS,
@@ -216,7 +214,6 @@ import {
   ingestAutomationSource,
   listAutomationSourcePackets,
 } from './automation-ingestions.js';
-import { ingestRoutineConnectorEvolution } from './automation-routine-evolution.js';
 import { createClaudeStreamHandler } from './claude-stream.js';
 import { createRoleMarkerGuard } from './role-marker-guard.js';
 import { diagnoseClaudeCliFailure } from './claude-diagnostics.js';
@@ -341,6 +338,7 @@ import {
   isManagedProjectCwd,
   readMcpConfig,
   writeMcpConfig,
+  type AcpMcpServer,
 } from './mcp-config.js';
 import {
   parseRunToolBundleForRequest,
@@ -458,7 +456,6 @@ import {
   persistCapturedAgentSession,
   resolveAgentResumeContext,
 } from './agent-session-resume.js';
-import { registerConnectorRoutes } from './connectors/routes.js';
 import { registerActiveContextRoutes } from './routes/active-context.js';
 import { registerSystemFontsRoutes } from './routes/system-fonts.js';
 import { registerMcpRoutes } from './mcp-routes.js';
@@ -480,9 +477,6 @@ import { registerStaticResourceRoutes } from './routes/static-resource.js';
 import { registerRoutineRoutes, routineDbRowToContract } from './routes/routine.js';
 import { installRouteRegistrationGuard } from './route-registration-guard.js';
 import { assertServerContextSatisfiesRoutes } from './route-context-contract.js';
-import { configureConnectorCredentialStore, connectorService, FileConnectorCredentialStore } from './connectors/service.js';
-import { composioConnectorProvider } from './connectors/composio.js';
-import { configureComposioConfigStore } from './connectors/composio-config.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './tool-tokens.js';
 import {
   aggregateCloudflarePagesStatus,
@@ -1708,14 +1702,13 @@ function normalizeRunContextSelection(value) {
     skillIds: stringList(value.skillIds),
     pluginIds: stringList(value.pluginIds),
     mcpServerIds: stringList(value.mcpServerIds),
-    connectorIds: stringList(value.connectorIds),
     workspaceItems: normalizeWorkspaceContextItems(value.workspaceItems),
   };
 }
 
 function mergeRunContextSelections(...contexts) {
-  const merged = { skillIds: [], pluginIds: [], mcpServerIds: [], connectorIds: [], workspaceItems: [] };
-  const listKeys = ['skillIds', 'pluginIds', 'mcpServerIds', 'connectorIds'];
+  const merged = { skillIds: [], pluginIds: [], mcpServerIds: [], workspaceItems: [] };
+  const listKeys = ['skillIds', 'pluginIds', 'mcpServerIds'];
   const workspaceSeen = new Set();
   for (const context of contexts) {
     const normalized = normalizeRunContextSelection(context);
@@ -1748,9 +1741,6 @@ function projectMetadataContextSelection(metadata) {
       : [],
     mcpServerIds: Array.isArray(metadata.contextMcpServers)
       ? metadata.contextMcpServers.map((item) => item?.id).filter((id) => typeof id === 'string')
-      : [],
-    connectorIds: Array.isArray(metadata.contextConnectors)
-      ? metadata.contextConnectors.map((item) => item?.id).filter((id) => typeof id === 'string')
       : [],
   };
 }
@@ -1848,13 +1838,7 @@ function renderRunContextPrompt(selection, metadata) {
     );
     lines.push(formatContextRefList(context.mcpServerIds, metadata?.contextMcpServers ?? [], 'label'));
   }
-  if (Array.isArray(context.connectorIds) && context.connectorIds.length > 0) {
-    lines.push('### Selected connectors');
-    lines.push(
-      'The user selected these connectors for this run. Discover available read-only connector tools first with `"$OD_NODE_BIN" "$OD_BIN" tools connectors list --format compact`, then execute relevant tools through `tools connectors execute`; do not ask for a data source that is already selected.',
-    );
-    lines.push(formatContextRefList(context.connectorIds, metadata?.contextConnectors ?? [], 'name'));
-  }
+
   if (lines.length === 0) return '';
   return ['## Selected run context', ...lines].join('\n');
 }
@@ -4302,11 +4286,6 @@ export async function startServer({
   projectMetadataLookup = (id) => {
     try { return getProject(db, id)?.metadata ?? null; } catch { return null; }
   };
-  configureConnectorCredentialStore(new FileConnectorCredentialStore(RUNTIME_DATA_DIR));
-  configureComposioConfigStore(RUNTIME_DATA_DIR);
-  composioConnectorProvider.configureCatalogCache(RUNTIME_DATA_DIR);
-  composioConnectorProvider.startCatalogRefreshLoop();
-
   // RoutineService persistence is a thin adapter over the SQLite helpers.
   // Routines are stored as DB rows; the service holds in-memory timers and
   // delegates "list me everything" / "record a run" back to SQLite.
@@ -4707,19 +4686,11 @@ export async function startServer({
     }
   });
 
-  registerConnectorRoutes(app, {
-    sendApiError,
-    authorizeToolRequest,
-    projectsRoot: PROJECTS_DIR,
-    requireLocalDaemonRequest,
-    composio: composioConnectorProvider,
-  });
-
   // Gate the diagnostics export behind requireLocalDaemonRequest so it stays
   // unreachable when daemon binds to a non-loopback address (Tailscale,
   // 0.0.0.0, etc.). The bundle contains daemon/web/desktop logs, host
-  // metadata, and crash reports — same threat tier as connector / live-
-  // artifact endpoints, which all use the same guard.
+  // metadata, and crash reports — same threat tier as live-artifact
+  // endpoints, which all use the same guard.
   app.get(
     DIAGNOSTICS_EXPORT_PATH,
     requireLocalDaemonRequest,
@@ -6568,8 +6539,7 @@ export async function startServer({
       const locale = typeof body.locale === 'string' ? body.locale : undefined;
 
       const registry = await loadPluginRegistryView();
-      const connectorProbe = buildConnectorProbe(connectorService);
-      const computed = applyPlugin({ plugin, inputs, registry, locale, connectorProbe });
+      const computed = applyPlugin({ plugin, inputs, registry, locale });
       // Plan §3.B2 — apply-time grants are merged into the snapshot's
       // capabilitiesGranted so the §9 capability gate sees them, but
       // they are NOT written back to installed_plugins.capabilities_granted.
@@ -6653,7 +6623,6 @@ export async function startServer({
       });
 
       const registry = await loadPluginRegistryView();
-      const connectorProbe = buildConnectorProbe(connectorService);
       const resolved = resolvePluginSnapshot({
         db,
         body: {
@@ -6670,7 +6639,6 @@ export async function startServer({
         projectId: id,
         conversationId: cid,
         registry,
-        connectorProbe,
       });
       if (resolved && !resolved.ok) {
         res.status(resolved.status).json(resolved.body);
@@ -6703,8 +6671,7 @@ export async function startServer({
       const plugin = getInstalledPlugin(db, req.params.id);
       if (!plugin) return res.status(404).json({ error: 'plugin not found' });
       const registry = await loadPluginRegistryView();
-      const connectorProbe = buildConnectorProbe(connectorService);
-      const report = doctorPlugin(plugin, registry, { connectorProbe });
+      const report = doctorPlugin(plugin, registry);
       res.json(report);
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -9799,28 +9766,12 @@ export async function startServer({
       ? formatDesignFilesWorkspaceHint(cwd, existingProjectFiles, existingProjectFolders)
       : '';
     const attachmentHint = formatProjectAttachmentHint(safeAttachments);
-    // Plan §3.A3 / spec §9: thread plugin context onto every tool token
-    // so the connector execute route can re-validate the §5.3
-    // capability gate without re-reading the SQLite snapshot row.
-    let pluginGrantContext = null;
-    if (cwd && typeof projectId === 'string' && projectId && run?.appliedPluginSnapshotId) {
-      const snap = getSnapshot(db, run.appliedPluginSnapshotId);
-      if (snap) {
-        const installed = getInstalledPlugin(db, snap.pluginId);
-        pluginGrantContext = {
-          pluginSnapshotId: snap.snapshotId,
-          pluginTrust: installed?.trust ?? 'restricted',
-          pluginCapabilitiesGranted: snap.capabilitiesGranted ?? [],
-        };
-      }
-    }
     const toolTokenGrant = cwd && typeof projectId === 'string' && projectId
       ? toolTokenRegistry.mint({
           runId,
           projectId,
           allowedEndpoints: CHAT_TOOL_ENDPOINTS,
           allowedOperations: CHAT_TOOL_OPERATIONS,
-          ...(pluginGrantContext ?? {}),
         })
       : null;
     const agentRollbackIsolationEnabled = Boolean(
@@ -10485,11 +10436,7 @@ export async function startServer({
       design.runs.finish(run, status, code, signal);
       return false;
     };
-    const mcpServers = buildConnectorsMcpServersForAgent(def, {
-      enabled: Boolean(toolTokenGrant?.token),
-      command: isolatedPaths?.nodeBin ?? process.execPath,
-      argsPrefix: [isolatedPaths?.clientPath ?? OD_BIN],
-    });
+    const mcpServers: AcpMcpServer[] = [];
 
     // External MCP servers configured by the user in Settings → External MCP.
     // Open Design relays them to the agent so the model can call those tools.
@@ -12550,7 +12497,6 @@ export async function startServer({
           ? requestBody.conversationId
           : null,
         registry: registryView,
-        connectorProbe: buildConnectorProbe(connectorService),
       });
       if (resolved && !resolved.ok) {
         if (!explicitPlugin) {
@@ -12891,7 +12837,7 @@ export async function startServer({
       // Only fields the current `/api/runs` create payload actually
       // sends. The v2 schema documents extended context props
       // (entry_from / project_kind / target_platforms / fidelity /
-      // companion_surfaces / connectors / use_speaker_notes /
+      // companion_surfaces / use_speaker_notes /
       // include_animations / reference_template / aspect /
       // project_source) — most aren't on the wire yet, but
       // project_kind falls back to the stored project metadata so ordinary
@@ -13418,9 +13364,6 @@ export async function startServer({
       ...(routineContext.mcpServerIds?.length
         ? { contextMcpServers: routineContext.mcpServerIds.map((id) => ({ id })) }
         : {}),
-      ...(routineContext.connectorIds?.length
-        ? { contextConnectors: routineContext.connectorIds.map((id) => ({ id, name: id })) }
-        : {}),
     };
     const stamp = formatLocalProjectTimestamp(new Date(now).toISOString());
     let projectId;
@@ -13690,33 +13633,11 @@ export async function startServer({
       }
       db.prepare(`UPDATE messages SET run_status = ?, ended_at = ? WHERE id = ?`)
         .run(finalStatus.status, Date.now(), assistantMessageId);
-      let evolutionSummary = '';
-      if (finalStatus.status === 'succeeded' && routineContext.connectorIds?.length) {
-        try {
-          const evolution = await ingestRoutineConnectorEvolution(RUNTIME_DATA_DIR, {
-            routine,
-            runId,
-            trigger,
-            status: finalStatus.status,
-            projectId,
-            conversationId,
-            agentRunId: run.id,
-            summary: `Routine "${routine.name}" ${finalStatus.status}.`,
-            connectorIds: routineContext.connectorIds,
-            messages: listMessages(db, conversationId),
-          });
-          if (evolution?.proposals?.length) {
-            evolutionSummary = ` Created ${evolution.proposals.length} self-evolution proposal(s) from connector context.`;
-          }
-        } catch (error) {
-          evolutionSummary = ` Connector self-evolution ingestion failed: ${error instanceof Error ? error.message : String(error)}.`;
-        }
-      }
       return {
         status: finalStatus.status,
         summary: failureError
           ? `Routine "${routine.name}" failed: ${failureError}`
-          : `Routine "${routine.name}" ${finalStatus.status}.${evolutionSummary}`,
+          : `Routine "${routine.name}" ${finalStatus.status}.`,
         error: failureError ?? undefined,
         errorCode: failureErrorCode ?? undefined,
       };
@@ -13816,7 +13737,6 @@ export async function startServer({
   return await new Promise((resolve, reject) => {
     let daemonShutdownStarted = false;
     const cleanupDaemonBackgroundWork = () => {
-      composioConnectorProvider.stopCatalogRefreshLoop();
       routineService?.stop();
     };
     const shutdownDaemonRuns = async () => {

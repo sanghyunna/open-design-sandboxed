@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 // Regression coverage for the shared composer "+" menu (replaces the deleted
-// ChatComposer.tools-menu-caret.test.tsx, #3195): the connector / plugin / MCP
-// pick rows must cancel `mousedown` so the editor keeps focus and the caller's
+// ChatComposer.tools-menu-caret.test.tsx, #3195): the plugin / MCP pick rows
+// must cancel `mousedown` so the editor keeps focus and the caller's
 // insertMention lands at the caret instead of the draft end.
 
 import { readFileSync } from 'node:fs';
@@ -18,7 +18,6 @@ afterEach(() => {
   cleanup();
 });
 
-const CONNECTOR = { id: 'c1', name: 'Notion', status: 'connected' } as never;
 const PLUGIN = { id: 'p1', title: 'Deck Maker', manifest: {} } as never;
 const MCP_SERVER = { id: 'm1', label: 'Linear', enabled: true } as never;
 
@@ -27,8 +26,6 @@ function renderMenu(
   options: { chatBoundary?: Pick<DOMRect, 'left' | 'right'> } = {},
 ) {
   const props: ComponentProps<typeof ComposerPlusMenu> = {
-    connectors: [CONNECTOR],
-    onPickConnector: vi.fn(),
     plugins: [PLUGIN],
     onPickPlugin: vi.fn(),
     mcpServers: [MCP_SERVER],
@@ -72,12 +69,9 @@ function expectPickRowPreventsMousedown(name: RegExp) {
 }
 
 describe('ComposerPlusMenu pick-row caret protection', () => {
-  it('cancels mousedown on the connector / plugin / MCP pick rows', () => {
+  it('cancels mousedown on the plugin / MCP pick rows', () => {
     renderMenu();
     fireEvent.click(screen.getByTestId('plus-trigger'));
-
-    fireEvent.click(screen.getByRole('menuitem', { name: /Connectors/i }));
-    expectPickRowPreventsMousedown(/Notion/i);
 
     fireEvent.click(screen.getByRole('menuitem', { name: /Plugins/i }));
     expectPickRowPreventsMousedown(/Deck Maker/i);
@@ -133,7 +127,6 @@ describe('ComposerPlusMenu pick-row caret protection', () => {
       expect(menu.style.maxHeight).toBe('356px');
       expect(menu.style.top).toBe('auto');
       expect(menu.style.bottom).toBe('52px');
-      expect(screen.getByRole('menuitem', { name: /Connectors/i })).toBeTruthy();
       expect(screen.getByRole('menuitem', { name: /Plugins/i })).toBeTruthy();
       expect(screen.getByRole('menuitem', { name: /^MCP/i })).toBeTruthy();
     } finally {

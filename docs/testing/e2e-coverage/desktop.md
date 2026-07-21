@@ -31,7 +31,7 @@
 | ID | 场景 | 原因 |
 | --- | --- | --- |
 | DESK-C01 | Windows desktop smoke | 值得补，但要等对应平台 smoke 文件和执行基础设施准备好 |
-| DESK-C02 | 更多桌面端设置分区，例如 notifications、language、connectors | 有自动化价值，但当前先保留高 ROI 核心路径 |
+| DESK-C02 | 更多桌面端设置分区，例如 notifications、language | 有自动化价值，但当前先保留高 ROI 核心路径 |
 | DESK-C03 | 更深入的 packaged runtime 校验 | 成本较高，适合在发布链路更稳定后逐步扩展 |
 
 ## 手工保留

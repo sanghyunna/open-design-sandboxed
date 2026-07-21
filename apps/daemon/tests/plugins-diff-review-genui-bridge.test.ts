@@ -47,7 +47,7 @@ describe('isDiffReviewSurfaceId', () => {
     expect(isDiffReviewSurfaceId('__auto_diff_review_verify')).toBe(true);
   });
   it('rejects unrelated ids', () => {
-    expect(isDiffReviewSurfaceId('__auto_connector_slack')).toBe(false);
+    expect(isDiffReviewSurfaceId('__auto_mcp_server')).toBe(false);
     expect(isDiffReviewSurfaceId('plugin-declared-surface')).toBe(false);
     expect(isDiffReviewSurfaceId('')).toBe(false);
   });

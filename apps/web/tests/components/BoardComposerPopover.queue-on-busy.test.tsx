@@ -29,7 +29,7 @@ const labels: Record<string, string> = {
   'chat.comments.sending': 'Sending…',
   'chat.annotationQueue': 'Queue',
   'chat.comments.placeholder': 'Comment on this element…',
-  'chat.comments.comment': 'Comment',
+  'chat.comments.sendToCommentQueue': 'Send to comment queue',
 };
 
 describe('BoardComposerPopover queue on busy conversation', () => {
@@ -56,8 +56,13 @@ describe('BoardComposerPopover queue on busy conversation', () => {
     );
 
     const send = screen.getByTestId('comment-add-send') as HTMLButtonElement;
+    const save = screen.getByTestId('comment-popover-save') as HTMLButtonElement;
     expect(send.textContent).toBe('Queue');
     expect(send.disabled).toBe(false);
+    expect(send.classList.contains('primary')).toBe(true);
+    expect(save.textContent).toBe('Send to comment queue');
+    expect(save.classList.contains('ghost')).toBe(true);
+    expect(save.nextElementSibling).toBe(send);
 
     fireEvent.click(send);
     expect(onSendBatch).toHaveBeenCalledTimes(1);

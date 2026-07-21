@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ConnectorDetail, InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@open-design/contracts';
 
 import { NewAutomationModal } from '../../src/components/NewAutomationModal';
 import type { SkillSummary } from '../../src/types';
@@ -51,18 +51,6 @@ const skill: SkillSummary = {
   aggregatesExamples: false,
 };
 
-const connector: ConnectorDetail = {
-  id: 'linear',
-  name: 'Linear',
-  provider: 'composio',
-  category: 'work',
-  description: 'Issues and cycles.',
-  status: 'connected',
-  accountLabel: 'Design team',
-  auth: { provider: 'composio', configured: true },
-  tools: [],
-};
-
 const mcpServer = {
   id: 'figma',
   label: 'Figma MCP',
@@ -77,7 +65,7 @@ afterEach(() => {
 });
 
 describe('NewAutomationModal context picker', () => {
-  it('picks skills, plugins, MCP servers, and connectors from @ in the prompt', async () => {
+  it('picks skills, plugins, and MCP servers from @ in the prompt', async () => {
     vi.mocked(listPlugins).mockResolvedValue([plugin]);
     vi.mocked(fetchMcpServers).mockResolvedValue({ servers: [mcpServer], templates: [] });
 
@@ -87,7 +75,6 @@ describe('NewAutomationModal context picker', () => {
         templates={[]}
         projects={[]}
         skills={[skill]}
-        connectors={[connector]}
         onClose={() => undefined}
         onSaved={() => undefined}
       />,
@@ -103,7 +90,6 @@ describe('NewAutomationModal context picker', () => {
     expect(mentionPopover).toBeTruthy();
     expect(promptWrap?.classList.contains('is-mentioning')).toBe(true);
     expect(mentionPopover.closest('.automation-modal__prompt-wrap')).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Connectors' })).toBeTruthy();
     fireEvent.mouseDown(screen.getByRole('option', { name: /Memory Refresh/i }));
     expect(prompt.value).toContain('@Memory Refresh');
 
@@ -120,15 +106,8 @@ describe('NewAutomationModal context picker', () => {
     fireEvent.mouseDown(screen.getByRole('option', { name: /Figma MCP/i }));
     expect(prompt.value).toContain('@Figma MCP');
 
-    fireEvent.change(prompt, {
-      target: { value: `${prompt.value} @linear`, selectionStart: `${prompt.value} @linear`.length },
-    });
-    fireEvent.mouseDown(screen.getByRole('option', { name: /Linear/i }));
-    expect(prompt.value).toContain('@Linear');
-
     expect(screen.getByTitle('Remove Memory Refresh')).toBeTruthy();
     expect(screen.getByTitle('Remove Release Plugin')).toBeTruthy();
     expect(screen.getByTitle('Remove Figma MCP')).toBeTruthy();
-    expect(screen.getByTitle('Remove Linear')).toBeTruthy();
   });
 });

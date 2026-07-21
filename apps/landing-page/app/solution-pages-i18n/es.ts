@@ -221,7 +221,7 @@ export const ES: SolutionLocaleCopy = {
       { title: "Analítica de producto", body: "Usuarios activos, embudos, retención — las métricas en las que vive un equipo de producto.", thumb: "example-dashboard" },
       { title: "Métricas de repositorio y desarrollo", body: "Estrellas, PR, salud de CI — paneles de ingeniería con tus propios datos.", thumb: "example-github-dashboard" },
       { title: "Informes financieros", body: "Ingresos, gasto y margen de operación dispuestos como un informe para compartir.", thumb: "example-finance-report" },
-      { title: "Operaciones en vivo", body: "Métricas en tiempo real que se refrescan a medida que se mueven los datos subyacentes.", thumb: "example-live-dashboard" },
+      { title: "Operaciones en vivo", body: "Métricas en tiempo real que se refrescan a medida que se mueven los datos subyacentes.", thumb: "example-live-artifact" },
       { title: "Redes y marketing", body: "Rendimiento de canales y seguimiento de campañas en una sola vista.", thumb: "example-social-media-dashboard" },
       { title: "Informes por sector", body: "Informes estructurados para cualquier ámbito — de lo clínico al trading.", thumb: "example-clinical-case-report" },
     ],

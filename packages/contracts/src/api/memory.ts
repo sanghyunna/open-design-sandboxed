@@ -43,20 +43,12 @@ export interface MemoryEntry extends MemoryEntrySummary {
 }
 
 export interface MemorySuggestion {
-  /** Stable id for this suggestion batch, not the final memory file id. */
+  /** Stable id for this suggestions batch, not the final memory file id. */
   id: string;
   name: string;
   description: string;
   type: MemoryType;
   body: string;
-  source?: {
-    kind: 'connector';
-    connectorId?: string;
-    connectorName?: string;
-    accountLabel?: string;
-    toolName?: string;
-    toolTitle?: string;
-  };
 }
 
 // GET /api/memory
@@ -295,7 +287,7 @@ export interface MemoryChangeEvent {
   count?: number;
   /** Where the change came from. Useful for UX (e.g., suppress toasts on
    *  manual edits since the user just clicked Save themselves). */
-  source?: 'heuristic' | 'llm' | 'manual' | 'connector';
+  source?: 'heuristic' | 'llm' | 'manual';
   /** Only on `kind: 'config'` — the new enabled flag. */
   enabled?: boolean;
   /** Unix milliseconds. */
@@ -320,49 +312,7 @@ export interface MemoryChangeEvent {
 
 /** Which extractor produced the attempt. `'llm'` is the legacy default
  *  for records written before this field existed. */
-export type MemoryExtractionKind = 'heuristic' | 'llm' | 'connector';
-
-// POST /api/memory/connectors/suggest and /extract — read approved,
-// read-only data from selected connected apps and feed the compacted result
-// through the memory extractor. The daemon chooses safe read tools per
-// connector; the UI only supplies connector ids and an optional search hint.
-export interface ConnectorMemoryExtractionRequest {
-  connectorIds?: string[];
-  query?: string;
-  projectId?: string | null;
-  /** Current Local CLI agent selected for chat. Connector memory uses this
-   *  to keep "Same as chat" extraction on the user's active CLI even before
-   *  the debounced settings save reaches the daemon. */
-  chatAgentId?: string | null;
-  /** Current chat model for `chatAgentId`, forwarded with connector memory
-   *  requests for the same reason as `chatAgentId`. */
-  chatModel?: string | null;
-}
-
-export interface ConnectorMemoryExtractionResult {
-  connectorId: string;
-  connectorName: string;
-  accountLabel?: string;
-  status: 'succeeded' | 'skipped' | 'failed';
-  toolName?: string;
-  toolTitle?: string;
-  summary: string;
-  error?: string;
-}
-
-export interface ConnectorMemoryExtractionResponse {
-  changed: MemoryEntrySummary[];
-  attemptedLLM: boolean;
-  connectors: ConnectorMemoryExtractionResult[];
-  contextBytes: number;
-}
-
-export interface ConnectorMemorySuggestionResponse {
-  suggestions: MemorySuggestion[];
-  attemptedLLM: boolean;
-  connectors: ConnectorMemoryExtractionResult[];
-  contextBytes: number;
-}
+export type MemoryExtractionKind = 'heuristic' | 'llm';
 
 export type MemoryExtractionPhase =
   | 'running'

@@ -20,36 +20,18 @@
     },
     "context": {
       "skills": [{ "path": "./SKILL.md" }],
-      "atoms": ["file-read", "build-test", "handoff", "connector"]
+      "atoms": ["file-read", "build-test", "handoff"]
     },
     "pipeline": {
       "stages": [
         { "id": "inspect", "atoms": ["file-read"] },
         { "id": "verify", "atoms": ["build-test"] },
-        { "id": "deploy", "atoms": ["connector"] },
         { "id": "handoff", "atoms": ["handoff"] }
-      ]
-    },
-    "connectors": {
-      "optional": [
-        { "id": "vercel", "tools": ["deploy-project"] }
-      ]
-    },
-    "genui": {
-      "surfaces": [
-        {
-          "id": "confirm-deploy",
-          "kind": "confirmation",
-          "persist": "run",
-          "trigger": { "stageId": "deploy", "atom": "connector" },
-          "prompt": "Deploy this artifact to Vercel now?"
-        }
       ]
     },
     "inputs": [
       { "name": "projectName", "type": "string", "required": true, "label": "Project name" }
     ],
-    "capabilities": ["prompt:inject", "fs:read", "bash", "connector", "connector:vercel", "network"]
+    "capabilities": ["prompt:inject", "fs:read", "bash", "network"]
   }
 }
-

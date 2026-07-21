@@ -126,12 +126,6 @@ test('[P1] new project tabs switch visible form sections and preserve drafts', a
   await page.route('**/api/skills', async (route) => {
     await route.fulfill({ json: { skills: TAB_SKILLS } });
   });
-  await page.route('**/api/connectors', async (route) => {
-    await route.fulfill({ json: { connectors: [] } });
-  });
-  await page.route('**/api/connectors/status', async (route) => {
-    await route.fulfill({ json: { statuses: {} } });
-  });
 
   await page.goto('/');
   await openNewProjectPanel(page);
@@ -146,7 +140,6 @@ test('[P1] new project tabs switch visible form sections and preserve drafts', a
   await expect(page.locator('.newproj-title')).toContainText('New slide deck');
   await expect(page.getByTestId('design-system-trigger')).toBeVisible();
   await expect(page.getByText('Use speaker notes')).toBeVisible();
-  await expect(page.getByTestId('new-project-connectors')).toHaveCount(0);
 
   await page.getByTestId('new-project-tab-prototype').click();
   await expect(page.getByTestId('new-project-tab-prototype')).toHaveAttribute('aria-selected', 'true');
@@ -168,12 +161,6 @@ test('[P1] new project tabs switch visible form sections and preserve drafts', a
 test('[P0] projects empty state create action opens the new project flow', async ({ page }) => {
   await page.route('**/api/skills', async (route) => {
     await route.fulfill({ json: { skills: TAB_SKILLS } });
-  });
-  await page.route('**/api/connectors', async (route) => {
-    await route.fulfill({ json: { connectors: [] } });
-  });
-  await page.route('**/api/connectors/status', async (route) => {
-    await route.fulfill({ json: { statuses: {} } });
   });
   await page.route('**/api/projects', async (route) => {
     if (route.request().method() === 'GET') {
@@ -199,12 +186,6 @@ test('[P1] new project dropdown popovers stay above later sections', async ({ pa
   });
   await page.route('**/api/design-systems', async (route) => {
     await route.fulfill({ json: { designSystems: DESIGN_SYSTEMS } });
-  });
-  await page.route('**/api/connectors', async (route) => {
-    await route.fulfill({ json: { connectors: [] } });
-  });
-  await page.route('**/api/connectors/status', async (route) => {
-    await route.fulfill({ json: { statuses: {} } });
   });
   await page.route('**/api/projects', async (route) => {
     if (route.request().method() === 'GET') {

@@ -7,7 +7,6 @@
 - 首页顶部标签结构
 - Examples 示例库搜索、筛选、预览与导出
 - 提示词模板创建路径
-- 连接器入口与连接器 gate
 - 资源驱动的项目创建 happy path
 
 ## 对应测试文件
@@ -24,8 +23,6 @@
 | ID | 场景 | 来源 |
 | --- | --- | --- |
 | ENTRY-001 | 提示词模板加载失败后重试，编辑后的模板正文会写入项目 metadata | `entry-configuration-flows.test.ts` |
-| ENTRY-003 | connectors 入口支持搜索、空结果态，以及详情抽屉的键盘关闭 | `entry-configuration-flows.test.ts` |
-| ENTRY-004 | 在 Settings 里保存 Composio key 后，Entry 页 connectors gate 会立即解锁，搜索和卡片可直接使用 | `entry-configuration-flows.test.ts` |
 | ENTRY-005 | 创建原型时切换到 `Wireframe` 后，即使先切到其他项目类型再切回，`fidelity` 选择也会保留，并正确写入创建 payload | `NewProjectPanel.test.tsx` |
 | ENTRY-006 | 创建原型时在 design system 多选模式下切回 `不指定 — 自由发挥`，会清空主设计体系和 inspiration metadata | `NewProjectPanel.test.tsx` |
 | ENTRY-007 | 创建原型时若项目名为空白，会回退到自动生成的默认标题而不是提交空名 | `NewProjectPanel.test.tsx` |
@@ -36,7 +33,6 @@
 | ENTRY-013 | 创建音频项目时，所选 `duration` 与修剪后的 `voice` 会正确写入创建 payload | `NewProjectPanel.test.tsx` |
 | ENTRY-014 | 顶部 settings menu 可以切换 pet rail 的显示/隐藏 | `entry-chrome-flows.test.ts` |
 | ENTRY-015 | 紧凑桌面宽度下，入口页 header 与整页不会出现明显横向溢出 | `entry-chrome-flows.test.ts` |
-| ENTRY-016 | 首页顶部标签固定为 `Designs / Examples / Design systems / Image templates / Video templates`，不再展示旧 `Connectors` 标签 | `entry-chrome-flows.test.ts` |
 | ENTRY-017 | Examples 示例库为空时展示 daemon/catalog 不可用提示 | `ExamplesTab.test.tsx` |
 | ENTRY-018 | Examples 搜索支持按名称、描述、prompt 命中，并在无匹配时展示空结果态 | `ExamplesTab.test.tsx` |
 | ENTRY-019 | Examples 支持按 Surface、Type、Scenario 筛选并正确收敛卡片列表 | `ExamplesTab.test.tsx` |

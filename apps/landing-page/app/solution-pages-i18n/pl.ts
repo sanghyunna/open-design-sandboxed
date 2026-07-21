@@ -221,7 +221,7 @@ export const PL: SolutionLocaleCopy = {
       { title: "Analityka produktu", body: "Aktywni użytkownicy, lejki, retencja — metryki, którymi żyje zespół produktowy.", thumb: "example-dashboard" },
       { title: "Metryki repo i dev", body: "Gwiazdki, PR-y, kondycja CI — dashboardy inżynierskie z Twoich własnych danych.", thumb: "example-github-dashboard" },
       { title: "Raporty finansowe", body: "Przychód, spalanie gotówki, runway rozłożone w udostępnialny raport.", thumb: "example-finance-report" },
-      { title: "Operacje na żywo", body: "Metryki w czasie rzeczywistym, które odświeżają się, gdy zmieniają się dane źródłowe.", thumb: "example-live-dashboard" },
+      { title: "Operacje na żywo", body: "Metryki w czasie rzeczywistym, które odświeżają się, gdy zmieniają się dane źródłowe.", thumb: "example-live-artifact" },
       { title: "Social i marketing", body: "Wydajność kanałów i śledzenie kampanii w jednym widoku.", thumb: "example-social-media-dashboard" },
       { title: "Raporty dziedzinowe", body: "Ustrukturyzowane raporty dla dowolnej dziedziny — od klinicznej po tradingową.", thumb: "example-clinical-case-report" },
     ],

@@ -377,6 +377,85 @@ test('[P0] @critical comment attachment flow attaches preview comments to the ne
   await runCommentAttachmentFlow(page, entry);
 });
 
+test('[P0] @critical element comment sends to chat with Enter from the primary action', async ({ page }) => {
+  test.setTimeout(T.xlong);
+  const entry = automatedUiScenarios().find((scenario) => scenario.id === 'comment-attachment-flow');
+  if (!entry?.mockArtifact) {
+    throw new Error('comment-attachment-flow scenario fixture is missing');
+  }
+
+  await routeMockAgents(page);
+  await page.route('**/api/runs', async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({ runId: 'element-comment-run' }),
+    });
+  });
+  await page.route('**/api/runs/*/events', async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+      },
+      body: [
+        'event: start',
+        'data: {"bin":"mock-agent"}',
+        '',
+        'event: end',
+        'data: {"code":0,"status":"succeeded"}',
+        '',
+        '',
+      ].join('\n'),
+    });
+  });
+
+  const projectId = await createEmptyProject(page, 'Element comment primary action');
+  await expectWorkspaceReady(page);
+  await seedHtmlArtifact(page, projectId, entry.mockArtifact.fileName, entry.mockArtifact.html);
+  await page.reload();
+  await expectWorkspaceReady(page);
+  await page.goto(`/projects/${projectId}/files/${entry.mockArtifact.fileName}`, { waitUntil: 'domcontentloaded' });
+  await waitForLoadingToClear(page);
+  await expect(artifactPreview(page)).toBeVisible();
+
+  await page.getByTestId('board-mode-toggle').click();
+  await page.getByTestId('comment-panel-toggle').click();
+  await artifactPreviewFrame(page).locator('[data-od-id="hero-title"]').click();
+
+  const popover = page.getByTestId('comment-popover');
+  await expect(popover).toBeVisible();
+  await expect(popover.getByTestId('comment-popover-save')).toHaveText('Send to comment queue');
+  await expect(popover.getByTestId('comment-add-send')).toHaveText('Send to chat');
+  await expect(popover.getByRole('button', { name: 'Attach image' })).toHaveCount(0);
+
+  const input = popover.getByTestId('comment-popover-input');
+  await input.fill('Make the headline more specific.');
+  const runRequest = page.waitForRequest(isCreateRunRequest);
+  await input.press('Enter');
+  const body = (await runRequest).postDataJSON() as {
+    message?: string;
+    commentAttachments?: Array<{
+      elementId?: string;
+      comment?: string;
+      commentContext?: string;
+      filePath?: string;
+    }>;
+  };
+
+  expect(body.message).toContain('Make the headline more specific.');
+  expect(body.commentAttachments).toEqual([
+    expect.objectContaining({
+      elementId: 'hero-title',
+      comment: '',
+      commentContext: 'query',
+      filePath: 'commentable-artifact.html',
+    }),
+  ]);
+  await expect(popover).toHaveCount(0);
+});
+
 test('[P0] sending preview comments opens the refreshed follow-up artifact', async ({ page }) => {
   test.setTimeout(75_000);
   const entry = automatedUiScenarios().find((scenario) => scenario.id === 'comment-attachment-flow');
