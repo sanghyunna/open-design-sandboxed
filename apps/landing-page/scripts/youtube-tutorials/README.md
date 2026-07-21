@@ -6,7 +6,7 @@ tutorials about Open Design, with a human in the loop.
 ## Flow
 
 ```
-daily cron (GitHub Actions)
+maintainer runs notify-candidates.ts
   notify-candidates.ts
     → YouTube Data API search (videos published since the last successful run)
     → drop already-catalogued videos
@@ -32,9 +32,8 @@ review flow:
   video link in the issue body and open a PR with `Closes #<issue>` (the issue
   closes on merge):
   `tsx scripts/youtube-tutorials/generate-selected.ts <video-url-from-issue>`
-- **Contribution PRs** — open PRs that touch `app/content/tutorials/**`. They
-  are auto-labeled `tutorials` by `.github/workflows/labeler.yml` so the digest
-  can list them; review/merge happens on GitHub as normal.
+- **Contribution PRs** — open PRs that touch `app/content/tutorials/**` and
+  carry the `tutorials` label. Review/merge happens on GitHub as normal.
 
 ## Files
 
@@ -42,8 +41,8 @@ review flow:
   markdown writer, existing-id/slug readers.
 - `youtube.ts` — YouTube Data API v3 client: key loading, candidate discovery
   (`fetchCandidates`), and id lookup (`fetchByIds`).
-- `notify-candidates.ts` — daily cron entry; posts the candidate digest to
-  Feishu. Run by `.github/workflows/tutorials-youtube-sync.yml`.
+- `notify-candidates.ts` — posts the candidate digest to Feishu; run it
+  manually when a refresh is needed.
 - `generate-selected.ts` — turns approved video ids/URLs into entries.
 - `backfill-tutorials.ts` — one-off importer that reads pre-fetched `yt-dlp -j`
   JSON lines (used for the initial backfill).

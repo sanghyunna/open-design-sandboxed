@@ -314,21 +314,10 @@ curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 
 يقرأ الوكيل `skills/`، ويختار `SKILL.md` المناسب، ويربط ملف `DESIGN.md` الذي سمّيته، ويصدر `<artifact>` قابلًا للمعاينة على `http://localhost:7456`.
 
-### 🐳 التشغيل باستخدام Docker
-
-```bash
-git clone https://github.com/nexu-io/open-design.git
-cd open-design/deploy
-cp .env.example .env
-echo "OD_API_TOKEN=$(openssl rand -hex 32)" >> .env
-docker compose up -d
-# open http://localhost:7456
-```
-
 ### 🧑‍💻 التشغيل من المصدر
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable && pnpm install
 pnpm tools-dev run web
@@ -590,9 +579,9 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 - 💬 **Discord** — دردشة يومية، مشاركة الإضافات، أسئلة ← [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — ملاحظات الإصدارات، المعالم، ما وراء الكواليس ← [**@nexudotio**](https://x.com/nexudotio)
 - 🗣️ **GitHub Discussions** — أسئلة وأجوبة معمّقة، RFCs، "اعرض عملك" ← [**Discussions**](https://github.com/nexu-io/open-design/discussions)
-- 🐛 **GitHub Issues** — تقارير الأخطاء، طلبات الميزات ← [**Issues**](https://github.com/nexu-io/open-design/issues)
+- 🐛 **GitHub Issues** — تقارير الأخطاء، طلبات الميزات ← [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
-تصنيفا [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) و[`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) هما أسهل طريق للدخول.
+تصنيفا [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) و[`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) هما أسهل طريق للدخول.
 
 ---
 
@@ -608,7 +597,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 | **نظام تصميم** جديد | أسقِط ملف `DESIGN.md` باستخدام مخطط الأقسام التسعة | [`design-systems/<brand>/`](../../design-systems/) |
 | **إضافة** جديدة | أسقِط `open-design.json` + بيانًا ضمن مجلد فئة | [`plugins/community/`](../../plugins/community/) · المواصفة في [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · دليل تطوير الوكيل في [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | دعم **واجهة CLI** جديدة لوكيل برمجة | مدخل محوّل واحد + محلّل بثّ | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| إصلاح خطأ أو تحسين الواجهة | تصفّح تصنيف [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues ←](https://github.com/nexu-io/open-design/issues) |
+| إصلاح خطأ أو تحسين الواجهة | تصفّح تصنيف [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues ←](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | ترجمة الوثائق | حدّث ملفات `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 المساهمة بصفتك وكيلًا
@@ -617,7 +606,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design && corepack enable && pnpm install
 pnpm tools-dev run web
 
@@ -681,8 +670,6 @@ gh pr create --fill
 <picture>
   <img alt="Open Design — repository metrics" src="https://repo-assets.open-design.ai/resources/images/github-metrics.svg" />
 </picture>
-
-يُعاد توليد ملف SVG أعلاه يوميًا بواسطة [`.github/workflows/metrics.yml`](../../.github/workflows/metrics.yml) باستخدام [`lowlighter/metrics`](https://github.com/lowlighter/metrics).
 
 ---
 

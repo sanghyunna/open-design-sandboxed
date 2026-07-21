@@ -18,7 +18,7 @@ This guide tells you exactly where to look for each type of contribution and wha
 | Add a feature, fix a bug, lift a UX pattern from [`open-codesign`][ocod] | code | `apps/web/src/`, `apps/daemon/` | normal PR |
 | Improve docs, port a section to Français / Deutsch / 中文, fix typos | docs | `README.md`, `docs/i18n/README.fr.md`, `docs/i18n/README.de.md`, `docs/i18n/README.zh-CN.md`, `docs/`, `QUICKSTART.md` | one PR |
 
-If you're not sure which bucket your idea is in, [open a discussion / issue first](https://github.com/nexu-io/open-design/issues/new) and we'll point you at the right surface.
+If you're not sure which bucket your idea is in, [open a discussion / issue first](https://github.com/sanghyunna/open-design-sandboxed/issues/new) and we'll point you at the right surface.
 
 ---
 
@@ -27,7 +27,7 @@ If you're not sure which bucket your idea is in, [open a discussion / issue firs
 The full one-page setup lives in [`QUICKSTART.md`](QUICKSTART.md). The TL;DR for contributors:
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # selects the pinned pnpm from packageManager
 pnpm install
@@ -37,67 +37,6 @@ pnpm --filter @open-design/web build  # web package build when needed
 ```
 
 Node `~24` and pnpm `10.33.x` are required. `nvm` / `fnm` are optional; use `nvm install 24 && nvm use 24` or `fnm install 24 && fnm use 24` if you prefer managing Node that way. macOS, Linux, and WSL2 are the primary paths. Windows native is supported; see [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) for the common setup gotchas.
-
-## Docker Setup
-
-Run Open Design without installing Node.js or pnpm.
-
-### Prerequisites
-
-Make sure Docker Desktop with Compose v2 is installed:
-
-```bash
-docker compose version
-```
-
-### Start Open Design
-
-```bash
-cd deploy
-docker compose up -d
-```
-
-Open in your browser:
-
-```text
-http://localhost:7456
-```
-
-### Common Commands
-
-```bash
-# View logs
-docker compose logs -f
-
-# Restart containers
-docker compose restart
-
-# Stop containers
-docker compose down
-
-# Pull latest image
-docker compose pull
-docker compose up -d
-```
-
-### Optional Environment Overrides
-
-Create a `deploy/.env` file:
-
-```env
-OPEN_DESIGN_PORT=7456
-OPEN_DESIGN_MEM_LIMIT=384m
-OPEN_DESIGN_ALLOWED_ORIGINS=https://yourdomain.com
-OPEN_DESIGN_IMAGE=docker.io/vanjayak/open-design:latest
-```
-
-> Projects and database data are persisted automatically using Docker volumes.
-
-For the full Docker guide and advanced configuration, see `QUICKSTART.md`.
-
-
-
----
 
 ## Adding a new Skill
 

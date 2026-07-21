@@ -24,7 +24,7 @@ une PR doit atteindre avant d’être mergée.
 | Améliorer la doc, porter une section en Français / Deutsch / 中文, corriger une faute | documentation | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | une PR |
 
 Si vous ne savez pas dans quelle catégorie tombe votre idée, [ouvrez d'abord
-une discussion ou une issue](https://github.com/nexu-io/open-design/issues/new)
+une discussion ou une issue](https://github.com/sanghyunna/open-design-sandboxed/issues/new)
 et nous vous orienterons vers la bonne surface.
 
 ---
@@ -35,7 +35,7 @@ Le setup complet en une page se trouve dans [`QUICKSTART.fr.md`](QUICKSTART.fr.m
 TL;DR pour contribuer :
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # sélectionne la version de pnpm définie par packageManager
 pnpm install

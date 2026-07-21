@@ -13,7 +13,7 @@ both.
 | ------------------------------------------ | -------------------------------------------------------------------------------------- |
 | `packages.<system>.daemon`                 | The `@open-design/daemon` package — produces `bin/od`. Default output.                 |
 | `packages.<system>.web`                    | The Next.js static export (`apps/web/out/`) ready to drop into any static file server. |
-| `apps.<system>.default`                    | `nix run github:nexu-io/open-design` — boots the daemon.                               |
+| `apps.<system>.default`                    | `nix run github:sanghyunna/open-design-sandboxed` — boots the daemon.                               |
 | `devShells.<system>.default`               | Node 24 + Corepack-pinned pnpm 10.33 — reproduces `pnpm install` locally.              |
 | `homeManagerModules.{default,open-design}` | Home Manager module — primary individual-developer interface.                          |
 | `nixosModules.{default,open-design}`       | NixOS module — secondary, for shared/server installs.                                  |
@@ -21,8 +21,8 @@ both.
 ## Try it without installing
 
 ```bash
-nix run github:nexu-io/open-design        # boots the daemon on :7457
-nix develop github:nexu-io/open-design    # drop into the dev shell
+nix run github:sanghyunna/open-design-sandboxed        # boots the daemon on :7457
+nix develop github:sanghyunna/open-design-sandboxed    # drop into the dev shell
 ```
 
 ## (1) Home Manager — the recommended path
@@ -32,7 +32,7 @@ default module:
 
 ```nix
 {
-  inputs.open-design.url = "github:nexu-io/open-design";
+  inputs.open-design.url = "github:sanghyunna/open-design-sandboxed";
 
   outputs = { self, home-manager, open-design, ... }: {
     homeConfigurations.you = home-manager.lib.homeManagerConfiguration {
@@ -237,25 +237,12 @@ expected hash from the failure output, writes it back into
 `node --experimental-strip-types`, so CI can invoke it without first
 installing the workspace.
 
-## CI
+## Validation
 
-`.github/workflows/nix-check.yml` runs `nix flake check` on pushes to
-`main` and can also be started manually with `workflow_dispatch`.
+Run `nix flake check --print-build-logs --keep-going` after changing Nix files
+or a workspace input used by either derivation. The flake filters each
+derivation down to only the packages it installs, so unrelated workspace
+changes do not churn the other derivation's pnpm store hash.
 
-Pull requests that touch Nix inputs, daemon/web Nix build closures, or the
-generated hash maintenance workflows are validated earlier in
-`.github/workflows/ci.yml` via the required `Validate workspace` gate.
-That PR path runs `nix flake check` for `flake.*`, `nix/**`, root lock and
-workspace manifests, and files that are actually in the daemon/web Nix
-closures. The flake also filters each derivation down to only the workspace
-packages it actually installs, so unrelated package/tool changes stay off the
-slower Nix path and do not churn the other derivation's pnpm store hash.
-
-When a PR run fails because `nix/pnpm-deps.nix` is stale, the CI job also
-tries to regenerate a hash-only patch:
-
-- same-repo PRs get a bot-authored commit pushed back to the PR branch when
-  the generated patch only touches `nix/pnpm-deps.nix`;
-- fork PRs get a PR comment plus a workflow artifact containing the patch;
-- the failing run still stays red until the generated patch lands and a
-  fresh validation run passes.
+If `pnpm-lock.yaml` changed, run `pnpm nix:update-hash` first and include the
+updated `nix/pnpm-deps.nix` when its hash changes.

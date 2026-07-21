@@ -247,23 +247,10 @@ Then, inside the agent:
 
 The agent reads `skills/`, picks the right `SKILL.md`, binds the `DESIGN.md` you named, and emits an `<artifact>` previewable at `http://localhost:7456`.
 
-### 🐳 Run with Docker
-
-```bash
-git clone https://github.com/nexu-io/open-design.git
-cd open-design/deploy
-cp .env.example .env
-echo "OD_API_TOKEN=$(openssl rand -hex 32)" >> .env
-docker compose up -d
-# open http://localhost:7456
-```
-
-> **macOS users:** If the web UI shows `Authorization: Bearer <OD_API_TOKEN> required`, Docker Desktop bridge networking is the cause. See [Docker Desktop on macOS](deploy/README.md#docker-desktop-on-macos) for the fix.
-
 ### 🧑‍💻 Run from source
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable && pnpm install
 pnpm tools-dev run web
@@ -522,9 +509,9 @@ Real people behind every channel.
 - 💬 **Discord** — daily chat, plugin sharing, questions → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — release notes, milestones, behind the scenes → [**@nexudotio**](https://x.com/nexudotio)
 - 🗣️ **GitHub Discussions** — deep Q&A, RFCs, "show your work" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
-- 🐛 **GitHub Issues** — bug reports, feature requests → [**Issues**](https://github.com/nexu-io/open-design/issues)
+- 🐛 **GitHub Issues** — bug reports, feature requests → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
-The [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and [`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels are the easiest way in.
+The [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels are the easiest way in.
 
 ---
 
@@ -540,7 +527,7 @@ Open Design keeps moving because contributors — designers, engineers, prompt a
 | A new **design system** | Drop a `DESIGN.md` using the 9-section schema | [`design-systems/<brand>/`](design-systems/) |
 | A new **plugin** | Drop `open-design.json` + manifest under a category folder | [`plugins/community/`](plugins/community/) · spec in [`plugins/spec/SPEC.md`](plugins/spec/SPEC.md) · agent dev guide in [`plugins/spec/AGENT-DEVELOPMENT.md`](plugins/spec/AGENT-DEVELOPMENT.md) |
 | Support a new **coding-agent CLI** | One adapter entry + stream parser | [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts) |
-| Fix a bug or polish UI | Browse the [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label | [Issues →](https://github.com/nexu-io/open-design/issues) |
+| Fix a bug or polish UI | Browse the [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Translate the docs | Update the `README.<lang>.md` files | [`TRANSLATIONS.md`](TRANSLATIONS.md) |
 
 ### 🤖 Contributing as an agent
@@ -549,7 +536,7 @@ If *you are the agent reading this*, the fastest path is:
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design && corepack enable && pnpm install
 pnpm tools-dev run web
 
@@ -620,8 +607,6 @@ Thanks to everyone who has taken part — code, docs, feedback, a sharp issue, a
 <picture>
   <img alt="Open Design — repository metrics" src="https://repo-assets.open-design.ai/resources/images/github-metrics.svg" />
 </picture>
-
-The SVG above is regenerated daily by [`.github/workflows/metrics.yml`](.github/workflows/metrics.yml) using [`lowlighter/metrics`](https://github.com/lowlighter/metrics).
 
 ---
 

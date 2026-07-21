@@ -18,7 +18,7 @@
 | 機能追加、バグ修正、[`open-codesign`][ocod] から UX パターンを移植 | コード | `apps/web/src/`、`apps/daemon/` | 通常の PR |
 | ドキュメント改善、Français / Deutsch / 中文 への翻訳、タイポ修正 | ドキュメント | `README.md`、`README.fr.md`、`README.de.md`、`README.zh-CN.md`、`docs/`、`QUICKSTART.md` | PR 1 つ |
 
-アイデアがどのカテゴリに該当するか分からない場合は、[まず discussion / issue を作成](https://github.com/nexu-io/open-design/issues/new)してください。適切な場所をご案内します。
+アイデアがどのカテゴリに該当するか分からない場合は、[まず discussion / issue を作成](https://github.com/sanghyunna/open-design-sandboxed/issues/new)してください。適切な場所をご案内します。
 
 ---
 
@@ -27,7 +27,7 @@
 完全なセットアップ手順は [`QUICKSTART.md`](../../QUICKSTART.md) にあります。コントリビューター向けの要約：
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # packageManager で指定された pnpm を選択
 pnpm install

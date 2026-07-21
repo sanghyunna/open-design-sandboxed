@@ -312,21 +312,10 @@ Ardından, ajanın içinde:
 
 Ajan `skills/` dizinini okur, doğru `SKILL.md` dosyasını seçer, adını verdiğiniz `DESIGN.md` dosyasını bağlar ve `http://localhost:7456` adresinde önizlenebilen bir `<artifact>` yayar.
 
-### 🐳 Docker ile çalıştırın
-
-```bash
-git clone https://github.com/nexu-io/open-design.git
-cd open-design/deploy
-cp .env.example .env
-echo "OD_API_TOKEN=$(openssl rand -hex 32)" >> .env
-docker compose up -d
-# open http://localhost:7456
-```
-
 ### 🧑‍💻 Kaynaktan çalıştırın
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable && pnpm install
 pnpm tools-dev run web
@@ -588,9 +577,9 @@ Her kanalın arkasında gerçek insanlar var.
 - 💬 **Discord** — günlük sohbet, eklenti paylaşımı, sorular → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — sürüm notları, kilometre taşları, perde arkası → [**@nexudotio**](https://x.com/nexudotio)
 - 🗣️ **GitHub Discussions** — derinlemesine soru-cevap, RFC'ler, "çalışmanı göster" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
-- 🐛 **GitHub Issues** — hata raporları, özellik istekleri → [**Issues**](https://github.com/nexu-io/open-design/issues)
+- 🐛 **GitHub Issues** — hata raporları, özellik istekleri → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
-[`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ve [`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) etiketleri başlamanın en kolay yoludur.
+[`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ve [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) etiketleri başlamanın en kolay yoludur.
 
 ---
 
@@ -606,7 +595,7 @@ Open Design, katkıda bulunanlar — tasarımcılar, mühendisler, komut yazarla
 | Yeni bir **tasarım sistemi** | 9 bölümlük şemayı kullanan bir `DESIGN.md` bırakın | [`design-systems/<brand>/`](../../design-systems/) |
 | Yeni bir **eklenti** | Bir kategori klasörü altına `open-design.json` + manifest bırakın | [`plugins/community/`](../../plugins/community/) · spesifikasyon [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) içinde · ajan geliştirme kılavuzu [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) içinde |
 | Yeni bir **kodlama ajanı CLI'si** destekleyin | Bir adaptör girdisi + akış ayrıştırıcı | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| Bir hatayı düzeltin veya UI'yi cilalayın | [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) etiketine göz atın | [Issues →](https://github.com/nexu-io/open-design/issues) |
+| Bir hatayı düzeltin veya UI'yi cilalayın | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) etiketine göz atın | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Belgeleri çevirin | `README.<lang>.md` dosyalarını güncelleyin | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 Bir ajan olarak katkıda bulunma
@@ -615,7 +604,7 @@ Open Design, katkıda bulunanlar — tasarımcılar, mühendisler, komut yazarla
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design && corepack enable && pnpm install
 pnpm tools-dev run web
 
@@ -679,8 +668,6 @@ Katılan herkese teşekkürler — kod, belge, geri bildirim, keskin bir issue, 
 <picture>
   <img alt="Open Design — repository metrics" src="https://repo-assets.open-design.ai/resources/images/github-metrics.svg" />
 </picture>
-
-Yukarıdaki SVG, [`lowlighter/metrics`](https://github.com/lowlighter/metrics) kullanılarak [`.github/workflows/metrics.yml`](../../.github/workflows/metrics.yml) tarafından günlük olarak yeniden oluşturulur.
 
 ---
 

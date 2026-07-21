@@ -9,7 +9,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - Architecture and protocols: `docs/spec.md`, `docs/architecture.md`, `docs/skills-protocol.md`, `docs/agent-adapters.md`, `docs/modes.md`.
 - Roadmap and references: `docs/roadmap.md`, `docs/references.md`, `docs/code-review-guidelines.md`, `specs/current/maintainability-roadmap.md`.
 - Directory-level agent guidance: `apps/AGENTS.md`, `packages/AGENTS.md`, `tools/AGENTS.md`, `e2e/AGENTS.md`.
-- Packaged auto-update architecture and high-confidence local harness: read `tools/pack/AGENTS.md` section "Packaged auto-update architecture and harness" before touching packaged updater code, release-channel identity, installer behavior, or updater UI.
+- Packaged auto-update architecture and local fixture harness: read `tools/pack/AGENTS.md` section "Packaged auto-update architecture and harness" before touching packaged updater code, installer behavior, or updater UI.
 
 ## Workspace directories
 
@@ -22,7 +22,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - `packages/contracts` is the pure TypeScript web/daemon app contract layer.
 - `packages/sidecar-proto` owns the Open Design sidecar business protocol; `packages/sidecar` owns the generic sidecar runtime; `packages/platform` owns generic OS process primitives.
 - `tools/dev` is the local development lifecycle control plane.
-- `tools/pack` is the local packaged build/start/stop/logs control plane, packaged updater harness, installer identity/registry validation surface, and mac beta release artifact preparation surface.
+- `tools/pack` is the local packaged build/start/stop/logs control plane, packaged updater harness, and installer identity/registry validation surface.
 - `tools/serve` is the local fixture-service control plane; first service is `tools-serve start updater` for deterministic updater metadata and artifacts.
 - `e2e` owns user-level end-to-end smoke tests and Playwright UI automation; read `e2e/AGENTS.md` before editing its tests or commands.
 
@@ -66,14 +66,10 @@ This file is the single source of truth for agents entering this repository. Rea
 - Do not add root aggregate `pnpm build` or `pnpm test` aliases. Build/test commands must stay package-scoped (`pnpm --filter <package> ...`) or tool-scoped (`pnpm tools-pack ...`).
 - Do not add root e2e aliases; e2e package commands and ownership rules live in `e2e/AGENTS.md`.
 
-## Release channel model
+## Packaging boundary
 
-- `beta` is the daily R&D/development validation channel. It is optimized for fast development feedback and is not part of the stable promotion gate.
-- `nightly` is the internal validation channel for stable delivery. Stable releases remain gated by validated nightly artifacts.
-- `preview` is an independent early-access channel with stable-like release rigor. It should use preview versions such as `X.Y.Z-preview.N`, publish to the `preview` R2 channel, publish updater feeds under `preview/latest`, and follow stable's platform policy including the existing optional Linux enablement.
-- `stable` is the formal delivery channel. Do not make stable promotion depend on preview; stable continues to depend on nightly only.
-- Public packaged app identity must stay channel-distinct: stable uses `Open Design`, beta uses `Open Design Beta`, and preview uses `Open Design Preview`. Do not ship beta or preview mac DMGs whose drag-install app bundle is `Open Design.app`.
-- Windows beta updater validation must use the real beta namespace `release-beta-win`; otherwise a local beta-like namespace can create a separate uninstall registry key while looking like the same `Open Design Beta` app. See `tools/pack/AGENTS.md` for the architecture map and high-confidence acceptance harness.
+- This repository has no release-publishing workflow. `tools-pack` is a local build and validation surface only.
+- Packaged updater tests must use local fixture metadata from `tools-serve`; do not target upstream release feeds or namespaces.
 
 ## Boundary constraints
 
@@ -186,7 +182,7 @@ root `pnpm tools-pr` script without a new explicit maintainer decision.
 
 - After package, workspace, or command-entry changes, run `pnpm install` so workspace links and generated dist entries stay fresh.
 - For agent-stream / parser changes (`apps/daemon/src/claude-stream.ts`, `json-event-stream.ts`, `qoder-stream.ts`, etc.), replay a recorded session through the mock CLIs in `mocks/` to verify event shapes round-trip without burning provider budget. PATH-overlay activation: `export PATH="$PWD/mocks/bin:$PATH" OD_MOCKS_TRACE=<8-char-id> OD_MOCKS_NO_DELAY=1`. See `mocks/README.md` for the trace catalog and selection knobs.
-- Treat every `pnpm-lock.yaml` change as requiring a Nix pnpm deps hash refresh check. `nix/pnpm-deps.nix` is a generated lock artifact; use `pnpm nix:update-hash` only when intentionally maintaining Nix packaging, then re-run `nix flake check --print-build-logs --keep-going`. Contributors without Nix can rely on the PR `Validate workspace` gate, which now uploads or auto-applies the generated hash-only fix when possible.
+- Treat every `pnpm-lock.yaml` change as requiring a Nix pnpm deps hash refresh check. `nix/pnpm-deps.nix` is a generated lock artifact; use `pnpm nix:update-hash` only when intentionally maintaining Nix packaging, then re-run `nix flake check --print-build-logs --keep-going`. Contributors without Nix should record that the check was not run.
 - Before marking regular work ready, run at least `pnpm guard` and `pnpm typecheck`, plus the package-scoped tests/builds that match the files changed. Do not use or add root `pnpm test`/`pnpm build` aliases.
 - For local web runtime loops, prefer `pnpm tools-dev run web --daemon-port <port> --web-port <port>`.
 - On a GUI-capable machine, validate desktop by running `pnpm tools-dev`, then `pnpm tools-dev inspect desktop status`.

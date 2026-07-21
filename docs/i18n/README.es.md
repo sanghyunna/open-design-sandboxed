@@ -312,21 +312,10 @@ Luego, dentro del agente:
 
 El agente lee `skills/`, elige el `SKILL.md` correcto, vincula el `DESIGN.md` que nombraste y emite un `<artifact>` con vista previa en `http://localhost:7456`.
 
-### 🐳 Ejecútalo con Docker
-
-```bash
-git clone https://github.com/nexu-io/open-design.git
-cd open-design/deploy
-cp .env.example .env
-echo "OD_API_TOKEN=$(openssl rand -hex 32)" >> .env
-docker compose up -d
-# open http://localhost:7456
-```
-
 ### 🧑‍💻 Ejecútalo desde el código fuente
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable && pnpm install
 pnpm tools-dev run web
@@ -588,9 +577,9 @@ Personas reales detrás de cada canal.
 - 💬 **Discord** — chat diario, intercambio de plugins, preguntas → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — notas de lanzamiento, hitos, detrás de cámaras → [**@nexudotio**](https://x.com/nexudotio)
 - 🗣️ **GitHub Discussions** — preguntas y respuestas a fondo, RFCs, "muestra tu trabajo" → [**Discussions**](https://github.com/nexu-io/open-design/discussions)
-- 🐛 **GitHub Issues** — reportes de bugs, solicitudes de características → [**Issues**](https://github.com/nexu-io/open-design/issues)
+- 🐛 **GitHub Issues** — reportes de bugs, solicitudes de características → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
 
-Las etiquetas [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) y [`help-wanted`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) son la forma más fácil de empezar.
+Las etiquetas [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) y [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) son la forma más fácil de empezar.
 
 ---
 
@@ -606,7 +595,7 @@ Open Design sigue avanzando porque los colaboradores — diseñadores, ingeniero
 | Un nuevo **sistema de diseño** | Suelta un `DESIGN.md` usando el esquema de 9 secciones | [`design-systems/<brand>/`](../../design-systems/) |
 | Un nuevo **plugin** | Suelta `open-design.json` + manifiesto bajo una carpeta de categoría | [`plugins/community/`](../../plugins/community/) · especificación en [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · guía de desarrollo con agente en [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | Dar soporte a una nueva **CLI de agente de codificación** | Una entrada de adaptador + analizador de stream | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| Corregir un bug o pulir la UI | Explora la etiqueta [`good-first-issue`](https://github.com/nexu-io/open-design/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/nexu-io/open-design/issues) |
+| Corregir un bug o pulir la UI | Explora la etiqueta [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Traducir la documentación | Actualiza los archivos `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 Contribuir como agente
@@ -615,7 +604,7 @@ Si *tú eres el agente que lee esto*, la vía más rápida es:
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design && corepack enable && pnpm install
 pnpm tools-dev run web
 
@@ -679,8 +668,6 @@ Gracias a todos los que han participado — código, documentación, comentarios
 <picture>
   <img alt="Open Design — métricas del repositorio" src="https://repo-assets.open-design.ai/resources/images/github-metrics.svg" />
 </picture>
-
-El SVG de arriba se regenera diariamente mediante [`.github/workflows/metrics.yml`](../../.github/workflows/metrics.yml) usando [`lowlighter/metrics`](https://github.com/lowlighter/metrics).
 
 ---
 

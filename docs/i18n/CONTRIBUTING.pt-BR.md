@@ -18,7 +18,7 @@ Este guia diz exatamente onde olhar para cada tipo de contribuição e qual a ba
 | Adicionar uma feature, corrigir um bug, trazer um padrão de UX do [`open-codesign`][ocod] | código | `apps/web/src/`, `apps/daemon/` | PR normal |
 | Melhorar docs, traduzir uma seção para Français / Deutsch / 中文, corrigir typos | docs | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | um PR |
 
-Se você não tem certeza em qual balde sua ideia se encaixa, [abra primeiro uma discussion / issue](https://github.com/nexu-io/open-design/issues/new) e te apontamos para a superfície certa.
+Se você não tem certeza em qual balde sua ideia se encaixa, [abra primeiro uma discussion / issue](https://github.com/sanghyunna/open-design-sandboxed/issues/new) e te apontamos para a superfície certa.
 
 ---
 
@@ -27,7 +27,7 @@ Se você não tem certeza em qual balde sua ideia se encaixa, [abra primeiro uma
 O setup completo numa página mora em [`QUICKSTART.pt-BR.md`](QUICKSTART.pt-BR.md). O TL;DR para contribuidores:
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # selects the pinned pnpm from packageManager
 pnpm install

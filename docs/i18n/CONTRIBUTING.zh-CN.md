@@ -18,7 +18,7 @@
 | 加功能、修 bug、从 [`open-codesign`][ocod] 移植一个 UX 模式 | 代码 | `apps/web/src/`、`apps/daemon/` | 普通 PR |
 | 改文档、补法语 / 德语 / 中文翻译、修错别字 | 文档 | `README.md`、`README.fr.md`、`README.de.md`、`README.zh-CN.md`、`docs/`、`QUICKSTART.zh-CN.md` | 一个 PR |
 
-不确定自己想做的属于哪一桶？[先开 issue / discussion](https://github.com/nexu-io/open-design/issues/new)，我们告诉你该改哪个面。
+不确定自己想做的属于哪一桶？[先开 issue / discussion](https://github.com/sanghyunna/open-design-sandboxed/issues/new)，我们告诉你该改哪个面。
 
 ---
 
@@ -27,7 +27,7 @@
 完整的一页式 setup 在 [`QUICKSTART.zh-CN.md`](QUICKSTART.zh-CN.md)。给贡献者的 TL;DR：
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # 使用 packageManager 固定的 pnpm
 pnpm install

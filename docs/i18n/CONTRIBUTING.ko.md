@@ -18,7 +18,7 @@
 | 기능 추가, 버그 수정, [`open-codesign`][ocod]에서 UX 패턴 가져오기 | 코드 | `apps/web/src/`, `apps/daemon/` | 일반 PR |
 | 문서 개선, 일부 섹션을 Français / Deutsch / 中文로 번역, 오타 수정 | 문서 | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | PR 한 건 |
 
-어느 쪽에 해당하는지 모르겠다면 [먼저 discussion이나 issue를 열어주세요](https://github.com/nexu-io/open-design/issues/new). 적절한 위치를 안내해 드리겠습니다.
+어느 쪽에 해당하는지 모르겠다면 [먼저 discussion이나 issue를 열어주세요](https://github.com/sanghyunna/open-design-sandboxed/issues/new). 적절한 위치를 안내해 드리겠습니다.
 
 ---
 
@@ -27,7 +27,7 @@
 한 페이지짜리 전체 설정 안내는 [`QUICKSTART.ko.md`](QUICKSTART.ko.md)에 있습니다. 기여자를 위한 요약은 다음과 같습니다.
 
 ```bash
-git clone https://github.com/nexu-io/open-design.git
+git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
 cd open-design
 corepack enable           # packageManager에 고정된 pnpm을 선택합니다
 pnpm install
@@ -37,67 +37,6 @@ pnpm --filter @open-design/web build  # 필요할 때 web 패키지 빌드
 ```
 
 Node `~24`와 pnpm `10.33.x`가 필요합니다. `nvm`이나 `fnm`은 선택 사항입니다. Node를 그렇게 관리하는 게 편하다면 `nvm install 24 && nvm use 24` 또는 `fnm install 24 && fnm use 24`를 실행하세요. macOS, Linux, WSL2가 주요 지원 환경입니다. Windows 네이티브도 지원합니다. 흔히 겪는 설정 문제는 [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md)를 참고하세요.
-
-## Docker 설정
-
-Node.js나 pnpm을 설치하지 않고도 Open Design을 실행할 수 있습니다.
-
-### 사전 준비
-
-Compose v2가 포함된 Docker Desktop이 설치되어 있는지 확인하세요.
-
-```bash
-docker compose version
-```
-
-### Open Design 실행
-
-```bash
-cd deploy
-docker compose up -d
-```
-
-브라우저에서 다음 주소를 엽니다.
-
-```text
-http://localhost:7456
-```
-
-### 자주 쓰는 명령어
-
-```bash
-# 로그 보기
-docker compose logs -f
-
-# 컨테이너 재시작
-docker compose restart
-
-# 컨테이너 중지
-docker compose down
-
-# 최신 이미지 받기
-docker compose pull
-docker compose up -d
-```
-
-### 선택적 환경 변수 재정의
-
-`deploy/.env` 파일을 만듭니다.
-
-```env
-OPEN_DESIGN_PORT=7456
-OPEN_DESIGN_MEM_LIMIT=384m
-OPEN_DESIGN_ALLOWED_ORIGINS=https://yourdomain.com
-OPEN_DESIGN_IMAGE=docker.io/vanjayak/open-design:latest
-```
-
-> 프로젝트와 데이터베이스 데이터는 Docker 볼륨에 자동으로 보존됩니다.
-
-전체 Docker 가이드와 고급 설정은 [`QUICKSTART.ko.md`](QUICKSTART.ko.md)를 참고하세요.
-
-
-
----
 
 ## 새 Skill 추가하기
 

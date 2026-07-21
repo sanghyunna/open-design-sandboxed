@@ -864,7 +864,7 @@ If yes to all, it's good enough!
 ## 🆘 Getting Help
 
 - **Questions?** Open a [GitHub Discussion](https://github.com/nexu-io/open-design/discussions)
-- **Found an issue?** Open a [GitHub Issue](https://github.com/nexu-io/open-design/issues)
+- **Found an issue?** Open a [GitHub Issue](https://github.com/sanghyunna/open-design-sandboxed/issues)
 - **Want to chat?** Join our [Discord](https://discord.gg/qhbcCH8Am4)
 - **Need a review?** Tag `@nexu-io/maintainers` in your PR
 
