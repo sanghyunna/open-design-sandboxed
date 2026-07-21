@@ -25,12 +25,6 @@
       "tags": ["create", "prototype", "dashboard"]
     },
     {
-      "name": "create-connector-dashboard-ops",
-      "source": "./create-connector-dashboard-ops",
-      "version": "0.1.0",
-      "tags": ["create", "prototype", "dashboard", "connector"]
-    },
-    {
       "name": "create-slides-pitch",
       "source": "./create-slides-pitch",
       "version": "0.1.0",

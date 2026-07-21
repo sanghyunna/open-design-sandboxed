@@ -38,7 +38,6 @@ export interface RoutineContextSelection {
   skillIds?: string[];
   pluginIds?: string[];
   mcpServerIds?: string[];
-  connectorIds?: string[];
 }
 
 export interface Routine {

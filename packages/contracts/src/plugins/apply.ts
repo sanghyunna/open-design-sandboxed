@@ -4,12 +4,10 @@ import {
   GenUISurfaceSpecSchema,
   InputFieldSchema,
   McpServerSpecSchema,
-  PluginConnectorRefSchema,
   PluginPipelineSchema,
   type GenUISurfaceSpec,
   type InputField,
   type McpServerSpec,
-  type PluginConnectorRef,
   type PluginPipeline,
 } from './manifest.js';
 
@@ -27,13 +25,6 @@ export type PluginAssetRef = z.infer<typeof PluginAssetRefSchema>;
 
 export const InputFieldSpecSchema = InputFieldSchema;
 export type InputFieldSpec = InputField;
-
-export const PluginConnectorBindingSchema = PluginConnectorRefSchema.extend({
-  accountLabel: z.string().optional(),
-  status:       z.enum(['connected', 'pending', 'unavailable']),
-});
-
-export type PluginConnectorBinding = z.infer<typeof PluginConnectorBindingSchema>;
 
 // Immutable snapshot — the contract between "plugin" and "run" (spec §8.2.1).
 // Runs are addressed by snapshotId, not pluginId, so plugin upgrades never
@@ -61,8 +52,6 @@ export const AppliedPluginSnapshotSchema = z.object({
   taskKind: z.enum(['new-generation', 'code-migration', 'figma-migration', 'tune-collab']),
   appliedAt:            z.number(),
   // Frozen views of apply-time external state so replay survives upgrades.
-  connectorsRequired:   z.array(PluginConnectorRefSchema),
-  connectorsResolved:   z.array(PluginConnectorBindingSchema),
   mcpServers:           z.array(McpServerSpecSchema),
   pipeline:             PluginPipelineSchema.optional(),
   genuiSurfaces:        z.array(GenUISurfaceSpecSchema).optional(),
@@ -109,4 +98,4 @@ export const ApplyResultSchema = z.object({
 export type ApplyResult = z.infer<typeof ApplyResultSchema>;
 
 // Re-exports so downstream files can import everything from one module.
-export type { ContextItem, GenUISurfaceSpec, InputField, McpServerSpec, PluginConnectorRef, PluginPipeline };
+export type { ContextItem, GenUISurfaceSpec, InputField, McpServerSpec, PluginPipeline };

@@ -8,7 +8,7 @@ This directory owns Open Design plugin content and plugin authoring material.
 - `plugins/spec/` is the portable plugin specification and authoring kit. It is documentation, starter material, and example source for contributors and external agents; it must not be treated as an installed first-party catalog.
 - Keep runnable plugin examples portable: every example should have a `SKILL.md`; add `open-design.json` only as the OD sidecar.
 - Keep `SKILL.md` bodies free of OD-only marketplace metadata. Put OD display, inputs, preview, pipeline, capabilities, and source information in `open-design.json`.
-- Do not import app-private code from plugin content. A plugin may reference OD atoms, design systems, craft docs, assets, scripts, MCP servers, or connectors through the manifest.
+- Do not import app-private code from plugin content. A plugin may reference OD atoms, design systems, craft docs, assets, scripts, and MCP servers through the manifest.
 
 ## Authoring Rules
 

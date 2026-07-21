@@ -35,7 +35,6 @@ import {
 } from '../providers/daemon';
 import {
   deletePreviewComment,
-  fetchConnectorStatuses,
   fetchPreviewComments,
   fetchDesignSystem,
   fetchDesignTemplate,
@@ -176,7 +175,7 @@ import {
   decideAutoOpenAfterWrite,
   selectAutoOpenProducedHtml,
 } from './auto-open-file';
-import { buildRepoImportPrompt, designSystemNeedsRepoConnect } from './design-system-github-evidence';
+
 import { collectReferencedJsxNames } from '../runtime/jsx-module-refs';
 import { FileWorkspace } from './FileWorkspace';
 import {
@@ -299,7 +298,6 @@ interface Props {
   onOpenAmrSettings?: () => void;
   onOpenMcpSettings?: () => void;
   onBrowsePlugins?: () => void;
-  onOpenConnectors?: () => void;
   // Pet wiring forwarded to the chat composer so users can adopt /
   // wake / tuck a pet without leaving the project view.
   onAdoptPetInline?: (petId: string) => void;
@@ -736,7 +734,6 @@ export function ProjectView({
   onOpenAmrSettings,
   onOpenMcpSettings,
   onBrowsePlugins,
-  onOpenConnectors,
   onAdoptPetInline,
   onTogglePet,
   onOpenPetSettings,
@@ -4825,61 +4822,6 @@ export function ProjectView({
     () => designSystemProject ? latestDesignSystemActivityEvents(messages) : [],
     [designSystemProject, messages],
   );
-  const connectRepoNeeded = useMemo(
-    () => designSystemNeedsRepoConnect(designSystemProject, projectFiles.map((file) => file.name)),
-    [designSystemProject, projectFiles],
-  );
-  // Only the connect-repo CTA copy depends on this (connect vs re-import), so
-  // resolve it lazily and only while the CTA is actually showing. Tri-state:
-  // `undefined` means the status fetch has not resolved yet, which keeps the
-  // CTA neutral and disabled so a fast click can't fire the wrong action.
-  const [githubConnected, setGithubConnected] = useState<boolean | undefined>(undefined);
-  useEffect(() => {
-    if (!connectRepoNeeded) {
-      setGithubConnected(undefined);
-      return;
-    }
-    let aborted = false;
-    const controller = new AbortController();
-    const refresh = () => {
-      void fetchConnectorStatuses({ signal: controller.signal }).then((statuses) => {
-        if (!aborted) setGithubConnected(statuses.github?.status === 'connected');
-      });
-    };
-    refresh();
-    // Connecting GitHub happens in the Connectors dialog or an external OAuth
-    // window, neither of which changes connectRepoNeeded. Re-check on focus so
-    // the CTA flips from "Connect GitHub" to "Import repo" when the user returns.
-    const onFocus = () => refresh();
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onFocus);
-    return () => {
-      aborted = true;
-      controller.abort();
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onFocus);
-    };
-  }, [connectRepoNeeded]);
-
-  // Signal that pushes a draft into the chat composer (the "Import repo" CTA).
-  const [composerDraftSignal, setComposerDraftSignal] = useState<{ text: string; nonce: number }>();
-  // One handler for both the review banner and the chat CTA. When GitHub is
-  // not connected it opens Connectors; once connected it prefills the composer
-  // with the import instruction so the user can review and send it.
-  const handleConnectRepo = useCallback(() => {
-    // Status not resolved yet; the CTA is disabled in this window, but guard
-    // anyway so a stray call can't route a connected account to Connectors.
-    if (githubConnected === undefined) return;
-    if (githubConnected) {
-      setComposerDraftSignal({
-        text: buildRepoImportPrompt(designSystemProject, projectFiles.map((file) => file.name)),
-        nonce: Date.now(),
-      });
-    } else {
-      onOpenSettings('composio');
-    }
-  }, [githubConnected, onOpenSettings, designSystemProject, projectFiles]);
-
   // "Next step" affordance handlers (shown under the last assistant message
   // once it produced a previewable HTML artifact). Share reuses the preview
   // workspace's existing Share/Export menu. The featured design-toolbox rows are
@@ -4900,6 +4842,9 @@ export function ProjectView({
     },
     [requestOpenFile],
   );
+
+  // Signal that pushes a draft into the chat composer (e.g. a browser-use prompt).
+  const [composerDraftSignal, setComposerDraftSignal] = useState<{ text: string; nonce: number }>();
 
   const handleBrowserUsePrompt = useCallback((text: string) => {
     setWorkspaceFocused(false);
@@ -5529,10 +5474,6 @@ export function ProjectView({
               onLaunchAntigravityOauth={handleLaunchAntigravityOauth}
               onOpenMcpSettings={onOpenMcpSettings}
               onBrowsePlugins={onBrowsePlugins}
-              onOpenConnectors={onOpenConnectors}
-              connectRepoNeeded={connectRepoNeeded}
-              githubConnected={githubConnected}
-              onConnectRepo={handleConnectRepo}
               composerDraftSignal={composerDraftSignal}
               petConfig={config.pet}
               onAdoptPet={onAdoptPetInline}
@@ -5663,8 +5604,6 @@ export function ProjectView({
           onDesignSystemNeedsWork={sendDesignSystemFeedback}
           designSystemReview={project.metadata?.designSystemReview}
           onDesignSystemReviewDecision={persistDesignSystemReviewDecision}
-          onConnectRepo={handleConnectRepo}
-          githubConnected={githubConnected}
           commentPortalId={commentInspectorPortalId}
           onCommentModeChange={setCommentInspectorActive}
           manualEditPortalId={manualEditInspectorPortalId}

@@ -14,8 +14,8 @@ export interface ValidateResult {
 //   - Capability list must be an array of canonical capability strings;
 //     unknown ids land in `warnings[]` instead of `errors[]` so a forward
 //     spec patch can introduce new caps without breaking installs.
-//   - GenUI surface oauth.route='connector' references a connector id that
-//     the plugin actually declared (when od.connectors are present).
+//   - GenUI surface oauth.route='mcp' references an MCP server declared in
+//     od.context.mcp.
 
 const KNOWN_CAPABILITIES = new Set([
   'prompt:inject',
@@ -57,15 +57,13 @@ export function validateSafe(manifest: PluginManifest): ValidateResult {
 
     const caps = od.capabilities ?? [];
     for (const cap of caps) {
+      // Keep the parser generic: connector sources were removed, but the
+      // capability namespace is still recognised for forward compatibility.
       if (cap.startsWith('connector:')) continue;
       if (!KNOWN_CAPABILITIES.has(cap)) {
         warnings.push(`capability '${cap}' is not in the v1 vocabulary; doctor will surface this to the operator`);
       }
     }
-
-    const declaredConnectorIds = new Set<string>();
-    for (const ref of od.connectors?.required ?? []) declaredConnectorIds.add(ref.id);
-    for (const ref of od.connectors?.optional ?? []) declaredConnectorIds.add(ref.id);
 
     const declaredMcpNames = new Set<string>();
     for (const mcp of od.context?.mcp ?? []) {
@@ -75,13 +73,7 @@ export function validateSafe(manifest: PluginManifest): ValidateResult {
     for (const surface of od.genui?.surfaces ?? []) {
       const oauth = surface.oauth;
       if (!oauth) continue;
-      if (oauth.route === 'connector') {
-        if (!oauth.connectorId) {
-          errors.push(`genui.surfaces[${surface.id}]: oauth.route='connector' requires connectorId`);
-        } else if (declaredConnectorIds.size > 0 && !declaredConnectorIds.has(oauth.connectorId)) {
-          errors.push(`genui.surfaces[${surface.id}]: oauth.connectorId='${oauth.connectorId}' is not in od.connectors.required/optional`);
-        }
-      } else if (oauth.route === 'mcp') {
+      if (oauth.route === 'mcp') {
         if (!oauth.mcpServerId) {
           errors.push(`genui.surfaces[${surface.id}]: oauth.route='mcp' requires mcpServerId`);
         } else if (declaredMcpNames.size > 0 && !declaredMcpNames.has(oauth.mcpServerId)) {

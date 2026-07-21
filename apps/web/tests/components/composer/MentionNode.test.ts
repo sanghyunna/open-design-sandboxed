@@ -171,9 +171,9 @@ describe('MentionNode', () => {
     root.remove();
   });
 
-  it('re-stamps a mounted connector pill hue when the live theme flips', async () => {
+  it('re-stamps a mounted plugin pill hue when the live theme flips', async () => {
     // Regression: applyBrandHue only ran from createDOM / node mutation, so a
-    // connector pill inserted in light mode kept its near-black light hue after
+    // plugin pill inserted in light mode kept its near-black light hue after
     // a live theme switch — dark-on-dark, unreadable text in dark mode. The
     // theme observer must recompute --m-hue when <html data-theme> changes.
     const parseHex = (hex: string): { r: number; g: number; b: number } => {
@@ -199,7 +199,7 @@ describe('MentionNode', () => {
           $createMentionNode({
             // Notion's curated brand is near-black (#0B0B0B) in light mode.
             mentionId: 'notion',
-            mentionKind: 'connector',
+            mentionKind: 'plugin',
             token: '@Notion',
             label: 'Notion',
           }),
@@ -210,7 +210,7 @@ describe('MentionNode', () => {
       { discrete: true },
     );
 
-    const pill = root.querySelector<HTMLElement>('.composer-inline-mention--connector');
+    const pill = root.querySelector<HTMLElement>('.composer-inline-mention--plugin');
     expect(pill).not.toBeNull();
     expect(pill?.getAttribute('data-mention-label')).toBe('Notion');
     const lightHue = pill!.style.getPropertyValue('--m-hue').trim();

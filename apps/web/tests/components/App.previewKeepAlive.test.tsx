@@ -6,12 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/App';
 import type { AppConfig, Project } from '../../src/types';
 import {
-  fetchComposioConfigFromDaemon,
   fetchDaemonConfig,
   loadConfig,
   mergeDaemonConfig,
   saveConfig,
-  syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../../src/state/config';
 import {
@@ -183,12 +181,10 @@ vi.mock('../../src/state/config', async () => {
   );
   return {
     ...actual,
-    fetchComposioConfigFromDaemon: vi.fn(),
     fetchDaemonConfig: vi.fn(),
     loadConfig: vi.fn(),
     mergeDaemonConfig: vi.fn(),
     saveConfig: vi.fn(),
-    syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -201,7 +197,6 @@ const mockedFetchDesignTemplates = vi.mocked(fetchDesignTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
 const mockedListProjects = vi.mocked(listProjects);
 const mockedListTemplates = vi.mocked(listTemplates);
-const mockedFetchComposioConfigFromDaemon = vi.mocked(fetchComposioConfigFromDaemon);
 const mockedFetchDaemonConfig = vi.mocked(fetchDaemonConfig);
 const mockedLoadConfig = vi.mocked(loadConfig);
 const mockedMergeDaemonConfig = vi.mocked(mergeDaemonConfig);
@@ -253,7 +248,6 @@ describe('App preview keep-alive invalidation', () => {
     mockedListProjects.mockResolvedValue([project]);
     mockedListTemplates.mockResolvedValue([]);
     mockedFetchDaemonConfig.mockResolvedValue({});
-    mockedFetchComposioConfigFromDaemon.mockResolvedValue(null);
     mockedMergeDaemonConfig.mockImplementation((local) => local);
     mockedLoadConfig.mockReturnValue({ ...baseConfig });
     vi.stubGlobal(
@@ -307,7 +301,7 @@ describe('App preview keep-alive invalidation', () => {
     expect(typeof predicate).toBe('function');
     expect(
       (predicate as (entry: { projectId: string; key: string; fileName: string }) => boolean)({
-        key: 'project-1 file.html',
+        key: 'project-1file.html',
         projectId: 'project-1',
         fileName: 'file.html',
       }),
@@ -328,7 +322,7 @@ describe('App preview keep-alive invalidation', () => {
     const [predicate] = evictMatchingMock.mock.calls.at(-1) ?? [];
     expect(
       (predicate as (entry: { projectId: string; key: string; fileName: string }) => boolean)({
-        key: 'project-1 file.html',
+        key: 'project-1file.html',
         projectId: 'project-1',
         fileName: 'file.html',
       }),
@@ -350,7 +344,7 @@ describe('App preview keep-alive invalidation', () => {
     expect(options).toEqual({ includeActive: true });
     expect(
       (predicate as (entry: { projectId: string; key: string; fileName: string }) => boolean)({
-        key: 'project-1 file.html',
+        key: 'project-1file.html',
         projectId: 'project-1',
         fileName: 'file.html',
       }),

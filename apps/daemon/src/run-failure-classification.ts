@@ -133,7 +133,7 @@ function isEmptyOutputText(text: string): boolean {
 
 function isToolErrorText(text: string): boolean {
   if (isPluginArtifactMissingText(text)) return true;
-  return /\b(tool|mcp|connector|plugin)\b/i.test(text) &&
+  return /\b(tool|mcp|plugin)\b/i.test(text) &&
     /\b(error|failed|failure)\b/i.test(text);
 }
 

@@ -26,7 +26,6 @@ const SOURCE_KINDS = new Set<AutomationSourceKind>([
   'upload',
   'url',
   'repo',
-  'connector',
   'artifact',
   'chat',
 ]);
@@ -104,7 +103,7 @@ function sourceKindFrom(value: unknown): AutomationSourceKind {
   if (typeof value === 'string' && SOURCE_KINDS.has(value as AutomationSourceKind)) {
     return value as AutomationSourceKind;
   }
-  throw new Error('sourceKind must be one of upload, url, repo, connector, artifact, chat');
+  throw new Error('sourceKind must be one of upload, url, repo, artifact, chat');
 }
 
 function sensitivityFrom(value: unknown): AutomationSensitivity {
@@ -241,10 +240,8 @@ function buildProvenance(input: {
   sourceKind: AutomationSourceKind;
   sourceRef: string;
   title: string;
-  connectorId?: string;
-  accountLabel?: string;
 }): AutomationProvenanceRef[] {
-  const labelParts = [input.connectorId, input.accountLabel, input.title].filter(Boolean);
+  const labelParts = [input.title].filter(Boolean);
   return [
     {
       kind: input.sourceKind,
@@ -386,7 +383,6 @@ export async function ingestAutomationSource(
   const capturedAt = new Date().toISOString();
   const sourceRef =
     optionalString(input.sourceRef) ??
-    optionalString(input.connectorId) ??
     optionalString(input.artifactId) ??
     optionalString(input.conversationId) ??
     sourceKind;
@@ -397,26 +393,18 @@ export async function ingestAutomationSource(
   const sensitivity = sensitivityFrom(input.sensitivity);
   const capabilityHints = Array.isArray(input.capabilityHints)
     ? input.capabilityHints.filter((hint): hint is string => typeof hint === 'string' && hint.length > 0)
-    : input.connectorId
-      ? [`connector:${input.connectorId}`]
-      : [];
+    : [];
   const { body: proposalBody, report } = compactMarkdown(bodyMarkdown, tokenCompression, packetId);
   const originalTokens = estimateTokens(bodyMarkdown);
   const provenanceInput: {
     sourceKind: AutomationSourceKind;
     sourceRef: string;
     title: string;
-    connectorId?: string;
-    accountLabel?: string;
   } = {
     sourceKind,
     sourceRef,
     title,
   };
-  const connectorId = optionalString(input.connectorId);
-  const accountLabel = optionalString(input.accountLabel);
-  if (connectorId) provenanceInput.connectorId = connectorId;
-  if (accountLabel) provenanceInput.accountLabel = accountLabel;
 
   const metadata: Record<string, JsonValue> = jsonObjectFrom(input.metadata);
   if (template) metadata.templateId = template.id;
@@ -424,8 +412,6 @@ export async function ingestAutomationSource(
   const artifactId = optionalString(input.artifactId);
   const conversationId = optionalString(input.conversationId);
   if (projectId) metadata.projectId = projectId;
-  if (connectorId) metadata.connectorId = connectorId;
-  if (accountLabel) metadata.accountLabel = accountLabel;
   if (artifactId) metadata.artifactId = artifactId;
   if (conversationId) metadata.conversationId = conversationId;
 

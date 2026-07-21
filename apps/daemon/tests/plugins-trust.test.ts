@@ -57,7 +57,7 @@ afterEach(async () => {
 });
 
 describe('validateCapabilityList', () => {
-  it('accepts spec §5.3 vocabulary and connector / mcp scoped forms', () => {
+  it('accepts spec §5.3 vocabulary and mcp scoped forms', () => {
     const { accepted, rejected } = validateCapabilityList([
       'prompt:inject',
       'fs:read',
@@ -66,15 +66,11 @@ describe('validateCapabilityList', () => {
       'subprocess',
       'bash',
       'network',
-      'connector',
-      'connector:slack',
       'mcp:tavily',
     ]);
     expect(rejected).toEqual([]);
     expect(accepted.sort()).toEqual([
       'bash',
-      'connector',
-      'connector:slack',
       'fs:read',
       'fs:write',
       'mcp',
@@ -89,14 +85,14 @@ describe('validateCapabilityList', () => {
     const { accepted, rejected } = validateCapabilityList([
       'fs:read',
       'foo:bar',
-      'connector:Capital',
-      'connector:',
+      'mcp:Capital',
+      'mcp:',
     ]);
     expect(accepted).toEqual(['fs:read']);
     expect(rejected.map((r) => r.capability)).toEqual([
       'foo:bar',
-      'connector:Capital',
-      'connector:',
+      'mcp:Capital',
+      'mcp:',
     ]);
     expect(new Set(rejected.map((r) => r.reason))).toEqual(new Set(['unknown']));
   });
@@ -115,7 +111,7 @@ describe('validateCapabilityList', () => {
 
   it('returns empty arrays for non-array input', () => {
     expect(validateCapabilityList(null)).toEqual({ accepted: [], rejected: [] });
-    expect(validateCapabilityList('connector:slack')).toEqual({ accepted: [], rejected: [] });
+    expect(validateCapabilityList('mcp:fetch')).toEqual({ accepted: [], rejected: [] });
   });
 });
 
@@ -124,10 +120,10 @@ describe('grantCapabilities / revokeCapabilities', () => {
     const next = grantCapabilities({
       db,
       pluginId: PLUGIN_ID,
-      capabilities: ['fs:read', 'connector:slack'],
+      capabilities: ['fs:read', 'mcp:fetch'],
     });
     expect(next).toContain('fs:read');
-    expect(next).toContain('connector:slack');
+    expect(next).toContain('mcp:fetch');
     expect(next).toContain('prompt:inject');
 
     const second = grantCapabilities({
@@ -142,7 +138,7 @@ describe('grantCapabilities / revokeCapabilities', () => {
     grantCapabilities({
       db,
       pluginId: PLUGIN_ID,
-      capabilities: ['fs:read', 'mcp', 'connector:slack'],
+      capabilities: ['fs:read', 'mcp', 'mcp:fetch'],
     });
     const next = revokeCapabilities({
       db,

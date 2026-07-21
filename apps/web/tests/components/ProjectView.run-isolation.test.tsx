@@ -418,7 +418,7 @@ vi.mock('../../src/components/ChatPane', () => ({
                 context: {
                   skillIds: ['deck-builder'],
                   mcpServerIds: ['slack'],
-                  connectorIds: ['github'],
+          
                 },
               },
             )
@@ -1373,7 +1373,7 @@ describe('ProjectView conversation run isolation', () => {
       context: {
         skillIds: ['deck-builder'],
         mcpServerIds: ['slack'],
-        connectorIds: ['github'],
+
       },
       history: expect.arrayContaining([
         expect.objectContaining({ role: 'user', content: 'hello with staged context' }),

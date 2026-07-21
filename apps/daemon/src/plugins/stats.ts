@@ -22,7 +22,7 @@ export interface PluginInventoryStats {
   byTrust:      Record<string, number>;
   byTaskKind:   Record<string, number>;
   // Plugins that declared at least one of the §5.3 elevated
-  // capabilities (fs:write, subprocess, bash, network, connector*).
+  // capabilities (fs:write, subprocess, bash, network).
   // Surfaces 'how many plugins can mutate state' for an audit panel.
   withElevatedCapabilities: number;
   // The bundled-vs-third-party split. Bundled plugins are re-
@@ -40,6 +40,7 @@ export interface PluginInventoryStats {
 }
 
 const ELEVATED_CAPABILITIES = new Set(['fs:write', 'subprocess', 'bash', 'network']);
+
 
 export function pluginInventoryStats(plugins: ReadonlyArray<InstalledPluginRecord>): PluginInventoryStats {
   const stats: PluginInventoryStats = {
@@ -64,7 +65,7 @@ export function pluginInventoryStats(plugins: ReadonlyArray<InstalledPluginRecor
     stats.byTaskKind[taskKind] = (stats.byTaskKind[taskKind] ?? 0) + 1;
 
     const declared = plugin.manifest.od?.capabilities ?? [];
-    if (Array.isArray(declared) && declared.some((c) => ELEVATED_CAPABILITIES.has(c) || (typeof c === 'string' && c.startsWith('connector:')))) {
+    if (Array.isArray(declared) && declared.some((c) => ELEVATED_CAPABILITIES.has(c))) {
       stats.withElevatedCapabilities++;
     }
 

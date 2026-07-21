@@ -221,7 +221,7 @@ export const JA: SolutionLocaleCopy = {
       { title: "プロダクト分析", body: "アクティブユーザー、ファネル、リテンション — プロダクトチームが日々向き合う指標。", thumb: "example-dashboard" },
       { title: "リポジトリと開発の指標", body: "スター、PR、CI の健全性 — 自分のデータから作るエンジニアリングダッシュボード。", thumb: "example-github-dashboard" },
       { title: "財務レポート", body: "収益、バーン、ランウェイを共有できるレポートとしてレイアウト。", thumb: "example-finance-report" },
-      { title: "ライブオペレーション", body: "基となるデータが動くにつれて更新されるリアルタイム指標。", thumb: "example-live-dashboard" },
+      { title: "ライブオペレーション", body: "基となるデータが動くにつれて更新されるリアルタイム指標。", thumb: "example-live-artifact" },
       { title: "ソーシャルとマーケティング", body: "チャネルのパフォーマンスとキャンペーンのトラッキングを一つのビューに。", thumb: "example-social-media-dashboard" },
       { title: "ドメインレポート", body: "あらゆる分野の構造化されたレポート — 臨床からトレーディングまで。", thumb: "example-clinical-case-report" },
     ],

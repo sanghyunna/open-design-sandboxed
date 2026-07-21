@@ -14,10 +14,10 @@ const originalFetch = globalThis.fetch;
 const daemonTemplate: ContractAutomationTemplate = {
   id: 'extract-design-system',
   title: 'Extract design system',
-  description: 'Draft a DESIGN.md from brand docs, screenshots, repos, connectors, websites, or strong artifacts.',
+  description: 'Draft a DESIGN.md from brand docs, screenshots, repos, websites, or strong artifacts.',
   purpose: 'Make the design-system tree evolve from real source material and successful outputs.',
-  triggerKinds: ['manual', 'connector', 'project-event'],
-  sourceKinds: ['upload', 'url', 'repo', 'connector', 'artifact'],
+  triggerKinds: ['manual', 'project-event'],
+  sourceKinds: ['upload', 'url', 'repo', 'artifact'],
   stages: [
     { id: 'ingest', kind: 'ingest', title: 'Capture design source' },
     { id: 'compress', kind: 'compress', title: 'Compact source context' },
@@ -32,7 +32,7 @@ const daemonTemplate: ContractAutomationTemplate = {
 
 const memoryProposal: AutomationEvolutionProposal = {
   id: 'proposal-memory-1',
-  title: 'Project memory from connector digest',
+  title: 'Project memory from source digest',
   summary: 'Preserve a durable project decision found by an automation.',
   targetKind: 'memory-node',
   action: 'create',
@@ -140,7 +140,7 @@ describe('TasksView automation templates', () => {
         proposals = [];
         return new Response(JSON.stringify({
           proposal: { ...memoryProposal, status: 'applied' },
-          result: { memoryId: 'project_connector_decision' },
+          result: { memoryId: 'project_source_decision' },
         }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
@@ -152,13 +152,13 @@ describe('TasksView automation templates', () => {
     render(<TasksView />);
 
     expect(await screen.findByText('Evolution proposals')).toBeTruthy();
-    expect(screen.getByText('Project memory from connector digest')).toBeTruthy();
+    expect(screen.getByText('Project memory from source digest')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
 
     await waitFor(() => {
       expect(applyCalls).toEqual(['/api/automation-proposals/proposal-memory-1/apply']);
-      expect(screen.queryByText('Project memory from connector digest')).toBeNull();
+      expect(screen.queryByText('Project memory from source digest')).toBeNull();
     });
   });
 

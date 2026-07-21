@@ -213,15 +213,6 @@ const COMMUNITY_PLUGINS: SeedFixture[] = [
     pendingPrompt:
       'Run the community pitch slides plugin for a founder fundraising narrative.',
   },
-  {
-    skillId: 'create-connector-dashboard-ops',
-    sourceKind: 'community-plugin',
-    pluginId: 'create-connector-dashboard-ops',
-    kind: 'prototype',
-    name: 'Community plugin — connector ops dashboard',
-    pendingPrompt:
-      'Run the community connector dashboard plugin for a customer success command center with seeded data fallback.',
-  },
 ];
 
 interface Args {

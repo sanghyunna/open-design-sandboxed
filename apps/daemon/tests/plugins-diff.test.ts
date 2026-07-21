@@ -57,12 +57,12 @@ describe('diffPlugins — top-level record', () => {
 
   it('detects added / removed entries on capabilitiesGranted', () => {
     const a = make('p', undefined, { capabilitiesGranted: ['fs:read'] });
-    const b = make('p', undefined, { capabilitiesGranted: ['fs:read', 'connector:slack'] });
+    const b = make('p', undefined, { capabilitiesGranted: ['fs:read', 'mcp:fetch'] });
     const r = diffPlugins({ a, b });
     const cap = r.entries.find((e) => e.field === 'capabilitiesGranted');
     expect(cap?.kind).toBe('changed');
     expect(cap?.summary).toMatch(/1 added/);
-    expect(cap?.after).toContain('connector:slack');
+    expect(cap?.after).toContain('mcp:fetch');
   });
 
   it('renames surface as id changed (no shared pluginId on the report)', () => {
@@ -122,13 +122,7 @@ describe('diffPlugins — manifest body', () => {
     expect(e?.after).toContain('x');
   });
 
-  it('detects connectors required-list churn', () => {
-    const a = make('p', { taskKind: 'figma-migration', connectors: { required: [{ id: 'figma', tools: ['files.get'] }] } });
-    const b = make('p', { taskKind: 'figma-migration', connectors: { required: [{ id: 'figma', tools: ['files.get'] }, { id: 'slack', tools: [] }] } });
-    const r = diffPlugins({ a, b });
-    const e = r.entries.find((x) => x.field === 'od.connectors.required');
-    expect(e?.summary).toMatch(/1 added/);
-  });
+
 });
 
 describe('diffPlugins — output shape', () => {

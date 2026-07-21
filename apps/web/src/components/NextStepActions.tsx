@@ -45,7 +45,7 @@ interface Props {
   // Seed the composer with a specific global skill resource picked from the toolbox.
   onPickSkill?: (skillId: string) => void;
   // Available global skill resources. The full composer toolbox also includes
-  // MCP/plugins/connectors/files; this next-step flyout keeps the same shape
+  // MCP/plugins/files; this next-step flyout keeps the same shape
   // while using the resource data already owned by the chat pane.
   skills?: SkillSummary[];
   // Resolved `@skill` names per featured action, shown in the hover detail.

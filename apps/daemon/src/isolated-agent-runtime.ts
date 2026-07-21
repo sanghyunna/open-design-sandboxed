@@ -277,13 +277,11 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
   }
   const paths = isolatedRunPaths(options.runId);
   const brokerNonce = randomBytes(18).toString('hex');
-  const hostBrokerRoot = path.join(os.tmpdir(), 'open-design-isolated-broker-host', `${safeRunId(options.runId)}-${brokerNonce}`);
   const pipeName = `\\\\.\\pipe\\LOCAL\\OpenDesign.${process.pid}.${brokerNonce}`;
   await rm(paths.root, { force: true, recursive: true });
   await Promise.all([
     mkdir(paths.home, { recursive: true }),
     mkdir(paths.temp, { recursive: true }),
-    mkdir(hostBrokerRoot, { recursive: true }),
   ]);
   if (paths.nodeBin !== process.execPath) {
     await mkdir(path.dirname(paths.nodeBin), { recursive: true });
@@ -336,46 +334,7 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
     if (!sameSecret(brokerToken, request.token)) return JSON.stringify(denied('isolated tool broker authentication failed'));
 
     let result: BrokerResult;
-    if (args[0] === 'tools' && args[1] === 'connectors' && args[2] === 'list') {
-      const flags = parseValueFlags(args.slice(3), ['--format', '--use-case']);
-      if (!flags || (flags.has('--format') && !['compact', 'json'].includes(flags.get('--format')!))
-        || (flags.has('--use-case') && flags.get('--use-case') !== 'personal_daily_digest')) {
-        result = denied('only connectors:list is allowed through this broker shape');
-      } else {
-        result = await runCli([
-          'tools', 'connectors', 'list',
-          ...(flags.has('--use-case') ? ['--use-case', flags.get('--use-case')!] : []),
-          ...(flags.has('--format') ? ['--format', flags.get('--format')!] : []),
-        ]);
-      }
-    } else if (args[0] === 'tools' && args[1] === 'connectors' && args[2] === 'execute') {
-      const flags = parseValueFlags(args.slice(3), ['--connector', '--format', '--input', '--tool']);
-      const connector = flags?.get('--connector');
-      const tool = flags?.get('--tool');
-      const inputPath = flags?.get('--input');
-      const format = flags?.get('--format');
-      let input: unknown;
-      try { input = typeof request.input === 'string' ? JSON.parse(request.input) : null; } catch { input = null; }
-      if (!flags || !connector || !tool || !inputPath || !safeRelativePath(inputPath)
-        || (format && !['compact', 'json'].includes(format))
-        || !input || typeof input !== 'object' || Array.isArray(input)) {
-        result = denied('only connectors:execute with inline project input is allowed');
-      } else {
-        const hostInput = path.join(hostBrokerRoot, `${requestCount}.json`);
-        await writeFile(hostInput, JSON.stringify(input), { encoding: 'utf8', flag: 'wx' });
-        try {
-          result = await runCli([
-            'tools', 'connectors', 'execute',
-            '--connector', connector,
-            '--tool', tool,
-            '--input', hostInput,
-            ...(format ? ['--format', format] : []),
-          ]);
-        } finally {
-          await rm(hostInput, { force: true });
-        }
-      }
-    } else if (args[0] === 'tools' && args[1] === 'design-systems' && args[2] === 'read') {
+    if (args[0] === 'tools' && args[1] === 'design-systems' && args[2] === 'read') {
       const flags = parseValueFlags(args.slice(3), ['--design-system', '--path']);
       const manifestPath = flags?.get('--path');
       result = !flags || !manifestPath || !safeRelativePath(manifestPath)
@@ -404,7 +363,7 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
           : { code: 1, stderr: `${body}\n`, stdout: '' };
       }
     } else {
-      result = denied('isolated broker allows only connectors:list, connectors:execute, design-systems:read, and media:generate');
+      result = denied('isolated broker allows only design-systems:read and media:generate');
     }
     return JSON.stringify(result);
   };
@@ -425,10 +384,7 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
         if (child.exitCode != null) resolve();
         else child.once('close', () => resolve());
       })));
-      await Promise.all([
-        rm(paths.root, { force: true, recursive: true }),
-        rm(hostBrokerRoot, { force: true, recursive: true }),
-      ]);
+      await rm(paths.root, { force: true, recursive: true });
     },
   };
 }

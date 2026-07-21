@@ -102,8 +102,6 @@ describe('plugin-system Phase 1 closed loop (e2e-1)', () => {
       capabilitiesGranted: computed.result.appliedPlugin.capabilitiesGranted,
       capabilitiesRequired: computed.result.appliedPlugin.capabilitiesRequired,
       assetsStaged: computed.result.appliedPlugin.assetsStaged,
-      connectorsRequired: computed.result.appliedPlugin.connectorsRequired,
-      connectorsResolved: computed.result.appliedPlugin.connectorsResolved,
       mcpServers: computed.result.appliedPlugin.mcpServers,
       query: computed.result.query,
     });

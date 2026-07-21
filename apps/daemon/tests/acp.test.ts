@@ -25,16 +25,16 @@ test('ACP session params do not request global MCP config mutation', () => {
 });
 
 test('ACP session params normalize explicit MCP servers to ACP stdio shape', () => {
-  const mcpServers = [{ name: 'open-design-connectors', command: 'od', args: ['mcp', 'connectors'] }];
+  const mcpServers = [{ name: 'open-design-hello', command: 'od', args: ['mcp', 'hello'] }];
 
   assert.deepEqual(buildAcpSessionNewParams('/tmp/od-project', { mcpServers }), {
     cwd: path.resolve('/tmp/od-project'),
     mcpServers: [
       {
         type: 'stdio',
-        name: 'open-design-connectors',
+        name: 'open-design-hello',
         command: 'od',
-        args: ['mcp', 'connectors'],
+        args: ['mcp', 'hello'],
         env: [],
       },
     ],

@@ -2,7 +2,6 @@ export interface RunContextSelection {
   skillIds?: string[];
   pluginIds?: string[];
   mcpServerIds?: string[];
-  connectorIds?: string[];
   workspaceItems?: WorkspaceContextItem[];
 }
 
@@ -40,12 +39,3 @@ export interface ProjectContextMcpServerRef {
   command?: string;
 }
 
-export interface ProjectContextConnectorRef {
-  id: string;
-  name: string;
-  provider?: string;
-  category?: string;
-  description?: string;
-  status?: string;
-  accountLabel?: string;
-}

@@ -16,8 +16,6 @@ const make = (over: Partial<AppliedPluginSnapshot> = {}): AppliedPluginSnapshot 
   assetsStaged: [],
   taskKind: 'new-generation',
   appliedAt: 1,
-  connectorsRequired: [],
-  connectorsResolved: [],
   mcpServers: [],
   status: 'fresh',
   ...over,
@@ -58,26 +56,14 @@ describe('diffSnapshots — input map', () => {
   });
 });
 
-describe('diffSnapshots — capability + connector arrays', () => {
+describe('diffSnapshots — capability arrays', () => {
   it('detects added / removed entries on capabilitiesGranted', () => {
     const a = make({ capabilitiesGranted: ['fs:read'] });
-    const b = make({ capabilitiesGranted: ['fs:read', 'connector:slack'] });
+    const b = make({ capabilitiesGranted: ['fs:read', 'mcp:slack'] });
     const r = diffSnapshots({ a, b });
     const e = r.entries.find((x) => x.field === 'capabilitiesGranted');
-    expect(e?.summary).toMatch(/1 added/);
-    expect(e?.after).toContain('connector:slack');
-  });
-
-  it('detects connector status drift', () => {
-    const a = make({
-      connectorsResolved: [{ id: 'figma', tools: [], status: 'connected' } as unknown as AppliedPluginSnapshot['connectorsResolved'][number]],
-    });
-    const b = make({
-      connectorsResolved: [{ id: 'figma', tools: [], status: 'pending' } as unknown as AppliedPluginSnapshot['connectorsResolved'][number]],
-    });
-    const r = diffSnapshots({ a, b });
-    const e = r.entries.find((x) => x.field === 'connectorsResolved');
     expect(e?.kind).toBe('changed');
+    expect(e?.after).toContain('mcp:slack');
   });
 });
 

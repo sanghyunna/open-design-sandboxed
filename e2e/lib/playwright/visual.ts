@@ -274,8 +274,6 @@ export async function configureVisualPage(page: Page, options: VisualPageOptions
           assetsStaged: [],
           taskKind: 'new-generation',
           appliedAt: 0,
-          connectorsRequired: [],
-          connectorsResolved: [],
           mcpServers: [],
           status: 'fresh',
         },
@@ -334,10 +332,6 @@ export async function configureVisualPage(page: Page, options: VisualPageOptions
 
   await page.route('**/api/prompt-templates', async (route) => {
     await fulfillGet(route, { promptTemplates: [] });
-  });
-
-  await page.route('**/api/connectors', async (route) => {
-    await fulfillGet(route, { connectors: [] });
   });
 
   await page.route('**/api/mcp/servers', async (route) => {

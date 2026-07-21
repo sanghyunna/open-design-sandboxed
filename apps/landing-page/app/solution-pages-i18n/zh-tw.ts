@@ -167,7 +167,7 @@ export const ZH_TW: SolutionLocaleCopy = {
       { title: "產品分析", body: "活躍、漏斗、留存——產品團隊天天看的指標。", thumb: "example-dashboard" },
       { title: "儲存庫與研發指標", body: "Star、PR、CI 健康度——用你自己的資料做研發儀表板。", thumb: "example-github-dashboard" },
       { title: "財務報告", body: "營收、消耗、續航，排成可分享的報告。", thumb: "example-finance-report" },
-      { title: "即時營運", body: "隨底層資料變動而重新整理的即時指標。", thumb: "example-live-dashboard" },
+      { title: "即時營運", body: "隨底層資料變動而重新整理的即時指標。", thumb: "example-live-artifact" },
       { title: "社群與行銷", body: "管道表現和投放追蹤匯於一畫面。", thumb: "example-social-media-dashboard" },
       { title: "領域報告", body: "任意領域的結構化報告——從臨床到交易。", thumb: "example-clinical-case-report" },
     ],

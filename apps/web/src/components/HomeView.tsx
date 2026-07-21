@@ -11,7 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type {
   ApplyResult,
   ChatSessionMode,
-  ConnectorDetail,
   InputFieldSpec,
   McpServerConfig,
   InstalledPluginRecord,
@@ -132,11 +131,6 @@ interface SelectedMcpContext {
   inlineBacked: boolean;
 }
 
-interface SelectedConnectorContext {
-  connector: ConnectorDetail;
-  inlineBacked: boolean;
-}
-
 interface PendingReplacement {
   title: string;
   // Returns a promise resolving when the underlying plugin apply has
@@ -176,7 +170,6 @@ interface Props {
   onOpenProject: (id: string) => void;
   onViewAllProjects: () => void;
   onBrowseRegistry?: () => void;
-  onOpenIntegrations?: () => void;
   onOpenMcp?: () => void;
   // Stage B: optional callbacks the rail's migration chips need.
   // HomeView itself never imports them; EntryShell threads them
@@ -185,13 +178,11 @@ interface Props {
   promptHandoff?: HomePromptHandoff | null;
   skills?: SkillSummary[];
   skillsLoading?: boolean;
-  connectors?: ConnectorDetail[];
   executionSwitcher?: ReactNode;
 }
 
 const EMPTY_DESIGN_SYSTEMS: DesignSystemSummary[] = [];
 const EMPTY_SKILLS: SkillSummary[] = [];
-const EMPTY_CONNECTORS: ConnectorDetail[] = [];
 
 export function HomeView({
   isActive = true,
@@ -203,13 +194,11 @@ export function HomeView({
   onOpenProject,
   onViewAllProjects,
   onBrowseRegistry,
-  onOpenIntegrations,
   onOpenMcp,
   onOpenNewProject,
   promptHandoff,
   skills = EMPTY_SKILLS,
   skillsLoading = false,
-  connectors = EMPTY_CONNECTORS,
   executionSwitcher,
 }: Props) {
   const { locale, t } = useI18n();
@@ -241,7 +230,6 @@ export function HomeView({
   const [activeSkill, setActiveSkill] = useState<SkillSummary | null>(null);
   const [selectedPluginContexts, setSelectedPluginContexts] = useState<SelectedPluginContext[]>([]);
   const [selectedMcpContexts, setSelectedMcpContexts] = useState<SelectedMcpContext[]>([]);
-  const [selectedConnectorContexts, setSelectedConnectorContexts] = useState<SelectedConnectorContext[]>([]);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [mcpLoading, setMcpLoading] = useState(true);
@@ -339,7 +327,6 @@ export function HomeView({
     setActiveSkill(null);
     setSelectedPluginContexts([]);
     setSelectedMcpContexts([]);
-    setSelectedConnectorContexts([]);
     setFallbackProjectKind('other');
     setFallbackProjectMetadata(null);
     if (promptHandoff.focus) {
@@ -363,11 +350,9 @@ export function HomeView({
     [active],
   );
   // Inline-backed contexts are already represented in the composer as `@mention`
-  // pills, so they must NOT also drive the active context row — otherwise
-  // selecting only an inline-mentioned connector mounts an empty row (count
-  // label, no visible children) above the editor. Context-only `Use` selections
-  // have no inline representation, so they are the only ones the row should
-  // surface (and count).
+  // pills, so they must NOT also drive the active context row. Context-only `Use`
+  // selections have no inline representation, so they are the only ones the row
+  // should surface (and count).
   const contextItemCount = useMemo(() => {
     const contextOnlyPlugins = selectedPluginContexts.filter(
       (item) => !item.inlineBacked,
@@ -375,19 +360,14 @@ export function HomeView({
     const contextOnlyMcp = selectedMcpContexts.filter(
       (item) => !item.inlineBacked,
     ).length;
-    const contextOnlyConnectors = selectedConnectorContexts.filter(
-      (item) => !item.inlineBacked,
-    ).length;
     return (
       activeContextItemCount +
       contextOnlyPlugins +
       contextOnlyMcp +
-      contextOnlyConnectors +
       stagedFiles.length
     );
   }, [
     activeContextItemCount,
-    selectedConnectorContexts,
     selectedMcpContexts,
     selectedPluginContexts,
     stagedFiles.length,
@@ -1005,30 +985,6 @@ export function HomeView({
     }
   }
 
-  function useConnector(connector: ConnectorDetail, nextPrompt: string) {
-    setSelectedConnectorContexts((current) => (
-      current.some((item) => item.connector.id === connector.id)
-        ? current
-        : [...current, { connector, inlineBacked: true }]
-    ));
-    setPrompt(nextPrompt);
-    setPromptEditedByUser(false);
-    setError(null);
-    focusPromptAtEnd();
-  }
-
-  function removeConnectorContext(connectorId: string) {
-    const connector = selectedConnectorContexts.find((item) => item.connector.id === connectorId)?.connector ?? null;
-    setSelectedConnectorContexts((current) => current.filter((item) => item.connector.id !== connectorId));
-    if (connector) {
-      setPrompt((current) => removeContextMentionsFromPrompt(current, [
-        connector.name,
-        connector.id,
-      ]));
-      setPromptEditedByUser(true);
-    }
-  }
-
   function queuePluginAuthoring(chipId: string | null, goal?: string) {
     const nextInputs = buildPluginAuthoringInputs(goal);
     const nextPrompt = buildPluginAuthoringPromptForInputs(nextInputs);
@@ -1210,7 +1166,7 @@ export function HomeView({
     // forwarding it. Inline-backed contexts (inserted as `@mention` pills) are
     // only sent while their token survives in the prompt — the Lexical composer
     // lets users delete a mention pill (backspace, edit), and when they do that
-    // plugin/MCP/connector should stop being sent. Context-only `Use`
+    // plugin/MCP should stop being sent. Context-only `Use`
     // selections never carry a token, so they stay in the payload until the
     // user explicitly clears them.
     const contextPlugins = selectedPluginContexts
@@ -1231,16 +1187,6 @@ export function HomeView({
         ...(item.server.url ? { url: item.server.url } : {}),
         ...(item.server.command ? { command: item.server.command } : {}),
       }));
-    const contextConnectors = selectedConnectorContexts
-      .filter((item) => !item.inlineBacked || mentionTokenPresent(trimmed, item.connector.name))
-      .map((item) => ({
-        id: item.connector.id,
-        name: item.connector.name,
-        provider: item.connector.provider,
-        category: item.connector.category,
-        status: item.connector.status,
-        ...(item.connector.accountLabel ? { accountLabel: item.connector.accountLabel } : {}),
-    }));
     const submittedProjectKind =
       submittedActive?.projectKind ?? fallbackProjectKind ?? projectKindForSkill(activeSkill) ?? 'other';
     const submittedProjectMetadata = homeCreateProjectMetadata(
@@ -1269,7 +1215,6 @@ export function HomeView({
       designSystemId: submittedDesignSystemId,
       contextPlugins,
       contextMcpServers,
-      contextConnectors,
       attachments: stagedFiles,
       conversationMode: sessionMode,
       ...(() => {
@@ -1282,7 +1227,6 @@ export function HomeView({
     });
     setSelectedPluginContexts([]);
     setSelectedMcpContexts([]);
-    setSelectedConnectorContexts([]);
   }
 
   return (
@@ -1308,15 +1252,11 @@ export function HomeView({
         onClearActiveSkill={() => setActiveSkill(null)}
         selectedPluginContexts={selectedPluginContexts.map((item) => item.record)}
         selectedMcpContexts={selectedMcpContexts.map((item) => item.server)}
-        selectedConnectorContexts={selectedConnectorContexts.map((item) => item.connector)}
         contextOnlyPlugins={selectedPluginContexts.filter((item) => !item.inlineBacked).map((item) => item.record)}
         contextOnlyMcpServers={selectedMcpContexts.filter((item) => !item.inlineBacked).map((item) => item.server)}
-        contextOnlyConnectors={selectedConnectorContexts.filter((item) => !item.inlineBacked).map((item) => item.connector)}
         onRemovePluginContext={removePluginContext}
         onRemoveMcpContext={removeMcpContext}
-        onRemoveConnectorContext={removeConnectorContext}
         onAddPlugin={onBrowseRegistry}
-        onAddConnector={onOpenIntegrations}
         onAddMcp={onOpenMcp}
         onOpenPluginDetails={setDetailsRecord}
         pluginInputFields={(active?.inputFields ?? []).filter(
@@ -1337,7 +1277,6 @@ export function HomeView({
         skillsLoading={skillsLoading}
         mcpOptions={enabledMcpServers}
         mcpLoading={mcpLoading}
-        connectorOptions={connectors.filter((connector) => connector.status === 'connected')}
         pendingPluginId={pendingApplyId}
         pendingChipId={pendingChipId}
         submitDisabled={
@@ -1349,7 +1288,6 @@ export function HomeView({
         onPickExamplePlugin={useExamplePlugin}
         onPickSkill={useSkill}
         onPickMcp={useMcpServer}
-        onPickConnector={useConnector}
         onPickChip={pickChip}
         contextItemCount={contextItemCount}
         error={error}

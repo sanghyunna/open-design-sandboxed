@@ -221,7 +221,7 @@ export const VI: SolutionLocaleCopy = {
       { title: "Phân tích sản phẩm", body: "Người dùng hoạt động, phễu, giữ chân — các chỉ số mà một đội sản phẩm sống cùng.", thumb: "example-dashboard" },
       { title: "Chỉ số repo và dev", body: "Sao, PR, sức khỏe CI — dashboard kỹ thuật từ dữ liệu của riêng bạn.", thumb: "example-github-dashboard" },
       { title: "Báo cáo tài chính", body: "Doanh thu, mức đốt vốn, đường băng được bố trí thành một báo cáo chia sẻ được.", thumb: "example-finance-report" },
-      { title: "Vận hành trực tiếp", body: "Chỉ số thời gian thực làm mới khi dữ liệu nền thay đổi.", thumb: "example-live-dashboard" },
+      { title: "Vận hành trực tiếp", body: "Chỉ số thời gian thực làm mới khi dữ liệu nền thay đổi.", thumb: "example-live-artifact" },
       { title: "Mạng xã hội và tiếp thị", body: "Hiệu suất kênh và theo dõi chiến dịch trong một khung nhìn.", thumb: "example-social-media-dashboard" },
       { title: "Báo cáo theo lĩnh vực", body: "Báo cáo có cấu trúc cho bất kỳ ngành nào — từ lâm sàng đến giao dịch.", thumb: "example-clinical-case-report" },
     ],

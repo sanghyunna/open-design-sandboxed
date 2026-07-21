@@ -551,7 +551,7 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
           {saving ? t('settings.autosaveSaving') : dirty ? t('mcpClient.saveChanges') : t('settings.autosaveSaved')}
         </button>
         {savedAt && !dirty ? (
-          <span className="hint mcp-saved-msg">{t('settings.connectorsSaved')}.</span>
+          <span className="hint mcp-saved-msg">{t('settings.mcpSaved')}.</span>
         ) : null}
         <span className="mcp-foot-spacer" />
         <span className="hint">

@@ -94,8 +94,8 @@ my-plugin/
 | `import` | 把外部来源带入 OD | `figma-migration` 或 `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
 | `create` | 生成新 artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | 把已接受 artifact 转换为下游格式 | `tune-collab` 或 `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
-| `share` | 发布或发送 artifact 给协作者 | `tune-collab` | `file-read`, `handoff`, `connector` |
-| `deploy` | 把 artifact 部署到托管基础设施 | `code-migration` 或 `tune-collab` | `file-read`, `build-test`, `handoff`, `connector` |
+| `share` | 发布或发送 artifact 给协作者 | `tune-collab` | `file-read`, `handoff` |
+| `deploy` | 把 artifact 部署到托管基础设施 | `code-migration` 或 `tune-collab` | `file-read`, `build-test`, `handoff` |
 | `refine` | 改进已有 artifact | `tune-collab` | `file-read`, `patch-edit`, `critique-theater`, `diff-review` |
 | `extend` | 帮助作者创建更多插件 | `new-generation` | `file-read`, `file-write`, `todo-write`, `critique-theater` |
 
@@ -109,7 +109,7 @@ my-plugin/
 | `deck` | 幻灯片 deck artifact |
 | `report` | 有证据支撑的分析或研究报告 |
 | `document` | 结构化 Markdown 或 HTML 文档 |
-| `dashboard` | connector-backed monitoring 或分析 dashboard |
+| `dashboard` | 数据驱动的 monitoring 或分析 dashboard |
 | `design-system` | 可复用品牌或界面系统 |
 | `template` | 可复用 starter、layout 或 artifact template |
 | `other` | 不适合当前模式的窄范围自定义输出 |
@@ -145,8 +145,6 @@ my-plugin/
 - `subprocess`
 - `bash`
 - `network`
-- `connector`
-- `connector:<id>`
 
 ## 7. Inputs 与 GenUI
 

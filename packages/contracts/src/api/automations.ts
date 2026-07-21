@@ -5,14 +5,12 @@ import type { MemoryType } from './memory.js';
 export type AutomationTriggerKind =
   | 'manual'
   | 'schedule'
-  | 'connector'
   | 'project-event';
 
 export type AutomationSourceKind =
   | 'upload'
   | 'url'
   | 'repo'
-  | 'connector'
   | 'artifact'
   | 'chat';
 
@@ -132,8 +130,6 @@ export interface AutomationSourceEvent {
   title: string;
   capturedAt: string;
   projectId?: string;
-  connectorId?: string;
-  accountLabel?: string;
   artifactId?: string;
   conversationId?: string;
   metadata?: JsonValue;
@@ -177,7 +173,6 @@ export type MemoryTreeNodeKind = 'folder' | 'entry';
 export type MemoryTreeNodeScope =
   | 'global'
   | 'project'
-  | 'connector'
   | 'artifact'
   | 'design-system'
   | 'skill';
@@ -298,8 +293,6 @@ export interface CreateAutomationSourceIngestionRequest {
   title?: string;
   bodyMarkdown?: string;
   projectId?: string;
-  connectorId?: string;
-  accountLabel?: string;
   artifactId?: string;
   conversationId?: string;
   sensitivity?: AutomationSensitivity;

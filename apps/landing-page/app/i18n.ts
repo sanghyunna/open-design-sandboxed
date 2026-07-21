@@ -3563,7 +3563,7 @@ const LANDING_UI_COPY: LandingUiCopy = {
         'Templates ship as forkable folders. Depending on origin, they include SKILL.md instructions, a preview example, or a template.html/data.json renderer with README notes.',
       renderer: 'the artifact renderer',
       seedData: 'seed values for offline / preview rendering',
-      readme: 'connector wiring, refresh cadence, customization notes',
+      readme: 'integration wiring, refresh cadence, customization notes',
     },
     craft: {
       title: (count) => `Craft — ${count} brand-agnostic rendering principles | Open Design`,
@@ -3854,7 +3854,7 @@ const LANDING_UI_COPY_OVERRIDES: Partial<
           '模板是可以 fork 的文件夹，按来源包含 SKILL.md 指令、预览 example，或 template.html / data.json 渲染器与 README 连接说明。',
         renderer: 'Artifact 渲染器',
         seedData: '离线 / 预览渲染的种子值',
-        readme: 'connector 接线、刷新节奏和自定义说明',
+        readme: '集成接线、刷新节奏和自定义说明',
       },
       craft: {
         title: (count) => `工艺规则 — ${count} 条品牌无关渲染原则 | Open Design`,

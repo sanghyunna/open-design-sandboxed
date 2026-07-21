@@ -439,8 +439,6 @@ describe('ChatPane streaming state', () => {
           assetsStaged: [],
           taskKind: 'new-generation',
           appliedAt: 1,
-          connectorsRequired: [],
-          connectorsResolved: [],
           mcpServers: [],
           status: 'fresh',
           pluginTitle: 'A Decade of Refinement Glow-Up',

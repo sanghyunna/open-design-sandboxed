@@ -36,7 +36,7 @@ Read these files before editing:
 ```
 
 3. Keep the `SKILL.md` portable. It may mention Open Design behavior, but the core workflow must still make sense in any Agent Skills compatible agent.
-4. Put OD-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, connectors, and capabilities in `open-design.json`.
+4. Put OD-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, and capabilities in `open-design.json`.
 5. Add `examples/`, `preview/`, `assets/`, or `references/` only when they materially help the agent produce better results.
 6. Add `evals/evals.json` when the plugin has enough behavior to regress.
 7. If publishing externally, prepare registry-safe README sections for skills.sh, ClawHub, and canonical GitHub source.
@@ -51,7 +51,7 @@ The plugin is not done until:
 - The declared atoms are known first-party atoms or clearly marked future work.
 - The declared capabilities are the minimum needed.
 - Visual plugins include a preview or concrete example output.
-- Share, deploy, connector, and network plugins require explicit confirmation before externally visible actions.
+- Share, deploy, and network plugins require explicit confirmation before externally visible actions.
 
 ## Validation Commands
 

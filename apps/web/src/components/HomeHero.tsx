@@ -24,7 +24,6 @@ import type {
 } from 'react';
 import type {
   ChatSessionMode,
-  ConnectorDetail,
   DesignSystemSummary,
   InputFieldSpec,
   InstalledPluginRecord,
@@ -131,19 +130,15 @@ interface Props {
   onClearActiveSkill?: () => void;
   selectedPluginContexts?: InstalledPluginRecord[];
   selectedMcpContexts?: McpServerConfig[];
-  selectedConnectorContexts?: ConnectorDetail[];
   // Context-only selections (staged through the plain `Use` action, no inline
   // @mention pill). These have no in-prompt representation, so the active row
   // renders a removable chip for each — otherwise a kept-in-payload context
   // would be invisible and unremovable (silent context drift).
   contextOnlyPlugins?: InstalledPluginRecord[];
   contextOnlyMcpServers?: McpServerConfig[];
-  contextOnlyConnectors?: ConnectorDetail[];
   onRemovePluginContext?: (pluginId: string) => void;
   onRemoveMcpContext?: (serverId: string) => void;
-  onRemoveConnectorContext?: (connectorId: string) => void;
   onAddPlugin?: () => void;
-  onAddConnector?: () => void;
   onAddMcp?: () => void;
   onOpenPluginDetails?: (record: InstalledPluginRecord) => void;
   pluginInputFields?: InputFieldSpec[];
@@ -162,7 +157,6 @@ interface Props {
   skillsLoading?: boolean;
   mcpOptions?: McpServerConfig[];
   mcpLoading?: boolean;
-  connectorOptions?: ConnectorDetail[];
   pendingPluginId: string | null;
   pendingChipId: string | null;
   submitDisabled?: boolean;
@@ -170,7 +164,6 @@ interface Props {
   onPickExamplePlugin?: (record: InstalledPluginRecord, chipId: string, promptText: string) => void;
   onPickSkill?: (skill: SkillSummary, nextPrompt: string | null) => void;
   onPickMcp?: (server: McpServerConfig, nextPrompt: string) => void;
-  onPickConnector?: (connector: ConnectorDetail, nextPrompt: string) => void;
   onPickChip: (chip: HomeHeroChip) => void;
   contextItemCount: number;
   error: string | null;
@@ -179,7 +172,7 @@ interface Props {
   executionSwitcher?: ReactNode;
 }
 
-type HomeMentionTab = 'all' | 'files' | 'plugins' | 'skills' | 'mcp' | 'connectors';
+type HomeMentionTab = 'all' | 'files' | 'plugins' | 'skills' | 'mcp';
 
 // In the combined "All" overview, every surface is capped to a handful of top
 // matches so no single section floods the picker. The dedicated "Design files"
@@ -212,7 +205,6 @@ interface SelectedPromptExample {
 
 const EMPTY_PLUGIN_CONTEXTS: InstalledPluginRecord[] = [];
 const EMPTY_MCP_CONTEXTS: McpServerConfig[] = [];
-const EMPTY_CONNECTOR_CONTEXTS: ConnectorDetail[] = [];
 const EMPTY_INPUT_FIELDS: InputFieldSpec[] = [];
 const EMPTY_PLUGIN_INPUT_VALUES: Record<string, unknown> = {};
 const EMPTY_INPUT_NAMES: string[] = [];
@@ -220,7 +212,6 @@ const EMPTY_DESIGN_SYSTEMS: DesignSystemSummary[] = [];
 const EMPTY_STAGED_FILES: File[] = [];
 const EMPTY_SKILLS: SkillSummary[] = [];
 const EMPTY_MCP_OPTIONS: McpServerConfig[] = [];
-const EMPTY_CONNECTOR_OPTIONS: ConnectorDetail[] = [];
 
 export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
   {
@@ -243,12 +234,9 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     selectedPluginContexts = EMPTY_PLUGIN_CONTEXTS,
     contextOnlyPlugins = EMPTY_PLUGIN_CONTEXTS,
     contextOnlyMcpServers = EMPTY_MCP_OPTIONS,
-    contextOnlyConnectors = EMPTY_CONNECTOR_OPTIONS,
     onRemovePluginContext = () => undefined,
     onRemoveMcpContext = () => undefined,
-    onRemoveConnectorContext = () => undefined,
     onAddPlugin = () => undefined,
-    onAddConnector = () => undefined,
     onAddMcp = () => undefined,
     onOpenPluginDetails = () => undefined,
     pluginInputFields = EMPTY_INPUT_FIELDS,
@@ -265,7 +253,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     skillsLoading = false,
     mcpOptions = EMPTY_MCP_OPTIONS,
     mcpLoading = false,
-    connectorOptions = EMPTY_CONNECTOR_OPTIONS,
     pendingPluginId,
     pendingChipId,
     submitDisabled = false,
@@ -273,7 +260,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     onPickExamplePlugin = () => undefined,
     onPickSkill = () => undefined,
     onPickMcp = () => undefined,
-    onPickConnector = () => undefined,
     onPickChip,
     contextItemCount,
     error,
@@ -354,31 +340,22 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
         : [],
     [mcpOptions, mentionActive, mentionQuery],
   );
-  const connectorMatches = useMemo(
-    () =>
-      mentionActive
-        ? connectorOptions.filter((connector) => connectorMatchesQuery(connector, mentionQuery)).slice(0, 6)
-        : [],
-    [connectorOptions, mentionActive, mentionQuery],
-  );
   const pickerOpen = active && mentionActive;
   const tabs: Array<{ id: HomeMentionTab; label: string; count: number }> = [
     // The All overview previews at most HOME_MENTION_ALL_TAB_PREVIEW files, so
     // its badge counts the previewed slice — not the full staged total — to keep
     // the count aligned with what that tab actually renders. The dedicated files
     // tab below lists every match and reports the true total.
-    { id: 'all', label: t('common.all'), count: Math.min(fileMatches.length, HOME_MENTION_ALL_TAB_PREVIEW) + pluginMatches.length + skillMatches.length + mcpMatches.length + connectorMatches.length },
+    { id: 'all', label: t('common.all'), count: Math.min(fileMatches.length, HOME_MENTION_ALL_TAB_PREVIEW) + pluginMatches.length + skillMatches.length + mcpMatches.length },
     { id: 'files', label: t('chat.mentionTabFiles'), count: fileMatches.length },
     { id: 'plugins', label: t('entry.navPlugins'), count: pluginMatches.length },
     { id: 'skills', label: t('homeHero.skills'), count: skillMatches.length },
     { id: 'mcp', label: 'MCP', count: mcpMatches.length },
-    { id: 'connectors', label: 'Connectors', count: connectorMatches.length },
   ];
   const showFiles = mentionTab === 'all' || mentionTab === 'files';
   const showPlugins = mentionTab === 'all' || mentionTab === 'plugins';
   const showSkills = mentionTab === 'all' || mentionTab === 'skills';
   const showMcp = mentionTab === 'all' || mentionTab === 'mcp';
-  const showConnectors = mentionTab === 'all' || mentionTab === 'connectors';
   const visibleSections: HomeMentionSection[] = [
     showFiles
       ? {
@@ -438,20 +415,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
           })),
         }
       : null,
-    showConnectors
-      ? {
-          id: 'connectors',
-          label: 'Connectors',
-          options: connectorMatches.map((connector) => ({
-            id: `connector-${connector.id}`,
-            icon: 'link',
-            title: connector.name,
-            description: connector.description || connector.provider || connector.id,
-            meta: connector.accountLabel ?? connector.provider,
-            onPick: () => pickConnector(connector),
-          })),
-        }
-      : null,
   ].filter((section): section is HomeMentionSection => Boolean(section?.options.length));
   const visiblePickerOptions = visibleSections.flatMap((section) => section.options);
   const visibleLoading =
@@ -467,7 +430,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
         activeSkillTitle,
         mcpOptions,
         pluginOptions,
-        connectorOptions,
         selectedPluginContexts,
         stagedFiles,
         skillOptions,
@@ -478,7 +440,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
       activeSkillTitle,
       mcpOptions,
       pluginOptions,
-      connectorOptions,
       selectedPluginContexts,
       stagedFiles,
       skillOptions,
@@ -759,17 +720,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     onPickMcp(server, next);
   }
 
-  function pickConnector(connector: ConnectorDetail) {
-    const token = inlineMentionToken(connector.name);
-    const next = insertHomeMention(token, {
-      id: connector.id,
-      kind: 'connector',
-      label: connector.name,
-      token,
-    });
-    onPickConnector(connector, next);
-  }
-
   // Lexical reports the active @-trigger derived from the caret. HomeHero
   // has no slash surface, so only the mention branch is wired.
   function handleTrigger({
@@ -924,7 +874,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     if (activePluginRecord) onOpenPluginDetails(activePluginRecord);
   }
 
-  // plugin/MCP/connector contexts now render as inline @mention pills in the
+  // plugin/MCP contexts now render as inline @mention pills in the
   // composer, so they no longer drive this top row — only staged files (which
   // have no inline representation) and the active plugin/skill/example chips do.
   const showActiveContextRow =
@@ -1150,29 +1100,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 </span>
               );
             })}
-            {contextOnlyConnectors.map((connector) => (
-              <span
-                key={`ctx-connector-${connector.id}`}
-                className="home-hero__active-chip home-hero__active-chip--context"
-                data-testid={`home-hero-context-connector-${connector.id}`}
-              >
-                <span className="home-hero__active-icon" aria-hidden>
-                  <Icon name="link" size={12} />
-                </span>
-                <span className="home-hero__active-label">{connector.name}</span>
-                <button
-                  type="button"
-                  className="home-hero__active-clear od-tooltip"
-                  onClick={() => onRemoveConnectorContext(connector.id)}
-                  aria-label={t('chat.removeAria', { name: connector.name })}
-                  title={t('common.close')}
-                  data-tooltip={t('common.close')}
-                  data-testid={`home-hero-context-clear-${connector.id}`}
-                >
-                  <Icon name="close" size={9} />
-                </button>
-              </span>
-            ))}
           </div>
         ) : null}
         <div className="home-hero__prompt-surface">
@@ -1352,26 +1279,6 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                   element: 'plus_menu_open',
                 })
               }
-              connectors={connectorOptions}
-              onPickConnector={(connector) => {
-                trackHomeChatComposerClick(analytics.track, {
-                  page_name: 'home',
-                  area: 'chat_composer',
-                  element: 'plus_pick',
-                  resource_kind: 'connector',
-                  resource_id: connector.id,
-                });
-                pickConnector(connector);
-              }}
-              onAddConnector={() => {
-                trackHomeChatComposerClick(analytics.track, {
-                  page_name: 'home',
-                  area: 'chat_composer',
-                  element: 'plus_add',
-                  resource_kind: 'connector',
-                });
-                onAddConnector();
-              }}
               plugins={pluginOptions}
               onPickPlugin={(record) => {
                 trackHomeChatComposerClick(analytics.track, {
@@ -1753,7 +1660,6 @@ function buildHomeMentionEntities({
   activePluginRecord,
   activeSkillId,
   activeSkillTitle,
-  connectorOptions,
   mcpOptions,
   pluginOptions,
   selectedPluginContexts,
@@ -1763,7 +1669,6 @@ function buildHomeMentionEntities({
   activePluginRecord: InstalledPluginRecord | null;
   activeSkillId: string | null;
   activeSkillTitle: string | null;
-  connectorOptions: ConnectorDetail[];
   mcpOptions: McpServerConfig[];
   pluginOptions: InstalledPluginRecord[];
   selectedPluginContexts: InstalledPluginRecord[];
@@ -1850,24 +1755,6 @@ function buildHomeMentionEntities({
         label: server.id,
         token: inlineMentionToken(server.id),
         title: `MCP: ${label}`,
-      });
-    }
-  }
-  for (const connector of connectorOptions) {
-    entities.push({
-      id: connector.id,
-      kind: 'connector',
-      label: connector.name,
-      token: inlineMentionToken(connector.name),
-      title: `Connector: ${connector.name}`,
-    });
-    if (connector.id !== connector.name) {
-      entities.push({
-        id: connector.id,
-        kind: 'connector',
-        label: connector.id,
-        token: inlineMentionToken(connector.id),
-        title: `Connector: ${connector.name}`,
       });
     }
   }
@@ -2435,22 +2322,6 @@ function mcpServerMatchesQuery(server: McpServerConfig, query: string): boolean 
     server.transport,
     server.url ?? '',
     server.command ?? '',
-  ]
-    .join(' ')
-    .toLowerCase()
-    .includes(q);
-}
-
-function connectorMatchesQuery(connector: ConnectorDetail, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return [
-    connector.id,
-    connector.name,
-    connector.provider,
-    connector.category,
-    connector.description ?? '',
-    connector.accountLabel ?? '',
   ]
     .join(' ')
     .toLowerCase()

@@ -1,7 +1,7 @@
 // Plan G4 / spec §11.6 — Marketplace plugin detail.
 //
 // Renders one plugin's manifest, capability checklist, declared GenUI
-// surfaces and connector requirements, plus a "Use this plugin"
+// surfaces, plus a "Use this plugin"
 // button that hydrates a fresh ApplyResult. The user lands back on
 // Home where the PluginLoopHome surface (or ChatComposer once a
 // project is created) consumes the applied snapshot — applyPlugin
@@ -76,8 +76,6 @@ export function PluginDetailView(props: Props) {
   const localizedDescription = localizePluginDescription(locale, plugin);
   const od = plugin.manifest?.od ?? {};
   const surfaces = od.genui?.surfaces ?? [];
-  const required = od.connectors?.required ?? [];
-  const optional = od.connectors?.optional ?? [];
   const capabilities = od.capabilities ?? [];
   // Plan §6 Phase 2B / spec §11.6 — show a sandboxed iframe of the
   // plugin's preview entry when one is declared. The daemon serves
@@ -145,38 +143,6 @@ export function PluginDetailView(props: Props) {
           </ul>
         )}
       </section>
-
-      {required.length > 0 || optional.length > 0 ? (
-        <section className="plugin-detail__connectors">
-          <h2>Connectors</h2>
-          {required.length > 0 ? (
-            <>
-              <h3>Required</h3>
-              <ul>
-                {required.map((c: { id: string; tools?: string[] }) => (
-                  <li key={c.id}>
-                    <code>{c.id}</code>
-                    {c.tools && c.tools.length > 0 ? ` · ${c.tools.join(', ')}` : ''}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {optional.length > 0 ? (
-            <>
-              <h3>Optional</h3>
-              <ul>
-                {optional.map((c: { id: string; tools?: string[] }) => (
-                  <li key={c.id}>
-                    <code>{c.id}</code>
-                    {c.tools && c.tools.length > 0 ? ` · ${c.tools.join(', ')}` : ''}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-        </section>
-      ) : null}
 
       {hasPreview ? (
         <section className="plugin-detail__preview" data-testid="plugin-detail-preview-section">

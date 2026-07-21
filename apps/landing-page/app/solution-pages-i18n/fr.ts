@@ -221,7 +221,7 @@ export const FR: SolutionLocaleCopy = {
       { title: "Analytique produit", body: "Utilisateurs actifs, entonnoirs, rétention — les indicateurs où vit une équipe produit.", thumb: "example-dashboard" },
       { title: "Indicateurs dépôt et dev", body: "Étoiles, PR, santé du CI — des tableaux de bord d’ingénierie à partir de vos propres données.", thumb: "example-github-dashboard" },
       { title: "Rapports financiers", body: "Revenu, burn, runway disposés en un rapport partageable.", thumb: "example-finance-report" },
-      { title: "Opérations en direct", body: "Des indicateurs en temps réel qui se rafraîchissent au gré des données sous-jacentes.", thumb: "example-live-dashboard" },
+      { title: "Opérations en direct", body: "Des indicateurs en temps réel qui se rafraîchissent au gré des données sous-jacentes.", thumb: "example-live-artifact" },
       { title: "Social et marketing", body: "Performance des canaux et suivi des campagnes en une seule vue.", thumb: "example-social-media-dashboard" },
       { title: "Rapports métier", body: "Des rapports structurés pour tout domaine — du clinique au trading.", thumb: "example-clinical-case-report" },
     ],

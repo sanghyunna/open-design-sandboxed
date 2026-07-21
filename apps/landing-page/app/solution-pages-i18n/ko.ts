@@ -221,7 +221,7 @@ export const KO: SolutionLocaleCopy = {
       { title: "제품 분석", body: "활성 사용자, 퍼널, 리텐션 — 제품 팀이 늘 들여다보는 지표.", thumb: "example-dashboard" },
       { title: "리포지토리와 개발 지표", body: "스타, PR, CI 상태 — 자신의 데이터로 만든 엔지니어링 대시보드.", thumb: "example-github-dashboard" },
       { title: "재무 리포트", body: "매출, 번, 런웨이를 공유 가능한 리포트로 배치.", thumb: "example-finance-report" },
-      { title: "실시간 운영", body: "기반 데이터가 움직이는 대로 새로고침되는 실시간 지표.", thumb: "example-live-dashboard" },
+      { title: "실시간 운영", body: "기반 데이터가 움직이는 대로 새로고침되는 실시간 지표.", thumb: "example-live-artifact" },
       { title: "소셜과 마케팅", body: "채널 성과와 캠페인 추적을 한 화면에.", thumb: "example-social-media-dashboard" },
       { title: "도메인 리포트", body: "어떤 분야든 구조화된 리포트 — 임상부터 트레이딩까지.", thumb: "example-clinical-case-report" },
     ],

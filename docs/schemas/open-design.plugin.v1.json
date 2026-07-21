@@ -138,14 +138,6 @@
           },
           "additionalProperties": true
         },
-        "connectors": {
-          "type": "object",
-          "properties": {
-            "required": { "type": "array", "items": { "$ref": "#/$defs/ConnectorRef" } },
-            "optional": { "type": "array", "items": { "$ref": "#/$defs/ConnectorRef" } }
-          },
-          "additionalProperties": true
-        },
         "inputs": {
           "type": "array",
           "items": { "$ref": "#/$defs/InputField" }
@@ -212,21 +204,11 @@
           "type": "object",
           "required": ["route"],
           "properties": {
-            "route":       { "type": "string", "enum": ["connector", "mcp", "plugin"] },
-            "connectorId": { "type": "string" },
+            "route":       { "type": "string", "enum": ["mcp", "plugin"] },
             "mcpServerId": { "type": "string" }
           },
           "additionalProperties": true
         }
-      },
-      "additionalProperties": true
-    },
-    "ConnectorRef": {
-      "type": "object",
-      "required": ["id"],
-      "properties": {
-        "id":    { "type": "string" },
-        "tools": { "type": "array", "items": { "type": "string" } }
       },
       "additionalProperties": true
     },

@@ -13,7 +13,6 @@ export {
 export { applyAgentLaunchEnv, resolveAgentLaunch } from './runtimes/launch.js';
 export { resolveAgentBin } from './runtimes/resolution.js';
 export { openDesignAmrTraceEnv, spawnEnvForAgent } from './runtimes/env.js';
-export { buildConnectorsMcpServersForAgent } from './runtimes/mcp.js';
 export {
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,

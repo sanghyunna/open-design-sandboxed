@@ -958,7 +958,7 @@
   font-weight: 650;
   line-height: 1;
 }
-/* "+" menu: collapses attach + connectors/plugins/mcp into one trigger with an
+/* "+" menu: collapses attach + plugins/mcp into one trigger with an
    upward popup and right-side flyout submenus. */
 .home-hero__plus-menu {
   position: relative;

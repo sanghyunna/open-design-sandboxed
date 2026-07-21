@@ -21,7 +21,6 @@ export const FIRST_PARTY_ATOMS: ReadonlyArray<AtomCatalogEntry> = [
   { id: 'file-write',              label: 'File write',              description: 'Write project files.',                      status: 'implemented', taskKinds: ['new-generation', 'code-migration', 'figma-migration', 'tune-collab'] },
   { id: 'file-edit',               label: 'File edit',               description: 'Edit project files.',                       status: 'implemented', taskKinds: ['new-generation', 'code-migration', 'figma-migration', 'tune-collab'] },
   { id: 'research-search',         label: 'Research search',         description: 'Tavily-backed shallow research.',           status: 'implemented', taskKinds: ['new-generation'] },
-  { id: 'connector',               label: 'Connector',               description: 'Composio connector tool calls.',            status: 'implemented', taskKinds: ['new-generation', 'tune-collab'] },
   { id: 'critique-theater',        label: 'Critique theater',        description: '5-dim panel critique; devloop signal.',     status: 'implemented', taskKinds: ['new-generation', 'code-migration', 'figma-migration', 'tune-collab'] },
   // Phase 6/7/8 atoms — promoted from 'planned' to 'implemented'
   // by the §3.N1-N4 / §3.O2-O5 / §3.P1-P2 / §3.Q2 / §3.S1 slices.

@@ -80,8 +80,6 @@ export function migratePlugins(db: SqliteDb): void {
       capabilities_granted     TEXT NOT NULL,
       capabilities_required    TEXT NOT NULL DEFAULT '[]',
       assets_staged_json       TEXT NOT NULL,
-      connectors_required_json TEXT NOT NULL DEFAULT '[]',
-      connectors_resolved_json TEXT NOT NULL DEFAULT '[]',
       mcp_servers_json         TEXT NOT NULL DEFAULT '[]',
       plugin_title             TEXT,
       plugin_description       TEXT,

@@ -101,8 +101,7 @@ export const GenUISurfaceSpecSchema = z.object({
   onTimeout:            z.enum(['abort', 'default', 'skip']).optional(),
   default:              z.unknown().optional(),
   oauth: z.object({
-    route:       z.enum(['connector', 'mcp', 'plugin']),
-    connectorId: z.string().optional(),
+    route:       z.enum(['mcp', 'plugin']),
     mcpServerId: z.string().optional(),
   }).passthrough().optional(),
   // Phase 4 / spec §10.3.5 alignment-roadmap row 2 — plugin-bundled
@@ -127,14 +126,6 @@ export const GenUISurfaceSpecSchema = z.object({
 }).passthrough();
 
 export type GenUISurfaceSpec = z.infer<typeof GenUISurfaceSpecSchema>;
-
-export const PluginConnectorRefSchema = z.object({
-  id:    z.string().min(1),
-  tools: z.array(z.string()).default([]),
-  required: z.boolean().optional(),
-}).passthrough();
-
-export type PluginConnectorRef = z.infer<typeof PluginConnectorRefSchema>;
 
 export const PluginManifestSchema = z.object({
   $schema:     z.string().optional(),
@@ -199,10 +190,6 @@ export const PluginManifestSchema = z.object({
     pipeline: PluginPipelineSchema.optional(),
     genui: z.object({
       surfaces: z.array(GenUISurfaceSpecSchema).optional(),
-    }).passthrough().optional(),
-    connectors: z.object({
-      required: z.array(PluginConnectorRefSchema).optional(),
-      optional: z.array(PluginConnectorRefSchema).optional(),
     }).passthrough().optional(),
     inputs: z.array(InputFieldSchema).optional(),
     capabilities: z.array(z.string()).optional(),

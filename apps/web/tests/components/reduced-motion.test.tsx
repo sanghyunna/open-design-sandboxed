@@ -25,12 +25,10 @@ import {
 } from '../../src/providers/registry';
 import { listProjects, listTemplates } from '../../src/state/projects';
 import {
-  fetchComposioConfigFromDaemon,
   fetchDaemonConfig,
   loadConfig,
   mergeDaemonConfig,
   saveConfig,
-  syncComposioConfigToDaemon,
   syncConfigToDaemon,
 } from '../../src/state/config';
 
@@ -95,8 +93,6 @@ vi.mock('../../src/state/config', async () => {
     saveConfig: vi.fn(),
     fetchDaemonConfig: vi.fn().mockResolvedValue({}),
     syncConfigToDaemon: vi.fn().mockResolvedValue(undefined),
-    syncComposioConfigToDaemon: vi.fn().mockResolvedValue(true),
-    fetchComposioConfigFromDaemon: vi.fn().mockResolvedValue(null),
   };
 });
 
@@ -113,7 +109,6 @@ const baseConfig: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: true,
-  composio: {},
   agentModels: {},
   agentCliEnv: {},
 };
@@ -127,11 +122,9 @@ beforeEach(() => {
   vi.mocked(listProjects).mockResolvedValue([]);
   vi.mocked(listTemplates).mockResolvedValue([]);
   vi.mocked(fetchDaemonConfig).mockResolvedValue({});
-  vi.mocked(fetchComposioConfigFromDaemon).mockResolvedValue(null);
   vi.mocked(mergeDaemonConfig).mockImplementation((local) => local);
   vi.mocked(saveConfig).mockImplementation(() => {});
   vi.mocked(syncConfigToDaemon).mockResolvedValue(undefined);
-  vi.mocked(syncComposioConfigToDaemon).mockResolvedValue(true);
   vi.mocked(loadConfig).mockReturnValue({ ...baseConfig });
   vi.stubGlobal(
     'fetch',

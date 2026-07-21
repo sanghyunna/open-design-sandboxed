@@ -80,12 +80,12 @@ jobs:
                 command: "pnpm -C e2e exec playwright test -c playwright.config.ts ui/app.test.ts ui/app-restoration.test.ts --grep 'file-upload|conversation|comment|\\[P0\\]'",
               },
               {
-                area: 'settings/BYOK/connectors',
+                area: 'settings/BYOK',
                 patterns: [
-                  /^apps\/web\/src\/.*(Settings|Byok|Connector|ModelField|Provider|LocalCli|Codex|AMR)/i,
+                  /^apps\/web\/src\/.*(Settings|Byok|ModelField|Provider|LocalCli|Codex|AMR)/i,
                   /^e2e\/ui\/settings-.*\.test\.ts$/,
                 ],
-                command: "pnpm -C e2e exec playwright test -c playwright.config.ts ui/settings-api-protocol.test.ts ui/settings-connectors-auth-happy-path.test.ts ui/settings-connectors-auth-recovery.test.ts --grep '\\[P0\\]|\\[P1\\]'",
+                command: "pnpm -C e2e exec playwright test -c playwright.config.ts ui/settings-api-protocol.test.ts --grep '\\[P0\\]|\\[P1\\]'",
               },
               {
                 area: 'daemon/runtime',

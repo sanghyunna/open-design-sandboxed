@@ -231,7 +231,6 @@ function renderSettingsDialog(
   } = {},
 ) {
   const onPersist = vi.fn();
-  const onPersistComposioKey = vi.fn();
   const onClose = vi.fn();
   const onRefreshAgents = options.onRefreshAgents ?? vi.fn<OnRefreshAgents>();
 
@@ -244,13 +243,12 @@ function renderSettingsDialog(
       initialSection={options.initialSection ?? 'execution'}
       welcome={options.welcome}
       onPersist={onPersist}
-      onPersistComposioKey={onPersistComposioKey}
       onClose={onClose}
       onRefreshAgents={onRefreshAgents}
     />,
   );
 
-  return { onPersist, onPersistComposioKey, onClose, onRefreshAgents, ...view };
+  return { onPersist, onClose, onRefreshAgents, ...view };
 }
 
 function renderLanguageSettingsDialog(initialLocale: Parameters<typeof I18nProvider>[0]['initial'] = 'en') {
@@ -266,7 +264,6 @@ function renderLanguageSettingsDialog(initialLocale: Parameters<typeof I18nProvi
         appVersionInfo={null}
         initialSection="language"
         onPersist={onPersist}
-        onPersistComposioKey={vi.fn()}
         onClose={onClose}
         onRefreshAgents={vi.fn()}
       />
@@ -2211,136 +2208,6 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
 });
 
 
-describe('SettingsDialog connectors interactions', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('renders a saved Composio key state with masked tail and replacement guidance', () => {
-    renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        composio: {
-          apiKey: '',
-          apiKeyConfigured: true,
-          apiKeyTail: 'uQEg',
-        },
-      },
-      { initialSection: 'composio' },
-    );
-
-    expect(screen.getAllByRole('heading', { name: 'Connectors' }).length).toBeGreaterThan(0);
-    expect(screen.getByText('Saved · ••••uQEg')).toBeTruthy();
-    expect((screen.getByPlaceholderText('Paste a new key to replace the saved one') as HTMLInputElement).value).toBe('');
-    expect(screen.getByText(/your key is saved in the local daemon/i)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Clear' }) as HTMLButtonElement).disabled).toBe(false);
-
-    const getApiKeyLink = screen.getByRole('link', { name: /Get API Key/i }) as HTMLAnchorElement;
-    expect(getApiKeyLink.href).toBe('https://app.composio.dev/');
-  });
-
-  it('supports replacing a saved Composio key and saving the pending edit', async () => {
-    const { onPersistComposioKey } = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        composio: {
-          apiKey: '',
-          apiKeyConfigured: true,
-          apiKeyTail: 'uQEg',
-        },
-      },
-      { initialSection: 'composio' },
-    );
-
-    fireEvent.change(screen.getByPlaceholderText('Paste a new key to replace the saved one'), {
-      target: { value: 'cmp_replacement_secret' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save key' }));
-    await waitFor(() => {
-      expect(onPersistComposioKey).toHaveBeenCalledWith({
-        apiKey: 'cmp_replacement_secret',
-        apiKeyConfigured: true,
-        apiKeyTail: 'uQEg',
-      });
-    });
-  });
-
-  it('clears a saved Composio key from the payload', async () => {
-    const { onPersistComposioKey } = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        composio: {
-          apiKey: '',
-          apiKeyConfigured: true,
-          apiKeyTail: 'uQEg',
-        },
-      },
-      { initialSection: 'composio' },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() => {
-      expect((screen.getByRole('button', { name: /hold on|disconnect/i }) as HTMLButtonElement).disabled).toBe(false);
-    });
-    fireEvent.click(screen.getByRole('button', { name: /hold on|disconnect/i }));
-
-    await waitFor(() => {
-      expect(onPersistComposioKey).toHaveBeenCalledWith({
-        apiKey: '',
-        apiKeyConfigured: false,
-        apiKeyTail: '',
-      });
-    });
-    expect(screen.getByText(/keys are stored locally and never shared/i)).toBeTruthy();
-  });
-
-  it('closes Composio settings via the close button or backdrop', () => {
-    const first = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        composio: {
-          apiKey: '',
-          apiKeyConfigured: true,
-          apiKeyTail: 'uQEg',
-        },
-      },
-      { initialSection: 'composio' },
-    );
-
-    fireEvent.change(screen.getByPlaceholderText('Paste a new key to replace the saved one'), {
-      target: { value: 'cmp_unsaved_secret' },
-    });
-    fireEvent.click(first.container.querySelector('.settings-close') as HTMLElement);
-    expect(first.onClose).toHaveBeenCalledTimes(1);
-
-    cleanup();
-
-    const second = renderSettingsDialog(
-      {
-        mode: 'daemon',
-        agentId: 'codex',
-        composio: {
-          apiKey: '',
-          apiKeyConfigured: true,
-          apiKeyTail: 'uQEg',
-        },
-      },
-      { initialSection: 'composio' },
-    );
-    fireEvent.change(screen.getByPlaceholderText('Paste a new key to replace the saved one'), {
-      target: { value: 'cmp_unsaved_secret_2' },
-    });
-    fireEvent.click(document.querySelector('.modal-backdrop') as HTMLElement);
-    expect(second.onClose).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('SettingsDialog MCP server interactions', () => {
   const installInfo = {
     command: '/Applications/Open Design.app/Contents/Resources/open-design/bin/node',
@@ -2848,7 +2715,6 @@ describe('SettingsDialog appearance interactions', () => {
         appVersionInfo={null}
         initialSection="appearance"
         onPersist={view.onPersist}
-        onPersistComposioKey={view.onPersistComposioKey}
         onClose={view.onClose}
         onRefreshAgents={view.onRefreshAgents}
       />,
@@ -3023,7 +2889,6 @@ describe('SettingsDialog appearance interactions', () => {
           appVersionInfo={null}
           initialSection="appearance"
           onPersist={vi.fn()}
-          onPersistComposioKey={vi.fn()}
           onClose={vi.fn()}
           onRefreshAgents={vi.fn()}
         />

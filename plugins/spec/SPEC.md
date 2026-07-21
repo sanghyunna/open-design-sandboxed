@@ -94,8 +94,8 @@ Use one primary lane. Put the lane in `tags`, `od.scenario`, or `od.mode` so sea
 | `import` | Bring external sources into OD | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
 | `create` | Generate a new artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | Convert an accepted artifact to a downstream format | `tune-collab` or `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
-| `share` | Publish or send an artifact to collaborators | `tune-collab` | `file-read`, `handoff`, `connector` |
-| `deploy` | Ship an artifact to hosted infrastructure | `code-migration` or `tune-collab` | `file-read`, `build-test`, `handoff`, `connector` |
+| `share` | Publish or send an artifact to collaborators | `tune-collab` | `file-read`, `handoff` |
+| `deploy` | Ship an artifact to hosted infrastructure | `code-migration` or `tune-collab` | `file-read`, `build-test`, `handoff` |
 | `refine` | Improve an existing artifact | `tune-collab` | `file-read`, `patch-edit`, `critique-theater`, `diff-review` |
 | `extend` | Help authors create more plugins | `new-generation` | `file-read`, `file-write`, `todo-write`, `critique-theater` |
 
@@ -109,7 +109,7 @@ Use `od.mode` for the main output surface:
 | `deck` | Slide deck artifact |
 | `report` | Evidence-backed analytical or research report |
 | `document` | Structured Markdown or HTML document |
-| `dashboard` | Connector-backed monitoring or analysis dashboard |
+| `dashboard` | Data-backed monitoring or analysis dashboard |
 | `design-system` | Reusable brand or interface system |
 | `template` | Reusable starter, layout, or artifact template |
 | `other` | Narrow custom output that does not fit the current modes |
@@ -145,8 +145,6 @@ Known v1 capabilities:
 - `subprocess`
 - `bash`
 - `network`
-- `connector`
-- `connector:<id>`
 
 ## 7. Inputs And GenUI
 

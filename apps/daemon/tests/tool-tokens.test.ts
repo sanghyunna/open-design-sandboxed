@@ -34,24 +34,24 @@ describe('run-scoped tool tokens', () => {
     const grant = registry.mint({
       runId: 'run-allowlist',
       projectId: 'project-a',
-      allowedEndpoints: ['/api/tools/connectors/list'],
-      allowedOperations: ['connectors:list'],
+      allowedEndpoints: ['/api/tools/media/generate'],
+      allowedOperations: ['media:generate'],
       nowMs: 1_000,
     });
 
     expect(registry.validate(grant.token, {
-      endpoint: '/api/tools/connectors/list',
-      operation: 'connectors:list',
+      endpoint: '/api/tools/media/generate',
+      operation: 'media:generate',
       nowMs: 1_001,
     })).toMatchObject({ ok: true });
     expect(registry.validate(grant.token, {
-      endpoint: '/api/tools/connectors/execute',
-      operation: 'connectors:list',
+      endpoint: '/api/tools/media/list',
+      operation: 'media:generate',
       nowMs: 1_001,
     })).toMatchObject({ ok: false, code: 'TOOL_ENDPOINT_DENIED' });
     expect(registry.validate(grant.token, {
-      endpoint: '/api/tools/connectors/list',
-      operation: 'connectors:execute',
+      endpoint: '/api/tools/media/generate',
+      operation: 'media:list',
       nowMs: 1_001,
     })).toMatchObject({ ok: false, code: 'TOOL_OPERATION_DENIED' });
     registry.clear();

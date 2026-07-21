@@ -30,7 +30,7 @@ export const DESIGN_TOOLBOX_ACTIONS: DesignToolboxAction[] = [
     icon: 'sparkles',
     preferredSkillIds: ['creative-director', 'frontend-design', 'design-taste-frontend'],
     categoryHints: ['creative-direction', 'web-artifacts'],
-    searchTerms: ['match', 'recommend', 'next step', 'workflow', 'skills', 'mcp', 'plugins', 'connector', 'files', '匹配', '下一步', '推荐', '流程', '审美'],
+    searchTerms: ['match', 'recommend', 'next step', 'workflow', 'skills', 'mcp', 'plugins', 'files', '匹配', '下一步', '推荐', '流程', '审美'],
   },
   {
     id: 'motion',
