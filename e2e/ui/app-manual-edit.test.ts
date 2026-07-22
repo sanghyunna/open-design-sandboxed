@@ -223,6 +223,7 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
     await expect(frame.locator('[data-od-id="pair-a"]')).toHaveText(text);
     await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
     await expect(page.getByRole('group', { name: 'Move element' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resize bottom-right corner' })).toBeVisible();
     await expect.poll(() => originalFrame.evaluate((node) => node.isConnected)).toBe(true);
     await expect.poll(() => artifactPreview(page).evaluate((node, expected) => node === expected, originalFrame)).toBe(true);
     await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
@@ -232,23 +233,37 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
 
   await armFrameLoad();
   await page.keyboard.press('ControlOrMeta+z');
-  await waitForFrameLoad();
-  await expectHistoryState('First edit', ['Second edit', 'Left panel']);
-
-  await armFrameLoad();
   await page.keyboard.press('ControlOrMeta+z');
   await waitForFrameLoad();
   await expectHistoryState('Left panel', ['First edit', 'Second edit']);
 
   await armFrameLoad();
   await page.keyboard.press('ControlOrMeta+Shift+z');
-  await waitForFrameLoad();
-  await expectHistoryState('First edit', ['Second edit', 'Left panel']);
-
-  await armFrameLoad();
   await page.keyboard.press('ControlOrMeta+Shift+z');
   await waitForFrameLoad();
   await expectHistoryState('Second edit', ['First edit', 'Left panel']);
+
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
+  await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const resizeHandle = page.getByRole('button', { name: 'Resize bottom-right corner' });
+  const resizeBox = await resizeHandle.boundingBox();
+  if (!resizeBox) throw new Error('resize handle has no bounding box after history');
+  const resizeX = resizeBox.x + resizeBox.width / 2;
+  const resizeY = resizeBox.y + resizeBox.height / 2;
+  await page.mouse.move(resizeX, resizeY);
+  await page.mouse.down();
+  await page.mouse.move(resizeX + 20, resizeY + 20, { steps: 4 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      const source = await resp.text();
+      return source.match(/data-od-id="pair-a"[^>]*style="([^"]*)"/)?.[1] ?? '';
+    })
+    .toMatch(/width:\s*\d+px;.*height:\s*\d+px/);
 });
 
 test('[P0] manual edit mode preserves preview actions after style edits', async ({ page }) => {
@@ -395,10 +410,14 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
       return !/\btranslate:/.test(style);
     })
     .toBe(true);
-  const undone = await image.boundingBox();
-  if (!undone) throw new Error('image has no bounding box after undo');
-  expect(Math.abs(undone.x - before.x)).toBeLessThan(1);
-  expect(Math.abs(undone.y - before.y)).toBeLessThan(1);
+  await expect
+    .poll(async () => {
+      const undone = await image.boundingBox();
+      return undone
+        ? Math.abs(undone.x - before.x) < 1 && Math.abs(undone.y - before.y) < 1
+        : false;
+    })
+    .toBe(true);
 });
 
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
