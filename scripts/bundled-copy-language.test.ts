@@ -4,7 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { checkBundledCopyLanguage, collectBundledCopyLanguageViolations } from "./check-bundled-copy-language.ts";
+import {
+  checkBundledCopyLanguage,
+  collectBundledCopyLanguageViolations,
+  collectCanonicalCatalogueCopyViolations,
+  type CanonicalCatalogueCopyGroup,
+} from "./check-bundled-copy-language.ts";
 
 test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file copy", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
@@ -82,6 +87,30 @@ test("bundled copy guard does not mask arbitrary Japanese locale values outside 
       new Set(["skills/example/SKILL.md", "skills/example/data.json"]),
     );
     assert.equal(await checkBundledCopyLanguage(root), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("bundled copy guard rejects divergence from a declared canonical plugin copy", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const groups: readonly CanonicalCatalogueCopyGroup[] = [
+    { derivedRoot: "design-templates", filePath: "example.html", ids: ["example"] },
+  ];
+  try {
+    await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
+    await mkdir(path.join(root, "design-templates/example"), { recursive: true });
+    await writeFile(path.join(root, "plugins/_official/examples/example/example.html"), "<h1>Canonical preview</h1>\n");
+    await writeFile(path.join(root, "design-templates/example/example.html"), "<h1>Changed preview</h1>\n");
+
+    assert.deepEqual(await collectCanonicalCatalogueCopyViolations(root, groups), [
+      {
+        canonicalPath: "plugins/_official/examples/example/example.html",
+        derivedPath: "design-templates/example/example.html",
+        reason: "diverged",
+      },
+    ]);
+    assert.equal(await checkBundledCopyLanguage(root, undefined, groups), false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
