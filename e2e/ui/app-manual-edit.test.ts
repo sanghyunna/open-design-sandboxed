@@ -156,6 +156,131 @@ test('[P0] manual edit direct text typing persists text-only elements', async ({
   await expect(frame.getByText('Edited left panel')).toBeVisible();
 });
 
+test('[P1] issue 33 manual edit history preserves preview identity and focus', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 33 manual edit history');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const textOnlyDiv = frame.locator('[data-od-id="pair-a"]');
+  await expect(textOnlyDiv).toHaveText('Left panel');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
+  const armFrameLoad = async () => {
+    await artifactPreview(page).evaluate((node) => {
+      const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
+      frameNode.__odIssue33NextLoad = new Promise((resolve) => {
+        frameNode.addEventListener('load', () => resolve(), { once: true });
+      });
+    });
+  };
+  const waitForFrameLoad = () => artifactPreview(page).evaluate((node) => {
+    const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
+    return frameNode.__odIssue33NextLoad;
+  });
+  const commitText = async (text: string, beginInlineEdit: () => Promise<void>) => {
+    const previousElement = await textOnlyDiv.elementHandle();
+    if (!previousElement) throw new Error('pair-a has no element handle before inline edit');
+    await beginInlineEdit();
+    await expect(textOnlyDiv).toHaveAttribute('contenteditable', 'true');
+    await expect.poll(() => textOnlyDiv.evaluate((node) => document.activeElement === node)).toBe(true);
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.type(text);
+    await expect(textOnlyDiv).toHaveText(text);
+    await armFrameLoad();
+    await page.keyboard.press('Enter');
+    await waitForFrameLoad();
+    await expectFileSource(page, projectId, 'manual-edit.html', [text]);
+    await expect(textOnlyDiv).toHaveText(text);
+    await expect.poll(async () => {
+      try {
+        return await previousElement.evaluate((node) => node.isConnected);
+      } catch {
+        return false;
+      }
+    }).toBe(false);
+    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(moveSurface).toBeVisible();
+  };
+
+  await commitText('First edit', () => textOnlyDiv.click());
+  await commitText('Second edit', async () => {
+    await moveSurface.click();
+    await textOnlyDiv.click();
+  });
+
+  const originalFrame = await artifactPreview(page).elementHandle();
+  if (!originalFrame) throw new Error('active preview iframe has no element handle');
+
+  const expectHistoryState = async (text: string, excludedText: string[]) => {
+    await expectFileSource(page, projectId, 'manual-edit.html', [text]);
+    await expectFileSourceExcludes(page, projectId, 'manual-edit.html', excludedText);
+    await expect(frame.locator('[data-od-id="pair-a"]')).toHaveText(text);
+    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(page.getByRole('group', { name: 'Move element' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resize bottom-right corner' })).toBeVisible();
+    await expect.poll(() => originalFrame.evaluate((node) => node.isConnected)).toBe(true);
+    await expect.poll(() => artifactPreview(page).evaluate((node, expected) => node === expected, originalFrame)).toBe(true);
+    await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
+  };
+
+  await expectHistoryState('Second edit', ['First edit', 'Left panel']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+z');
+  await waitForFrameLoad();
+  await expectHistoryState('Left panel', ['First edit', 'Second edit']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await waitForFrameLoad();
+  await expectHistoryState('Second edit', ['First edit', 'Left panel']);
+
+  const beforeNudge = await textOnlyDiv.boundingBox();
+  if (!beforeNudge) throw new Error('selected element has no bounding box before keyboard nudge');
+  await page.keyboard.press('ArrowRight');
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      return resp.text();
+    })
+    .toMatch(/data-od-id="pair-a"[^>]*style="[^"]*translate:\s*1px(?:\s+0px)?/);
+  await expect
+    .poll(async () => {
+      const afterNudge = await textOnlyDiv.boundingBox();
+      return afterNudge ? Math.abs((afterNudge.x - beforeNudge.x) - 1) < 0.5 : false;
+    })
+    .toBe(true);
+  await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
+  await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const resizeHandle = page.getByRole('button', { name: 'Resize bottom-right corner' });
+  const resizeBox = await resizeHandle.boundingBox();
+  if (!resizeBox) throw new Error('resize handle has no bounding box after history');
+  const resizeX = resizeBox.x + resizeBox.width / 2;
+  const resizeY = resizeBox.y + resizeBox.height / 2;
+  await page.mouse.move(resizeX, resizeY);
+  await page.mouse.down();
+  await page.mouse.move(resizeX + 20, resizeY + 20, { steps: 4 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      const source = await resp.text();
+      return source.match(/data-od-id="pair-a"[^>]*style="([^"]*)"/)?.[1] ?? '';
+    })
+    .toMatch(/width:\s*\d+px;.*height:\s*\d+px/);
+});
+
 test('[P0] manual edit mode preserves preview actions after style edits', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit smoke');
@@ -411,10 +536,14 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
       return !/\btranslate:/.test(style);
     })
     .toBe(true);
-  const undone = await image.boundingBox();
-  if (!undone) throw new Error('image has no bounding box after undo');
-  expect(Math.abs(undone.x - before.x)).toBeLessThan(1);
-  expect(Math.abs(undone.y - before.y)).toBeLessThan(1);
+  await expect
+    .poll(async () => {
+      const undone = await image.boundingBox();
+      return undone
+        ? Math.abs(undone.x - before.x) < 1 && Math.abs(undone.y - before.y) < 1
+        : false;
+    })
+    .toBe(true);
 });
 
 test('[P1] issue 34 selects a nested child through the selected parent move surface', async ({ page }) => {

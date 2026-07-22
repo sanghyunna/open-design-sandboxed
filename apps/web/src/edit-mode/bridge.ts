@@ -929,13 +929,20 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!el) return;
     postHoverTarget(el);
   }, true);
-  // Keydown never bubbles out of this cross-document iframe to the host's
-  // window-level undo/redo shortcut, so forward Ctrl/Cmd+Z (and Ctrl+Y) here.
-  // Skip this while an inline edit session is open (data-od-editing) so the
-  // browser's native contenteditable undo keeps priority over typing there.
+  // Keydown never bubbles out of this cross-document iframe to the host, so
+  // forward history shortcuts and arrow nudges when an object is selected.
+  // Inline text editing keeps the browser's native keyboard behavior.
   document.addEventListener('keydown', function(ev){
     if (!enabled) return;
     if (document.querySelector('[data-od-editing="true"]')) return;
+    var nudgeDirections = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+    var nudgeDirection = nudgeDirections[ev.key];
+    if (nudgeDirection && !(ev.ctrlKey || ev.metaKey || ev.altKey) && document.querySelector('[data-od-edit-selected]')) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      window.parent.postMessage({ type: 'od-edit-nudge', direction: nudgeDirection }, '*');
+      return;
+    }
     if (!(ev.ctrlKey || ev.metaKey)) return;
     var key = (ev.key || '').toLowerCase();
     var isUndo = key === 'z' && !ev.shiftKey;

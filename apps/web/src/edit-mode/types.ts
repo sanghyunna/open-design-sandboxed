@@ -202,6 +202,11 @@ export interface ManualEditUndoMessage {
   redo: boolean;
 }
 
+export interface ManualEditNudgeMessage {
+  type: 'od-edit-nudge';
+  direction: 'up' | 'down' | 'left' | 'right';
+}
+
 // iframe -> host: reports the live rich-text edit/selection/format state so the
 // typography toolbar can enable + show pressed state for B/I/U.
 export interface ManualEditSelectionStateMessage {
@@ -265,6 +270,7 @@ export type ManualEditBridgeMessage =
   | ManualEditTextCommitMessage
   | ManualEditHtmlCommitMessage
   | ManualEditUndoMessage
+  | ManualEditNudgeMessage
   | ManualEditSelectionStateMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [

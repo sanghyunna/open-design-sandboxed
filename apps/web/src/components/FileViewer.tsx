@@ -3759,6 +3759,10 @@ function HtmlViewer({
   const [manualEditResizeFeedback, setManualEditResizeFeedback] = useState<ManualEditResizeFeedback | null>(null);
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
+  const manualEditHistoryOperationRef = useRef(false);
+  const manualEditHistoryQueueRef = useRef<Array<'undo' | 'redo'>>([]);
+  const undoManualEditRef = useRef<() => Promise<void>>(async () => {});
+  const redoManualEditRef = useRef<() => Promise<void>>(async () => {});
   const manualEditPendingStyleRef = useRef<ManualEditPendingStyleSave | null>(null);
   // Drag-start snapshot for resize-handle style math. The live selected target
   // mutates per preview ack (rect + cssSize), which would shift the delta
@@ -4257,6 +4261,7 @@ function HtmlViewer({
     [buildPreviewSrcDoc, useLazySrcDocTransport],
   );
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
+  const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
   const [srcDocTransportResetKey, setSrcDocTransportResetKey] = useState(0);
   const [srcDocShellReady, setSrcDocShellReady] = useState(false);
   const wasUrlLoadPreviewRef = useRef(useUrlLoadPreview);
@@ -4299,7 +4304,11 @@ function HtmlViewer({
   // Tweaks, etc.), mount the real artifact HTML directly so we do not depend on
   // a postMessage activation that can race (#2253) and strand the iframe blank
   // (#2361, #2791).
-  const srcDocTransportContent = useLazySrcDocTransport ? lazySrcDocTransport : srcDoc;
+  const srcDocTransportContent = useLazySrcDocTransport
+    ? lazySrcDocTransport
+    : manualEditSrcDocActive && !useUrlLoadPreview && srcDoc
+      ? `${srcDoc}\n<!-- od:manual-edit-document-revision=${manualEditDocumentRevision} -->`
+      : srcDoc;
   const urlTransportSrc = useUrlLoadPreview ? activePreviewSrcUrl : 'about:blank';
   const activateSrcDocTransport = useCallback((target: HTMLIFrameElement | null = srcDocPreviewIframeRef.current) => {
     const html = srcDoc || buildPreviewSrcDoc();
@@ -5025,6 +5034,28 @@ function HtmlViewer({
         else void undoManualEditRef.current();
         return;
       }
+      if (data.type === 'od-edit-nudge') {
+        const target = selectedManualEditTargetRef.current;
+        if (!target) return;
+        const delta = data.direction === 'left'
+          ? { x: -1, y: 0 }
+          : data.direction === 'right'
+            ? { x: 1, y: 0 }
+            : data.direction === 'up'
+              ? { x: 0, y: -1 }
+              : data.direction === 'down'
+                ? { x: 0, y: 1 }
+                : null;
+        if (!delta) return;
+        beginManualEditMoveBaseline(target);
+        previewStyleToIframe(
+          target.id,
+          manualEditMoveStyles(target, delta),
+          nextManualEditPreviewVersion(),
+        );
+        void commitManualEditMove(target, delta);
+        return;
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -5521,12 +5552,34 @@ function HtmlViewer({
     return false;
   }
 
+  function refreshManualEditDocument(snapshot: string) {
+    capturePreviewScrollPosition();
+    setManualEditFrozenSource(snapshot);
+    setManualEditDocumentRevision((revision) => revision + 1);
+  }
+
+  function runNextQueuedManualEditHistory() {
+    const direction = manualEditHistoryQueueRef.current.shift();
+    if (!direction) return;
+    window.setTimeout(() => {
+      if (direction === 'undo') void undoManualEditRef.current();
+      else void redoManualEditRef.current();
+    }, 0);
+  }
+
   async function undoManualEdit() {
-    if (manualEditSavingRef.current) return;
+    if (manualEditSavingRef.current) {
+      if (manualEditHistoryOperationRef.current) manualEditHistoryQueueRef.current.push('undo');
+      return;
+    }
     const [latest, ...rest] = manualEditHistory;
-    if (!latest) return;
+    if (!latest) {
+      runNextQueuedManualEditHistory();
+      return;
+    }
     clearManualEditResizeFeedback();
     manualEditSavingRef.current = true;
+    manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
     try {
       if (!(await confirmManualEditHistorySource(
@@ -5543,24 +5596,32 @@ function HtmlViewer({
       setSource(latest.beforeSource);
       sourceRef.current = latest.beforeSource;
       setInlinedSource(null);
-      setManualEditFrozenSource(latest.beforeSource);
-      setSrcDocTransportResetKey((key) => key + 1);
+      refreshManualEditDocument(latest.beforeSource);
       setManualEditHistory(rest);
       setManualEditUndone((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.beforeSource }));
       await onFileSaved?.();
     } finally {
       manualEditSavingRef.current = false;
+      manualEditHistoryOperationRef.current = false;
       setManualEditSaving(false);
+      runNextQueuedManualEditHistory();
     }
   }
 
   async function redoManualEdit() {
-    if (manualEditSavingRef.current) return;
+    if (manualEditSavingRef.current) {
+      if (manualEditHistoryOperationRef.current) manualEditHistoryQueueRef.current.push('redo');
+      return;
+    }
     const [latest, ...rest] = manualEditUndone;
-    if (!latest) return;
+    if (!latest) {
+      runNextQueuedManualEditHistory();
+      return;
+    }
     clearManualEditResizeFeedback();
     manualEditSavingRef.current = true;
+    manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
     try {
       if (!(await confirmManualEditHistorySource(
@@ -5577,14 +5638,16 @@ function HtmlViewer({
       setSource(latest.afterSource);
       sourceRef.current = latest.afterSource;
       setInlinedSource(null);
-      setManualEditFrozenSource(latest.afterSource);
+      refreshManualEditDocument(latest.afterSource);
       setManualEditUndone(rest);
       setManualEditHistory((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.afterSource }));
       await onFileSaved?.();
     } finally {
       manualEditSavingRef.current = false;
+      manualEditHistoryOperationRef.current = false;
       setManualEditSaving(false);
+      runNextQueuedManualEditHistory();
     }
   }
 
@@ -5762,8 +5825,6 @@ function HtmlViewer({
   // latest handlers through refs so the listener never goes stale between
   // renders, and skip events from text fields / contenteditable so typing-undo
   // inside an inline editor or any input keeps its native meaning.
-  const undoManualEditRef = useRef(undoManualEdit);
-  const redoManualEditRef = useRef(redoManualEdit);
   undoManualEditRef.current = undoManualEdit;
   redoManualEditRef.current = redoManualEdit;
   useEffect(() => {
