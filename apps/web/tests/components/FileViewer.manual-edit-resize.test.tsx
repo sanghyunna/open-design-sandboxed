@@ -107,6 +107,240 @@ describe('FileViewer manual edit resize handles', () => {
     fireEvent.pointerUp(se, { pointerId: 1, clientX: 340, clientY: 170 });
   });
 
+  it('reports only the axis affected by an edge resize', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const east = screen.getByLabelText('Resize right edge') as HTMLButtonElement;
+    fireEvent.pointerDown(east, { pointerId: 59, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(east, { pointerId: 59, clientX: 340, clientY: 150 });
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resize: {
+            axes: ['width'],
+            requested: { width: 200, height: 48 },
+          },
+        }),
+        '*',
+      );
+    });
+
+    fireEvent.keyDown(east, { key: 'Escape' });
+  });
+
+  it('reports constrained resize feedback only for the latest selected-target acknowledgement', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 60, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 60, clientX: 340, clientY: 170 });
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style',
+          id: 'hero',
+          resize: {
+            axes: ['width', 'height'],
+            requested: { width: 200, height: 68 },
+          },
+        }),
+        '*',
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 68 },
+          resize: {
+            constraints: [{
+              axis: 'width', requested: 200, applied: 180, reason: 'max',
+              property: 'max-width', value: '180px',
+            }],
+          },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    expect((await screen.findByRole('status')).textContent).toContain('Width limited by max-width: 180px');
+    expect(screen.getByRole('status').textContent).toContain('200px requested · 180px rendered');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 2,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 68 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(screen.getByRole('status').textContent).toContain('Width limited by max-width: 180px');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 3,
+          ok: true,
+          rect: { x: 24, y: 24, width: 200, height: 68 },
+          resize: { constraints: [] },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(screen.queryByRole('status')).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 2,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 68 },
+          resize: {
+            constraints: [{ axis: 'width', requested: 200, applied: 180, reason: 'layout' }],
+          },
+        },
+        source: frame.contentWindow,
+      }));
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'other',
+          version: 4,
+          ok: true,
+          rect: { x: 0, y: 0, width: 100, height: 50 },
+          resize: {
+            constraints: [{ axis: 'width', requested: 200, applied: 100, reason: 'layout' }],
+          },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(screen.queryByRole('status')).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 5,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 68 },
+          resize: {
+            constraints: [{ axis: 'width', requested: 200, applied: 180, reason: 'layout' }],
+          },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(screen.getByRole('status')).toBeTruthy();
+    fireEvent.keyDown(se, { key: 'Escape' });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('does not restore cleared resize feedback when a pre-cancel acknowledgement arrives late', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 61, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 61, clientX: 340, clientY: 170 });
+
+    let resizeVersion = 0;
+    await waitFor(() => {
+      const resizePreview = postSpy.mock.calls
+        .map(([message]) => message as { type?: string; version?: number; resize?: unknown })
+        .find((message) => message.type === 'od-edit-preview-style' && message.resize);
+      expect(resizePreview?.version).toEqual(expect.any(Number));
+      resizeVersion = resizePreview?.version ?? 0;
+    });
+
+    fireEvent.keyDown(se, { key: 'Escape' });
+
+    const revertVersion = resizeVersion + 1;
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'od-edit-preview-style',
+          id: 'hero',
+          version: revertVersion,
+        }),
+        '*',
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: resizeVersion,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 68 },
+          resize: {
+            constraints: [{ axis: 'width', requested: 200, applied: 180, reason: 'layout' }],
+          },
+        },
+        source: frame.contentWindow,
+      }));
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: revertVersion,
+          ok: true,
+          rect: heroTarget().rect,
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('commits width/height inline styles to the saved file on pointerup', async () => {
     let savedContent = '';
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -146,6 +380,11 @@ describe('FileViewer manual edit resize handles', () => {
           type: 'od-edit-preview-style',
           id: 'hero',
           includeAuthoredSize: true,
+          resize: {
+            axes: ['width', 'height'],
+            requested: { width: 200, height: 68 },
+            includeDetails: true,
+          },
         }),
         '*',
       );

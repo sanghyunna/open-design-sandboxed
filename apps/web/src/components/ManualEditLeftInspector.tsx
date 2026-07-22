@@ -4,7 +4,7 @@
 // shown; nothing moves around the canvas.
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
-import type { ManualEditPatch, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
+import type { ManualEditPatch, ManualEditResizeConstraint, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';
 import { RemixIcon } from './RemixIcon';
 import { ManualEditTextControls, type ManualEditRichFormatState } from './ManualEditTextControls';
@@ -18,6 +18,7 @@ export interface ManualEditLeftInspectorProps {
   richFormat: ManualEditRichFormatState;
   draftAlt: string;
   error?: string | null;
+  resizeConstraints?: readonly ManualEditResizeConstraint[];
   busy?: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -42,6 +43,7 @@ export function ManualEditLeftInspector({
   richFormat,
   draftAlt,
   error,
+  resizeConstraints,
   busy,
   canUndo,
   canRedo,
@@ -140,6 +142,7 @@ export function ManualEditLeftInspector({
               styles={styles}
               draftAlt={draftAlt}
               error={error}
+              resizeConstraints={resizeConstraints}
               busy={busy}
               canUndo={canUndo}
               canRedo={canRedo}

@@ -2723,4 +2723,7 @@ export const en: Dict = {
   'mcpClient.notForwardedToLabel': 'Not forwarded to:',
   'mcpClient.forwardedAcpNote': 'ACP adapters marked stdio only receive stdio MCP servers from this list; HTTP and SSE entries are dropped at spawn time.',
   'mcpClient.notForwardedNote': 'For those agents, configure MCP servers in the agent\'s own config file (e.g. ~/.codex/config.toml, ~/.gemini/settings.json); the servers below are silently unused there.',
+  'manualEdit.resize.limit': '{axis} limited by {property}: {value}',
+  'manualEdit.resize.layoutLimit': '{axis} is limited by page layout',
+  'manualEdit.resize.measurements': '{requested}px requested · {applied}px rendered',
 };

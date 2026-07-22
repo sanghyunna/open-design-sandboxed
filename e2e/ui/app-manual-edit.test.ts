@@ -238,6 +238,117 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
 });
 
+test('[P1] constrained resize explains the applied max-width while preserving the authored request', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit constrained resize');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const constrainedCopy = frame.locator('[data-od-id="constrained-copy"]');
+  await expect(constrainedCopy).toBeVisible();
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="constrained-copy"]', 'Shape');
+
+  const before = await constrainedCopy.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { width: rect.width, maxWidth: getComputedStyle(element).maxWidth };
+  });
+  expect(Math.abs(before.width - Number.parseFloat(before.maxWidth))).toBeLessThan(1);
+
+  const eastHandle = page.getByRole('button', { name: 'Resize right edge' });
+  const handleBox = await eastHandle.boundingBox();
+  if (!handleBox) throw new Error('resize handle has no bounding box');
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+  const requestedWidth = Math.round(before.width + 160);
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 160, startY, { steps: 8 });
+
+  await expect
+    .poll(async () => {
+      const current = await constrainedCopy.boundingBox();
+      return current ? Math.abs(current.width - before.width) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThan(2);
+  await expect
+    .poll(async () => {
+      const handle = await eastHandle.boundingBox();
+      const element = await constrainedCopy.boundingBox();
+      if (!handle || !element) return Number.POSITIVE_INFINITY;
+      return Math.abs((handle.x + handle.width / 2) - (element.x + element.width));
+    })
+    .toBeLessThan(4);
+
+  await page.mouse.up();
+
+  const status = page.getByRole('status');
+  await expect(status).toContainText('Width limited by max-width: 30ch');
+  await expect(status).toContainText(`${requestedWidth}px requested`);
+  await expect(status).toContainText(`${Math.round(before.width)}px rendered`);
+
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      const source = await resp.text();
+      const inlineStyle = source.match(/data-od-id="constrained-copy"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      return `${inlineStyle}\n${source.includes('max-width: 30ch')}`;
+    })
+    .toMatch(new RegExp(`width:\\s*${requestedWidth}px[\\s\\S]*true`));
+  await expect(constrainedCopy).toHaveCSS('max-width', before.maxWidth);
+});
+
+test('[P1] Desktop manual edit iframe follows the live canvas width', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit live Desktop viewport');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
+
+  const canvas = page.locator('.manual-edit-canvas');
+  const beforeCanvas = await canvas.boundingBox();
+  const beforeInner = await frame.locator('html').evaluate(() => window.innerWidth);
+  if (!beforeCanvas || !beforeInner) throw new Error('Desktop edit preview was not measurable');
+  const beforeGap = beforeCanvas.width - beforeInner;
+
+  await page.setViewportSize({ width: 1300, height: 900 });
+
+  await expect
+    .poll(async () => (await canvas.boundingBox())?.width ?? beforeCanvas.width)
+    .toBeLessThan(beforeCanvas.width - 100);
+  await expect
+    .poll(async () => frame.locator('html').evaluate(() => window.innerWidth))
+    .toBeLessThan(beforeInner - 100);
+  await expect
+    .poll(async () => {
+      const canvasBox = await canvas.boundingBox();
+      const iframeInner = await frame.locator('html').evaluate(() => window.innerWidth);
+      if (!canvasBox || !iframeInner) return Number.POSITIVE_INFINITY;
+      return Math.abs((canvasBox.width - iframeInner) - beforeGap);
+    })
+    .toBeLessThan(4);
+
+  const heroTitle = frame.locator('[data-od-id="hero-title"]');
+  const eastHandle = page.getByRole('button', { name: 'Resize right edge' });
+  await expect
+    .poll(async () => {
+      const handle = await eastHandle.boundingBox();
+      const element = await heroTitle.boundingBox();
+      if (!handle || !element) return Number.POSITIVE_INFINITY;
+      return Math.abs((handle.x + handle.width / 2) - (element.x + element.width));
+    })
+    .toBeLessThan(4);
+});
+
 test('[P1] issue 16 move browser verification', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Issue 16 move browser verification');
@@ -871,6 +982,7 @@ function manualEditHtml(): string {
     <style>
       .responsive-pair { display: flex; gap: 24px; }
       .responsive-pair > div { flex: 1 1 0; min-height: 40px; }
+      .constrained-copy { width: 420px; max-width: 30ch; }
       @media (max-width: 700px) {
         .responsive-pair { flex-direction: column; }
       }
@@ -887,6 +999,7 @@ function manualEditHtml(): string {
         <a data-od-id="cta" data-od-label="Primary CTA" href="/start">Start now</a>
         <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
+      <p data-od-id="constrained-copy" data-od-label="Constrained copy" class="constrained-copy">Constrained copy</p>
     </main>
   </body>
 </html>`;

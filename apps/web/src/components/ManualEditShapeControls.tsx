@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from '@open-design/components';
 import { useT } from '../i18n';
-import type { ManualEditPatch, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
+import type { ManualEditPatch, ManualEditResizeConstraint, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { RemixIcon } from './RemixIcon';
 import {
   BORDER_STYLE_OPTS,
@@ -34,6 +34,7 @@ export interface ManualEditShapeControlsProps {
   styles: ManualEditStyles;
   draftAlt: string;
   error?: string | null;
+  resizeConstraints?: readonly ManualEditResizeConstraint[];
   busy?: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -58,6 +59,7 @@ function ShapeBar({
   styles: elementStyles,
   draftAlt,
   error,
+  resizeConstraints,
   busy,
   canUndo,
   canRedo,
@@ -81,6 +83,7 @@ function ShapeBar({
 
   return (
     <>
+      <ResizeFeedback constraints={resizeConstraints} layout="bar" />
       <div className={styles.group}>
         <Button variant="subtle" size="icon" aria-label={t('manualEdit.undo')} title={t('manualEdit.undo')} disabled={busy || !canUndo} onClick={onUndo}>
           <RemixIcon name="arrow-go-back-line" size={15} />
@@ -239,6 +242,7 @@ function ShapeStack({
   target,
   styles: elementStyles,
   draftAlt,
+  resizeConstraints,
   busy,
   getActiveTarget,
   onStyleField,
@@ -312,6 +316,8 @@ function ShapeStack({
           </div>
         </section>
       ) : null}
+
+      <ResizeFeedback constraints={resizeConstraints} layout="stack" />
 
       <DisclosureSection
         title={t('manualEdit.sizePosition')}
@@ -510,6 +516,44 @@ function ShapeStack({
           </div>
         </DisclosureSection>
       ) : null}
+    </div>
+  );
+}
+
+function ResizeFeedback({
+  constraints,
+  layout,
+}: {
+  constraints?: readonly ManualEditResizeConstraint[];
+  layout: 'bar' | 'stack';
+}) {
+  const t = useT();
+  if (!constraints?.length) return null;
+  return (
+    <div
+      className={`${styles.resizeFeedback} ${layout === 'bar' ? styles.resizeFeedbackBar : ''}`}
+      role="status"
+      aria-live="polite"
+    >
+      {constraints.map((constraint) => {
+        const axis = t(constraint.axis === 'width' ? 'manualEdit.shape.width' : 'manualEdit.shape.height');
+        const hasNamedLimit = constraint.reason !== 'layout' && constraint.property && constraint.value;
+        return (
+          <div className={styles.resizeFeedbackLine} key={constraint.axis}>
+            <span>
+              {hasNamedLimit
+                ? t('manualEdit.resize.limit', { axis, property: constraint.property!, value: constraint.value! })
+                : t('manualEdit.resize.layoutLimit', { axis })}
+            </span>
+            <span className={styles.resizeFeedbackMeasure}>
+              {t('manualEdit.resize.measurements', {
+                requested: Math.round(constraint.requested),
+                applied: Math.round(constraint.applied),
+              })}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
