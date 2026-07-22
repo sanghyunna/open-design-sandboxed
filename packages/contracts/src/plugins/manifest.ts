@@ -47,6 +47,10 @@ export const LocalizedTextSchema = z.record(z.string()).refine(
 
 export type LocalizedText = string | z.infer<typeof LocalizedTextSchema>;
 
+function isChineseLocale(locale: string | undefined): boolean {
+  return locale?.toLowerCase().split('-')[0] === 'zh';
+}
+
 export function resolveLocalizedText(
   value: LocalizedText | undefined,
   locale?: string,
@@ -67,7 +71,14 @@ export function resolveLocalizedText(
     if (typeof resolved === 'string' && resolved.length > 0) return resolved;
   }
 
-  return Object.values(value).find((text) => text.length > 0) ?? '';
+  const firstNonChineseValue = Object.entries(value).find(
+    ([candidate, text]) => !isChineseLocale(candidate) && text.length > 0,
+  )?.[1];
+  if (firstNonChineseValue) return firstNonChineseValue;
+
+  return isChineseLocale(locale)
+    ? Object.values(value).find((text) => text.length > 0) ?? ''
+    : '';
 }
 
 export const PipelineStageSchema = z.object({

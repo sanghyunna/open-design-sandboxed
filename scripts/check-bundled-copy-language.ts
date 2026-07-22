@@ -16,7 +16,7 @@ const intentionalHanPaths = new Set([
   "design-templates/guizang-ppt/LICENSE",
 ]);
 const hanScriptPattern = /\p{Script=Han}/gu;
-const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW|ja|ja-JP)(?:["']?)\s*:/;
+const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
 
 export type BundledCopyLanguageViolation = {
@@ -86,7 +86,7 @@ function maskExplicitJsonLocaleValues(source: string): string {
 
 function sourceWithoutExplicitLocalizedValues(repositoryPath: string, source: string): string {
   if (path.basename(repositoryPath) === "SKILL.md") return maskExplicitYamlLocaleValues(source);
-  if (path.extname(repositoryPath) === ".json") return maskExplicitJsonLocaleValues(source);
+  if (path.basename(repositoryPath) === "open-design.json") return maskExplicitJsonLocaleValues(source);
   return source;
 }
 

@@ -38,7 +38,7 @@ test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file co
   }
 });
 
-test("bundled copy guard permits only explicit localized values and reviewed Japanese previews", async () => {
+test("bundled copy guard permits explicit translations in manifests and reviewed Japanese previews", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
   try {
     await mkdir(path.join(root, "skills/example"), { recursive: true });
@@ -49,7 +49,7 @@ test("bundled copy guard permits only explicit localized values and reviewed Jap
     await mkdir(path.join(root, "plugins/_official/examples/wireframe-sketch"), { recursive: true });
     await writeFile(
       path.join(root, "skills/example/SKILL.md"),
-      "---\r\nname: example\r\nzh_name: \u4e2d\u6587\r\nzh_description: \u4e2d\u6587\r\nod:\r\n  example_prompt_i18n:\r\n    zh-CN: \u4e2d\u6587\r\n    zh-TW: \u4e2d\u6587\r\n    ja: \u65e5\u672c\u8a9e\r\n---\r\nEnglish default\r\n",
+      "---\r\nname: example\r\nzh_name: \u4e2d\u6587\r\nzh_description: \u4e2d\u6587\r\nod:\r\n  example_prompt_i18n:\r\n    zh-CN: \u4e2d\u6587\r\n    zh-TW: \u4e2d\u6587\r\n---\r\nEnglish default\r\n",
     );
     await writeFile(path.join(root, "design-templates/last30days/scripts/lib/xiaohongshu_api.py"), "API = '\u4e2d\u6587'\n");
     await writeFile(path.join(root, "design-templates/wireframe-sketch/example.html"), "<p>\u65e5\u672c\u8a9e</p>\n");
@@ -61,6 +61,27 @@ test("bundled copy guard permits only explicit localized values and reviewed Jap
     );
 
     assert.equal(await checkBundledCopyLanguage(root), true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("bundled copy guard does not mask arbitrary Japanese locale values outside manifests", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  try {
+    await mkdir(path.join(root, "skills/example"), { recursive: true });
+    await writeFile(
+      path.join(root, "skills/example/SKILL.md"),
+      "---\nname: example\nod:\n  example_prompt_i18n:\n    ja: \u65e5\u672c\u8a9e\n---\nEnglish default\n",
+    );
+    await writeFile(path.join(root, "skills/example/data.json"), '{"label_i18n":{"ja":"\u65e5\u672c\u8a9e"}}');
+
+    const violations = await collectBundledCopyLanguageViolations(root);
+    assert.deepEqual(
+      new Set(violations.map((violation) => violation.filePath)),
+      new Set(["skills/example/SKILL.md", "skills/example/data.json"]),
+    );
+    assert.equal(await checkBundledCopyLanguage(root), false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
