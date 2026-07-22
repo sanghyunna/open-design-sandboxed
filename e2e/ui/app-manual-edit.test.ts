@@ -435,6 +435,126 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
     .toBe(true);
 });
 
+test('[P1] issue 34 selects a nested child through the selected parent move surface', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-34-nested-child.html';
+  const projectId = await createEmptyProject(page, 'Issue 34 nested child selection');
+  await seedHtmlArtifact(page, projectId, fileName, issue34NestedChildHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const parent = frame.locator('[data-od-id="issue-34-parent"]');
+  const child = frame.locator('[data-od-id="issue-34-child"]');
+  await expect(parent).toBeVisible();
+  await expect(child).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await child.click();
+  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await page.keyboard.press('Escape');
+  await parent.click({ position: { x: 20, y: 20 } });
+  await expect(parent).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(parent).toHaveAttribute('contenteditable', 'true');
+  await page.keyboard.press('Escape');
+  await expect(parent).not.toHaveAttribute('contenteditable', 'true');
+  await expect(
+    page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]'),
+  ).toBeVisible();
+
+  const childBox = await child.boundingBox();
+  if (!childBox) throw new Error('nested child has no bounding box');
+  const startX = childBox.x + childBox.width / 2;
+  const startY = childBox.y + childBox.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 4, startY + 4);
+  await page.mouse.up();
+
+  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(parent).not.toHaveAttribute('contenteditable', 'true');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  const response = await page.request.get(`/api/projects/${projectId}/files/${fileName}`);
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  const parentStyle = source.match(/data-od-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
+  expect(parentStyle).not.toMatch(/\btranslate\s*:/);
+});
+
+test('[P1] issue 34 keeps dragging the selected parent when the drag starts over its nested child', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-34-nested-child-drag.html';
+  const projectId = await createEmptyProject(page, 'Issue 34 nested child drag');
+  await seedHtmlArtifact(page, projectId, fileName, issue34NestedChildHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const parent = frame.locator('[data-od-id="issue-34-parent"]');
+  const child = frame.locator('[data-od-id="issue-34-child"]');
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await parent.click({ position: { x: 40, y: 20 } });
+  await expect(parent).toHaveAttribute('contenteditable', 'true');
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]'),
+  ).toBeVisible();
+
+  const parentBefore = await parent.boundingBox();
+  const childBox = await child.boundingBox();
+  if (!parentBefore || !childBox) throw new Error('issue 34 drag fixture has no bounding box');
+  const startX = childBox.x + childBox.width / 2;
+  const startY = childBox.y + childBox.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 40, startY + 32);
+  await page.mouse.up();
+
+  await expect(parent).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(child).not.toHaveAttribute('data-od-edit-selected', 'true');
+  await expect.poll(async () => (await parent.boundingBox())?.x ?? 0).toBeGreaterThan(parentBefore.x + 30);
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  const response = await page.request.get(`/api/projects/${projectId}/files/${fileName}`);
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  const parentStyle = source.match(/data-od-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
+  expect(parentStyle).toMatch(/\btranslate\s*:\s*40px 32px/);
+});
+
+test('[P1] issue 34 selects a nested child whose center is inside the selected ring band', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-34-ring-child.html';
+  const projectId = await createEmptyProject(page, 'Issue 34 ring child selection');
+  await seedHtmlArtifact(page, projectId, fileName, issue34NestedChildHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const parent = frame.locator('[data-od-id="issue-34-parent"]');
+  const ringChild = frame.locator('[data-od-id="issue-34-ring-child"]');
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await parent.click({ position: { x: 40, y: 20 } });
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('group', { name: 'Move element' }).locator('[data-region="ring"]').first(),
+  ).toBeVisible();
+
+  const parentBox = await parent.boundingBox();
+  const ringChildBox = await ringChild.boundingBox();
+  if (!parentBox || !ringChildBox) throw new Error('issue 34 ring fixture has no bounding box');
+  const childCenterX = ringChildBox.x + ringChildBox.width / 2;
+  const childCenterY = ringChildBox.y + ringChildBox.height / 2;
+  expect(childCenterX - parentBox.x).toBeLessThan(10);
+  await page.mouse.click(childCenterX, childCenterY);
+
+  await expect(ringChild).toHaveAttribute('data-od-edit-selected', 'true');
+});
+
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit resize alignment');
@@ -897,6 +1017,36 @@ function manualEditHtml(): string {
         <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
     </main>
+  </body>
+</html>`;
+}
+
+function issue34NestedChildHtml(): string {
+  return `<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Issue 34 nested child</title></head>
+  <body>
+    <div
+      data-od-id="issue-34-parent"
+      data-od-label="Selected text parent"
+      data-od-edit="text"
+      style="position:relative;width:320px;height:180px;padding:16px;background:#eef2ff;"
+    >
+      Parent copy
+      <button
+        type="button"
+        data-od-id="issue-34-child"
+        data-od-label="Nested child"
+        style="position:absolute;left:96px;top:72px;width:128px;height:48px;"
+      >Nested child</button>
+      <button
+        type="button"
+        data-od-id="issue-34-ring-child"
+        data-od-label="Nested ring child"
+        aria-label="Nested ring child"
+        style="position:absolute;box-sizing:border-box;left:2px;top:32px;width:12px;height:20px;padding:0;"
+      ></button>
+    </div>
   </body>
 </html>`;
 }

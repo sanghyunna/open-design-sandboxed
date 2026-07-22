@@ -140,7 +140,7 @@ describe('FileViewer manual edit move frame', () => {
       clientX: 150,
       clientY: 80,
     });
-    expect(postSpy).not.toHaveBeenCalled();
+    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*');
 
     fireEvent.pointerUp(interiorSurface(), {
       pointerId: 13,
@@ -153,6 +153,79 @@ describe('FileViewer manual edit move frame', () => {
       { type: 'od-edit-alt-click', clientX: 50, clientY: 30 },
       '*',
     );
+  });
+
+  it('cancels on press, then forwards selected-id normal activations from both interior and ring', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 50, left: 100, top: 50, width: 800, height: 600,
+      right: 900, bottom: 650, toJSON: () => ({}),
+    } as DOMRect);
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+
+    for (const [pointerId, surface] of [[31, interiorSurface()], [32, ringSurface()]] as const) {
+      postSpy.mockClear();
+      fireEvent.pointerDown(surface, { pointerId, clientX: 150, clientY: 80 });
+      expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*');
+      fireEvent.pointerUp(surface, { pointerId, clientX: 150, clientY: 80 });
+      expect(postSpy).toHaveBeenCalledWith(
+        { type: 'od-edit-click', clientX: 50, clientY: 30, selectedId: 'pic' },
+        '*',
+      );
+    }
+  });
+
+  it.each([50, 100, 200])('converts activation coordinates at $0 percent preview scale', async (zoom) => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    if (zoom !== 100) {
+      fireEvent.click(screen.getByRole('button', { name: '100%' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: `${zoom}%` }));
+    }
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 50, left: 100, top: 50, width: 800, height: 600,
+      right: 900, bottom: 650, toJSON: () => ({}),
+    } as DOMRect);
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    fireEvent.pointerDown(interiorSurface(), { pointerId: 40, clientX: 200, clientY: 150 });
+    fireEvent.pointerUp(interiorSurface(), { pointerId: 40, clientX: 200, clientY: 150 });
+    expect(postSpy).toHaveBeenCalledWith({
+      type: 'od-edit-click',
+      clientX: 100 / (zoom / 100),
+      clientY: 100 / (zoom / 100),
+      selectedId: 'pic',
+    }, '*');
+  });
+
+  it('forwards a selected text click instead of directly beginning text edit', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(textTarget());
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(interiorSurface()).not.toBeNull());
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    fireEvent.pointerDown(interiorSurface(), { pointerId: 41, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(interiorSurface(), { pointerId: 41, clientX: 100, clientY: 100 });
+
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-click', selectedId: 'hero' }), '*');
+    expect(postSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-begin-text-edit' }), '*');
   });
 
   it('double-clicks through the selected overlay to edit structured text containers', async () => {
@@ -264,7 +337,42 @@ describe('FileViewer manual edit move frame', () => {
       expect.objectContaining({ type: 'od-edit-end-text-edit' }),
       '*',
     );
+    expect(postSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-click' }),
+      '*',
+    );
     expect(interiorSurface()).toBeNull();
+  });
+
+  it('preserves Alt selection routing from an editing-mode ring', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(textTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const ring = ringSurface();
+    fireEvent.pointerDown(ring, { pointerId: 42, clientX: 100, clientY: 100, altKey: true });
+    fireEvent.pointerUp(ring, { pointerId: 42, clientX: 100, clientY: 100, altKey: true });
+
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-alt-click' }), '*');
+    expect(interiorSurface()).toBeNull();
+  });
+
+  it('cancels the active srcDoc bridge before leaving manual edit mode', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    postSpy.mockClear();
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*'));
+    await waitFor(() => expect(screen.getByTestId('manual-edit-mode-toggle').getAttribute('aria-pressed')).toBe('false'));
   });
 
   it('streams translate preview and commits translate to the saved file; consecutive drags accumulate', async () => {

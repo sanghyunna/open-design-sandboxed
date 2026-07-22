@@ -9,23 +9,26 @@ import styles from './ManualEditMoveFrame.module.css';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type Delta = { x: number; y: number };
-type Point = { clientX: number; clientY: number };
 type Region = 'ring' | 'interior';
+export type ManualEditMoveActivation = {
+  region: Region;
+  clientX: number;
+  clientY: number;
+  altKey: boolean;
+};
 
 export type ManualEditMoveFrameProps = {
   rect: Rect; // overlay rect in canvas space (host passes manualEditResizeRect)
   scale: number; // overlayPreviewScale (client px per rect px)
   mode: 'editing' | 'selected';
-  interactive: boolean; // interior click can re-enter text edit (kind text|link)
   label: string; // aria-label for the move surface
   selectBehindHint?: string; // tooltip/aria-label for z-stack cycling
   onMoveStart: () => void; // drag threshold crossed
   onMovePreview: (delta: Delta) => void; // rect-space delta, per rAF frame
   onMoveCommit: (delta: Delta) => void; // pointerup after a real drag
   onMoveCancel: () => void; // Esc / pointercancel mid-drag
-  onAltClick: (point: Point) => void;
-  onClick: (point: Point) => void; // non-drag interior click on a non-interactive target
-  onSurfaceClick: (region: Region) => void; // pointerup with NO drag
+  onPressStart: () => void;
+  onActivate: (activation: ManualEditMoveActivation) => void;
   onSurfaceDoubleClick: (region: Region) => void;
 };
 
@@ -35,11 +38,8 @@ const RING_SELECTED = 10;
 // frame outside the text box); a thinner band leaves more of the content edge
 // clickable for caret placement instead of hitting the move ring.
 const RING_EDITING = 4;
-// client px; hypot distance before a press becomes a drag (vs a click).
-const DRAG_THRESHOLD = 3;
-// ms; delay forwarding a non-interactive interior click so a double-click
-// (which enters text edit) does not accidentally cycle the z-stack first.
-const CLICK_FORWARD_DELAY = 350;
+// client px per axis; movement through 4px remains a click, 5px starts a drag.
+const DRAG_THRESHOLD = 5;
 
 type DragState = {
   region: Region;
@@ -54,16 +54,14 @@ export function ManualEditMoveFrame({
   rect,
   scale,
   mode,
-  interactive,
   label,
   selectBehindHint,
   onMoveStart,
   onMovePreview,
   onMoveCommit,
   onMoveCancel,
-  onAltClick,
-  onClick,
-  onSurfaceClick,
+  onPressStart,
+  onActivate,
   onSurfaceDoubleClick,
 }: ManualEditMoveFrameProps) {
   const dragRef = useRef<DragState | null>(null);
@@ -73,21 +71,11 @@ export function ManualEditMoveFrame({
   // id is assigned, so the id alone cannot answer "is a flush still queued".
   const flushScheduledRef = useRef(false);
   const pendingDeltaRef = useRef<Delta | null>(null);
-  const pendingClickRef = useRef<{ clientX: number; clientY: number; timeout: number } | null>(null);
-  const cancelNextClickForwardRef = useRef(false);
-
-  const clearPendingClick = () => {
-    if (pendingClickRef.current) {
-      window.clearTimeout(pendingClickRef.current.timeout);
-      pendingClickRef.current = null;
-    }
-  };
 
   useEffect(() => () => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
     }
-    clearPendingClick();
   }, []);
 
   const flushPreview = () => {
@@ -143,12 +131,7 @@ export function ManualEditMoveFrame({
     // preventDefault() above suppresses implicit focus, so focus explicitly;
     // otherwise the Escape-cancels-drag onKeyDown never lands here.
     if (typeof target.focus === 'function') target.focus({ preventScroll: true });
-    // If a non-interactive interior click is still pending, this pointerdown
-    // is the start of a double-click (or a drag). Cancel the pending forward.
-    if (pendingClickRef.current) {
-      clearPendingClick();
-      cancelNextClickForwardRef.current = true;
-    }
+    onPressStart();
     dragRef.current = {
       region,
       pointerId: event.pointerId,
@@ -165,9 +148,8 @@ export function ManualEditMoveFrame({
     const dxClient = event.clientX - drag.startX;
     const dyClient = event.clientY - drag.startY;
     if (!drag.dragging) {
-      if (Math.hypot(dxClient, dyClient) < DRAG_THRESHOLD) return;
+      if (Math.abs(dxClient) < DRAG_THRESHOLD && Math.abs(dyClient) < DRAG_THRESHOLD) return;
       drag.dragging = true;
-      cancelNextClickForwardRef.current = false;
       onMoveStart();
     }
     scheduleFlush({ x: dxClient / scale, y: dyClient / scale });
@@ -180,8 +162,6 @@ export function ManualEditMoveFrame({
     const finalFrameUnsent = flushScheduledRef.current;
     const dragging = drag.dragging;
     const region = drag.region;
-    const suppressForward = cancelNextClickForwardRef.current;
-    cancelNextClickForwardRef.current = false;
     endDrag();
     pendingDeltaRef.current = null;
     if (dragging && delta) {
@@ -189,33 +169,8 @@ export function ManualEditMoveFrame({
       // move dies in that queue — the element never renders the committed delta.
       if (finalFrameUnsent) onMovePreview(delta);
       onMoveCommit(delta);
-    } else if (event.altKey) {
-      onAltClick({ clientX: event.clientX, clientY: event.clientY });
-    } else if (region !== 'interior') {
-      // Ring clicks always report — they only ever promote editing -> selected,
-      // never re-enter edit.
-      onSurfaceClick(region);
-    } else if (interactive) {
-      // Interactive targets (text/link) use a plain interior click to re-enter
-      // inline edit; cycling behind them is available via Alt+click.
-      onSurfaceClick(region);
-    } else if (suppressForward) {
-      // This pointerup is the second half of a double-click (the first half
-      // scheduled a forwarded click, which was cancelled by the second
-      // pointerdown). Let the onDoubleClick handler enter text edit instead.
     } else {
-      // Non-interactive interior click: defer forwarding briefly so a rapid
-      // second click (double-click) can cancel it. If no second click arrives,
-      // forward to the iframe so the bridge can cycle the z-stack at this point.
-      pendingClickRef.current = {
-        clientX: event.clientX,
-        clientY: event.clientY,
-        timeout: window.setTimeout(() => {
-          const pending = pendingClickRef.current;
-          pendingClickRef.current = null;
-          if (pending) onClick({ clientX: pending.clientX, clientY: pending.clientY });
-        }, CLICK_FORWARD_DELAY),
-      };
+      onActivate({ region, clientX: event.clientX, clientY: event.clientY, altKey: event.altKey });
     }
   };
 
@@ -272,7 +227,7 @@ export function ManualEditMoveFrame({
         <div
           className={styles.interior}
           style={{ inset: ringSize }}
-          {...(!interactive ? { title: selectBehindHint, 'aria-label': selectBehindHint } : {})}
+          {...(selectBehindHint ? { title: selectBehindHint, 'aria-label': selectBehindHint } : {})}
           {...surfaceProps('interior')}
         />
       ) : null}

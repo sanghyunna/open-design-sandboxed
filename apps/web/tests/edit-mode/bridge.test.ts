@@ -671,6 +671,243 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('selects a contained child from the overlay while ignoring a stale parent text range', () => {
+    const dom = new JSDOM(
+      `<main><div data-od-id="parent" data-od-edit="container">Parent <button data-od-id="child">Child</button></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const parent = dom.window.document.querySelector('[data-od-id="parent"]') as HTMLElement;
+    const child = dom.window.document.querySelector('[data-od-id="child"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [child, parent] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => child });
+    const range = dom.window.document.createRange();
+    range.selectNodeContents(parent.firstChild!);
+    dom.window.getSelection()!.addRange(range);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'parent' },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'child' }) }),
+      '*',
+    );
+    dom.window.close();
+  });
+
+  it('ignores stale ranges for forwarded Alt clicks but preserves them for native clicks', () => {
+    const makeDom = () => {
+      const dom = new JSDOM(
+        `<main><div data-od-id="parent" data-od-edit="container">Parent <button data-od-id="child">Child</button></div></main>${buildManualEditBridge(true)}`,
+        { runScripts: 'dangerously', url: 'http://localhost' },
+      );
+      const parent = dom.window.document.querySelector('[data-od-id="parent"]') as HTMLElement;
+      const child = dom.window.document.querySelector('[data-od-id="child"]') as HTMLElement;
+      const range = dom.window.document.createRange();
+      range.selectNodeContents(parent.firstChild!);
+      dom.window.getSelection()!.addRange(range);
+      return { dom, parent, child, postMessage: vi.spyOn(dom.window.parent, 'postMessage') };
+    };
+    const overlay = makeDom();
+    Object.defineProperty(overlay.dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [overlay.child] });
+    Object.defineProperty(overlay.dom.window.document, 'elementFromPoint', { configurable: true, value: () => overlay.child });
+    overlay.dom.window.dispatchEvent(new overlay.dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-alt-click', clientX: 10, clientY: 10 },
+    }));
+    expect(overlay.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'child' }) }), '*',
+    );
+    overlay.dom.window.close();
+
+    const native = makeDom();
+    Object.defineProperty(native.dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [native.child] });
+    native.child.dispatchEvent(new native.dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(native.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'parent' }) }), '*',
+    );
+    native.dom.window.close();
+  });
+
+  it('re-enters the same selected text target from an overlay click', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [title] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => title });
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'title' },
+    }));
+
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+    expect(title.getAttribute('contenteditable')).toBe('true');
+    dom.window.close();
+  });
+
+  it('inspects the top target without advancing the click cycle', () => {
+    const dom = new JSDOM(
+      `<main><div data-od-id="back" data-od-edit="container"><button>Back</button></div><div data-od-id="front" data-od-edit="container"><button>Front</button></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]') as HTMLElement;
+    const back = dom.window.document.querySelector('[data-od-id="back"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [front, back] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => front });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'front' },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'front' }) }), '*',
+    );
+    dom.window.close();
+  });
+
+  it('falls back to ordinary overlay selection for an invalid selected id', () => {
+    const dom = new JSDOM(
+      `<main><button data-od-id="child">Child</button></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const child = dom.window.document.querySelector('[data-od-id="child"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [child] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => child });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'missing' },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'child' }) }), '*',
+    );
+    dom.window.close();
+  });
+
+  it('falls back immediately when an overlay activation carries an old selected id that still exists', () => {
+    vi.useFakeTimers();
+    const dom = new JSDOM(
+      `<main><div data-od-id="old">Old<div class="glow"></div></div><p data-od-id="current">Current</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const old = dom.window.document.querySelector('[data-od-id="old"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [old] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => old });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'current' },
+    }));
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'old' },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'old' }) }), '*',
+    );
+    expect(postMessage.mock.calls.filter(([message]) => message.type === 'od-edit-select')).toHaveLength(1);
+    vi.advanceTimersByTime(350);
+    expect(postMessage.mock.calls.filter(([message]) => message.type === 'od-edit-select')).toHaveLength(1);
+    dom.window.close();
+    vi.useRealTimers();
+  });
+
+  it('defers only a same selected structured container and keeps same-id feedback alive', () => {
+    vi.useFakeTimers();
+    const dom = new JSDOM(
+      `<main><div data-od-id="fancy">Headline<div class="glow"></div></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const fancy = dom.window.document.querySelector('[data-od-id="fancy"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [fancy] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => fancy });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-selected-target', id: 'fancy' } }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'fancy' },
+    }));
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-select' }), '*');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-selected-target', id: 'fancy' } }));
+    vi.advanceTimersByTime(350);
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'fancy' }) }), '*',
+    );
+    dom.window.close();
+    vi.useRealTimers();
+  });
+
+  it.each([
+    ['explicit cancel', { type: 'od-edit-click-cancel' }],
+    ['selection change', { type: 'od-edit-selected-target', id: 'other' }],
+    ['select target', { type: 'od-edit-select-target', id: 'other' }],
+    ['begin text edit', { type: 'od-edit-begin-text-edit', id: 'other' }],
+    ['mode exit', { type: 'od-edit-mode', enabled: false }],
+  ])('cancels a deferred structured click on %s', (_label, cancellation) => {
+    vi.useFakeTimers();
+    const dom = new JSDOM(
+      `<main><div data-od-id="fancy">Headline<div class="glow"></div></div><p data-od-id="other">Other</p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const fancy = dom.window.document.querySelector('[data-od-id="fancy"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [fancy] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => fancy });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-selected-target', id: 'fancy' } }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'fancy' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: cancellation }));
+    postMessage.mockClear();
+    vi.advanceTimersByTime(350);
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'fancy' }) }), '*',
+    );
+    dom.window.close();
+    vi.useRealTimers();
+  });
+
+  it.each(['normal overlay', 'Alt overlay', 'native click'])('cancels a deferred structured click on a new %s', (nextClick) => {
+    vi.useFakeTimers();
+    const dom = new JSDOM(
+      `<main><div data-od-id="fancy">Headline<div class="glow"></div></div><button data-od-id="other">Other</button></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const fancy = dom.window.document.querySelector('[data-od-id="fancy"]') as HTMLElement;
+    const other = dom.window.document.querySelector('[data-od-id="other"]') as HTMLElement;
+    let hit: HTMLElement = fancy;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [hit] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => hit });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-selected-target', id: 'fancy' } }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'fancy' },
+    }));
+    hit = other;
+    if (nextClick === 'native click') {
+      other.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 20, clientY: 20 }));
+    } else {
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: {
+          type: nextClick === 'Alt overlay' ? 'od-edit-alt-click' : 'od-edit-click',
+          clientX: 20,
+          clientY: 20,
+          selectedId: 'fancy',
+        },
+      }));
+    }
+    postMessage.mockClear();
+    vi.advanceTimersByTime(350);
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'fancy' }) }), '*',
+    );
+    dom.window.close();
+    vi.useRealTimers();
+  });
+
   it('emits a background message for empty click regions', () => {
     const dom = new JSDOM(
       `<main><div>Empty</div></main>${buildManualEditBridge(true)}`,
