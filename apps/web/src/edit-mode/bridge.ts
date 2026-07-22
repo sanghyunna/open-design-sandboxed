@@ -470,6 +470,10 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     return targets;
   }
+  function topTargetAtPoint(x, y, fallback){
+    var stack = targetsAtPoint(x, y);
+    return stack[0] || ancestorTarget(fallback) || null;
+  }
   var clickCycle = null;
   var clickCycleTolerance = 4;
   function resetClickCycle(){
@@ -751,7 +755,25 @@ export function buildManualEditBridge(enabled: boolean): string {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
   }
-  function handleClick(event){
+  var deferredOverlayClick = null;
+  var hostSelectedTargetId = null;
+  function clearDeferredOverlayClick(){
+    if (deferredOverlayClick !== null) {
+      window.clearTimeout(deferredOverlayClick);
+      deferredOverlayClick = null;
+    }
+  }
+  function activateClickTarget(el, event, cycled, selectionAware){
+    if (selectionAware) el = targetForSelection(el);
+    var kind = inferKind(el);
+    setSelectedTarget(stableId(el));
+    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
+    // Only enter inline edit on a fresh, non-modified click on the topmost
+    // text/link target. Cycled clicks are explicitly drilling the z-stack;
+    // Alt/Option clicks are an explicit "select without editing" gesture.
+    if (!event.altKey && !cycled && (kind === 'text' || kind === 'link')) makeEditable(el, event);
+  }
+  function handleClick(event, selectionAware){
     var result = clickTarget(event);
     var el = result.el;
     if (!el) {
@@ -761,36 +783,65 @@ export function buildManualEditBridge(enabled: boolean): string {
       window.parent.postMessage({ type: 'od-edit-background' }, '*');
       return;
     }
-    el = targetForSelection(el);
-    var kind = inferKind(el);
-    setSelectedTarget(stableId(el));
-    window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
-    // Only enter inline edit on a fresh, non-modified click on the topmost
-    // text/link target. Cycled clicks are explicitly drilling the z-stack;
-    // Alt/Option clicks are an explicit "select without editing" gesture.
-    if (!event.altKey && !result.cycled && (kind === 'text' || kind === 'link')) makeEditable(el, event);
+    activateClickTarget(el, event, result.cycled, selectionAware !== false);
   }
   window.addEventListener('message', function(ev){
     if (!ev.data) return;
     if (ev.data.type === 'od-edit-mode') {
       var nextEnabled = !!ev.data.enabled;
-      if (enabled !== nextEnabled) resetClickCycle();
+      if (enabled !== nextEnabled) {
+        resetClickCycle();
+        clearDeferredOverlayClick();
+      }
       enabled = nextEnabled;
       document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
-      if (!enabled) clearSelectedTarget();
+      if (!enabled) {
+        clearSelectedTarget();
+        hostSelectedTargetId = null;
+      }
       if (enabled) setTimeout(postTargets, 0);
+      return;
+    }
+    if (ev.data.type === 'od-edit-click-cancel') {
+      clearDeferredOverlayClick();
       return;
     }
     if (ev.data.type === 'od-edit-click' || ev.data.type === 'od-edit-alt-click') {
       var clickX = Number(ev.data.clientX);
       var clickY = Number(ev.data.clientY);
       if (!enabled || !isFinite(clickX) || !isFinite(clickY)) return;
+      clearDeferredOverlayClick();
       var clickEl = document.elementFromPoint ? document.elementFromPoint(clickX, clickY) : null;
-      handleClick({ target: clickEl, altKey: ev.data.type === 'od-edit-alt-click', clientX: clickX, clientY: clickY });
+      var overlayEvent = { target: clickEl, altKey: ev.data.type === 'od-edit-alt-click', clientX: clickX, clientY: clickY };
+      if (overlayEvent.altKey) {
+        handleClick(overlayEvent, false);
+        return;
+      }
+      var topTarget = topTargetAtPoint(clickX, clickY, clickEl);
+      var selectedId = typeof ev.data.selectedId === 'string' ? ev.data.selectedId : null;
+      var selectedEl = selectedId && selectedId === hostSelectedTargetId ? findById(selectedId) : null;
+      if (!topTarget || !selectedEl || topTarget !== selectedEl) {
+        handleClick(overlayEvent, false);
+        return;
+      }
+      var selectedKind = inferKind(selectedEl);
+      if (selectedKind === 'text' || selectedKind === 'link') {
+        activateClickTarget(selectedEl, overlayEvent, false, false);
+        return;
+      }
+      if (selectedKind === 'container' && hasStructuredEditableText(selectedEl)) {
+        deferredOverlayClick = window.setTimeout(function(){
+          deferredOverlayClick = null;
+          handleClick(overlayEvent, false);
+        }, 350);
+        return;
+      }
+      handleClick(overlayEvent, false);
       return;
     }
     if (ev.data.type === 'od-edit-select-target') {
       if (!enabled) return;
+      clearDeferredOverlayClick();
       var requestedEl = findById(ev.data.id);
       if (!requestedEl) return;
       requestedEl = targetForSelection(requestedEl);
@@ -799,6 +850,9 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     if (ev.data.type === 'od-edit-selected-target') {
+      var nextSelectedTargetId = typeof ev.data.id === 'string' && ev.data.id ? ev.data.id : null;
+      if (hostSelectedTargetId !== nextSelectedTargetId) clearDeferredOverlayClick();
+      hostSelectedTargetId = nextSelectedTargetId;
       if (!ev.data.id) resetClickCycle();
       setSelectedTarget(ev.data.id || null);
       return;
@@ -819,6 +873,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     if (ev.data.type === 'od-edit-begin-text-edit') {
       if (!enabled) return;
+      clearDeferredOverlayClick();
       var beginEl = findById(ev.data.id);
       if (beginEl && beginEl.getAttribute('data-od-editing') !== 'true') makeEditable(beginEl);
       return;
@@ -831,6 +886,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   });
   document.addEventListener('click', function(ev){
     if (!enabled) return;
+    clearDeferredOverlayClick();
     if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) return;
     ev.preventDefault();
     ev.stopPropagation();

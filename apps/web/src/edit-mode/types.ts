@@ -192,9 +192,8 @@ export interface ManualEditRichFormatMessage {
   command: 'bold' | 'italic' | 'underline';
 }
 
-// host -> iframe: enter the rich-text edit session for an element (PowerPoint
-// "object-selected -> click interior = caret"). The host owns the move overlay
-// that swallows the interior click, so it asks the bridge to open the caret.
+// host -> iframe: explicitly enter the rich-text edit session for an element
+// (for example, a structured container's double-click).
 export interface ManualEditBeginTextEditMessage {
   type: 'od-edit-begin-text-edit';
   id: string;
@@ -207,6 +206,28 @@ export interface ManualEditBeginTextEditMessage {
 export interface ManualEditEndTextEditMessage {
   type: 'od-edit-end-text-edit';
 }
+
+export interface ManualEditClickMessage {
+  type: 'od-edit-click';
+  clientX: number;
+  clientY: number;
+  selectedId: string;
+}
+
+export interface ManualEditClickCancelMessage {
+  type: 'od-edit-click-cancel';
+}
+
+export interface ManualEditAltClickMessage {
+  type: 'od-edit-alt-click';
+  clientX: number;
+  clientY: number;
+}
+
+export type ManualEditActivationMessage =
+  | ManualEditClickMessage
+  | ManualEditClickCancelMessage
+  | ManualEditAltClickMessage;
 
 export type ManualEditBridgeMessage =
   | ManualEditTargetMessage
