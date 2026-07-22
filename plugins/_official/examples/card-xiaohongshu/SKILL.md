@@ -10,7 +10,7 @@ category: card
 scenario: marketing
 aspect_hint: "1080×1440 (3:4)"
 featured: 24
-tags: ["xhs", "小红书", "carousel", "图文"]
+tags: ["xhs", "xiaohongshu", "carousel", "knowledge-card"]
 example_id: sample-xhs-ai-habits
 example_name: "Xiaohongshu Card · AI Tool Habits"
 example_format: markdown

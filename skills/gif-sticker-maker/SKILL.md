@@ -7,7 +7,7 @@ triggers:
   - "funko sticker"
   - "animated sticker"
   - "pop mart"
-  - "表情包"
+  - "sticker pack"
 od:
   mode: image
   category: image-generation

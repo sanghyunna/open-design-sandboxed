@@ -12,8 +12,6 @@ triggers:
   - "what people are saying"
   - "trend scan"
   - "social research"
-  - "最近30天"
-  - "社区反馈"
 od:
   mode: prototype
   preview:

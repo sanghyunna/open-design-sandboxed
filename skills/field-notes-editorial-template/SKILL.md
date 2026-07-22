@@ -10,8 +10,8 @@ triggers:
   - "editorial report template"
   - "magazine style business report"
   - "pastel insight dashboard"
-  - "高级编辑风报告模板"
-  - "奶油底粉彩卡片数据报告"
+  - "premium editorial report template"
+  - "cream and pastel data report"
 od:
   mode: template
   surface: video

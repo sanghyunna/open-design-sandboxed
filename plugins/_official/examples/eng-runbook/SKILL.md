@@ -11,7 +11,7 @@ triggers:
   - "on-call"
   - "sre doc"
   - "service runbook"
-  - "运维手册"
+  - "operations manual"
 od:
   mode: prototype
   platform: desktop

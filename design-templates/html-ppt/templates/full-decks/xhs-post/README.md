@@ -1,9 +1,9 @@
-# xhs-post · 小红书 9 图
+# xhs-post · nine-card social carousel
 
-小红书 3:4 图文格式，9 张图（810 × 1080）。结构：封面 → hook → 痛点 → aha moment → 步骤 1-3 → 效果 → CTA 关注。
+3:4 social carousel format with nine images (810 × 1080). Structure: cover → hook → pain point → aha moment → steps 1–3 → result → follow CTA.
 
-手写便签 + 贴纸 + 圆角硬阴影的 MUJI/风格，暖米色背景 + 粉橘黄柔和渐变。每页右上角有 `N / 9` 页码贴纸，最后一页有话题 tag。
+Handwritten notes, stickers, and rounded hard shadows in a MUJI-like style, on a warm beige background with soft pink, orange, and yellow gradients. Every page has an `N / 9` page sticker in the upper-right corner and the final page has topic tags.
 
-**适用场景：** 小红书 / 微博九宫格 / 公众号图文首图 / 抖音图文卡片。
-**使用方式：** 每张 `.slide` 直接截图导出即可，保持 810×1080 比例。按 → 依次浏览。
-**Feel:** 手帐、贴纸、闺蜜跟你分享干货的 vibe。
+**Use when:** creating social carousels, nine-grid posts, newsletter hero images, or short-video graphic cards.
+**How to use:** Screenshot each `.slide` directly at 810×1080. Use → to browse in sequence.
+**Feel:** a journal, stickers, and a friend sharing useful advice.

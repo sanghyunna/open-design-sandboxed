@@ -6,9 +6,9 @@ triggers:
   - "macaron"
   - "lifestyle"
   - "slow living"
-  - "慢生活"
-  - "生活方式"
-  - "个人成长"
+- "Slow Life"
+  - "Lifestyle"
+  - "Personal growth"
 od:
   mode: deck
   scenario: personal
@@ -23,7 +23,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-xhs-pastel-card template to create a slow-living themed carousel. Cream background + macaron rounded cards + Playfair italic numbering + donut chart. First ask me for the theme (rest / pause / self-care...) and 5-7 points I want to say."
 ---
-# HTML PPT · 柔和马卡龙慢生活
+# HTML PPT · Soft Pastel Slow Living
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`xhs-pastel-card`** full-deck template.
 

@@ -154,7 +154,7 @@
 .tpl-presenter-mode-reveal .purple { color: #bc8cff; }
 .tpl-presenter-mode-reveal .red { color: #f85149; }
 
-/* Rule rows (3 铁律) */
+/* Rule rows (three rules) */
 .tpl-presenter-mode-reveal .rule-row {
   display: grid;
   grid-template-columns: 56px 1fr;

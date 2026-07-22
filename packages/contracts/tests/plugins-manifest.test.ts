@@ -104,8 +104,9 @@ describe('plugin manifest localized text', () => {
     expect(resolveLocalizedText(entry.description_i18n, 'zh-CN')).toBe('中文描述。');
   });
 
-  it('falls back from exact locale to base language, English, then first value', () => {
+  it('falls back from exact locale to base language and English without leaking Chinese into another locale', () => {
     expect(resolveLocalizedText({ en: 'English', zh: '中文' }, 'zh-CN')).toBe('中文');
-    expect(resolveLocalizedText({ 'zh-CN': '中文' }, 'fr')).toBe('中文');
+    expect(resolveLocalizedText({ 'zh-CN': '中文' }, 'fr')).toBe('');
+    expect(resolveLocalizedText({ ja: '日本語', 'zh-CN': '中文' }, 'fr')).toBe('日本語');
   });
 });

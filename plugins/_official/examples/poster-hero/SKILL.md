@@ -9,7 +9,7 @@ en_description: "Vertical poster or Moments-style share image with strong visual
 category: poster
 scenario: marketing
 aspect_hint: "1080×1920 portrait"
-tags: ["poster", "海报", "朋友圈"]
+tags: ["poster", "marketing", "social share"]
 example_id: sample-poster-launch
 example_name: "Marketing Poster · Product Launch"
 example_format: markdown

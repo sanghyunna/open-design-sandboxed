@@ -1,7 +1,7 @@
 ---
 name: swiftui-design
 description: |
-  SwiftUI 前端设计 skill — anti AI-slop rules, design direction advisor, brand asset protocol, and five-dimension review. Works with Claude Code, Cursor, Codex, and OpenCode.
+  SwiftUI frontend design skill — anti-AI-slop rules, design direction advisor, brand asset protocol, and five-dimension review. Works with Claude Code, Cursor, Codex, and OpenCode.
 triggers:
   - "swiftui design"
   - "ios design"
@@ -20,7 +20,7 @@ od:
 
 ## What it does
 
-SwiftUI 前端设计 skill — anti AI-slop rules, design direction advisor, brand asset protocol, and five-dimension review. Works with Claude Code, Cursor, Codex, and OpenCode.
+SwiftUI frontend design skill — anti-AI-slop rules, design direction advisor, brand asset protocol, and five-dimension review. Works with Claude Code, Cursor, Codex, and OpenCode.
 
 ## Source
 

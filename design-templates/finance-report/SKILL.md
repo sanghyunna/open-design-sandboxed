@@ -4,15 +4,15 @@ description: |
   Quarterly / monthly financial report — masthead with KPIs, revenue and
   burn charts, P&L summary table, top-line highlights, and an outlook
   paragraph. Use when the brief mentions "financial report", "Q3 report",
-  "MRR review", "P&L", or "财报".
+  "MRR review", "P&L", or "earnings report".
 triggers:
   - "financial report"
   - "finance report"
   - "quarterly report"
   - "p&l"
   - "mrr review"
-  - "财报"
-  - "财务报告"
+  - "earnings report"
+  - "financial statement"
 od:
   mode: prototype
   platform: desktop

@@ -2,7 +2,7 @@
 name: html-ppt-graphify-dark-graph
 description: Dark-theme knowledge-graph deck — #06060c→#0e1020 late-night gradient with floating blur orbs, an SVG force-directed graph cover, a rainbow-gradient title, JetBrains Mono command-line highlighting, and glass-morphism cards. Suited to dev-tool / CLI / knowledge-graph / data-visualization launches with an "AI-native + sci-fi + warm-tone" feel.
 triggers:
-  - "知识图谱"
+- "Knowledge Graph"
   - "graph deck"
   - "dark graph"
   - "dev tool launch"

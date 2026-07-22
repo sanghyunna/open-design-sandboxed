@@ -1,4 +1,4 @@
-# tech-sharing · 技术分享
+# tech-sharing · engineering talk
 
 8-slide engineering talk deck: cover (topic + speaker), agenda, context, two deep-dive slides, a code example, takeaways, Q&A.
 

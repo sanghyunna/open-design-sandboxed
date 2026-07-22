@@ -5,7 +5,7 @@ triggers:
   - "architecture"
   - "blueprint"
   - "system design"
-  - "架构图"
+- "Architecture Diagram"
   - "data flow"
   - "engineering whitepaper"
 od:
@@ -22,7 +22,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-knowledge-arch-blueprint template to create a system architecture introduction deck. Cream paper base + rust-red highlight + blueprint grid + pipeline raised one step + large serif type. First tell me the system name + 5-7 core modules + data-flow direction, then write 8-10 slides."
 ---
-# HTML PPT · 奶油蓝图架构
+# HTML PPT · Cream Blueprint Architecture
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`knowledge-arch-blueprint`** full-deck template.
 

@@ -8,7 +8,7 @@ triggers:
   - "micro interaction"
   - "interaction animation"
   - "tasteful animation"
-  - "动效润色"
+  - "motion polish"
 od:
   mode: prototype
   surface: web
@@ -58,4 +58,3 @@ Use this skill after a design artifact already exists. The goal is to make the i
 - For React or framework code, use the local stack already present in the repo.
 - If GSAP is available and the motion needs sequencing, pair this with `gsap-core`, `gsap-timeline`, or `gsap-scrolltrigger`.
 - Always clean up observers, timers, and animation instances.
-

@@ -7,8 +7,8 @@ triggers:
   - "codex pet"
   - "spritesheet pet"
   - "animated pet"
-  - "孵化宠物"
-  - "电子宠物"
+  - "hatch a digital pet"
+  - "digital pet"
 od:
   mode: image
   surface: image

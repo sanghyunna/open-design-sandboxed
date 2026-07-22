@@ -1,16 +1,14 @@
 ---
 name: hr-onboarding
 description: |
-  A new-hire onboarding plan as a single page — first week schedule,
+  A new-hire onboarding plan as a single page ??first week schedule,
   buddy + manager intro, learning track, equipment checklist, and "you're
-  set when…" outcomes. Use when the brief mentions "onboarding",
-  "new hire", "first week plan", or "入职".
+  set when?? outcomes. Use when the brief mentions "onboarding",
+  "new hire", or "first week plan".
 triggers:
   - "onboarding"
   - "new hire"
   - "first week"
-  - "入职"
-  - "新员工"
 od:
   mode: prototype
   platform: desktop
@@ -38,10 +36,10 @@ Produce a single-screen onboarding plan in HTML.
 3. Layout:
    - Cover banner: name placeholder, role, start date, manager + buddy.
    - "Day 1" panel with the literal schedule (kickoff time, lunch, 1:1 slot).
-   - First-week timeline (Mon → Fri, two activities per day).
+   - First-week timeline (Mon ??Fri, two activities per day).
    - 30 / 60 / 90 day milestone cards with three concrete outcomes each.
    - Resource list: handbook, Slack channels, key dashboards, payroll setup.
-   - "You're set when…" checklist — five outcomes with checkboxes.
+   - "You're set when?? checklist ??five outcomes with checkboxes.
 4. Single inline `<style>`, semantic HTML.
 
 ## Output contract

@@ -14,8 +14,8 @@ triggers:
   - "ct sentiment"
   - "public sentiment"
   - "social sentiment"
-  - "推特情绪"
-  - "X 上怎么说"
+  - "Twitter sentiment"
+  - "what people say on X"
 od:
   mode: prototype
   preview:

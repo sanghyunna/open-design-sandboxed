@@ -9,7 +9,7 @@ triggers:
   - "data-driven finance deck"
   - "neon lime editorial grid"
   - "high contrast strategy slides"
-  - "数字金融瑞士风模板"
+  - "Swiss fintech template"
 od:
   mode: template
   surface: video

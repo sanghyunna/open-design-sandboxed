@@ -17,9 +17,9 @@ triggers:
   - "football field valuation"
   - "trading comps"
   - "precedent transactions"
-  - "投行 pitch"
-  - "并购材料"
-  - "战略选项"
+- "investment banking pitch"
+  - "M&A Materials"
+  - "Strategic Options"
 od:
   mode: deck
   scenario: finance

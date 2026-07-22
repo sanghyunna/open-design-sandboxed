@@ -7,7 +7,7 @@ triggers:
   - "launch deck"
   - "feature reveal"
   - "launch slides"
-  - "发布会"
+- "press conference"
 od:
   mode: deck
   scenario: marketing

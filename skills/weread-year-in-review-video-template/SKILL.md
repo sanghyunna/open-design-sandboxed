@@ -11,9 +11,9 @@ triggers:
   - "WeRead annual report"
   - "reading year in review video"
   - "annual reading report template"
-  - "微信读书年度报告"
-  - "读书年度总结视频"
-  - "阅读年报 HyperFrames"
+  - "WeRead annual report"
+  - "annual reading recap video"
+  - "reading year-in-review HyperFrames"
 od:
   mode: template
   surface: video

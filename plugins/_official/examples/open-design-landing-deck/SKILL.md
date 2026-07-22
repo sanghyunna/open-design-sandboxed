@@ -11,7 +11,7 @@ description: >
   `open-design-landing` skill.
 triggers:
   - slide deck
-  - 演示文稿
+- Presentations
   - pitch deck
   - keynote
   - editorial slides

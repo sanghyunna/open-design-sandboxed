@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8"><title>Theme Showcase — html-ppt v2</title>
 <link rel="stylesheet" href="../assets/fonts.css">
@@ -29,12 +29,12 @@
 <script>
 /* 36 themes total (24 v1 + 12 v2). Each rendered in its OWN iframe so CSS is isolated. */
 const THEMES = [
-  ['minimal-white',      '极简白 · clean restraint'],
-  ['editorial-serif',    '杂志衬线 · high editorial'],
-  ['soft-pastel',        '马卡龙 · soft pastel'],
-  ['sharp-mono',         '黑白高对比 · sharp mono'],
-  ['arctic-cool',        '冷色调 · arctic'],
-  ['sunset-warm',        '暖色调 · sunset'],
+  ['minimal-white',      'minimalist white · clean restraint'],
+  ['editorial-serif',    'magazine serif · high editorial'],
+  ['soft-pastel',        'Macarons · soft pastel'],
+  ['sharp-mono',         'High contrast black and white · sharp mono'],
+  ['arctic-cool',        'cool colors · arctic'],
+  ['sunset-warm',        'Warm colors · sunset'],
   ['catppuccin-latte',   'Catppuccin Latte'],
   ['catppuccin-mocha',   'Catppuccin Mocha'],
   ['dracula',            'Dracula'],
@@ -45,26 +45,26 @@ const THEMES = [
   ['rose-pine',          'Rose Pine'],
   ['neo-brutalism',      'Neo-Brutalism'],
   ['glassmorphism',      'Glassmorphism'],
-  ['bauhaus',            'Bauhaus 几何原色'],
+  ['bauhaus',            'Bauhaus geometric primary colors'],
   ['swiss-grid',         'Swiss Grid'],
   ['terminal-green',     'Terminal Green'],
-  ['xiaohongshu-white',  '小红书白底'],
+  ['xiaohongshu-white',  'little red book white background'],
   ['rainbow-gradient',   'Rainbow Gradient'],
-  ['aurora',             'Aurora 极光'],
-  ['blueprint',          'Blueprint 蓝图'],
+  ['aurora',             'Aurora aurora'],
+  ['blueprint',          'Blueprint blueprint'],
   ['memphis-pop',        'Memphis Pop'],
   /* v2 additions */
-  ['cyberpunk-neon',     'Cyberpunk Neon 霓虹'],
-  ['y2k-chrome',         'Y2K Chrome 镜面'],
-  ['retro-tv',           'Retro TV CRT 扫描线'],
-  ['japanese-minimal',   '和风极简 · 朱红'],
-  ['vaporwave',          'Vaporwave 蒸汽波'],
+  ['cyberpunk-neon',     'Cyberpunk Neon neon'],
+  ['y2k-chrome',         'Y2K Chrome mirror'],
+  ['retro-tv',           'Retro TV CRT scan line'],
+  ['japanese-minimal',   'Japanese minimalist style · red'],
+  ['vaporwave',          'Vaporwave vaporwave'],
   ['midcentury',         'Mid-Century Modern'],
-  ['corporate-clean',    'Corporate Clean 商务'],
-  ['academic-paper',     '学术白皮书'],
-  ['news-broadcast',     'News Broadcast 新闻'],
+  ['corporate-clean',    'Corporate Clean business'],
+  ['academic-paper',     'Academic white paper'],
+  ['news-broadcast',     'News Broadcast news'],
   ['pitch-deck-vc',      'Pitch Deck VC / YC'],
-  ['magazine-bold',      'Magazine Bold 大字杂志'],
+  ['magazine-bold',      'Magazine Bold Large print magazine'],
   ['engineering-whiteprint','Engineering Whiteprint']
 ];
 
@@ -94,7 +94,7 @@ function demoHTML(themeName, label){
   <p class="lede">Same demo slide, different tokens. Background, type, accent, radius, shadow all come from <code>assets/themes/${themeName}.css</code>.</p>
   <div class="grid g3 mt-l">
     <div class="card">
-      <h4>Palette · 调色盘</h4>
+      <h4>Palette · color palette</h4>
       <p class="dim">accent / accent-2 / accent-3 / text / surface-2</p>
       <div class="swatch">
         <div style="background:var(--accent)"></div>
@@ -107,10 +107,10 @@ function demoHTML(themeName, label){
     <div class="card">
       <h4>KPI</h4>
       <div class="kpi gradient-text">2.4K</div>
-      <p class="dim">上周月活 · weekly active</p>
+      <p class="dim">Last week’s monthly activity · weekly active</p>
     </div>
     <div class="card">
-      <h4>Code · 令牌</h4>
+      <h4>Code · token</h4>
       <pre class="mini-code">:root {
   --accent: /* theme */;
   --radius: /* theme */;

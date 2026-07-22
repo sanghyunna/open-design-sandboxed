@@ -7,8 +7,8 @@ triggers:
   - "workshop"
   - "training deck"
   - "lesson"
-  - "教学"
-  - "课件"
+- "Teaching"
+  - "Courseware"
 od:
   mode: deck
   scenario: education

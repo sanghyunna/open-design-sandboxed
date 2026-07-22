@@ -4,7 +4,7 @@ description: Conference / internal tech-talk deck — GitHub-dark, JetBrains Mon
 triggers:
   - "tech sharing"
   - "tech talk"
-  - "技术分享"
+- "Technology Sharing"
   - "engineering talk"
   - "conference talk"
   - "dev talk"

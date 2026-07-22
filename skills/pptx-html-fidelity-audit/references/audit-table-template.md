@@ -9,16 +9,16 @@ Drop-in markdown template for the Step-3 audit deliverable. Keep the column orde
 
 | Slide | Issue | Severity |
 |---|---|---|
-| 1 cover     | meta-row 底端 6.95" 蓋過 footer (6.7")        | 🔴 |
-| 2 principle | meta-row 蓋 footer                             | 🔴 |
-| 5 checklist | row B 步驟描述底端 7.2" 切到 footer            | 🔴 |
-| 8 3E        | 收束段落直接坐在 footer 起點                   | 🔴 |
-| 9 on-day    | step 描述底端剛好碰 footer，無安全距           | 🟠 |
-| 10 obs      | row 2 obs-card 底端 6.95" 切 footer            | 🔴 |
-| 11 P&D      | Note 段底端 7.34" 完全壓在 footer 之下          | 🔴 |
-| 13 deliv.   | pipeline 描述底端 7.05" 切 footer              | 🔴 |
-| 14 closing  | meta-row 底端 7.24" 壓到 footer 之外           | 🔴 |
-| 多處        | em (Playfair italic)、特殊字級對比未保留        | 🟡 |
+| 1 cover     | meta-row bottom at 6.95" overlaps footer (6.7") | 🔴 |
+| 2 principle | meta-row overlaps footer                        | 🔴 |
+| 5 checklist | row B description bottom at 7.2" crosses footer | 🔴 |
+| 8 3E        | closing paragraph begins at footer boundary     | 🔴 |
+| 9 on-day    | step description touches footer; no safety margin | 🟠 |
+| 10 obs      | row 2 observation card bottom at 6.95" crosses footer | 🔴 |
+| 11 P&D      | Note paragraph bottom at 7.34" sits below footer | 🔴 |
+| 13 deliv.   | pipeline description bottom at 7.05" crosses footer | 🔴 |
+| 14 closing  | meta-row bottom at 7.24" extends past footer   | 🔴 |
+| several     | em (Playfair italic) and special type contrast were lost | 🟡 |
 
 **Root causes**
 

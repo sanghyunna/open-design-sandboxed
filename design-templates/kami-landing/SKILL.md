@@ -1,17 +1,14 @@
 ---
 name: kami-landing
 description: >
-  Produce a print-grade single-page kami (紙 / 纸) document — warm
+  Produce a print-grade single-page kami document — warm
   parchment canvas, ink-blue accent, serif at one weight, no italic,
   no cool grays. The output reads like a professional white paper or
   studio one-pager, not an app UI. Multilingual by design (EN ·
   zh-CN · ja). One self-contained HTML file, zero dependencies.
 triggers:
   - kami
-  - 紙
-  - 纸
   - paper one-pager
-  - 白皮书
   - white paper
   - parchment landing
   - editorial document
@@ -81,7 +78,7 @@ example_prompt: |
 
 # kami-landing
 
-Produce a single-page document in the **kami (紙 / 纸)** design system.
+Produce a single-page document in the **kami** design system.
 The aesthetic borrows from editorial print, technical white papers,
 and old typewritten correspondence — the goal is *good content on
 good paper*, not *modern app UI*.

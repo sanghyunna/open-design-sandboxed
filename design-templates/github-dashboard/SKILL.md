@@ -12,8 +12,6 @@ triggers:
   - "github analytics"
   - "open source dashboard"
   - "github growth"
-  - "仓库看板"
-  - "GitHub 看板"
 od:
   mode: prototype
   platform: desktop

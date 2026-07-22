@@ -10,7 +10,7 @@ category: data
 scenario: finance
 aspect_hint: "desktop long page"
 featured: 10
-tags: ["data", "report", "chart", "数据", "报告"]
+tags: ["data", "report", "chart", "visualization"]
 example_id: sample-data-weekly-report
 example_name: "Data Report · Weekly Report"
 example_format: csv
