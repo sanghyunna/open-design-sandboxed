@@ -7133,6 +7133,7 @@ function HtmlViewer({
           height: selectedManualEditTarget.rect.height,
         }}
         scale={overlayPreviewScale}
+        disabled={manualEditSaving}
         labels={manualEditResizeLabels}
         onResizeStart={() => {
           clearManualEditResizeFeedback();

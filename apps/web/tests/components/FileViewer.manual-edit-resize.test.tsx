@@ -480,6 +480,58 @@ describe('FileViewer manual edit resize handles', () => {
     });
   });
 
+  it('blocks a second resize until the first resize commit finishes saving', async () => {
+    let releaseSave: (() => void) | undefined;
+    const savePending = new Promise<void>((resolve) => {
+      releaseSave = resolve;
+    });
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        await savePending;
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 62, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 62, clientX: 340, clientY: 170 });
+    fireEvent.pointerUp(se, { pointerId: 62, clientX: 340, clientY: 170 });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/projects/project-1/files',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(se.disabled).toBe(true);
+    });
+
+    postSpy.mockClear();
+    fireEvent.pointerDown(se, { pointerId: 63, clientX: 340, clientY: 170 });
+    fireEvent.pointerMove(se, { pointerId: 63, clientX: 380, clientY: 190 });
+    fireEvent.pointerUp(se, { pointerId: 63, clientX: 380, clientY: 190 });
+    expect(postSpy).not.toHaveBeenCalled();
+
+    releaseSave?.();
+    await waitFor(() => {
+      expect(se.disabled).toBe(false);
+    });
+  });
+
   it('commits CSS-space px, not rect-space px, for targets under an ancestor transform', async () => {
     // Deck fit-to-canvas transforms make rect px = CSS px * k. The drag delta
     // must be divided back by k and applied to the element's CSS size, or every
