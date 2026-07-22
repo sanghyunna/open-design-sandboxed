@@ -270,6 +270,34 @@
   min-width: 0;
 }
 
+.resizeFeedback {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--accent-tint);
+  font-size: 11px;
+}
+
+.resizeFeedbackBar {
+  flex: 1 0 100%;
+  margin: 0 0 2px;
+}
+
+.resizeFeedbackLine {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 3px 12px;
+}
+
+.resizeFeedbackMeasure {
+  color: var(--text-muted);
+}
+
 .quickPanel {
   display: flex;
   flex-direction: column;

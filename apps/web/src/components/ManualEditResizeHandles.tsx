@@ -19,6 +19,7 @@ export type ManualEditResizeHandlesProps = {
   rect: Rect;
   startSize: Size;
   scale: number;
+  disabled?: boolean;
   labels: Record<ResizeHandleDirection, string>;
   // Sizes are rect-space (getBoundingClientRect px). The host owns the
   // conversion to CSS width/height (see resizeCssCommitStyles) because it
@@ -53,6 +54,7 @@ export function ManualEditResizeHandles({
   rect,
   startSize,
   scale,
+  disabled = false,
   labels,
   onResizePreview,
   onResizeCommit,
@@ -113,6 +115,7 @@ export function ManualEditResizeHandles({
   };
 
   const handlePointerDown = (direction: ResizeHandleDirection) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (disabled) return;
     event.preventDefault();
     event.stopPropagation();
     const target = event.currentTarget;
@@ -205,6 +208,7 @@ export function ManualEditResizeHandles({
           <button
             key={direction}
             type="button"
+            disabled={disabled}
             tabIndex={-1}
             aria-label={labels[direction]}
             data-direction={direction}

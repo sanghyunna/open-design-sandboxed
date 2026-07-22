@@ -138,7 +138,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -150,6 +150,11 @@ type TranslateFn = (key: keyof Dict, vars?: Record<string, string | number>) => 
 type SlideState = { active: number; count: number };
 type BoardTool = 'inspect' | 'pod';
 type StrokePoint = { x: number; y: number };
+type ManualEditResizeFeedback = {
+  targetId: string;
+  constraints: ManualEditResizeConstraint[];
+  announce: boolean;
+};
 export type ManualEditPendingStyleSave = {
   id: string;
   styles: Partial<ManualEditStyles>;
@@ -683,22 +688,6 @@ function previewScaleShellStyle(
   };
 }
 
-function manualEditPreviewShellStyle(
-  viewport: PreviewViewportId,
-  previewScale: number,
-  frozenWidth: number | null,
-): CSSProperties & Record<string, string | number> {
-  if (viewport === 'desktop' && frozenWidth) {
-    return {
-      width: `${frozenWidth / previewScale}px`,
-      height: `${100 / previewScale}%`,
-      transform: `scale(${previewScale})`,
-      transformOrigin: '0 0',
-    };
-  }
-  return previewScaleShellStyle(viewport, previewScale);
-}
-
 function deploymentTimestamp(deployment: WebDeploymentInfo): number {
   const maybeDeployedAt = (deployment as WebDeploymentInfo & { deployedAt?: number | string }).deployedAt;
   const candidates = [maybeDeployedAt, deployment.updatedAt, deployment.createdAt];
@@ -792,6 +781,17 @@ export function manualEditResizeOverlayRect(
     width: Math.max(0, width) * scale,
     height: Math.max(0, height) * scale,
   };
+}
+
+function manualEditResizeRequest(
+  direction: ResizeHandleDirection,
+  size: { width: number; height: number },
+  includeDetails = false,
+): ManualEditResizeRequest {
+  const axes: ManualEditResizeRequest['axes'] = [];
+  if (direction.includes('e') || direction.includes('w')) axes.push('width');
+  if (direction.includes('n') || direction.includes('s')) axes.push('height');
+  return { axes, requested: size, ...(includeDetails ? { includeDetails: true } : {}) };
 }
 
 export function cancelManualEditPendingStyleSnapshot(
@@ -3561,7 +3561,6 @@ function HtmlViewer({
   const [manualEditMode, setManualEditModeRaw] = useState(false);
   const [manualEditSrcDocActive, setManualEditSrcDocActive] = useState(false);
   const [manualEditFrozenSource, setManualEditFrozenSource] = useState<string | null>(null);
-  const [manualEditViewportWidth, setManualEditViewportWidth] = useState<number | null>(null);
   const [commentPortalHost, setCommentPortalHost] = useState<HTMLElement | null>(null);
   const [manualEditPortalHost, setManualEditPortalHost] = useState<HTMLElement | null>(null);
   const [previewBodyRef, previewBodySize] = usePreviewCanvasSize<HTMLDivElement>();
@@ -3612,9 +3611,6 @@ function HtmlViewer({
   const setManualEditMode = useCallback((next: boolean | ((prev: boolean) => boolean)) => {
     setManualEditModeRaw((prev) => {
       const value = typeof next === 'function' ? (next as (p: boolean) => boolean)(prev) : next;
-      if (value !== prev && !value) {
-        setManualEditViewportWidth(null);
-      }
       return value;
     });
   }, []);
@@ -3760,6 +3756,7 @@ function HtmlViewer({
   const [manualEditHistory, setManualEditHistory] = useState<ManualEditHistoryEntry[]>([]);
   const [manualEditUndone, setManualEditUndone] = useState<ManualEditHistoryEntry[]>([]);
   const [manualEditError, setManualEditError] = useState<string | null>(null);
+  const [manualEditResizeFeedback, setManualEditResizeFeedback] = useState<ManualEditResizeFeedback | null>(null);
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
   const manualEditHistoryOperationRef = useRef(false);
@@ -3784,6 +3781,10 @@ function HtmlViewer({
   // drop nearly every mid-drag rect measurement. Monotonic acceptance keeps
   // the overlays tracking the element's real box without reordering glitches.
   const manualEditPreviewAckVersionRef = useRef(0);
+  // Semantic feedback clears (selection changes, cancel, history, etc.) form a
+  // version boundary. A resize ack issued before that boundary may still arrive
+  // later, but must not resurrect feedback that the user already dismissed.
+  const manualEditResizeFeedbackInvalidThroughVersionRef = useRef(0);
   const [manualEditRichFormat, setManualEditRichFormat] = useState<ManualEditRichFormatState>(
     { editing: false, hasSelection: false, bold: false, italic: false, underline: false },
   );
@@ -4520,10 +4521,11 @@ function HtmlViewer({
     styles: Partial<ManualEditStyles>,
     version: number,
     includeAuthoredSize = false,
+    resize?: ManualEditResizeRequest,
   ) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od-edit-preview-style', id, styles, version, includeAuthoredSize }, '*');
+    win.postMessage({ type: 'od-edit-preview-style', id, styles, version, includeAuthoredSize, ...(resize ? { resize } : {}) }, '*');
     return true;
   }, []);
 
@@ -4636,7 +4638,6 @@ function HtmlViewer({
     setQueuedBoardNotes([]);
     setStrokePoints([]);
     setManualEditFrozenSource(null);
-    setManualEditViewportWidth(null);
     setManualEditTargets([]);
     setSelectedManualEditTarget(null);
     selectedManualEditTargetIdRef.current = null;
@@ -4647,6 +4648,7 @@ function HtmlViewer({
     setManualEditHistory([]);
     setManualEditUndone([]);
     setManualEditError(null);
+    clearManualEditResizeFeedback();
     manualEditPendingStyleRef.current = null;
   }, [file.name]);
 
@@ -4897,6 +4899,7 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = null;
       manualEditActionSeqRef.current += 1;
       setManualEditError(null);
+      clearManualEditResizeFeedback();
       manualEditPendingStyleRef.current = null;
       setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
       return;
@@ -4980,6 +4983,7 @@ function HtmlViewer({
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
+        if (!isActivePreviewIframeSource(ev.source)) return;
         const version = typeof data.version === 'number' ? data.version : 0;
         // Drop only out-of-order stragglers; every newer ack is applied even if
         // a later preview is already in flight (see manualEditPreviewAckVersionRef).
@@ -5000,6 +5004,20 @@ function HtmlViewer({
             current && current.id === data.id
               ? { ...current, rect, ...(cssSize ? { cssSize } : {}), ...(authoredSize ? { authoredSize } : {}) }
               : current);
+        }
+        if (
+          data.ok
+          && data.resize
+          && Array.isArray(data.resize.constraints)
+          && typeof data.id === 'string'
+          && data.id === selectedManualEditTargetIdRef.current
+          && version > manualEditResizeFeedbackInvalidThroughVersionRef.current
+        ) {
+          setManualEditResizeFeedback({
+            targetId: data.id,
+            constraints: data.resize.constraints,
+            announce: data.resize.announce === true,
+          });
         }
         if (!data.ok && version === manualEditPreviewVersionRef.current) {
           setManualEditError(data.error || 'Could not apply preview style.');
@@ -5041,11 +5059,16 @@ function HtmlViewer({
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [isOurPreviewIframeSource, manualEditMode, source]);
+  }, [isActivePreviewIframeSource, isOurPreviewIframeSource, manualEditMode, source]);
 
   function nextManualEditPreviewVersion(): number {
     manualEditPreviewVersionRef.current += 1;
     return manualEditPreviewVersionRef.current;
+  }
+
+  function clearManualEditResizeFeedback(): void {
+    manualEditResizeFeedbackInvalidThroughVersionRef.current = manualEditPreviewVersionRef.current;
+    setManualEditResizeFeedback(null);
   }
 
   function inspectorManualEditStyles(target: ManualEditTarget, baseSource: string): ManualEditStyles {
@@ -5095,6 +5118,7 @@ function HtmlViewer({
   }
 
   async function handleManualEditStyleChange(id: string, styles: Partial<ManualEditStyles>, label: string) {
+    clearManualEditResizeFeedback();
     const version = nextManualEditPreviewVersion();
     const currentPending = manualEditPendingStyleRef.current;
     const pendingStyles = currentPending?.id === id
@@ -5182,7 +5206,13 @@ function HtmlViewer({
         styles: { ...current.styles, ...styles },
       }));
     }
-    previewStyleToIframe(target.id, styles, nextManualEditPreviewVersion(), true);
+    previewStyleToIframe(
+      target.id,
+      styles,
+      nextManualEditPreviewVersion(),
+      true,
+      manualEditResizeRequest(direction, size, true),
+    );
   }
 
   // Escape / pointercancel: repaint the iframe with the width/height that were
@@ -5347,6 +5377,7 @@ function HtmlViewer({
 
   async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
     manualEditPostSaveIntentRef.current = null;
+    clearManualEditResizeFeedback();
     if (manualEditSavingRef.current) {
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'select', target };
       return;
@@ -5386,6 +5417,7 @@ function HtmlViewer({
     options: { openPageStyles?: boolean } = {},
     actionSeq = ++manualEditActionSeqRef.current,
   ): Promise<boolean> {
+    clearManualEditResizeFeedback();
     if (manualEditSavingRef.current) {
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'clear', openPageStyles: !!options.openPageStyles };
       return false;
@@ -5476,6 +5508,7 @@ function HtmlViewer({
         selectedManualEditTargetIdRef.current = null;
         selectedManualEditTargetRef.current = null;
         setSelectedManualEditTarget(null);
+        clearManualEditResizeFeedback();
         setManualEditTargets((current) => current.filter((target) => target.id !== patch.id));
         setManualEditDraft(emptyManualEditDraft(result.source));
         postSelectedManualEditTargetToIframe(null);
@@ -5544,6 +5577,7 @@ function HtmlViewer({
       runNextQueuedManualEditHistory();
       return;
     }
+    clearManualEditResizeFeedback();
     manualEditSavingRef.current = true;
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
@@ -5585,6 +5619,7 @@ function HtmlViewer({
       runNextQueuedManualEditHistory();
       return;
     }
+    clearManualEditResizeFeedback();
     manualEditSavingRef.current = true;
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
@@ -6383,7 +6418,6 @@ function HtmlViewer({
       setInspectMode(false);
       setDrawOverlayOpen(false);
       setMode('preview');
-      setManualEditViewportWidth(previewBodyRef.current?.clientWidth ?? null);
       setManualEditSrcDocActive(true);
       setManualEditMode(true);
       closeArtifactToolMenus();
@@ -7161,8 +7195,10 @@ function HtmlViewer({
           height: selectedManualEditTarget.rect.height,
         }}
         scale={overlayPreviewScale}
+        disabled={manualEditSaving}
         labels={manualEditResizeLabels}
         onResizeStart={() => {
+          clearManualEditResizeFeedback();
           beginManualEditResizeBaseline(selectedManualEditTarget);
         }}
         onResizePreview={(direction, size, startSize) => {
@@ -7170,12 +7206,15 @@ function HtmlViewer({
             selectedManualEditTarget.id,
             manualEditResizeStyles(selectedManualEditTarget, direction, size, startSize),
             nextManualEditPreviewVersion(),
+            false,
+            manualEditResizeRequest(direction, size),
           );
         }}
         onResizeCommit={(direction, size, startSize) => {
           void commitManualEditResize(selectedManualEditTarget, direction, size, startSize);
         }}
         onResizeCancel={() => {
+          clearManualEditResizeFeedback();
           revertManualEditResizePreview(selectedManualEditTarget);
         }}
       />
@@ -7653,6 +7692,11 @@ function HtmlViewer({
           styles={manualEditDraft.styles}
           draftAlt={manualEditDraft.alt}
           error={manualEditError}
+          resizeConstraints={manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+            ? manualEditResizeFeedback.constraints
+            : undefined}
+          announceResizeConstraints={manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+            && manualEditResizeFeedback.announce}
           busy={manualEditSaving}
           canUndo={manualEditHistory.length > 0}
           canRedo={manualEditUndone.length > 0}
@@ -7684,6 +7728,12 @@ function HtmlViewer({
               richFormat={manualEditRichFormat}
               draftAlt={manualEditDraft.alt}
               error={manualEditError}
+              resizeConstraints={selectedManualEditTarget && manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+                ? manualEditResizeFeedback.constraints
+                : undefined}
+              announceResizeConstraints={!!selectedManualEditTarget
+                && manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+                && manualEditResizeFeedback.announce}
               busy={manualEditSaving}
               canUndo={manualEditHistory.length > 0}
               canRedo={manualEditUndone.length > 0}
@@ -8069,13 +8119,7 @@ function HtmlViewer({
               data-testid={manualEditMode ? undefined : 'comment-preview-canvas'}
             >
               <div className={manualEditMode ? undefined : 'comment-frame-clip'} style={manualEditMode ? { height: '100%' } : undefined}>
-                <div
-                  style={
-                    manualEditMode
-                      ? manualEditPreviewShellStyle(previewViewport, previewScale, manualEditViewportWidth)
-                      : previewScaleShellStyle(previewViewport, previewScale)
-                  }
-                >
+                <div style={previewScaleShellStyle(previewViewport, previewScale)}>
                   <PreviewDrawOverlay
                     active={drawOverlayOpen}
                     onActiveChange={setDrawOverlayOpen}

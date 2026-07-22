@@ -46,3 +46,7 @@
 .handle-w {
   cursor: ew-resize;
 }
+
+.handle:disabled {
+  cursor: wait;
+}

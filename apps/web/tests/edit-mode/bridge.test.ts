@@ -1464,6 +1464,185 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('reports a generic constraint only for requested resize axes', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const hero = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    hero.getBoundingClientRect = () => ({
+      x: 10, y: 20, width: 560.625, height: 80,
+      top: 20, right: 570.625, bottom: 100, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const createElement = vi.spyOn(dom.window.document, 'createElement');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: { width: '741px' },
+        version: 12,
+        resize: {
+          axes: ['width'],
+          requested: { width: 741, height: 200 },
+        },
+      },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style-applied',
+        resize: {
+          announce: false,
+          constraints: [{
+            axis: 'width',
+            requested: 741,
+            applied: 560.625,
+            reason: 'layout',
+          }],
+        },
+      }),
+      '*',
+    );
+    expect(createElement.mock.calls.filter(([tag]) => tag === 'style')).toHaveLength(0);
+
+    dom.window.close();
+  });
+
+  it('treats resize differences of one pixel or less as applied', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const hero = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    hero.getBoundingClientRect = () => ({
+      x: 0, y: 0, width: 320, height: 80,
+      top: 0, right: 320, bottom: 80, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: { width: '321px' },
+        version: 13,
+        resize: {
+          axes: ['width'],
+          requested: { width: 321, height: 80 },
+          includeDetails: true,
+        },
+      },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style-applied',
+        resize: { constraints: [], announce: true },
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('attributes detailed max and min constraints when the applied rect matches the authored limits', () => {
+    const dom = new JSDOM(
+      `<style>.hero { max-width: 320px; min-height: 90px; }</style><main><h1 class="hero" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const hero = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    hero.getBoundingClientRect = () => ({
+      x: 0, y: 0, width: 320, height: 90,
+      top: 0, right: 320, bottom: 90, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: { width: '500px', height: '60px' },
+        version: 13,
+        resize: {
+          axes: ['width', 'height'],
+          requested: { width: 500, height: 60 },
+          includeDetails: true,
+        },
+      },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style-applied',
+        resize: {
+          announce: true,
+          constraints: [
+            {
+              axis: 'width', requested: 500, applied: 320, reason: 'max',
+              property: 'max-width', value: '320px',
+            },
+            {
+              axis: 'height', requested: 60, applied: 90, reason: 'min',
+              property: 'min-height', value: '90px',
+            },
+          ],
+        },
+      }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('keeps unprovable detailed constraints generic without probing authored CSS', () => {
+    const dom = new JSDOM(
+      `<style>.hero { max-width: 50%; }</style><main><h1 class="hero" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const hero = dom.window.document.querySelector('[data-od-id="hero"]') as HTMLElement;
+    hero.getBoundingClientRect = () => ({
+      x: 0, y: 0, width: 320, height: 80,
+      top: 0, right: 320, bottom: 80, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const createElement = vi.spyOn(dom.window.document, 'createElement');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-preview-style',
+        id: 'hero',
+        styles: { width: '500px' },
+        version: 14,
+        resize: {
+          axes: ['width'],
+          requested: { width: 500, height: 80 },
+          includeDetails: true,
+        },
+      },
+    }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resize: {
+          announce: true,
+          constraints: [{
+            axis: 'width', requested: 500, applied: 320, reason: 'layout',
+          }],
+        },
+      }),
+      '*',
+    );
+    expect(createElement.mock.calls.filter(([tag]) => tag === 'style')).toHaveLength(0);
+
+    dom.window.close();
+  });
+
   it('omits authored-size work for high-frequency sizing preview frames', () => {
     const dom = new JSDOM(
       `<style>.hero { width: 320px; }</style><main><h1 class="hero" data-od-id="hero">Title</h1></main>${buildManualEditBridge(true)}`,

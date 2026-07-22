@@ -170,6 +170,31 @@ describe('FileViewer manual edit regressions', () => {
     expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy();
   });
 
+  it('keeps the Desktop edit preview sized to the live canvas', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()}
+        liveHtml={source}
+      />,
+    );
+
+    const viewerBody = document.querySelector<HTMLElement>('.viewer-body');
+    expect(viewerBody).not.toBeNull();
+    Object.defineProperty(viewerBody, 'clientWidth', { configurable: true, value: 1_188 });
+
+    clickManualTool('manual-edit-mode-toggle');
+
+    const frame = await previewFrame();
+    let previewShell = frame.parentElement;
+    while (previewShell && !previewShell.style.transform) previewShell = previewShell.parentElement;
+
+    expect(previewShell?.style.width).toBe('100%');
+  });
+
   it('opens the compact page-styles card when the empty canvas is clicked', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>

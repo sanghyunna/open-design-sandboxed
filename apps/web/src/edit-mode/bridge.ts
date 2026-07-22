@@ -373,6 +373,34 @@ export function buildManualEditBridge(enabled: boolean): string {
       height: height || htmlSizeHintFor(el, 'height')
     };
   }
+  function resizeOutcomeFor(el, applied, request){
+    if (!request || !Array.isArray(request.axes) || !request.requested) return null;
+    var constraints = [];
+    ['width', 'height'].forEach(function(axis){
+      if (request.axes.indexOf(axis) < 0) return;
+      var requested = Number(request.requested[axis]);
+      var appliedSize = Number(applied[axis]);
+      if (!isFinite(requested) || !isFinite(appliedSize) || Math.abs(requested - appliedSize) <= 1) return;
+      constraints.push({ axis: axis, requested: requested, applied: appliedSize, reason: 'layout' });
+    });
+    if (request.includeDetails === true && constraints.length) {
+      var computed = window.getComputedStyle(el);
+      constraints.forEach(function(constraint){
+        var direction = constraint.requested > constraint.applied ? 'max' : 'min';
+        var propertyName = direction + '-' + constraint.axis;
+        var computedValue = computed.getPropertyValue(propertyName).trim();
+        if (!/^-?(?:\\d+|\\d*\\.\\d+)px$/i.test(computedValue)) return;
+        var limit = Number.parseFloat(computedValue);
+        if (!isFinite(limit) || Math.abs(limit - constraint.applied) > 1) return;
+        var authoredValue = authoredCssValueFor(el, propertyName);
+        if (!authoredValue) return;
+        constraint.reason = direction;
+        constraint.property = propertyName;
+        constraint.value = authoredValue;
+      });
+    }
+    return { constraints: constraints, announce: request.includeDetails === true };
+  }
   function targetFrom(el, includeOuterHtml, includeAuthoredSize){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
@@ -716,7 +744,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     return null;
   }
-  function applyPreviewStyles(id, styles, version, includeAuthoredSize){
+  function applyPreviewStyles(id, styles, version, includeAuthoredSize, resizeRequest){
     var el = findById(id);
     if (!el) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id || '', version: Number(version) || 0, ok: false, error: 'Target not found' }, '*');
@@ -750,6 +778,8 @@ export function buildManualEditBridge(enabled: boolean): string {
         cssSize: cssSizeFor(el)
       };
       if (includeAuthoredSize) appliedMessage.authoredSize = authoredSizeFor(el);
+      var resize = resizeOutcomeFor(el, applied, resizeRequest);
+      if (resize) appliedMessage.resize = resize;
       window.parent.postMessage(appliedMessage, '*');
     } catch (e) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
@@ -864,7 +894,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       return;
     }
     if (ev.data.type === 'od-edit-preview-style') {
-      applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version, ev.data.includeAuthoredSize === true);
+      applyPreviewStyles(ev.data.id, ev.data.styles || {}, ev.data.version, ev.data.includeAuthoredSize === true, ev.data.resize);
       return;
     }
     if (ev.data.type === 'od-edit-rich-format') {
