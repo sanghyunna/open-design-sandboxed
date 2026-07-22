@@ -62,7 +62,7 @@ test("bundled copy guard permits explicit translations in manifests and reviewed
     await writeFile(path.join(root, "plugins/_official/examples/wireframe-sketch/example.html"), "<p>\u65e5\u672c\u8a9e</p>\n");
     await writeFile(
       path.join(root, "plugins/_official/examples/example/open-design.json"),
-      '{"title_i18n":{"zh-CN":"\u4e2d\u6587","zh-TW":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"}}',
+      '{"title_i18n":{"zh-CN":"\u4e2d\u6587","zh-TW":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"description_i18n":{"ja-JP":"\u65e5\u672c\u8a9e"},"od":{"useCase":{"query":{"zh-CN":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"path":"./example.html","title_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
     );
 
     assert.equal(await checkBundledCopyLanguage(root), true);
@@ -71,20 +71,39 @@ test("bundled copy guard permits explicit translations in manifests and reviewed
   }
 });
 
-test("bundled copy guard does not mask arbitrary Japanese locale values outside manifests", async () => {
+test("bundled copy guard rejects arbitrary Japanese/Han manifest properties", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
   try {
-    await mkdir(path.join(root, "skills/example"), { recursive: true });
+    await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await writeFile(
-      path.join(root, "skills/example/SKILL.md"),
-      "---\nname: example\nod:\n  example_prompt_i18n:\n    ja: \u65e5\u672c\u8a9e\n---\nEnglish default\n",
+      path.join(root, "plugins/_official/examples/example/open-design.json"),
+      '{"ja":"\u65e5\u672c\u8a9e","label_i18n":{"ja":"\u65e5\u672c\u8a9e"},"od":{"title_i18n":{"ja":"\u65e5\u672c\u8a9e"},"useCase":{"query":{"ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"label_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
     );
-    await writeFile(path.join(root, "skills/example/data.json"), '{"label_i18n":{"ja":"\u65e5\u672c\u8a9e"}}');
 
     const violations = await collectBundledCopyLanguageViolations(root);
     assert.deepEqual(
       new Set(violations.map((violation) => violation.filePath)),
-      new Set(["skills/example/SKILL.md", "skills/example/data.json"]),
+      new Set(["plugins/_official/examples/example/open-design.json"]),
+    );
+    assert.equal(await checkBundledCopyLanguage(root), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("bundled copy guard rejects Han defaults beside localized manifest maps", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  try {
+    await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
+    await writeFile(
+      path.join(root, "plugins/_official/examples/example/open-design.json"),
+      '{"title":"\u4e2d\u6587 fallback","description_i18n":{"zh-CN":"\u4e2d\u6587\u63cf\u8ff0","ja":"\u65e5\u672c\u8a9e"}}',
+    );
+
+    const violations = await collectBundledCopyLanguageViolations(root);
+    assert.deepEqual(
+      new Set(violations.map((violation) => violation.filePath)),
+      new Set(["plugins/_official/examples/example/open-design.json"]),
     );
     assert.equal(await checkBundledCopyLanguage(root), false);
   } finally {

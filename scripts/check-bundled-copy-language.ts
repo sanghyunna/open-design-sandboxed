@@ -65,6 +65,7 @@ const intentionalHanPaths = new Set([
 const hanScriptPattern = /\p{Script=Han}/gu;
 const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
+const localeTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
 
 export type BundledCopyLanguageViolation = {
   filePath: string;
@@ -124,17 +125,182 @@ function maskExplicitYamlLocaleValues(source: string): string {
   return masked;
 }
 
+function jsonStringEnd(source: string, start: number): number | undefined {
+  if (source[start] !== '"') return undefined;
+  for (let index = start + 1; index < source.length; index += 1) {
+    if (source[index] === "\\") {
+      index += 1;
+      continue;
+    }
+    if (source[index] === '"') return index + 1;
+  }
+  return undefined;
+}
+
+function skipJsonWhitespace(source: string, index: number): number {
+  while (/\s/.test(source[index] ?? "")) index += 1;
+  return index;
+}
+
+function jsonCompositeEnd(source: string, start: number): number | undefined {
+  const opening = source[start];
+  const closing = opening === "{" ? "}" : opening === "[" ? "]" : undefined;
+  if (!closing) return undefined;
+
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    if (source[index] === '"') {
+      const end = jsonStringEnd(source, index);
+      if (!end) return undefined;
+      index = end - 1;
+      continue;
+    }
+    if (source[index] === opening) depth += 1;
+    if (source[index] === closing && --depth === 0) return index + 1;
+  }
+  return undefined;
+}
+
+function jsonValueEnd(source: string, start: number): number | undefined {
+  if (source[start] === '"') return jsonStringEnd(source, start);
+  if (source[start] === "{" || source[start] === "[") return jsonCompositeEnd(source, start);
+  const match = source.slice(start).match(/^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/);
+  return match ? start + match[0].length : undefined;
+}
+
+function parsedJsonString(source: string, start: number, end: number): string | undefined {
+  try {
+    return JSON.parse(source.slice(start, end)) as string;
+  } catch {
+    return undefined;
+  }
+}
+
+function directJsonObjectValueStart(source: string, objectStart: number, propertyName: string): number | undefined {
+  const objectEnd = jsonCompositeEnd(source, objectStart);
+  if (!objectEnd) return undefined;
+
+  let index = skipJsonWhitespace(source, objectStart + 1);
+  while (index < objectEnd - 1) {
+    const keyEnd = jsonStringEnd(source, index);
+    if (!keyEnd) return undefined;
+    const key = parsedJsonString(source, index, keyEnd);
+    index = skipJsonWhitespace(source, keyEnd);
+    if (source[index] !== ":") return undefined;
+    const valueStart = skipJsonWhitespace(source, index + 1);
+    const valueEnd = jsonValueEnd(source, valueStart);
+    if (!valueEnd) return undefined;
+    if (key === propertyName) return valueStart;
+    index = skipJsonWhitespace(source, valueEnd);
+    if (source[index] === ",") {
+      index = skipJsonWhitespace(source, index + 1);
+      continue;
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
+function maskManifestLocalizedMap(source: string, mapStart: number, masked = source): string {
+  const mapEnd = jsonCompositeEnd(source, mapStart);
+  if (!mapEnd) return source;
+
+  let index = skipJsonWhitespace(source, mapStart + 1);
+  while (index < mapEnd - 1) {
+    const keyEnd = jsonStringEnd(source, index);
+    if (!keyEnd) return source;
+    const key = parsedJsonString(source, index, keyEnd);
+    index = skipJsonWhitespace(source, keyEnd);
+    if (source[index] !== ":") return source;
+    const valueStart = skipJsonWhitespace(source, index + 1);
+    const valueEnd = jsonValueEnd(source, valueStart);
+    if (!valueEnd) return source;
+    if (key && localeTagPattern.test(key) && source[valueStart] === '"') {
+      masked = maskRange(masked, valueStart, valueEnd);
+    }
+    index = skipJsonWhitespace(source, valueEnd);
+    if (source[index] === ",") {
+      index = skipJsonWhitespace(source, index + 1);
+      continue;
+    }
+    if (source[index] === "}") return masked;
+    return source;
+  }
+  return masked;
+}
+
+function maskManifestLocalizedProperty(
+  source: string,
+  masked: string,
+  objectStart: number,
+  propertyName: string,
+): string {
+  const mapStart = directJsonObjectValueStart(source, objectStart, propertyName);
+  return mapStart !== undefined && source[mapStart] === "{"
+    ? maskManifestLocalizedMap(source, mapStart, masked)
+    : masked;
+}
+
+function maskNamedManifestLocalizedMaps(source: string, manifestStart: number): string {
+  let masked = source;
+  for (const propertyName of ["title_i18n", "description_i18n"]) {
+    masked = maskManifestLocalizedProperty(source, masked, manifestStart, propertyName);
+  }
+  return masked;
+}
+
+function maskManifestUseCaseQuery(source: string, masked: string, manifestStart: number): string {
+  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
+  if (odStart === undefined || source[odStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
+  const queryStart = directJsonObjectValueStart(source, useCaseStart, "query");
+  return queryStart !== undefined && source[queryStart] === "{"
+    ? maskManifestLocalizedMap(source, queryStart, masked)
+    : masked;
+}
+
+function maskManifestExampleOutputTitles(source: string, masked: string, manifestStart: number): string {
+  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
+  if (odStart === undefined || source[odStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
+  const outputsStart = directJsonObjectValueStart(source, useCaseStart, "exampleOutputs");
+  if (outputsStart === undefined || source[outputsStart] !== "[") return masked;
+  const outputsEnd = jsonCompositeEnd(source, outputsStart);
+  if (!outputsEnd) return masked;
+
+  let index = skipJsonWhitespace(source, outputsStart + 1);
+  while (index < outputsEnd - 1) {
+    const valueEnd = jsonValueEnd(source, index);
+    if (!valueEnd) return masked;
+    if (source[index] === "{") {
+      masked = maskManifestLocalizedProperty(source, masked, index, "title_i18n");
+    }
+    index = skipJsonWhitespace(source, valueEnd);
+    if (source[index] === ",") {
+      index = skipJsonWhitespace(source, index + 1);
+      continue;
+    }
+    if (source[index] === "]") return masked;
+    return masked;
+  }
+  return masked;
+}
+
 function maskExplicitJsonLocaleValues(source: string): string {
   try {
-    JSON.parse(source);
+    const manifest = JSON.parse(source) as unknown;
+    if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return source;
   } catch {
     return source;
   }
 
-  return source.replace(
-    /(^|[,{]\s*)("(?:zh-CN|zh-TW|ja|ja-JP)"\s*:\s*)("(?:\\.|[^"\\])*")/gm,
-    (_, before: string, key: string, value: string) => `${before}${key}${" ".repeat(value.length)}`,
-  );
+  let index = skipJsonWhitespace(source, 0);
+  if (source[index] !== "{") return source;
+  let masked = maskNamedManifestLocalizedMaps(source, index);
+  masked = maskManifestUseCaseQuery(source, masked, index);
+  return maskManifestExampleOutputTitles(source, masked, index);
 }
 
 function sourceWithoutExplicitLocalizedValues(repositoryPath: string, source: string): string {
