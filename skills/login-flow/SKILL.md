@@ -7,11 +7,11 @@ od:
 triggers:
   - login
   - sign in
-  - 注册登录
-  - 登录注册
-  - 手机号登录
-  - 验证码登录
-  - 密码登录
+  - sign up and sign in
+  - authentication flow
+  - phone number login
+  - verification code login
+  - password login
 ---
 
 # Login Flow Skill

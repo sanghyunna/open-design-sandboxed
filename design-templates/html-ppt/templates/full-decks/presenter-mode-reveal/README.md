@@ -1,102 +1,102 @@
-# presenter-mode-reveal · 演讲者模式模板
+# presenter-mode-reveal · Presenter Mode Template
 
-一份专为**带逐字稿的技术分享**设计的 full-deck 模板。核心卖点是真正可用的**磁吸卡片式演讲者视图**：当前页 iframe 预览 + 下页 iframe 预览 + 大字号逐字稿 + 计时器，4 个卡片可任意拖拽/缩放，全部集成在 `runtime.js` 里，零依赖。
+A full-deck template for **technical talks with speaker notes**. Its core feature is a practical **snap-card presenter view**: current-slide iframe preview + next-slide iframe preview + large speaker script + timer. All four cards can be dragged and resized; everything is integrated in `runtime.js` with zero dependencies.
 
-## 使用场景
+## Use cases
 
-- 技术分享 / tech talk（30-60 min）
-- 产品发布会主讲
-- 课程讲授
-- 任何**需要照着讲、但不能念稿**的正式演讲
+- Technical talks (30–60 min)
+- Product-launch keynotes
+- Teaching sessions
+- Any formal talk that **needs guidance without sounding read aloud**
 
-## 快速开始
+## Quick start
 
 ```bash
 cp -r templates/full-decks/presenter-mode-reveal examples/my-talk
 open examples/my-talk/index.html
 ```
 
-## 键盘操作
+## Keyboard controls
 
-| 键 | 动作 |
+| Key | Action |
 |---|---|
-| `S` | 打开演讲者窗口（弹出新窗口，原页面不动） |
-| `T` | 切换主题（5 种预设） |
-| `←` `→` | 翻页 |
-| `Space` / `PgDn` | 下一页 |
-| `F` | 全屏 |
-| `O` | 总览缩略图 |
-| `R` | 重置计时器（仅演讲者视图下） |
-| `Esc` | 关闭所有浮层 |
+| `S` | Open presenter window (a new window; the original page stays put) |
+| `T` | Switch themes (five presets) |
+| `←` `→` | Change slides |
+| `Space` / `PgDn` | Next slide |
+| `F` | Fullscreen |
+| `O` | Overview thumbnails |
+| `R` | Reset timer (presenter view only) |
+| `Esc` | Close every overlay |
 
-## 主题切换
+## Theme switching
 
-模板预设了 5 个适配演讲场景的主题，在 `<html data-themes="...">` 属性里：
+The template includes five presentation-ready themes in the `<html data-themes="...">` attribute:
 
 ```html
 <html lang="zh-CN" data-themes="tokyo-night,dracula,catppuccin-mocha,nord,corporate-clean">
 ```
 
-按 `T` 循环切换。可以改成任何 `assets/themes/*.css` 里的主题。
+Press `T` to cycle them. You can use any theme in `assets/themes/*.css`.
 
-## 写逐字稿的规范
+## Speaker-note guidelines
 
-**每一页的 `<aside class="notes">` 里写 150–300 字**。三条铁律：
+**Write 150–300 words in every slide’s `<aside class="notes">`.** Three rules:
 
-1. **不是讲稿，是提示信号** — 核心点加粗、过渡句成段、数据列清楚
-2. **150–300 字/页** — 按 2–3 分钟/页的节奏
-3. **用口语写** — "因此" → "所以"；"该方案" → "这个方案"；读一遍不拗口才对
+1. **Not a script: a prompt signal** — bold key points, separate transitions, and list data clearly
+2. **150–300 words per page** — pace for two to three minutes per slide
+3. **Write as you speak** — choose “so” over “therefore”; read it aloud to ensure it sounds natural
 
-示例：
+Example:
 ```html
 <aside class="notes">
-  <p>大家好，今天跟大家聊一个 <strong>很多人忽略的问题</strong>——...</p>
-  <p>我先抛一个观点：<em>做 PPT 和讲 PPT 是两件事</em>。</p>
-  <p>接下来我会用 3 个例子证明这个观点...</p>
+  <p>Welcome. Today we will discuss a <strong>problem many people overlook</strong>...</p>
+  <p>Here is the point: <em>making slides and giving a talk are different skills</em>.</p>
+  <p>Next, I will prove that point with three examples...</p>
 </aside>
 ```
 
-支持的 inline 标签：
-- `<strong>` — 高亮（橘色）
-- `<em>` — 斜体强调（蓝色）
-- `<code>` — 等宽字体
-- `<p>` — 分段（推荐每段讲 30-60 秒的内容）
+Supported inline tags:
+- `<strong>` — highlight (orange)
+- `<em>` — italic emphasis (blue)
+- `<code>` — monospace
+- `<p>` — paragraphs (aim for 30–60 seconds of speech each)
 
-## 文件结构
+## File structure
 
 ```
 presenter-mode-reveal/
-├── index.html       # 6 张示例 slide，每页都有完整逐字稿
-├── style.css        # scoped .tpl-presenter-mode-reveal 样式
-└── README.md        # 本文件
+├── index.html       # six sample slides, each with complete speaker notes
+├── style.css        # scoped .tpl-presenter-mode-reveal styles
+└── README.md        # this file
 ```
 
-## 修改 / 扩展
+## Modify / extend
 
-- **加页**：复制任意 `<section class="slide">` 块，改内容和 `<aside class="notes">`
-- **换主题**：改 `data-themes` 列表，或直接改 `<link id="theme-link" href="...">`
-- **改样式**：只动 `style.css`，不要碰根目录的 `assets/base.css`
-- **加动效**：在元素上加 `data-anim="fade-up"` 等（参考 `references/animations.md`）
+- **Add pages:** copy any `<section class="slide">` block and change its content and `<aside class="notes">`
+- **Change themes:** edit the `data-themes` list or `<link id="theme-link" href="...">` directly
+- **Change styles:** edit only `style.css`, not the root `assets/base.css`
+- **Add motion:** add `data-anim="fade-up"` and similar attributes (see `references/animations.md`)
 
-## 演讲者窗口的 4 个卡片
+## The presenter window’s four cards
 
-按 `S` 后弹出的窗口里有：
+The window opened with `S` contains:
 
-- 🔵 **CURRENT** — 当前页 iframe 预览（加载 `?preview=N` 模式，像素级完美，与观众端同 CSS/主题/字体）
-- 🟣 **NEXT** — 下一页预览，帮助准备过渡
-- 🟠 **SPEAKER SCRIPT** — 大字号逐字稿，可滚动
-- 🟢 **TIMER** — 经过时间 + 页码 + Prev/Next/Reset 按钮
+- 🔵 **CURRENT** — current-slide iframe preview (loads `?preview=N`, pixel-perfect with the audience CSS, theme, and fonts)
+- 🟣 **NEXT** — next-slide preview to prepare transitions
+- 🟠 **SPEAKER SCRIPT** — large, scrollable speaker notes
+- 🟢 **TIMER** — elapsed time + page count + Prev/Next/Reset buttons
 
-卡片操作：
-- **拖卡片头**（彩色圆点 + 标题的顶部条）→ 移动卡片
-- **拖卡片右下角** → 调整大小
-- 位置 + 尺寸自动存 localStorage，下次打开恢复
-- 底部 "重置布局" 按钮可恢复默认卡片排列
+Card operations:
+- **Drag the card header** (colored dot and title bar) → move the card
+- **Drag the lower-right corner** → resize it
+- Position and size save automatically to localStorage and restore next time
+- The bottom “Reset layout” button restores the default card arrangement
 
-翻页丝滑：iframe 只加载一次，后续翻页通过 `postMessage` 切换内部 slide，**不重新加载不闪烁**。两窗口通过 `BroadcastChannel` 双向同步。
+Slide changes stay smooth: each iframe loads once, then later navigation uses `postMessage` to change its internal slide, **without reloads or flicker**. The two windows synchronize both ways through `BroadcastChannel`.
 
-## 注意事项
+## Notes
 
-- **观众永远看不到 `.notes` 内容** — CSS 默认 `display:none`，只在演讲者视图里可见
-- **别把只给自己看的话写在 slide 本体上** — 所有提词必须在 `<aside class="notes">` 里
-- **双屏演讲**：打开 `index.html` 按 S 弹出演讲者窗口，把观众窗口拖到投影/外接屏 F 全屏，演讲者窗口留在自己屏幕
+- **The audience never sees `.notes` content** — CSS defaults to `display:none`; it is visible only in presenter view
+- **Do not put private prompts in slide content** — all prompts belong in `<aside class="notes">`
+- **Two-screen talks:** open `index.html`, press S to open the presenter window, move the audience window to a projector or external display and press F for fullscreen, then keep the presenter window on your own screen

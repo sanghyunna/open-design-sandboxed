@@ -9,7 +9,7 @@ en_description: "Twitter quote or data card designed to pair with a post."
 category: card
 scenario: marketing
 aspect_hint: "1600×900 (16:9)"
-tags: ["twitter", "x", "quote", "金句"]
+tags: ["twitter", "x", "quote", "quote-card"]
 example_id: sample-twitter-quote
 example_name: "Twitter Card · Quote"
 example_format: text

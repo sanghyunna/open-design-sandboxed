@@ -15,9 +15,6 @@ triggers:
   - "creator dashboard"
   - "creator analytics"
   - "social media analytics"
-  - "社媒后台"
-  - "创作者后台"
-  - "社交媒体仪表盘"
 od:
   mode: prototype
   platform: desktop
@@ -39,7 +36,7 @@ Produce a single-screen, creator-facing social media analytics dashboard.
 
 1. **Read the active DESIGN.md** (injected above). Colors, typography,
    spacing, radii, and component styling all come from it. Do not invent
-   new tokens; do not hard-code brand colors of the platforms — let the
+   new tokens; do not hard-code brand colors of the platforms ??let the
    DESIGN.md carry the visual identity, and reference platforms only by
    name and monogram.
 2. **Identify** which platforms the brief calls out. Default to
@@ -47,40 +44,40 @@ Produce a single-screen, creator-facing social media analytics dashboard.
    switcher to a single row, max 5 entries.
 3. **Generate plausible data**, never `Metric A / Metric B` placeholders.
    Pick a creator persona (default: "AI / design indie creator") and
-   derive consistent numbers across the page — e.g. follower counts on
+   derive consistent numbers across the page ??e.g. follower counts on
    the switcher must match the KPI row when X is selected.
 4. **Lay out** the page top-to-bottom:
    - **Header bar**: brand mark + section label ("ANALYTICS"), a
-     dark/light toggle, time-range tabs (7D · 30D · 90D · YTD), and a
+     dark/light toggle, time-range tabs (7D 쨌 30D 쨌 90D 쨌 YTD), and a
      creator avatar block on the right.
    - **Hero strip**: a one-sentence summary in display type
      ("You shipped 14 posts on X this week."), one supporting line of
-     metadata, and two CTAs ("Export report", "New post →").
+     metadata, and two CTAs ("Export report", "New post ??).
    - **Ask bar**: a single-line input styled as a search field, with
      ghost-text suggestions ("top performing last week",
      "comments from verified accounts").
    - **Platform switcher**: 4 cards in one row, each with platform
      monogram, name, follower count, and a `+X.XK this week` delta. The
      active platform uses an elevated surface from DESIGN.md.
-   - **KPI row**: 4 cards — Followers · Engagement Rate · Likes (7D) ·
+   - **KPI row**: 4 cards ??Followers 쨌 Engagement Rate 쨌 Likes (7D) 쨌
      Reposts (7D). Each card has a label (uppercase, label-md), a big
      value (display or headline-lg), a delta vs prior period, and a
-     small footnote ("vs. 4.4% last week", "Aug 9–17 · 14 posts").
+     small footnote ("vs. 4.4% last week", "Aug 9??7 쨌 14 posts").
    - **Main grid (2/3 + 1/3)**:
-     - Left: **Follower Growth · 30D** — a full-width inline SVG line
+     - Left: **Follower Growth 쨌 30D** ??a full-width inline SVG line
        chart with a soft area fill underneath, axis ticks at start /
        midpoint / end, and two labelled annotation dots
        ("Newsletter drop +842", "Viral thread +1.2K").
-     - Right: **Top Post · This Week** — a card showing the rendered
+     - Right: **Top Post 쨌 This Week** ??a card showing the rendered
        post (avatar, handle, post body, optional 16:9 media block), with
        a header tag "click-through rate 5.6%" in the DS accent.
    - **Lower grid (1/2 + 1/2)**:
-     - **Trending topics on this platform**: 5–7 chip-style rows with
+     - **Trending topics on this platform**: 5?? chip-style rows with
        topic name + post count + 24h delta sparkline (10 polyline
        points, no labels).
      - **Top comments**: 3 cards, each with avatar, handle (verified
        check if relevant), comment body (2 lines max, ellipsised), and
-       a small `❤ 312 · 💬 18` row in muted text.
+       a small `??312 쨌 ?뮠 18` row in muted text.
 5. **Write** one self-contained HTML document:
    - `<!doctype html>` through `</html>`, CSS in one inline `<style>` block.
    - CSS Grid for page-level layout; Flexbox inside cards.

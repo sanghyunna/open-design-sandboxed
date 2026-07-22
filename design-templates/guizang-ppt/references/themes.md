@@ -1,23 +1,23 @@
-# 主题色预设（Themes）
+# Theme Color Presets
 
-5 套精心调配的主题色板,保证"电子杂志 × 电子墨水"的美学不垮。**不允许用户自定义颜色——色彩搭配错了画面瞬间变丑**,只从以下预设中挑选。
-
----
-
-## 使用方法
-
-1. 问用户选哪套(或基于内容推荐一套)
-2. 打开 `assets/template.html` 的 `<style>` 块
-3. 找到开头的 `:root{` 块
-4. **整体替换**标有"主题色"注释的那几行 `--ink` / `--ink-rgb` / `--paper` / `--paper-rgb` / `--paper-tint` / `--ink-tint`
-5. 其他 CSS 都走 `var(--...)`,无需任何其他改动
+Five carefully tuned palettes preserve the "editorial magazine × electronic ink" aesthetic. **Do not allow custom colors—poor combinations immediately make the deck look worse.** Choose only from the presets below.
 
 ---
 
-## 🖋 墨水经典 (Monocle 默认)
+## How to use a preset
 
-**适合**:通用分享、商业发布、科技产品、任何场景都安全的默认选择。
-**调性**:纯墨黑 + 暖米白,杂志感最强,Monocle / Apricot / A Book Apart 风。
+1. Ask the user to choose a preset, or recommend one from the content.
+2. Open the `<style>` block in `assets/template.html`.
+3. Find the opening `:root{}` block.
+4. **Replace as a group** the theme-color lines for `--ink`, `--ink-rgb`, `--paper`, `--paper-rgb`, `--paper-tint`, and `--ink-tint`.
+5. All other CSS uses `var(--...)`; no other changes are needed.
+
+---
+
+## 🖋 Ink Classic (Monocle default)
+
+**Best for:** general talks, commercial launches, technology products, and any situation that needs a safe default.
+**Tone:** pure ink black with warm off-white; the strongest magazine feel, in the vein of Monocle, Apricot, and A Book Apart.
 
 ```css
 --ink:#0a0a0b;
@@ -30,10 +30,10 @@
 
 ---
 
-## 🌊 靛蓝瓷 (Indigo Porcelain)
+## 🌊 Indigo Porcelain
 
-**适合**:科技/研究/数据分享、工程师文化、深度内容、技术发布会。
-**调性**:深靛蓝 + 瓷白,冷静、理性、有深度,像学术期刊或蓝印花瓷器。
+**Best for:** technology, research, and data talks; engineering culture; deep content; and technical launches.
+**Tone:** deep indigo with porcelain white—calm, rational, and substantial, like an academic journal or blue-and-white porcelain.
 
 ```css
 --ink:#0a1f3d;
@@ -46,10 +46,10 @@
 
 ---
 
-## 🌿 森林墨 (Forest Ink)
+## 🌿 Forest Ink
 
-**适合**:自然/可持续/文化/非虚构内容、户外品牌、环保主题。
-**调性**:深森林绿 + 象牙,沉稳、有呼吸感,像旧版《国家地理》。
+**Best for:** nature, sustainability, culture, non-fiction, outdoor brands, and environmental themes.
+**Tone:** deep forest green with ivory—grounded and breathable, like a vintage issue of National Geographic.
 
 ```css
 --ink:#1a2e1f;
@@ -62,10 +62,10 @@
 
 ---
 
-## 🍂 牛皮纸 (Kraft Paper)
+## 🍂 Kraft Paper
 
-**适合**:怀旧/人文/阅读/历史/文学分享、独立杂志、手作品牌。
-**调性**:深棕 + 暖米,像牛皮信封或老笔记本,温暖、有年代感。
+**Best for:** nostalgic, humanist, reading, history, and literary talks; independent magazines; and handmade brands.
+**Tone:** deep brown with warm beige, like a kraft envelope or an old notebook—warm and timeworn.
 
 ```css
 --ink:#2a1e13;
@@ -78,10 +78,10 @@
 
 ---
 
-## 🌙 沙丘 (Dune)
+## 🌙 Dune
 
-**适合**:艺术/设计/创意/时尚分享、画廊手册、审美优先的私享会。
-**调性**:炭灰 + 沙色,克制、高级、中性,像沙漠黄昏或建筑设计图册。
+**Best for:** art, design, creative, and fashion talks; gallery handbooks; and aesthetics-first private salons.
+**Tone:** charcoal gray with sand—restrained, refined, and neutral, like a desert dusk or an architectural monograph.
 
 ```css
 --ink:#1f1a14;
@@ -94,29 +94,29 @@
 
 ---
 
-## 推荐选择参考
+## Quick selection guide
 
-| 如果是... | 推荐主题 |
+| If the deck is about... | Recommended theme |
 |---|---|
-| 不知道选啥 / 第一次用 | 🖋 墨水经典 |
-| AI / 技术 / 产品发布 | 🌊 靛蓝瓷 |
-| 内容 / 行业观察 / 文化 | 🌿 森林墨 |
-| 书评 / 生活方式 / 人文 | 🍂 牛皮纸 |
-| 设计 / 艺术 / 品牌 | 🌙 沙丘 |
+| First use or an uncertain choice | 🖋 Ink Classic |
+| AI, technology, or product launches | 🌊 Indigo Porcelain |
+| Content, industry observation, or culture | 🌿 Forest Ink |
+| Book reviews, lifestyle, or humanities | 🍂 Kraft Paper |
+| Design, art, or brands | 🌙 Dune |
 
 ---
 
-## 切换原则
+## Switching rules
 
-- **一份 deck 只用一套主题**,不要中途换色
-- WebGL shader 的默认主色(钛金色散 / 银色流动)适配所有 5 套(经测试可接受)
-- `currentColor` 驱动的 border / icon 会跟随 section 的 text color 自动适配,无需额外调整
-- 选定主题后,`<title>` 文字和 `chrome` 文案可以强化该主题的语义(例如牛皮纸配"Vol.03 · 秋"这种)
+- **Use one theme per deck**; do not change colors partway through.
+- The default WebGL shader accents (titanium dispersion and silver flow) work with all five presets.
+- Borders and icons driven by `currentColor` follow the section text color automatically; no additional tuning is required.
+- After choosing a theme, use the `<title>` and `chrome` copy to reinforce its meaning—for example, `Vol.03 · Autumn` for Kraft Paper.
 
-## ❌ 不要做的事
+## ❌ Do not
 
-- ❌ **不允许混搭**(例如 ink 取墨水经典的,paper 取沙丘的)——会彻底违和
-- ❌ **不允许用户随便给一个 hex 值**——需委婉拒绝并展示 5 套预设让选
-- ❌ **不要直接修改 template.html 其他地方的颜色**——所有散落 rgba 都走 var,改 :root 一处即可
+- ❌ **Do not mix palettes**—for example, Ink Classic's ink with Dune's paper. The result will clash.
+- ❌ **Do not accept an arbitrary hex value**. Politely refuse and offer the five presets.
+- ❌ **Do not modify colors elsewhere in `template.html`**. The scattered `rgba` values use variables; change `:root` in one place.
 
-选定主题后在 skill 对话中告诉用户:"用 🖋 墨水经典 / 🌊 靛蓝瓷 ..."并在 deck 项目记录里备注,方便后续迭代时保持一致。
+After choosing a theme, tell the user which preset is in use and record it in the deck project notes so later iterations stay consistent.

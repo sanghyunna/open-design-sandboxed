@@ -8,10 +8,10 @@ description: >
   zh-CN · ja). One self-contained HTML file, zero dependencies.
 triggers:
   - kami
-  - 紙
-  - 纸
+- paper
+  - paper
   - paper one-pager
-  - 白皮书
+  - White paper
   - white paper
   - parchment landing
   - editorial document
@@ -82,7 +82,7 @@ example_prompt: |
 
 # kami-landing
 
-Produce a single-page document in the **kami (紙 / 纸)** design system.
+Produce a single-page document in the **kami** design system.
 The aesthetic borrows from editorial print, technical white papers,
 and old typewritten correspondence — the goal is *good content on
 good paper*, not *modern app UI*.

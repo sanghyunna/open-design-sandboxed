@@ -11,9 +11,9 @@ triggers:
   - "wall street dashboard template"
   - "financial terminal template"
   - "trading cockpit template"
-  - "交易分析面板模板"
-  - "华尔街风格看板"
-  - "高科技金融 dashboard 模板"
+  - "trading analysis dashboard template"
+  - "Wall Street-style dashboard"
+  - "high-tech financial dashboard template"
 od:
   mode: template
   platform: desktop

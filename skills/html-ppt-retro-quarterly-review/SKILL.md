@@ -11,8 +11,8 @@ triggers:
   - "roadmap slide style"
   - "blue orange presentation"
   - "vintage business deck"
-  - "季度复盘复古风"
-  - "蓝橙复古汇报模板"
+  - "retro quarterly review"
+  - "blue orange retro report template"
 od:
   mode: template
   surface: video

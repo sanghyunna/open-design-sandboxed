@@ -267,7 +267,7 @@ def add_run_with_italic_safety(p, text, *, latin_face: str, ea_face: str,
     return r
 ```
 
-For mixed-script runs (e.g. `"In <em>2026</em> 開始"`), split into
+For mixed-script runs (e.g. `"In <em>2026</em> we began"`), split into
 multiple runs at language boundaries so the italic attribute can apply
 to the Latin run only.
 

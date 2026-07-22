@@ -4,7 +4,6 @@ description: Conference / internal tech-talk deck — GitHub-dark, JetBrains Mon
 triggers:
   - "tech sharing"
   - "tech talk"
-  - "技术分享"
   - "engineering talk"
   - "conference talk"
   - "dev talk"
@@ -19,7 +18,7 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "帮我用 html-ppt-tech-sharing 模板做一份 8 页的技术分享 PPT。先确认：分享主题、目标听众（同事 / 社区 / 客户）、要不要包含代码片段和 benchmark。GitHub 暗色主题 + JetBrains Mono，agenda + Q&A 页备好。"
+  example_prompt: "Use the html-ppt-tech-sharing template to create an 8-page technical sharing deck. First confirm the topic, target audience (coworkers, community, or customers), and whether to include code snippets and benchmarks. Use a GitHub dark theme with JetBrains Mono, and include agenda and Q&A slides."
 ---
 # HTML PPT · Tech Sharing
 

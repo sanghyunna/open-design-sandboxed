@@ -1,8 +1,7 @@
 ---
 name: html-ppt-graphify-dark-graph
-description: 暗底知识图谱 deck — #06060c→#0e1020 深夜渐变 + 漂浮 blur orbs、封面 SVG 力导向图谱、彩虹渐变标题、JetBrains Mono 命令行高亮、glass-morphism 卡片。适合 dev-tool / CLI / 知识图谱 / 数据可视化的发布会，"AI-native + 科幻 + 暖色" 调子。
+description: Dark-theme knowledge-graph deck — #06060c→#0e1020 late-night gradient with floating blur orbs, an SVG force-directed graph cover, a rainbow-gradient title, JetBrains Mono command-line highlighting, and glass-morphism cards. Suited to dev-tool / CLI / knowledge-graph / data-visualization launches with an "AI-native + sci-fi + warm-tone" feel.
 triggers:
-  - "知识图谱"
   - "graph deck"
   - "dark graph"
   - "dev tool launch"
@@ -19,9 +18,9 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "用 html-ppt-graphify-dark-graph 模板做一份 dev-tool 发布会 PPT。深夜渐变背景 + 力导向图谱封面 + 彩虹标题 + JetBrains Mono 命令行。先确认：工具名、核心能力、demo 步骤；要不要现场敲 CLI。"
+  example_prompt: "Use the html-ppt-graphify-dark-graph template to create a dev-tool launch deck. Use a late-night gradient background, force-directed graph cover, rainbow headline, and JetBrains Mono command-line styling. First confirm the tool name, core capabilities, demo steps, and whether the CLI should be typed live."
 ---
-# HTML PPT · 暗底知识图谱
+# HTML PPT · Dark-Theme Knowledge Graph
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`graphify-dark-graph`** full-deck template.
 

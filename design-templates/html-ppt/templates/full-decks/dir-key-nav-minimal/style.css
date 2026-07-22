@@ -1,4 +1,4 @@
-/* dir-key-nav-minimal — 方向键极简 · 8 种 mono-background 切换 */
+/* dir-key-nav-minimal — minimal directional-key deck with eight mono backgrounds */
 .tpl-dir-key-nav-minimal{
   --dk-font:'Inter','Noto Sans SC','PingFang SC',-apple-system,sans-serif;
   --dk-mono:'JetBrains Mono',monospace;

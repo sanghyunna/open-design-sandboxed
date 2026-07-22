@@ -3,7 +3,7 @@ name: html-ppt-dir-key-nav-minimal
 description: An 8-page minimal arrow-key keynote — each page has its own single-color background (indigo / cream / crimson / teal / gray / purple / white / charcoal) with matching accent colors, a 160px display headline, a 4px bold accent divider line, an arrow-prefixed (→) Mono list, a bottom-left ← → kbd hint, a bottom-right page number, and generous breathing whitespace. Great for a keynote, launch, or public talk where you have a lot to say but not much to show.
 triggers:
   - "minimal keynote"
-  - "极简"
+- "minimalist"
   - "mono color"
   - "one idea per slide"
   - "public talk"

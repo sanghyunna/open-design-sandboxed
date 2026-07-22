@@ -8,7 +8,7 @@ triggers:
   - "p5js"
   - "procedural art"
   - "seeded randomness"
-  - "生成艺术"
+  - "generative art"
 od:
   mode: image
   category: image-generation

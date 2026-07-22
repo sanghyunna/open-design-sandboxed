@@ -8,15 +8,15 @@ zh_description: "16 列网格 + 单一饱和 accent + 22 个锁死版面 (Klein 
 en_description: "16-column grid, one saturated accent, and 22 locked layouts (Klein Blue, Lemon, Mint, Safety Orange)."
 category: slides
 scenario: marketing
-aspect_hint: "16:9 横向翻页"
+aspect_hint: "16:9 landscape, paginated"
 featured: 1
 recommended: 1
 tags: ["swiss", "grid", "international", "ikb", "editorial", "facts"]
 example_id: sample-swiss-international
-example_name: "Swiss International · 产品路线"
+example_name: "Swiss International · Product Roadmap"
 example_format: markdown
-example_tagline: "Klein Blue IKB + 16 列网格"
-example_desc: "S01 Cover + S06 KPI Tower 两页预览, IKB 全屏标题 + 4 柱状 KPI"
+example_tagline: "Klein Blue IKB + 16-Column Grid"
+example_desc: "S01 Cover + S06 KPI Tower two-page preview, IKB full-bleed title + 4-bar KPI"
 example_source_url: "https://github.com/op7418/guizang-ppt-skill"
 example_source_label: "op7418/guizang-ppt-skill"
 od:
@@ -36,45 +36,45 @@ od:
     zh-CN: "用「瑞士国际主义 Deck」模板把我的内容做成一套「16 列网格 + 单一饱和 accent + 22 个锁死版面 (Klein Blue / Lemon / Mint / Safety Orange)」。保持模板的视觉签名，使用真实内容和数据，避免 lorem ipsum 和占位图片。"
 ---
 
-【模板: 瑞士国际主义 Deck (Swiss International)】
-【意图】事实、产品、分析、方法论表达。极度冷静、理性、学院派, 没有任何手绘 / 噪点 / 装饰。Inspired by op7418/guizang-ppt-skill Style B。
+[Template: Swiss Internationalism Deck (Swiss International)]
+[Intent] Expression of facts, products, analysis, and methodology. Extremely calm, rational, and academic, without any hand-painting/noise/decoration. Inspired by op7418/guizang-ppt-skill Style B.
 
-【主题】**只能从下面 4 套二选一, 不许混用、不许改 hex**:
-- 🔵 **Klein Blue (IKB)** — accent `#002FA7`, paper `#fafaf8`, ink `#0a0a0a`. 商业 / AI / 设计场景。
-- 🟡 **Lemon Yellow** — accent `#FFD500`, paper `#f7f5ee` (淡奶油), ink `#0a0a0a`. 年轻 / 零售 / 体育。文字必须用黑色 (不能白色)。
-- 🟢 **Lemon Green / Neon** — accent `#C5E803`, paper `#f7f5ee`, ink `#0a0a0a`. 可持续 / 科技初创 / Gen-Z 品牌。文字必须用黑色。
-- 🟠 **Safety Orange** — accent `#FF6B35`, paper `#f7f5ee`, ink `#0a0a0a`. 工业 / 汽车 / 紧急消息。文字用白色 + bold ≥ 600。
+【Theme】**You can only choose one from the following 4 sets, no mixing or changing is allowed hex**:
+- 🔵 **Klein Blue (IKB)** — accent `#002FA7`, paper `#fafaf8`, ink `#0a0a0a`. Business / AI / Design scenarios.
+- 🟡 **Lemon Yellow** — accent `#FFD500`, paper `#f7f5ee` (light cream), ink `#0a0a0a`. Young / Retail / Sports. Text must be in black (not white).
+- 🟢 **Lemon Green / Neon** — accent `#C5E803`, paper `#f7f5ee`, ink `#0a0a0a`. Sustainable / Tech Startup / Gen-Z Brand. Text must be in black.
+- 🟠 **Safety Orange** — accent `#FF6B35`, paper `#f7f5ee`, ink `#0a0a0a`. Industrial / Automotive / Emergency Message. Use white + bold ≥ 600 for text.
 
-【布局 — 22 个可复用版式池, 不许新增或改造版式; **数量由内容决定**, 把【用户内容】完整覆盖完为止 (短内容 6-10 张起步, 长内容应远超此范围, 同一版式可在不同章节重复使用)】
-- **S01 Cover** — 全屏 accent + ASCII 呼吸点阵 + 反白标题 + 元数据 chrome (date / № / topic)。
-- **S02 Vertical Timeline** — 左侧虚线轴 + 圆点; 右侧节点 = 年份 + KPI + 描述。
-- **S03 Statement** — 9.6vw 居中巨字 + 左侧大段留白 + 底部 hairline + 注释。
-- **S04 Six Cells** — 2×3 网格, 每格: icon + 编号 + 短标题 + 单行描述。
-- **S05 Three Sub-cards** — 左侧 hero 标题 + 右侧 3 张水平堆叠的灰色卡。
-- **S06 KPI Tower** — 4 列变高蓝色柱状; 柱顶 icon; 柱底大数字 + 标签。
-- **S07 H-Bar Chart** — 水平排名横条, 宽度反映数据, 末端标数字。
-- **S08 Duo Compare** — 垂直分割线; 左 Before / 右 After。
-- **S09 Closing Manifesto** — 左 IKB 块 + ASCII 点阵 + 宣言; 右白底 + 3 条要点。
-- **S10 Dot Matrix Statement** — 居中宣言 + 角落几何点矩阵 / 圆环矩阵。
-- **S11 Horizontal Timeline** — 顶部 headline, 中部 hairline 轴, 等距节点, 节点下方步骤名。
-- **S12 Manifesto + Ink Banner** — 上半 headline + 解释; 下半全宽黑色横幅 + 反白小字。
-- **S13 Three Forces Cards** — 左 ink hero 块; 右 3 张灰色卡, 每卡: 大数字 + 文本。
-- **S14 Loop Diagram** — 左编号步骤; 右 SVG 同心环; 中心 "LOOP" 标签。
-- **S15 Image Matrix + Hero Stat** — 4×3 等高卡片 (12 项) + 底部 summary 大数字 + 标签。
-- **S16 Multi-card Brief** — 3×2 微卡; 主文左上, 注脚右下, 单卡 accent 高亮。
-- **S17 System Diagram** — 左 headline + 3 段描述; 右 SVG 三同心圆 + 外部标签。
-- **S18 Why Now** — 3 列, 每列: category label + headline + 描述 + 底部数字 (最后一列 accent)。
-- **S19 Four Cards** — 顶部 accent hairline + headline + 4 张等宽卡 (元数据 / 标题 / 正文)。
-- **S20 Stacked KPI Ledger** — 垂直行 + hairline 分隔; 左大数字 / 中标签 / 右 icon。
-- **S21 Tech Spec Sheet** — 左标题块 / 中 3 个 KPI hairline / 右变高柱 / 底数据。
-- **S22 Image Hero** — 上 60% 全宽图 + 白色标题块覆盖; 下 40% 解释 + 3 列 KPI。
+[Layout - 22 reusable layout pools, no new or modified layouts are allowed; **The number is determined by the content**, until the [User Content] is completely covered (short content starts with 6-10 pieces, long content should far exceed this range, the same layout can be reused in different chapters)]
+- **S01 Cover** — full-screen accent + ASCII breath matrix + anti-white title + metadata chrome (date / № / topic).
+- **S02 Vertical Timeline** — left dashed axis + dot; right node = year + KPI + description.
+- **S03 Statement** — 9.6vw Centered giant font + large blank space on the left + bottom hairline + comments.
+- **S04 Six Cells** — 2×3 grid, each cell: icon + number + short title + single line description.
+- **S05 Three Sub-cards** — left hero title + 3 horizontally stacked gray cards on the right.
+- **S06 KPI Tower** — 4 columns become taller blue columns; icon at the top of the column; large number + label at the bottom of the column.
+- **S07 H-Bar Chart** — Horizontal ranking bar, width reflects data, end marked with numbers.
+- **S08 Duo Compare** — Vertical dividing line; Left Before / Right After.
+- **S09 Closing Manifesto** — Left IKB block + ASCII dot matrix + manifesto; right white background + 3 bullet points.
+- **S10 Dot Matrix Statement** — Centered Statement + Corner Geometric Point Matrix/Ring Matrix.
+- **S11 Horizontal Timeline** — Top headline, middle hairline axis, equidistant nodes, step names below the nodes.
+- **S12 Manifesto + Ink Banner** — The upper half of the headline + explanation; the lower half of the full-width black banner + reversed white text.
+- **S13 Three Forces Cards** — left ink hero block; right 3 gray cards, each card: large number + text.
+- **S14 Loop Diagram** — Left numbered steps; right SVG concentric loops; center "LOOP" label.
+- **S15 Image Matrix + Hero Stat** — 4×3 equal height cards (12 items) + bottom summary large numbers + labels.
+- **S16 Multi-card Brief** — 3×2 micro card; main text upper left, footnote lower right, single card accent highlighted.
+- **S17 System Diagram** — left headline + 3 description paragraphs; right SVG three concentric circles + external label.
+- **S18 Why Now** — 3 columns, each column: category label + headline + description + bottom number (last column accent).
+- **S19 Four Cards** — top accent hairline + headline + 4 equal-width cards (metadata/title/text).
+- **S20 Stacked KPI Ledger** — vertical rows + hairline separation; left large number / middle label / right icon.
+- **S21 Tech Spec Sheet** — Left title block / Middle 3 KPI hairlines / Right high column / Bottom data.
+- **S22 Image Hero** — Top 60% full width image + white title block overlay; bottom 40% explanation + 3 columns of KPIs.
 
-【设计细节 — 绝对铁律】
-- **只用直角**: 全程 `border-radius: 0`。圆角 = 立刻违反。
-- **1px hairline borders**, 黑色或 accent; 严禁阴影 / 渐变 / blur。
-- **16 列网格**: `grid-template-columns: repeat(16, 1fr); gap: 0`。
-- **字体**: Inter Tight (Latin display) / Inter (body) / Noto Sans SC (中文) / JetBrains Mono (数据); 严禁衬线、严禁装饰字体。
-- **字号极端反差**: cover 用 9.6vw display, body 14-16px, label 11px uppercase letterspacing 0.08em。
-- **键盘 ← / → 切换 + hash 同步**; 角标固定: `№N/N` 右下, topic 标签左下。
-- **不许编造**: 数字必须来自用户输入, 图表柱高 = 真实数据按比例。
-- 输出单文件 HTML, 不用任何外部图片 URL; 装饰几何 (ASCII 矩阵 / 同心圆) 用纯 CSS 或内联 SVG。
+[Design details—absolute iron law]
+- **Right angles only**: `border-radius: 0` throughout. Rounded corners = immediate violation.
+- **1px hairline borders**, black or accent; shadows/gradients/blur are strictly prohibited.
+- **16 column grid**: `grid-template-columns: repeat(16, 1fr); gap: 0`.
+- **Font**: Inter Tight (Latin display) / Inter (body) / Noto Sans SC (Chinese) / JetBrains Mono (data); serifs and decorative fonts are strictly prohibited.
+- **Extreme contrast in font size**: cover uses 9.6vw display, body 14-16px, label 11px uppercase letterspacing 0.08em.
+- **Keyboard ← / → switch + hash synchronization**; Fixed corner markers: `№N/N` bottom right, topic label bottom left.
+- **No Making Up**: Numbers must come from user input, chart bar height = real data to scale.
+- Output single file HTML, without any external image URL; decorative geometry (ASCII matrix / concentric circles) with pure CSS or inline SVG.

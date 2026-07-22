@@ -282,7 +282,7 @@ def slide_cover(prs, *, title, subtitle, lead, meta, chrome_l, chrome_r):
     add_lead(slide,   top=c.take(*blocks[3]), text=lead)
     add_meta_row(slide, top=c.take(*blocks[4]), items=meta)
 
-    add_footer(slide, "主責教練 SOP", "— 2026 —", theme="dark")
+    add_footer(slide, "Lead Coach SOP", "— 2026 —", theme="dark")
 ```
 
 ### 7.2 Content with pipeline (4–5 step horizontal flow)
@@ -303,7 +303,7 @@ def slide_pipeline(prs, *, kicker, headline, intro, label, steps):
         steps=steps,
         n_cols=len(steps))
 
-    add_footer(slide, "Page 08 · 教練當天行動", "Witness, don't intervene", theme="light")
+    add_footer(slide, "Page 08 · Coach actions on the day", "Witness, don't intervene", theme="light")
 ```
 
 `add_pipeline` internally lays out N step cards across `CONTENT_W` with `step_h` derived from the longest step's text height. Don't fix `step_h` to a constant — let it grow to fit, and let the cursor's overflow guard catch problems.
@@ -314,7 +314,7 @@ def slide_pipeline(prs, *, kicker, headline, intro, label, steps):
 def slide_two_col(prs, *, kicker, headline, intro, left, right):
     slide = prs.slides.add_slide(blank_layout)
     paint_bg(slide, COLOR_INK)
-    add_chrome(slide, "First-Time Caveats · 首辦提醒", "05 / 14", theme="dark")
+    add_chrome(slide, "First-Time Caveats · First-time reminders", "05 / 14", theme="dark")
 
     c = Cursor()
     add_kicker(slide,  top=c.take(Inches(0.18)), text=kicker)
@@ -325,7 +325,7 @@ def slide_two_col(prs, *, kicker, headline, intro, left, right):
     add_concern_card(slide, left=CONTENT_LEFT,            top=pair_top, w=col_w, h=Inches(2.9), data=left)
     add_concern_card(slide, left=CONTENT_LEFT + col_w + Inches(0.4), top=pair_top, w=col_w, h=Inches(2.9), data=right)
 
-    add_footer(slide, "Page 05 · 首次辦理特別提醒", "典禮 ≠ 領導日", theme="dark")
+    add_footer(slide, "Page 05 · First-time reminders", "Ceremony ≠ leadership day", theme="dark")
 ```
 
 Notice the pattern: `c.take(Inches(3.00), label="pair")` reserves 3.0" of vertical space for *the whole pair row*; then the two columns are placed side-by-side at that `top`. The cursor doesn't know about columns, only about row heights.
@@ -337,7 +337,7 @@ def slide_obs_grid(prs, *, kicker, headline, intro, cards):
     assert len(cards) == 6
     slide = prs.slides.add_slide(blank_layout)
     paint_bg(slide, COLOR_PAPER)
-    add_chrome(slide, "Observation · 觀察筆記", "09 / 14", theme="light")
+    add_chrome(slide, "Observation · Notes", "09 / 14", theme="light")
 
     c = Cursor()
     add_kicker(slide, top=c.take(Inches(0.18)), text=kicker)
@@ -354,7 +354,7 @@ def slide_obs_grid(prs, *, kicker, headline, intro, cards):
         y = grid_top + row * (row_h + Inches(0.20))
         add_obs_card(slide, left=x, top=y, w=col_w, h=row_h, data=card)
 
-    add_footer(slide, "Page 09 · 觀察筆記六項指標", "記錄用 · 不當場評分", theme="light")
+    add_footer(slide, "Page 09 · Six observation indicators", "Record only · do not score on the spot", theme="light")
 ```
 
 ## 8. Common pitfalls and how the discipline catches them

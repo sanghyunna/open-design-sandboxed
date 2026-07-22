@@ -1,15 +1,13 @@
 ---
 name: invoice
 description: |
-  A printable invoice page — sender + recipient block, line items table,
+  A printable invoice page ??sender + recipient block, line items table,
   tax breakdown, totals, and payment instructions. Use when the brief
-  mentions "invoice", "bill", "billing statement", or "发票".
+  mentions "invoice", "bill", or "billing statement".
 triggers:
   - "invoice"
   - "bill"
   - "billing statement"
-  - "发票"
-  - "账单"
 od:
   mode: prototype
   platform: desktop
@@ -20,7 +18,7 @@ od:
   design_system:
     requires: true
     sections: [color, typography, layout, components]
-  example_prompt: "Create an invoice from a freelance design studio billing a client for a brand identity project — three line items, 10% retainer, 9% sales tax."
+  example_prompt: "Create an invoice from a freelance design studio billing a client for a brand identity project ??three line items, 10% retainer, 9% sales tax."
 ---
 
 # Invoice Skill

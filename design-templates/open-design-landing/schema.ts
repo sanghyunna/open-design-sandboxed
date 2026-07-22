@@ -92,7 +92,7 @@ export interface BrandBlock {
   founded: string;
   /** Side rails (the rotated text fixed to viewport edges). */
   rails: { right: string; left: string };
-  /** Topbar live channel languages — `['EN', 'DE', '中文', '日本語']`. First entry is bolded. */
+  /** Topbar live channel languages — `['EN', 'DE', 'French', 'Japanese']`. First entry is bolded. */
   languages: string[];
   /** Topbar pulse text — `'Live · v0.4.6'`. */
   status: string;

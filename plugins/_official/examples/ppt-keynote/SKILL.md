@@ -10,7 +10,7 @@ category: slides
 scenario: marketing
 aspect_hint: "16:9 (1280×720)"
 featured: 19
-tags: ["slides", "deck", "presentation", "幻灯片", "演讲"]
+tags: ["slides", "deck", "presentation", "keynote", "talk"]
 example_id: sample-ppt-html-anything
 example_name: "Keynote PPT · Product Intro"
 example_format: markdown

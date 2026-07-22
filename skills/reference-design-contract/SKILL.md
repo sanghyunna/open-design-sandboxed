@@ -14,8 +14,8 @@ triggers:
   - "visual direction handoff"
   - "turn references into DESIGN.md"
   - "make it feel like this"
-  - "做同款但不照抄"
-  - "把参考图转成设计规范"
+  - "match the look without copying"
+  - "turn reference images into a design system"
 od:
   mode: design-system
   platform: desktop

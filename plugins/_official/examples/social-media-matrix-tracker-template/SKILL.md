@@ -16,14 +16,14 @@ triggers:
   - "Instagram analytics dashboard"
   - "YouTube analytics dashboard"
   - "multi-platform creator dashboard"
-  - "社媒矩阵数据追踪面板"
-  - "社媒矩阵看板模板"
-  - "社交媒体数据追踪模板"
-  - "新媒体数据看板"
-  - "新媒体矩阵分析"
-  - "内容运营数据看板"
-  - "抖音数据看板"
-  - "小红书数据看板"
+- "Social Media Matrix Data Tracking Panel"
+  - "Social Media Matrix Board Template"
+  - "Social Media Data Tracking Template"
+  - "New media data dashboard"
+  - "New Media Matrix Analysis"
+  - "Content operation data dashboard"
+  - "Douyin Data Dashboard"
+  - "Xiaohongshu data dashboard"
 od:
   mode: template
   platform: desktop

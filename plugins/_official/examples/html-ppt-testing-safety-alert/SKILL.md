@@ -6,8 +6,8 @@ triggers:
   - "incident"
   - "red team"
   - "risk review"
-  - "事故复盘"
-  - "安全评审"
+- "Accident Review"
+  - "Safety Review"
   - "policy as code"
 od:
   mode: deck
@@ -23,7 +23,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-testing-safety-alert template to create an incident review / safety review deck. Use red-black hazard stripes, red strikethroughs, L1/L2/L3 tier cards, and policy-yaml code blocks. First ask me for the incident timeline, root cause, and impact scope."
 ---
-# HTML PPT · 红琥珀警示
+# HTML PPT · Red Amber Safety Alert
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`testing-safety-alert`** full-deck template.
 

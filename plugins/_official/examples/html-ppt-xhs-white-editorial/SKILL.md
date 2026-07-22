@@ -2,11 +2,11 @@
 name: html-ppt-xhs-white-editorial
 description: White-background magazine-style deck — pure white background + a top 10-color rainbow bar, 80-110px display headlines, purple→blue→green→orange→pink gradient text, soft macaron cards (pink/purple/blue/green/orange), black-background white-text .focus pills, and bold quote blocks. Works for both Xiaohongshu image posts and landscape PPT.
 triggers:
-  - "白底杂志"
-  - "杂志风"
+- "White Background Magazine"
+  - "Magazine Style"
   - "xhs editorial"
   - "white editorial"
-  - "小红书白底"
+  - "Little Red Book with White Background"
   - "editorial deck"
 od:
   mode: deck
@@ -22,7 +22,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-xhs-white-editorial template to create a white-background magazine-style PPT. Key points: 80-110px display headlines, rainbow top bar, soft macaron cards, and black-background white-text .focus pills. First ask me for the topic and audience, then write 8-12 slides."
 ---
-# HTML PPT · 白底杂志风
+# HTML PPT · White Editorial Magazine
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`xhs-white-editorial`** full-deck template.
 

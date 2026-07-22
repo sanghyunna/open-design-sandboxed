@@ -8,8 +8,8 @@ triggers:
   - "poster design"
   - "create poster"
   - "illustration"
-  - "海报"
-  - "插画"
+  - "poster"
+  - "illustration"
 od:
   mode: image
   category: image-generation

@@ -15,8 +15,6 @@ triggers:
   - "essay"
   - "manifesto"
   - "long-form poster"
-  - "杂志海报"
-  - "报纸版式"
 od:
   featured: 0.02
   mode: prototype

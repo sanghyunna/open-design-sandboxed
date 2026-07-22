@@ -4,8 +4,8 @@ description: Audit a python-pptx export against its source HTML deck, identify l
 triggers:
   - "pptx fidelity"
   - "pptx audit"
-  - "ppt 跑掉"
-  - "字型不對"
+  - "ppt layout shifted"
+  - "wrong font in ppt"
   - "footer overlap"
   - "verify pptx"
   - "html to pptx"
@@ -26,7 +26,7 @@ The user has:
 
   ```html
   <section class="slide light">
-    <div class="chrome">2026 · Q2 review</div>
+    <div class="chrome">2026 · Q2 Review</div>
     <span class="kicker">Pillar 03</span>
     <h2 class="h-xl">Shipping <em>velocity</em> doubled</h2>
     <p class="lead">…</p>
@@ -85,11 +85,11 @@ For each slide, walk shapes from the dump and check against expected layout rule
 ```
 | Slide | Issue | Severity |
 |---|---|---|
-| 1 cover | meta-row 底端 6.95" 蓋過 footer (6.7") | 🔴 |
-| 5 checklist | row B 步驟描述底端 7.2" 切到 footer | 🔴 |
-| 8 3E | 收束段落直接坐在 footer 起點 | 🔴 |
-| 9 on-day | step 描述底端剛好碰 footer，無安全距 | 🟠 |
-| 多處 | em (Playfair italic) 未保留 | 🟡 |
+| 1 cover | meta-row bottom at 6.95" overlaps footer (6.7") | 🔴 |
+| 5 checklist | row B description bottom at 7.2" crosses footer | 🔴 |
+| 8 3E | closing paragraph begins at the footer boundary | 🔴 |
+| 9 on-day | step description touches footer with no safety margin | 🟠 |
+| several | em (Playfair italic) was not retained | 🟡 |
 ```
 
 Severity rubric:

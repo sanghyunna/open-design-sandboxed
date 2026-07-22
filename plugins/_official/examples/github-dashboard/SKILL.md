@@ -1,7 +1,7 @@
 ---
 name: github-dashboard
 description: |
-  GitHub repository analytics dashboard — stars, forks, contributors,
+  GitHub repository analytics dashboard ??stars, forks, contributors,
   issues, pull requests, recent activity, and top contributors. Use when
   the brief asks for a GitHub repo dashboard, open-source growth report,
   repository health page, or GitHub analytics view.
@@ -12,8 +12,6 @@ triggers:
   - "github analytics"
   - "open source dashboard"
   - "github growth"
-  - "仓库看板"
-  - "GitHub 看板"
 od:
   mode: prototype
   platform: desktop
@@ -34,7 +32,7 @@ od:
   capabilities_required:
     - shell
     - file_write
-  example_prompt: "Build a GitHub dashboard for nexu-io/open-design — stars, forks, contributors, issues, PRs, recent activity, and top contributors."
+  example_prompt: "Build a GitHub dashboard for nexu-io/open-design ??stars, forks, contributors, issues, PRs, recent activity, and top contributors."
 ---
 
 # GitHub Dashboard Skill
@@ -45,13 +43,13 @@ Create a single-screen GitHub repository analytics dashboard in the FlowAI / Sof
 
 ```
 github-dashboard/
-├── SKILL.md
-├── example.html                         ← rendered reference dashboard
-└── references/
-    ├── template.html                    ← live-artifact-compatible HTML template
-    ├── example-data.json                ← normalized public GitHub data shape
-    ├── artifact-example.json            ← minimal live-artifact create input
-    └── provenance-example.json          ← safe source/provenance example
+?쒋?? SKILL.md
+?쒋?? example.html                         ??rendered reference dashboard
+?붴?? references/
+    ?쒋?? template.html                    ??live-artifact-compatible HTML template
+    ?쒋?? example-data.json                ??normalized public GitHub data shape
+    ?쒋?? artifact-example.json            ??minimal live-artifact create input
+    ?붴?? provenance-example.json          ??safe source/provenance example
 ```
 
 ## When to use this skill
@@ -79,14 +77,14 @@ If the user asks for refreshability, source auditability, or scheduled updates, 
    - Contributors: paginate `GET /repos/{owner}/{repo}/contributors?per_page=100&page=N`, sort by `contributions` descending, and take the top N used by the dashboard. If only page 1 is available, label totals as first-page estimates.
    - Issues: use GitHub Search API (`repo:{owner}/{repo} is:issue`) for total counts, or paginate `GET /repos/{owner}/{repo}/issues?state=all` and filter out items with a `pull_request` field.
    - Pull requests: use GitHub Search API (`repo:{owner}/{repo} is:pr`) for total counts, or paginate `GET /repos/{owner}/{repo}/pulls?state=all` and count pages via the `Link` header.
-   - Recent activity: combine the newest issues and pull requests, normalize them into display-ready rows, and cap the preview list at 5–10 items.
+   - Recent activity: combine the newest issues and pull requests, normalize them into display-ready rows, and cap the preview list at 5??0 items.
    - Growth/delta metrics: GitHub REST does not expose complete historical star/fork deltas. Use GraphQL, stargazer event snapshots, the Events API where available, or explicitly mark deltas as estimated/synthetic in `provenance.json`.
    - Do not store auth tokens, raw HTTP envelopes, cookies, rate-limit headers, or private metadata.
 
 3. **Normalize into dashboard data**
    - Required `repository`: `name`, `fullName`, `url`, `description`, `language`, `license`, `created`, `lastUpdated`.
    - Required `metrics`: stars, forks, contributors, issues, pull requests. Store display-ready totals plus small deltas or growth notes.
-   - Required `contributors`: top 5–8 contributors with `login`, `avatar`, and `contributions`.
+   - Required `contributors`: top 5?? contributors with `login`, `avatar`, and `contributions`.
    - Required `recentActivity`: display-ready rows with `title`, `typeText`, `typeClass`, `label`, `labelClass`, `author`, `authorAvatar`, and `updated`. Do not rely on template conditionals for issue/PR switching.
    - Chart data can be synthetic only when GitHub does not expose the exact history; document the transformation in provenance.
 
@@ -114,7 +112,7 @@ If the user asks for refreshability, source auditability, or scheduled updates, 
 - 256px fixed sidebar on desktop; stack on narrow screens.
 - 4 or 5 KPI cards in the first row.
 - Use tabular lining numerals for all counts.
-- Avatars are circular, 28–32px in tables and contributor lists.
+- Avatars are circular, 28??2px in tables and contributor lists.
 - Tables use 13px body text, 11px uppercase column labels, 1px row dividers.
 - Cards use hairline borders and a barely visible shadow at most: `0 1px 2px rgba(10,10,10,.04), 0 1px 1px rgba(10,10,10,.02)`.
 - Do not use gradients except tiny workflow/repo icon placeholders.

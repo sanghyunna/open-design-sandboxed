@@ -9,9 +9,9 @@ month,active_users,new_signups,paying,churn_rate
 2025-04,20640,3680,2041,0.019
 2025-05,23950,4250,2418,0.018
 
-# 数据周报 · 2025 年 5 月
-来源: 内部 BI · 截止 5 月 11 日
-洞察:
-- MAU 半年增长 184%, 主要来自小红书自然流量
-- 付费转化率从 7.3% 提升到 10.1%, 团队 Pro 套餐贡献最大
-- 月流失从 3.4% 降到 1.8%, AI 起草功能上线后明显改善
+# Data Weekly Report · May 2025
+Source: Internal BI · Through May 11
+Insights:
+- MAU grew 184% in six months, primarily from organic social traffic.
+- Paid conversion rose from 7.3% to 10.1%, led by the team Pro plan.
+- Monthly churn fell from 3.4% to 1.8% after AI drafting launched.

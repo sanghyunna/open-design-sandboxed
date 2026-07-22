@@ -1,10 +1,10 @@
 # graphify-dark-graph
 
-Deep-night 暗底 + 力导向知识图谱覆盖层 + 温暖玻璃拟态卡片。灵感来自 `20260413-graphify/ppt/graphify.html` 的 `#06060c` 渐变底、飘移 orb 光晕、glass 卡片（warm/blue/green/purple 五变体）和 rainbow-text 标题。
+Deep-night background with a force-directed knowledge-graph overlay and warm glassmorphism cards. Inspired by a dark gradient, drifting orb glows, warm/blue/green/purple glass cards, and rainbow-text headings.
 
-**Visual traits:** `#06060c → #0e1020` 斜向渐变、三颗 400-520px blur orb 慢飘动、cover SVG 力导向图谱作为背景、rainbow shift 渐变标题、JetBrains Mono 的 `.cmd-glow` 命令行、玻璃拟态卡片带顶部高光和微妙内阴影、温暖色系 accent (#e8a87c 琥珀 / #7ed3a4 薄荷 / #7eb8da 雾蓝 / #b8a4d6 丁香).
+**Visual traits:** A `#06060c → #0e1020` diagonal gradient; three slowly drifting 400–520px blur orbs; a cover SVG force graph; rainbow-shift titles; JetBrains Mono command lines using `.cmd-glow`; glass cards with a top highlight and subtle inset shadow; warm accents (amber, mint, mist blue, and lilac).
 
-**Use when:** 介绍一个开发者工具、命令行产品、知识图谱 / 数据可视化相关项目；你希望现场演示时视觉有「AI native + 科技感 + 温度」。
+**Use when:** Introducing a developer tool, command-line product, knowledge graph, or data-visualization project; especially for an AI-native technical demo with warmth.
 
 **Source inspiration:** `20260413-graphify/ppt/graphify.html`.
 

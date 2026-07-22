@@ -7,15 +7,15 @@ description: |
   localStorage. Lets the user explore variants of a design without
   re-prompting the agent. Use when the brief asks for "variants",
   "side-by-side options", "tweak this", "let me adjust", "live
-  knobs", or "实时调参".
+  knobs", or "live tuning".
 triggers:
   - "tweaks"
   - "variants"
   - "tweak panel"
   - "live controls"
   - "adjust on the fly"
-  - "实时调参"
-  - "可调参数面板"
+  - "live tuning"
+  - "adjustable controls panel"
   - "side panel"
   - "knobs"
 od:
@@ -31,7 +31,7 @@ od:
   example_prompt: "Wrap this landing page with a tweak panel — accent color, type scale, density, light/dark — persist to localStorage so the user can refresh without losing their choice."
 ---
 
-# Tweaks Skill · 参数化变体面板
+# Tweaks Skill · Parameterized Variants Panel
 
 Wrap any HTML artifact with a side panel of live controls that rewrite
 CSS custom properties in real time and persist to `localStorage`.

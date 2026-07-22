@@ -2,7 +2,7 @@
 
 Sister skill to [`kami-landing`](../kami-landing/). Produces a single
 self-contained HTML file: a horizontal magazine-style swipe deck in
-the **kami (紙 / 纸)** design system — print rhythm, ink-blue accent,
+the **kami** design system — print rhythm, ink-blue accent,
 serif at one weight, no italic, no cool grays.
 
 > **Read first** — agent contract, schema, and self-check live in

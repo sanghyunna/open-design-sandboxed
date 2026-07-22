@@ -114,7 +114,7 @@
     {
       "typeText": "PR",
       "typeClass": "pr",
-      "title": "fix: 修复0.4.0版本聊天窗口宽度溢出问题",
+      "title": "fix: Resolve chat window width overflow in v0.4.0",
       "label": "bug-fix",
       "labelClass": "active-pill",
       "author": "1119302165",

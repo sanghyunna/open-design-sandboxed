@@ -1,14 +1,11 @@
 ---
 name: html-ppt-xhs-post
-description: 小红书 / Instagram 风 9 页 3:4 竖版图文（810×1080）— 暖色 pastel、虚线 sticker 卡片、底部页码点点。用于发小红书图文、Instagram carousel、品牌种草内容。
+description: Xiaohongshu / Instagram-style 9-page vertical 3:4 post set (810×1080) — warm pastel colors, dashed-outline sticker cards, page-number dots at the bottom. For Xiaohongshu posts, Instagram carousels, and brand promotional content.
 triggers:
-  - "小红书"
   - "xhs"
   - "xhs post"
   - "xiaohongshu"
-  - "图文"
   - "instagram carousel"
-  - "种草"
 od:
   mode: deck
   scenario: marketing
@@ -20,9 +17,9 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "帮我用 html-ppt-xhs-post 模板做一组 9 张小红书图文（3:4 竖版，810×1080）。先告诉我主题，然后帮我把封面 + 7 页内容 + 结尾 CTA 排好，每页一句标题 + 一段正文 + 关键词 sticker。"
+  example_prompt: "Use the html-ppt-xhs-post template to make a set of 9 Xiaohongshu-style vertical posts (3:4, 810×1080). First ask me for the topic, then lay out the cover + 7 content pages + closing CTA, each page with one headline + one paragraph + keyword stickers."
 ---
-# HTML PPT · 小红书 图文
+# HTML PPT · Xiaohongshu Editorial Post
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`xhs-post`** full-deck template.
 

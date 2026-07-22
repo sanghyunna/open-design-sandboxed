@@ -12,13 +12,13 @@ triggers:
   - "critique"
   - "design review"
   - "design audit"
-  - "5 维度评审"
+  - "five-dimension review"
   - "5-dim review"
   - "audit my design"
   - "review my deck"
   - "review my landing page"
-  - "评审"
-  - "复盘"
+  - "review"
+  - "retrospective"
 od:
   mode: prototype
   platform: desktop
@@ -71,7 +71,7 @@ including:
 > 4/10 on Hierarchy and the report should say so plainly. Don't average
 > away interesting failures.
 
-### 1. Philosophy consistency · 哲学一致性
+### 1. Philosophy consistency
 
 > Does the artifact pick a clear *direction* and stick to it through
 > every micro-decision (chrome / kicker / spacing / accent)?
@@ -87,7 +87,7 @@ including:
 half the elements drift. **7–8** Coherent, occasional drift on edge
 pages. **9–10** Every element argues for the same thesis.
 
-### 2. Visual hierarchy · 视觉层级
+### 2. Visual hierarchy
 
 > Can a stranger figure out what to read first, second, third — without
 > being told?
@@ -103,7 +103,7 @@ pages. **9–10** Every element argues for the same thesis.
 breaks on body. **7–8** Clear tiers, occasional collision. **9–10** Eye
 moves with zero friction.
 
-### 3. Detail execution · 细节执行
+### 3. Detail execution
 
 > The 90/10 stuff — alignment, leading, kerning at large sizes, image
 > framing, foot/chrome polish, edge-case spacing.
@@ -120,7 +120,7 @@ ragged. **7–8** Polished, expert eye finds 2–3 misses. **9–10**
 Magazine-grade — the kind of detail that makes printed-by-hand
 typographers nod.
 
-### 4. Functionality · 功能性
+### 4. Functionality
 
 > Does the artifact *work* for its intended use? Click targets, nav,
 > readability at presentation distance, copy-paste-ability for code
@@ -138,7 +138,7 @@ flow works, edge cases broken. **7–8** Robust through normal use.
 **9–10** Defensively engineered — handles iframe / fullscreen / paste
 / print without flinching.
 
-### 5. Innovation · 创新性
+### 5. Innovation
 
 > Does this push past the median? Is there one element that makes
 > people lean in?

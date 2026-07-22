@@ -1,11 +1,11 @@
 # dir-key-nav-minimal
 
-8 张幻灯片，每张一个纯色/渐变 mono-background（indigo / cream / crimson / emerald / slate / violet / white / charcoal）。灵感直接来自 `20260405 演示幻灯片【方向键版】.html` —— 八个 `t-*` 主题类，每张幻灯一个背景，方向键切换，极简 editorial 气质。
+Eight slides, each with a single solid or gradient mono background (indigo, cream, crimson, emerald, slate, violet, white, charcoal). Inspired by a directional-key deck: eight `t-*` theme classes, one background per slide, arrow-key navigation, and a minimal editorial feel.
 
-**Visual traits:** 每张独立背景色 + 单一 accent、巨大 160px 标题无副图、4px 短粗 accent line divider、arrow-prefixed mono list、左下 `← →` 键盘提示 + 右下 page label、全屏 breathing negative space、JetBrains Mono 做数字 / 代码 / 键盘 hint、每个背景有自己的 `.dk-accent` 色。
+**Visual traits:** Independent slide backgrounds with one accent each; oversized 160px titles; short, 4px accent-line dividers; arrow-prefixed mono lists; lower-left `← →` keyboard hints; lower-right page labels; generous negative space; JetBrains Mono for numbers, code, and keyboard hints; a per-theme `.dk-accent` color.
 
-**Use when:** 有话要说、没太多图、希望用排版节奏推进观众注意力；keynote 式的极简讲稿；每张幻灯只讲一件事；公开分享 / keynote / 演讲稿。
+**Use when:** You have a focused message with little imagery and want typography to set the pace: a minimal keynote, one idea per slide, or a public talk.
 
-**Source inspiration:** `20260405-Karpathy-知识库/20260405 演示幻灯片【方向键版】.html`.
+**Source inspiration:** a directional-key presentation deck.
 
 **Path:** `templates/full-decks/dir-key-nav-minimal/index.html`

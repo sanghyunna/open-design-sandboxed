@@ -1,14 +1,11 @@
 ---
 name: html-ppt-xhs-pastel-card
-description: 柔和马卡龙慢生活 deck — 奶油 #fef8f1 底 + 三个柔光 blob、Playfair 斜体衬线 display 标题混 sans 正文、28px 圆角马卡龙卡片（桃 / 薄荷 / 天 / 紫 / 柠 / 玫）、Playfair 斜体 01-04 序号、SVG donut 图、chip+page 顶栏。适合生活方式 / 个人成长 / 慢生活 / 情绪类内容，"杂志、手作、不太科技"的感觉。
+description: A soft macaron slow-living deck — cream #fef8f1 background + three soft-light blobs, Playfair italic serif display titles mixed with sans body text, 28px rounded macaron cards (peach / mint / sky / purple / lemon / rose), Playfair italic 01-04 numbering, an SVG donut chart, and a chip+page top bar. Great for lifestyle / personal growth / slow-living / emotional content with a "magazine, handmade, not too techy" feel.
 triggers:
   - "pastel"
   - "macaron"
   - "lifestyle"
   - "slow living"
-  - "慢生活"
-  - "生活方式"
-  - "个人成长"
 od:
   mode: deck
   scenario: personal
@@ -20,9 +17,9 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "用 html-ppt-xhs-pastel-card 模板做一份慢生活主题图文。奶油底 + 马卡龙圆角卡片 + Playfair 斜体序号 + donut 图。先告诉我主题（休息 / 暂停 / 自我照顾…）和 5-7 个想说的点。"
+  example_prompt: "Use the html-ppt-xhs-pastel-card template to create a slow-living themed carousel. Cream background + macaron rounded cards + Playfair italic numbering + donut chart. First ask me for the theme (rest / pause / self-care...) and 5-7 points I want to say."
 ---
-# HTML PPT · 柔和马卡龙慢生活
+# HTML PPT · Soft Pastel Slow Living
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`xhs-pastel-card`** full-deck template.
 

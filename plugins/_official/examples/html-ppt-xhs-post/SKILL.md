@@ -2,13 +2,13 @@
 name: html-ppt-xhs-post
 description: Xiaohongshu / Instagram-style 9-page vertical 3:4 post set (810×1080) — warm pastel colors, dashed-outline sticker cards, page-number dots at the bottom. For Xiaohongshu posts, Instagram carousels, and brand promotional content.
 triggers:
-  - "小红书"
+- "Little Red Book"
   - "xhs"
   - "xhs post"
   - "xiaohongshu"
-  - "图文"
+  - "Pictures and Text"
   - "instagram carousel"
-  - "种草"
+  - "Grow grass"
 od:
   mode: deck
   scenario: marketing
@@ -23,7 +23,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-xhs-post template to make a set of 9 Xiaohongshu-style vertical posts (3:4, 810×1080). First ask me for the topic, then lay out the cover + 7 content pages + closing CTA, each page with one headline + one paragraph + keyword stickers."
 ---
-# HTML PPT · 小红书 图文
+# HTML PPT · Xiaohongshu Editorial Post
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`xhs-post`** full-deck template.
 

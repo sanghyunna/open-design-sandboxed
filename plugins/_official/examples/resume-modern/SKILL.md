@@ -10,7 +10,7 @@ category: resume
 scenario: personal
 aspect_hint: "A4 (210×297mm)"
 recommended: 12
-tags: ["resume", "cv", "简历"]
+tags: ["resume", "cv", "resume"]
 example_id: sample-resume-frontend
 example_name: "Minimalist Resume · Frontend Engineer"
 example_format: markdown

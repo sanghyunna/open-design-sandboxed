@@ -3,12 +3,12 @@ name: html-ppt-presenter-mode
 description: A dedicated presenter-mode deck — tokyo-night default theme, 5 themes toggled with the T key, each slide ships a 150-300 word script example (<aside class="notes">), press S to open the popup (CURRENT / NEXT / SCRIPT / TIMER magnetic cards). Built for tech talks, public speaking, and lectures where you're worried about forgetting your lines or need a teleprompter.
 triggers:
   - "presenter mode"
-  - "演讲者模式"
-  - "逐字稿"
+- "Speaker Mode"
+  - "Verbatim"
   - "speaker notes"
-  - "提词器"
+  - "Teleprompter"
   - "presenter view"
-  - "演讲"
+  - "Speech"
 od:
   mode: deck
   scenario: engineering
@@ -23,7 +23,7 @@ od:
   animations: true
   example_prompt: "Use the html-ppt-presenter-mode template to create a talk deck with speaker notes. First confirm the talk topic, duration (2-3 minutes per slide), and target audience. Then write 150-300 words of conversational presenter notes per slide (prompting signals, not a manuscript), with the presenter popup available via the S key."
 ---
-# HTML PPT · Presenter Mode (演讲者模式)
+# HTML PPT · Presenter Mode
 
 A focused entry point into the [`html-ppt`](../html-ppt/SKILL.md) master skill that lands the user directly on the **`presenter-mode-reveal`** full-deck template.
 

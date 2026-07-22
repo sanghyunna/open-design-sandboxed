@@ -11,8 +11,8 @@ triggers:
   - "minimal user research slides"
   - "warm paper swiss style"
   - "research synthesis template"
-  - "瑞士风用户研究模板"
-  - "高级调性研究汇报"
+  - "Swiss user-research template"
+  - "premium research presentation"
 od:
   mode: template
   surface: video

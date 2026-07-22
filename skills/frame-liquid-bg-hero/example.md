@@ -1,9 +1,9 @@
-# 流体 Hero · 金句帧
+# Liquid Hero · Quote Frame
 
-> Aurora Violet 流体背景, mix-blend-mode 文字
+> Aurora Violet fluid background with mix-blend-mode text
 
-## 金句
-最好的 HTML, 是让读者忘了它是 HTML。
+## Quote
+The best HTML makes readers forget that it is HTML.
 
-## 副标
-HTML Anything · 75 个世界级模板, 0 个 API key
+## Subtitle
+HTML Anything · 75 world-class templates, 0 API keys

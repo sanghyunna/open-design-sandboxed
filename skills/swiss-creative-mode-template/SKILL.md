@@ -11,8 +11,8 @@ triggers:
   - "editorial presentation template"
   - "brutalist deck style html"
   - "creative mode deck"
-  - "瑞士风演示模板"
-  - "高级设计语言模板"
+  - "Swiss presentation template"
+  - "premium design-language template"
 od:
   mode: template
   surface: video

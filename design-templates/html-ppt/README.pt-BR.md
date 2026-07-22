@@ -8,7 +8,7 @@
 
 **Autor:** lewis &lt;sudolewis@gmail.com&gt;
 **Licença:** MIT
-**中文文档:** [README.zh-CN.md](README.zh-CN.md)
+**Chinese documentation:** [README.zh-CN.md](README.zh-CN.md)
 **English:** [README.md](README.md)
 
 ![html-ppt — capa com previews ao vivo](https://repo-assets.open-design.ai/resources/images/design-templates/html-ppt/hero.gif)
@@ -19,7 +19,7 @@
 
 Aperte `S` em qualquer deck para abrir uma janela dedicada de apresentador com quatro
 **magnetic cards** arrastáveis e redimensionáveis: slide atual, preview do próximo
-slide, roteiro do orador (逐字稿) e cronômetro. As duas janelas ficam sincronizadas
+slide, roteiro do orador (verbatim) e cronômetro. As duas janelas ficam sincronizadas
 via `BroadcastChannel`.
 
 ![Modo apresentador com 4 magnetic cards](docs/readme/presenter-mode.png)
@@ -54,9 +54,9 @@ npx skills add https://github.com/lewislulu/html-ppt-skill
 Isso registra a skill no seu runtime de agente. Após a instalação, qualquer agente
 que suporta AgentSkills pode autorar apresentações pedindo coisas como:
 
-> "做一份 8 页的技术分享 slides，用 cyberpunk 主题"
+> "make one 8 Page technology sharing slides, use cyberpunk theme"
 > "transforme este outline num pitch deck"
-> "做一个小红书图文，9 张，白底柔和风"
+> "Make a little red book with pictures and text, 9 open, Soft style on white background"
 
 ## O que vem na caixa
 
@@ -95,14 +95,14 @@ iframe isolado, garantindo visualmente que tema ≠ tema).
 Oito extraídos de decks reais, sete scaffolds genéricos por cenário:
 
 **Visuais extraídos**
-- `xhs-white-editorial` — 小红书白底杂志风
-- `graphify-dark-graph` — 暗底 + 力导向知识图谱
-- `knowledge-arch-blueprint` — 蓝图 / 架构图风
-- `hermes-cyber-terminal` — 终端 cyberpunk
-- `obsidian-claude-gradient` — 紫色渐变卡
-- `testing-safety-alert` — 红 / 琥珀警示风
-- `xhs-pastel-card` — 柔和马卡龙图文
-- `dir-key-nav-minimal` — 方向键极简
+- `xhs-white-editorial` — Xiaohongshu white background magazine style
+- `graphify-dark-graph` — dark bottom + Force-directed knowledge graph
+- `knowledge-arch-blueprint` — blueprint / Architecture diagram style
+- `hermes-cyber-terminal` — terminal cyberpunk
+- `obsidian-claude-gradient` — purple gradient card
+- `testing-safety-alert` — red / Amber warning wind
+- `xhs-pastel-card` — Soft Macaron Graphics and Text
+- `dir-key-nav-minimal` — Minimalist direction keys
 
 **Decks de cenário**
 - `pitch-deck`, `product-launch`, `tech-sharing`, `weekly-report`,

@@ -7,15 +7,15 @@ triggers:
   - "slides"
   - "presentation"
   - "magazine"
-  - "杂志"
-  - "杂志风 PPT"
+- "magazine"
+  - "Magazine style PPT"
   - "horizontal swipe"
   - "horizontal swipe deck"
   - "editorial magazine"
   - "e-ink presentation"
-  - "网页 PPT"
-  - "发布会"
-  - "分享 PPT"
+  - "Webpage PPT"
+  - "press conference"
+  - "Share PPT"
 od:
   mode: deck
   scenario: marketing
@@ -76,7 +76,7 @@ Open `references/styles.md`, **copy the whole section over** to show the user th
 
 If the user says "I don't know, you recommend one" — **default to Monocle Editorial**, since it has the lowest failure rate. If the user mentions "AI / benchmark / tech launch" — recommend WIRED; "reading / private circle / social feed" — recommend Kinfolk; "design / architecture / portfolio" — recommend Domus; "research / academia / methodology" — recommend Lab.
 
-After picking a direction, create or update `项目记录.md` (project-record.md) in the project directory, with the first line stating the direction + theme color + audience + duration (template at the end of `styles.md`). **Never switch direction mid-way** — switching halfway means everything built so far is wasted.
+After picking a direction, create or update `project-record.md` (project-record.md) in the project directory, with the first line stating the direction + theme color + audience + duration (template at the end of `styles.md`). **Never switch direction mid-way** — switching halfway means everything built so far is wasted.
 
 ### Step 1 · Requirements clarification (**mandatory before starting work**)
 
@@ -111,13 +111,13 @@ Takeaway        → 1-2 slides : a memorable line / a suspense question / a call
 
 Align the narrative arc + slide-count plan + theme rhythm table (see `layouts.md`) — **only after all three are aligned** should you move to Step 2.
 
-It's recommended to save the outline as `项目记录.md` (project-record.md) or `大纲-v1.md` (outline-v1.md) for easier iteration later.
+It's recommended to save the outline as `project-record.md` (project-record.md) or `outline-v1.md` (outline-v1.md) for easier iteration later.
 
 #### Image conventions (tell the user)
 
 Before starting work, make clear to the user:
 
-- **Folder location**: under `项目/XXX/ppt/images/` (project/XXX/ppt/images/), at the same level as `index.html`
+- **Folder location**: under `project/XXX/ppt/images/` (project/XXX/ppt/images/), at the same level as `index.html`
 - **Naming convention**: `{slide-number}-{semantic-name}.{ext}`, e.g. `01-cover.jpg` / `03-figma.jpg` / `05-dashboard.png`
   - Zero-pad the slide number for easy sorting
   - Use English for the semantic part — short, specific, matching the content
@@ -130,7 +130,7 @@ Before starting work, make clear to the user:
 
 ### Step 2 · Copy the template
 
-Copy `assets/template.html` to the target location (typically `项目/XXX/ppt/index.html`, i.e. project/XXX/ppt/index.html), and create an `images/` folder at the same level to receive images.
+Copy `assets/template.html` to the target location (typically `project/XXX/ppt/index.html`, i.e. project/XXX/ppt/index.html), and create an `images/` folder at the same level to receive images.
 
 ```bash
 mkdir -p "project/XXX/ppt/images"

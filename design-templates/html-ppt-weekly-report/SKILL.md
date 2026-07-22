@@ -1,9 +1,8 @@
 ---
 name: html-ppt-weekly-report
-description: Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for 周报, business reviews, team status updates, and exec dashboards.
+description: Team weekly / status-update deck — corporate clarity, 8-cell KPI grid, shipped list, 8-week bar chart, next-week table. Use for weekly reports, business reviews, team status updates, and exec dashboards.
 triggers:
   - "weekly report"
-  - "周报"
   - "status update"
   - "team report"
   - "business review"
@@ -19,7 +18,7 @@ od:
     requires: false
   speaker_notes: true
   animations: true
-  example_prompt: "用 html-ppt-weekly-report 模板生成一份周报（7 页）。先问我四件事：本周时间范围、3-5 个核心 KPI 数字、本周已发布 / 已完成的事项、下周计划与风险。然后用模板填好 8 周柱状图和下周表格。"
+  example_prompt: "Use the html-ppt-weekly-report template to generate a weekly report deck (7 pages). First ask me four things: this week's date range, 3-5 core KPI numbers, shipped/completed items this week, and next week's plans and risks. Then fill the template with the 8-week bar chart and next-week table."
 ---
 # HTML PPT · Weekly Report
 

@@ -10,8 +10,8 @@ triggers:
   - "dark fashion hyperframes template"
   - "haute couture motion pages"
   - "magazine style cinematic slides"
-  - "高级暗黑时尚风模板"
-  - "高定杂志风动效"
+  - "luxury dark fashion template"
+  - "haute couture magazine motion"
 od:
   mode: template
   surface: video

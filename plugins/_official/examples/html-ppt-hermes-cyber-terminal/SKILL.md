@@ -7,7 +7,7 @@ triggers:
   - "agent review"
   - "honest review"
   - "dev tool review"
-  - "测评"
+- "Evaluation"
 od:
   mode: deck
   scenario: engineering

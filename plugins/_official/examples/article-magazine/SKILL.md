@@ -10,7 +10,7 @@ category: article
 scenario: marketing
 aspect_hint: "A4 / long page"
 featured: 11
-tags: ["blog", "essay", "newsletter", "公众号", "博客", "文章"]
+tags: ["blog", "essay", "newsletter", "article"]
 example_id: sample-article-trq212-html
 example_name: "Magazine Article · HTML Replaces Markdown"
 example_format: markdown

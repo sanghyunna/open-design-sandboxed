@@ -1,4 +1,4 @@
-# weekly-report · 周报
+# weekly-report · weekly update
 
 7-slide team weekly report: cover (week range), KPI grid, shipped items, a metric trend chart, blockers, next-week plan, thanks.
 
