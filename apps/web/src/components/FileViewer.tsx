@@ -138,7 +138,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -5298,6 +5298,7 @@ function HtmlViewer({
     const ok = await flushManualEditStyleSave();
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
+    iframeRef.current?.contentWindow?.postMessage({ type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage, '*');
     setManualEditMode(false);
     return true;
   }
@@ -7126,9 +7127,10 @@ function HtmlViewer({
         rect={manualEditResizeRect}
         scale={overlayPreviewScale}
         mode={manualEditMoveMode}
-        interactive={selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'}
         label={t('manualEdit.move.frame')}
-        selectBehindHint={t('manualEdit.selectBehindHint')}
+        selectBehindHint={selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'
+          ? undefined
+          : t('manualEdit.selectBehindHint')}
         onMoveStart={() => {
           beginManualEditMoveBaseline(selectedManualEditTarget);
           // Dragging the border while editing commits the text and promotes to
@@ -7151,36 +7153,26 @@ function HtmlViewer({
         onMoveCancel={() => {
           revertManualEditMovePreview(selectedManualEditTarget);
         }}
-        onAltClick={({ clientX, clientY }) => {
+        onPressStart={() => {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage,
+            '*',
+          );
+        }}
+        onActivate={({ clientX, clientY, altKey }) => {
+          if (manualEditMoveMode !== 'selected' && !altKey) return;
           const frame = iframeRef.current;
           const win = frame?.contentWindow;
           if (!frame || !win) return;
           const frameRect = frame.getBoundingClientRect();
-          win.postMessage({
-            type: 'od-edit-alt-click',
+          const point = {
             clientX: (clientX - frameRect.left) / overlayPreviewScale,
             clientY: (clientY - frameRect.top) / overlayPreviewScale,
-          }, '*');
-        }}
-        onClick={({ clientX, clientY }) => {
-          const frame = iframeRef.current;
-          const win = frame?.contentWindow;
-          if (!frame || !win) return;
-          const frameRect = frame.getBoundingClientRect();
-          win.postMessage({
-            type: 'od-edit-click',
-            clientX: (clientX - frameRect.left) / overlayPreviewScale,
-            clientY: (clientY - frameRect.top) / overlayPreviewScale,
-          }, '*');
-        }}
-        onSurfaceClick={(region) => {
-          if (
-            region === 'interior' && manualEditMoveMode === 'selected'
-            && (selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link')
-          ) {
-            sendManualEditTextEdit({ type: 'od-edit-begin-text-edit', id: selectedManualEditTarget.id });
-            setManualEditMoveMode('editing');
-          }
+          };
+          const message: ManualEditActivationMessage = altKey
+            ? { type: 'od-edit-alt-click', ...point }
+            : { type: 'od-edit-click', ...point, selectedId: selectedManualEditTarget.id };
+          win.postMessage(message, '*');
         }}
         onSurfaceDoubleClick={() => {
           const textTargetId = selectedManualEditTarget.kind === 'text' || selectedManualEditTarget.kind === 'link'
