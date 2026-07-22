@@ -137,6 +137,31 @@ export interface ManualEditBackgroundMessage {
   type: 'od-edit-background';
 }
 
+export type ManualEditResizeAxis = 'width' | 'height';
+
+/** Rect-space size requested by a resize drag. */
+export interface ManualEditResizeRequest {
+  axes: ManualEditResizeAxis[];
+  requested: Pick<ManualEditRect, 'width' | 'height'>;
+  /** Opts the low-frequency final frame into authored constraint diagnosis. */
+  includeDetails?: boolean;
+}
+
+export interface ManualEditResizeConstraint {
+  axis: ManualEditResizeAxis;
+  requested: number;
+  applied: number;
+  reason: 'min' | 'max' | 'layout';
+  property?: 'min-width' | 'max-width' | 'min-height' | 'max-height';
+  value?: string;
+}
+
+export interface ManualEditResizeOutcome {
+  constraints: ManualEditResizeConstraint[];
+  /** True only for the low-frequency final result that should be announced. */
+  announce: boolean;
+}
+
 export interface ManualEditPreviewAppliedMessage {
   type: 'od-edit-preview-style-applied';
   id: string;
@@ -156,6 +181,8 @@ export interface ManualEditPreviewAppliedMessage {
   cssSize?: { width: string; height: string };
   /** Post-apply winning authored width/height declarations. */
   authoredSize?: { width: string; height: string };
+  /** Requested resize axes whose post-layout rect differs by more than 1px. */
+  resize?: ManualEditResizeOutcome;
 }
 
 export interface ManualEditTextCommitMessage {
