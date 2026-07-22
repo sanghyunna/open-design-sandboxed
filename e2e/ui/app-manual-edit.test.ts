@@ -427,6 +427,63 @@ test('[P1] constrained resize explains the applied max-width while preserving th
   await expect(constrainedCopy).toHaveCSS('max-width', before.maxWidth);
 });
 
+test('[P1] constrained resize callout remains readable on an 8px target', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Tiny constrained resize feedback');
+  await seedHtmlArtifact(
+    page,
+    projectId,
+    'manual-edit.html',
+    manualEditHtml().replace(
+      'width: 420px; max-width: 30ch;',
+      'position: fixed; top: 120px; right: 0; margin: 0; width: 8px; height: 8px; max-width: 8px; overflow: hidden;',
+    ),
+  );
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const constrainedCopy = frame.locator('[data-od-id="constrained-copy"]');
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="constrained-copy"]', 'Shape');
+
+  const westHandle = page.getByRole('button', { name: 'Resize left edge' });
+  const handleBox = await westHandle.boundingBox();
+  if (!handleBox) throw new Error('resize handle has no bounding box');
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+  await westHandle.dispatchEvent('pointerdown', {
+    pointerId: 1, clientX: startX, clientY: startY, button: 0,
+  });
+  await westHandle.dispatchEvent('pointermove', {
+    pointerId: 1, clientX: startX - 160, clientY: startY, buttons: 1,
+  });
+
+  const callout = page.getByTestId('manual-edit-resize-callout');
+  await expect(callout).toBeVisible();
+  const calloutBox = await callout.boundingBox();
+  const constrainedBox = await constrainedCopy.boundingBox();
+  const workspaceBox = await page.locator('.manual-edit-workspace').boundingBox();
+  if (!calloutBox || !constrainedBox || !workspaceBox) {
+    throw new Error('constraint feedback was not measurable');
+  }
+  expect(constrainedBox.width).toBeLessThanOrEqual(8);
+  expect(constrainedBox.height).toBeLessThanOrEqual(8);
+  expect(calloutBox.width).toBeGreaterThan(120);
+  expect(calloutBox.x).toBeGreaterThanOrEqual(workspaceBox.x + 12);
+  expect(calloutBox.y).toBeGreaterThanOrEqual(workspaceBox.y + 12);
+  expect(calloutBox.x + calloutBox.width).toBeLessThanOrEqual(
+    workspaceBox.x + workspaceBox.width - 12,
+  );
+  expect(calloutBox.y + calloutBox.height).toBeLessThanOrEqual(
+    workspaceBox.y + workspaceBox.height - 12,
+  );
+
+  await westHandle.dispatchEvent('pointerup', {
+    pointerId: 1, clientX: startX - 160, clientY: startY, button: 0,
+  });
+});
+
 test('[P1] Desktop manual edit iframe follows the live canvas width', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await routeMockAgents(page);

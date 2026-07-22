@@ -7172,6 +7172,22 @@ function HtmlViewer({
     }, {} as Record<ResizeHandleDirection, string>),
     [t],
   );
+  const selectedManualEditResizeFeedback = selectedManualEditTarget
+    && manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+    && manualEditResizeFeedback.constraints.length
+      ? manualEditResizeFeedback
+      : null;
+  const manualEditResizeCanvasFeedback = selectedManualEditResizeFeedback?.constraints.map((constraint) => {
+    const axis = t(constraint.axis === 'width' ? 'manualEdit.shape.width' : 'manualEdit.shape.height');
+    const hasNamedLimit = selectedManualEditResizeFeedback.announce
+      && constraint.reason !== 'layout'
+      && constraint.property
+      && constraint.value;
+    const limit = hasNamedLimit
+      ? t('manualEdit.resize.limit', { axis, property: constraint.property!, value: constraint.value! })
+      : t('manualEdit.resize.layoutLimit', { axis });
+    return `${limit} · ${Math.round(constraint.applied)}px`;
+  }).join('\n');
   // Resize handles ride the same iframe→canvas transform as the hover
   // affordance, and only when the srcDoc edit bridge is live (URL-load preview
   // has no od-edit-preview-style channel), with edit mode on, an element
@@ -7197,6 +7213,9 @@ function HtmlViewer({
         scale={overlayPreviewScale}
         disabled={manualEditSaving}
         labels={manualEditResizeLabels}
+        resizeConstraints={selectedManualEditResizeFeedback?.constraints}
+        resizeFeedback={manualEditResizeCanvasFeedback}
+        bounds={previewBodySize}
         onResizeStart={() => {
           clearManualEditResizeFeedback();
           beginManualEditResizeBaseline(selectedManualEditTarget);

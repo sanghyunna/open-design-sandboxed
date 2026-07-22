@@ -385,9 +385,12 @@ describe('FileViewer manual edit resize handles', () => {
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await selectManualEditTarget();
     const frame = await previewFrame();
-    const constraint = {
-      axis: 'width', requested: 200, applied: 180, reason: 'layout',
-    } as const;
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 62, clientX: 300, clientY: 150 });
+    const constraints = [
+      { axis: 'width', requested: 200, applied: 180, reason: 'layout' },
+      { axis: 'height', requested: 68, applied: 60, reason: 'layout' },
+    ] as const;
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
@@ -397,7 +400,7 @@ describe('FileViewer manual edit resize handles', () => {
           version: 1,
           ok: true,
           rect: { x: 24, y: 24, width: 180, height: 48 },
-          resize: { constraints: [constraint], announce: false },
+          resize: { constraints, announce: false },
         },
         source: frame.contentWindow,
       }));
@@ -405,6 +408,16 @@ describe('FileViewer manual edit resize handles', () => {
 
     expect(screen.getByText('Width is limited by page layout')).toBeTruthy();
     expect(screen.queryByRole('status')).toBeNull();
+    const previewCallout = screen.getByTestId('manual-edit-resize-callout');
+    expect(previewCallout.getAttribute('aria-hidden')).toBe('true');
+    expect(previewCallout.getAttribute('role')).toBeNull();
+    expect(previewCallout.getAttribute('aria-live')).toBeNull();
+    expect(previewCallout.textContent).toContain('Width is limited by page layout · 180px');
+    expect(previewCallout.textContent).toContain('Height is limited by page layout · 60px');
+    expect(previewCallout.textContent).not.toContain('requested');
+    expect(se.getAttribute('data-constrained')).toBe('true');
+    expect(screen.getByTestId('manual-edit-resize-edge-e')).toBeTruthy();
+    expect(screen.getByTestId('manual-edit-resize-edge-s')).toBeTruthy();
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
@@ -414,13 +427,37 @@ describe('FileViewer manual edit resize handles', () => {
           version: 2,
           ok: true,
           rect: { x: 24, y: 24, width: 180, height: 48 },
-          resize: { constraints: [constraint], announce: true },
+          resize: {
+            constraints: [{
+              axis: 'width', requested: 200, applied: 180, reason: 'max',
+              property: 'max-width', value: '180px',
+            }],
+            announce: true,
+          },
         },
         source: frame.contentWindow,
       }));
     });
 
     expect(screen.getByRole('status').textContent).toContain('200px requested');
+    const finalCallout = screen.getByTestId('manual-edit-resize-callout');
+    expect(finalCallout.textContent).toBe('Width limited by max-width: 180px · 180px');
+    expect(screen.queryByTestId('manual-edit-resize-edge-s')).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 3,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 48 },
+          resize: { constraints: [] },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(screen.queryByTestId('manual-edit-resize-callout')).toBeNull();
 
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '120' } });
     expect(screen.queryByRole('status')).toBeNull();

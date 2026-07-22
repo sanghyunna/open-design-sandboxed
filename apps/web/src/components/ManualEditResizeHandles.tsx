@@ -1,6 +1,9 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
+  useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
@@ -10,6 +13,7 @@ import {
   resizeHandlePositions,
   type ResizeHandleDirection,
 } from '../edit-mode/resize-geometry';
+import type { ManualEditResizeConstraint } from '../edit-mode/types';
 import styles from './ManualEditResizeHandles.module.css';
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -21,6 +25,9 @@ export type ManualEditResizeHandlesProps = {
   scale: number;
   disabled?: boolean;
   labels: Record<ResizeHandleDirection, string>;
+  resizeConstraints?: readonly ManualEditResizeConstraint[];
+  resizeFeedback?: string;
+  bounds?: Size;
   // Sizes are rect-space (getBoundingClientRect px). The host owns the
   // conversion to CSS width/height (see resizeCssCommitStyles) because it
   // needs the target's computed styles and rectScale, which this component
@@ -56,12 +63,18 @@ export function ManualEditResizeHandles({
   scale,
   disabled = false,
   labels,
+  resizeConstraints,
+  resizeFeedback,
+  bounds,
   onResizePreview,
   onResizeCommit,
   onResizeCancel,
   onResizeStart,
 }: ManualEditResizeHandlesProps) {
   const dragRef = useRef<DragState | null>(null);
+  const lastDirectionRef = useRef<ResizeHandleDirection | null>(null);
+  const calloutRef = useRef<HTMLDivElement | null>(null);
+  const [calloutSize, setCalloutSize] = useState<Size>({ width: 0, height: 0 });
   const rafRef = useRef<number | null>(null);
   // Scheduling is tracked separately from the rAF id: a synchronously-executing
   // requestAnimationFrame (test stubs, polyfills) runs flushPreview BEFORE the
@@ -75,6 +88,15 @@ export function ManualEditResizeHandles({
       cancelAnimationFrame(rafRef.current);
     }
   }, []);
+
+  useLayoutEffect(() => {
+    const callout = calloutRef.current;
+    if (!callout) return;
+    const { width, height } = callout.getBoundingClientRect();
+    setCalloutSize((current) => (
+      current.width === width && current.height === height ? current : { width, height }
+    ));
+  }, [bounds?.height, bounds?.width, resizeFeedback]);
 
   const flushPreview = () => {
     flushScheduledRef.current = false;
@@ -131,6 +153,7 @@ export function ManualEditResizeHandles({
     // because keydown routes to whatever was previously focused.
     if (typeof target.focus === 'function') target.focus({ preventScroll: true });
     onResizeStart?.();
+    lastDirectionRef.current = direction;
     dragRef.current = {
       direction,
       pointerId: event.pointerId,
@@ -199,11 +222,63 @@ export function ManualEditResizeHandles({
     width: rect.width,
     height: rect.height,
   });
+  const constrainedDirection = resizeConstraints?.length ? lastDirectionRef.current : null;
+  const constrainedEdges: ResizeHandleDirection[] = [];
+  if (constrainedDirection && resizeConstraints?.some(({ axis }) => axis === 'width')) {
+    if (constrainedDirection.endsWith('e')) constrainedEdges.push('e');
+    else if (constrainedDirection.endsWith('w')) constrainedEdges.push('w');
+  }
+  if (constrainedDirection && resizeConstraints?.some(({ axis }) => axis === 'height')) {
+    if (constrainedDirection.startsWith('n')) constrainedEdges.push('n');
+    else if (constrainedDirection.startsWith('s')) constrainedEdges.push('s');
+  }
+  let calloutStyle: CSSProperties | undefined;
+  if (constrainedDirection && bounds) {
+    const preferredLeft = constrainedDirection.endsWith('e')
+      ? rect.width - 12 - calloutSize.width
+      : constrainedDirection.endsWith('w')
+        ? 12
+        : (rect.width - calloutSize.width) / 2;
+    const preferredTop = constrainedDirection.startsWith('n')
+      ? 12
+      : constrainedDirection.startsWith('s')
+        ? rect.height - 12 - calloutSize.height
+        : (rect.height - calloutSize.height) / 2;
+    const left = Math.min(
+      Math.max(rect.left + preferredLeft, 12),
+      Math.max(12, bounds.width - 12 - calloutSize.width),
+    ) - rect.left;
+    const top = Math.min(
+      Math.max(rect.top + preferredTop, 12),
+      Math.max(12, bounds.height - 12 - calloutSize.height),
+    ) - rect.top;
+    calloutStyle = {
+      left,
+      top,
+      right: 'auto',
+      bottom: 'auto',
+      transform: 'none',
+      maxWidth: Math.max(0, Math.min(240, bounds.width - 24)),
+      maxHeight: Math.max(0, bounds.height - 24),
+    };
+  }
 
   return (
-    <div className={styles.container} style={{ left: rect.left, top: rect.top }}>
+    <div
+      className={styles.container}
+      style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+    >
+      {constrainedEdges.map((direction) => (
+        <span
+          key={direction}
+          aria-hidden="true"
+          data-testid={`manual-edit-resize-edge-${direction}`}
+          className={`${styles.constraintEdge} ${styles[`constraintEdge-${direction}`]}`}
+        />
+      ))}
       {RESIZE_HANDLE_DIRECTIONS.map((direction) => {
         const position = positions[direction];
+        const constrained = direction === constrainedDirection;
         return (
           <button
             key={direction}
@@ -212,7 +287,8 @@ export function ManualEditResizeHandles({
             tabIndex={-1}
             aria-label={labels[direction]}
             data-direction={direction}
-            className={`${styles.handle} ${styles[`handle-${direction}`]}`}
+            data-constrained={constrained || undefined}
+            className={`${styles.handle} ${styles[`handle-${direction}`]} ${constrained ? styles.constrained : ''}`}
             style={{ left: position.left, top: position.top }}
             onPointerDown={handlePointerDown(direction)}
             onPointerMove={handlePointerMove}
@@ -222,6 +298,17 @@ export function ManualEditResizeHandles({
           />
         );
       })}
+      {constrainedDirection && resizeFeedback ? (
+        <div
+          ref={calloutRef}
+          aria-hidden="true"
+          data-testid="manual-edit-resize-callout"
+          className={`${styles.callout} ${styles[`callout-${constrainedDirection}`]}`}
+          style={calloutStyle}
+        >
+          {resizeFeedback}
+        </div>
+      ) : null}
     </div>
   );
 }
