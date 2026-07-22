@@ -1698,7 +1698,50 @@ describe('manual edit bridge rich-text editing', () => {
   });
 });
 
-describe('manual edit bridge undo/redo forwarding', () => {
+describe('manual edit bridge keyboard forwarding', () => {
+  it('forwards an arrow key as a nudge when an object is selected', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowRight',
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-nudge', direction: 'right' }, '*');
+    expect(event.defaultPrevented).toBe(true);
+
+    dom.window.close();
+  });
+
+  it('leaves arrow keys alone without an object-selected target', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowRight',
+    });
+
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
   it('forwards Ctrl+Z to the host as an undo message when no inline edit session is active', () => {
     const dom = new JSDOM(
       `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,

@@ -243,7 +243,22 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
   await waitForFrameLoad();
   await expectHistoryState('Second edit', ['First edit', 'Left panel']);
 
+  const beforeNudge = await textOnlyDiv.boundingBox();
+  if (!beforeNudge) throw new Error('selected element has no bounding box before keyboard nudge');
   await page.keyboard.press('ArrowRight');
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      return resp.text();
+    })
+    .toMatch(/data-od-id="pair-a"[^>]*style="[^"]*translate:\s*1px(?:\s+0px)?/);
+  await expect
+    .poll(async () => {
+      const afterNudge = await textOnlyDiv.boundingBox();
+      return afterNudge ? Math.abs((afterNudge.x - beforeNudge.x) - 1) < 0.5 : false;
+    })
+    .toBe(true);
   await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
   await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
 

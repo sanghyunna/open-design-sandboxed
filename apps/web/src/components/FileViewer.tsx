@@ -5016,6 +5016,28 @@ function HtmlViewer({
         else void undoManualEditRef.current();
         return;
       }
+      if (data.type === 'od-edit-nudge') {
+        const target = selectedManualEditTargetRef.current;
+        if (!target) return;
+        const delta = data.direction === 'left'
+          ? { x: -1, y: 0 }
+          : data.direction === 'right'
+            ? { x: 1, y: 0 }
+            : data.direction === 'up'
+              ? { x: 0, y: -1 }
+              : data.direction === 'down'
+                ? { x: 0, y: 1 }
+                : null;
+        if (!delta) return;
+        beginManualEditMoveBaseline(target);
+        previewStyleToIframe(
+          target.id,
+          manualEditMoveStyles(target, delta),
+          nextManualEditPreviewVersion(),
+        );
+        void commitManualEditMove(target, delta);
+        return;
+      }
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
