@@ -8,7 +8,7 @@ import {
   checkBundledCopyLanguage,
   collectBundledCopyLanguageViolations,
   collectCanonicalCatalogueCopyViolations,
-  type CanonicalCatalogueCopyGroup,
+  collectSharedCatalogueCopyPaths,
 } from "./check-bundled-copy-language.ts";
 
 test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file copy", async () => {
@@ -92,26 +92,29 @@ test("bundled copy guard does not mask arbitrary Japanese locale values outside 
   }
 });
 
-test("bundled copy guard rejects divergence from a declared canonical plugin copy", async () => {
+test("bundled copy guard compares every shared copy's user-visible default content", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
-  const groups: readonly CanonicalCatalogueCopyGroup[] = [
-    { derivedRoot: "design-templates", filePath: "example.html", ids: ["example"] },
-  ];
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await mkdir(path.join(root, "design-templates/example"), { recursive: true });
-    await writeFile(path.join(root, "plugins/_official/examples/example/example.html"), "<h1>Canonical preview</h1>\n");
-    await writeFile(path.join(root, "design-templates/example/example.html"), "<h1>Changed preview</h1>\n");
+    await writeFile(path.join(root, "plugins/_official/examples/example/example.html"), '<html lang="en"><h1>Canonical preview</h1>\n');
+    await writeFile(path.join(root, "design-templates/example/example.html"), '<html lang="zh-CN"><h1>Changed preview</h1>\n');
 
-    assert.deepEqual(await collectCanonicalCatalogueCopyViolations(root, groups), [
+    assert.deepEqual(await collectCanonicalCatalogueCopyViolations(root), [
       {
         canonicalPath: "plugins/_official/examples/example/example.html",
         derivedPath: "design-templates/example/example.html",
         reason: "diverged",
       },
     ]);
-    assert.equal(await checkBundledCopyLanguage(root, undefined, groups), false);
+    assert.equal(await checkBundledCopyLanguage(root), false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("every current shared catalogue file is classified, including intentionally independent copies", async () => {
+  const paths = await collectSharedCatalogueCopyPaths();
+  assert.equal(paths.length, 239);
+  assert.deepEqual(await collectCanonicalCatalogueCopyViolations(), []);
 });

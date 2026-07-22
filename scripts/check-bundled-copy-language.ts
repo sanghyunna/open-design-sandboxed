@@ -6,71 +6,49 @@ const roots = ["skills", "design-templates", "plugins/_official/examples"];
 const skippedDirectories = new Set([".git", "node_modules"]);
 const pluginExamplesRoot = "plugins/_official/examples";
 
-export type CanonicalCatalogueCopyGroup = {
+export type CatalogueCopyPath = {
   derivedRoot: "design-templates" | "skills";
   filePath: "SKILL.md" | "example.html";
   ids: readonly string[];
 };
 
-// These are the reviewed files that are deliberately mirrored from the bundled
-// plugin examples. Entries with their own implementation or extra assets stay
-// out of this map rather than being forced into a broad directory comparison.
-export const canonicalCatalogueCopyGroups: readonly CanonicalCatalogueCopyGroup[] = [
+// These shared files have intentionally different English content in their
+// active root. Every other shared SKILL.md/example.html pair is compared after
+// removing formatting-only markup. The language scan still covers all paths.
+export const intentionalCatalogueCopyDivergences: readonly CatalogueCopyPath[] = [
   {
-    derivedRoot: "design-templates",
+    derivedRoot: "skills",
+    filePath: "SKILL.md",
+    ids: [
+      "article-magazine", "card-twitter", "card-xiaohongshu", "data-report", "doc-kami-parchment", "frame-data-chart-nyt",
+      "frame-flowchart-sticky", "frame-glitch-title", "frame-light-leak-cinema", "frame-liquid-bg-hero", "frame-logo-outro",
+      "frame-macos-notification", "mockup-device-3d", "poster-hero", "ppt-keynote", "resume-modern", "social-reddit-card",
+      "social-spotify-card", "social-x-post-card", "vfx-text-cursor",
+    ],
+  },
+  {
+    derivedRoot: "skills",
     filePath: "example.html",
     ids: [
-      "blog-post", "clinical-case-report", "dashboard", "dating-web", "digital-eguide", "docs-page", "email-marketing",
-      "eng-runbook", "finance-report", "flowai-live-dashboard-template", "gamified-app", "github-dashboard", "hr-onboarding",
-      "html-ppt-course-module", "html-ppt-dir-key-nav-minimal", "html-ppt-graphify-dark-graph",
-      "html-ppt-hermes-cyber-terminal", "html-ppt-knowledge-arch-blueprint", "html-ppt-obsidian-claude-gradient",
-      "html-ppt-pitch-deck", "html-ppt-presenter-mode-reveal", "html-ppt-product-launch", "html-ppt-taste-brutalist",
-      "html-ppt-tech-sharing", "html-ppt-testing-safety-alert", "html-ppt-weekly-report", "html-ppt-xhs-pastel-card",
-      "html-ppt-xhs-post", "html-ppt-xhs-white-editorial", "html-ppt-zhangzara-8-bit-orbit",
-      "html-ppt-zhangzara-biennale-yellow", "html-ppt-zhangzara-block-frame", "html-ppt-zhangzara-blue-professional",
-      "html-ppt-zhangzara-bold-poster", "html-ppt-zhangzara-broadside", "html-ppt-zhangzara-capsule",
-      "html-ppt-zhangzara-cartesian", "html-ppt-zhangzara-cobalt-grid", "html-ppt-zhangzara-coral",
-      "html-ppt-zhangzara-creative-mode", "html-ppt-zhangzara-daisy-days", "html-ppt-zhangzara-editorial-tri-tone",
-      "html-ppt-zhangzara-grove", "html-ppt-zhangzara-long-table", "html-ppt-zhangzara-mat", "html-ppt-zhangzara-monochrome",
-      "html-ppt-zhangzara-neo-grid-bold", "html-ppt-zhangzara-peoples-platform", "html-ppt-zhangzara-pin-and-paper",
-      "html-ppt-zhangzara-pink-script", "html-ppt-zhangzara-playful", "html-ppt-zhangzara-raw-grid",
-      "html-ppt-zhangzara-retro-windows", "html-ppt-zhangzara-retro-zine", "html-ppt-zhangzara-scatterbrain",
-      "html-ppt-zhangzara-signal", "html-ppt-zhangzara-soft-editorial", "html-ppt-zhangzara-stencil-tablet",
-      "html-ppt-zhangzara-studio", "html-ppt-zhangzara-vellum", "ib-pitch-book", "invoice", "kami-deck", "kanban-board",
-      "magazine-poster", "meeting-notes", "mobile-app", "mobile-onboarding", "open-design-landing-deck", "pm-spec",
-      "pricing-page", "saas-landing", "social-carousel", "social-media-dashboard", "sprite-animation", "team-okrs",
-      "trading-analysis-dashboard-template", "tweaks", "waitlist-page", "web-prototype", "web-prototype-taste-brutalist",
-      "web-prototype-taste-editorial", "web-prototype-taste-soft", "weekly-update", "wireframe-sketch",
+      "article-magazine", "card-twitter", "card-xiaohongshu", "data-report", "deck-guizang-editorial", "deck-open-slide-canvas",
+      "deck-swiss-international", "frame-data-chart-nyt", "frame-flowchart-sticky", "frame-liquid-bg-hero",
+      "frame-macos-notification", "mockup-device-3d", "poster-hero", "ppt-keynote", "resume-modern", "social-x-post-card",
+      "vfx-text-cursor",
     ],
   },
   {
     derivedRoot: "design-templates",
     filePath: "SKILL.md",
     ids: [
-      "clinical-case-report", "dcf-valuation", "flowai-live-dashboard-template", "html-ppt-taste-brutalist",
-      "html-ppt-zhangzara-8-bit-orbit", "html-ppt-zhangzara-biennale-yellow", "html-ppt-zhangzara-block-frame",
-      "html-ppt-zhangzara-blue-professional", "html-ppt-zhangzara-bold-poster", "html-ppt-zhangzara-broadside",
-      "html-ppt-zhangzara-capsule", "html-ppt-zhangzara-cartesian", "html-ppt-zhangzara-cobalt-grid",
-      "html-ppt-zhangzara-coral", "html-ppt-zhangzara-creative-mode", "html-ppt-zhangzara-daisy-days",
-      "html-ppt-zhangzara-editorial-tri-tone", "html-ppt-zhangzara-grove", "html-ppt-zhangzara-long-table",
-      "html-ppt-zhangzara-mat", "html-ppt-zhangzara-monochrome", "html-ppt-zhangzara-neo-grid-bold",
-      "html-ppt-zhangzara-peoples-platform", "html-ppt-zhangzara-pin-and-paper", "html-ppt-zhangzara-pink-script",
-      "html-ppt-zhangzara-playful", "html-ppt-zhangzara-raw-grid", "html-ppt-zhangzara-retro-windows",
-      "html-ppt-zhangzara-retro-zine", "html-ppt-zhangzara-sakura-chroma", "html-ppt-zhangzara-scatterbrain",
-      "html-ppt-zhangzara-signal", "html-ppt-zhangzara-soft-editorial", "html-ppt-zhangzara-stencil-tablet",
-      "html-ppt-zhangzara-studio", "html-ppt-zhangzara-vellum", "last30days", "saas-landing", "team-okrs",
-      "web-prototype-taste-editorial", "web-prototype-taste-soft", "weekly-update", "wireframe-sketch", "x-research",
+      "dashboard", "digital-eguide", "docs-page", "github-dashboard", "guizang-ppt", "hr-onboarding", "html-ppt",
+      "html-ppt-taste-editorial", "kanban-board", "meeting-notes", "mobile-app", "pm-spec", "pricing-page", "replit-deck",
+      "simple-deck", "social-media-dashboard", "tweaks", "web-prototype",
     ],
   },
   {
-    derivedRoot: "skills",
-    filePath: "SKILL.md",
-    ids: ["deck-guizang-editorial", "deck-open-slide-canvas", "deck-swiss-international", "design-brief", "pptx-html-fidelity-audit"],
-  },
-  {
-    derivedRoot: "skills",
+    derivedRoot: "design-templates",
     filePath: "example.html",
-    ids: ["doc-kami-parchment", "frame-glitch-title", "frame-light-leak-cinema", "frame-logo-outro", "social-reddit-card", "social-spotify-card"],
+    ids: ["critique", "html-ppt-zhangzara-sakura-chroma", "kami-landing", "open-design-landing"],
   },
 ];
 const intentionalHanPaths = new Set([
@@ -219,13 +197,75 @@ function normalizeMirroredCopy(source: string): string {
   return source.replace(/\r\n/g, "\n");
 }
 
+function normalizedUserVisibleCopy(filePath: CatalogueCopyPath["filePath"], source: string): string {
+  if (filePath === "SKILL.md") {
+    return normalizeMirroredCopy(source)
+      .replace(/^---\n[\s\S]*?\n---\n?/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  const htmlLanguage = source.match(/<html\b[^>]*\blang=["']([^"']+)["']/i)?.[1]?.toLowerCase() ?? "";
+  return `${htmlLanguage}\n${normalizeMirroredCopy(source)
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<(?:script|style)\b[\s\S]*?<\/(?:script|style)>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(?:#\d+|#x[\da-f]+|[a-z]+);/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()}`;
+}
+
+function hasIntentionalCopyDivergence(derivedRoot: CatalogueCopyPath["derivedRoot"], id: string, filePath: CatalogueCopyPath["filePath"]): boolean {
+  return intentionalCatalogueCopyDivergences.some(
+    (entry) => entry.derivedRoot === derivedRoot && entry.filePath === filePath && entry.ids.includes(id),
+  );
+}
+
+export async function collectSharedCatalogueCopyPaths(root = repoRoot): Promise<CatalogueCopyPath[]> {
+  let pluginEntries;
+  try {
+    pluginEntries = await readdir(path.join(root, pluginExamplesRoot), { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  const pluginIds = new Set(pluginEntries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name));
+  const paths: CatalogueCopyPath[] = [];
+
+  for (const derivedRoot of ["design-templates", "skills"] as const) {
+    let entries;
+    try {
+      entries = await readdir(path.join(root, derivedRoot), { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw error;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !pluginIds.has(entry.name)) continue;
+      for (const filePath of ["SKILL.md", "example.html"] as const) {
+        try {
+          await Promise.all([
+            readFile(path.join(root, pluginExamplesRoot, entry.name, filePath)),
+            readFile(path.join(root, derivedRoot, entry.name, filePath)),
+          ]);
+          paths.push({ derivedRoot, filePath, ids: [entry.name] });
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        }
+      }
+    }
+  }
+  return paths;
+}
+
 export async function collectCanonicalCatalogueCopyViolations(
   root = repoRoot,
-  groups: readonly CanonicalCatalogueCopyGroup[] = canonicalCatalogueCopyGroups,
 ): Promise<CanonicalCatalogueCopyViolation[]> {
   const violations: CanonicalCatalogueCopyViolation[] = [];
 
-  for (const group of groups) {
+  for (const group of await collectSharedCatalogueCopyPaths(root)) {
     for (const id of group.ids) {
       const canonicalPath = `${pluginExamplesRoot}/${id}/${group.filePath}`;
       const derivedPath = `${group.derivedRoot}/${id}/${group.filePath}`;
@@ -234,7 +274,10 @@ export async function collectCanonicalCatalogueCopyViolations(
           readFile(path.join(root, canonicalPath), "utf8"),
           readFile(path.join(root, derivedPath), "utf8"),
         ]);
-        if (normalizeMirroredCopy(canonical) !== normalizeMirroredCopy(derived)) {
+        if (
+          !hasIntentionalCopyDivergence(group.derivedRoot, id, group.filePath) &&
+          normalizedUserVisibleCopy(group.filePath, canonical) !== normalizedUserVisibleCopy(group.filePath, derived)
+        ) {
           violations.push({ canonicalPath, derivedPath, reason: "diverged" });
         }
       } catch (error) {
@@ -253,10 +296,9 @@ export async function collectCanonicalCatalogueCopyViolations(
 export async function checkBundledCopyLanguage(
   root = repoRoot,
   checkedRoots = roots,
-  canonicalCopyGroups: readonly CanonicalCatalogueCopyGroup[] = root === repoRoot ? canonicalCatalogueCopyGroups : [],
 ): Promise<boolean> {
   const violations = await collectBundledCopyLanguageViolations(root, checkedRoots);
-  const canonicalCopyViolations = await collectCanonicalCatalogueCopyViolations(root, canonicalCopyGroups);
+  const canonicalCopyViolations = await collectCanonicalCatalogueCopyViolations(root);
   if (violations.length === 0 && canonicalCopyViolations.length === 0) {
     console.log("Bundled copy language check passed: runtime defaults contain no unscoped Han script characters and canonical copies match.");
     return true;
