@@ -19,6 +19,7 @@ export interface ManualEditLeftInspectorProps {
   draftAlt: string;
   error?: string | null;
   resizeConstraints?: readonly ManualEditResizeConstraint[];
+  announceResizeConstraints?: boolean;
   busy?: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -44,6 +45,7 @@ export function ManualEditLeftInspector({
   draftAlt,
   error,
   resizeConstraints,
+  announceResizeConstraints,
   busy,
   canUndo,
   canRedo,
@@ -143,6 +145,7 @@ export function ManualEditLeftInspector({
               draftAlt={draftAlt}
               error={error}
               resizeConstraints={resizeConstraints}
+              announceResizeConstraints={announceResizeConstraints}
               busy={busy}
               canUndo={canUndo}
               canRedo={canRedo}

@@ -3,7 +3,7 @@
 // (`layout="stack"`). Whole-element style edits go through onStyleField; image
 // replace and delete go through onApplyPatch.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Button } from '@open-design/components';
+import { Button, VisuallyHidden } from '@open-design/components';
 import { useT } from '../i18n';
 import type { ManualEditPatch, ManualEditResizeConstraint, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { RemixIcon } from './RemixIcon';
@@ -35,6 +35,7 @@ export interface ManualEditShapeControlsProps {
   draftAlt: string;
   error?: string | null;
   resizeConstraints?: readonly ManualEditResizeConstraint[];
+  announceResizeConstraints?: boolean;
   busy?: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -60,6 +61,7 @@ function ShapeBar({
   draftAlt,
   error,
   resizeConstraints,
+  announceResizeConstraints,
   busy,
   canUndo,
   canRedo,
@@ -83,7 +85,7 @@ function ShapeBar({
 
   return (
     <>
-      <ResizeFeedback constraints={resizeConstraints} layout="bar" />
+      <ResizeFeedback constraints={resizeConstraints} layout="bar" announce={announceResizeConstraints} />
       <div className={styles.group}>
         <Button variant="subtle" size="icon" aria-label={t('manualEdit.undo')} title={t('manualEdit.undo')} disabled={busy || !canUndo} onClick={onUndo}>
           <RemixIcon name="arrow-go-back-line" size={15} />
@@ -243,6 +245,7 @@ function ShapeStack({
   styles: elementStyles,
   draftAlt,
   resizeConstraints,
+  announceResizeConstraints,
   busy,
   getActiveTarget,
   onStyleField,
@@ -317,7 +320,7 @@ function ShapeStack({
         </section>
       ) : null}
 
-      <ResizeFeedback constraints={resizeConstraints} layout="stack" />
+      <ResizeFeedback constraints={resizeConstraints} layout="stack" announce={announceResizeConstraints} />
 
       <DisclosureSection
         title={t('manualEdit.sizePosition')}
@@ -523,38 +526,44 @@ function ShapeStack({
 function ResizeFeedback({
   constraints,
   layout,
+  announce,
 }: {
   constraints?: readonly ManualEditResizeConstraint[];
   layout: 'bar' | 'stack';
+  announce?: boolean;
 }) {
   const t = useT();
   if (!constraints?.length) return null;
+  const messages = constraints.map((constraint) => {
+    const axis = t(constraint.axis === 'width' ? 'manualEdit.shape.width' : 'manualEdit.shape.height');
+    const hasNamedLimit = constraint.reason !== 'layout' && constraint.property && constraint.value;
+    return {
+      axis: constraint.axis,
+      limit: hasNamedLimit
+        ? t('manualEdit.resize.limit', { axis, property: constraint.property!, value: constraint.value! })
+        : t('manualEdit.resize.layoutLimit', { axis }),
+      measurements: t('manualEdit.resize.measurements', {
+        requested: Math.round(constraint.requested),
+        applied: Math.round(constraint.applied),
+      }),
+    };
+  });
   return (
-    <div
-      className={`${styles.resizeFeedback} ${layout === 'bar' ? styles.resizeFeedbackBar : ''}`}
-      role="status"
-      aria-live="polite"
-    >
-      {constraints.map((constraint) => {
-        const axis = t(constraint.axis === 'width' ? 'manualEdit.shape.width' : 'manualEdit.shape.height');
-        const hasNamedLimit = constraint.reason !== 'layout' && constraint.property && constraint.value;
-        return (
-          <div className={styles.resizeFeedbackLine} key={constraint.axis}>
-            <span>
-              {hasNamedLimit
-                ? t('manualEdit.resize.limit', { axis, property: constraint.property!, value: constraint.value! })
-                : t('manualEdit.resize.layoutLimit', { axis })}
-            </span>
-            <span className={styles.resizeFeedbackMeasure}>
-              {t('manualEdit.resize.measurements', {
-                requested: Math.round(constraint.requested),
-                applied: Math.round(constraint.applied),
-              })}
-            </span>
+    <>
+      <div className={`${styles.resizeFeedback} ${layout === 'bar' ? styles.resizeFeedbackBar : ''}`}>
+        {messages.map((message) => (
+          <div className={styles.resizeFeedbackLine} key={message.axis}>
+            <span>{message.limit}</span>
+            <span className={styles.resizeFeedbackMeasure}>{message.measurements}</span>
           </div>
-        );
-      })}
-    </div>
+        ))}
+      </div>
+      {announce ? (
+        <VisuallyHidden role="status" aria-live="polite">
+          {messages.map((message) => `${message.limit}. ${message.measurements}`).join(' ')}
+        </VisuallyHidden>
+      ) : null}
+    </>
   );
 }
 

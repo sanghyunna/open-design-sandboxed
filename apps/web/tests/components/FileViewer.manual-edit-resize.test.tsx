@@ -180,6 +180,7 @@ describe('FileViewer manual edit resize handles', () => {
           ok: true,
           rect: { x: 24, y: 24, width: 180, height: 68 },
           resize: {
+            announce: true,
             constraints: [{
               axis: 'width', requested: 200, applied: 180, reason: 'max',
               property: 'max-width', value: '180px',
@@ -261,6 +262,7 @@ describe('FileViewer manual edit resize handles', () => {
           ok: true,
           rect: { x: 24, y: 24, width: 180, height: 68 },
           resize: {
+            announce: true,
             constraints: [{ axis: 'width', requested: 200, applied: 180, reason: 'layout' }],
           },
         },
@@ -339,6 +341,86 @@ describe('FileViewer manual edit resize handles', () => {
     });
 
     expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('ignores resize acknowledgements from the inactive preview iframe', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const inactiveFrame = screen.getByTestId('artifact-preview-frame-url-load') as HTMLIFrameElement;
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 48 },
+          resize: {
+            constraints: [{ axis: 'width', requested: 200, applied: 180, reason: 'layout' }],
+          },
+        },
+        source: inactiveFrame.contentWindow,
+      }));
+    });
+
+    expect(screen.queryByText('Width is limited by page layout')).toBeNull();
+  });
+
+  it('announces only the final constrained resize result while keeping preview feedback visible', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+    const frame = await previewFrame();
+    const constraint = {
+      axis: 'width', requested: 200, applied: 180, reason: 'layout',
+    } as const;
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 1,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 48 },
+          resize: { constraints: [constraint], announce: false },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    expect(screen.getByText('Width is limited by page layout')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'hero',
+          version: 2,
+          ok: true,
+          rect: { x: 24, y: 24, width: 180, height: 48 },
+          resize: { constraints: [constraint], announce: true },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    expect(screen.getByRole('status').textContent).toContain('200px requested');
   });
 
   it('commits width/height inline styles to the saved file on pointerup', async () => {

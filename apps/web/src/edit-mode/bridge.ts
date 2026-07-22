@@ -399,7 +399,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         constraint.value = authoredValue;
       });
     }
-    return { constraints: constraints };
+    return { constraints: constraints, announce: request.includeDetails === true };
   }
   function targetFrom(el, includeOuterHtml, includeAuthoredSize){
     var rect = el.getBoundingClientRect();

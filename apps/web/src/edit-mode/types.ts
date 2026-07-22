@@ -158,6 +158,8 @@ export interface ManualEditResizeConstraint {
 
 export interface ManualEditResizeOutcome {
   constraints: ManualEditResizeConstraint[];
+  /** True only for the low-frequency final result that should be announced. */
+  announce: boolean;
 }
 
 export interface ManualEditPreviewAppliedMessage {

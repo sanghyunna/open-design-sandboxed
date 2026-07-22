@@ -152,8 +152,8 @@ type BoardTool = 'inspect' | 'pod';
 type StrokePoint = { x: number; y: number };
 type ManualEditResizeFeedback = {
   targetId: string;
-  version: number;
   constraints: ManualEditResizeConstraint[];
+  announce: boolean;
 };
 export type ManualEditPendingStyleSave = {
   id: string;
@@ -4974,6 +4974,7 @@ function HtmlViewer({
         return;
       }
       if (data.type === 'od-edit-preview-style-applied') {
+        if (!isActivePreviewIframeSource(ev.source)) return;
         const version = typeof data.version === 'number' ? data.version : 0;
         // Drop only out-of-order stragglers; every newer ack is applied even if
         // a later preview is already in flight (see manualEditPreviewAckVersionRef).
@@ -5005,8 +5006,8 @@ function HtmlViewer({
         ) {
           setManualEditResizeFeedback({
             targetId: data.id,
-            version,
             constraints: data.resize.constraints,
+            announce: data.resize.announce === true,
           });
         }
         if (!data.ok && version === manualEditPreviewVersionRef.current) {
@@ -5027,7 +5028,7 @@ function HtmlViewer({
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [isOurPreviewIframeSource, manualEditMode, source]);
+  }, [isActivePreviewIframeSource, isOurPreviewIframeSource, manualEditMode, source]);
 
   function nextManualEditPreviewVersion(): number {
     manualEditPreviewVersionRef.current += 1;
@@ -7631,6 +7632,8 @@ function HtmlViewer({
           resizeConstraints={manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
             ? manualEditResizeFeedback.constraints
             : undefined}
+          announceResizeConstraints={manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+            && manualEditResizeFeedback.announce}
           busy={manualEditSaving}
           canUndo={manualEditHistory.length > 0}
           canRedo={manualEditUndone.length > 0}
@@ -7665,6 +7668,9 @@ function HtmlViewer({
               resizeConstraints={selectedManualEditTarget && manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
                 ? manualEditResizeFeedback.constraints
                 : undefined}
+              announceResizeConstraints={!!selectedManualEditTarget
+                && manualEditResizeFeedback?.targetId === selectedManualEditTarget.id
+                && manualEditResizeFeedback.announce}
               busy={manualEditSaving}
               canUndo={manualEditHistory.length > 0}
               canRedo={manualEditUndone.length > 0}

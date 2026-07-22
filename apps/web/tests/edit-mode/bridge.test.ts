@@ -1495,6 +1495,7 @@ describe('manual edit bridge target normalization', () => {
       expect.objectContaining({
         type: 'od-edit-preview-style-applied',
         resize: {
+          announce: false,
           constraints: [{
             axis: 'width',
             requested: 741,
@@ -1540,7 +1541,7 @@ describe('manual edit bridge target normalization', () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'od-edit-preview-style-applied',
-        resize: { constraints: [] },
+        resize: { constraints: [], announce: true },
       }),
       '*',
     );
@@ -1579,6 +1580,7 @@ describe('manual edit bridge target normalization', () => {
       expect.objectContaining({
         type: 'od-edit-preview-style-applied',
         resize: {
+          announce: true,
           constraints: [
             {
               axis: 'width', requested: 500, applied: 320, reason: 'max',
@@ -1628,6 +1630,7 @@ describe('manual edit bridge target normalization', () => {
     expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         resize: {
+          announce: true,
           constraints: [{
             axis: 'width', requested: 500, applied: 320, reason: 'layout',
           }],
