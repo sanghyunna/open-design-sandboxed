@@ -4256,6 +4256,7 @@ function HtmlViewer({
     [buildPreviewSrcDoc, useLazySrcDocTransport],
   );
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
+  const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
   const [srcDocTransportResetKey, setSrcDocTransportResetKey] = useState(0);
   const [srcDocShellReady, setSrcDocShellReady] = useState(false);
   const wasUrlLoadPreviewRef = useRef(useUrlLoadPreview);
@@ -4298,7 +4299,11 @@ function HtmlViewer({
   // Tweaks, etc.), mount the real artifact HTML directly so we do not depend on
   // a postMessage activation that can race (#2253) and strand the iframe blank
   // (#2361, #2791).
-  const srcDocTransportContent = useLazySrcDocTransport ? lazySrcDocTransport : srcDoc;
+  const srcDocTransportContent = useLazySrcDocTransport
+    ? lazySrcDocTransport
+    : manualEditSrcDocActive && !useUrlLoadPreview && srcDoc
+      ? `${srcDoc}\n<!-- od:manual-edit-document-revision=${manualEditDocumentRevision} -->`
+      : srcDoc;
   const urlTransportSrc = useUrlLoadPreview ? activePreviewSrcUrl : 'about:blank';
   const activateSrcDocTransport = useCallback((target: HTMLIFrameElement | null = srcDocPreviewIframeRef.current) => {
     const html = srcDoc || buildPreviewSrcDoc();
@@ -5487,6 +5492,12 @@ function HtmlViewer({
     return false;
   }
 
+  function refreshManualEditDocument(snapshot: string) {
+    capturePreviewScrollPosition();
+    setManualEditFrozenSource(snapshot);
+    setManualEditDocumentRevision((revision) => revision + 1);
+  }
+
   async function undoManualEdit() {
     if (manualEditSavingRef.current) return;
     const [latest, ...rest] = manualEditHistory;
@@ -5508,8 +5519,7 @@ function HtmlViewer({
       setSource(latest.beforeSource);
       sourceRef.current = latest.beforeSource;
       setInlinedSource(null);
-      setManualEditFrozenSource(latest.beforeSource);
-      setSrcDocTransportResetKey((key) => key + 1);
+      refreshManualEditDocument(latest.beforeSource);
       setManualEditHistory(rest);
       setManualEditUndone((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.beforeSource }));
@@ -5541,7 +5551,7 @@ function HtmlViewer({
       setSource(latest.afterSource);
       sourceRef.current = latest.afterSource;
       setInlinedSource(null);
-      setManualEditFrozenSource(latest.afterSource);
+      refreshManualEditDocument(latest.afterSource);
       setManualEditUndone(rest);
       setManualEditHistory((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.afterSource }));

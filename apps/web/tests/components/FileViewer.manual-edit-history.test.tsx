@@ -198,7 +198,8 @@ describe('FileViewer manual edit history regressions', () => {
     });
     await waitFor(() => expect(savedSources).toHaveLength(1));
     expect(savedSources[0]).toContain('rgb(239, 68, 68)');
-    const frameBeforeUndo = screen.getByTestId('artifact-preview-frame');
+    const frameBeforeUndo = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
+    const srcDocBeforeUndo = frameBeforeUndo.srcdoc;
 
     act(() => {
       toolbarState.props?.onUndo();
@@ -206,7 +207,9 @@ describe('FileViewer manual edit history regressions', () => {
     await waitFor(() => expect(savedSources).toHaveLength(2));
     expect(savedSources[1]).toBe(initialSource);
     await waitFor(() => {
-      expect(screen.getByTestId('artifact-preview-frame')).not.toBe(frameBeforeUndo);
+      const frameAfterUndo = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
+      expect(frameAfterUndo).toBe(frameBeforeUndo);
+      expect(frameAfterUndo.srcdoc).not.toBe(srcDocBeforeUndo);
     });
 
     act(() => {

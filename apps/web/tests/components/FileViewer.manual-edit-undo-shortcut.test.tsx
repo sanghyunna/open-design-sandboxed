@@ -331,6 +331,7 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
       if (!node.contentWindow) throw new Error('Preview frame not ready');
       return node;
     });
+    const frameWindow = frame.contentWindow;
     await selectHero();
 
     act(() => {
@@ -350,16 +351,16 @@ describe('FileViewer manual edit undo keyboard shortcut', () => {
     });
     await waitFor(() => expect(savedSources).toHaveLength(2));
     expect(savedSources[1]).toBe(initialSource);
-    const remountedFrame = await waitFor(() => {
+    await waitFor(() => {
       const node = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
-      if (node === frame || !node.contentWindow) throw new Error('Remounted preview frame not ready');
-      return node;
+      expect(node).toBe(frame);
+      expect(node.contentWindow).toBe(frameWindow);
     });
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: { type: 'od-edit-undo', redo: true },
-        source: remountedFrame.contentWindow,
+        source: frameWindow,
       }));
     });
     await waitFor(() => expect(savedSources).toHaveLength(3));

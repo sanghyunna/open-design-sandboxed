@@ -156,6 +156,101 @@ test('[P0] manual edit direct text typing persists text-only elements', async ({
   await expect(frame.getByText('Edited left panel')).toBeVisible();
 });
 
+test('[P1] issue 33 manual edit history preserves preview identity and focus', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 33 manual edit history');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const textOnlyDiv = frame.locator('[data-od-id="pair-a"]');
+  await expect(textOnlyDiv).toHaveText('Left panel');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
+  const armFrameLoad = async () => {
+    await artifactPreview(page).evaluate((node) => {
+      const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
+      frameNode.__odIssue33NextLoad = new Promise((resolve) => {
+        frameNode.addEventListener('load', () => resolve(), { once: true });
+      });
+    });
+  };
+  const waitForFrameLoad = () => artifactPreview(page).evaluate((node) => {
+    const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
+    return frameNode.__odIssue33NextLoad;
+  });
+  const commitText = async (text: string, beginInlineEdit: () => Promise<void>) => {
+    const previousElement = await textOnlyDiv.elementHandle();
+    if (!previousElement) throw new Error('pair-a has no element handle before inline edit');
+    await beginInlineEdit();
+    await expect(textOnlyDiv).toHaveAttribute('contenteditable', 'true');
+    await expect.poll(() => textOnlyDiv.evaluate((node) => document.activeElement === node)).toBe(true);
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.type(text);
+    await expect(textOnlyDiv).toHaveText(text);
+    await armFrameLoad();
+    await page.keyboard.press('Enter');
+    await waitForFrameLoad();
+    await expectFileSource(page, projectId, 'manual-edit.html', [text]);
+    await expect(textOnlyDiv).toHaveText(text);
+    await expect.poll(async () => {
+      try {
+        return await previousElement.evaluate((node) => node.isConnected);
+      } catch {
+        return false;
+      }
+    }).toBe(false);
+    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(moveSurface).toBeVisible();
+  };
+
+  await commitText('First edit', () => textOnlyDiv.click());
+  await commitText('Second edit', async () => {
+    await moveSurface.click();
+    await textOnlyDiv.click();
+  });
+
+  const originalFrame = await artifactPreview(page).elementHandle();
+  if (!originalFrame) throw new Error('active preview iframe has no element handle');
+
+  const expectHistoryState = async (text: string, excludedText: string[]) => {
+    await expectFileSource(page, projectId, 'manual-edit.html', [text]);
+    await expectFileSourceExcludes(page, projectId, 'manual-edit.html', excludedText);
+    await expect(frame.locator('[data-od-id="pair-a"]')).toHaveText(text);
+    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(page.getByRole('group', { name: 'Move element' })).toBeVisible();
+    await expect.poll(() => originalFrame.evaluate((node) => node.isConnected)).toBe(true);
+    await expect.poll(() => artifactPreview(page).evaluate((node, expected) => node === expected, originalFrame)).toBe(true);
+    await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
+  };
+
+  await expectHistoryState('Second edit', ['First edit', 'Left panel']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+z');
+  await waitForFrameLoad();
+  await expectHistoryState('First edit', ['Second edit', 'Left panel']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+z');
+  await waitForFrameLoad();
+  await expectHistoryState('Left panel', ['First edit', 'Second edit']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await waitForFrameLoad();
+  await expectHistoryState('First edit', ['Second edit', 'Left panel']);
+
+  await armFrameLoad();
+  await page.keyboard.press('ControlOrMeta+Shift+z');
+  await waitForFrameLoad();
+  await expectHistoryState('Second edit', ['First edit', 'Left panel']);
+});
+
 test('[P0] manual edit mode preserves preview actions after style edits', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit smoke');
