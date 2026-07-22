@@ -5087,6 +5087,7 @@ function HtmlViewer({
   }
 
   async function handleManualEditStyleChange(id: string, styles: Partial<ManualEditStyles>, label: string) {
+    clearManualEditResizeFeedback();
     const version = nextManualEditPreviewVersion();
     const currentPending = manualEditPendingStyleRef.current;
     const pendingStyles = currentPending?.id === id

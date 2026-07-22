@@ -421,6 +421,9 @@ describe('FileViewer manual edit resize handles', () => {
     });
 
     expect(screen.getByRole('status').textContent).toContain('200px requested');
+
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '120' } });
+    expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('commits width/height inline styles to the saved file on pointerup', async () => {
