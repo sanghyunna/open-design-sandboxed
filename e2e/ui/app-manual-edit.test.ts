@@ -723,6 +723,75 @@ test('[P1] issue 34 selects a nested child whose center is inside the selected r
   await expect(ringChild).toHaveAttribute('data-od-edit-selected', 'true');
 });
 
+test('[P1] issue 39 outlines only the selected nested child', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-39-nested-outline.html';
+  const projectId = await createEmptyProject(page, 'Issue 39 nested outline');
+  await seedHtmlArtifact(page, projectId, fileName, issue34NestedChildHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const parent = frame.locator('[data-od-id="issue-34-parent"]');
+  const child = frame.locator('[data-od-id="issue-34-child"]');
+  const outlinedTargetIds = () => frame.locator('[data-od-id]').evaluateAll((nodes) => nodes
+    .filter((node) => {
+      const style = getComputedStyle(node);
+      return style.outlineStyle === 'solid'
+        && style.outlineColor === 'rgb(37, 99, 235)'
+        && Number.parseFloat(style.outlineWidth) > 0;
+    })
+    .map((node) => node.getAttribute('data-od-id')));
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await child.click();
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect.poll(outlinedTargetIds).toEqual(['issue-34-child']);
+});
+
+test('[P1] issue 39 clears the parent outline through the selected move surface', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-39-move-surface-outline.html';
+  const projectId = await createEmptyProject(page, 'Issue 39 move surface outline');
+  await seedHtmlArtifact(page, projectId, fileName, issue34NestedChildHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const parent = frame.locator('[data-od-id="issue-34-parent"]');
+  const child = frame.locator('[data-od-id="issue-34-child"]');
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await parent.click({ position: { x: 20, y: 20 } });
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]'),
+  ).toBeVisible();
+
+  const childBox = await child.boundingBox();
+  if (!childBox) throw new Error('nested child has no bounding box');
+  const childCenterX = childBox.x + childBox.width / 2;
+  const childCenterY = childBox.y + childBox.height / 2;
+  await page.mouse.move(childCenterX, childCenterY);
+  await page.mouse.down();
+  await page.mouse.move(childCenterX + 4, childCenterY + 4);
+  await page.mouse.up();
+
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect
+    .poll(() => frame.locator('[data-od-id]').evaluateAll((nodes) => nodes
+      .filter((node) => {
+        const style = getComputedStyle(node);
+        return style.outlineStyle === 'solid'
+          && style.outlineColor === 'rgb(37, 99, 235)'
+          && Number.parseFloat(style.outlineWidth) > 0;
+      })
+      .map((node) => node.getAttribute('data-od-id'))))
+    .toEqual(['issue-34-child']);
+});
+
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Manual edit resize alignment');

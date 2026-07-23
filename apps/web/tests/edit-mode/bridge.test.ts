@@ -747,6 +747,40 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('clears stale hover feedback across overlay selection and DOM replacement', async () => {
+    const dom = new JSDOM(
+      `<main><div data-od-id="parent"><button data-od-id="child">Child</button></div><img data-od-id="image" data-od-runtime-hovered="true" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const parent = dom.window.document.querySelector('[data-od-id="parent"]') as HTMLElement;
+    const child = dom.window.document.querySelector('[data-od-id="child"]') as HTMLElement;
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', { configurable: true, value: () => [child, parent] });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', { configurable: true, value: () => child });
+
+    expect(image.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    parent.dispatchEvent(new dom.window.MouseEvent('pointerover', { bubbles: true }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'parent' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-click', clientX: 10, clientY: 10, selectedId: 'parent' },
+    }));
+
+    expect(parent.hasAttribute('data-od-runtime-hovered')).toBe(false);
+
+    image.dispatchEvent(new dom.window.MouseEvent('pointerover', { bubbles: true }));
+    const clone = image.cloneNode(true);
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-hover-reset' },
+    }));
+    image.replaceWith(clone);
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+    expect(dom.window.document.querySelectorAll('[data-od-runtime-hovered]')).toHaveLength(0);
+
+    dom.window.close();
+  });
+
   it('inspects the top target without advancing the click cycle', () => {
     const dom = new JSDOM(
       `<main><div data-od-id="back" data-od-edit="container"><button>Back</button></div><div data-od-id="front" data-od-edit="container"><button>Front</button></div></main>${buildManualEditBridge(true)}`,
@@ -998,6 +1032,24 @@ describe('manual edit bridge target normalization', () => {
     dom.window.close();
   });
 
+  it('clears sibling hover feedback when the pointer returns to an inline editor', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    image.dispatchEvent(new dom.window.MouseEvent('pointerover', { bubbles: true }));
+    expect(image.getAttribute('data-od-runtime-hovered')).toBe('true');
+
+    title.dispatchEvent(new dom.window.MouseEvent('pointerover', { bubbles: true }));
+    expect(dom.window.document.querySelectorAll('[data-od-runtime-hovered]')).toHaveLength(0);
+
+    dom.window.close();
+  });
+
   it('turns text-only container targets into inline editors', () => {
     const dom = new JSDOM(
       `<main><div data-od-id="tagline">Original tagline</div></main>${buildManualEditBridge(true)}`,
@@ -1196,7 +1248,8 @@ describe('manual edit bridge target normalization', () => {
     }));
 
     expect(title.getAttribute('contenteditable')).toBe('true');
-    title.innerHTML = 'Edited Headline<div class="glow-underline"></div>';
+    title.firstChild!.textContent = 'Edited Headline';
+    title.querySelector('.glow-underline')!.setAttribute('data-od-runtime-hovered', 'true');
     title.dispatchEvent(new dom.window.FocusEvent('blur', { bubbles: false }));
 
     expect(posts).toContainEqual(expect.objectContaining({

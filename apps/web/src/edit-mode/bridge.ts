@@ -1,5 +1,6 @@
 export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em, b, i, u, s, mark, code, pre, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
+const MANUAL_EDIT_RUNTIME_HOVER_ATTR = 'data-od-runtime-hovered';
 const MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR = 'strong, span, small, em, b, i, u, s, mark, code, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo';
 const MANUAL_EDIT_TEXT_PASSAGE_SELECTOR = 'div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_HOST_NODE_SELECTOR = [
@@ -66,6 +67,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   var discoverySelector = ${JSON.stringify(MANUAL_EDIT_DISCOVERY_SELECTOR)};
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
+  var runtimeHoverAttr = ${JSON.stringify(MANUAL_EDIT_RUNTIME_HOVER_ATTR)};
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','translate','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var authoredSizeProbeSeq = 0;
@@ -434,7 +436,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       styles: stylesFor(el),
       isLayoutContainer: isLayoutContainer(el),
       isHidden: hidden,
-      outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-od-runtime-id="[^"]*"/g, '').replace(/\\sdata-od-source-path="[^"]*"/g, '').replace(/\\sdata-od-edit-selected="[^"]*"/g, '') : ''
+      outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-od-runtime-id="[^"]*"/g, '').replace(/\\sdata-od-runtime-hovered="[^"]*"/g, '').replace(/\\sdata-od-source-path="[^"]*"/g, '').replace(/\\sdata-od-edit-selected="[^"]*"/g, '') : ''
     };
     // Only selected targets need cascade provenance for the inspector;
     // discovery and hover broadcasts intentionally skip the CSSOM probe.
@@ -458,7 +460,18 @@ export function buildManualEditBridge(enabled: boolean): string {
     window.parent.postMessage({ type: 'od-edit-targets', targets: allTargets() }, '*');
   }
   var lastHoverId = null;
+  var hoveredTarget = null;
+  function setHoveredTarget(el){
+    hoveredTarget = el && el.isConnected ? el : null;
+    var hovered = document.querySelectorAll('[' + runtimeHoverAttr + ']');
+    for (var i = 0; i < hovered.length; i++) {
+      if (hovered[i] !== hoveredTarget) hovered[i].removeAttribute(runtimeHoverAttr);
+    }
+    if (hoveredTarget && hoveredTarget.getAttribute(runtimeHoverAttr) !== 'true') hoveredTarget.setAttribute(runtimeHoverAttr, 'true');
+  }
+  setHoveredTarget(null);
   function postHoverTarget(el){
+    setHoveredTarget(el);
     if (!enabled || !el) return;
     var id = stableId(el);
     if (id === lastHoverId) return;
@@ -645,6 +658,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     // formatting-capable contenteditable so Ctrl/Cmd+B/U/I can produce markup.
     var kind = inferKind(el);
     var rich = kind === 'text' || (kind !== 'link' && hasStructuredEditableText(el));
+    setHoveredTarget(null);
     var originalText = el.textContent || '';
     var originalHtml = el.innerHTML;
     var selectedRange = selectedRangeWithin(el);
@@ -677,6 +691,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         if (!isHostNode(el.children[i])) { hasMarkup = true; break; }
       }
       if (rich && hasMarkup) {
+        setHoveredTarget(null);
         var html = el.innerHTML;
         if (html !== originalHtml) {
           window.parent.postMessage({
@@ -796,6 +811,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   function activateClickTarget(el, event, cycled, selectionAware){
     if (selectionAware) el = targetForSelection(el);
     var kind = inferKind(el);
+    setHoveredTarget(el);
     setSelectedTarget(stableId(el));
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
     // Only enter inline edit on a fresh, non-modified click on the topmost
@@ -827,6 +843,8 @@ export function buildManualEditBridge(enabled: boolean): string {
       document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
       if (!enabled) {
         clearSelectedTarget();
+        setHoveredTarget(null);
+        lastHoverId = null;
         hostSelectedTargetId = null;
       }
       if (enabled) setTimeout(postTargets, 0);
@@ -890,6 +908,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (ev.data.type === 'od-edit-hover-reset') {
       // Host signals the cursor truly left the canvas, so the next pointerover
       // re-announces the hovered element (defeats the per-element dedupe).
+      setHoveredTarget(null);
       lastHoverId = null;
       return;
     }
@@ -924,9 +943,11 @@ export function buildManualEditBridge(enabled: boolean): string {
   }, true);
   document.addEventListener('pointerover', function(ev){
     if (!enabled) return;
-    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) return;
+    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) {
+      setHoveredTarget(null);
+      return;
+    }
     var el = closestTarget(ev);
-    if (!el) return;
     postHoverTarget(el);
   }, true);
   // Keydown never bubbles out of this cross-document iframe to the host, so
@@ -986,7 +1007,14 @@ export function buildManualEditBridge(enabled: boolean): string {
     });
   }
   if (typeof MutationObserver === 'function') {
-    new MutationObserver(queuePostTargets).observe(document.documentElement, {
+    new MutationObserver(function(records){
+      for (var i = 0; i < records.length; i++) {
+        if (records[i].type === 'childList') setHoveredTarget(hoveredTarget);
+        if (records[i].type !== 'attributes' || records[i].attributeName !== runtimeHoverAttr) {
+          queuePostTargets();
+        }
+      }
+    }).observe(document.documentElement, {
       attributes: true,
       childList: true,
       subtree: true,
@@ -1010,10 +1038,7 @@ export function buildManualEditBridge(enabled: boolean): string {
 export function buildManualEditBridgeStyle(): string {
   return `<style data-od-edit-bridge-style>
 html[data-od-edit-mode] body * { cursor: pointer !important; }
-html[data-od-edit-mode] [data-od-id]:hover,
-html[data-od-edit-mode] [data-od-runtime-id]:hover,
-html[data-od-edit-mode] [data-od-source-path]:hover { outline: 2px solid #2563eb; }
-html[data-od-edit-mode] :is(${MANUAL_EDIT_TEXT_PASSAGE_SELECTOR}) :is(${MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR})[data-od-source-path]:hover { outline: none; }
+html[data-od-edit-mode] [${MANUAL_EDIT_RUNTIME_HOVER_ATTR}]:not([data-od-edit-selected]) { outline: 2px solid #2563eb; }
 html[data-od-edit-mode] [data-od-edit-selected] {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
