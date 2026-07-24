@@ -2,6 +2,13 @@ import { moveCssCommitStyles } from './resize-geometry';
 import type { ManualEditRect, ManualEditStyles, ManualEditTarget } from './types';
 
 export type ManualEditMovementSource = 'pointer' | 'keyboard';
+export type ManualEditMovementAxis = 'x' | 'y';
+
+export function selectManualEditMovementAxis(
+  rawDelta: Readonly<{ x: number; y: number }>,
+): ManualEditMovementAxis {
+  return Math.abs(rawDelta.x) >= Math.abs(rawDelta.y) ? 'x' : 'y';
+}
 
 /** The two snappable sides of a box on a given axis. No center snapping. */
 export type ManualEditSnapEdge = 'min' | 'max';
@@ -69,6 +76,7 @@ export interface ManualEditMovementSession {
 
 export interface ManualEditMovementResult {
   targetId: string;
+  axisConstraint: ManualEditMovementAxis | null;
   rawDelta: Readonly<{ x: number; y: number }>;
   /** Raw delta plus any active snap correction. Equals rawDelta when nothing snaps. */
   appliedDelta: Readonly<{ x: number; y: number }>;
@@ -342,33 +350,50 @@ function buildGuide(
  * translate carries sub-pixel precision so the element sits exactly on the
  * possibly-fractional target edge. Alt, a keyboard source, or an empty candidate
  * set disables snapping and returns the raw movement with no matches or guides.
+ * Shift (options.shiftKey) locks the move to one axis; snapping then applies only
+ * on the free axis and the locked axis is pinned to zero.
  */
 export function resolveManualEditMovement(
   session: ManualEditMovementSession,
   rawDeltaInput: Readonly<{ x: number; y: number }>,
-  options?: { alt?: boolean },
+  options?: { alt?: boolean; shiftKey?: boolean; axis?: ManualEditMovementAxis | null },
 ): ManualEditMovementResult {
   const rawDelta = { x: rawDeltaInput.x, y: rawDeltaInput.y };
   const alt = options?.alt === true;
+  const shiftKey = options?.shiftKey === true;
+  // Shift constrains movement to one axis (the caller-latched axis if given,
+  // else the dominant raw axis); the other axis is pinned to zero before snapping.
+  const axisConstraint: ManualEditMovementAxis | null = shiftKey
+    ? options?.axis ?? selectManualEditMovementAxis(rawDelta)
+    : null;
+  const constrainedDelta = axisConstraint === 'x'
+    ? { x: rawDelta.x, y: 0 }
+    : axisConstraint === 'y'
+      ? { x: 0, y: rawDelta.y }
+      : { x: rawDelta.x, y: rawDelta.y };
+
   const snappingEnabled = !alt && session.source === 'pointer' && session.candidates.length > 0;
 
   const movingRect: ManualEditRect = {
-    x: session.startRect.x + rawDelta.x,
-    y: session.startRect.y + rawDelta.y,
+    x: session.startRect.x + constrainedDelta.x,
+    y: session.startRect.y + constrainedDelta.y,
     width: session.startRect.width,
     height: session.startRect.height,
   };
 
+  // Snap only on a free axis; a Shift-locked axis stays pinned and drops its latch.
   let matchX: ManualEditSnapMatch | null = null;
   let matchY: ManualEditSnapMatch | null = null;
   if (snappingEnabled) {
-    matchX = resolveAxis(session, 'x', movingRect);
-    matchY = resolveAxis(session, 'y', movingRect);
+    if (axisConstraint !== 'y') matchX = resolveAxis(session, 'x', movingRect);
+    else session.latch.x = null;
+    if (axisConstraint !== 'x') matchY = resolveAxis(session, 'y', movingRect);
+    else session.latch.y = null;
   }
 
   const appliedDelta = {
-    x: rawDelta.x + (matchX ? matchX.correction : 0),
-    y: rawDelta.y + (matchY ? matchY.correction : 0),
+    x: constrainedDelta.x + (matchX ? matchX.correction : 0),
+    y: constrainedDelta.y + (matchY ? matchY.correction : 0),
   };
 
   const translatedRect: ManualEditRect = {
@@ -377,6 +402,7 @@ export function resolveManualEditMovement(
     width: session.startRect.width,
     height: session.startRect.height,
   };
+
 
   const styles = moveCssCommitStyles({
     deltaRect: appliedDelta,
@@ -387,6 +413,7 @@ export function resolveManualEditMovement(
 
   return {
     targetId: session.targetId,
+    axisConstraint,
     rawDelta,
     appliedDelta,
     translatedRect,
