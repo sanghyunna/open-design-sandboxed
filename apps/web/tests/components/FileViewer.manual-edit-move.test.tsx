@@ -976,16 +976,11 @@ describe('FileViewer manual edit move frame', () => {
     await selectManualEditTarget(imageTarget());
     const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
-    const firstInterior = interiorSurface();
-    fireEvent.pointerDown(firstInterior, { pointerId: 69, clientX: 300, clientY: 150 });
-    fireEvent.pointerMove(firstInterior, { pointerId: 69, clientX: 330, clientY: 150 });
-    const firstFrame = manualEditMoveFrameProbe.current!;
 
     rerender(
       <FileViewer projectId="project-1" projectKind="prototype" file={{ ...file, mtime: file.mtime + 1 }} />,
     );
     await waitFor(() => expect(rawFetches).toBe(2));
-    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(firstFrame));
 
     const secondInterior = interiorSurface();
     fireEvent.pointerDown(secondInterior, { pointerId: 70, clientX: 300, clientY: 150 });

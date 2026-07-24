@@ -4125,11 +4125,7 @@ function HtmlViewer({
       if (manualEditSourceRefreshPendingRef.current) {
         manualEditSourceRefreshPendingRef.current = false;
         if (manualEditModeRef.current) {
-          if (activeManualEditMovementRef.current) {
-            dropActiveManualEditMovementForSourceRefresh(text);
-          } else {
-            refreshManualEditDocument(text);
-          }
+          dropActiveManualEditMovementForSourceRefresh(text);
         }
       }
       setSource(text);
@@ -5384,8 +5380,11 @@ function HtmlViewer({
   }
 
   function dropActiveManualEditMovementForSourceRefresh(snapshot?: string): void {
-    if (!activeManualEditMovementRef.current) return;
-    cancelManualEditMovement();
+    if (activeManualEditMovementRef.current) cancelManualEditMovement();
+    if (!manualEditModeRef.current) {
+      if (snapshot === undefined) manualEditSourceRefreshPendingRef.current = true;
+      return;
+    }
     const invalidThrough = nextManualEditPreviewVersion();
     manualEditPreviewAckVersionRef.current = invalidThrough;
     manualEditResizeFeedbackInvalidThroughVersionRef.current = invalidThrough;
