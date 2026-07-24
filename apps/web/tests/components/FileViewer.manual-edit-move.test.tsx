@@ -460,6 +460,35 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.keyDown(interiorSurface(), { key: 'Escape' });
   });
 
+  it('reconciles final pointerup coordinates and Shift state before saving', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId={'project-1'} projectKind={'prototype'} file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const interior = interiorSurface();
+    postSpy.mockClear();
+
+    fireEvent.pointerDown(interior, { pointerId: 17, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(interior, { pointerId: 17, clientX: 330, clientY: 180 });
+    fireEvent.pointerUp(interior, { pointerId: 17, clientX: 340, clientY: 190, shiftKey: true });
+
+    await waitFor(() => expect(savedContent).toMatch(/translate:\s*40px\s+0px/));
+    const previewIndex = postSpy.mock.calls.findIndex(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === '40px 0px'
+    ));
+    const saveIndex = fetchMock.mock.calls.findIndex(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ));
+    expect(previewIndex).toBeGreaterThanOrEqual(0);
+    expect(saveIndex).toBeGreaterThanOrEqual(0);
+    expect(postSpy.mock.invocationCallOrder[previewIndex]).toBeLessThan(fetchMock.mock.invocationCallOrder[saveIndex]!);
+  });
+
   it('captures movement before ending text edit can synchronously mutate the live target', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
@@ -818,11 +847,12 @@ describe('FileViewer manual edit move frame', () => {
         baselineTranslate: '10px 6px',
       }),
       { x: 40, y: 0 },
+      { shiftKey: false, axis: null },
     );
     fireEvent.pointerCancel(interior, { pointerId: 62 });
   });
 
-  it('persists the already-previewed result when live scale changes before pointerup', async () => {
+  it('persists the final pointerup result from the captured movement session', async () => {
     let savedContent = '';
     const resolverSpy = vi.spyOn(movementSession, 'resolveManualEditMovement');
     vi.stubGlobal('fetch', savingFetch((content) => { savedContent = content; }));
@@ -856,7 +886,145 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(interior, { pointerId: 53, clientX: 340, clientY: 150 });
 
     await waitFor(() => expect(savedContent).toMatch(/translate:\s*20px\s+0px/));
-    expect(resolverSpy).toHaveBeenCalledTimes(1);
+    expect(resolverSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops an active movement when the same file refreshes', async () => {
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} liveHtml={SOURCE} />,
+    );
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const interior = interiorSurface();
+    fireEvent.pointerDown(interior, { pointerId: 68, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(interior, { pointerId: 68, clientX: 330, clientY: 150 });
+    const activeFrame = manualEditMoveFrameProbe.current!;
+    const preview = postSpy.mock.calls.find(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === '30px 0px'
+    ));
+    expect(preview).toBeDefined();
+    const staleVersion = (preview![0] as { version: number }).version;
+
+    rerender(
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={{ ...file, mtime: file.mtime + 1 }}
+        liveHtml={SOURCE.replace('Hero', 'Refreshed')}
+      />,
+    );
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(activeFrame));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style',
+        styles: { translate: '' },
+      }),
+      '*',
+    ));
+    const rectBeforeStaleAck = manualEditMoveFrameProbe.current!.rect;
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'pic',
+          version: staleVersion,
+          ok: true,
+          rect: { x: 500, y: 400, width: 210, height: 130 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(manualEditMoveFrameProbe.current!.rect).toEqual(rectBeforeStaleAck);
+
+    activeFrame.onMoveCommit({ delta: { x: 30, y: 0 }, shiftKey: false, axis: null });
+    await Promise.resolve();
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
+  it('drops a movement that starts while a raw-source refresh is pending', async () => {
+    let rawFetches = 0;
+    let resolveRefresh!: (response: Response) => void;
+    const refresh = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/raw/')) {
+        rawFetches += 1;
+        return rawFetches === 1
+          ? Promise.resolve(new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }))
+          : refresh;
+      }
+      return Promise.resolve(new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} />,
+    );
+    await waitFor(() => expect(rawFetches).toBe(1));
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+
+    rerender(
+      <FileViewer projectId="project-1" projectKind="prototype" file={{ ...file, mtime: file.mtime + 1 }} />,
+    );
+    await waitFor(() => expect(rawFetches).toBe(2));
+
+    const secondInterior = interiorSurface();
+    fireEvent.pointerDown(secondInterior, { pointerId: 70, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(secondInterior, { pointerId: 70, clientX: 340, clientY: 150 });
+    const secondFrame = manualEditMoveFrameProbe.current!;
+    const secondPreview = postSpy.mock.calls.slice().reverse().find(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === '40px 0px'
+    ));
+    expect(secondPreview).toBeDefined();
+    const staleVersion = (secondPreview![0] as { version: number }).version;
+    postSpy.mockClear();
+
+    resolveRefresh(new Response(SOURCE.replace('Hero', 'Refreshed'), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    }));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style',
+        styles: { translate: '' },
+      }),
+      '*',
+    ));
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(secondFrame));
+    const rectBeforeStaleAck = manualEditMoveFrameProbe.current!.rect;
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'pic',
+          version: staleVersion,
+          ok: true,
+          rect: { x: 500, y: 400, width: 210, height: 130 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(manualEditMoveFrameProbe.current!.rect).toEqual(rectBeforeStaleAck);
+    secondFrame.onMoveCommit({ delta: { x: 40, y: 0 }, shiftKey: false, axis: null });
+    await Promise.resolve();
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
   });
 
   it('resolves a queued final pointer preview exactly once before committing it', async () => {
@@ -1068,7 +1236,7 @@ describe('FileViewer manual edit move frame', () => {
       && (init as RequestInit | undefined)?.method === 'POST'
     ));
     expect(posts).toHaveLength(1);
-    expect(resolverSpy).toHaveBeenCalledTimes(1);
+    expect(resolverSpy).toHaveBeenCalledTimes(2);
   });
 
   it('persists one file write for one pointer movement', async () => {
@@ -1134,7 +1302,7 @@ describe('FileViewer manual edit move frame', () => {
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     act(() => {
       stalePreviewFrame(0);
-      callbacks.onMoveCommit();
+      callbacks.onMoveCommit({ delta: { x: 20, y: 10 }, shiftKey: false, axis: null });
       callbacks.onMoveCancel();
     });
 
@@ -1145,7 +1313,7 @@ describe('FileViewer manual edit move frame', () => {
     ))).toHaveLength(0);
   });
 
-  it('preserves a threshold-crossed return-to-origin as one write and one history entry', async () => {
+  it('does not persist a threshold-crossed return-to-origin', async () => {
     const fetchMock = savingFetch(() => {});
     vi.stubGlobal('fetch', fetchMock);
     render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
@@ -1160,16 +1328,11 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
       (init as RequestInit | undefined)?.method === 'POST'
-    ))).toHaveLength(1));
-    expect((screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement).disabled).toBe(false);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    await waitFor(() => expect(
-      (screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement).disabled,
-    ).toBe(true));
+    ))).toHaveLength(0));
+    expect((screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement).disabled).toBe(true);
     expect(fetchMock.mock.calls.filter(([, init]) => (
       (init as RequestInit | undefined)?.method === 'POST'
-    ))).toHaveLength(1);
+    ))).toHaveLength(0);
   });
 
   it('preserves a rounded keyboard no-op as one write', async () => {
@@ -1322,7 +1485,7 @@ describe('FileViewer manual edit move frame', () => {
     const second = interiorSurface();
     fireEvent.pointerDown(second, { pointerId: 69, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(second, { pointerId: 69, clientX: 340, clientY: 150 });
-    expect(resolverSpy).toHaveBeenCalledTimes(2);
+    expect(resolverSpy).toHaveBeenCalledTimes(3);
     await act(async () => {
       resolveFirstOnFileSaved();
       await olderCommitDrained;
@@ -1330,7 +1493,7 @@ describe('FileViewer manual edit move frame', () => {
     expect(second.isConnected).toBe(true);
     expect(interiorSurface()).toBe(second);
     fireEvent.pointerMove(second, { pointerId: 69, clientX: 350, clientY: 150 });
-    expect(resolverSpy).toHaveBeenCalledTimes(3);
+    expect(resolverSpy).toHaveBeenCalledTimes(4);
 
     fireEvent.pointerUp(second, { pointerId: 69, clientX: 350, clientY: 150 });
     await waitFor(() => expect(finalSavedContent).toMatch(/translate:\s*50px\s+0px/));
