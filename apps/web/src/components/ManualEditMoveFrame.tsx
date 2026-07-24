@@ -25,7 +25,7 @@ export type ManualEditMoveFrameProps = {
   selectBehindHint?: string; // tooltip/aria-label for z-stack cycling
   onMoveStart: () => void; // drag threshold crossed
   onMovePreview: (delta: Delta) => void; // rect-space delta, per rAF frame
-  onMoveCommit: (delta: Delta) => void; // pointerup after a real drag
+  onMoveCommit: () => void; // pointerup after a real drag; commits latest preview
   onMoveCancel: () => void; // Esc / pointercancel mid-drag
   onPressStart: () => void;
   onActivate: (activation: ManualEditMoveActivation) => void;
@@ -119,6 +119,7 @@ export function ManualEditMoveFrame({
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    if (dragRef.current) return;
     const target = event.currentTarget;
     const region = (target.getAttribute('data-region') as Region | null) ?? 'interior';
     if (typeof target.setPointerCapture === 'function') {
@@ -168,7 +169,7 @@ export function ManualEditMoveFrame({
       // endDrag() cancelled any queued rAF flush; without this the last mouse
       // move dies in that queue — the element never renders the committed delta.
       if (finalFrameUnsent) onMovePreview(delta);
-      onMoveCommit(delta);
+      onMoveCommit();
     } else {
       onActivate({ region, clientX: event.clientX, clientY: event.clientY, altKey: event.altKey });
     }
