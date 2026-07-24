@@ -50,3 +50,13 @@
   cursor: move;
   touch-action: none;
 }
+
+/* The move surfaces are tabindex="-1" and only ever focused from pointerdown,
+   so Escape reaches the drag handler; they are never tab-reachable. A focus
+   appearance here would just be a third box inside the selection frame and the
+   eight resize handles that already show the state, so declare that they have
+   none instead of inheriting the UA focus ring. */
+.ring:focus-visible,
+.interior:focus-visible {
+  outline: none;
+}
