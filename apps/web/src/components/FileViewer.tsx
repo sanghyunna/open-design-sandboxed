@@ -126,7 +126,7 @@ import type {
 import { ManualEditPanel, applyManualEditStyleField, applyManualEditStyleFields, emptyManualEditDraft, normalizeManualEditStyles, type ManualEditDraft } from './ManualEditPanel';
 import { ManualEditShapeToolbar } from './ManualEditShapeToolbar';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
-import { ManualEditMoveFrame } from './ManualEditMoveFrame';
+import { ManualEditMoveFrame, type ManualEditMoveUpdate } from './ManualEditMoveFrame';
 import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import {
   resolveManualEditMovement,
@@ -4271,6 +4271,16 @@ function HtmlViewer({
   );
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
   const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
+  const manualEditMovementOwnerKey = [
+    file.name,
+    reloadKey,
+    manualEditDocumentRevision,
+    manualEditMode ? 'active' : 'inactive',
+    selectedManualEditTarget?.id ?? '',
+  ].join('\u0000');
+  useEffect(() => () => {
+    activeManualEditMovementRef.current = null;
+  }, [manualEditMovementOwnerKey]);
   const [srcDocTransportResetKey, setSrcDocTransportResetKey] = useState(0);
   const [srcDocShellReady, setSrcDocShellReady] = useState(false);
   const wasUrlLoadPreviewRef = useRef(useUrlLoadPreview);
@@ -5059,8 +5069,9 @@ function HtmlViewer({
                 : null;
         if (!delta) return;
         beginManualEditMovement(target, 'keyboard');
-        previewManualEditMovement(delta);
-        void commitManualEditMovement();
+        const update = { delta, shiftKey: false, axis: null };
+        previewManualEditMovement(update);
+        void commitManualEditMovement(update);
         return;
       }
     }
@@ -5267,19 +5278,35 @@ function HtmlViewer({
     };
   }
 
-  function previewManualEditMovement(deltaRect: { x: number; y: number }): void {
+  function resolveManualEditMovementUpdate(
+    movement: ActiveManualEditMovement,
+    update: ManualEditMoveUpdate,
+  ): ManualEditMovementResult {
+    const result = resolveManualEditMovement(movement.session, update.delta, {
+      shiftKey: update.shiftKey,
+      axis: update.axis,
+    });
+    movement.latestResult = result;
+    return result;
+  }
+
+  function previewManualEditMovement(update: ManualEditMoveUpdate): void {
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
-    const result = resolveManualEditMovement(movement.session, deltaRect);
-    movement.latestResult = result;
+    const result = resolveManualEditMovementUpdate(movement, update);
     previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
   }
 
-  async function commitManualEditMovement(): Promise<void> {
+  async function commitManualEditMovement(update: ManualEditMoveUpdate): Promise<void> {
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
-    const { session, latestResult: result, label } = movement;
-    if (!result) {
+    const { session, label } = movement;
+    const previousResult = movement.latestResult;
+    const result = resolveManualEditMovementUpdate(movement, update);
+    if (previousResult?.styles.translate !== result.styles.translate) {
+      previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+    }
+    if (result.appliedDelta.x === 0 && result.appliedDelta.y === 0) {
       if (activeManualEditMovementRef.current?.session === session) {
         activeManualEditMovementRef.current = null;
       }
@@ -5387,6 +5414,7 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'exit' };
       return false;
     }
+    cancelManualEditMovement();
     const ok = await flushManualEditStyleSave();
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
@@ -5413,6 +5441,7 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'select', target };
       return;
     }
+    cancelManualEditMovement();
     if (manualEditPendingStyleRef.current?.id !== target.id) {
       const ok = await flushManualEditStyleSave();
       if (actionSeq !== manualEditActionSeqRef.current) return;
@@ -5453,6 +5482,7 @@ function HtmlViewer({
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'clear', openPageStyles: !!options.openPageStyles };
       return false;
     }
+    cancelManualEditMovement();
     const ok = await flushManualEditStyleSave();
     if (actionSeq !== manualEditActionSeqRef.current) return false;
     if (!ok) return false;
@@ -7274,6 +7304,7 @@ function HtmlViewer({
   const manualEditMoveFrame =
     manualEditResizeRect && selectedManualEditTarget ? (
       <ManualEditMoveFrame
+        key={manualEditMovementOwnerKey}
         rect={manualEditResizeRect}
         scale={overlayPreviewScale}
         mode={manualEditMoveMode}
@@ -7291,8 +7322,8 @@ function HtmlViewer({
           }
         }}
         onMovePreview={previewManualEditMovement}
-        onMoveCommit={() => {
-          void commitManualEditMovement();
+        onMoveCommit={(update) => {
+          void commitManualEditMovement(update);
         }}
         onMoveCancel={cancelManualEditMovement}
         onPressStart={() => {
