@@ -13,6 +13,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
     onPressStart: vi.fn(),
     onActivate: vi.fn(),
     onSurfaceDoubleClick: vi.fn(),
+    onBurstCancel: vi.fn(() => false),
   };
   const utils = render(
     <ManualEditMoveFrame
@@ -177,6 +178,24 @@ describe('ManualEditMoveFrame', () => {
     const { interior } = renderFrame();
     fireEvent.pointerDown(interior!, { pointerId: 8, clientX: 200, clientY: 100 });
     expect(document.activeElement).toBe(interior);
+  });
+
+  it('calls onBurstCancel on Escape when no drag is active and swallows the key if cancelled', () => {
+    const onBurstCancel = vi.fn(() => true);
+    const { interior } = renderFrame({ onBurstCancel });
+    interior!.focus();
+    const event = fireEvent.keyDown(interior!, { key: 'Escape' });
+    expect(onBurstCancel).toHaveBeenCalledTimes(1);
+    expect(event).toBe(false);
+  });
+
+  it('does not swallow Escape when onBurstCancel reports no active burst', () => {
+    const onBurstCancel = vi.fn(() => false);
+    const { interior } = renderFrame({ onBurstCancel });
+    interior!.focus();
+    const event = fireEvent.keyDown(interior!, { key: 'Escape' });
+    expect(onBurstCancel).toHaveBeenCalledTimes(1);
+    expect(event).toBe(true);
   });
 
   it('keeps the original pointer as the sole owner of an active press', () => {

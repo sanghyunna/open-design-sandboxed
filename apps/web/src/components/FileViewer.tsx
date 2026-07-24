@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal, flushSync } from 'react-dom';
-import { Button, Input, Select } from '@open-design/components';
+import { Button, Input, Select, VisuallyHidden } from '@open-design/components';
 import { APP_CHROME_FILE_ACTIONS_ID, APP_CHROME_FILE_ACTIONS_SELECTOR } from './AppChromeHeader';
 import {
   buildSocialSharePayload,
@@ -148,6 +148,15 @@ import {
   readManualEditStyles,
 } from '../edit-mode/source-patches';
 import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import {
+  isManualEditNudgeBlocked,
+  isManualEditNudgeKey,
+  isManualEditNudgeNetZero,
+  manualEditMoveAnnouncementSegments,
+  manualEditNudgeDelta,
+  manualEditNudgeDeltaFromDirection,
+  type ManualEditMoveAnnouncementSegment,
+} from '../edit-mode/keyboard-move';
 import { isRenderableSketchJson, SketchPreview } from './SketchPreview';
 
 function resolveChromeActionsHost(): HTMLElement | null {
@@ -180,6 +189,24 @@ type ManualEditPostSaveIntent =
   | { seq: number; kind: 'select'; target: ManualEditTarget }
   | { seq: number; kind: 'clear'; openPageStyles: boolean }
   | { seq: number; kind: 'exit' };
+type KeyboardBurst = {
+  targetId: string;
+  revision: number;
+  // Arrow keys physically held on the HOST side. Iframe-origin bursts leave this
+  // empty and are committed by the bridge's od-edit-nudge-commit message; host
+  // bursts commit when this set empties on keyup.
+  heldKeys: Set<string>;
+  netDelta: { x: number; y: number };
+  startBaseline: string;
+  lastResult: ManualEditMovementResult | null;
+};
+// A completed burst result deferred behind an in-flight save, committed when the
+// save drains.
+type KeyboardBurstQueued = {
+  result: ManualEditMovementResult;
+  netDelta: { x: number; y: number };
+  startBaseline: string;
+};
 type PreviewViewportId = 'desktop' | 'tablet' | 'mobile';
 type PreviewCanvasSize = { width: number; height: number; scrollLeft?: number; scrollTop?: number };
 type CommentPreviewCanvasOptions = {
@@ -3794,6 +3821,33 @@ function HtmlViewer({
   const manualEditModeRef = useRef(manualEditMode);
   const manualEditSourceRefreshPendingRef = useRef(false);
   const manualEditPreviewVersionRef = useRef(0);
+  // Host revision counter sent to the iframe with od-edit-selected-target. The
+  // bridge echoes it back on every nudge so stale (out-of-order) key events are
+  // ignored after selection changes or iframe reloads.
+  const manualEditPreviewRevisionRef = useRef(0);
+  // Document identity the revision was last bumped for. The revision is a DOCUMENT
+  // version, bumped once per real document change — NOT per selection re-post —
+  // so the bridge's echoed revision stays in sync with the host's and a nudge is
+  // never rejected by an off-by-one from an extra re-sync.
+  const manualEditPreviewDocRef = useRef<string | null>(null);
+  const keyboardBurstRef = useRef<KeyboardBurst | null>(null);
+  // One completed burst deferred behind an in-flight save; committed when the save
+  // drains (applyManualEdit's finally).
+  const keyboardBurstDeferredRef = useRef<KeyboardBurstQueued | null>(null);
+  // Translate currently live in the iframe due to an uncommitted keyboard/pointer
+  // movement preview. Cleared on commit/cancel/selection change so baseline math
+  // falls back to the last persisted target styles.
+  const manualEditOptimisticTranslateRef = useRef<string | null>(null);
+  // Last translate value written to source for the selected target, tracked
+  // independently because target broadcasts refresh rects but do not always
+  // re-emit authored inline styles after a preview stream.
+  const lastPersistedTranslateRef = useRef<string | null>(null);
+  // Whether the selected-object overlay surface had focus before a render that
+  // may have displaced it (iframe reload, target broadcast). Used to restore
+  // focus so Escape/Arrow keys keep landing on the overlay.
+  const selectedObjectSurfaceHadFocusRef = useRef(false);
+  // Auto-clear timer for the movement live-region announcement.
+  const manualEditAnnounceTimerRef = useRef<number | null>(null);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
   // drop nearly every mid-drag rect measurement. Monotonic acceptance keeps
@@ -3806,6 +3860,7 @@ function HtmlViewer({
   const [manualEditRichFormat, setManualEditRichFormat] = useState<ManualEditRichFormatState>(
     { editing: false, hasSelection: false, bold: false, italic: false, underline: false },
   );
+  const [manualEditMovementAnnouncement, setManualEditMovementAnnouncement] = useState<ManualEditMoveAnnouncementSegment[] | null>(null);
   const sourceRef = useRef<string | null>(source);
   const sourceFileKeyRef = useRef<string | null>(null);
   const templateNameId = useId();
@@ -4090,7 +4145,15 @@ function HtmlViewer({
   }, [liveCommentTargets]);
 
   useEffect(() => {
+    const prevId = selectedManualEditTargetRef.current?.id ?? null;
+    const nextId = selectedManualEditTarget?.id ?? null;
     selectedManualEditTargetRef.current = selectedManualEditTarget;
+    if (nextId !== prevId) {
+      cancelKeyboardBurst();
+      keyboardBurstDeferredRef.current = null;
+      manualEditOptimisticTranslateRef.current = null;
+      lastPersistedTranslateRef.current = selectedManualEditTarget?.styles.translate ?? null;
+    }
   }, [selectedManualEditTarget]);
 
   useEffect(() => {
@@ -4560,9 +4623,17 @@ function HtmlViewer({
   useEffect(() => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
+    // Bump the revision only when the preview document actually changes (a
+    // different file, an srcDoc reload, or a render-mode flip) — never on a plain
+    // selection re-sync — so the bridge and host never drift out of sync.
+    const docKey = `${file.name} ${useUrlLoadPreview ? 'url' : 'srcdoc'} ${srcDoc ?? ''}`;
+    if (manualEditPreviewDocRef.current !== docKey) {
+      manualEditPreviewRevisionRef.current += 1;
+      manualEditPreviewDocRef.current = docKey;
+    }
     win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null);
-  }, [manualEditMode, selectedManualEditTarget?.id, srcDoc, useUrlLoadPreview]);
+  }, [manualEditMode, selectedManualEditTarget?.id, srcDoc, useUrlLoadPreview, file.name]);
 
   const previewStyleToIframe = useCallback((
     id: string,
@@ -4590,10 +4661,13 @@ function HtmlViewer({
     [],
   );
 
+  // Post the current DOCUMENT revision (bumped by the document-change effect, not
+  // here) so every re-sync for the same document carries the same value the bridge
+  // will echo back on nudges/commits.
   function postSelectedManualEditTargetToIframe(id: string | null, target: HTMLIFrameElement | null = iframeRef.current) {
     const win = target?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od-edit-selected-target', id }, '*');
+    win.postMessage({ type: 'od-edit-selected-target', id, revision: manualEditPreviewRevisionRef.current }, '*');
   }
 
   function syncBridgeModes(target: HTMLIFrameElement | null = iframeRef.current) {
@@ -5089,22 +5163,25 @@ function HtmlViewer({
       }
       if (data.type === 'od-edit-nudge') {
         const target = selectedManualEditTargetRef.current;
-        if (!target) return;
-        const delta = data.direction === 'left'
-          ? { x: -1, y: 0 }
-          : data.direction === 'right'
-            ? { x: 1, y: 0 }
-            : data.direction === 'up'
-              ? { x: 0, y: -1 }
-              : data.direction === 'down'
-                ? { x: 0, y: 1 }
-                : null;
-        if (!delta) return;
+        if (!target || target.id !== data.targetId) return;
+        if (data.revision !== manualEditPreviewRevisionRef.current) return;
+        // Nudge any selected object, including text/link targets (overlay mode
+        // 'editing'). The bridge already blocks ACTIVE inline editing, so reaching
+        // here means the object is selected but not being typed into.
         manualEditAltRef.current = false;
-        beginManualEditMovement(target, 'keyboard');
-        const update = { delta, shiftKey: false, axis: null };
-        previewManualEditMovement(update);
-        void commitManualEditMovement(update);
+        const delta = manualEditNudgeDeltaFromDirection(data.direction);
+        handleKeyboardNudge(delta);
+        return;
+      }
+      if (data.type === 'od-edit-nudge-commit') {
+        handleKeyboardNudgeCommit(data.targetId, data.revision);
+        return;
+      }
+      if (data.type === 'od-edit-burst-cancel') {
+        // Cancel an active burst if one exists; otherwise a no-op. Escape inside
+        // the iframe must NOT deselect the object (that path stays reserved for
+        // the empty-canvas click / host Escape ladder).
+        cancelKeyboardBurst();
         return;
       }
     }
@@ -5292,6 +5369,12 @@ function HtmlViewer({
   function baseTranslateFor(target: ManualEditTarget): string {
     const pending = manualEditPendingStyleRef.current;
     if (pending?.id === target.id && pending.styles.translate !== undefined) return pending.styles.translate;
+    if (
+      selectedManualEditTargetRef.current?.id === target.id
+      && manualEditOptimisticTranslateRef.current !== null
+    ) {
+      return manualEditOptimisticTranslateRef.current;
+    }
     return target.styles.translate ?? '';
   }
 
@@ -5380,6 +5463,9 @@ function HtmlViewer({
     if (!movement) return;
     const result = resolveManualEditMovementUpdate(movement, update);
     previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+    if (result.styles.translate !== undefined && movement.session.source === 'keyboard') {
+      manualEditOptimisticTranslateRef.current = result.styles.translate;
+    }
   }
 
   // Alt toggled mid-drag (pointer possibly stationary): re-resolve the last
@@ -5414,6 +5500,7 @@ function HtmlViewer({
     );
     if (!ok) {
       finalizeOwnedMovement(session, true);
+      manualEditOptimisticTranslateRef.current = null;
       return;
     }
     cancelManualEditPendingStyles(result.targetId, ['translate']);
@@ -5429,12 +5516,210 @@ function HtmlViewer({
     }
     // Success keeps the committed translate — finalize without reverting.
     finalizeOwnedMovement(session, false);
+    manualEditOptimisticTranslateRef.current = null;
   }
 
   function cancelManualEditMovement(): void {
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
     finalizeOwnedMovement(movement.session, true);
+    manualEditOptimisticTranslateRef.current = null;
+  }
+
+  function addNudgeDelta(a: { x: number; y: number }, b: { x: number; y: number }): { x: number; y: number } {
+    return { x: a.x + b.x, y: a.y + b.y };
+  }
+
+  function previewKeyboardBurst(burst: KeyboardBurst): void {
+    const movement = activeManualEditMovementRef.current;
+    if (!movement || movement.session.targetId !== burst.targetId) return;
+    const result = resolveManualEditMovement(movement.session, burst.netDelta);
+    burst.lastResult = result;
+    previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+    // The previewed translate is now live in the iframe; record it so a burst
+    // begun before this one has committed (e.g. while its save is in flight)
+    // baselines off the moved position, not a lagging target.styles snapshot.
+    if (result.styles.translate !== undefined) {
+      manualEditOptimisticTranslateRef.current = result.styles.translate;
+    }
+  }
+
+  function beginKeyboardBurst(
+    target: ManualEditTarget,
+    revision: number,
+    delta: { x: number; y: number },
+    keys: string[] = [],
+  ): void {
+    beginManualEditMovement(target, 'keyboard');
+    const movement = activeManualEditMovementRef.current;
+    if (!movement) return;
+    const burst: KeyboardBurst = {
+      targetId: target.id,
+      revision,
+      heldKeys: new Set(keys),
+      netDelta: delta,
+      startBaseline: movement.session.baselineTranslate ?? '',
+      lastResult: null,
+    };
+    keyboardBurstRef.current = burst;
+    previewKeyboardBurst(burst);
+  }
+
+  // A single owned keydown. `key` is set for host-origin nudges so keyup can end
+  // the burst; iframe-origin nudges omit it and are ended by the bridge's
+  // od-edit-nudge-commit message. Never auto-commits — the burst stays open
+  // (accumulating net delta, one preview per keydown) until keyup/commit, blur,
+  // or Escape, so a held key produces exactly one write.
+  function handleKeyboardNudge(delta: { x: number; y: number }, key?: string): void {
+    const target = selectedManualEditTargetRef.current;
+    if (!target) return;
+    // One movement session at a time: a live pointer drag owns the target.
+    if (activeManualEditMovementRef.current?.session.source === 'pointer') return;
+    const revision = manualEditPreviewRevisionRef.current;
+    const burst = keyboardBurstRef.current;
+    // Match the open burst on TARGET only. A same-target host re-sync (e.g. the
+    // post-save selection re-post) bumps the preview revision mid-hold; keying the
+    // match on revision would split a still-held burst into two writes. Iframe
+    // nudges are already revision-validated at message ingress; keep the burst's
+    // revision fresh so its identity stays current.
+    if (burst && burst.targetId === target.id) {
+      burst.revision = revision;
+      if (key) burst.heldKeys.add(key);
+      burst.netDelta = addNudgeDelta(burst.netDelta, delta);
+      previewKeyboardBurst(burst);
+    } else {
+      // A burst for a different target: end it (it enqueues/commits itself and
+      // leaves the fresh burst below intact) and start clean.
+      if (burst) void flushKeyboardBurst();
+      beginKeyboardBurst(target, revision, delta, key ? [key] : []);
+    }
+  }
+
+  // Host-side keyup: drop the released key; when no owned arrow key remains held
+  // the host-origin burst is complete and commits.
+  function handleKeyboardNudgeKeyUp(key: string): void {
+    const burst = keyboardBurstRef.current;
+    if (!burst || !burst.heldKeys.delete(key)) return;
+    if (burst.heldKeys.size === 0) void flushKeyboardBurst();
+  }
+
+  // Iframe-origin burst end: the bridge released its last held arrow key. Both
+  // target AND revision must match the active burst — the burst's revision is kept
+  // current by each keydown and by same-target re-syncs, so a genuinely stale
+  // commit from a superseded document is rejected without stranding a live burst.
+  function handleKeyboardNudgeCommit(targetId: string, revision: number): void {
+    const burst = keyboardBurstRef.current;
+    if (!burst || burst.targetId !== targetId || burst.revision !== revision) return;
+    void flushKeyboardBurst();
+  }
+
+  function announceManualEditMovement(netDelta: { x: number; y: number }): void {
+    const segments = manualEditMoveAnnouncementSegments(netDelta);
+    if (segments.length === 0) return;
+    if (manualEditAnnounceTimerRef.current) window.clearTimeout(manualEditAnnounceTimerRef.current);
+    setManualEditMovementAnnouncement(segments);
+    manualEditAnnounceTimerRef.current = window.setTimeout(() => {
+      setManualEditMovementAnnouncement(null);
+      manualEditAnnounceTimerRef.current = null;
+    }, 1000);
+  }
+
+  // Cancels ONLY the active (open) burst and its preview. Completed bursts already
+  // in the FIFO stay intact so they still drain — Escape on a later burst must not
+  // discard an earlier completed move. Transition/failure paths clear the FIFO.
+  function cancelKeyboardBurst(): boolean {
+    const burst = keyboardBurstRef.current;
+    if (!burst) return false;
+    const movement = activeManualEditMovementRef.current;
+    if (movement && movement.session.targetId === burst.targetId) {
+      previewStyleToIframe(
+        burst.targetId,
+        { translate: burst.startBaseline },
+        nextManualEditPreviewVersion(),
+      );
+      activeManualEditMovementRef.current = null;
+    }
+    keyboardBurstRef.current = null;
+    manualEditOptimisticTranslateRef.current = null;
+    return true;
+  }
+
+  // Ends the open keyboard burst: net-zero -> cancel; a prior burst's save still
+  // in flight -> push the COMPLETED result onto the FIFO (each distinct burst
+  // drains as its own write, in order); otherwise commit it now. Awaitable so
+  // transitions can finalize the burst before proceeding.
+  async function flushKeyboardBurst(): Promise<boolean> {
+    const burst = keyboardBurstRef.current;
+    if (!burst) return false;
+    const result = burst.lastResult;
+    if (!result || isManualEditNudgeNetZero(burst.netDelta)) {
+      cancelKeyboardBurst();
+      return false;
+    }
+    keyboardBurstRef.current = null;
+    const committedDelta = burst.netDelta;
+    if (manualEditSavingRef.current) {
+      // A prior save is still running: defer this completed burst; it commits when
+      // that save drains. A second deferral coalesces into it (rare — needs two
+      // full key cycles inside one ~30ms save).
+      keyboardBurstDeferredRef.current = { result, netDelta: committedDelta, startBaseline: burst.startBaseline };
+      return false;
+    }
+    const label = activeManualEditMovementRef.current?.label ?? 'Style: move';
+    if (activeManualEditMovementRef.current?.session.targetId === burst.targetId) {
+      activeManualEditMovementRef.current = null;
+    }
+    await commitBurstResult(result, committedDelta, burst.startBaseline, label);
+    return true;
+  }
+
+  // Persists ONE completed burst result — from a direct flush or a FIFO drain — as
+  // a single write. Success updates selection/draft/persisted/optimistic and
+  // announces; failure reverts to the last persisted translate and discards the
+  // fallout (the FIFO and any open burst baselined off the failed move).
+  async function commitBurstResult(
+    result: ManualEditMovementResult,
+    committedDelta: { x: number; y: number },
+    startBaseline: string,
+    label: string,
+  ): Promise<void> {
+    const ok = await applyManualEdit(
+      { id: result.targetId, kind: 'set-style', styles: result.styles },
+      label,
+    );
+    if (ok) {
+      cancelManualEditPendingStyles(result.targetId, ['translate']);
+      setSelectedManualEditTarget((current) => {
+        if (!current || current.id !== result.targetId) return current;
+        return { ...current, styles: { ...current.styles, ...result.styles } };
+      });
+      if (selectedManualEditTargetIdRef.current === result.targetId) {
+        setManualEditDraft((current) => ({
+          ...current,
+          styles: { ...current.styles, ...result.styles },
+        }));
+      }
+      lastPersistedTranslateRef.current = result.styles.translate ?? startBaseline;
+      // Do NOT advance the optimistic baseline here. The live iframe already shows
+      // the newest previewed position (previewKeyboardBurst set optimistic to it),
+      // which for a FIFO drain is a LATER burst than this (older) committed result.
+      // Rewinding optimistic to this result would make the next burst baseline off
+      // a stale translate and drop movement. optimistic is cleared on selection
+      // change and reset to the persisted value on failure.
+      announceManualEditMovement(committedDelta);
+    } else {
+      const persisted = lastPersistedTranslateRef.current ?? startBaseline;
+      previewStyleToIframe(result.targetId, { translate: persisted }, nextManualEditPreviewVersion());
+      manualEditOptimisticTranslateRef.current = persisted || null;
+      keyboardBurstDeferredRef.current = null;
+      const open = keyboardBurstRef.current as KeyboardBurst | null;
+      if (open && open.targetId === result.targetId) {
+        keyboardBurstRef.current = null;
+        if (activeManualEditMovementRef.current?.session.targetId === open.targetId) {
+          activeManualEditMovementRef.current = null;
+        }
+      }
+    }
   }
 
   function dropActiveManualEditMovementForSourceRefresh(snapshot?: string): void {
@@ -5507,6 +5792,7 @@ function HtmlViewer({
   }
 
   async function exitManualEditModeAfterFlush(actionSeq = ++manualEditActionSeqRef.current): Promise<boolean> {
+    await flushKeyboardBurst();
     if (manualEditSavingRef.current) {
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'exit' };
       return false;
@@ -5532,6 +5818,7 @@ function HtmlViewer({
   }
 
   async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
+    await flushKeyboardBurst();
     manualEditPostSaveIntentRef.current = null;
     clearManualEditResizeFeedback();
     clearManualEditMovement();
@@ -5575,6 +5862,7 @@ function HtmlViewer({
     options: { openPageStyles?: boolean } = {},
     actionSeq = ++manualEditActionSeqRef.current,
   ): Promise<boolean> {
+    await flushKeyboardBurst();
     clearManualEditResizeFeedback();
     clearManualEditMovement();
     if (manualEditSavingRef.current) {
@@ -5617,6 +5905,7 @@ function HtmlViewer({
     manualEditSavingRef.current = true;
     setManualEditSaving(true);
     setManualEditError(null);
+    let saveOk = false;
     try {
       const baseSource = sourceRef.current;
       const result = applyManualEditPatch(baseSource, patch);
@@ -5678,9 +5967,16 @@ function HtmlViewer({
       }
       if (patch.kind === 'set-style') {
         reconcileManualEditStyleSave(patch.id, patch.styles, result.source);
+        // Track the last persisted translate for the selected target so a later
+        // failed keyboard save reverts to it. Covers EVERY translate write —
+        // keyboard commit, pointer-drag commit, and inspector direct move.
+        if (patch.styles.translate !== undefined && selectedManualEditTargetRef.current?.id === patch.id) {
+          lastPersistedTranslateRef.current = patch.styles.translate;
+        }
       }
       setManualEditError(null);
       await onFileSaved?.();
+      saveOk = true;
       return true;
     } finally {
       manualEditSavingRef.current = false;
@@ -5692,6 +5988,14 @@ function HtmlViewer({
           manualEditPostSaveIntentRef.current = null;
           runManualEditPostSaveIntent(intent);
         }, 0);
+      }
+      // Commit the burst deferred behind this save as its own write. A still-OPEN
+      // burst (keys held) is NOT deferred, so a held burst spanning a save commits
+      // once on its own keyup. On failure, discard it (baselined off the failed move).
+      const deferred = keyboardBurstDeferredRef.current;
+      keyboardBurstDeferredRef.current = null;
+      if (saveOk && deferred) {
+        void commitBurstResult(deferred.result, deferred.netDelta, deferred.startBaseline, 'Style: move');
       }
     }
   }
@@ -5729,6 +6033,7 @@ function HtmlViewer({
   }
 
   async function undoManualEdit() {
+    await flushKeyboardBurst();
     if (manualEditSavingRef.current) {
       if (manualEditHistoryOperationRef.current) manualEditHistoryQueueRef.current.push('undo');
       return;
@@ -5772,6 +6077,7 @@ function HtmlViewer({
   }
 
   async function redoManualEdit() {
+    await flushKeyboardBurst();
     if (manualEditSavingRef.current) {
       if (manualEditHistoryOperationRef.current) manualEditHistoryQueueRef.current.push('redo');
       return;
@@ -5963,6 +6269,10 @@ function HtmlViewer({
       if (target) {
         const tag = target.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+        // Arrows owned by a focused selected-object surface nudge the object, not
+        // the deck. The host capture listener already stops those, but yield
+        // explicitly so intent survives any listener-order change.
+        if (target.closest('[data-od-edit-selected-surface]')) return;
       }
       if (e.key === 'ArrowRight' || e.key === 'PageDown') {
         e.preventDefault();
@@ -6028,6 +6338,10 @@ function HtmlViewer({
     if (!manualEditMode || !selectedManualEditTarget || manualEditMoveMode !== 'selected') return;
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
+      if (cancelKeyboardBurst()) {
+        e.preventDefault();
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
       e.preventDefault();
@@ -6036,6 +6350,70 @@ function HtmlViewer({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [manualEditMode, selectedManualEditTarget, manualEditMoveMode]);
+
+  // Host-side arrow-key nudge ownership: when focus is on the selected-object
+  // overlay surface, drive object movement from the host so deck/other host
+  // listeners never see the arrow. Scoped to the surface so arrows elsewhere
+  // (e.g. deck nav with no overlay focus) keep their meaning. Capture phase runs
+  // before host buttons/menus. Blocked targets (inputs, contenteditable, ARIA
+  // widgets, IME composition) keep native behavior. keyup ends the burst.
+  useEffect(() => {
+    if (!manualEditMode || !selectedManualEditTarget || manualEditMoveMode !== 'selected') return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (!isManualEditNudgeKey(e.key)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('[data-od-edit-selected-surface]')) return;
+      if (isManualEditNudgeBlocked(e.target, { isComposing: e.isComposing })) return;
+      // Prove ownership BEFORE consuming the event: if a pointer drag owns the
+      // movement session (or nothing is selected), leave the arrow untouched.
+      if (!selectedManualEditTargetRef.current) return;
+      if (activeManualEditMovementRef.current?.session.source === 'pointer') return;
+      e.preventDefault();
+      // stopImmediatePropagation so no other host listener (deck nav, any other
+      // capture listener) can also act on an owned arrow key.
+      e.stopImmediatePropagation();
+      handleKeyboardNudge(manualEditNudgeDelta(e.key), e.key);
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (!isManualEditNudgeKey(e.key)) return;
+      handleKeyboardNudgeKeyUp(e.key);
+    }
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keyup', onKeyUp, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('keyup', onKeyUp, true);
+    };
+  }, [manualEditMode, selectedManualEditTarget, manualEditMoveMode]);
+
+  useEffect(() => () => {
+    if (manualEditAnnounceTimerRef.current) window.clearTimeout(manualEditAnnounceTimerRef.current);
+  }, []);
+
+  // Track whether the selected-object overlay surface owned focus right before a
+  // target change or iframe reload, then restore it onto the new surface. This
+  // keeps Arrow/Escape routed to the overlay after the iframe re-renders.
+  useLayoutEffect(() => {
+    return () => {
+      if (!manualEditMode) return;
+      // Recognize focus on ANY selected-object surface (the move frame OR the
+      // resize handles, which coexist), not just the primary one.
+      const active = document.activeElement;
+      selectedObjectSurfaceHadFocusRef.current = active instanceof HTMLElement
+        && active.closest('[data-od-edit-selected-surface]') !== null;
+    };
+  }, [manualEditMode, selectedManualEditTarget?.id, manualEditMoveMode, manualEditDocumentRevision]);
+
+  useEffect(() => {
+    if (!selectedObjectSurfaceHadFocusRef.current) return;
+    selectedObjectSurfaceHadFocusRef.current = false;
+    const surface = document.querySelector<HTMLElement>('[data-od-edit-primary-surface]')
+      ?? document.querySelector<HTMLElement>('[data-od-edit-selected-surface]');
+    if (surface && typeof surface.focus === 'function') {
+      surface.focus({ preventScroll: true });
+    }
+  }, [selectedManualEditTarget?.id, manualEditMoveMode, manualEditDocumentRevision]);
 
   useEffect(() => {
     if (!presentMenuOpen) return;
@@ -7377,14 +7755,17 @@ function HtmlViewer({
         scale={overlayPreviewScale}
         disabled={manualEditSaving}
         labels={manualEditResizeLabels}
+        frameLabel={t('manualEdit.resize.frameLabel')}
         resizeConstraints={selectedManualEditResizeFeedback?.constraints}
         resizeFeedback={manualEditResizeCanvasFeedback}
         bounds={previewBodySize}
         onResizeStart={() => {
+          cancelKeyboardBurst();
           clearManualEditResizeFeedback();
           clearManualEditMovement();
           beginManualEditResizeBaseline(selectedManualEditTarget);
         }}
+        onBurstCancel={() => cancelKeyboardBurst()}
         onResizePreview={(direction, size, startSize) => {
           previewStyleToIframe(
             selectedManualEditTarget.id,
@@ -7417,6 +7798,7 @@ function HtmlViewer({
           ? undefined
           : t('manualEdit.selectBehindHint')}
         onMoveStart={() => {
+          cancelKeyboardBurst();
           beginManualEditMovement(selectedManualEditTarget, 'pointer');
           // Dragging the border while editing commits the text and promotes to
           // object-select before the move (PPT).
@@ -7433,6 +7815,7 @@ function HtmlViewer({
         onAltChange={(altKey) => {
           rePreviewManualEditMovementWithAlt(altKey);
         }}
+        onBurstCancel={() => cancelKeyboardBurst()}
         onPressStart={() => {
           // A fresh press starts Alt-clear; the move frame reports the real Alt
           // state at the drag threshold.
@@ -8304,6 +8687,16 @@ function HtmlViewer({
               offsetX={manualEditOverlayTransform.offsetX}
               offsetY={manualEditOverlayTransform.offsetY}
             />
+            {manualEditMovementAnnouncement && manualEditMovementAnnouncement.length > 0 ? (
+              <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+                {manualEditMovementAnnouncement.map((segment, index) => (
+                  <span key={segment.key + index}>
+                    {t(segment.key, { amount: segment.amount })}
+                    {index < manualEditMovementAnnouncement.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </VisuallyHidden>
+            ) : null}
             <div
               className={manualEditMode ? 'manual-edit-canvas' : 'comment-preview-canvas'}
               data-testid={manualEditMode ? undefined : 'comment-preview-canvas'}

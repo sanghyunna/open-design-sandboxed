@@ -2185,8 +2185,51 @@ describe('manual edit bridge keyboard forwarding', () => {
     });
     dom.window.document.dispatchEvent(event);
 
-    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-nudge', direction: 'right' }, '*');
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-nudge',
+      direction: 'right',
+      targetId: 'image',
+      revision: 0,
+    }, '*');
     expect(event.defaultPrevented).toBe(true);
+
+    dom.window.close();
+  });
+
+  it('forwards a nudge-commit when the last held arrow key is released', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowUp',
+    }));
+    postMessage.mockClear();
+
+    // Releasing one of two held keys must NOT commit yet.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-nudge-commit' }), '*',
+    );
+
+    // Releasing the last held key commits.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowUp',
+    }));
+    expect(postMessage).toHaveBeenCalledWith({
+      type: 'od-edit-nudge-commit',
+      targetId: 'image',
+      revision: 0,
+    }, '*');
 
     dom.window.close();
   });
@@ -2206,6 +2249,121 @@ describe('manual edit bridge keyboard forwarding', () => {
     dom.window.document.dispatchEvent(event);
 
     expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('does not forward arrow keys when focus is on a blocked target', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"><input id="f"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    const input = dom.window.document.querySelector('#f') as HTMLElement;
+    input.focus();
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowRight',
+    });
+    input.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('does not forward arrow keys from inside an ARIA widget role', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"><div role="slider"><span id="thumb"></span></div></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    // Dispatch from a descendant of the slider so the role walk must climb.
+    const thumb = dom.window.document.querySelector('#thumb') as HTMLElement;
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    });
+    thumb.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('does not forward arrow keys while an IME composition is active', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight', isComposing: true,
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('forwards Escape as a burst-cancel when an object is selected', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Escape',
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-burst-cancel' }, '*');
+    expect(event.defaultPrevented).toBe(true);
+
+    dom.window.close();
+  });
+
+  it('does not forward Escape as a burst-cancel while inline editing', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="title">Title</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const title = dom.window.document.querySelector('[data-od-id="title"]') as HTMLElement;
+    title.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(title.getAttribute('data-od-editing')).toBe('true');
+
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Escape',
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-burst-cancel' }), '*');
     expect(event.defaultPrevented).toBe(false);
 
     dom.window.close();
