@@ -30,6 +30,8 @@ export type ManualEditMoveFrameProps = {
   onPressStart: () => void;
   onActivate: (activation: ManualEditMoveActivation) => void;
   onSurfaceDoubleClick: (region: Region) => void;
+  /** Fired when the Alt/Option key changes state during an active press/drag. */
+  onAltChange?: (altKey: boolean) => void;
 };
 
 // px, unscaled — the frame lives in canvas-space overlay coords.
@@ -63,6 +65,7 @@ export function ManualEditMoveFrame({
   onPressStart,
   onActivate,
   onSurfaceDoubleClick,
+  onAltChange,
 }: ManualEditMoveFrameProps) {
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -71,12 +74,49 @@ export function ManualEditMoveFrame({
   // id is assigned, so the id alone cannot answer "is a flush still queued".
   const flushScheduledRef = useRef(false);
   const pendingDeltaRef = useRef<Delta | null>(null);
+  const lastAltReportedRef = useRef<boolean | null>(null);
+  const altListenersRef = useRef<{ down: (event: KeyboardEvent) => void; up: (event: KeyboardEvent) => void } | null>(null);
 
   useEffect(() => () => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
     }
+    detachAltListeners();
   }, []);
+
+  const reportAlt = (altKey: boolean) => {
+    if (altKey === lastAltReportedRef.current) return;
+    lastAltReportedRef.current = altKey;
+    onAltChange?.(altKey);
+  };
+
+  const detachAltListeners = () => {
+    const listeners = altListenersRef.current;
+    if (!listeners) return;
+    window.removeEventListener('keydown', listeners.down, true);
+    window.removeEventListener('keyup', listeners.up, true);
+    altListenersRef.current = null;
+  };
+
+  // Alt toggles snapping mid-drag. These window listeners exist only while a real
+  // drag is in flight; they preventDefault() the key so Alt cannot pull focus to
+  // the Electron menu bar, and are stored by identity so endDrag() removes the
+  // exact handlers it added even after parent re-renders.
+  const attachAltListeners = () => {
+    detachAltListeners();
+    const onKey = (altKey: boolean) => (event: KeyboardEvent) => {
+      if (event.key !== 'Alt' && event.key !== 'AltGraph') return;
+      if (!dragRef.current?.dragging) return;
+      event.preventDefault();
+      flushPendingPreview();
+      reportAlt(altKey);
+    };
+    const down = onKey(true);
+    const up = onKey(false);
+    altListenersRef.current = { down, up };
+    window.addEventListener('keydown', down, true);
+    window.addEventListener('keyup', up, true);
+  };
 
   const flushPreview = () => {
     flushScheduledRef.current = false;
@@ -96,6 +136,17 @@ export function ManualEditMoveFrame({
     if (flushScheduledRef.current) rafRef.current = id;
   };
 
+  // Apply any queued move frame synchronously so an Alt toggle re-resolves the
+  // snap against the element's true current position, not a stale one.
+  const flushPendingPreview = () => {
+    if (!flushScheduledRef.current) return;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    flushPreview();
+  };
+
   const endDrag = () => {
     const drag = dragRef.current;
     if (!drag) return;
@@ -105,6 +156,8 @@ export function ManualEditMoveFrame({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    detachAltListeners();
+    lastAltReportedRef.current = null;
     const target = drag.target;
     if (typeof target.releasePointerCapture === 'function') {
       try {
@@ -133,6 +186,9 @@ export function ManualEditMoveFrame({
     // otherwise the Escape-cancels-drag onKeyDown never lands here.
     if (typeof target.focus === 'function') target.focus({ preventScroll: true });
     onPressStart();
+    // Reset Alt tracking; a drag reports its initial Alt state at the threshold,
+    // and a below-threshold click carries Alt through onActivate instead.
+    lastAltReportedRef.current = null;
     dragRef.current = {
       region,
       pointerId: event.pointerId,
@@ -152,7 +208,12 @@ export function ManualEditMoveFrame({
       if (Math.abs(dxClient) < DRAG_THRESHOLD && Math.abs(dyClient) < DRAG_THRESHOLD) return;
       drag.dragging = true;
       onMoveStart();
+      attachAltListeners();
     }
+    // Pointer events carry the modifier state even when keyboard focus lives in
+    // the preview iframe, so this keeps Alt-gated snapping responsive during a
+    // real drag; reportAlt() dedupes so an unchanged state is a no-op.
+    reportAlt(event.altKey);
     scheduleFlush({ x: dxClient / scale, y: dyClient / scale });
   };
 

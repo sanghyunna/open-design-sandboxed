@@ -3,7 +3,7 @@ import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 import type { Locator, Page } from '@playwright/test';
 import { T } from '@/timeouts';
-import { issue41SelectionPaintHtml } from '../resources/manual-edit.ts';
+import { issue41SelectionPaintHtml, magneticEdgeAlignmentHtml } from '../resources/manual-edit.ts';
 
 const STORAGE_KEY = 'open-design:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
@@ -1100,6 +1100,68 @@ test('[P1] manual edit resize pins flex-fill items so a width drag holds and han
     })
     .toBeLessThan(4);
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
+});
+
+test('[P1] magnetic edge alignment shows a guide while dragging and hides it with Alt', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Magnetic edge alignment');
+  await seedHtmlArtifact(page, projectId, 'magnetic-edit.html', magneticEdgeAlignmentHtml());
+  await page.goto(`/projects/${projectId}/files/magnetic-edit.html`);
+  await openDesignFile(page, 'magnetic-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  await expect(frame.locator('[data-od-id="snap-source"]')).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="snap-target"]', 'Shape');
+
+  const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
+  await expect(moveSurface).toBeVisible();
+  const box = await moveSurface.boundingBox();
+  if (!box) throw new Error('move surface has no bounding box');
+
+  const sourceBox = await frame.locator('[data-od-id="snap-source"]').boundingBox();
+  const targetBox = await frame.locator('[data-od-id="snap-target"]').boundingBox();
+  if (!sourceBox || !targetBox) throw new Error('snap box has no bounding box');
+
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
+  const guide = page.locator('[data-testid="manual-edit-snap-guide"]');
+  const leftEdgeGap = () => frame.locator('[data-od-id="snap-target"]').evaluate((el) => {
+    const src = el.ownerDocument.querySelector('[data-od-id="snap-source"]');
+    return src ? Math.abs(el.getBoundingClientRect().left - src.getBoundingClientRect().left) : Number.NaN;
+  });
+
+  // Land the target's left edge 4 screen px short of the source's left edge:
+  // inside the 6 screen-px acquire band, but NOT already aligned, so only a real
+  // magnetic pull (not the raw cursor position) can close the remaining gap.
+  const dragLeftPx = (targetBox.x - sourceBox.x) - 4;
+  expect(await leftEdgeGap()).toBeGreaterThan(6);
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - dragLeftPx, startY, { steps: 8 });
+  await expect(guide).toHaveCount(1);
+  await page.mouse.up();
+
+  // After commit the guide is removed and the element has snapped onto the edge:
+  // the committed (saved) translate aligns the two left edges, closing the 4 px
+  // that raw movement would have left.
+  await expect(guide).toHaveCount(0);
+  await expect.poll(leftEdgeGap, { timeout: 5000 }).toBeLessThanOrEqual(1);
+
+  // A second drag with Alt held should not produce a guide.
+  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="snap-target"]', 'Shape');
+  await expect(moveSurface).toBeVisible();
+  const box2 = await moveSurface.boundingBox();
+  if (!box2) throw new Error('move surface has no bounding box on second drag');
+  await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height / 2);
+  await page.mouse.down();
+  await page.keyboard.down('Alt');
+  await page.mouse.move(box2.x + box2.width / 2 - 175, box2.y + box2.height / 2, { steps: 8 });
+  await expect(guide).toHaveCount(0);
+  await page.keyboard.up('Alt');
+  await page.mouse.up();
 });
 
 async function selectPreviewElementThroughBridge(

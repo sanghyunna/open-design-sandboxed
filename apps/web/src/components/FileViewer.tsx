@@ -127,8 +127,11 @@ import { ManualEditPanel, applyManualEditStyleField, applyManualEditStyleFields,
 import { ManualEditShapeToolbar } from './ManualEditShapeToolbar';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
 import { ManualEditMoveFrame } from './ManualEditMoveFrame';
+import { ManualEditSnapGuides } from './ManualEditSnapGuides';
 import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
 import {
+  buildManualEditMovementCandidates,
+  createManualEditSnapLatch,
   resolveManualEditMovement,
   type ManualEditMovementResult,
   type ManualEditMovementSession,
@@ -166,6 +169,7 @@ type ActiveManualEditMovement = {
   readonly label: string;
   latestResult: ManualEditMovementResult | null;
 };
+const EMPTY_MANUAL_EDIT_SNAP_GUIDES: ManualEditMovementResult['guides'] = { vertical: null, horizontal: null };
 export type ManualEditPendingStyleSave = {
   id: string;
   styles: Partial<ManualEditStyles>;
@@ -3784,6 +3788,9 @@ function HtmlViewer({
     cssSize?: { width: string; height: string };
   } | null>(null);
   const activeManualEditMovementRef = useRef<ActiveManualEditMovement | null>(null);
+  const manualEditAltRef = useRef(false);
+  const manualEditLastRawDeltaRef = useRef<{ x: number; y: number } | null>(null);
+  const [manualEditSnapGuides, setManualEditSnapGuides] = useState<ManualEditMovementResult['guides']>(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
   const manualEditPreviewVersionRef = useRef(0);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
@@ -4659,8 +4666,11 @@ function HtmlViewer({
     setManualEditError(null);
     clearManualEditResizeFeedback();
     manualEditPendingStyleRef.current = null;
-    activeManualEditMovementRef.current = null;
+    clearManualEditMovement();
   }, [file.name]);
+
+  // Revert any in-flight manual-edit movement if the viewer unmounts mid-drag.
+  useEffect(() => () => { clearManualEditMovement(); }, []);
 
   // Selecting a new file or turning inspect/comment-inspect off resets the panel target.
   useEffect(() => {
@@ -4911,7 +4921,7 @@ function HtmlViewer({
       setManualEditError(null);
       clearManualEditResizeFeedback();
       manualEditPendingStyleRef.current = null;
-      activeManualEditMovementRef.current = null;
+      clearManualEditMovement();
       setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
       return;
     }
@@ -5058,6 +5068,7 @@ function HtmlViewer({
                 ? { x: 0, y: 1 }
                 : null;
         if (!delta) return;
+        manualEditAltRef.current = false;
         beginManualEditMovement(target, 'keyboard');
         previewManualEditMovement(delta);
         void commitManualEditMovement();
@@ -5093,6 +5104,7 @@ function HtmlViewer({
       selectedManualEditTargetRef.current = null;
       setSelectedManualEditTarget(null);
       setManualEditFrozenSource(null);
+      clearManualEditMovement();
       setReloadKey((key) => key + 1);
       return;
     }
@@ -5250,10 +5262,53 @@ function HtmlViewer({
     return target.styles.translate ?? '';
   }
 
+  // Finalize the movement that owns `session`: drop it, reset the drag scratch
+  // state, and clear guides — optionally reverting the preview to the pre-drag
+  // translate. The ownership check is load-bearing: an async save can resolve
+  // after a newer drag has already begun, and that stale completion must not
+  // revert or clear the newer movement.
+  function finalizeOwnedMovement(session: ManualEditMovementSession, revert: boolean): void {
+    if (activeManualEditMovementRef.current?.session !== session) return;
+    if (revert) {
+      previewStyleToIframe(
+        session.targetId,
+        { translate: session.baselineTranslate ?? '' },
+        nextManualEditPreviewVersion(),
+      );
+    }
+    activeManualEditMovementRef.current = null;
+    manualEditAltRef.current = false;
+    manualEditLastRawDeltaRef.current = null;
+    setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
+  }
+
+  // Abort any in-flight movement now, reverting the preview to baseline. Called
+  // from synchronous lifecycle gaps (selection change, reload, mode exit, file
+  // change, unmount) where the active movement is always the one to discard.
+  function clearManualEditMovement(): void {
+    const movement = activeManualEditMovementRef.current;
+    if (movement) {
+      finalizeOwnedMovement(movement.session, true);
+      return;
+    }
+    manualEditAltRef.current = false;
+    manualEditLastRawDeltaRef.current = null;
+    setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
+  }
+
   function beginManualEditMovement(
     target: ManualEditTarget,
     source: ManualEditMovementSource,
   ): void {
+    // Callers set manualEditAltRef before this: keyboard nudges reset it to false
+    // (they never snap), and pointer drags leave it for the move frame to seed
+    // from its threshold Alt report.
+    manualEditLastRawDeltaRef.current = null;
+    setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
+    const { candidates, selectedParentId, selectedAncestorIds } = buildManualEditMovementCandidates(
+      manualEditTargets,
+      target.id,
+    );
     activeManualEditMovementRef.current = {
       session: {
         targetId: target.id,
@@ -5261,6 +5316,11 @@ function HtmlViewer({
         startRect: { ...target.rect },
         baselineTranslate: baseTranslateFor(target),
         ...(target.rectScale ? { rectScale: { ...target.rectScale } } : {}),
+        scale: overlayPreviewScale,
+        candidates,
+        selectedParentId,
+        selectedAncestorIds,
+        latch: createManualEditSnapLatch(),
       },
       label: `Style: ${target.label}`,
       latestResult: null,
@@ -5270,8 +5330,23 @@ function HtmlViewer({
   function previewManualEditMovement(deltaRect: { x: number; y: number }): void {
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
-    const result = resolveManualEditMovement(movement.session, deltaRect);
+    manualEditLastRawDeltaRef.current = deltaRect;
+    const result = resolveManualEditMovement(movement.session, deltaRect, {
+      alt: manualEditAltRef.current,
+    });
     movement.latestResult = result;
+    setManualEditSnapGuides(result.guides);
+    previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+  }
+
+  function rePreviewManualEditMovementWithAlt(altKey: boolean): void {
+    manualEditAltRef.current = altKey;
+    const movement = activeManualEditMovementRef.current;
+    const delta = manualEditLastRawDeltaRef.current;
+    if (!movement || !delta) return;
+    const result = resolveManualEditMovement(movement.session, delta, { alt: altKey });
+    movement.latestResult = result;
+    setManualEditSnapGuides(result.guides);
     previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
   }
 
@@ -5280,9 +5355,7 @@ function HtmlViewer({
     if (!movement) return;
     const { session, latestResult: result, label } = movement;
     if (!result) {
-      if (activeManualEditMovementRef.current?.session === session) {
-        activeManualEditMovementRef.current = null;
-      }
+      finalizeOwnedMovement(session, false);
       return;
     }
     const ok = await applyManualEdit(
@@ -5290,14 +5363,7 @@ function HtmlViewer({
       label,
     );
     if (!ok) {
-      if (activeManualEditMovementRef.current?.session === session) {
-        previewStyleToIframe(
-          session.targetId,
-          { translate: session.baselineTranslate ?? '' },
-          nextManualEditPreviewVersion(),
-        );
-        activeManualEditMovementRef.current = null;
-      }
+      finalizeOwnedMovement(session, true);
       return;
     }
     cancelManualEditPendingStyles(result.targetId, ['translate']);
@@ -5311,23 +5377,14 @@ function HtmlViewer({
         styles: { ...current.styles, ...result.styles },
       }));
     }
-    if (activeManualEditMovementRef.current?.session === session) {
-      activeManualEditMovementRef.current = null;
-    }
+    // Success keeps the committed translate — finalize without reverting.
+    finalizeOwnedMovement(session, false);
   }
 
   function cancelManualEditMovement(): void {
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
-    const { session } = movement;
-    previewStyleToIframe(
-      session.targetId,
-      { translate: session.baselineTranslate ?? '' },
-      nextManualEditPreviewVersion(),
-    );
-    if (activeManualEditMovementRef.current?.session === session) {
-      activeManualEditMovementRef.current = null;
-    }
+    finalizeOwnedMovement(movement.session, true);
   }
 
   async function flushManualEditStyleSave(): Promise<boolean> {
@@ -5409,6 +5466,7 @@ function HtmlViewer({
   async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
     manualEditPostSaveIntentRef.current = null;
     clearManualEditResizeFeedback();
+    clearManualEditMovement();
     if (manualEditSavingRef.current) {
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'select', target };
       return;
@@ -5449,6 +5507,7 @@ function HtmlViewer({
     actionSeq = ++manualEditActionSeqRef.current,
   ): Promise<boolean> {
     clearManualEditResizeFeedback();
+    clearManualEditMovement();
     if (manualEditSavingRef.current) {
       manualEditPostSaveIntentRef.current = { seq: actionSeq, kind: 'clear', openPageStyles: !!options.openPageStyles };
       return false;
@@ -5540,6 +5599,7 @@ function HtmlViewer({
         selectedManualEditTargetRef.current = null;
         setSelectedManualEditTarget(null);
         clearManualEditResizeFeedback();
+        clearManualEditMovement();
         setManualEditTargets((current) => current.filter((target) => target.id !== patch.id));
         setManualEditDraft(emptyManualEditDraft(result.source));
         postSelectedManualEditTargetToIframe(null);
@@ -5609,6 +5669,7 @@ function HtmlViewer({
       return;
     }
     clearManualEditResizeFeedback();
+    clearManualEditMovement();
     manualEditSavingRef.current = true;
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
@@ -5651,6 +5712,7 @@ function HtmlViewer({
       return;
     }
     clearManualEditResizeFeedback();
+    clearManualEditMovement();
     manualEditSavingRef.current = true;
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
@@ -6291,6 +6353,7 @@ function HtmlViewer({
   }
 
   function reloadHtmlPreview() {
+    if (manualEditMode) clearManualEditMovement();
     fireArtifactToolbarClick('reload');
     capturePreviewScrollPosition();
     imageExportSnapshotDataUrlRef.current = null;
@@ -7249,6 +7312,7 @@ function HtmlViewer({
         bounds={previewBodySize}
         onResizeStart={() => {
           clearManualEditResizeFeedback();
+          clearManualEditMovement();
           beginManualEditResizeBaseline(selectedManualEditTarget);
         }}
         onResizePreview={(direction, size, startSize) => {
@@ -7295,7 +7359,13 @@ function HtmlViewer({
           void commitManualEditMovement();
         }}
         onMoveCancel={cancelManualEditMovement}
+        onAltChange={(altKey) => {
+          rePreviewManualEditMovementWithAlt(altKey);
+        }}
         onPressStart={() => {
+          // A fresh press starts Alt-clear; the move frame reports the real Alt
+          // state at the drag threshold.
+          manualEditAltRef.current = false;
           iframeRef.current?.contentWindow?.postMessage(
             { type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage,
             '*',
@@ -8156,6 +8226,13 @@ function HtmlViewer({
             {manualEditHoverAffordance}
             {manualEditMoveFrame}
             {manualEditResizeHandles}
+            {/* Guides paint above the resize handles (z-index 33 over 32). */}
+            <ManualEditSnapGuides
+              guides={manualEditSnapGuides}
+              scale={overlayPreviewScale}
+              offsetX={manualEditOverlayTransform.offsetX}
+              offsetY={manualEditOverlayTransform.offsetY}
+            />
             <div
               className={manualEditMode ? 'manual-edit-canvas' : 'comment-preview-canvas'}
               data-testid={manualEditMode ? undefined : 'comment-preview-canvas'}

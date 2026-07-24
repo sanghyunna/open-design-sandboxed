@@ -236,4 +236,60 @@ describe('ManualEditMoveFrame', () => {
     expect(onMoveCommit).toHaveBeenCalledWith();
     expect(onActivate).not.toHaveBeenCalled();
   });
+
+  it('reports the initial Alt state at the drag threshold and tracks keyboard toggles', () => {
+    const onAltChange = vi.fn();
+    const { interior } = renderFrame({ onAltChange });
+    fireEvent.pointerDown(interior!, { pointerId: 15, clientX: 200, clientY: 100, altKey: true });
+    // No report before the threshold: a below-threshold press carries Alt through onActivate.
+    expect(onAltChange).not.toHaveBeenCalled();
+
+    fireEvent.pointerMove(interior!, { pointerId: 15, clientX: 230, clientY: 100, altKey: true });
+    expect(onAltChange).toHaveBeenLastCalledWith(true);
+
+    fireEvent.keyUp(window, { key: 'Alt' });
+    expect(onAltChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.keyDown(window, { key: 'Alt' });
+    expect(onAltChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('does not report Alt for a below-threshold press', () => {
+    const onAltChange = vi.fn();
+    const { interior } = renderFrame({ onAltChange });
+    fireEvent.pointerDown(interior!, { pointerId: 16, clientX: 200, clientY: 100, altKey: true });
+    fireEvent.pointerMove(interior!, { pointerId: 16, clientX: 203, clientY: 100, altKey: true });
+    fireEvent.pointerUp(interior!, { pointerId: 16, clientX: 203, clientY: 100, altKey: true });
+    expect(onAltChange).not.toHaveBeenCalled();
+  });
+
+  it('detaches Alt listeners when the drag ends', () => {
+    const onAltChange = vi.fn();
+    const { interior } = renderFrame({ onAltChange });
+    fireEvent.pointerDown(interior!, { pointerId: 17, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 17, clientX: 230, clientY: 100 });
+    fireEvent.pointerUp(interior!, { pointerId: 17, clientX: 230, clientY: 100 });
+    onAltChange.mockClear();
+
+    fireEvent.keyDown(window, { key: 'Alt' });
+    fireEvent.keyUp(window, { key: 'Alt' });
+    expect(onAltChange).not.toHaveBeenCalled();
+  });
+
+  it('never fires Alt reports outside of a drag', () => {
+    const onAltChange = vi.fn();
+    renderFrame({ onAltChange });
+    fireEvent.keyDown(window, { key: 'Alt' });
+    fireEvent.keyUp(window, { key: 'Alt' });
+    expect(onAltChange).not.toHaveBeenCalled();
+  });
+
+  it('prevents default on Alt during a drag so it cannot reach the menu bar', () => {
+    const { interior } = renderFrame({ onAltChange: vi.fn() });
+    fireEvent.pointerDown(interior!, { pointerId: 18, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 18, clientX: 230, clientY: 100 });
+    // fireEvent returns false when the (cancelable) event had preventDefault called.
+    const notCancelled = fireEvent.keyDown(window, { key: 'Alt' });
+    expect(notCancelled).toBe(false);
+  });
 });
