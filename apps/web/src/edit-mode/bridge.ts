@@ -1039,7 +1039,7 @@ export function buildManualEditBridgeStyle(): string {
   return `<style data-od-edit-bridge-style>
 html[data-od-edit-mode] body * { cursor: pointer !important; }
 html[data-od-edit-mode] [${MANUAL_EDIT_RUNTIME_HOVER_ATTR}]:not([data-od-edit-selected]) { outline: 2px solid #2563eb; }
-html[data-od-edit-mode] [data-od-edit-selected] {
+html[data-od-edit-mode] [data-od-edit-selected]:where([data-od-editing="true"]) {
   outline: 2px solid #2563eb !important;
   outline-offset: 4px;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);

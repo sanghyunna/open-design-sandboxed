@@ -3,6 +3,7 @@ import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 import type { Page } from '@playwright/test';
 import { T } from '@/timeouts';
+import { issue41SelectionPaintHtml } from '../resources/manual-edit.ts';
 
 const STORAGE_KEY = 'open-design:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
@@ -723,7 +724,7 @@ test('[P1] issue 34 selects a nested child whose center is inside the selected r
   await expect(ringChild).toHaveAttribute('data-od-edit-selected', 'true');
 });
 
-test('[P1] issue 39 outlines only the selected nested child', async ({ page }) => {
+test('[P1] issue 39 outlines only the inline-edit nested child', async ({ page }) => {
   await routeMockAgents(page);
   const fileName = 'issue-39-nested-outline.html';
   const projectId = await createEmptyProject(page, 'Issue 39 nested outline');
@@ -747,10 +748,11 @@ test('[P1] issue 39 outlines only the selected nested child', async ({ page }) =
   await child.click();
   await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
   await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-od-editing', 'true');
   await expect.poll(outlinedTargetIds).toEqual(['issue-34-child']);
 });
 
-test('[P1] issue 39 clears the parent outline through the selected move surface', async ({ page }) => {
+test('[P1] issue 39 clears the parent outline when the selected move surface begins child inline edit', async ({ page }) => {
   await routeMockAgents(page);
   const fileName = 'issue-39-move-surface-outline.html';
   const projectId = await createEmptyProject(page, 'Issue 39 move surface outline');
@@ -780,6 +782,7 @@ test('[P1] issue 39 clears the parent outline through the selected move surface'
 
   await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
   await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-od-editing', 'true');
   await expect
     .poll(() => frame.locator('[data-od-id]').evaluateAll((nodes) => nodes
       .filter((node) => {
@@ -790,6 +793,119 @@ test('[P1] issue 39 clears the parent outline through the selected move surface'
       })
       .map((node) => node.getAttribute('data-od-id'))))
     .toEqual(['issue-34-child']);
+});
+
+test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'issue-41-selection-paint.html';
+  const projectId = await createEmptyProject(page, 'Issue 41 selection paint');
+  await seedHtmlArtifact(page, projectId, fileName, issue41SelectionPaintHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const image = frame.locator('[data-od-id="issue-41-image"]');
+  const text = frame.locator('[data-od-id="issue-41-text"]');
+  const authoredText = frame.locator('[data-od-id="issue-41-authored-text"]');
+  const moveFrame = page.getByRole('group', { name: 'Move element' });
+  const resizeHandles = page.getByRole('button', {
+    name: /^Resize (?:top|right|bottom|left)/,
+  });
+  const paint = (selector: string) => frame.locator(selector).evaluate((node) => {
+    const style = getComputedStyle(node);
+    return {
+      hasBridgeOutline: style.outlineStyle === 'solid'
+        && style.outlineColor === 'rgb(37, 99, 235)'
+        && Number.parseFloat(style.outlineWidth) > 0,
+      outlineStyle: style.outlineStyle,
+      outlineColor: style.outlineColor,
+      outlineWidth: style.outlineWidth,
+      outlineOffset: style.outlineOffset,
+      boxShadow: style.boxShadow,
+      hasBridgeGlow: style.boxShadow === 'rgba(37, 99, 235, 0.16) 0px 0px 0px 4px',
+    };
+  });
+  const authoredImagePaint = {
+    hasBridgeOutline: false,
+    outlineStyle: 'dashed',
+    outlineColor: 'rgb(22, 163, 74)',
+    outlineWidth: '3px',
+    outlineOffset: '1px',
+    boxShadow: 'rgb(168, 85, 247) 0px 0px 0px 3px',
+    hasBridgeGlow: false,
+  };
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await image.click();
+
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(image).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(image).not.toHaveAttribute('data-od-editing', 'true');
+  await expect(moveFrame).toHaveCount(1);
+  await expect(resizeHandles).toHaveCount(8);
+  await expect.poll(() => paint('[data-od-id="issue-41-image"]')).toEqual(authoredImagePaint);
+
+  await text.hover();
+  await expect(image).not.toHaveAttribute('data-od-runtime-hovered', 'true');
+  await expect(text).toHaveAttribute('data-od-runtime-hovered', 'true');
+  await expect.poll(() => paint('[data-od-id="issue-41-image"]')).toEqual(authoredImagePaint);
+  await expect
+    .poll(() => paint('[data-od-id="issue-41-text"]'))
+    .toMatchObject({
+      hasBridgeOutline: true,
+      outlineStyle: 'solid',
+      outlineColor: 'rgb(37, 99, 235)',
+      outlineWidth: '2px',
+      outlineOffset: '0px',
+      boxShadow: 'none',
+      hasBridgeGlow: false,
+    });
+
+  await text.click();
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(text).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(text).toHaveAttribute('data-od-editing', 'true');
+  await expect(text).toHaveAttribute('contenteditable', 'true');
+  await expect.poll(() => text.evaluate((node) => getComputedStyle(node).cursor)).toBe('text');
+  await expect(moveFrame).toHaveCount(1);
+  await expect(resizeHandles).toHaveCount(8);
+  await expect.poll(() => paint('[data-od-id="issue-41-text"]')).toMatchObject({
+    hasBridgeOutline: true,
+    outlineStyle: 'solid',
+    outlineColor: 'rgb(37, 99, 235)',
+    outlineWidth: '2px',
+    outlineOffset: '4px',
+    boxShadow: 'rgba(37, 99, 235, 0.16) 0px 0px 0px 4px',
+    hasBridgeGlow: true,
+  });
+
+  await page.keyboard.press('Escape');
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(text).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(text).not.toHaveAttribute('data-od-editing', 'true');
+  await expect(text).not.toHaveAttribute('contenteditable', 'true');
+  await expect(moveFrame).toHaveCount(1);
+  await expect(resizeHandles).toHaveCount(8);
+  await expect.poll(() => paint('[data-od-id="issue-41-text"]')).toMatchObject({
+    hasBridgeOutline: false,
+    boxShadow: 'none',
+    hasBridgeGlow: false,
+  });
+
+  await authoredText.click();
+  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(authoredText).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(authoredText).toHaveAttribute('data-od-editing', 'true');
+  await expect.poll(() => paint('[data-od-id="issue-41-authored-text"]')).toEqual({
+    hasBridgeOutline: false,
+    outlineStyle: 'double',
+    outlineColor: 'rgb(220, 38, 38)',
+    outlineWidth: '3px',
+    outlineOffset: '2px',
+    boxShadow: 'rgb(14, 165, 233) 0px 0px 0px 5px',
+    hasBridgeGlow: false,
+  });
 });
 
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
