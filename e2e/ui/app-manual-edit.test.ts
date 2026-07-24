@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { T } from '@/timeouts';
 import { issue41SelectionPaintHtml } from '../resources/manual-edit.ts';
 
@@ -906,6 +906,81 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
     boxShadow: 'rgb(14, 165, 233) 0px 0px 0px 5px',
     hasBridgeGlow: false,
   });
+});
+
+test('[P1] issue 43 paints no focus outline on the pressed move surfaces', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 43 move surface focus');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const image = frame.locator('[data-od-id="hero-image"]');
+  await expect(image).toBeVisible();
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await image.click();
+  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const moveFrame = page.getByRole('group', { name: 'Move element' });
+  const interior = moveFrame.locator('[data-region="interior"]');
+  const ring = moveFrame.locator('[data-region="ring"]').first();
+  await expect(interior).toBeVisible();
+  // The pressed surface must own focus AND match :focus-visible — that pairing
+  // is what makes Chromium paint its native ring — while painting no outline.
+  // Asserting focusVisible keeps the case honest: without it the expectation
+  // would also hold in a browser that simply never entered the ringed state.
+  const focusPaint = (surface: Locator) => surface.evaluate((node) => ({
+    focused: document.activeElement === node,
+    focusVisible: node.matches(':focus-visible'),
+    outlineStyle: getComputedStyle(node).outlineStyle,
+  }));
+  const paintedNothing = { focused: true, focusVisible: true, outlineStyle: 'none' };
+  // Presses land off the surface midpoints: the resize handles sit one z-index
+  // above the move frame and straddle the ring band at its corners and centre.
+  const pressSurface = async (surface: Locator) => {
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('move surface has no bounding box');
+    const point = { x: box.x + box.width / 4, y: box.y + box.height / 2 };
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    return point;
+  };
+
+  // An uncancelled drag writes the moved translate to the artifact on
+  // pointerup; watch for that write across the whole cancel gesture.
+  const commitAfterCancel = page
+    .waitForRequest(
+      (request) => request.method() === 'POST' && request.url().includes(`/api/projects/${projectId}/files`),
+      { timeout: T.short },
+    )
+    .catch(() => null);
+
+  // Escape-cancelling a drag is what flips Chromium's focus modality to
+  // keyboard: from here every press would paint the UA focus ring.
+  const start = await pressSurface(interior);
+  await page.mouse.move(start.x + 60, start.y + 40, { steps: 6 });
+  await expect
+    .poll(() => image.evaluate((node) => (node as HTMLElement).style.translate))
+    .not.toBe('');
+  await page.keyboard.press('Escape');
+  await page.mouse.move(start.x + 140, start.y + 40, { steps: 4 });
+  await page.mouse.up();
+  // Escape reached the focused surface and cancelled the drag.
+  expect(await commitAfterCancel).toBeNull();
+  await expect(moveFrame).toHaveCount(1);
+
+  await pressSurface(interior);
+  expect(await focusPaint(interior)).toEqual(paintedNothing);
+  await page.mouse.up();
+  expect(await focusPaint(interior)).toEqual(paintedNothing);
+
+  await expect(ring).toBeVisible();
+  await pressSurface(ring);
+  expect(await focusPaint(ring)).toEqual(paintedNothing);
+  await page.mouse.up();
+  expect(await focusPaint(ring)).toEqual(paintedNothing);
 });
 
 test('[P1] manual edit resize handles track the selected element through layout reflows', async ({ page }) => {
