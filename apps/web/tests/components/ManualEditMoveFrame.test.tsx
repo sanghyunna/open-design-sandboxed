@@ -77,43 +77,8 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.pointerUp(interior!, { pointerId: 3, clientX: 200 + dx, clientY: 100 + dy });
 
     expect(onMoveStart).toHaveBeenCalledTimes(1);
-    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: dx, y: dy }, shiftKey: false, axis: null });
+    expect(onMoveCommit).toHaveBeenCalledWith();
     expect(onActivate).not.toHaveBeenCalled();
-  });
-
-  it('samples Shift at threshold crossing and updates preview while the pointer is stationary', () => {
-    const { interior, onMovePreview } = renderFrame();
-    fireEvent.pointerDown(interior!, { pointerId: 15, clientX: 200, clientY: 100 });
-    fireEvent.pointerMove(interior!, { pointerId: 15, clientX: 220, clientY: 110, shiftKey: true });
-
-    expect(onMovePreview).toHaveBeenLastCalledWith({
-      delta: { x: 20, y: 10 },
-      shiftKey: true,
-      axis: 'x',
-    });
-
-    fireEvent.keyUp(window, { key: 'Shift', shiftKey: false });
-    expect(onMovePreview).toHaveBeenLastCalledWith({
-      delta: { x: 20, y: 10 },
-      shiftKey: false,
-      axis: null,
-    });
-  });
-
-  it('tracks one Shift transition per key state and removes listeners when the drag ends', () => {
-    const { interior, onMovePreview, onMoveCancel } = renderFrame();
-    fireEvent.pointerDown(interior!, { pointerId: 16, clientX: 200, clientY: 100 });
-    fireEvent.keyDown(window, { key: 'Shift', shiftKey: true });
-    fireEvent.pointerMove(interior!, { pointerId: 16, clientX: 220, clientY: 110, shiftKey: true });
-    fireEvent.keyDown(window, { key: 'Shift', shiftKey: true });
-    fireEvent.keyDown(window, { key: 'Shift', shiftKey: true });
-
-    expect(onMovePreview).toHaveBeenCalledTimes(1);
-    fireEvent.pointerCancel(interior!, { pointerId: 16 });
-    fireEvent.keyUp(window, { key: 'Shift', shiftKey: false });
-
-    expect(onMoveCancel).toHaveBeenCalledTimes(1);
-    expect(onMovePreview).toHaveBeenCalledTimes(1);
   });
 
   it('reports Alt on a no-drag activation but keeps Alt-modified movement on the drag path', () => {
@@ -127,11 +92,11 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.pointerDown(second.interior!, { pointerId: 5, clientX: 200, clientY: 100, altKey: true });
     fireEvent.pointerMove(second.interior!, { pointerId: 5, clientX: 230, clientY: 140, altKey: true });
     fireEvent.pointerUp(second.interior!, { pointerId: 5, clientX: 230, clientY: 140, altKey: true });
-    expect(second.onMoveCommit).toHaveBeenCalledWith({ delta: { x: 30, y: 40 }, shiftKey: false, axis: null });
+    expect(second.onMoveCommit).toHaveBeenCalledWith();
     expect(second.onActivate).not.toHaveBeenCalled();
   });
 
-  it('reports the final pointerup coordinates even when a preview is still queued', () => {
+  it('scales preview and commit deltas and flushes the final queued preview first', () => {
     const queued: FrameRequestCallback[] = [];
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
       queued.push(cb);
@@ -143,8 +108,9 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.pointerMove(interior!, { pointerId: 6, clientX: 240, clientY: 160 });
     fireEvent.pointerUp(interior!, { pointerId: 6, clientX: 240, clientY: 160 });
 
-    expect(onMovePreview).not.toHaveBeenCalled();
-    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: 20, y: 30 }, shiftKey: false, axis: null });
+    expect(onMovePreview).toHaveBeenCalledWith({ x: 20, y: 30 });
+    expect(onMoveCommit).toHaveBeenCalledWith();
+    expect(onMovePreview.mock.invocationCallOrder[0]).toBeLessThan(onMoveCommit.mock.invocationCallOrder[0]!);
   });
 
   it.each(['Escape', 'pointercancel'])('cancels an active drag on %s', (ending) => {
@@ -197,8 +163,8 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.pointerUp(interior!, { pointerId: 9, clientX: 220, clientY: 130 });
 
     expect(onMoveStart).toHaveBeenCalledTimes(1);
-    expect(onMovePreview).toHaveBeenCalledWith({ delta: { x: 20, y: 30 }, shiftKey: false, axis: null });
-    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: 20, y: 30 }, shiftKey: false, axis: null });
+    expect(onMovePreview).toHaveBeenCalledWith({ x: 20, y: 30 });
+    expect(onMoveCommit).toHaveBeenCalledWith();
   });
 
   it('coalesces queued moves to the latest absolute delta and starts movement once', () => {
@@ -219,27 +185,7 @@ describe('ManualEditMoveFrame', () => {
 
     queued[0]!(0);
     expect(onMovePreview).toHaveBeenCalledTimes(1);
-    expect(onMovePreview).toHaveBeenCalledWith({ delta: { x: 30, y: 40 }, shiftKey: false, axis: null });
-  });
-
-  it('chooses the Shift axis at the threshold crossing before an rAF flush', () => {
-    const queued: FrameRequestCallback[] = [];
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      queued.push(callback);
-      return queued.length;
-    });
-    const { interior, onMovePreview } = renderFrame();
-    fireEvent.pointerDown(interior!, { pointerId: 17, clientX: 200, clientY: 100 });
-    fireEvent.pointerMove(interior!, { pointerId: 17, clientX: 220, clientY: 170, shiftKey: true });
-    fireEvent.pointerMove(interior!, { pointerId: 17, clientX: 340, clientY: 220, shiftKey: true });
-
-    queued[0]!(0);
-
-    expect(onMovePreview).toHaveBeenCalledWith({
-      delta: { x: 140, y: 120 },
-      shiftKey: true,
-      axis: 'y',
-    });
+    expect(onMovePreview).toHaveBeenCalledWith({ x: 30, y: 40 });
   });
 
   it.each(['Escape', 'pointercancel'])('makes a queued preview inert after %s', (ending) => {
@@ -286,8 +232,8 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.pointerUp(interior!, { pointerId: 14, clientX: 200, clientY: 100 });
 
     expect(onMoveStart).toHaveBeenCalledTimes(1);
-    expect(onMovePreview).toHaveBeenLastCalledWith({ delta: { x: 0, y: 0 }, shiftKey: false, axis: null });
-    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: 0, y: 0 }, shiftKey: false, axis: null });
+    expect(onMovePreview).toHaveBeenLastCalledWith({ x: 0, y: 0 });
+    expect(onMoveCommit).toHaveBeenCalledWith();
     expect(onActivate).not.toHaveBeenCalled();
   });
 });

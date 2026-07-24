@@ -18,58 +18,6 @@ function session(
 }
 
 describe('resolveManualEditMovement', () => {
-  it('constrains Shift movement to a stable dominant axis until Shift is released', () => {
-    const movement = session({ baselineTranslate: '10px 20px' });
-
-    const xLocked = resolveManualEditMovement(movement, { x: 8, y: -8 }, { shiftKey: true, axis: null });
-    const stable = resolveManualEditMovement(movement, { x: 8, y: -30 }, {
-      shiftKey: true,
-      axis: xLocked.axisConstraint,
-    });
-    const released = resolveManualEditMovement(movement, { x: 8, y: -30 }, {
-      shiftKey: false,
-      axis: stable.axisConstraint,
-    });
-
-    expect(xLocked.axisConstraint).toBe('x');
-    expect(xLocked.appliedDelta).toEqual({ x: 8, y: 0 });
-    expect(stable.axisConstraint).toBe('x');
-    expect(stable.appliedDelta).toEqual({ x: 8, y: 0 });
-    expect(released.axisConstraint).toBeNull();
-    expect(released.appliedDelta).toEqual({ x: 8, y: -30 });
-  });
-
-  it('uses the current raw displacement when Shift is pressed again', () => {
-    const movement = session();
-    const yLocked = resolveManualEditMovement(
-      movement,
-      { x: 7, y: -12 },
-      { shiftKey: true, axis: null },
-    );
-    const released = resolveManualEditMovement(
-      movement,
-      { x: 30, y: 8 },
-      { shiftKey: false, axis: yLocked.axisConstraint },
-    );
-    const xLocked = resolveManualEditMovement(
-      movement,
-      { x: 30, y: 8 },
-      { shiftKey: true, axis: released.axisConstraint },
-    );
-
-    expect(yLocked).toMatchObject({
-      axisConstraint: 'y',
-      rawDelta: { x: 7, y: -12 },
-      appliedDelta: { x: 0, y: -12 },
-    });
-    expect(released.axisConstraint).toBeNull();
-    expect(xLocked).toMatchObject({
-      axisConstraint: 'x',
-      rawDelta: { x: 30, y: 8 },
-      appliedDelta: { x: 30, y: 0 },
-    });
-  });
-
   it('copies identity and absolute delta into independent result values', () => {
     const rawDelta = { x: 12, y: -8 };
     const result = resolveManualEditMovement(session({ targetId: 'copy-me' }), rawDelta);
