@@ -535,13 +535,19 @@ test('[P1] Desktop manual edit iframe follows the live canvas width', async ({ p
 test('[P1] issue 16 move browser verification', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Issue 16 move browser verification');
-  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  const transformedSource = manualEditHtml().replace(
+    'style="display:flex;gap:8px;align-items:center;"',
+    'style="display:flex;gap:8px;align-items:center;transform:scale(1.25);transform-origin:top left;"',
+  );
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', transformedSource);
   await page.goto(`/projects/${projectId}/files/manual-edit.html`);
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
   const image = frame.locator('[data-od-id="hero-image"]');
   await expect(image).toBeVisible();
+  await page.getByRole('button', { name: '100%' }).click();
+  await page.getByRole('menuitem', { name: '50%', exact: true }).click();
   await page.getByTestId('manual-edit-mode-toggle').click();
   await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
   await image.click();
@@ -577,7 +583,7 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
       const source = await resp.text();
       return source.match(/data-od-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
     })
-    .toMatch(/translate:\s*80px\s+40px/);
+    .toMatch(/translate:\s*128px\s+64px/);
   const moved = await image.boundingBox();
   if (!moved) throw new Error('image has no bounding box after move');
   expect(Math.abs((moved.x - before.x) - 80)).toBeLessThan(2);

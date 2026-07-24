@@ -211,7 +211,7 @@ export function moveCssCommitStyles(args: {
   deltaRect: { x: number; y: number };
   baseTranslate: string | undefined;
   rectScale?: { x: number; y: number };
-}): Partial<ManualEditStyles> {
+}): Pick<ManualEditStyles, 'translate'> {
   const base = parseTranslate(args.baseTranslate);
   const x = Math.round(base.x + args.deltaRect.x / rectScaleAxis(args.rectScale?.x));
   const y = Math.round(base.y + args.deltaRect.y / rectScaleAxis(args.rectScale?.y));

@@ -127,7 +127,13 @@ import { ManualEditPanel, applyManualEditStyleField, applyManualEditStyleFields,
 import { ManualEditShapeToolbar } from './ManualEditShapeToolbar';
 import { ManualEditResizeHandles } from './ManualEditResizeHandles';
 import { ManualEditMoveFrame } from './ManualEditMoveFrame';
-import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, moveCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
+import { RESIZE_HANDLE_DIRECTIONS, resizeCssCommitStyles, type ResizeHandleDirection } from '../edit-mode/resize-geometry';
+import {
+  resolveManualEditMovement,
+  type ManualEditMovementResult,
+  type ManualEditMovementSession,
+  type ManualEditMovementSource,
+} from '../edit-mode/movement-session';
 import { ManualEditTypographyToolbar, type ManualEditRichFormatState } from './ManualEditTypographyToolbar';
 import { ManualEditLeftInspector } from './ManualEditLeftInspector';
 import {
@@ -154,6 +160,11 @@ type ManualEditResizeFeedback = {
   targetId: string;
   constraints: ManualEditResizeConstraint[];
   announce: boolean;
+};
+type ActiveManualEditMovement = {
+  readonly session: ManualEditMovementSession;
+  readonly label: string;
+  latestResult: ManualEditMovementResult | null;
 };
 export type ManualEditPendingStyleSave = {
   id: string;
@@ -3772,9 +3783,7 @@ function HtmlViewer({
     styles: Partial<ManualEditStyles>;
     cssSize?: { width: string; height: string };
   } | null>(null);
-  // Drag-start snapshot of the element's base `translate` for move-frame delta
-  // math; every frame of one drag folds onto this fixed base.
-  const manualEditMoveBaselineRef = useRef<{ id: string; translate: string } | null>(null);
+  const activeManualEditMovementRef = useRef<ActiveManualEditMovement | null>(null);
   const manualEditPreviewVersionRef = useRef(0);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
@@ -4650,6 +4659,7 @@ function HtmlViewer({
     setManualEditError(null);
     clearManualEditResizeFeedback();
     manualEditPendingStyleRef.current = null;
+    activeManualEditMovementRef.current = null;
   }, [file.name]);
 
   // Selecting a new file or turning inspect/comment-inspect off resets the panel target.
@@ -4901,6 +4911,7 @@ function HtmlViewer({
       setManualEditError(null);
       clearManualEditResizeFeedback();
       manualEditPendingStyleRef.current = null;
+      activeManualEditMovementRef.current = null;
       setManualEditRichFormat({ editing: false, hasSelection: false, bold: false, italic: false, underline: false });
       return;
     }
@@ -5047,13 +5058,9 @@ function HtmlViewer({
                 ? { x: 0, y: 1 }
                 : null;
         if (!delta) return;
-        beginManualEditMoveBaseline(target);
-        previewStyleToIframe(
-          target.id,
-          manualEditMoveStyles(target, delta),
-          nextManualEditPreviewVersion(),
-        );
-        void commitManualEditMove(target, delta);
+        beginManualEditMovement(target, 'keyboard');
+        previewManualEditMovement(delta);
+        void commitManualEditMovement();
         return;
       }
     }
@@ -5237,66 +5244,90 @@ function HtmlViewer({
     previewStyleToIframe(target.id, revert, nextManualEditPreviewVersion());
   }
 
-  // Move-frame drag: fold the rect-space delta onto the element's base
-  // `translate` (selection-time value overlaid by any unsaved panel draft),
-  // snapshotted at drag start so preview acks / commit folds don't shift the
-  // baseline mid-drag. Mirrors the resize baseline/styles/commit/revert set.
   function baseTranslateFor(target: ManualEditTarget): string {
     const pending = manualEditPendingStyleRef.current;
     if (pending?.id === target.id && pending.styles.translate !== undefined) return pending.styles.translate;
     return target.styles.translate ?? '';
   }
 
-  function beginManualEditMoveBaseline(target: ManualEditTarget) {
-    manualEditMoveBaselineRef.current = { id: target.id, translate: baseTranslateFor(target) };
-  }
-
-  function manualEditMoveStyles(
+  function beginManualEditMovement(
     target: ManualEditTarget,
-    deltaRect: { x: number; y: number },
-  ): Partial<ManualEditStyles> {
-    let baseline = manualEditMoveBaselineRef.current;
-    if (baseline?.id !== target.id) {
-      beginManualEditMoveBaseline(target);
-      baseline = manualEditMoveBaselineRef.current;
-    }
-    return moveCssCommitStyles({
-      deltaRect,
-      baseTranslate: baseline?.translate,
-      rectScale: target.rectScale,
-    });
+    source: ManualEditMovementSource,
+  ): void {
+    activeManualEditMovementRef.current = {
+      session: {
+        targetId: target.id,
+        source,
+        startRect: { ...target.rect },
+        baselineTranslate: baseTranslateFor(target),
+        ...(target.rectScale ? { rectScale: { ...target.rectScale } } : {}),
+      },
+      label: `Style: ${target.label}`,
+      latestResult: null,
+    };
   }
 
-  async function commitManualEditMove(target: ManualEditTarget, deltaRect: { x: number; y: number }) {
-    const styles = manualEditMoveStyles(target, deltaRect);
-    const ok = await applyManualEdit({ id: target.id, kind: 'set-style', styles }, `Style: ${target.label}`);
-    if (!ok) {
-      // The shared non-queued manualEditSavingRef mutex can be busy (a
-      // border-drag-while-editing chains a text-commit, or rapid consecutive
-      // drags) — same ceiling the resize commit path has. Snap the preview
-      // back to base so the iframe stays consistent with the unwritten
-      // source instead of lingering at the dragged value for the next drag
-      // to read as a stale baseline.
-      revertManualEditMovePreview(target);
+  function previewManualEditMovement(deltaRect: { x: number; y: number }): void {
+    const movement = activeManualEditMovementRef.current;
+    if (!movement) return;
+    const result = resolveManualEditMovement(movement.session, deltaRect);
+    movement.latestResult = result;
+    previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+  }
+
+  async function commitManualEditMovement(): Promise<void> {
+    const movement = activeManualEditMovementRef.current;
+    if (!movement) return;
+    const { session, latestResult: result, label } = movement;
+    if (!result) {
+      if (activeManualEditMovementRef.current?.session === session) {
+        activeManualEditMovementRef.current = null;
+      }
       return;
     }
-    cancelManualEditPendingStyles(target.id, ['translate']);
-    // Fold translate into the selected target so consecutive drags accumulate
-    // on the committed base (and a later Escape reverts to it).
+    const ok = await applyManualEdit(
+      { id: result.targetId, kind: 'set-style', styles: result.styles },
+      label,
+    );
+    if (!ok) {
+      if (activeManualEditMovementRef.current?.session === session) {
+        previewStyleToIframe(
+          session.targetId,
+          { translate: session.baselineTranslate ?? '' },
+          nextManualEditPreviewVersion(),
+        );
+        activeManualEditMovementRef.current = null;
+      }
+      return;
+    }
+    cancelManualEditPendingStyles(result.targetId, ['translate']);
     setSelectedManualEditTarget((current) => {
-      if (!current || current.id !== target.id) return current;
-      return { ...current, styles: { ...current.styles, ...styles } };
+      if (!current || current.id !== result.targetId) return current;
+      return { ...current, styles: { ...current.styles, ...result.styles } };
     });
-    if (selectedManualEditTargetIdRef.current === target.id) {
+    if (selectedManualEditTargetIdRef.current === result.targetId) {
       setManualEditDraft((current) => ({
         ...current,
-        styles: { ...current.styles, ...styles },
+        styles: { ...current.styles, ...result.styles },
       }));
+    }
+    if (activeManualEditMovementRef.current?.session === session) {
+      activeManualEditMovementRef.current = null;
     }
   }
 
-  function revertManualEditMovePreview(target: ManualEditTarget) {
-    previewStyleToIframe(target.id, { translate: baseTranslateFor(target) }, nextManualEditPreviewVersion());
+  function cancelManualEditMovement(): void {
+    const movement = activeManualEditMovementRef.current;
+    if (!movement) return;
+    const { session } = movement;
+    previewStyleToIframe(
+      session.targetId,
+      { translate: session.baselineTranslate ?? '' },
+      nextManualEditPreviewVersion(),
+    );
+    if (activeManualEditMovementRef.current?.session === session) {
+      activeManualEditMovementRef.current = null;
+    }
   }
 
   async function flushManualEditStyleSave(): Promise<boolean> {
@@ -7251,7 +7282,7 @@ function HtmlViewer({
           ? undefined
           : t('manualEdit.selectBehindHint')}
         onMoveStart={() => {
-          beginManualEditMoveBaseline(selectedManualEditTarget);
+          beginManualEditMovement(selectedManualEditTarget, 'pointer');
           // Dragging the border while editing commits the text and promotes to
           // object-select before the move (PPT).
           if (manualEditMoveMode === 'editing') {
@@ -7259,19 +7290,11 @@ function HtmlViewer({
             setManualEditMoveMode('selected');
           }
         }}
-        onMovePreview={(delta) => {
-          previewStyleToIframe(
-            selectedManualEditTarget.id,
-            manualEditMoveStyles(selectedManualEditTarget, delta),
-            nextManualEditPreviewVersion(),
-          );
+        onMovePreview={previewManualEditMovement}
+        onMoveCommit={() => {
+          void commitManualEditMovement();
         }}
-        onMoveCommit={(delta) => {
-          void commitManualEditMove(selectedManualEditTarget, delta);
-        }}
-        onMoveCancel={() => {
-          revertManualEditMovePreview(selectedManualEditTarget);
-        }}
+        onMoveCancel={cancelManualEditMovement}
         onPressStart={() => {
           iframeRef.current?.contentWindow?.postMessage(
             { type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage,
