@@ -816,6 +816,11 @@ export function buildManualEditBridge(enabled: boolean): string {
   }
   var deferredOverlayClick = null;
   var hostSelectedTargetId = null;
+  var hostRevision = 0;
+  // Arrow keys currently held for a nudge burst. keyup does not cross the iframe
+  // boundary, so the bridge tracks them here and posts od-edit-nudge-commit once
+  // the set empties, giving the host the burst-end signal it cannot observe.
+  var heldNudgeKeys = {};
   function clearDeferredOverlayClick(){
     if (deferredOverlayClick !== null) {
       window.clearTimeout(deferredOverlayClick);
@@ -825,8 +830,10 @@ export function buildManualEditBridge(enabled: boolean): string {
   function activateClickTarget(el, event, cycled, selectionAware){
     if (selectionAware) el = targetForSelection(el);
     var kind = inferKind(el);
+    var id = stableId(el);
     setHoveredTarget(el);
-    setSelectedTarget(stableId(el));
+    setSelectedTarget(id);
+    hostSelectedTargetId = id;
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
     // Only enter inline edit on a fresh, non-modified click on the topmost
     // text/link target. Cycled clicks are explicitly drilling the z-stack;
@@ -907,7 +914,9 @@ export function buildManualEditBridge(enabled: boolean): string {
       var requestedEl = findById(ev.data.id);
       if (!requestedEl) return;
       requestedEl = targetForSelection(requestedEl);
-      setSelectedTarget(stableId(requestedEl));
+      var selectTargetId = stableId(requestedEl);
+      setSelectedTarget(selectTargetId);
+      hostSelectedTargetId = selectTargetId;
       window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(requestedEl, true, true) }, '*');
       return;
     }
@@ -915,6 +924,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       var nextSelectedTargetId = typeof ev.data.id === 'string' && ev.data.id ? ev.data.id : null;
       if (hostSelectedTargetId !== nextSelectedTargetId) clearDeferredOverlayClick();
       hostSelectedTargetId = nextSelectedTargetId;
+      hostRevision = Number(ev.data.revision) || 0;
       if (!ev.data.id) resetClickCycle();
       setSelectedTarget(ev.data.id || null);
       return;
@@ -964,20 +974,47 @@ export function buildManualEditBridge(enabled: boolean): string {
     var el = closestTarget(ev);
     postHoverTarget(el);
   }, true);
+  function isNudgeBlocked(target, isComposing){
+    if (isComposing) return true;
+    if (!target || target.nodeType !== 1) return false;
+    var el = target;
+    var tag = el.tagName ? el.tagName.toLowerCase() : '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+    if (typeof el.isContentEditable === 'boolean' && el.isContentEditable) return true;
+    if (el.closest && el.closest('[contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]')) return true;
+    var blockedRoles = { slider:1, spinbutton:1, textbox:1, searchbox:1, scrollbar:1, listbox:1, option:1, combobox:1, menu:1, menubar:1, menuitem:1, menuitemcheckbox:1, menuitemradio:1, tree:1, treegrid:1, treeitem:1, grid:1, gridcell:1, columnheader:1, rowheader:1, row:1, tab:1, tablist:1, radiogroup:1 };
+    var node = el;
+    while (node && node !== document.body) {
+      var role = node.getAttribute && node.getAttribute('role');
+      if (role && blockedRoles[role.trim().toLowerCase()]) return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
   // Keydown never bubbles out of this cross-document iframe to the host, so
   // forward history shortcuts and arrow nudges when an object is selected.
-  // Inline text editing keeps the browser's native keyboard behavior.
+  // Inline text editing, native controls, ARIA widgets, and IME composition
+  // keep the browser's native keyboard behavior.
   document.addEventListener('keydown', function(ev){
     if (!enabled) return;
-    if (document.querySelector('[data-od-editing="true"]')) return;
     var nudgeDirections = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     var nudgeDirection = nudgeDirections[ev.key];
-    if (nudgeDirection && !(ev.ctrlKey || ev.metaKey || ev.altKey) && document.querySelector('[data-od-edit-selected]')) {
+    var selectedEl = document.querySelector('[data-od-edit-selected]');
+    var isEditing = !!document.querySelector('[data-od-editing="true"]');
+    if (nudgeDirection && !(ev.ctrlKey || ev.metaKey || ev.altKey) && !isEditing && selectedEl && hostSelectedTargetId && !isNudgeBlocked(ev.target, ev.isComposing)) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
-      window.parent.postMessage({ type: 'od-edit-nudge', direction: nudgeDirection }, '*');
+      heldNudgeKeys[ev.key] = 1;
+      window.parent.postMessage({ type: 'od-edit-nudge', direction: nudgeDirection, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
       return;
     }
+    if (ev.key === 'Escape' && selectedEl && !isEditing && !isNudgeBlocked(ev.target, ev.isComposing)) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      window.parent.postMessage({ type: 'od-edit-burst-cancel' }, '*');
+      return;
+    }
+    if (isEditing) return;
     if (!(ev.ctrlKey || ev.metaKey)) return;
     var key = (ev.key || '').toLowerCase();
     var isUndo = key === 'z' && !ev.shiftKey;
@@ -985,6 +1022,14 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!isUndo && !isRedo) return;
     ev.preventDefault();
     window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
+  }, true);
+  // Releasing the last held arrow key ends the burst; tell the host to commit.
+  document.addEventListener('keyup', function(ev){
+    if (!enabled) return;
+    if (!heldNudgeKeys[ev.key]) return;
+    delete heldNudgeKeys[ev.key];
+    for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) return; }
+    window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
   }, true);
   document.addEventListener('selectionchange', postSelectionState);
   window.addEventListener('resize', postTargets);

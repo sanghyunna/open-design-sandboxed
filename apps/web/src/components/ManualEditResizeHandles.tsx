@@ -25,6 +25,7 @@ export type ManualEditResizeHandlesProps = {
   scale: number;
   disabled?: boolean;
   labels: Record<ResizeHandleDirection, string>;
+  frameLabel: string;
   resizeConstraints?: readonly ManualEditResizeConstraint[];
   resizeFeedback?: string;
   bounds?: Size;
@@ -35,6 +36,9 @@ export type ManualEditResizeHandlesProps = {
   onResizePreview: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
   onResizeCommit: (direction: ResizeHandleDirection, size: Size, startSize: Size) => void;
   onResizeCancel: () => void;
+  // Returns true if a burst was in progress and got cancelled. The caller uses
+  // this to decide whether to stop propagation of the Escape event.
+  onBurstCancel: () => boolean;
   // Fired at pointerdown so the host can snapshot its drag baseline (computed
   // css size, base styles) BEFORE preview acks start mutating the live target.
   onResizeStart?: () => void;
@@ -63,12 +67,14 @@ export function ManualEditResizeHandles({
   scale,
   disabled = false,
   labels,
+  frameLabel,
   resizeConstraints,
   resizeFeedback,
   bounds,
   onResizePreview,
   onResizeCommit,
   onResizeCancel,
+  onBurstCancel,
   onResizeStart,
 }: ManualEditResizeHandlesProps) {
   const dragRef = useRef<DragState | null>(null);
@@ -205,13 +211,20 @@ export function ManualEditResizeHandles({
     onResizeCancel();
   };
 
-  const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== 'Escape' || !dragRef.current) return;
-    event.preventDefault();
-    event.stopPropagation();
-    endDrag();
-    pendingSizeRef.current = null;
-    onResizeCancel();
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement | HTMLDivElement>) => {
+    if (event.key !== 'Escape') return;
+    if (dragRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      endDrag();
+      pendingSizeRef.current = null;
+      onResizeCancel();
+      return;
+    }
+    if (onBurstCancel()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   };
 
   // Positions in container-local space: the container itself is absolutely
@@ -267,6 +280,11 @@ export function ManualEditResizeHandles({
     <div
       className={styles.container}
       style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+      role="group"
+      aria-label={frameLabel}
+      data-od-edit-selected-surface
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
     >
       {constrainedEdges.map((direction) => (
         <span
@@ -294,7 +312,6 @@ export function ManualEditResizeHandles({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}
-            onKeyDown={handleKeyDown}
           />
         );
       })}

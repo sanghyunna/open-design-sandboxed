@@ -20,19 +20,22 @@ function renderHandles(overrides: Partial<Parameters<typeof ManualEditResizeHand
   const onResizePreview = vi.fn();
   const onResizeCommit = vi.fn();
   const onResizeCancel = vi.fn();
+  const onBurstCancel = vi.fn(() => false);
   const utils = render(
     <ManualEditResizeHandles
       rect={{ left: 100, top: 50, width: 200, height: 100 }}
       startSize={{ width: 200, height: 100 }}
       scale={1}
       labels={labels}
+      frameLabel="Resize element"
       onResizePreview={onResizePreview}
       onResizeCommit={onResizeCommit}
       onResizeCancel={onResizeCancel}
+      onBurstCancel={onBurstCancel}
       {...overrides}
     />,
   );
-  return { ...utils, onResizePreview, onResizeCommit, onResizeCancel };
+  return { ...utils, onResizePreview, onResizeCommit, onResizeCancel, onBurstCancel };
 }
 
 beforeEach(() => {
@@ -137,6 +140,26 @@ describe('ManualEditResizeHandles', () => {
     expect(document.activeElement).toBe(se);
   });
 
+  it('calls onBurstCancel on Escape when no drag is active and swallows the key if cancelled', () => {
+    const onBurstCancel = vi.fn(() => true);
+    const { getByLabelText } = renderHandles({ onBurstCancel });
+    const se = getByLabelText(labels.se);
+    se.focus();
+    const event = fireEvent.keyDown(se, { key: 'Escape' });
+    expect(onBurstCancel).toHaveBeenCalledTimes(1);
+    expect(event).toBe(false);
+  });
+
+  it('does not swallow Escape when onBurstCancel reports no active burst', () => {
+    const onBurstCancel = vi.fn(() => false);
+    const { getByLabelText } = renderHandles({ onBurstCancel });
+    const se = getByLabelText(labels.se);
+    se.focus();
+    const event = fireEvent.keyDown(se, { key: 'Escape' });
+    expect(onBurstCancel).toHaveBeenCalledTimes(1);
+    expect(event).toBe(true);
+  });
+
   it('keeps the pointerdown baseline when the startSize prop changes mid-drag', () => {
     const { getByLabelText, rerender, onResizePreview } = renderHandles();
     const se = getByLabelText(labels.se);
@@ -149,9 +172,11 @@ describe('ManualEditResizeHandles', () => {
         startSize={{ width: 400, height: 300 }}
         scale={1}
         labels={labels}
+        frameLabel="Resize element"
         onResizePreview={onResizePreview}
         onResizeCommit={vi.fn()}
         onResizeCancel={vi.fn()}
+        onBurstCancel={vi.fn(() => false)}
       />,
     );
     fireEvent.pointerMove(se, { pointerId: 9, clientX: 340, clientY: 170 });
@@ -181,9 +206,11 @@ describe('ManualEditResizeHandles', () => {
         startSize={{ width: 200, height: 100 }}
         scale={1}
         labels={labels}
+        frameLabel="Resize element"
         onResizePreview={onResizePreview}
         onResizeCommit={vi.fn()}
         onResizeCancel={vi.fn()}
+        onBurstCancel={vi.fn(() => false)}
       />,
     );
 

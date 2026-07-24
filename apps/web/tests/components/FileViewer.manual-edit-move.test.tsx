@@ -55,6 +55,7 @@ describe('FileViewer manual edit move frame', () => {
 
   async function selectManualEditTarget(target: ManualEditTarget) {
     const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: { type: 'od-edit-select', target },
@@ -64,6 +65,19 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => {
       expect(screen.queryByLabelText('Move element')).not.toBeNull();
     });
+    // Wait for any async target-broadcast re-post to settle, then read the
+    // latest od-edit-selected-target revision the bridge would echo back.
+    let revision = 0;
+    await waitFor(() => {
+      const selectedCalls = postSpy.mock.calls.filter(([message]) => (
+        (message as { type?: string }).type === 'od-edit-selected-target'
+      ));
+      const latest = selectedCalls.at(-1)?.[0] as { id?: string; revision?: number } | undefined;
+      expect(latest?.id).toBe(target.id);
+      revision = latest?.revision ?? 0;
+    });
+    postSpy.mockRestore();
+    return { frame, revision };
   }
 
   function moveFrame() {
@@ -1210,17 +1224,22 @@ describe('FileViewer manual edit move frame', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget({
+    const { frame, revision } = await selectManualEditTarget({
       ...imageTarget(),
       rectScale: { x: 2, y: 2 },
       styles: { ...emptyManualEditStyles(), translate: '4px 3px' },
     });
-    const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     postSpy.mockClear();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right' },
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1236,7 +1255,8 @@ describe('FileViewer manual edit move frame', () => {
       && (init as RequestInit | undefined)?.method === 'POST'
     ));
     expect(posts).toHaveLength(1);
-    expect(resolverSpy).toHaveBeenCalledTimes(2);
+    // One burst resolves once (preview); the commit reuses that result.
+    expect(resolverSpy).toHaveBeenCalledTimes(1);
   });
 
   it('persists one file write for one pointer movement', async () => {
@@ -1340,17 +1360,22 @@ describe('FileViewer manual edit move frame', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
-    await selectManualEditTarget({
+    const { frame, revision } = await selectManualEditTarget({
       ...imageTarget(),
       rectScale: { x: 100, y: 100 },
     });
-    const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     postSpy.mockClear();
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right' },
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1498,6 +1523,281 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(second, { pointerId: 69, clientX: 350, clientY: 150 });
     await waitFor(() => expect(finalSavedContent).toMatch(/translate:\s*50px\s+0px/));
     expect(postCount).toBe(2);
+  });
+
+  it('coalesces rapid keyboard nudges into a single save', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    postSpy.mockClear();
+
+    for (let i = 0; i < 3; i += 1) {
+      act(() => {
+        window.dispatchEvent(new MessageEvent('message', {
+          data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+          source: frame.contentWindow,
+        }));
+      });
+    }
+    // No save until the burst ends: the bridge only signals commit when the last
+    // held arrow key is released.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+    expect(savedContent).toMatch(/translate:\s*3px\s+0px/);
+    const previews = postSpy.mock.calls.filter(([message]) => (
+      (message as { type?: string }).type === 'od-edit-preview-style'
+    ));
+    expect(previews.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('cancels an active keyboard burst on Escape and reverts the preview', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    postSpy.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+
+    const surface = interiorSurface();
+    surface.focus();
+    fireEvent.keyDown(surface, { key: 'Escape' });
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+    expect(postSpy.mock.calls.some(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === ''
+    ))).toBe(true);
+  });
+
+  it('does not nudge from the host when focus is on a blocked target', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(input, { key: 'ArrowRight' });
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+
+    input.remove();
+  });
+
+  it('ignores a keyboard nudge for a different target', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'other-target', revision },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
+  it('ignores a keyboard nudge with a stale revision', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision: revision - 1 },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
+  it('commits a host-focused burst once the arrow key is released', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    // Key still held: no save yet.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+    expect(savedContent).toMatch(/translate:\s*2px\s+0px/);
+  });
+
+  it('does not nudge from the host when focus is outside the selected surface', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+    fireEvent.keyDown(button, { key: 'ArrowRight' });
+    fireEvent.keyUp(button, { key: 'ArrowRight' });
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+    button.remove();
+  });
+
+  it('queues a second burst while the first save is in flight and writes both', async () => {
+    let releaseFirst: () => void = () => {};
+    const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let postCount = 0;
+    // Track the last-saved content so the second save's history-confirm GET sees
+    // the first save's result instead of a stale baseline.
+    let persisted = SOURCE;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        postCount += 1;
+        if (postCount === 1) await firstGate;
+        persisted = JSON.parse(String(init.body)).content as string;
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(persisted, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+
+    const nudge = () => act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+    const commit = () => act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        source: frame.contentWindow,
+      }));
+    });
+
+    nudge();
+    commit(); // burst 1 -> POST 1 (blocked on firstGate)
+    await waitFor(() => expect(postCount).toBe(1));
+    nudge();
+    commit(); // burst 2 queued while POST 1 in flight
+    releaseFirst();
+    await waitFor(() => expect(postCount).toBe(2));
+    // Both steps land: the second write baselines off the committed first move.
+    expect(persisted).toMatch(/translate:\s*2px\s+0px/);
+  });
+
+  it('keeps a held burst that spans a save as a single write', async () => {
+    let releaseFirst: () => void = () => {};
+    const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let postCount = 0;
+    let persisted = SOURCE;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        postCount += 1;
+        if (postCount === 1) await firstGate;
+        persisted = JSON.parse(String(init.body)).content as string;
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(persisted, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    // Burst 1: one full press -> commit -> POST 1 (blocked on the gate).
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await waitFor(() => expect(postCount).toBe(1));
+
+    // Burst 2 begins and is STILL HELD while POST 1 is in flight.
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+
+    releaseFirst();
+    // POST 1 finishes; the drain must NOT split the still-open held burst.
+    await waitFor(() => expect(persisted).toMatch(/translate:\s*1px\s+0px/));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(postCount).toBe(1);
+
+    // Still held AFTER the save completed and re-synced the selection (which bumps
+    // the preview revision): the repeat must extend the SAME burst, not split it.
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+
+    // Releasing the held key ends burst 2 -> exactly one more write, cumulative
+    // over all three held repeats (1px baseline + 3).
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await waitFor(() => expect(postCount).toBe(2));
+    expect(persisted).toMatch(/translate:\s*4px\s+0px/);
   });
 
 });

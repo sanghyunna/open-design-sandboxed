@@ -222,6 +222,24 @@ export interface ManualEditUndoMessage {
 export interface ManualEditNudgeMessage {
   type: 'od-edit-nudge';
   direction: 'up' | 'down' | 'left' | 'right';
+  /** Stable id of the selected target that must still be selected on the host. */
+  targetId: string;
+  /** Host preview revision at the time the key was pressed. Stale revisions are ignored. */
+  revision: number;
+}
+
+export interface ManualEditBurstCancelMessage {
+  type: 'od-edit-burst-cancel';
+}
+
+// iframe -> host: all owned arrow keys were released inside the preview, so the
+// keyboard burst is complete and should be committed. keyup does not cross the
+// iframe boundary, so the bridge tracks its own held arrow keys and emits this
+// once the set empties. Carries identity so a stale burst end is ignored.
+export interface ManualEditNudgeCommitMessage {
+  type: 'od-edit-nudge-commit';
+  targetId: string;
+  revision: number;
 }
 
 // iframe -> host: reports the live rich-text edit/selection/format state so the
@@ -288,6 +306,8 @@ export type ManualEditBridgeMessage =
   | ManualEditHtmlCommitMessage
   | ManualEditUndoMessage
   | ManualEditNudgeMessage
+  | ManualEditBurstCancelMessage
+  | ManualEditNudgeCommitMessage
   | ManualEditSelectionStateMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [

@@ -38,6 +38,9 @@ export type ManualEditMoveFrameProps = {
   onSurfaceDoubleClick: (region: Region) => void;
   /** Fired when the Alt/Option key changes state during an active drag. */
   onAltChange?: (altKey: boolean) => void;
+  // Returns true if a burst was in progress and got cancelled. The caller uses
+  // this to decide whether to stop propagation of the Escape event.
+  onBurstCancel: () => boolean;
 };
 
 // px, unscaled — the frame lives in canvas-space overlay coords.
@@ -72,6 +75,7 @@ export function ManualEditMoveFrame({
   onActivate,
   onSurfaceDoubleClick,
   onAltChange,
+  onBurstCancel,
 }: ManualEditMoveFrameProps) {
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -329,15 +333,22 @@ export function ManualEditMoveFrame({
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Escape' || !dragRef.current) return;
-    const dragging = dragRef.current.dragging;
-    event.preventDefault();
-    event.stopPropagation();
-    endDrag();
-    pendingUpdateRef.current = null;
-    latestDeltaRef.current = null;
-    shiftAxisRef.current = null;
-    if (dragging) onMoveCancel();
+    if (event.key !== 'Escape') return;
+    if (dragRef.current) {
+      const dragging = dragRef.current.dragging;
+      event.preventDefault();
+      event.stopPropagation();
+      endDrag();
+      pendingUpdateRef.current = null;
+      latestDeltaRef.current = null;
+      shiftAxisRef.current = null;
+      if (dragging) onMoveCancel();
+      return;
+    }
+    if (onBurstCancel()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   };
 
   const handleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>, region: Region) => {
@@ -354,7 +365,6 @@ export function ManualEditMoveFrame({
     onPointerUp: handlePointerUp,
     onPointerCancel: handlePointerCancel,
     onDoubleClick: (event: ReactMouseEvent<HTMLDivElement>) => handleDoubleClick(event, region),
-    onKeyDown: handleKeyDown,
   });
 
   const ringSize = mode === 'editing' ? RING_EDITING : RING_SELECTED;
@@ -365,6 +375,10 @@ export function ManualEditMoveFrame({
       style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
       role="group"
       aria-label={label}
+      data-od-edit-selected-surface
+      data-od-edit-primary-surface
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
     >
       <div className={`${styles.ring} ${styles.ringTop}`} style={{ height: ringSize }} {...surfaceProps('ring')} />
       <div className={`${styles.ring} ${styles.ringBottom}`} style={{ height: ringSize }} {...surfaceProps('ring')} />

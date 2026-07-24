@@ -2349,7 +2349,12 @@ export interface Dict {
   'manualEdit.resize.limit': string;
   'manualEdit.resize.layoutLimit': string;
   'manualEdit.resize.measurements': string;
+  'manualEdit.resize.frameLabel': string;
   'manualEdit.move.frame': string;
+  'manualEdit.move.left': string;
+  'manualEdit.move.right': string;
+  'manualEdit.move.up': string;
+  'manualEdit.move.down': string;
   'manualEdit.selectBehindHint': string;
   'fileViewer.zoomOut': string;
   'fileViewer.zoomIn': string;
