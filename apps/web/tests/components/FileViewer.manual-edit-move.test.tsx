@@ -889,6 +889,38 @@ describe('FileViewer manual edit move frame', () => {
     expect(resolverSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('drops an active movement when the same file refreshes', async () => {
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} liveHtml={SOURCE} />,
+    );
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const interior = interiorSurface();
+    fireEvent.pointerDown(interior, { pointerId: 68, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(interior, { pointerId: 68, clientX: 330, clientY: 150 });
+    const activeFrame = manualEditMoveFrameProbe.current!;
+
+    rerender(
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={{ ...file, mtime: file.mtime + 1 }}
+        liveHtml={SOURCE.replace('Hero', 'Refreshed')}
+      />,
+    );
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(activeFrame));
+
+    activeFrame.onMoveCommit({ delta: { x: 30, y: 0 }, shiftKey: false, axis: null });
+    await Promise.resolve();
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
   it('resolves a queued final pointer preview exactly once before committing it', async () => {
     const queued: FrameRequestCallback[] = [];
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {

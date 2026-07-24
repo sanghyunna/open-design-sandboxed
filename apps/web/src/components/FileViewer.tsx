@@ -4272,7 +4272,11 @@ function HtmlViewer({
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
   const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
   const manualEditMovementOwnerKey = [
+    projectId,
     file.name,
+    file.mtime,
+    liveHtml === undefined ? 'raw' : liveHtml,
+    filesRefreshKey,
     reloadKey,
     manualEditDocumentRevision,
     manualEditMode ? 'active' : 'inactive',
