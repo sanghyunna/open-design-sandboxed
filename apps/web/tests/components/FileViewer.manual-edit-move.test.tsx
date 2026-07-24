@@ -950,6 +950,88 @@ describe('FileViewer manual edit move frame', () => {
     ))).toHaveLength(0);
   });
 
+  it('drops a movement that starts while a raw-source refresh is pending', async () => {
+    let rawFetches = 0;
+    let resolveRefresh!: (response: Response) => void;
+    const refresh = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/raw/')) {
+        rawFetches += 1;
+        return rawFetches === 1
+          ? Promise.resolve(new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }))
+          : refresh;
+      }
+      return Promise.resolve(new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} />,
+    );
+    await waitFor(() => expect(rawFetches).toBe(1));
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const firstInterior = interiorSurface();
+    fireEvent.pointerDown(firstInterior, { pointerId: 69, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(firstInterior, { pointerId: 69, clientX: 330, clientY: 150 });
+    const firstFrame = manualEditMoveFrameProbe.current!;
+
+    rerender(
+      <FileViewer projectId="project-1" projectKind="prototype" file={{ ...file, mtime: file.mtime + 1 }} />,
+    );
+    await waitFor(() => expect(rawFetches).toBe(2));
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(firstFrame));
+
+    const secondInterior = interiorSurface();
+    fireEvent.pointerDown(secondInterior, { pointerId: 70, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(secondInterior, { pointerId: 70, clientX: 340, clientY: 150 });
+    const secondFrame = manualEditMoveFrameProbe.current!;
+    const secondPreview = postSpy.mock.calls.slice().reverse().find(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === '40px 0px'
+    ));
+    expect(secondPreview).toBeDefined();
+    const staleVersion = (secondPreview![0] as { version: number }).version;
+    postSpy.mockClear();
+
+    resolveRefresh(new Response(SOURCE.replace('Hero', 'Refreshed'), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    }));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style',
+        styles: { translate: '' },
+      }),
+      '*',
+    ));
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(secondFrame));
+    const rectBeforeStaleAck = manualEditMoveFrameProbe.current!.rect;
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'pic',
+          version: staleVersion,
+          ok: true,
+          rect: { x: 500, y: 400, width: 210, height: 130 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(manualEditMoveFrameProbe.current!.rect).toEqual(rectBeforeStaleAck);
+    secondFrame.onMoveCommit({ delta: { x: 40, y: 0 }, shiftKey: false, axis: null });
+    await Promise.resolve();
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
   it('resolves a queued final pointer preview exactly once before committing it', async () => {
     const queued: FrameRequestCallback[] = [];
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {

@@ -4124,7 +4124,13 @@ function HtmlViewer({
       if (text == null) return;
       if (manualEditSourceRefreshPendingRef.current) {
         manualEditSourceRefreshPendingRef.current = false;
-        if (manualEditModeRef.current) refreshManualEditDocument(text);
+        if (manualEditModeRef.current) {
+          if (activeManualEditMovementRef.current) {
+            dropActiveManualEditMovementForSourceRefresh(text);
+          } else {
+            refreshManualEditDocument(text);
+          }
+        }
       }
       setSource(text);
       sourceRef.current = text;
