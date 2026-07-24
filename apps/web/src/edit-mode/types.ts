@@ -71,6 +71,18 @@ export interface ManualEditTarget {
    */
   rectScale?: { x: number; y: number };
   /**
+   * Immediate source-mappable parent target id. Null when no discoverable
+   * ancestor exists; only present when the parent is itself a discoverable
+   * manual-edit target.
+   */
+  parentId?: string | null;
+  /**
+   * Source-mappable ancestor target ids, nearest-first: the immediate
+   * discoverable parent, then its parent, out to the outermost discoverable
+   * ancestor. Empty for root-level targets.
+   */
+  ancestorIds?: readonly string[];
+  /**
    * Post-layout getComputedStyle width/height (used px values). Unlike
    * `styles.width/height` (inline value first, which layout may have clamped
    * or ignored), this is what actually renders — the resize drag baseline.
@@ -95,6 +107,11 @@ export interface ManualEditTarget {
   isLayoutContainer: boolean;
   isHidden?: boolean;
   outerHtml: string;
+  /**
+   * Whether the element is still connected to the document. Discovery targets
+   * are always connected; preview acks may carry stale disconnected elements.
+   */
+  isConnected?: boolean;
 }
 
 export type ManualEditPatch =

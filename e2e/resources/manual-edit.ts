@@ -34,3 +34,27 @@ export function issue41SelectionPaintHtml(): string {
   </body>
 </html>`;
 }
+
+export function magneticEdgeAlignmentHtml(): string {
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Magnetic edge alignment</title>
+    <style>
+      .snap-stage { position: relative; width: 400px; height: 300px; background: #f8fafc; }
+      .snap-box { position: absolute; width: 80px; height: 60px; }
+      .snap-source { left: 40px; top: 40px; background: #bfdbfe; }
+      .snap-target { left: 215px; top: 140px; background: #bbf7d0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="snap-stage" data-od-id="snap-stage" data-od-label="Snap stage">
+        <div class="snap-box snap-source" data-od-id="snap-source" data-od-label="Snap source"><span>Source</span></div>
+        <div class="snap-box snap-target" data-od-id="snap-target" data-od-label="Snap target" data-od-edit="container"><span>Target</span></div>
+      </section>
+    </main>
+  </body>
+</html>`;
+}

@@ -97,7 +97,7 @@ function parsePx(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function rectScaleAxis(scale: number | undefined): number {
+export function rectScaleAxis(scale: number | undefined): number {
   return typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1;
 }
 
@@ -206,14 +206,35 @@ export function parseTranslate(value: string | undefined): { x: number; y: numbe
   return { x: parsePx(tokens[0]) ?? 0, y: parsePx(tokens[1]) ?? 0 };
 }
 
-/** Fold a rect-space move delta onto the base translate, converting to CSS px via rectScale. */
+// A CSS px result below this magnitude serializes to 0 on that axis, so the
+// translate collapses to '' when both axes vanish. Guards against a fractional
+// residue (e.g. 0.0004) surviving as a nonzero token.
+const TRANSLATE_ZERO_EPSILON = 1e-3;
+
+/** Round to at most 3 decimals and strip a signed zero. */
+function fractionalPx(value: number): number {
+  const rounded = Number.parseFloat(value.toFixed(3));
+  return rounded === 0 ? 0 : rounded;
+}
+
+/**
+ * Fold a rect-space move delta onto the base translate, converting to CSS px via
+ * rectScale. `fractional` is a per-axis flag: a free (un-snapped) axis rounds to
+ * a whole px like every other move commit, while a snapped axis keeps up to
+ * three decimals so the element's edge lands exactly on the sub-pixel target
+ * edge it magnetically aligned to.
+ */
 export function moveCssCommitStyles(args: {
   deltaRect: { x: number; y: number };
   baseTranslate: string | undefined;
   rectScale?: { x: number; y: number };
+  fractional?: { x?: boolean; y?: boolean };
 }): Pick<ManualEditStyles, 'translate'> {
   const base = parseTranslate(args.baseTranslate);
-  const x = Math.round(base.x + args.deltaRect.x / rectScaleAxis(args.rectScale?.x));
-  const y = Math.round(base.y + args.deltaRect.y / rectScaleAxis(args.rectScale?.y));
-  return { translate: (x === 0 && y === 0) ? '' : `${x}px ${y}px` };
+  const rawX = base.x + args.deltaRect.x / rectScaleAxis(args.rectScale?.x);
+  const rawY = base.y + args.deltaRect.y / rectScaleAxis(args.rectScale?.y);
+  const x = args.fractional?.x ? fractionalPx(rawX) : Math.round(rawX);
+  const y = args.fractional?.y ? fractionalPx(rawY) : Math.round(rawY);
+  const collapsed = Math.abs(x) < TRANSLATE_ZERO_EPSILON && Math.abs(y) < TRANSLATE_ZERO_EPSILON;
+  return { translate: collapsed ? '' : `${x}px ${y}px` };
 }

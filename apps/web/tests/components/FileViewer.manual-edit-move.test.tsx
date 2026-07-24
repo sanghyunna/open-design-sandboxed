@@ -847,7 +847,7 @@ describe('FileViewer manual edit move frame', () => {
         baselineTranslate: '10px 6px',
       }),
       { x: 40, y: 0 },
-      { shiftKey: false, axis: null },
+      { alt: false, shiftKey: false, axis: null },
     );
     fireEvent.pointerCancel(interior, { pointerId: 62 });
   });

@@ -403,6 +403,16 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
     return { constraints: constraints, announce: request.includeDetails === true };
   }
+  function ancestorIdsFor(el){
+    // Nearest-first: immediate discoverable parent, then outward.
+    var ids = [];
+    var node = el.parentElement;
+    while (node && node !== document.body) {
+      if (isSourceMappable(node) && isDiscoveryTarget(node)) ids.push(stableId(node));
+      node = node.parentElement;
+    }
+    return ids;
+  }
   function targetFrom(el, includeOuterHtml, includeAuthoredSize){
     var rect = el.getBoundingClientRect();
     var kind = inferKind(el);
@@ -419,6 +429,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     } else {
       fields.text = (el.textContent || '').trim();
     }
+    var ancestorIds = ancestorIdsFor(el);
     var target = {
       id: id,
       kind: kind,
@@ -426,8 +437,10 @@ export function buildManualEditBridge(enabled: boolean): string {
       tagName: el.tagName ? el.tagName.toLowerCase() : 'element',
       className: typeof el.className === 'string' ? el.className : '',
       text: (el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 180),
-      rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       rectScale: { x: rectScaleAxis(rect.width, el.offsetWidth), y: rectScaleAxis(rect.height, el.offsetHeight) },
+      parentId: ancestorIds.length ? ancestorIds[0] : null,
+      ancestorIds: ancestorIds,
       cssSize: cssSizeFor(el),
       flexItemAxis: flexItemAxisFor(el),
       textEditTargetId: textEditTarget ? stableId(textEditTarget) : undefined,
@@ -436,6 +449,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       styles: stylesFor(el),
       isLayoutContainer: isLayoutContainer(el),
       isHidden: hidden,
+      isConnected: el.isConnected,
       outerHtml: includeOuterHtml ? (el.outerHTML || '').replace(/\\sdata-od-runtime-id="[^"]*"/g, '').replace(/\\sdata-od-runtime-hovered="[^"]*"/g, '').replace(/\\sdata-od-source-path="[^"]*"/g, '').replace(/\\sdata-od-edit-selected="[^"]*"/g, '') : ''
     };
     // Only selected targets need cascade provenance for the inspector;
@@ -789,7 +803,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         id: id,
         version: Number(version) || 0,
         ok: true,
-        rect: { x: Math.round(applied.x), y: Math.round(applied.y), width: Math.round(applied.width), height: Math.round(applied.height) },
+        rect: { x: applied.x, y: applied.y, width: applied.width, height: applied.height },
         cssSize: cssSizeFor(el)
       };
       if (includeAuthoredSize) appliedMessage.authoredSize = authoredSizeFor(el);

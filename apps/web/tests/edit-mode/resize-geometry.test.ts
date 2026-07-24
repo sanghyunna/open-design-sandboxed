@@ -434,6 +434,49 @@ describe('parseTranslate', () => {
   });
 });
 
+describe('moveCssCommitStyles fractional flag', () => {
+  it('keeps up to three decimals on a snapped axis', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 5.7, y: 0 },
+      baseTranslate: undefined,
+      fractional: { x: true },
+    })).toEqual({ translate: '5.7px 0px' });
+  });
+
+  it('rounds a free axis to a whole px even when the other axis is fractional', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 5.7, y: 3.4 },
+      baseTranslate: undefined,
+      fractional: { x: true, y: false },
+    })).toEqual({ translate: '5.7px 3px' });
+  });
+
+  it('rounds both axes when neither is flagged fractional', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 5.7, y: 3.4 },
+      baseTranslate: undefined,
+    })).toEqual({ translate: '6px 3px' });
+  });
+
+  it('applies rectScale before fractional serialization', () => {
+    // 5.7 rect px / scale 2 = 2.85 CSS px, preserved at 3 decimals.
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 5.7, y: 0 },
+      baseTranslate: undefined,
+      rectScale: { x: 2, y: 1 },
+      fractional: { x: true },
+    })).toEqual({ translate: '2.85px 0px' });
+  });
+
+  it('normalizes a near-zero fractional result to an empty translate', () => {
+    expect(moveCssCommitStyles({
+      deltaRect: { x: 0.0004, y: -0.0004 },
+      baseTranslate: undefined,
+      fractional: { x: true, y: true },
+    })).toEqual({ translate: '' });
+  });
+});
+
 describe('moveCssCommitStyles', () => {
   it('no base, delta only, scale 1', () => {
     expect(moveCssCommitStyles({ deltaRect: { x: 30, y: 40 }, baseTranslate: undefined })).toEqual({
