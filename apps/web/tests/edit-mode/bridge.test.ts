@@ -2394,24 +2394,4 @@ describe('manual edit bridge ancestry + rect precision', () => {
     expect(rect.height).toBe(50.3);
     dom.window.close();
   });
-
-  it('includes isConnected on preview-style acks', async () => {
-    const posts: Array<{ type?: string; isConnected?: boolean }> = [];
-    const dom = new JSDOM(
-      `<main><p data-od-source-path="path-p">Hi</p></main>${buildManualEditBridge(true)}`,
-      { runScripts: 'dangerously', url: 'http://localhost' },
-    );
-    const pEl = dom.window.document.querySelector('[data-od-source-path="path-p"]') as HTMLElement;
-    pEl.getBoundingClientRect = () => ({ x: 0, y: 0, width: 100, height: 100, top: 0, right: 100, bottom: 100, left: 0, toJSON: () => ({}) } as DOMRect);
-    dom.window.parent.postMessage = ((m: unknown) => { posts.push(m as { type?: string; isConnected?: boolean }); }) as typeof dom.window.parent.postMessage;
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: { type: 'od-edit-mode', enabled: true } }));
-    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
-      data: { type: 'od-edit-preview-style', id: 'path-p', styles: { translate: '10px 10px' }, version: 1 },
-    }));
-    await new Promise((resolve) => { dom.window.setTimeout(resolve, 20); });
-    const ack = posts.find((m) => m.type === 'od-edit-preview-style-applied');
-    expect(ack).toBeTruthy();
-    expect(ack!.isConnected).toBe(true);
-    dom.window.close();
-  });
 });

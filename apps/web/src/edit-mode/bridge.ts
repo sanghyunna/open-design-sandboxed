@@ -38,19 +38,6 @@ export function manualEditStableIdForElement(el: Element): string {
   return generated || 'unknown';
 }
 
-// Nearest-first: the immediate discoverable parent, then outward.
-export function manualEditAncestorIdsForElement(el: Element): string[] {
-  const ids: string[] = [];
-  let node: Element | null = el.parentElement;
-  while (node && node !== node.ownerDocument.body) {
-    if (isSourceMappableManualEditElement(node) && node.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)) {
-      ids.push(manualEditStableIdForElement(node));
-    }
-    node = node.parentElement;
-  }
-  return ids;
-}
-
 export function isMeaningfulManualEditElement(el: Element, rect: Pick<DOMRect, 'width' | 'height'>): boolean {
   return isSourceMappableManualEditElement(el)
     && el.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)
@@ -817,7 +804,6 @@ export function buildManualEditBridge(enabled: boolean): string {
         version: Number(version) || 0,
         ok: true,
         rect: { x: applied.x, y: applied.y, width: applied.width, height: applied.height },
-        isConnected: el.isConnected,
         cssSize: cssSizeFor(el)
       };
       if (includeAuthoredSize) appliedMessage.authoredSize = authoredSizeFor(el);
