@@ -899,10 +899,18 @@ describe('FileViewer manual edit move frame', () => {
     );
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
     await selectManualEditTarget(imageTarget());
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     const interior = interiorSurface();
     fireEvent.pointerDown(interior, { pointerId: 68, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(interior, { pointerId: 68, clientX: 330, clientY: 150 });
     const activeFrame = manualEditMoveFrameProbe.current!;
+    const preview = postSpy.mock.calls.find(([message]) => (
+      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      && (message as { styles?: { translate?: string } }).styles?.translate === '30px 0px'
+    ));
+    expect(preview).toBeDefined();
+    const staleVersion = (preview![0] as { version: number }).version;
 
     rerender(
       <FileViewer
@@ -913,6 +921,27 @@ describe('FileViewer manual edit move frame', () => {
       />,
     );
     await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(activeFrame));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-preview-style',
+        styles: { translate: '' },
+      }),
+      '*',
+    ));
+    const rectBeforeStaleAck = manualEditMoveFrameProbe.current!.rect;
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-preview-style-applied',
+          id: 'pic',
+          version: staleVersion,
+          ok: true,
+          rect: { x: 500, y: 400, width: 210, height: 130 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    expect(manualEditMoveFrameProbe.current!.rect).toEqual(rectBeforeStaleAck);
 
     activeFrame.onMoveCommit({ delta: { x: 30, y: 0 }, shiftKey: false, axis: null });
     await Promise.resolve();

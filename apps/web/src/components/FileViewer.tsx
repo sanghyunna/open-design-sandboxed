@@ -3784,6 +3784,8 @@ function HtmlViewer({
     cssSize?: { width: string; height: string };
   } | null>(null);
   const activeManualEditMovementRef = useRef<ActiveManualEditMovement | null>(null);
+  const manualEditModeRef = useRef(manualEditMode);
+  const manualEditSourceRefreshPendingRef = useRef(false);
   const manualEditPreviewVersionRef = useRef(0);
   // Highest preview-ack version applied so far. Acks stream back one per
   // preview frame; a drag outruns them, so requiring version === current would
@@ -4085,9 +4087,14 @@ function HtmlViewer({
   }, [selectedManualEditTarget]);
 
   useEffect(() => {
+    manualEditModeRef.current = manualEditMode;
+  }, [manualEditMode]);
+
+  useEffect(() => {
     const sourceFileKey = `${projectId}\0${file.name}\0${liveHtml === undefined ? 'raw' : 'live'}`;
     if (liveHtml !== undefined) {
       sourceFileKeyRef.current = sourceFileKey;
+      dropActiveManualEditMovementForSourceRefresh(liveHtml);
       setSource(liveHtml);
       sourceRef.current = liveHtml;
       return;
@@ -4098,6 +4105,7 @@ function HtmlViewer({
       setSource(null);
       sourceRef.current = null;
     }
+    dropActiveManualEditMovementForSourceRefresh();
     let cancelled = false;
     // Cache-bust the fetch on every mtime / reload / files-refresh bump.
     // Without this, an agent edit during Comment mode (srcDoc path) gets
@@ -4114,6 +4122,10 @@ function HtmlViewer({
       // transient null mid-burst would blank source → srcDoc empty →
       // shell stays on prior frame. Keep the last good text instead.
       if (text == null) return;
+      if (manualEditSourceRefreshPendingRef.current) {
+        manualEditSourceRefreshPendingRef.current = false;
+        if (manualEditModeRef.current) refreshManualEditDocument(text);
+      }
       setSource(text);
       sourceRef.current = text;
     });
@@ -4271,19 +4283,23 @@ function HtmlViewer({
   );
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
   const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
-  const manualEditMovementOwnerKey = [
-    projectId,
-    file.name,
+  const manualEditSourceRefreshKey = [
     file.mtime,
     liveHtml === undefined ? 'raw' : liveHtml,
     filesRefreshKey,
     reloadKey,
+  ].join('\u0000');
+  const manualEditMovementOwnerKey = [
+    projectId,
+    file.name,
     manualEditDocumentRevision,
     manualEditMode ? 'active' : 'inactive',
     selectedManualEditTarget?.id ?? '',
   ].join('\u0000');
+  const manualEditMoveFrameKey = `${manualEditMovementOwnerKey}\u0000${manualEditSourceRefreshKey}`;
   useEffect(() => () => {
     activeManualEditMovementRef.current = null;
+    manualEditSourceRefreshPendingRef.current = false;
   }, [manualEditMovementOwnerKey]);
   const [srcDocTransportResetKey, setSrcDocTransportResetKey] = useState(0);
   const [srcDocShellReady, setSrcDocShellReady] = useState(false);
@@ -5358,6 +5374,20 @@ function HtmlViewer({
     );
     if (activeManualEditMovementRef.current?.session === session) {
       activeManualEditMovementRef.current = null;
+    }
+  }
+
+  function dropActiveManualEditMovementForSourceRefresh(snapshot?: string): void {
+    if (!activeManualEditMovementRef.current) return;
+    cancelManualEditMovement();
+    const invalidThrough = nextManualEditPreviewVersion();
+    manualEditPreviewAckVersionRef.current = invalidThrough;
+    manualEditResizeFeedbackInvalidThroughVersionRef.current = invalidThrough;
+    setManualEditResizeFeedback(null);
+    if (snapshot !== undefined) {
+      refreshManualEditDocument(snapshot);
+    } else {
+      manualEditSourceRefreshPendingRef.current = true;
     }
   }
 
@@ -7308,7 +7338,7 @@ function HtmlViewer({
   const manualEditMoveFrame =
     manualEditResizeRect && selectedManualEditTarget ? (
       <ManualEditMoveFrame
-        key={manualEditMovementOwnerKey}
+        key={manualEditMoveFrameKey}
         rect={manualEditResizeRect}
         scale={overlayPreviewScale}
         mode={manualEditMoveMode}
