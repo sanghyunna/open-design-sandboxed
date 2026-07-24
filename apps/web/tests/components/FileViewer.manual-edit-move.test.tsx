@@ -1800,6 +1800,212 @@ describe('FileViewer manual edit move frame', () => {
     expect(persisted).toMatch(/translate:\s*4px\s+0px/);
   });
 
+  it('persists every completed burst in order while saves lag behind', async () => {
+    let releaseFirst: () => void = () => {};
+    const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let postCount = 0;
+    let persisted = SOURCE;
+    const writes: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        postCount += 1;
+        if (postCount === 1) await firstGate;
+        persisted = JSON.parse(String(init.body)).content as string;
+        writes.push(persisted);
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(persisted, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    const { frame, revision } = await selectManualEditTarget(imageTarget());
+
+    const tap = () => {
+      act(() => {
+        window.dispatchEvent(new MessageEvent('message', {
+          data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+          source: frame.contentWindow,
+        }));
+      });
+      act(() => {
+        window.dispatchEvent(new MessageEvent('message', {
+          data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+          source: frame.contentWindow,
+        }));
+      });
+    };
+
+    tap(); // burst 1 -> POST 1 (blocked on firstGate)
+    await waitFor(() => expect(postCount).toBe(1));
+    tap(); // burst 2 completes while POST 1 is in flight -> queued
+    tap(); // burst 3 completes while POST 1 is still in flight -> queued behind burst 2
+    releaseFirst();
+
+    // Three distinct taps are three ordered writes: no completed burst may be
+    // coalesced away while a save is active.
+    await waitFor(() => expect(postCount).toBe(3));
+    expect(writes[0]).toMatch(/translate:\s*1px\s+0px/);
+    expect(writes[1]).toMatch(/translate:\s*2px\s+0px/);
+    expect(writes[2]).toMatch(/translate:\s*3px\s+0px/);
+    expect(persisted).toMatch(/translate:\s*3px\s+0px/);
+  });
+
+  it('finalizes an open host burst once on window blur', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    act(() => {
+      window.dispatchEvent(new Event('blur'));
+    });
+
+    // Window blur finalizes the accumulated non-zero burst once instead of
+    // silently losing movement already shown in preview.
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+    expect(savedContent).toMatch(/translate:\s*2px\s+0px/);
+
+    // A late keyup after the blur-finalized burst does not save again.
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1);
+  });
+
+  it('finalizes an open host burst on visibility loss', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    fireEvent.keyDown(surface, { key: 'ArrowUp' });
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+    expect(savedContent).toMatch(/translate:\s*0px\s+-1px/);
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  });
+
+  it('clears an open keyboard burst when the same file refreshes', async () => {
+    // The file watcher delivers the refreshed source; the mock must serve it
+    // back so the history-source confirm cannot reject a late commit for an
+    // unrelated reason (that would make this spec pass vacuously).
+    const refreshed = SOURCE.replace('Hero', 'Refreshed');
+    let served = SOURCE;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(served, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} liveHtml={SOURCE} />,
+    );
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    served = refreshed;
+    rerender(
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={{ ...file, mtime: file.mtime + 1 }}
+        liveHtml={refreshed}
+      />,
+    );
+
+    // The refresh tears the burst down: the release must not commit the
+    // pre-refresh movement against the new document.
+    fireEvent.keyUp(screen.getByLabelText('Move element').querySelector('[data-region="interior"]') as HTMLElement, { key: 'ArrowRight' });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+  });
+
+  it('swallows held arrow repeats after Escape cancels a host burst until keyup', async () => {
+    const fetchMock = savingFetch(() => {});
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+    const surface = interiorSurface();
+    surface.focus();
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'Escape' }); // cancels the burst and latches the held key
+
+    // Browser repeats of the still-held key must not reopen a burst.
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(0);
+
+    // After the release the latch is gone: a fresh press nudges normally.
+    fireEvent.keyDown(surface, { key: 'ArrowRight' });
+    fireEvent.keyUp(surface, { key: 'ArrowRight' });
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+  });
+
+  it('owns host overlay arrows for a selected text target with no active inline session', async () => {
+    let savedContent = '';
+    const fetchMock = savingFetch((content) => { savedContent = content; });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(textTarget());
+
+    // Text/link selections seed the editing-mode overlay (ring only). With no
+    // active inline session the host surface owns arrows just like the iframe
+    // adapter does.
+    const ring = ringSurface();
+    ring.focus();
+    fireEvent.keyDown(ring, { key: 'ArrowRight' });
+    fireEvent.keyUp(ring, { key: 'ArrowRight' });
+
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => (
+      (init as RequestInit | undefined)?.method === 'POST'
+    ))).toHaveLength(1));
+    expect(savedContent).toMatch(/translate:\s*1px\s+0px/);
+  });
+
 });
 
 function textTarget(): ManualEditTarget {

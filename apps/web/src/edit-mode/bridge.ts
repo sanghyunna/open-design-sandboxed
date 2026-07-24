@@ -821,6 +821,22 @@ export function buildManualEditBridge(enabled: boolean): string {
   // boundary, so the bridge tracks them here and posts od-edit-nudge-commit once
   // the set empties, giving the host the burst-end signal it cannot observe.
   var heldNudgeKeys = {};
+  // Arrow keys whose burst Escape cancelled while they were physically held.
+  // Browser repeats of a still-held key must not reopen a burst: they are
+  // swallowed (consumed, but never nudged) until the real keyup clears the latch.
+  var cancelledNudgeKeys = {};
+  function hasHeldNudgeKeys(){
+    for (var key in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(key)) return true; }
+    return false;
+  }
+  // Burst-end signals the iframe CAN observe when a keyup cannot arrive: window
+  // blur and tab visibility loss strand physically held keys, so the held burst
+  // finalizes there exactly once (the set clears; the late keyup then no-ops).
+  function finalizeHeldNudgeBurst(){
+    if (!hasHeldNudgeKeys()) return;
+    heldNudgeKeys = {};
+    window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+  }
   function clearDeferredOverlayClick(){
     if (deferredOverlayClick !== null) {
       window.clearTimeout(deferredOverlayClick);
@@ -999,8 +1015,19 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!enabled) return;
     var nudgeDirections = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     var nudgeDirection = nudgeDirections[ev.key];
+    // Synthetic arrow keys dispatched by the host-side deck bridge are wrapped
+    // in the deck-synthetic flag: they are slide navigation, not user nudges,
+    // so the edit bridge leaves them (and their keyups) completely untouched.
+    if (nudgeDirection && window.__odDeckSynthetic) return;
     var selectedEl = document.querySelector('[data-od-edit-selected]');
     var isEditing = !!document.querySelector('[data-od-editing="true"]');
+    // A key still latched from an Escape-cancelled burst: swallow its repeats
+    // so artifact/deck handlers never see a half-owned key, but never nudge.
+    if (nudgeDirection && cancelledNudgeKeys[ev.key] && !(ev.ctrlKey || ev.metaKey || ev.altKey)) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      return;
+    }
     if (nudgeDirection && !(ev.ctrlKey || ev.metaKey || ev.altKey) && !isEditing && selectedEl && hostSelectedTargetId && !isNudgeBlocked(ev.target, ev.isComposing)) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
@@ -1008,9 +1035,13 @@ export function buildManualEditBridge(enabled: boolean): string {
       window.parent.postMessage({ type: 'od-edit-nudge', direction: nudgeDirection, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
       return;
     }
-    if (ev.key === 'Escape' && selectedEl && !isEditing && !isNudgeBlocked(ev.target, ev.isComposing)) {
+    // Escape owns the key ONLY while a nudge burst is physically held; with no
+    // held burst it keeps its native meaning (and any artifact-side handler).
+    if (ev.key === 'Escape' && selectedEl && !isEditing && !isNudgeBlocked(ev.target, ev.isComposing) && hasHeldNudgeKeys()) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
+      for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) cancelledNudgeKeys[held] = 1; }
+      heldNudgeKeys = {};
       window.parent.postMessage({ type: 'od-edit-burst-cancel' }, '*');
       return;
     }
@@ -1024,13 +1055,33 @@ export function buildManualEditBridge(enabled: boolean): string {
     window.parent.postMessage({ type: 'od-edit-undo', redo: isRedo }, '*');
   }, true);
   // Releasing the last held arrow key ends the burst; tell the host to commit.
+  // A keyup the bridge never tracked (a host-origin keydown) is forwarded as
+  // od-edit-nudge-keyup instead, so a host-origin burst still ends when the
+  // key physically comes up inside the iframe. Latched and synthetic keyups
+  // go nowhere.
   document.addEventListener('keyup', function(ev){
     if (!enabled) return;
-    if (!heldNudgeKeys[ev.key]) return;
-    delete heldNudgeKeys[ev.key];
-    for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) return; }
-    window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+    var nudgeKeys = { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1 };
+    if (!nudgeKeys[ev.key]) return;
+    if (window.__odDeckSynthetic) return;
+    if (heldNudgeKeys[ev.key]) {
+      delete heldNudgeKeys[ev.key];
+      for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) return; }
+      window.parent.postMessage({ type: 'od-edit-nudge-commit', targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+      return;
+    }
+    if (cancelledNudgeKeys[ev.key]) {
+      delete cancelledNudgeKeys[ev.key];
+      return;
+    }
+    if (hostSelectedTargetId) {
+      window.parent.postMessage({ type: 'od-edit-nudge-keyup', key: ev.key, targetId: hostSelectedTargetId, revision: hostRevision }, '*');
+    }
   }, true);
+  window.addEventListener('blur', finalizeHeldNudgeBurst);
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') finalizeHeldNudgeBurst();
+  });
   document.addEventListener('selectionchange', postSelectionState);
   window.addEventListener('resize', postTargets);
   // ponytail: no throttle -- postTargets is a cheap querySelectorAll + getBoundingClientRect

@@ -2323,7 +2323,36 @@ describe('manual edit bridge keyboard forwarding', () => {
     dom.window.close();
   });
 
-  it('forwards Escape as a burst-cancel when an object is selected', () => {
+  it('forwards Escape as a burst-cancel while a nudge burst is held', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    // Escape only owns the key while a burst is physically held.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    postMessage.mockClear();
+
+    const event = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Escape',
+    });
+    dom.window.document.dispatchEvent(event);
+
+    expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-burst-cancel' }, '*');
+    expect(event.defaultPrevented).toBe(true);
+
+    dom.window.close();
+  });
+
+  it('leaves Escape untouched when no nudge burst is held', () => {
     const dom = new JSDOM(
       `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
       { runScripts: 'dangerously', url: 'http://localhost' },
@@ -2340,8 +2369,194 @@ describe('manual edit bridge keyboard forwarding', () => {
     });
     dom.window.document.dispatchEvent(event);
 
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-burst-cancel' }), '*');
+    expect(event.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('latches held arrow repeats after Escape until the held key is released', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    const keyDown = (key: string) => {
+      const event = new dom.window.KeyboardEvent('keydown', { bubbles: true, cancelable: true, key });
+      dom.window.document.dispatchEvent(event);
+      return event;
+    };
+
+    keyDown('ArrowRight');
+    keyDown('Escape'); // cancels the held burst and latches the held key
     expect(postMessage).toHaveBeenCalledWith({ type: 'od-edit-burst-cancel' }, '*');
-    expect(event.defaultPrevented).toBe(true);
+    postMessage.mockClear();
+
+    // Repeats of the still-held key are swallowed (no nudge, no commit) but
+    // stay consumed so artifact/deck handlers never see a half-owned key.
+    const repeat = keyDown('ArrowRight');
+    keyDown('ArrowRight');
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(repeat.defaultPrevented).toBe(true);
+
+    // Releasing the latched key ends the latch without committing anything.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge-commit' }), '*');
+
+    // A genuinely fresh press after the release nudges normally.
+    keyDown('ArrowRight');
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+
+    dom.window.close();
+  });
+
+  it('posts nudge-commit on window blur while arrow keys are held', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowUp',
+    }));
+
+    dom.window.dispatchEvent(new dom.window.Event('blur'));
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-nudge-commit',
+      targetId: 'image',
+    }), '*');
+    const commitsAfterBlur = postMessage.mock.calls.filter(([m]) => (m as { type?: string }).type === 'od-edit-nudge-commit');
+    expect(commitsAfterBlur).toHaveLength(1);
+
+    // The late keyup after the blur-finalized burst does nothing.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowUp',
+    }));
+    const commits = postMessage.mock.calls.filter(([m]) => (m as { type?: string }).type === 'od-edit-nudge-commit');
+    expect(commits).toHaveLength(1);
+
+    dom.window.close();
+  });
+
+  it('posts nudge-commit on visibility loss while arrow keys are held', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowLeft',
+    }));
+
+    Object.defineProperty(dom.window.document, 'visibilityState', { value: 'hidden', configurable: true });
+    dom.window.document.dispatchEvent(new dom.window.Event('visibilitychange'));
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-nudge-commit',
+      targetId: 'image',
+    }), '*');
+
+    dom.window.close();
+  });
+
+  it('ignores arrow keys dispatched while the deck synthetic flag is set', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    (dom.window as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = true;
+    const synthetic = new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    });
+    dom.window.document.dispatchEvent(synthetic);
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(synthetic.defaultPrevented).toBe(false);
+
+    // Synthetic keyups are not forwarded to the host either.
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge-keyup' }), '*');
+
+    // Once the flag clears, real keys nudge again.
+    (dom.window as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = false;
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+
+    dom.window.close();
+  });
+
+  it('forwards unowned arrow keyups so a host-origin burst can end across the iframe boundary', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    // A keyup the bridge never tracked (the keydown happened on the host side)
+    // is forwarded with target + revision identity; no preventDefault on keyup.
+    const keyup = new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    });
+    dom.window.document.dispatchEvent(keyup);
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-nudge-keyup',
+      key: 'ArrowRight',
+      targetId: 'image',
+    }), '*');
+    expect(keyup.defaultPrevented).toBe(false);
+
+    dom.window.close();
+  });
+
+  it('does not forward a keyup for a bridge-tracked key as nudge-keyup', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="image" alt="Preview"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const image = dom.window.document.querySelector('[data-od-id="image"]') as HTMLElement;
+    image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    postMessage.mockClear();
+
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    postMessage.mockClear();
+    dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keyup', {
+      bubbles: true, cancelable: true, key: 'ArrowRight',
+    }));
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge-commit' }), '*');
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge-keyup' }), '*');
 
     dom.window.close();
   });

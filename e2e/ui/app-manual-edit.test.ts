@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 import type { Locator, Page } from '@playwright/test';
@@ -1320,6 +1321,178 @@ test('[P0] @critical HTML preview stays rendered after switching from Preview to
   ).toBeVisible();
 });
 
+test('[P1] manual edit arrow-key nudge on a selected deck object does not advance framework deck slides', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit deck nudge');
+
+  // Seed a real deck-framework deck: its own capture-phase keyboard handler is
+  // what raced object nudging in issue #46.
+  const template = readFileSync(new URL('../../templates/deck-framework.html', import.meta.url), 'utf8');
+  const deckHtml = template
+    .replace(
+      '<!-- SLOT: slide 1 content -->',
+      '<img data-od-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;">',
+    )
+    .replace('<!-- SLOT: slide 2 content -->', '<h1>Second slide</h1>');
+  expect(deckHtml).toContain('data-od-id="deck-object"');
+  const seedResp = await page.request.post(
+    `/api/projects/${projectId}/files`,
+    {
+      data: {
+        name: 'deck-nudge.html',
+        content: deckHtml,
+        artifactManifest: {
+          version: 1,
+          kind: 'deck',
+          title: 'Deck Nudge',
+          entry: 'deck-nudge.html',
+          renderer: 'deck-html',
+          exports: ['html', 'pptx'],
+        },
+      },
+      timeout: 15_000,
+    },
+  );
+  expect(seedResp.ok()).toBeTruthy();
+
+  await page.goto(`/projects/${projectId}/files/deck-nudge.html`);
+  await openDesignFile(page, 'deck-nudge.html');
+  await expect(artifactPreview(page)).toBeVisible();
+
+  const frame = artifactPreviewFrame(page);
+  const deckObject = frame.locator('[data-od-id="deck-object"]');
+  await expect(deckObject).toBeVisible();
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  await deckObject.click();
+  await expect(frame.locator('[data-od-id="deck-object"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const beforeNudge = await deckObject.boundingBox();
+  if (!beforeNudge) throw new Error('deck object has no bounding box before keyboard nudge');
+  await page.keyboard.press('ArrowRight');
+
+  // While an object is selected the deck must yield trusted arrow keys to
+  // object nudging: the counter stays on slide 01 and the object moves.
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+  await expect
+    .poll(async () => {
+      const afterNudge = await deckObject.boundingBox();
+      return afterNudge ? afterNudge.x > beforeNudge.x : false;
+    })
+    .toBe(true);
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/deck-nudge.html`);
+      if (!resp.ok()) return '';
+      return resp.text();
+    })
+    // The stage is fit()-scaled, so the persisted CSS px depends on viewport
+    // scale (1 rect px = 1/scale CSS px) — assert a nonzero translate landed,
+    // not an exact value.
+    .toMatch(/data-od-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
+  // The selected slide must still be the active one afterwards.
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+});
+
+test('[P1] manual edit arrow-key nudge on a selected object does not advance a legacy deck without the yield guard', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit legacy deck nudge');
+
+  // Decks generated before the template yield guard existed ship a capture-phase
+  // onKey that bails only on defaultPrevented. The srcdoc deck injection must
+  // yield trusted arrows to object nudging for them too.
+  const seedResp = await page.request.post(
+    `/api/projects/${projectId}/files`,
+    {
+      data: {
+        name: 'legacy-deck.html',
+        content: legacyDeckHtml(),
+        artifactManifest: {
+          version: 1,
+          kind: 'deck',
+          title: 'Legacy Deck Nudge',
+          entry: 'legacy-deck.html',
+          renderer: 'deck-html',
+          exports: ['html', 'pptx'],
+        },
+      },
+      timeout: 15_000,
+    },
+  );
+  expect(seedResp.ok()).toBeTruthy();
+
+  await page.goto(`/projects/${projectId}/files/legacy-deck.html`);
+  await openDesignFile(page, 'legacy-deck.html');
+  await expect(artifactPreview(page)).toBeVisible();
+
+  const frame = artifactPreviewFrame(page);
+  const deckObject = frame.locator('[data-od-id="deck-object"]');
+  await expect(deckObject).toBeVisible();
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  await deckObject.click();
+  await expect(frame.locator('[data-od-id="deck-object"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const beforeNudge = await deckObject.boundingBox();
+  if (!beforeNudge) throw new Error('deck object has no bounding box before keyboard nudge');
+  await page.keyboard.press('ArrowRight');
+
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+  await expect
+    .poll(async () => {
+      const afterNudge = await deckObject.boundingBox();
+      return afterNudge ? afterNudge.x > beforeNudge.x : false;
+    })
+    .toBe(true);
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/legacy-deck.html`);
+      if (!resp.ok()) return '';
+      return resp.text();
+    })
+    .toMatch(/data-od-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+});
+
+test('[P1] manual edit held arrow key commits one nudge burst as a single undoable history entry', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit held nudge');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', manualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+  await expect(artifactPreview(page)).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  const frame = artifactPreviewFrame(page);
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  await frame.locator('[data-od-id="hero-image"]').click();
+  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  for (let i = 0; i < 5; i += 1) {
+    await page.keyboard.down('ArrowRight');
+  }
+  await page.keyboard.up('ArrowRight');
+
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+      if (!resp.ok()) return '';
+      return resp.text();
+    })
+    .toMatch(/data-od-id="hero-image"[^>]*style="[^"]*translate:\s*5px/);
+
+  // The whole held burst is one history entry: a single undo removes it.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expectFileSourceExcludes(page, projectId, 'manual-edit.html', ['translate:']);
+});
+
 async function routeMockAgents(page: Page) {
   await routeAgents(page, [
     {
@@ -1485,6 +1658,53 @@ function inspectorSurface(page: Page, title: string) {
   if (title === 'Text') return inspector.getByText('Quick format', { exact: true });
   if (title === 'Shape') return inspector.getByRole('button', { name: /^Size & position/ });
   return inspectorSection(page, title);
+}
+
+function legacyDeckHtml(): string {
+  // A class-toggle deck with the pre-yield-guard keyboard contract: capture
+  // listeners on window AND document, dedupe via `if (e.defaultPrevented)
+  // return;`, and no manual-edit yield guard — the shape decks generated
+  // before the fix still carry.
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Legacy Deck</title>
+    <style>
+      .slide { display: none; }
+      .slide.active { display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="deck-stage" id="deck-stage">
+      <section class="slide active"><img data-od-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;"></section>
+      <section class="slide"><h1>Slide Two</h1></section>
+    </div>
+    <span id="deck-cur">01</span>
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+        var cur = document.getElementById('deck-cur');
+        var idx = 0;
+        function pad2(n) { return (n < 10 ? '0' : '') + n; }
+        function paint() {
+          slides.forEach(function (el, i) { el.classList.toggle('active', i === idx); });
+          if (cur) cur.textContent = pad2(idx + 1);
+        }
+        function go(i) { idx = Math.max(0, Math.min(slides.length - 1, i)); paint(); }
+        function onKey(e) {
+          if (e.defaultPrevented) return;
+          var t = e.target;
+          if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+          if (e.key === 'ArrowRight') { e.preventDefault(); go(idx + 1); }
+          else if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+        }
+        window.addEventListener('keydown', onKey, true);
+        document.addEventListener('keydown', onKey, true);
+      })();
+    </script>
+  </body>
+</html>`;
 }
 
 function manualEditHtml(): string {

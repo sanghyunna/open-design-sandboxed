@@ -242,6 +242,18 @@ export interface ManualEditNudgeCommitMessage {
   revision: number;
 }
 
+// iframe -> host: an arrow keyup fired inside the preview that the bridge did
+// NOT own (its held-key set does not cover it, no Escape latch, not synthetic).
+// A host-origin burst whose key physically comes up inside the iframe (focus
+// crossed the boundary mid-hold) ends on this signal. Carries identity so a
+// stale keyup is ignored.
+export interface ManualEditNudgeKeyupMessage {
+  type: 'od-edit-nudge-keyup';
+  key: string;
+  targetId: string;
+  revision: number;
+}
+
 // iframe -> host: reports the live rich-text edit/selection/format state so the
 // typography toolbar can enable + show pressed state for B/I/U.
 export interface ManualEditSelectionStateMessage {
@@ -308,6 +320,7 @@ export type ManualEditBridgeMessage =
   | ManualEditNudgeMessage
   | ManualEditBurstCancelMessage
   | ManualEditNudgeCommitMessage
+  | ManualEditNudgeKeyupMessage
   | ManualEditSelectionStateMessage;
 
 export const MANUAL_EDIT_STYLE_PROPS: readonly (keyof ManualEditStyles)[] = [
