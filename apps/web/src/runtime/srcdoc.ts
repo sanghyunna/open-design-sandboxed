@@ -1830,15 +1830,23 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
     // window listener, turning one host "next" request into two slide moves.
     var init = { key: key, code: key, bubbles: true, cancelable: true, composed: true };
     var before = activeIndex(slides());
+    // Mark host-driven synthetic keys so the manual-edit bridge ignores them:
+    // they are slide navigation, never user nudges, and must not open (or
+    // close) an edit burst while an object is selected.
+    window.__odDeckSynthetic = true;
     try {
-      window.dispatchEvent(new KeyboardEvent('keydown', init));
-      window.dispatchEvent(new KeyboardEvent('keyup', init));
-    } catch (_) {}
-    if (activeIndex(slides()) !== before) return;
-    try {
-      document.dispatchEvent(new KeyboardEvent('keydown', init));
-      document.dispatchEvent(new KeyboardEvent('keyup', init));
-    } catch (_) {}
+      try {
+        window.dispatchEvent(new KeyboardEvent('keydown', init));
+        window.dispatchEvent(new KeyboardEvent('keyup', init));
+      } catch (_) {}
+      if (activeIndex(slides()) !== before) return;
+      try {
+        document.dispatchEvent(new KeyboardEvent('keydown', init));
+        document.dispatchEvent(new KeyboardEvent('keyup', init));
+      } catch (_) {}
+    } finally {
+      window.__odDeckSynthetic = false;
+    }
   }
   function pad2(n){ return (n < 10 ? '0' : '') + n; }
   function activeClassName(list){
@@ -2152,7 +2160,34 @@ function injectDeckBridge(doc: string, initialSlideIndex = 0): string {
   }
   observeSlides();
 })();</script>`;
-  return injectBeforeBodyEnd(injectBeforeHeadEnd(doc, styleFix), script);
+  // Manual-edit arrow yield for EVERY deck, including ones generated before the
+  // template-level yield guard existed. A deck's own keyboard handler listens at
+  // window/document capture and runs before the edit bridge's document-capture
+  // nudge, so without this the slide advances AND the object moves on one press
+  // (issue #46). Installed at head start — ahead of any deck script — it calls
+  // preventDefault() on user arrows under the edit-yield condition (edit mode +
+  // selected object + no active inline session). Framework-derived decks bail
+  // on `e.defaultPrevented` (their documented dedupe contract), so the key
+  // yields to nudging WITHOUT stopping propagation: the edit bridge still
+  // receives it at document capture. Host-driven dispatchKey nav is exempted
+  // through the same __odDeckSynthetic flag the edit bridge keys off; arrows
+  // with no selection (or during inline editing) keep their deck meaning.
+  const editYield = `<script data-od-deck-edit-yield>(function(){
+  window.addEventListener('keydown', function(e){
+    if (window.__odDeckSynthetic) return;
+    var k = e.key;
+    if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'ArrowUp' && k !== 'ArrowDown') return;
+    var de = document.documentElement;
+    if (!de || !de.hasAttribute('data-od-edit-mode')) return;
+    if (!document.querySelector('[data-od-edit-selected]')) return;
+    if (document.querySelector('[data-od-editing="true"]')) return;
+    e.preventDefault();
+  }, true);
+})();</script>`;
+  const withEditYield = /<head[^>]*>/i.test(doc)
+    ? doc.replace(/<head[^>]*>/i, (m) => `${m}${editYield}`)
+    : editYield + doc;
+  return injectBeforeBodyEnd(injectBeforeHeadEnd(withEditYield, styleFix), script);
 }
 
 // The tweaks bridge lets the host toolbar toggle the visibility of the artifact's
