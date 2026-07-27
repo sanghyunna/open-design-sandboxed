@@ -4236,15 +4236,25 @@ function HtmlViewer({
     // url-load iframe takes over with its own ?v=mtime cache-bust.
     void fetchProjectFileText(projectId, file.name, {
       cacheBustKey: `${file.mtime}-${reloadKey}-${filesRefreshKey}`,
-    }).then((text) => {
+    }).then(async (text) => {
       if (cancelled) return;
       // Chokidar emits agent rewrites as unlink+add+change bursts; a
       // transient null mid-burst would blank source → srcDoc empty →
       // shell stays on prior frame. Keep the last good text instead.
       if (text == null) return;
-      // A raw read started before a successful Manual Edit save cannot replace
-      // that committed source. The save's own watcher refresh will fetch it.
-      if (saveGenerationAtRequest !== manualEditSaveGenerationRef.current) return;
+      // A raw read started before a save can be either stale pre-save content
+      // or a real external write. Re-read once to tell them apart.
+      if (saveGenerationAtRequest !== manualEditSaveGenerationRef.current) {
+        if (text === sourceRef.current) return;
+        const generationAtRecheck = manualEditSaveGenerationRef.current;
+        const latest = await fetchProjectFileText(projectId, file.name, {
+          cache: 'no-store',
+          cacheBustKey: Date.now(),
+        });
+        if (cancelled || generationAtRecheck !== manualEditSaveGenerationRef.current) return;
+        if (latest == null || latest === sourceRef.current) return;
+        text = latest;
+      }
       if (manualEditSourceRefreshPendingRef.current) {
         manualEditSourceRefreshPendingRef.current = false;
         if (manualEditModeRef.current) {
@@ -6466,6 +6476,8 @@ function HtmlViewer({
         );
         return false;
       }
+      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, baseSource, result.source);
+      if (sourceAfterSave == null) return false;
       // The source write is the durable commit point. Preview refresh is a
       // follow-up and must never make a successful write look like a failed
       // edit or cause its history entry to be lost.
@@ -6482,6 +6494,13 @@ function HtmlViewer({
           : {}),
       };
       if (!recordManualEditSourceCommit(sourceKey)) return false;
+      if (sourceAfterSave !== result.source) {
+        replaceManualEditSource(
+          sourceAfterSave,
+          'The file changed outside Manual Edit. Refresh the preview before applying this edit.',
+        );
+        return false;
+      }
       setSource(result.source);
       sourceRef.current = result.source;
       setInlinedSource(null);
@@ -6560,15 +6579,34 @@ function HtmlViewer({
     if (!isCurrentManualEditSource(sourceKey)) return false;
     if (persisted == null) return true;
     if (persisted === expectedSource) return true;
-    setSource(persisted);
-    sourceRef.current = persisted;
+    replaceManualEditSource(persisted, message);
+    return false;
+  }
+
+  async function manualEditSourceAfterSave(
+    sourceKey: string,
+    expectedSource: string,
+    savedSource: string,
+  ): Promise<string | null> {
+    const current = sourceRef.current;
+    if (current === expectedSource || current === savedSource) return savedSource;
+    const persisted = await fetchProjectFileText(projectId, file.name, {
+      cache: 'no-store',
+      cacheBustKey: Date.now(),
+    });
+    if (!isCurrentManualEditSource(sourceKey)) return null;
+    return persisted ?? current ?? savedSource;
+  }
+
+  function replaceManualEditSource(source: string, message: string) {
+    setSource(source);
+    sourceRef.current = source;
     setInlinedSource(null);
     setManualEditHistory([]);
     setManualEditUndone([]);
     manualEditPendingStyleRef.current = null;
-    setManualEditDraft((current) => ({ ...current, fullSource: persisted }));
+    setManualEditDraft((current) => ({ ...current, fullSource: source }));
     setManualEditError(message);
-    return false;
   }
 
   function isCurrentManualEditSource(sourceKey: string): boolean {
@@ -6642,6 +6680,8 @@ function HtmlViewer({
         setManualEditError('Could not save the undo result.');
         return;
       }
+      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, latest.afterSource, latest.beforeSource);
+      if (sourceAfterSave == null) return;
       if (
         latest.selectionIntent
         && selectedManualEditTargetIdRef.current === latest.selectionIntent.afterId
@@ -6653,6 +6693,13 @@ function HtmlViewer({
         };
       }
       if (!recordManualEditSourceCommit(sourceKey)) return;
+      if (sourceAfterSave !== latest.beforeSource) {
+        replaceManualEditSource(
+          sourceAfterSave,
+          'The file changed outside Manual Edit. Refresh the preview before undoing.',
+        );
+        return;
+      }
       setSource(latest.beforeSource);
       sourceRef.current = latest.beforeSource;
       setInlinedSource(null);
@@ -6727,6 +6774,8 @@ function HtmlViewer({
         setManualEditError('Could not save the redo result.');
         return;
       }
+      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, latest.beforeSource, latest.afterSource);
+      if (sourceAfterSave == null) return;
       if (
         latest.selectionIntent
         && selectedManualEditTargetIdRef.current === latest.selectionIntent.beforeId
@@ -6738,6 +6787,13 @@ function HtmlViewer({
         };
       }
       if (!recordManualEditSourceCommit(sourceKey)) return;
+      if (sourceAfterSave !== latest.afterSource) {
+        replaceManualEditSource(
+          sourceAfterSave,
+          'The file changed outside Manual Edit. Refresh the preview before redoing.',
+        );
+        return;
+      }
       setSource(latest.afterSource);
       sourceRef.current = latest.afterSource;
       setInlinedSource(null);

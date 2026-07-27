@@ -608,7 +608,10 @@ describe('FileViewer manual edit resize handles', () => {
     expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision + 1);
   });
 
-  it('does not let a stale save from another file replace the current preview', async () => {
+  it.each([
+    ['before', true],
+    ['after', false],
+  ])('does not let a stale save replace another file when its response arrives %s the new raw response', async (_order, saveFirst) => {
     const secondSource = '<!doctype html><html><body><main data-od-id="hero">Second file</main></body></html>';
     let resolveSave!: (response: Response) => void;
     const saveResponse = new Promise<Response>((resolve) => {
@@ -656,20 +659,118 @@ describe('FileViewer manual edit resize handles', () => {
       <FileViewer projectId="project-1" projectKind="prototype" file={secondFile} />,
     );
     await waitFor(() => expect(rawResponseResolvers.has('second.html')).toBe(true));
-    await act(async () => {
-      resolveSave(new Response(JSON.stringify({ file: firstFile }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }));
-      await Promise.resolve();
-    });
-    await act(async () => {
-      rawResponseResolvers.get('second.html')!(textResponse(secondSource));
-      await Promise.resolve();
-    });
+    const resolveSaveResponse = async () => {
+      await act(async () => {
+        resolveSave(new Response(JSON.stringify({ file: firstFile }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+        await Promise.resolve();
+      });
+    };
+    const resolveSecondSource = async () => {
+      await act(async () => {
+        rawResponseResolvers.get('second.html')!(textResponse(secondSource));
+        await Promise.resolve();
+      });
+    };
+    if (saveFirst) {
+      await resolveSaveResponse();
+      await resolveSecondSource();
+    } else {
+      await resolveSecondSource();
+      await resolveSaveResponse();
+    }
 
     const frame = await previewFrame();
     await waitFor(() => expect(frame.srcdoc).toContain('Second file'));
+  });
+
+  it.each([
+    ['before', true],
+    ['after', false],
+  ])('keeps an external source when its watcher response arrives %s the save response', async (_order, watcherFirst) => {
+    let persistedSource = SOURCE;
+    let savedSource = '';
+    let resolveSave!: (response: Response) => void;
+    const saveResponse = new Promise<Response>((resolve) => {
+      resolveSave = resolve;
+    });
+    const rawResponseResolvers: Array<(response: Response) => void> = [];
+    const textResponse = (content: string) => new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        savedSource = JSON.parse(String(init.body)).content as string;
+        persistedSource = savedSource;
+        return saveResponse;
+      }
+      if (url.includes('/api/projects/project-1/raw/')) {
+        if (init?.cache === 'no-store') return Promise.resolve(textResponse(persistedSource));
+        return new Promise<Response>((resolve) => rawResponseResolvers.push(resolve));
+      }
+      return Promise.resolve(textResponse(persistedSource));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} />,
+    );
+
+    await waitFor(() => expect(rawResponseResolvers).toHaveLength(1));
+    await act(async () => {
+      rawResponseResolvers.shift()!(textResponse(SOURCE));
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+    const frame = await previewFrame();
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: watcherFirst ? 82 : 83, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: watcherFirst ? 82 : 83, clientX: 340, clientY: 170 });
+    fireEvent.pointerUp(se, { pointerId: watcherFirst ? 82 : 83, clientX: 340, clientY: 170 });
+    await waitFor(() => expect(savedSource).toMatch(/width:\s*200px/));
+
+    const externalSource = SOURCE.replace('>Hero</main>', '>Externally changed</main>');
+    persistedSource = externalSource;
+    rerender(
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={file}
+        filesRefreshKey={1}
+      />,
+    );
+    await waitFor(() => expect(rawResponseResolvers).toHaveLength(1));
+    const resolveWatcher = async () => {
+      await act(async () => {
+        rawResponseResolvers.shift()!(textResponse(externalSource));
+        await Promise.resolve();
+      });
+    };
+    const resolvePost = async () => {
+      await act(async () => {
+        resolveSave(new Response(JSON.stringify({ file }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+        await Promise.resolve();
+      });
+    };
+
+    if (watcherFirst) {
+      await resolveWatcher();
+      await waitFor(() => expect(frame.srcdoc).toContain('Externally changed'));
+      await resolvePost();
+    } else {
+      await resolvePost();
+      await resolveWatcher();
+    }
+
+    await waitFor(() => expect(frame.srcdoc).toContain('Externally changed'));
   });
 
   it('blocks a second resize until the first resize commit finishes saving', async () => {
