@@ -142,12 +142,13 @@ import { ManualEditLeftInspector } from './ManualEditLeftInspector';
 import {
   applyManualEditPatch,
   isManualEditFullHtmlDocument,
+  planManualEditDuplicate,
   readManualEditAttributes,
   readManualEditFields,
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditDuplicatePlan, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import {
   isManualEditNudgeBlocked,
   isManualEditNudgeKey,
@@ -177,6 +178,20 @@ type ActiveManualEditMovement = {
   readonly session: ManualEditMovementSession;
   readonly label: string;
   latestResult: ManualEditMovementResult | null;
+  duplicate: ActiveManualEditDuplicate | null;
+};
+type ActiveManualEditDuplicate = {
+  transactionId: string;
+  plan: ManualEditDuplicatePlan | null;
+  status: 'preparing' | 'creating' | 'ready' | 'suspended' | 'failed';
+  sequence: number;
+  placementOffset: { x: number; y: number } | null;
+  lastAckSequence: number;
+  pendingUpdate: ManualEditMoveUpdate | null;
+  pendingCommit: ManualEditMoveUpdate | null;
+  pendingFinalCommit: ManualEditMoveUpdate | null;
+  ackWaiters: Map<number, { resolve: (ok: boolean) => void; timeoutId: number }>;
+  generation: number;
 };
 const EMPTY_MANUAL_EDIT_SNAP_GUIDES: ManualEditMovementResult['guides'] = { vertical: null, horizontal: null };
 export type ManualEditPendingStyleSave = {
@@ -189,6 +204,11 @@ type ManualEditPostSaveIntent =
   | { seq: number; kind: 'select'; target: ManualEditTarget }
   | { seq: number; kind: 'clear'; openPageStyles: boolean }
   | { seq: number; kind: 'exit' };
+type ManualEditPendingDuplicateSelection = {
+  id: string;
+  ownerId: string;
+  seq: number;
+};
 type KeyboardBurst = {
   targetId: string;
   revision: number;
@@ -224,6 +244,14 @@ type PreviewViewportPreset = {
   labelKey: keyof Dict;
   titleKey: keyof Dict;
 };
+
+async function sha256Hex(value: string): Promise<string> {
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.subtle) throw new Error('Secure hashing is unavailable in this browser.');
+  const bytes = new TextEncoder().encode(value);
+  const digest = await cryptoApi.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 const IMAGE_EXPORT_FORMAT_OPTIONS: Array<{
   value: ImageExportFormat;
   label: string;
@@ -3816,11 +3844,17 @@ function HtmlViewer({
   } | null>(null);
   const activeManualEditMovementRef = useRef<ActiveManualEditMovement | null>(null);
   const manualEditAltRef = useRef(false);
+  const manualEditCtrlRef = useRef(false);
   const manualEditLastUpdateRef = useRef<ManualEditMoveUpdate | null>(null);
+  const manualEditDuplicateGenerationRef = useRef(0);
+  const manualEditPendingDuplicateSelectionRef = useRef<ManualEditPendingDuplicateSelection | null>(null);
+  const [manualEditDuplicateRect, setManualEditDuplicateRect] = useState<ManualEditRect | null>(null);
   const [manualEditSnapGuides, setManualEditSnapGuides] = useState<ManualEditMovementResult['guides']>(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
   const manualEditModeRef = useRef(manualEditMode);
   const manualEditSourceRefreshPendingRef = useRef(false);
   const manualEditPreviewVersionRef = useRef(0);
+  const manualEditTargetMessageEpochRef = useRef<string | null>(null);
+  const manualEditTargetMessageSequenceRef = useRef(0);
   // Host revision counter sent to the iframe with od-edit-selected-target. The
   // bridge echoes it back on every nudge so stale (out-of-order) key events are
   // ignored after selection changes or iframe reloads.
@@ -4359,6 +4393,9 @@ function HtmlViewer({
   );
   const lazySrcDocTransport = useMemo(() => buildLazySrcdocTransport(), []);
   const [manualEditDocumentRevision, setManualEditDocumentRevision] = useState(0);
+  function manualEditDocumentEpoch(): string {
+    return `${projectId}\u0000${file.name}\u0000${manualEditPreviewRevisionRef.current}`;
+  }
   const manualEditSourceRefreshKey = [
     file.mtime,
     liveHtml === undefined ? 'raw' : liveHtml,
@@ -4374,7 +4411,8 @@ function HtmlViewer({
   ].join('\u0000');
   const manualEditMoveFrameKey = `${manualEditMovementOwnerKey}\u0000${manualEditSourceRefreshKey}`;
   useEffect(() => () => {
-    activeManualEditMovementRef.current = null;
+    clearManualEditMovement();
+    manualEditDuplicateGenerationRef.current += 1;
     manualEditSourceRefreshPendingRef.current = false;
   }, [manualEditMovementOwnerKey]);
   const [srcDocTransportResetKey, setSrcDocTransportResetKey] = useState(0);
@@ -4635,7 +4673,7 @@ function HtmlViewer({
       manualEditPreviewRevisionRef.current += 1;
       manualEditPreviewDocRef.current = docKey;
     }
-    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode }, '*');
+    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null);
   }, [manualEditMode, selectedManualEditTarget?.id, srcDoc, useUrlLoadPreview, file.name]);
 
@@ -4682,7 +4720,7 @@ function HtmlViewer({
       enabled: boardMode,
       mode: boardTool,
     }, '*');
-    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode }, '*');
+    win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null, target);
     win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
   }
@@ -4769,6 +4807,7 @@ function HtmlViewer({
     selectedManualEditTargetIdRef.current = null;
     selectedManualEditTargetRef.current = null;
     manualEditPostSaveIntentRef.current = null;
+    manualEditPendingDuplicateSelectionRef.current = null;
     manualEditActionSeqRef.current += 1;
     setManualEditDraft(emptyManualEditDraft());
     setManualEditHistory([]);
@@ -5027,6 +5066,7 @@ function HtmlViewer({
       selectedManualEditTargetIdRef.current = null;
       selectedManualEditTargetRef.current = null;
       manualEditPostSaveIntentRef.current = null;
+      manualEditPendingDuplicateSelectionRef.current = null;
       manualEditActionSeqRef.current += 1;
       setManualEditError(null);
       clearManualEditResizeFeedback();
@@ -5039,8 +5079,95 @@ function HtmlViewer({
       if (!isOurPreviewIframeSource(ev.source)) return;
       const data = ev.data as ManualEditBridgeMessage | null;
       if (!data?.type) return;
+      if (data.type === 'od-edit-duplicate-preview') {
+        if (!isActivePreviewIframeSource(ev.source)) return;
+        if (data.documentEpoch !== manualEditDocumentEpoch()) return;
+        const movement = activeManualEditMovementRef.current;
+        const duplicate = movement?.duplicate;
+        if (!movement || !duplicate || duplicate.transactionId !== data.transactionId) return;
+        const sequence = Number(data.sequence);
+        if (!Number.isInteger(sequence) || sequence <= duplicate.lastAckSequence) return;
+        duplicate.lastAckSequence = sequence;
+        if (!data.ok) {
+          failManualEditDuplicate(movement, duplicate, data.error || 'Could not create the duplicate preview.');
+          return;
+        }
+        const wasCreating = duplicate.status === 'creating';
+        duplicate.status = 'ready';
+        duplicate.placementOffset = data.placementOffset
+          && Number.isFinite(data.placementOffset.x)
+          && Number.isFinite(data.placementOffset.y)
+          ? data.placementOffset
+          : { x: 0, y: 0 };
+        if (data.rect) setManualEditDuplicateRect(data.rect);
+        const waiter = duplicate.ackWaiters.get(sequence);
+        if (waiter) {
+          duplicate.ackWaiters.delete(sequence);
+          window.clearTimeout(waiter.timeoutId);
+          waiter.resolve(true);
+        }
+        const latestUpdate = manualEditLastUpdateRef.current;
+        // A create acknowledgement may arrive after one or more pointer
+        // frames were queued while the source plan was preparing; flush the
+        // latest absolute result once in that transition. Update
+        // acknowledgements are already responses to a current frame and must
+        // not echo it back, or the bridge and host will acknowledge each
+        // other's latest update indefinitely.
+        if (wasCreating && latestUpdate && manualEditCtrlRef.current) {
+          const latestResult = resolveManualEditMovementUpdate(movement, latestUpdate);
+          sendManualEditDuplicateUpdate(movement, latestResult);
+        }
+        const pendingCommit = wasCreating ? duplicate.pendingCommit : null;
+        duplicate.pendingCommit = null;
+        if (pendingCommit && manualEditCtrlRef.current) void commitManualEditMovement(pendingCommit);
+        return;
+      }
+      if (data.type === 'od-edit-duplicate-removed') {
+        if (!isActivePreviewIframeSource(ev.source)) return;
+        if (data.documentEpoch !== manualEditDocumentEpoch()) return;
+        const duplicate = activeManualEditMovementRef.current?.duplicate;
+        if (!duplicate || duplicate.transactionId !== data.transactionId) return;
+        const sequence = Number(data.sequence);
+        if (!Number.isInteger(sequence) || sequence <= duplicate.lastAckSequence) return;
+        duplicate.lastAckSequence = sequence;
+        return;
+      }
       if (data.type === 'od-edit-targets' && Array.isArray(data.targets)) {
+        if (data.documentEpoch !== undefined) {
+          const epoch = String(data.documentEpoch);
+          if (epoch !== manualEditDocumentEpoch()) return;
+          if (manualEditTargetMessageEpochRef.current !== epoch) {
+            manualEditTargetMessageEpochRef.current = epoch;
+            manualEditTargetMessageSequenceRef.current = 0;
+          }
+          const sequence = Number(data.sequence);
+          if (Number.isInteger(sequence)) {
+            if (sequence <= manualEditTargetMessageSequenceRef.current) return;
+            manualEditTargetMessageSequenceRef.current = sequence;
+          }
+        }
         setManualEditTargets(data.targets);
+        const pendingDuplicate = manualEditPendingDuplicateSelectionRef.current;
+        const pendingOwnsSelection = pendingDuplicate
+          && pendingDuplicate.seq === manualEditActionSeqRef.current
+          && selectedManualEditTargetIdRef.current === pendingDuplicate.ownerId
+          && !manualEditPostSaveIntentRef.current;
+        if (pendingDuplicate && !pendingOwnsSelection) {
+          manualEditPendingDuplicateSelectionRef.current = null;
+        }
+        if (pendingOwnsSelection) {
+          const duplicateTarget = data.targets.find((target) => target.id === pendingDuplicate.id);
+          if (duplicateTarget) {
+            manualEditPendingDuplicateSelectionRef.current = null;
+            const intent: ManualEditPostSaveIntent = {
+              seq: manualEditActionSeqRef.current,
+              kind: 'select',
+              target: duplicateTarget,
+            };
+            if (manualEditSavingRef.current) manualEditPostSaveIntentRef.current = intent;
+            else window.setTimeout(() => runManualEditPostSaveIntent(intent), 0);
+          }
+        }
         // Target broadcasts can be briefly empty while the iframe/save path is
         // settling; keep the user's inspector selection unless a fresh copy is
         // available to update its metadata.
@@ -5399,6 +5526,10 @@ function HtmlViewer({
   // revert or clear the newer movement.
   function finalizeOwnedMovement(session: ManualEditMovementSession, revert: boolean): void {
     if (activeManualEditMovementRef.current?.session !== session) return;
+    const movement = activeManualEditMovementRef.current;
+    if (movement.duplicate) {
+      cancelManualEditDuplicatePreview(movement);
+    }
     if (revert) {
       previewStyleToIframe(
         session.targetId,
@@ -5408,7 +5539,9 @@ function HtmlViewer({
     }
     activeManualEditMovementRef.current = null;
     manualEditAltRef.current = false;
+    manualEditCtrlRef.current = false;
     manualEditLastUpdateRef.current = null;
+    setManualEditDuplicateRect(null);
     setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
   }
 
@@ -5422,7 +5555,9 @@ function HtmlViewer({
       return;
     }
     manualEditAltRef.current = false;
+    manualEditCtrlRef.current = false;
     manualEditLastUpdateRef.current = null;
+    setManualEditDuplicateRect(null);
     setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
   }
 
@@ -5434,8 +5569,10 @@ function HtmlViewer({
     // (they never snap), and pointer drags leave it for the move frame to seed
     // from its threshold Alt report.
     manualEditLastUpdateRef.current = null;
+    manualEditCtrlRef.current = false;
+    setManualEditDuplicateRect(null);
     setManualEditSnapGuides(EMPTY_MANUAL_EDIT_SNAP_GUIDES);
-    const { candidates, selectedParentId, selectedAncestorIds } = buildManualEditMovementCandidates(
+    const { candidates, selectedParentId, selectedAncestorIds, selectedIndex, snapCandidatesReady } = buildManualEditMovementCandidates(
       manualEditTargets,
       target.id,
     );
@@ -5450,11 +5587,267 @@ function HtmlViewer({
         candidates,
         selectedParentId,
         selectedAncestorIds,
+        selectedIndex,
+        snapCandidatesReady,
         latch: createManualEditSnapLatch(),
       },
       label: `Style: ${target.label}`,
       latestResult: null,
+      duplicate: null,
     };
+  }
+
+  function syncManualEditDuplicateCandidates(movement: ActiveManualEditMovement, duplicate: boolean): void {
+    const hasStationaryOriginal = movement.session.candidates.some(
+      (candidate) => candidate.isStationaryOriginal && candidate.id === movement.session.targetId,
+    );
+    if (hasStationaryOriginal === duplicate) return;
+    if (duplicate) {
+      // The ordinary candidates are the immutable pointer-down snapshot. Add
+      // the stationary original to that snapshot instead of rebuilding from
+      // the live target broadcasts, which may already describe the ordinary
+      // preview position or a later external reflow.
+      if (movement.session.snapCandidatesReady !== false) {
+        movement.session.candidates = [
+          ...movement.session.candidates,
+          {
+            id: movement.session.targetId,
+            rect: movement.session.startRect,
+            parentId: movement.session.selectedParentId,
+            ancestorIds: movement.session.selectedAncestorIds,
+            index: movement.session.selectedIndex ?? manualEditTargets.findIndex(
+              (target) => target.id === movement.session.targetId,
+            ),
+            isStationaryOriginal: true,
+          },
+        ];
+      }
+    } else {
+      movement.session.candidates = movement.session.candidates.filter(
+        (candidate) => !(candidate.isStationaryOriginal && candidate.id === movement.session.targetId),
+      );
+    }
+    movement.session.latch = createManualEditSnapLatch();
+    movement.session.stationaryOriginalEscaped = undefined;
+  }
+
+  async function waitForManualEditSaveIdle(): Promise<boolean> {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (!manualEditSavingRef.current) return true;
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    }
+    return !manualEditSavingRef.current;
+  }
+
+  function duplicatePreparationIsCurrent(
+    movement: ActiveManualEditMovement,
+    duplicate: ActiveManualEditDuplicate,
+  ): boolean {
+    return activeManualEditMovementRef.current === movement
+      && movement.duplicate === duplicate
+      && duplicate.generation === manualEditDuplicateGenerationRef.current
+      && manualEditCtrlRef.current;
+  }
+
+  function failManualEditDuplicate(
+    movement: ActiveManualEditMovement,
+    duplicate: ActiveManualEditDuplicate,
+    error: string,
+  ): void {
+    if (movement.duplicate !== duplicate) return;
+    duplicate.status = 'failed';
+    duplicate.pendingUpdate = null;
+    setManualEditDuplicateRect(null);
+    setManualEditError(error);
+    const shouldRevert = duplicate.pendingCommit !== null || duplicate.pendingFinalCommit !== null;
+    duplicate.pendingCommit = null;
+    duplicate.pendingFinalCommit = null;
+    for (const waiter of duplicate.ackWaiters.values()) {
+      window.clearTimeout(waiter.timeoutId);
+      waiter.resolve(false);
+    }
+    duplicate.ackWaiters.clear();
+    if (shouldRevert && activeManualEditMovementRef.current === movement) {
+      finalizeOwnedMovement(movement.session, true);
+    }
+  }
+
+  function sendManualEditDuplicateUpdate(
+    movement: ActiveManualEditMovement,
+    result: ManualEditMovementResult,
+  ): number | null {
+    const duplicate = movement.duplicate;
+    const win = iframeRef.current?.contentWindow;
+    if (!duplicate || duplicate.status !== 'ready' || !win) return null;
+    duplicate.sequence += 1;
+    const sequence = duplicate.sequence;
+    win.postMessage({
+      type: 'od-edit-duplicate-update',
+      documentEpoch: manualEditDocumentEpoch(),
+      transactionId: duplicate.transactionId,
+      sequence,
+      translate: result.styles.translate ?? '',
+    }, '*');
+    return sequence;
+  }
+
+  function waitForManualEditDuplicateAck(
+    duplicate: ActiveManualEditDuplicate,
+    sequence: number,
+  ): Promise<boolean> {
+    if (sequence <= duplicate.lastAckSequence) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const timeoutId = window.setTimeout(() => {
+        duplicate.ackWaiters.delete(sequence);
+        resolve(false);
+      }, 1000);
+      duplicate.ackWaiters.set(sequence, { resolve, timeoutId });
+    });
+  }
+
+  function suspendManualEditDuplicatePreview(movement: ActiveManualEditMovement): void {
+    const duplicate = movement.duplicate;
+    if (!duplicate) return;
+    manualEditDuplicateGenerationRef.current += 1;
+    for (const waiter of duplicate.ackWaiters.values()) {
+      window.clearTimeout(waiter.timeoutId);
+      waiter.resolve(false);
+    }
+    duplicate.ackWaiters.clear();
+    const win = iframeRef.current?.contentWindow;
+    if (win && (duplicate.status === 'creating' || duplicate.status === 'ready')) {
+      duplicate.sequence += 1;
+      // Invalidate an in-flight create/update acknowledgement before posting
+      // the cancel. The bridge processes messages in order, but the host can
+      // observe the older acknowledgement after this synchronous transition.
+      duplicate.lastAckSequence = duplicate.sequence;
+      win.postMessage({
+        type: 'od-edit-duplicate-cancel',
+        documentEpoch: manualEditDocumentEpoch(),
+        transactionId: duplicate.transactionId,
+        sequence: duplicate.sequence,
+      }, '*');
+    }
+    duplicate.pendingUpdate = null;
+    duplicate.pendingCommit = null;
+    duplicate.pendingFinalCommit = null;
+    duplicate.placementOffset = null;
+    duplicate.status = 'suspended';
+    setManualEditDuplicateRect(null);
+  }
+
+  function cancelManualEditDuplicatePreview(movement: ActiveManualEditMovement): void {
+    if (!movement.duplicate) return;
+    suspendManualEditDuplicatePreview(movement);
+    movement.duplicate = null;
+  }
+
+  function startManualEditDuplicatePreparation(
+    movement: ActiveManualEditMovement,
+    update: ManualEditMoveUpdate,
+  ): void {
+    const existing = movement.duplicate;
+    if (existing) {
+      if (existing.status === 'suspended' && existing.plan) {
+        existing.generation = ++manualEditDuplicateGenerationRef.current;
+        existing.pendingUpdate = update;
+        existing.placementOffset = null;
+        existing.sequence += 1;
+        existing.status = existing.plan ? 'creating' : 'preparing';
+        const win = iframeRef.current?.contentWindow;
+        if (existing.plan && win) {
+          win.postMessage({
+            type: 'od-edit-duplicate-create',
+            documentEpoch: manualEditDocumentEpoch(),
+            transactionId: existing.transactionId,
+            sequence: existing.sequence,
+            originalId: existing.plan.originalId,
+            duplicateRootId: existing.plan.duplicateRootId,
+            previewHtml: existing.plan.previewHtml,
+            baselineTranslate: existing.plan.baselineTranslate,
+          }, '*');
+        }
+        return;
+      }
+      if (existing.status === 'suspended') {
+        // Preparation was cancelled before an identity plan existed. There is
+        // nothing stable to reuse yet, so start one fresh preparation below.
+        movement.duplicate = null;
+      }
+      if (movement.duplicate === existing) {
+        existing.pendingUpdate = update;
+        if (existing.status === 'ready' && movement.latestResult) {
+          sendManualEditDuplicateUpdate(movement, movement.latestResult);
+        }
+        return;
+      }
+    }
+    const duplicate: ActiveManualEditDuplicate = {
+      transactionId: `manual-edit-duplicate-${Date.now()}-${manualEditDuplicateGenerationRef.current + 1}`,
+      plan: null,
+      status: 'preparing',
+      sequence: 0,
+      placementOffset: null,
+      lastAckSequence: 0,
+      pendingUpdate: update,
+      pendingCommit: null,
+      pendingFinalCommit: null,
+      ackWaiters: new Map(),
+      generation: manualEditDuplicateGenerationRef.current + 1,
+    };
+    manualEditDuplicateGenerationRef.current = duplicate.generation;
+    movement.duplicate = duplicate;
+    setManualEditDuplicateRect(null);
+    void (async () => {
+      // Let the bridge finish the text-edit blur/commit message before taking
+      // the source snapshot. The CAS on the eventual write is the final guard.
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+      if (!duplicatePreparationIsCurrent(movement, duplicate)) return;
+      if (!(await waitForManualEditSaveIdle())) {
+        failManualEditDuplicate(movement, duplicate, 'Could not finish the current edit before duplicating.');
+        return;
+      }
+      if (!(await flushManualEditStyleSave())) {
+        failManualEditDuplicate(movement, duplicate, 'Could not save the current edit before duplicating.');
+        return;
+      }
+      const snapshot = sourceRef.current;
+      if (snapshot == null || !duplicatePreparationIsCurrent(movement, duplicate)) return;
+      const planned = planManualEditDuplicate(snapshot, movement.session.targetId);
+      if (!planned.ok) {
+        failManualEditDuplicate(movement, duplicate, planned.error);
+        return;
+      }
+      if (!duplicatePreparationIsCurrent(movement, duplicate)) return;
+      const win = iframeRef.current?.contentWindow;
+      if (!win) {
+        failManualEditDuplicate(movement, duplicate, 'The preview is unavailable for duplication.');
+        return;
+      }
+      const plan: ManualEditDuplicatePlan = {
+        ...planned.plan,
+        // Use the immutable pointer-down baseline. The bridge may rebroadcast
+        // the target with a preview translate while the async source plan is
+        // being prepared; using that refreshed live style would offset the
+        // clone before its first frame and make the geometry preflight fail.
+        // The session baseline already includes computed/stylesheet translate
+        // captured from the selected target before the drag began.
+        baselineTranslate: movement.session.baselineTranslate ?? planned.plan.baselineTranslate,
+      };
+      duplicate.plan = plan;
+      duplicate.status = 'creating';
+      duplicate.sequence = 1;
+      win.postMessage({
+        type: 'od-edit-duplicate-create',
+        documentEpoch: manualEditDocumentEpoch(),
+        transactionId: duplicate.transactionId,
+        sequence: duplicate.sequence,
+        originalId: plan.originalId,
+        duplicateRootId: plan.duplicateRootId,
+        previewHtml: plan.previewHtml,
+        baselineTranslate: plan.baselineTranslate,
+      }, '*');
+    })();
   }
 
   function resolveManualEditMovementUpdate(
@@ -5462,6 +5855,7 @@ function HtmlViewer({
     update: ManualEditMoveUpdate,
   ): ManualEditMovementResult {
     manualEditLastUpdateRef.current = update;
+    syncManualEditDuplicateCandidates(movement, manualEditCtrlRef.current);
     const result = resolveManualEditMovement(movement.session, update.delta, {
       alt: manualEditAltRef.current,
       shiftKey: update.shiftKey,
@@ -5476,6 +5870,26 @@ function HtmlViewer({
     const movement = activeManualEditMovementRef.current;
     if (!movement) return;
     const result = resolveManualEditMovementUpdate(movement, update);
+    if (manualEditCtrlRef.current) {
+      if (movement.duplicate?.status === 'failed') cancelManualEditDuplicatePreview(movement);
+      if (!movement.duplicate || movement.duplicate.status === 'suspended') {
+        // Ctrl can be pressed after an ordinary preview frame. Return the
+        // source object to its immutable origin before the duplicate becomes
+        // the only moving subject; otherwise the original would remain at the
+        // pre-toggle drag position underneath the transient clone.
+        previewStyleToIframe(
+          result.targetId,
+          { translate: movement.session.baselineTranslate ?? '' },
+          nextManualEditPreviewVersion(),
+        );
+        startManualEditDuplicatePreparation(movement, update);
+      } else {
+        movement.duplicate.pendingUpdate = update;
+        sendManualEditDuplicateUpdate(movement, result);
+      }
+      return;
+    }
+    if (movement.duplicate) suspendManualEditDuplicatePreview(movement);
     previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
     if (result.styles.translate !== undefined && movement.session.source === 'keyboard') {
       manualEditOptimisticTranslateRef.current = result.styles.translate;
@@ -5489,8 +5903,7 @@ function HtmlViewer({
     const movement = activeManualEditMovementRef.current;
     const update = manualEditLastUpdateRef.current;
     if (!movement || !update) return;
-    const result = resolveManualEditMovementUpdate(movement, update);
-    previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
+    previewManualEditMovement(update);
   }
 
   async function commitManualEditMovement(update: ManualEditMoveUpdate): Promise<void> {
@@ -5499,6 +5912,67 @@ function HtmlViewer({
     const { session, label } = movement;
     const previousResult = movement.latestResult;
     const result = resolveManualEditMovementUpdate(movement, update);
+    if (manualEditCtrlRef.current) {
+      if (result.appliedDelta.x === 0 && result.appliedDelta.y === 0) {
+        finalizeOwnedMovement(session, false);
+        return;
+      }
+      const duplicate = movement.duplicate;
+      if (!duplicate || duplicate.status === 'failed') {
+        setManualEditError('Could not prepare the duplicate preview.');
+        finalizeOwnedMovement(session, true);
+        return;
+      }
+      if (duplicate.status !== 'ready' || !duplicate.plan || !duplicate.placementOffset) {
+        duplicate.pendingCommit = update;
+        duplicate.pendingUpdate = update;
+        return;
+      }
+      duplicate.pendingFinalCommit = update;
+      const finalSequence = sendManualEditDuplicateUpdate(movement, result);
+      if (finalSequence === null) {
+        duplicate.pendingFinalCommit = null;
+        setManualEditError('The duplicate preview is no longer available.');
+        finalizeOwnedMovement(session, true);
+        return;
+      }
+      const finalAcked = await waitForManualEditDuplicateAck(duplicate, finalSequence);
+      if (!finalAcked) {
+        if (activeManualEditMovementRef.current === movement && movement.duplicate === duplicate) {
+          duplicate.pendingFinalCommit = null;
+          setManualEditError('The duplicate preview changed before it could be saved.');
+          finalizeOwnedMovement(session, true);
+        }
+        return;
+      }
+      if (activeManualEditMovementRef.current !== movement || movement.duplicate !== duplicate) return;
+      duplicate.pendingFinalCommit = null;
+      const plan = duplicate.plan;
+      const placementOffset = duplicate.placementOffset;
+      cancelManualEditDuplicatePreview(movement);
+      manualEditPendingDuplicateSelectionRef.current = {
+        id: plan.duplicateRootId,
+        ownerId: result.targetId,
+        seq: manualEditActionSeqRef.current,
+      };
+      const ok = await applyManualEdit({
+        id: result.targetId,
+        kind: 'duplicate-and-move',
+        plan,
+        finalTranslate: result.styles.translate ?? '',
+        placementOffset,
+      }, label);
+      if (!ok) {
+        manualEditPendingDuplicateSelectionRef.current = null;
+        finalizeOwnedMovement(session, true);
+        manualEditOptimisticTranslateRef.current = null;
+        return;
+      }
+      finalizeOwnedMovement(session, false);
+      manualEditOptimisticTranslateRef.current = null;
+      return;
+    }
+    if (movement.duplicate) cancelManualEditDuplicatePreview(movement);
     // The final pointerup update can differ from the last flushed preview frame.
     if (previousResult?.styles.translate !== result.styles.translate) {
       previewStyleToIframe(result.targetId, result.styles, nextManualEditPreviewVersion());
@@ -5805,6 +6279,7 @@ function HtmlViewer({
 
   function runManualEditPostSaveIntent(intent: ManualEditPostSaveIntent) {
     if (intent.seq !== manualEditActionSeqRef.current) return;
+    manualEditPendingDuplicateSelectionRef.current = null;
     if (intent.kind === 'select') {
       void selectManualEditTarget(intent.target, intent.seq);
     } else if (intent.kind === 'clear') {
@@ -5841,6 +6316,7 @@ function HtmlViewer({
   }
 
   async function selectManualEditTarget(target: ManualEditTarget, actionSeq = ++manualEditActionSeqRef.current) {
+    manualEditPendingDuplicateSelectionRef.current = null;
     await flushKeyboardBurst();
     manualEditPostSaveIntentRef.current = null;
     clearManualEditResizeFeedback();
@@ -5885,6 +6361,7 @@ function HtmlViewer({
     options: { openPageStyles?: boolean } = {},
     actionSeq = ++manualEditActionSeqRef.current,
   ): Promise<boolean> {
+    manualEditPendingDuplicateSelectionRef.current = null;
     await flushKeyboardBurst();
     clearManualEditResizeFeedback();
     clearManualEditMovement();
@@ -5940,10 +6417,22 @@ function HtmlViewer({
         baseSource,
         'The file changed outside manual edit mode. Refreshing before applying manual edits.',
       ))) return false;
+      let expectedContentSha256: string;
+      try {
+        expectedContentSha256 = await sha256Hex(baseSource);
+      } catch (error) {
+        setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before saving.');
+        return false;
+      }
       const saved = await writeProjectTextFileDetailed(projectId, file.name, result.source, {
         artifactManifest: file.artifactManifest,
+        expectedContentSha256,
       });
       if (!saved.ok) {
+        if ('conflict' in saved && saved.conflict) {
+          setManualEditError('The file changed outside Manual Edit. Refresh the preview before applying this edit.');
+          return false;
+        }
         const status = 'status' in saved ? saved.status : undefined;
         const code = 'code' in saved ? saved.code : undefined;
         const message = 'message' in saved ? saved.message : 'Unknown save error';
@@ -5952,6 +6441,10 @@ function HtmlViewer({
         );
         return false;
       }
+      // The source write is the durable commit point. Preview refresh is a
+      // follow-up and must never make a successful write look like a failed
+      // edit or cause its history entry to be lost.
+      saveOk = true;
       const entry: ManualEditHistoryEntry = {
         id: `${Date.now()}-${manualEditHistory.length}`,
         label,
@@ -5959,6 +6452,9 @@ function HtmlViewer({
         beforeSource: baseSource,
         afterSource: result.source,
         createdAt: Date.now(),
+        ...(patch.kind === 'duplicate-and-move'
+          ? { selectionIntent: { beforeId: patch.id, afterId: patch.plan.duplicateRootId } }
+          : {}),
       };
       setSource(result.source);
       sourceRef.current = result.source;
@@ -5998,8 +6494,11 @@ function HtmlViewer({
         }
       }
       setManualEditError(null);
-      await onFileSaved?.();
-      saveOk = true;
+      try {
+        await onFileSaved?.();
+      } catch {
+        setManualEditError('Saved the edit, but the preview could not be refreshed.');
+      }
       return true;
     } finally {
       manualEditSavingRef.current = false;
@@ -6076,12 +6575,30 @@ function HtmlViewer({
         latest.afterSource,
         'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
       ))) return;
+      let expectedContentSha256: string;
+      try {
+        expectedContentSha256 = await sha256Hex(latest.afterSource);
+      } catch (error) {
+        setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before undoing.');
+        return;
+      }
       const saved = await writeProjectTextFile(projectId, file.name, latest.beforeSource, {
         artifactManifest: file.artifactManifest,
+        expectedContentSha256,
       });
       if (!saved) {
         setManualEditError('Could not save the undo result.');
         return;
+      }
+      if (
+        latest.selectionIntent
+        && selectedManualEditTargetIdRef.current === latest.selectionIntent.afterId
+      ) {
+        manualEditPendingDuplicateSelectionRef.current = {
+          id: latest.selectionIntent.beforeId,
+          ownerId: latest.selectionIntent.afterId,
+          seq: manualEditActionSeqRef.current,
+        };
       }
       setSource(latest.beforeSource);
       sourceRef.current = latest.beforeSource;
@@ -6090,11 +6607,23 @@ function HtmlViewer({
       setManualEditHistory(rest);
       setManualEditUndone((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.beforeSource }));
-      await onFileSaved?.();
+      try {
+        await onFileSaved?.();
+      } catch {
+        setManualEditError('Saved the undo result, but the preview could not be refreshed.');
+      }
     } finally {
       manualEditSavingRef.current = false;
       manualEditHistoryOperationRef.current = false;
       setManualEditSaving(false);
+      if (manualEditPostSaveIntentRef.current) {
+        window.setTimeout(() => {
+          const intent = manualEditPostSaveIntentRef.current;
+          if (!intent) return;
+          manualEditPostSaveIntentRef.current = null;
+          runManualEditPostSaveIntent(intent);
+        }, 0);
+      }
       runNextQueuedManualEditHistory();
     }
   }
@@ -6120,12 +6649,30 @@ function HtmlViewer({
         latest.beforeSource,
         'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
       ))) return;
+      let expectedContentSha256: string;
+      try {
+        expectedContentSha256 = await sha256Hex(latest.beforeSource);
+      } catch (error) {
+        setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before redoing.');
+        return;
+      }
       const saved = await writeProjectTextFile(projectId, file.name, latest.afterSource, {
         artifactManifest: file.artifactManifest,
+        expectedContentSha256,
       });
       if (!saved) {
         setManualEditError('Could not save the redo result.');
         return;
+      }
+      if (
+        latest.selectionIntent
+        && selectedManualEditTargetIdRef.current === latest.selectionIntent.beforeId
+      ) {
+        manualEditPendingDuplicateSelectionRef.current = {
+          id: latest.selectionIntent.afterId,
+          ownerId: latest.selectionIntent.beforeId,
+          seq: manualEditActionSeqRef.current,
+        };
       }
       setSource(latest.afterSource);
       sourceRef.current = latest.afterSource;
@@ -6134,11 +6681,23 @@ function HtmlViewer({
       setManualEditUndone(rest);
       setManualEditHistory((current) => [latest, ...current]);
       setManualEditDraft((current) => ({ ...current, fullSource: latest.afterSource }));
-      await onFileSaved?.();
+      try {
+        await onFileSaved?.();
+      } catch {
+        setManualEditError('Saved the redo result, but the preview could not be refreshed.');
+      }
     } finally {
       manualEditSavingRef.current = false;
       manualEditHistoryOperationRef.current = false;
       setManualEditSaving(false);
+      if (manualEditPostSaveIntentRef.current) {
+        window.setTimeout(() => {
+          const intent = manualEditPostSaveIntentRef.current;
+          if (!intent) return;
+          manualEditPostSaveIntentRef.current = null;
+          runManualEditPostSaveIntent(intent);
+        }, 0);
+      }
       runNextQueuedManualEditHistory();
     }
   }
@@ -7800,6 +8359,16 @@ function HtmlViewer({
           manualEditOverlayTransform.offsetY,
         )
       : null;
+  const manualEditMoveRect =
+    manualEditDuplicateRect && selectedManualEditTarget
+      ? manualEditResizeOverlayRect(
+        { ...selectedManualEditTarget, rect: manualEditDuplicateRect },
+        overlayPreviewScale,
+        previewBodySize,
+        manualEditOverlayTransform.offsetX,
+        manualEditOverlayTransform.offsetY,
+      )
+      : manualEditResizeRect;
   const manualEditResizeHandles =
     manualEditResizeRect && selectedManualEditTarget ? (
       <ManualEditResizeHandles
@@ -7843,10 +8412,10 @@ function HtmlViewer({
   // Move frame: same overlay rect + gate as the resize handles, one z-index
   // below them so handle drags = resize and elsewhere = move (PPT model).
   const manualEditMoveFrame =
-    manualEditResizeRect && selectedManualEditTarget ? (
+    manualEditMoveRect && selectedManualEditTarget ? (
       <ManualEditMoveFrame
         key={manualEditMoveFrameKey}
-        rect={manualEditResizeRect}
+        rect={manualEditMoveRect}
         scale={overlayPreviewScale}
         mode={manualEditMoveMode}
         label={t('manualEdit.move.frame')}
@@ -7871,11 +8440,17 @@ function HtmlViewer({
         onAltChange={(altKey) => {
           rePreviewManualEditMovementWithAlt(altKey);
         }}
+        onCtrlChange={(ctrlKey) => {
+          manualEditCtrlRef.current = ctrlKey;
+          const update = manualEditLastUpdateRef.current;
+          if (update) previewManualEditMovement(update);
+        }}
         onBurstCancel={() => cancelKeyboardBurst({ latchHeldKeys: true })}
         onPressStart={() => {
           // A fresh press starts Alt-clear; the move frame reports the real Alt
           // state at the drag threshold.
           manualEditAltRef.current = false;
+          manualEditCtrlRef.current = false;
           iframeRef.current?.contentWindow?.postMessage(
             { type: 'od-edit-click-cancel' } satisfies ManualEditActivationMessage,
             '*',

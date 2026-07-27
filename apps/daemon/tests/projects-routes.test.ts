@@ -12,6 +12,7 @@
  * than expanding any of them.
  */
 import type http from 'node:http';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -414,6 +415,49 @@ describe('GET /api/projects/:id resolvedDir', () => {
     const fileResp = await fetch(`${baseUrl}/api/projects/${projectId}/files/index.html`);
     expect(fileResp.status).toBe(200);
     expect(await fileResp.text()).toContain('<h1>ok</h1>');
+  });
+
+  it('compares the expected content hash before writing a project file', async () => {
+    const projectId = `proj-file-cas-${Date.now()}`;
+    const createResp = await fetch(`${baseUrl}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: projectId,
+        name: 'Project file CAS fixture',
+        skillId: null,
+        designSystemId: null,
+      }),
+    });
+    expect(createResp.status).toBe(200);
+
+    const write = (content: string, expectedContentSha256?: string) => fetch(
+      `${baseUrl}/api/projects/${projectId}/files`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'notes.txt', content, ...(expectedContentSha256 ? { expectedContentSha256 } : {}) }),
+      },
+    );
+    const before = 'before';
+    const beforeSha256 = createHash('sha256').update(before).digest('hex');
+    expect((await write(before)).status).toBe(200);
+
+    expect((await write('after', beforeSha256)).status).toBe(200);
+    const stale = await write('stale replacement', beforeSha256);
+    expect(stale.status).toBe(409);
+    expect((await stale.json()) as { error?: { code?: string; details?: unknown } }).toMatchObject({
+      error: {
+        code: 'CONFLICT',
+        details: {
+          expectedContentSha256: beforeSha256,
+          actualContentSha256: createHash('sha256').update('after').digest('hex'),
+        },
+      },
+    });
+
+    const current = await fetch(`${baseUrl}/api/projects/${projectId}/raw/notes.txt`);
+    expect(await current.text()).toBe('after');
   });
 
 

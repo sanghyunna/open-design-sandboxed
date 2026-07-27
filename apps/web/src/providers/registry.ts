@@ -1186,7 +1186,7 @@ export async function writeProjectTextFile(
   projectId: string,
   name: string,
   content: string,
-  options?: { artifactManifest?: ArtifactManifest },
+  options?: { artifactManifest?: ArtifactManifest; expectedContentSha256?: string },
 ): Promise<ProjectFile | null> {
   const result = await writeProjectTextFileDetailed(projectId, name, content, options);
   return result.ok ? result.file : null;
@@ -1194,22 +1194,37 @@ export async function writeProjectTextFile(
 
 export type WriteProjectTextFileResult =
   | { ok: true; file: ProjectFile }
-  | { ok: false; status?: number; code?: string; message: string };
+  | { ok: false; conflict: true; status: 409; code: 'CONFLICT'; message: string }
+  | { ok: false; conflict?: false; status?: number; code?: string; message: string };
 
 export async function writeProjectTextFileDetailed(
   projectId: string,
   name: string,
   content: string,
-  options?: { artifactManifest?: ArtifactManifest },
+  options?: { artifactManifest?: ArtifactManifest; expectedContentSha256?: string },
 ): Promise<WriteProjectTextFileResult> {
   try {
     const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, content, artifactManifest: options?.artifactManifest }),
+      body: JSON.stringify({
+        name,
+        content,
+        artifactManifest: options?.artifactManifest,
+        expectedContentSha256: options?.expectedContentSha256,
+      }),
     });
     if (!resp.ok) {
       const body = await readApiErrorBody(resp);
+      if (resp.status === 409 && body.code === 'CONFLICT') {
+        return {
+          ok: false,
+          conflict: true,
+          status: 409,
+          code: 'CONFLICT',
+          message: body.message,
+        };
+      }
       return {
         ok: false,
         status: resp.status,

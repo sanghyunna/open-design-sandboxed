@@ -273,6 +273,36 @@ describe('magnetic edge alignment', () => {
     expect(f3.appliedDelta.x).toBe(11);
   });
 
+  it('suppresses the stationary original until the duplicate escapes its start band', () => {
+    const original = cand('original', START_RECT, { isStationaryOriginal: true });
+    const ordinary = cand('ordinary', r(105, 5000, 50, 50));
+    const ordinarySession = session({ candidates: [original, ordinary] });
+
+    const atOrigin = resolveManualEditMovement(ordinarySession, { x: 0, y: 0 });
+    expect(atOrigin.matches.x?.targetId).toBe('ordinary');
+    expect(ordinarySession.latch.y).toBeNull();
+    expect(ordinarySession.stationaryOriginalEscaped).toBeUndefined();
+
+    const s = session({ candidates: [original] });
+
+    const atReleaseEdge = resolveManualEditMovement(s, { x: 10, y: 0 });
+    expect(atReleaseEdge.matches.x).toBeNull();
+    expect(atReleaseEdge.appliedDelta.x).toBe(10);
+    expect(s.stationaryOriginalEscaped).toBeUndefined();
+
+    const escaped = resolveManualEditMovement(s, { x: 11, y: 0 });
+    expect(escaped.matches.x).toBeNull();
+    expect(s.stationaryOriginalEscaped).toBe(true);
+
+    const returned = resolveManualEditMovement(s, { x: 5, y: 0 });
+    expect(returned.matches.x).toMatchObject({ targetId: 'original', correction: -5 });
+    expect(returned.appliedDelta.x).toBe(0);
+
+    const alt = resolveManualEditMovement(s, { x: 5, y: 0 }, { alt: true });
+    expect(alt.matches).toEqual({ x: null, y: null });
+    expect(alt.appliedDelta).toEqual({ x: 5, y: 0 });
+  });
+
   it('latches per axis independently', () => {
     const s = session({ candidates: [cand('c', r(100, 5000, 50, 50))] });
     resolveManualEditMovement(s, { x: 0, y: 0 });
@@ -392,5 +422,21 @@ describe('buildManualEditMovementCandidates', () => {
     ];
     const { candidates } = buildManualEditMovementCandidates(targets, 'sel');
     expect(candidates.map((c) => [c.id, c.index])).toEqual([['a', 1], ['b', 2]]);
+  });
+
+  it('includes the selected target as a stationary original only when opted in', () => {
+    const targets: ManualEditTarget[] = [
+      makeTarget('original', r(0, 0, 10, 10), { ancestorIds: ['root'] }),
+      makeTarget('peer', r(20, 0, 10, 10), { ancestorIds: ['root'] }),
+      makeTarget('child', r(1, 1, 5, 5), { parentId: 'original', ancestorIds: ['original', 'root'] }),
+    ];
+
+    expect(buildManualEditMovementCandidates(targets, 'original').candidates.map((c) => c.id)).toEqual(['peer']);
+    const optedIn = buildManualEditMovementCandidates(targets, 'original', { stationaryOriginalId: 'original' }).candidates;
+    expect(optedIn).toEqual([
+      expect.objectContaining({ id: 'original', isStationaryOriginal: true, index: 0 }),
+      expect.objectContaining({ id: 'peer', index: 1 }),
+    ]);
+    expect(optedIn[1]).not.toHaveProperty('isStationaryOriginal');
   });
 });

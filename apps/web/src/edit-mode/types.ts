@@ -114,6 +114,21 @@ export interface ManualEditTarget {
   isConnected?: boolean;
 }
 
+export interface ManualEditDuplicatePlan {
+  /** Exact canonical source used to build the plan. */
+  expectedSource: string;
+  originalId: string;
+  originalTagName: string;
+  parentPath: string;
+  expectedNextSiblingPath: string | null;
+  duplicateRootId: string;
+  /** Source-derived markup used only for the transient iframe preview. */
+  previewHtml: string;
+  manualIdMap: Record<string, string>;
+  nativeIdMap: Record<string, string>;
+  baselineTranslate: string;
+}
+
 export type ManualEditPatch =
   | { id: string; kind: 'set-text'; value: string }
   | { id: string; kind: 'set-link'; text: string; href: string }
@@ -124,6 +139,13 @@ export type ManualEditPatch =
   | { id: string; kind: 'set-attributes'; attributes: Record<string, string> }
   | { id: string; kind: 'set-inner-html'; html: string }
   | { id: string; kind: 'set-outer-html'; html: string }
+  | {
+      id: string;
+      kind: 'duplicate-and-move';
+      plan: ManualEditDuplicatePlan;
+      finalTranslate: string;
+      placementOffset?: { x: number; y: number };
+    }
   | { kind: 'set-full-source'; source: string };
 
 export interface ManualEditHistoryEntry {
@@ -133,11 +155,17 @@ export interface ManualEditHistoryEntry {
   beforeSource: string;
   afterSource: string;
   createdAt: number;
+  selectionIntent?: {
+    beforeId: string;
+    afterId: string;
+  };
 }
 
 export interface ManualEditTargetMessage {
   type: 'od-edit-targets';
   targets: ManualEditTarget[];
+  documentEpoch?: string;
+  sequence?: number;
 }
 
 export interface ManualEditSelectMessage {
@@ -200,6 +228,51 @@ export interface ManualEditPreviewAppliedMessage {
   authoredSize?: { width: string; height: string };
   /** Requested resize axes whose post-layout rect differs by more than 1px. */
   resize?: ManualEditResizeOutcome;
+}
+
+export interface ManualEditDuplicateCreateMessage {
+  type: 'od-edit-duplicate-create';
+  documentEpoch: string;
+  transactionId: string;
+  sequence: number;
+  originalId: string;
+  duplicateRootId: string;
+  previewHtml: string;
+  baselineTranslate: string;
+}
+
+export interface ManualEditDuplicateUpdateMessage {
+  type: 'od-edit-duplicate-update';
+  documentEpoch: string;
+  transactionId: string;
+  sequence: number;
+  translate: string;
+}
+
+export interface ManualEditDuplicateCancelMessage {
+  type: 'od-edit-duplicate-cancel';
+  documentEpoch: string;
+  transactionId: string;
+  sequence: number;
+}
+
+export interface ManualEditDuplicatePreviewMessage {
+  type: 'od-edit-duplicate-preview';
+  documentEpoch: string;
+  transactionId: string;
+  sequence: number;
+  ok: boolean;
+  error?: string;
+  rect?: ManualEditRect;
+  naturalRect?: ManualEditRect;
+  placementOffset?: { x: number; y: number };
+}
+
+export interface ManualEditDuplicateRemovedMessage {
+  type: 'od-edit-duplicate-removed';
+  documentEpoch: string;
+  transactionId: string;
+  sequence: number;
 }
 
 export interface ManualEditTextCommitMessage {
@@ -314,6 +387,8 @@ export type ManualEditBridgeMessage =
   | ManualEditHoverMessage
   | ManualEditBackgroundMessage
   | ManualEditPreviewAppliedMessage
+  | ManualEditDuplicatePreviewMessage
+  | ManualEditDuplicateRemovedMessage
   | ManualEditTextCommitMessage
   | ManualEditHtmlCommitMessage
   | ManualEditUndoMessage

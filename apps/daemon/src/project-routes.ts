@@ -19,7 +19,7 @@ import {
 } from './plugins/index.js';
 import type { RouteDeps } from './server-context.js';
 import { listSkills } from './skills.js';
-import { isSafeId } from './projects.js';
+import { isSafeId, ProjectFileContentConflictError } from './projects.js';
 import {
   BUILT_IN_PROJECT_LOCATION_ID,
   allProjectLocations,
@@ -2610,7 +2610,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
           const body = { file: meta };
           return res.json(body);
         }
-        const { name, content, encoding, artifactManifest, artifact, overwrite } = req.body || {};
+        const { name, content, encoding, artifactManifest, artifact, overwrite, expectedContentSha256 } = req.body || {};
         if (typeof name !== 'string' || typeof content !== 'string') {
           return sendApiError(
             res,
@@ -2618,6 +2618,12 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
             'BAD_REQUEST',
             'name and content required',
           );
+        }
+        if (
+          expectedContentSha256 !== undefined
+          && (typeof expectedContentSha256 !== 'string' || !/^[0-9a-f]{64}$/iu.test(expectedContentSha256))
+        ) {
+          return sendApiError(res, 400, 'BAD_REQUEST', 'expectedContentSha256 must be a SHA-256 hex digest');
         }
         if (artifactManifest !== undefined && artifactManifest !== null) {
           const validated = validateArtifactManifestInput(
@@ -2652,6 +2658,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
               buf,
               {
                 artifactManifest,
+                ...(expectedContentSha256 !== undefined ? { expectedContentSha256 } : {}),
                 ...(overwrite === false ? { overwrite: false } : {}),
               },
               uploadProject?.metadata,
@@ -2673,6 +2680,14 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         if (err instanceof ArtifactPublicationBlockedError) {
           return sendApiError(res, 422, 'ARTIFACT_PUBLICATION_BLOCKED', err.message, {
             details: { placeholders: err.placeholders },
+          });
+        }
+        if (err instanceof ProjectFileContentConflictError) {
+          return sendApiError(res, 409, 'CONFLICT', err.message, {
+            details: {
+              expectedContentSha256: err.expectedContentSha256,
+              actualContentSha256: err.actualContentSha256,
+            },
           });
         }
         if (err?.code === 'EEXIST') {
