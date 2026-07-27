@@ -608,6 +608,70 @@ describe('FileViewer manual edit resize handles', () => {
     expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision + 1);
   });
 
+  it('does not let a stale save from another file replace the current preview', async () => {
+    const secondSource = '<!doctype html><html><body><main data-od-id="hero">Second file</main></body></html>';
+    let resolveSave!: (response: Response) => void;
+    const saveResponse = new Promise<Response>((resolve) => {
+      resolveSave = resolve;
+    });
+    const rawResponseResolvers = new Map<string, (response: Response) => void>();
+    const textResponse = (content: string) => new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') return saveResponse;
+      if (url.includes('/api/projects/project-1/raw/')) {
+        if (init?.cache === 'no-store') return Promise.resolve(textResponse(SOURCE));
+        const name = url.includes('/second.html') ? 'second.html' : 'preview.html';
+        return new Promise<Response>((resolve) => rawResponseResolvers.set(name, resolve));
+      }
+      return Promise.resolve(textResponse(SOURCE));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const firstFile = htmlPreviewFile();
+    const secondFile = htmlPreviewFile('second.html');
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={firstFile} />,
+    );
+
+    await waitFor(() => expect(rawResponseResolvers.has('preview.html')).toBe(true));
+    await act(async () => {
+      rawResponseResolvers.get('preview.html')!(textResponse(SOURCE));
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 81, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 81, clientX: 340, clientY: 170 });
+    fireEvent.pointerUp(se, { pointerId: 81, clientX: 340, clientY: 170 });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      '/api/projects/project-1/files',
+      expect.objectContaining({ method: 'POST' }),
+    ));
+
+    rerender(
+      <FileViewer projectId="project-1" projectKind="prototype" file={secondFile} />,
+    );
+    await waitFor(() => expect(rawResponseResolvers.has('second.html')).toBe(true));
+    await act(async () => {
+      resolveSave(new Response(JSON.stringify({ file: firstFile }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+      await Promise.resolve();
+    });
+    await act(async () => {
+      rawResponseResolvers.get('second.html')!(textResponse(secondSource));
+      await Promise.resolve();
+    });
+
+    const frame = await previewFrame();
+    await waitFor(() => expect(frame.srcdoc).toContain('Second file'));
+  });
+
   it('blocks a second resize until the first resize commit finishes saving', async () => {
     let releaseSave: (() => void) | undefined;
     const savePending = new Promise<void>((resolve) => {
@@ -1132,10 +1196,10 @@ function heroTarget(): ManualEditTarget {
   };
 }
 
-function htmlPreviewFile(): ProjectFile {
+function htmlPreviewFile(name = 'preview.html'): ProjectFile {
   return {
-    name: 'preview.html',
-    path: 'preview.html',
+    name,
+    path: name,
     type: 'file',
     size: 1024,
     mtime: 1710000000,
@@ -1145,7 +1209,7 @@ function htmlPreviewFile(): ProjectFile {
       version: 1,
       kind: 'html',
       title: 'Preview',
-      entry: 'preview.html',
+      entry: name,
       renderer: 'html',
       exports: ['html'],
     },

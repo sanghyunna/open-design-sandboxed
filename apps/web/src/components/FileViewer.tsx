@@ -3631,7 +3631,13 @@ function HtmlViewer({
   const [manualEditMode, setManualEditModeRaw] = useState(false);
   const [manualEditSrcDocActive, setManualEditSrcDocActive] = useState(false);
   const [manualEditFrozenSource, setManualEditFrozenSource] = useState<string | null>(null);
+  // Async saves must not apply their old document after the viewer moves on.
+  const manualEditSourceKey = `${projectId}\0${file.name}\0${liveHtml === undefined ? 'raw' : 'live'}`;
+  const manualEditSourceKeyRef = useRef(manualEditSourceKey);
+  manualEditSourceKeyRef.current = manualEditSourceKey;
   const manualEditSaveGenerationRef = useRef(0);
+  // A watcher can return the just-written source before the POST resolves.
+  const manualEditInFlightSourceRef = useRef<string | null>(null);
   const [commentPortalHost, setCommentPortalHost] = useState<HTMLElement | null>(null);
   const [manualEditPortalHost, setManualEditPortalHost] = useState<HTMLElement | null>(null);
   const [previewBodyRef, previewBodySize] = usePreviewCanvasSize<HTMLDivElement>();
@@ -3688,6 +3694,7 @@ function HtmlViewer({
   useEffect(() => {
     setManualEditSrcDocActive(false);
     setManualEditFrozenSource(null);
+    manualEditInFlightSourceRef.current = null;
     manualEditSaveGenerationRef.current = 0;
   }, [projectId, file.name]);
   useEffect(() => {
@@ -3831,8 +3838,6 @@ function HtmlViewer({
   const [manualEditResizeFeedback, setManualEditResizeFeedback] = useState<ManualEditResizeFeedback | null>(null);
   const [manualEditSaving, setManualEditSaving] = useState(false);
   const manualEditSavingRef = useRef(false);
-  // A watcher can return the just-written source before the POST resolves.
-  const manualEditInFlightSourceRef = useRef<string | null>(null);
   const manualEditHistoryOperationRef = useRef(false);
   const manualEditHistoryQueueRef = useRef<Array<'undo' | 'redo'>>([]);
   const undoManualEditRef = useRef<() => Promise<void>>(async () => {});
@@ -6417,6 +6422,7 @@ function HtmlViewer({
     setManualEditError(null);
     let saveOk = false;
     try {
+      const sourceKey = manualEditSourceKey;
       const baseSource = sourceRef.current;
       const result = applyManualEditPatch(baseSource, patch);
       if (!result.ok) {
@@ -6426,6 +6432,7 @@ function HtmlViewer({
       if (!(await confirmManualEditHistorySource(
         baseSource,
         'The file changed outside manual edit mode. Refreshing before applying manual edits.',
+        sourceKey,
       ))) return false;
       let expectedContentSha256: string;
       try {
@@ -6434,6 +6441,7 @@ function HtmlViewer({
         setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before saving.');
         return false;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return false;
       manualEditInFlightSourceRef.current = result.source;
       let saved: Awaited<ReturnType<typeof writeProjectTextFileDetailed>>;
       try {
@@ -6444,6 +6452,7 @@ function HtmlViewer({
       } finally {
         manualEditInFlightSourceRef.current = null;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return false;
       if (!saved.ok) {
         if ('conflict' in saved && saved.conflict) {
           setManualEditError('The file changed outside Manual Edit. Refresh the preview before applying this edit.');
@@ -6472,7 +6481,7 @@ function HtmlViewer({
           ? { selectionIntent: { beforeId: patch.id, afterId: patch.plan.duplicateRootId } }
           : {}),
       };
-      recordManualEditSourceCommit();
+      if (!recordManualEditSourceCommit(sourceKey)) return false;
       setSource(result.source);
       sourceRef.current = result.source;
       setInlinedSource(null);
@@ -6539,11 +6548,16 @@ function HtmlViewer({
     }
   }
 
-  async function confirmManualEditHistorySource(expectedSource: string, message: string): Promise<boolean> {
+  async function confirmManualEditHistorySource(
+    expectedSource: string,
+    message: string,
+    sourceKey: string,
+  ): Promise<boolean> {
     const persisted = await fetchProjectFileText(projectId, file.name, {
       cache: 'no-store',
       cacheBustKey: Date.now(),
     });
+    if (!isCurrentManualEditSource(sourceKey)) return false;
     if (persisted == null) return true;
     if (persisted === expectedSource) return true;
     setSource(persisted);
@@ -6557,8 +6571,14 @@ function HtmlViewer({
     return false;
   }
 
-  function recordManualEditSourceCommit() {
+  function isCurrentManualEditSource(sourceKey: string): boolean {
+    return sourceKey === manualEditSourceKeyRef.current;
+  }
+
+  function recordManualEditSourceCommit(sourceKey: string): boolean {
+    if (!isCurrentManualEditSource(sourceKey)) return false;
     manualEditSaveGenerationRef.current += 1;
+    return true;
   }
 
   function refreshManualEditDocument(snapshot: string) {
@@ -6593,9 +6613,11 @@ function HtmlViewer({
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
     try {
+      const sourceKey = manualEditSourceKey;
       if (!(await confirmManualEditHistorySource(
         latest.afterSource,
         'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
+        sourceKey,
       ))) return;
       let expectedContentSha256: string;
       try {
@@ -6604,6 +6626,7 @@ function HtmlViewer({
         setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before undoing.');
         return;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return;
       manualEditInFlightSourceRef.current = latest.beforeSource;
       let saved: Awaited<ReturnType<typeof writeProjectTextFile>>;
       try {
@@ -6614,6 +6637,7 @@ function HtmlViewer({
       } finally {
         manualEditInFlightSourceRef.current = null;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return;
       if (!saved) {
         setManualEditError('Could not save the undo result.');
         return;
@@ -6628,7 +6652,7 @@ function HtmlViewer({
           seq: manualEditActionSeqRef.current,
         };
       }
-      recordManualEditSourceCommit();
+      if (!recordManualEditSourceCommit(sourceKey)) return;
       setSource(latest.beforeSource);
       sourceRef.current = latest.beforeSource;
       setInlinedSource(null);
@@ -6674,9 +6698,11 @@ function HtmlViewer({
     manualEditHistoryOperationRef.current = true;
     setManualEditSaving(true);
     try {
+      const sourceKey = manualEditSourceKey;
       if (!(await confirmManualEditHistorySource(
         latest.beforeSource,
         'The file changed outside manual edit mode. History was cleared to avoid overwriting newer content.',
+        sourceKey,
       ))) return;
       let expectedContentSha256: string;
       try {
@@ -6685,6 +6711,7 @@ function HtmlViewer({
         setManualEditError(error instanceof Error ? error.message : 'Could not verify the source before redoing.');
         return;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return;
       manualEditInFlightSourceRef.current = latest.afterSource;
       let saved: Awaited<ReturnType<typeof writeProjectTextFile>>;
       try {
@@ -6695,6 +6722,7 @@ function HtmlViewer({
       } finally {
         manualEditInFlightSourceRef.current = null;
       }
+      if (!isCurrentManualEditSource(sourceKey)) return;
       if (!saved) {
         setManualEditError('Could not save the redo result.');
         return;
@@ -6709,7 +6737,7 @@ function HtmlViewer({
           seq: manualEditActionSeqRef.current,
         };
       }
-      recordManualEditSourceCommit();
+      if (!recordManualEditSourceCommit(sourceKey)) return;
       setSource(latest.afterSource);
       sourceRef.current = latest.afterSource;
       setInlinedSource(null);
