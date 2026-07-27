@@ -520,6 +520,94 @@ describe('FileViewer manual edit resize handles', () => {
     });
   });
 
+  it('does not rebuild manual-edit srcDoc for matching saved-source refreshes, but rebuilds it once for an external change', async () => {
+    let persistedSource = SOURCE;
+    let savedSource = '';
+    let resolveSave!: (response: Response) => void;
+    const saveResponse = new Promise<Response>((resolve) => {
+      resolveSave = resolve;
+    });
+    const rawResponseResolvers: Array<(response: Response) => void> = [];
+    const textResponse = (content: string) => new Response(content, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        savedSource = JSON.parse(String(init.body)).content as string;
+        persistedSource = savedSource;
+        return saveResponse;
+      }
+      if (url.includes('/api/projects/project-1/raw/')) {
+        if (init?.cache === 'no-store') return Promise.resolve(textResponse(persistedSource));
+        return new Promise<Response>((resolve) => {
+          rawResponseResolvers.push(resolve);
+        });
+      }
+      return Promise.resolve(textResponse(persistedSource));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const file = htmlPreviewFile();
+    const { rerender } = render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={file} />,
+    );
+
+    await waitFor(() => expect(rawResponseResolvers).toHaveLength(1));
+    await act(async () => {
+      rawResponseResolvers.shift()!(textResponse(SOURCE));
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const se = seHandle();
+    fireEvent.pointerDown(se, { pointerId: 58, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 58, clientX: 340, clientY: 170 });
+    fireEvent.pointerUp(se, { pointerId: 58, clientX: 340, clientY: 170 });
+    await waitFor(() => expect(savedSource).toMatch(/width:\s*200px/));
+
+    const savedSrcDoc = frame.srcdoc;
+    const savedRevision = manualEditDocumentRevision(savedSrcDoc);
+    const refresh = async (key: number, content: string) => {
+      rerender(
+        <FileViewer
+          projectId="project-1"
+          projectKind="prototype"
+          file={file}
+          filesRefreshKey={key}
+        />,
+      );
+      await waitFor(() => expect(rawResponseResolvers).toHaveLength(1));
+      await act(async () => {
+        rawResponseResolvers.shift()!(textResponse(content));
+        await Promise.resolve();
+      });
+    };
+
+    // Project metadata and the file watcher can each report this same save.
+    await refresh(1, savedSource);
+    expect(frame.srcdoc).toBe(savedSrcDoc);
+    expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision);
+    await act(async () => {
+      resolveSave(new Response(JSON.stringify({ file }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+      await Promise.resolve();
+    });
+    await refresh(2, savedSource);
+    expect(frame.srcdoc).toBe(savedSrcDoc);
+    expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision);
+
+    const externalSource = savedSource.replace('>Hero</main>', '>Externally updated hero</main>');
+    await refresh(3, externalSource);
+    expect(frame.srcdoc).toContain('Externally updated hero');
+    expect(frame.srcdoc).not.toBe(savedSrcDoc);
+    expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision + 1);
+  });
+
   it('blocks a second resize until the first resize commit finishes saving', async () => {
     let releaseSave: (() => void) | undefined;
     const savePending = new Promise<void>((resolve) => {
@@ -1062,4 +1150,10 @@ function htmlPreviewFile(): ProjectFile {
       exports: ['html'],
     },
   };
+}
+
+function manualEditDocumentRevision(srcDoc: string): number {
+  const match = srcDoc.match(/od:manual-edit-document-revision=(\d+)/);
+  if (!match) throw new Error('Expected a Manual Edit document revision marker.');
+  return Number(match[1]);
 }

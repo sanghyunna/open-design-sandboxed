@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, Response } from '@playwright/test';
 import { T } from '@/timeouts';
 import { issue41SelectionPaintHtml, magneticEdgeAlignmentHtml } from '../resources/manual-edit.ts';
 
@@ -1369,6 +1369,132 @@ test('[P0] simple deck keeps the active slide stable across preview mode switche
   await expect(frame.getByText('Slide Two')).toBeVisible();
   await page.getByLabel('Next slide').click();
   await expect(frame.getByText('Slide Three')).toBeVisible();
+});
+
+test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 58 deck resize');
+  const template = readFileSync(new URL('../../templates/deck-framework.html', import.meta.url), 'utf8');
+  const deckHtml = template
+    .replace('</head>', "<script>window.parent.postMessage({ type: 'od:issue-58-deck-boot' }, '*');</script></head>")
+    .replace('<!-- SLOT: slide 1 content -->', '<h1>Slide One</h1>')
+    .replace(
+      '<!-- SLOT: slide 2 content -->',
+      '<div data-od-id="issue-58-resize-target" data-od-label="Slide two card" style="width:320px;height:180px;background:#dbeafe;">Slide Two</div>',
+    );
+  expect(deckHtml).toContain('issue-58-resize-target');
+
+  const seedResp = await page.request.post(
+    `/api/projects/${projectId}/files`,
+    {
+      data: {
+        name: 'issue-58-deck.html',
+        content: deckHtml,
+        artifactManifest: {
+          version: 1,
+          kind: 'deck',
+          title: 'Issue 58 Deck',
+          entry: 'issue-58-deck.html',
+          renderer: 'deck-html',
+          exports: ['html', 'pptx'],
+        },
+      },
+      timeout: 15_000,
+    },
+  );
+  expect(seedResp.ok()).toBeTruthy();
+
+  await page.goto(`/projects/${projectId}`);
+  await waitForLoadingToClear(page);
+  const bootCounterKey = '__issue58DeckBootCount';
+  await page.evaluate((key) => {
+    const host = window as typeof window & Record<string, number>;
+    host[key] = 0;
+    window.addEventListener('message', (event) => {
+      if ((event.data as { type?: string } | null)?.type !== 'od:issue-58-deck-boot') return;
+      host[key] = (host[key] ?? 0) + 1;
+    });
+  }, bootCounterKey);
+  const deckBoots = () => page.evaluate(
+    (key) => Number((window as typeof window & Record<string, number>)[key] ?? 0),
+    bootCounterKey,
+  );
+
+  await openDesignFile(page, 'issue-58-deck.html');
+  const frame = artifactPreviewFrame(page);
+  const resizeTarget = frame.locator('[data-od-id="issue-58-resize-target"]');
+  await expect.poll(deckBoots).toBeGreaterThan(0);
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+  await page.getByLabel('Next slide').click();
+  await expect(frame.locator('#deck-cur')).toHaveText('02');
+  await expect(resizeTarget).toBeVisible();
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('#deck-cur')).toHaveText('02');
+  await resizeTarget.click();
+  await expect(frame.locator('[data-od-id="issue-58-resize-target"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const bootCountBeforeSave = await deckBoots();
+  expect(bootCountBeforeSave).toBeGreaterThan(0);
+  const before = await resizeTarget.boundingBox();
+  if (!before) throw new Error('slide two resize target has no bounding box');
+  const handle = page.getByRole('button', { name: 'Resize bottom-right corner' });
+  const handleBox = await handle.boundingBox();
+  if (!handleBox) throw new Error('resize handle has no bounding box');
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+  const postSaveRawHtmlRefreshes: Response[] = [];
+  let lastPostSaveRawHtmlRefreshAt = 0;
+  const rawHtmlPath = `/api/projects/${projectId}/raw/issue-58-deck.html`;
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    const cacheBust = url.searchParams.get('cacheBust');
+    if (
+      response.request().method() === 'GET'
+      && url.pathname === rawHtmlPath
+      // The pre-save conflict check uses Date.now(); source refreshes use the
+      // `${file.mtime}-${reloadKey}-${filesRefreshKey}` form.
+      && cacheBust?.includes('-')
+    ) {
+      postSaveRawHtmlRefreshes.push(response);
+      lastPostSaveRawHtmlRefreshAt = Date.now();
+    }
+  });
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 80, startY + 80, { steps: 8 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () => {
+      const resp = await page.request.get(`/api/projects/${projectId}/files/issue-58-deck.html`);
+      if (!resp.ok()) return false;
+      const source = await resp.text();
+      const style = source.match(/data-od-id="issue-58-resize-target"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      const width = Number(style.match(/width:\s*([\d.]+)px/)?.[1]);
+      return width > before.width + 1;
+    })
+    .toBe(true);
+
+  // Save metadata and filesystem watchers may coalesce differently across
+  // platforms. Wait for the refresh path, then allow its trailing watcher
+  // batch to settle before checking that no response rebooted the deck.
+  await expect.poll(() => postSaveRawHtmlRefreshes.length, { timeout: T.medium }).toBeGreaterThan(0);
+  await expect
+    .poll(() => Date.now() - lastPostSaveRawHtmlRefreshAt, { timeout: T.medium })
+    .toBeGreaterThanOrEqual(T.short);
+  await Promise.all(postSaveRawHtmlRefreshes.map(async (response) => {
+    await response.finished();
+    expect(response.ok()).toBeTruthy();
+  }));
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+  expect(await deckBoots()).toBe(bootCountBeforeSave);
+  await expect(frame.locator('#deck-cur')).toHaveText('02');
+  await expect(resizeTarget).toBeVisible();
 });
 
 test('[P0] @critical HTML preview stays rendered after switching from Preview to Code and back', async ({ page }) => {
