@@ -6459,11 +6459,16 @@ function HtmlViewer({
           artifactManifest: file.artifactManifest,
           expectedContentSha256,
         });
-      } finally {
+      } catch (error) {
         manualEditInFlightSourceRef.current = null;
+        throw error;
       }
-      if (!isCurrentManualEditSource(sourceKey)) return false;
+      if (!isCurrentManualEditSource(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return false;
+      }
       if (!saved.ok) {
+        manualEditInFlightSourceRef.current = null;
         if ('conflict' in saved && saved.conflict) {
           setManualEditError('The file changed outside Manual Edit. Refresh the preview before applying this edit.');
           return false;
@@ -6476,8 +6481,12 @@ function HtmlViewer({
         );
         return false;
       }
-      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, baseSource, result.source);
-      if (sourceAfterSave == null) return false;
+      const sourceAfterSave = sourceRef.current;
+      if (!recordManualEditSourceCommit(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return false;
+      }
+      manualEditInFlightSourceRef.current = null;
       // The source write is the durable commit point. Preview refresh is a
       // follow-up and must never make a successful write look like a failed
       // edit or cause its history entry to be lost.
@@ -6493,8 +6502,7 @@ function HtmlViewer({
           ? { selectionIntent: { beforeId: patch.id, afterId: patch.plan.duplicateRootId } }
           : {}),
       };
-      if (!recordManualEditSourceCommit(sourceKey)) return false;
-      if (sourceAfterSave !== result.source) {
+      if (sourceAfterSave != null && sourceAfterSave !== baseSource && sourceAfterSave !== result.source) {
         replaceManualEditSource(
           sourceAfterSave,
           'The file changed outside Manual Edit. Refresh the preview before applying this edit.',
@@ -6583,21 +6591,6 @@ function HtmlViewer({
     return false;
   }
 
-  async function manualEditSourceAfterSave(
-    sourceKey: string,
-    expectedSource: string,
-    savedSource: string,
-  ): Promise<string | null> {
-    const current = sourceRef.current;
-    if (current === expectedSource || current === savedSource) return savedSource;
-    const persisted = await fetchProjectFileText(projectId, file.name, {
-      cache: 'no-store',
-      cacheBustKey: Date.now(),
-    });
-    if (!isCurrentManualEditSource(sourceKey)) return null;
-    return persisted ?? current ?? savedSource;
-  }
-
   function replaceManualEditSource(source: string, message: string) {
     setSource(source);
     sourceRef.current = source;
@@ -6672,16 +6665,25 @@ function HtmlViewer({
           artifactManifest: file.artifactManifest,
           expectedContentSha256,
         });
-      } finally {
+      } catch (error) {
         manualEditInFlightSourceRef.current = null;
+        throw error;
       }
-      if (!isCurrentManualEditSource(sourceKey)) return;
+      if (!isCurrentManualEditSource(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return;
+      }
       if (!saved) {
+        manualEditInFlightSourceRef.current = null;
         setManualEditError('Could not save the undo result.');
         return;
       }
-      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, latest.afterSource, latest.beforeSource);
-      if (sourceAfterSave == null) return;
+      const sourceAfterSave = sourceRef.current;
+      if (!recordManualEditSourceCommit(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return;
+      }
+      manualEditInFlightSourceRef.current = null;
       if (
         latest.selectionIntent
         && selectedManualEditTargetIdRef.current === latest.selectionIntent.afterId
@@ -6692,8 +6694,7 @@ function HtmlViewer({
           seq: manualEditActionSeqRef.current,
         };
       }
-      if (!recordManualEditSourceCommit(sourceKey)) return;
-      if (sourceAfterSave !== latest.beforeSource) {
+      if (sourceAfterSave != null && sourceAfterSave !== latest.afterSource && sourceAfterSave !== latest.beforeSource) {
         replaceManualEditSource(
           sourceAfterSave,
           'The file changed outside Manual Edit. Refresh the preview before undoing.',
@@ -6766,16 +6767,25 @@ function HtmlViewer({
           artifactManifest: file.artifactManifest,
           expectedContentSha256,
         });
-      } finally {
+      } catch (error) {
         manualEditInFlightSourceRef.current = null;
+        throw error;
       }
-      if (!isCurrentManualEditSource(sourceKey)) return;
+      if (!isCurrentManualEditSource(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return;
+      }
       if (!saved) {
+        manualEditInFlightSourceRef.current = null;
         setManualEditError('Could not save the redo result.');
         return;
       }
-      const sourceAfterSave = await manualEditSourceAfterSave(sourceKey, latest.beforeSource, latest.afterSource);
-      if (sourceAfterSave == null) return;
+      const sourceAfterSave = sourceRef.current;
+      if (!recordManualEditSourceCommit(sourceKey)) {
+        manualEditInFlightSourceRef.current = null;
+        return;
+      }
+      manualEditInFlightSourceRef.current = null;
       if (
         latest.selectionIntent
         && selectedManualEditTargetIdRef.current === latest.selectionIntent.beforeId
@@ -6786,8 +6796,7 @@ function HtmlViewer({
           seq: manualEditActionSeqRef.current,
         };
       }
-      if (!recordManualEditSourceCommit(sourceKey)) return;
-      if (sourceAfterSave !== latest.afterSource) {
+      if (sourceAfterSave != null && sourceAfterSave !== latest.beforeSource && sourceAfterSave !== latest.afterSource) {
         replaceManualEditSource(
           sourceAfterSave,
           'The file changed outside Manual Edit. Refresh the preview before redoing.',

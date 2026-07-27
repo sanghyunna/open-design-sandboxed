@@ -586,17 +586,27 @@ describe('FileViewer manual edit resize handles', () => {
       });
     };
 
-    // Project metadata and the file watcher can each report this same save.
-    await refresh(1, savedSource);
-    expect(frame.srcdoc).toBe(savedSrcDoc);
-    expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision);
+    // A pending watcher echo can settle in the same microtask as the POST.
+    rerender(
+      <FileViewer
+        projectId="project-1"
+        projectKind="prototype"
+        file={file}
+        filesRefreshKey={1}
+      />,
+    );
+    await waitFor(() => expect(rawResponseResolvers).toHaveLength(1));
     await act(async () => {
       resolveSave(new Response(JSON.stringify({ file }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }));
+      rawResponseResolvers.shift()!(textResponse(savedSource));
       await Promise.resolve();
     });
+    expect(frame.srcdoc).toBe(savedSrcDoc);
+    expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision);
+    // Project metadata and the file watcher can each report this same save.
     await refresh(2, savedSource);
     expect(frame.srcdoc).toBe(savedSrcDoc);
     expect(manualEditDocumentRevision(frame.srcdoc)).toBe(savedRevision);
@@ -766,8 +776,14 @@ describe('FileViewer manual edit resize handles', () => {
       await waitFor(() => expect(frame.srcdoc).toContain('Externally changed'));
       await resolvePost();
     } else {
-      await resolvePost();
-      await resolveWatcher();
+      await act(async () => {
+        resolveSave(new Response(JSON.stringify({ file }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+        rawResponseResolvers.shift()!(textResponse(externalSource));
+        await Promise.resolve();
+      });
     }
 
     await waitFor(() => expect(frame.srcdoc).toContain('Externally changed'));
