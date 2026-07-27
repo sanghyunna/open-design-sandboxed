@@ -2568,6 +2568,43 @@ describe('manual edit bridge rich-text editing', () => {
     dom.window.close();
   });
 
+  it('excludes semantic SVG roots under aria-hidden body and html ancestors', async () => {
+    const dom = new JSDOM(
+      `<main><svg data-od-source-path="path-0-0-0" role="img" aria-label="Diagram"><path d="M0 0h1v1z"></path></svg></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const diagram = dom.window.document.querySelector('svg[role="img"]') as SVGSVGElement;
+    diagram.getBoundingClientRect = () => ({
+      x: 10, y: 20, width: 100, height: 40,
+      top: 20, right: 110, bottom: 60, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    const latestTargets = () => {
+      const messages = postMessage.mock.calls
+        .map(([message]) => message as { type?: string; targets?: Array<{ id: string }> })
+        .filter((message) => message.type === 'od-edit-targets');
+      return messages[messages.length - 1]?.targets || [];
+    };
+
+    dom.window.document.body.setAttribute('aria-hidden', 'true');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+    expect(latestTargets().some((target) => target.id === 'path-0-0-0')).toBe(false);
+
+    dom.window.document.body.removeAttribute('aria-hidden');
+    dom.window.document.documentElement.setAttribute('aria-hidden', 'true');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+    expect(latestTargets().some((target) => target.id === 'path-0-0-0')).toBe(false);
+
+    dom.window.close();
+  });
+
   it('commits mixed-markup paragraph edits as inner html', () => {
     const dom = new JSDOM(
       `<main><p data-od-id="nested"><strong>Nested</strong> copy</p></main>${buildManualEditBridge(true)}`,

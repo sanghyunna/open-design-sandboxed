@@ -66,7 +66,7 @@ export function isManualEditSemanticVisualElement(el: Element): boolean {
     && !Array.from(el.children).some((child) => child.tagName.toLowerCase() === 'title' && !!child.textContent?.trim())
   ) return false;
   let parent = el.parentElement;
-  while (parent && parent !== parent.ownerDocument.body) {
+  while (parent) {
     const tag = parent.tagName.toLowerCase();
     if (parent.getAttribute('aria-hidden')?.trim().toLowerCase() === 'true') return false;
     if (tag === 'a' || tag === 'button' || parent.getAttribute('role') === 'button') return false;
@@ -164,7 +164,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         && !hasTitleElement) return false;
     }
     var parent = el.parentElement;
-    while (parent && parent !== document.body) {
+    while (parent) {
       var tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (String(parent.getAttribute('aria-hidden') || '').trim().toLowerCase() === 'true') return false;
       if (tag === 'a' || tag === 'button' || parent.getAttribute('role') === 'button') return false;
