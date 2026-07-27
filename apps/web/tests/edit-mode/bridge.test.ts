@@ -2437,6 +2437,7 @@ describe('manual edit bridge rich-text editing', () => {
           <svg data-od-source-path="hidden-attribute" role="img" aria-label="Hidden attribute" hidden><rect width="10" height="10"></rect></svg>
           <svg data-od-source-path="hidden-display" role="img" aria-label="Hidden display" style="display:none"><rect width="10" height="10"></rect></svg>
           <svg data-od-source-path="hidden-visibility" role="img" aria-label="Hidden visibility" style="visibility:hidden"><rect width="10" height="10"></rect></svg>
+          <div aria-hidden="true"><svg data-od-source-path="hidden-ancestor" role="img" aria-label="Hidden ancestor"><rect width="10" height="10"></rect></svg></div>
         </div>
         <button data-od-id="save"><svg viewBox="0 0 1 1" aria-hidden="true"><path d="M0 0h1v1z"></path></svg>Save</button>
       </main>${buildManualEditBridge(true)}`,
@@ -2472,7 +2473,7 @@ describe('manual edit bridge rich-text editing', () => {
       expect.objectContaining({ id: 'path-0-0-0', kind: 'container', tagName: 'svg' }),
     ]));
     expect(targetsMessage?.targets?.some((target) => target.tagName === 'svg' && target.id !== 'path-0-0-0')).toBe(false);
-    expect(targetsMessage?.targets?.some((target) => ['hidden-attribute', 'hidden-display', 'hidden-visibility'].includes(target.id))).toBe(false);
+    expect(targetsMessage?.targets?.some((target) => ['hidden-attribute', 'hidden-display', 'hidden-visibility', 'hidden-ancestor'].includes(target.id))).toBe(false);
 
     diagramText.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 20 }));
     expect(postMessage).toHaveBeenLastCalledWith(
