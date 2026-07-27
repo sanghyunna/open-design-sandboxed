@@ -503,8 +503,174 @@ describe('FileViewer manual edit move frame', () => {
     expect(postSpy.mock.invocationCallOrder[previewIndex]).toBeLessThan(fetchMock.mock.invocationCallOrder[saveIndex]!);
   });
 
+  it('previews a Ctrl-drag as a transient clone and commits one duplicate source patch', async () => {
+    const savedBodies: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.includes('/api/projects/project-1/files') && init?.method === 'POST') {
+        savedBodies.push(JSON.parse(String(init.body)).content as string);
+        return new Response(JSON.stringify({ file: htmlPreviewFile() }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const update = { delta: { x: 20, y: 0 }, shiftKey: false, axis: null } as const;
+    manualEditMoveFrameProbe.current!.onMoveStart();
+    manualEditMoveFrameProbe.current!.onCtrlChange?.(true);
+    manualEditMoveFrameProbe.current!.onMovePreview(update);
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-duplicate-create',
+        originalId: 'pic',
+        duplicateRootId: 'pic-copy',
+      }),
+      '*',
+    ));
+    const create = postSpy.mock.calls.find(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-create'
+    ))?.[0] as {
+      documentEpoch: string;
+      transactionId: string;
+      sequence: number;
+    };
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-preview',
+          documentEpoch: create.documentEpoch,
+          transactionId: create.transactionId,
+          sequence: create.sequence,
+          ok: true,
+          rect: { x: 50, y: 60, width: 40, height: 30 },
+          placementOffset: { x: 1.5, y: -2.25 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBeNull());
+
+    // Releasing and re-pressing Ctrl at the same pointer position suspends the
+    // preview but retains the prepared identity plan and transaction key.
+    manualEditMoveFrameProbe.current!.onCtrlChange?.(false);
+    const cancel = [...postSpy.mock.calls].reverse().find(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-cancel'
+    ))?.[0] as { documentEpoch: string; transactionId: string; sequence: number };
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-removed',
+          documentEpoch: cancel.documentEpoch,
+          transactionId: cancel.transactionId,
+          sequence: cancel.sequence,
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    manualEditMoveFrameProbe.current!.onCtrlChange?.(true);
+    await waitFor(() => expect(postSpy.mock.calls.filter(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-create'
+    ))).toHaveLength(2));
+    const secondCreate = [...postSpy.mock.calls].reverse().find(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-create'
+    ))?.[0] as {
+      transactionId: string;
+      previewHtml: string;
+      sequence: number;
+    };
+    expect(secondCreate.transactionId).toBe(create.transactionId);
+    expect(secondCreate.previewHtml).toBe((postSpy.mock.calls.find(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-create'
+    ))?.[0] as { previewHtml: string }).previewHtml);
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-preview',
+          documentEpoch: create.documentEpoch,
+          transactionId: secondCreate.transactionId,
+          sequence: secondCreate.sequence,
+          ok: true,
+          rect: { x: 50, y: 60, width: 40, height: 30 },
+          placementOffset: { x: 1.5, y: -2.25 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+    manualEditMoveFrameProbe.current!.onMoveCommit(update);
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-duplicate-update' }),
+      '*',
+    ));
+    const finalUpdate = [...postSpy.mock.calls].reverse().find(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-update'
+    ))?.[0] as {
+      documentEpoch: string;
+      transactionId: string;
+      sequence: number;
+    };
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-preview',
+          documentEpoch: finalUpdate.documentEpoch,
+          transactionId: finalUpdate.transactionId,
+          sequence: finalUpdate.sequence,
+          ok: true,
+          rect: { x: 70, y: 60, width: 40, height: 30 },
+          placementOffset: { x: 1.5, y: -2.25 },
+        },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => expect(savedBodies).toHaveLength(1));
+    expect(savedBodies[0]).toContain('data-od-id="pic"');
+    expect(savedBodies[0]).toContain('data-od-id="pic-copy"');
+    expect(savedBodies[0]).toContain('translate: 21.5px -2.25px');
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-duplicate-update' }), '*');
+    expect(postSpy.mock.calls.filter(([message]) => (
+      (message as { type?: string }).type === 'od-edit-duplicate-update'
+    ))).toHaveLength(3);
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-duplicate-cancel' }), '*');
+
+    // A later target rediscovery must not steal a newer explicit selection.
+    postSpy.mockClear();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-select', target: textTarget() },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-selected-target', id: 'hero' }),
+      '*',
+    ));
+    postSpy.mockClear();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-targets', targets: [{ ...imageTarget(), id: 'pic-copy', label: 'Pic copy' }] },
+        source: frame.contentWindow,
+      }));
+    });
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    expect(postSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-selected-target', id: 'pic-copy' }),
+      '*',
+    );
+  });
+
   it('captures movement before ending text edit can synchronously mutate the live target', async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -562,6 +728,9 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => expect(interiorSurface()).not.toBeNull());
 
     fireEvent.pointerUp(ring, { pointerId: 3, clientX: 130, clientY: 140 });
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) =>
+      String(input).includes('/api/projects/project-1/files') && (init as RequestInit | undefined)?.method === 'POST',
+    )).toBe(true));
   });
 
   it('reverts the preview to the base translate and writes no file on Escape mid-drag', async () => {

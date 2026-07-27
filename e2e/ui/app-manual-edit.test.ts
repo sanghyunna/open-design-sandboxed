@@ -611,6 +611,88 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
     .toBe(true);
 });
 
+test('[P1] issue 48 Ctrl-drag duplicates a source object with stable preview and history', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Issue 48 Ctrl-drag duplication');
+  await seedHtmlArtifact(page, projectId, 'manual-edit.html', duplicateManualEditHtml());
+  await page.goto(`/projects/${projectId}/files/manual-edit.html`);
+  await openDesignFile(page, 'manual-edit.html');
+
+  const frame = artifactPreviewFrame(page);
+  const original = frame.locator('[data-od-id="duplicate-card"]');
+  await expect(original).toBeVisible();
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await frame.locator('[data-od-id="duplicate-card"]').click({ position: { x: 4, y: 4 } });
+  await expect(inspectorSurface(page, 'Shape')).toBeVisible();
+  await expect(frame.locator('[data-od-id="duplicate-card"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
+  const moveBox = await moveSurface.boundingBox();
+  const before = await original.boundingBox();
+  if (!moveBox || !before) throw new Error('duplicate target has no move geometry');
+  const startX = moveBox.x + moveBox.width / 2;
+  const startY = moveBox.y + moveBox.height / 2;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  // First move without Ctrl so the next key transition proves that the
+  // original is restored before the transient clone takes over.
+  await page.mouse.move(startX + 12, startY, { steps: 2 });
+  await expect.poll(async () => {
+    const current = await original.boundingBox();
+    return current ? Math.abs(current.x - before.x) > 4 : false;
+  }).toBe(true);
+
+  await page.keyboard.down('Control');
+  const transient = frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-transient="true"]');
+  await expect(transient).toHaveCount(1);
+  await expect.poll(async () => {
+    const current = await original.boundingBox();
+    return current
+      ? Math.abs(current.x - before.x) < 1 && Math.abs(current.y - before.y) < 1
+      : false;
+  }).toBe(true);
+
+  await page.mouse.move(startX + 72, startY + 40, { steps: 6 });
+  await expect.poll(async () => {
+    const current = await transient.boundingBox();
+    return current
+      ? Math.abs((current.x - before.x) - 72) < 4 && Math.abs((current.y - before.y) - 40) < 4
+      : false;
+  }).toBe(true);
+  await page.mouse.up();
+  await page.keyboard.up('Control');
+
+  const readSource = async () => {
+    const response = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
+    return response.ok() ? response.text() : '';
+  };
+  const tagFor = (source: string, id: string) =>
+    source.match(new RegExp(`<div[^>]*data-od-id="${id}"[^>]*>`))?.[0] ?? '';
+  await expect.poll(async () => {
+    const source = await readSource();
+    const originalTag = tagFor(source, 'duplicate-card');
+    const cloneTag = tagFor(source, 'duplicate-card-copy');
+    return cloneTag.includes('id="card-root-copy"')
+      && cloneTag.includes('translate:')
+      && !originalTag.includes('translate:')
+      && source.includes('href="#card-title-copy"');
+  }).toBe(true);
+  await expect(frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-selected="true"]')).toHaveCount(1);
+  const committedCloneTag = tagFor(await readSource(), 'duplicate-card-copy');
+
+  await page.keyboard.press('Control+z');
+  await expectFileSourceExcludes(page, projectId, 'manual-edit.html', [
+    'data-od-id="duplicate-card-copy"',
+    'id="card-root-copy"',
+  ]);
+  await expect(frame.locator('[data-od-id="duplicate-card"][data-od-edit-selected="true"]')).toHaveCount(1);
+
+  await page.keyboard.press('Control+Shift+z');
+  await expect.poll(async () => tagFor(await readSource(), 'duplicate-card-copy')).toBe(committedCloneTag);
+  await expect(frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-selected="true"]')).toHaveCount(1);
+});
+
 test('[P1] issue 34 selects a nested child through the selected parent move surface', async ({ page }) => {
   await routeMockAgents(page);
   const fileName = 'issue-34-nested-child.html';
@@ -1734,6 +1816,36 @@ function manualEditHtml(): string {
         <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
       <p data-od-id="constrained-copy" data-od-label="Constrained copy" class="constrained-copy">Constrained copy</p>
+    </main>
+  </body>
+</html>`;
+}
+
+function duplicateManualEditHtml(): string {
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ctrl-drag duplication</title>
+    <style>
+      .duplicate-stage { position: relative; width: 600px; height: 300px; }
+      .duplicate-card { position: absolute; left: 80px; top: 60px; width: 160px; height: 80px; padding: 12px; box-sizing: border-box; background: #dbeafe; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="duplicate-stage" data-od-id="duplicate-stage" data-od-label="Duplicate stage">
+        <div
+          id="card-root"
+          class="duplicate-card"
+          data-od-id="duplicate-card"
+          data-od-label="Duplicate card"
+          aria-labelledby="card-title"
+        >
+          <h2 id="card-title">Card title</h2>
+          <a href="#card-title">Jump to title</a>
+        </div>
+      </section>
     </main>
   </body>
 </html>`;

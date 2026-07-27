@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 import {
   applyManualEditPatch,
   isManualEditFullHtmlDocument,
+  planManualEditDuplicate,
   readManualEditAttributes,
   readManualEditFields,
   readManualEditOuterHtml,
@@ -24,6 +25,24 @@ const baseSource = `<!doctype html>
       <section data-od-id="card" class="hero" style="color: red; padding: 8px;" data-keep="yes">Card</section>
       <p data-od-id="nested"><strong>Nested</strong> copy</p>
       <p>Generated path text</p>
+    </main>
+  </body>
+</html>`;
+
+const duplicateSource = `<!doctype html>
+<html>
+  <body>
+    <main>
+      <section data-od-id="card" data-od-source-path="path-0-0" data-od-runtime-id="runtime-card" data-od-runtime-hovered="true" style="translate: 2px 3px">
+        <h2 data-od-id="card-title" id="title">Title</h2>
+        <svg>
+          <defs><linearGradient id="paint"></linearGradient></defs>
+          <rect id="shape" fill="url(#paint)"></rect>
+        </svg>
+        <a href="#title" aria-describedby="title external">Jump</a>
+        <a href="https://example.test/page#title">External</a>
+      </section>
+      <p data-od-id="after">After</p>
     </main>
   </body>
 </html>`;
@@ -360,5 +379,174 @@ describe('manual edit source patches', () => {
     expect(html).toContain('<em>emph</em>');
     expect(html).toContain('blocky');
     expect(html).not.toContain('<div>');
+  });
+
+  it('plans and applies a source-backed duplicate with remapped ids and references', () => {
+    const planned = planManualEditDuplicate(duplicateSource, 'card');
+
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.error);
+    expect(planned.plan).toMatchObject({
+      originalId: 'card',
+      originalTagName: 'section',
+      parentPath: 'path-0',
+      expectedNextSiblingPath: 'path-0-1',
+      baselineTranslate: '2px 3px',
+    });
+    expect(planned.plan?.previewHtml).not.toContain('data-od-runtime-id');
+    expect(planned.plan?.previewHtml).not.toContain('data-od-source-path');
+
+    const plan = planned.plan!;
+    const result = applyManualEditPatch(duplicateSource, {
+      id: 'card',
+      kind: 'duplicate-and-move',
+      plan,
+      finalTranslate: '10px 20px',
+      placementOffset: { x: 1.25, y: -2.5 },
+    });
+
+    expect(result.ok).toBe(true);
+    const dom = new JSDOM(result.source);
+    const main = dom.window.document.querySelector('main')!;
+    const sections = Array.from(main.children).filter((el) => el.tagName.toLowerCase() === 'section');
+    const original = sections[0]!;
+    const duplicate = sections[1]!;
+    expect(main.children[0]).toBe(original);
+    expect(main.children[1]).toBe(duplicate);
+    expect(main.children[2]?.getAttribute('data-od-id')).toBe('after');
+    expect(original.getAttribute('data-od-id')).toBe('card');
+    expect(original.getAttribute('data-od-runtime-id')).toBe('runtime-card');
+    expect(original.querySelector('[data-od-id="card-title"]')?.getAttribute('id')).toBe('title');
+    expect(duplicate.getAttribute('data-od-id')).toBe(plan.duplicateRootId);
+    expect(duplicate.querySelector('[data-od-id="card-title-copy"]')?.getAttribute('id')).toBe('title-copy');
+    expect(duplicate.querySelector('a')?.getAttribute('href')).toBe('#title-copy');
+    expect(duplicate.querySelector('a')?.getAttribute('aria-describedby')).toBe('title-copy external');
+    expect(duplicate.querySelector('rect')?.getAttribute('fill')).toBe('url(#paint-copy)');
+    expect(duplicate.querySelectorAll('a')[1]?.getAttribute('href')).toBe('https://example.test/page#title');
+    expect(duplicate.getAttribute('data-od-runtime-id')).toBeNull();
+    expect(duplicate.getAttribute('data-od-source-path')).toBeNull();
+    expect(duplicate.getAttribute('data-od-runtime-hovered')).toBeNull();
+    expect((duplicate as HTMLElement).style.getPropertyValue('translate')).toBe('11.25px 17.5px');
+    expect(dom.window.document.querySelectorAll('[data-od-id]')).toHaveLength(5);
+    expect(dom.window.document.querySelectorAll('[id]')).toHaveLength(6);
+  });
+
+  it('rejects stale, ambiguous, and active duplicate plans without changing source', () => {
+    const planned = planManualEditDuplicate(duplicateSource, 'card');
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.error);
+    const plan = planned.plan!;
+
+    const stale = applyManualEditPatch(duplicateSource + ' ', {
+      id: 'card',
+      kind: 'duplicate-and-move',
+      plan,
+      finalTranslate: '1px 2px',
+    });
+    expect(stale.ok).toBe(false);
+    expect(stale.source).toBe(duplicateSource + ' ');
+
+    const ambiguousSource = duplicateSource.replace(
+      '<p data-od-id="after">After</p>',
+      '<p data-od-id="card">After</p>',
+    );
+    expect(planManualEditDuplicate(ambiguousSource, 'card').ok).toBe(false);
+
+    const activeSource = '<main><div data-od-id="card" onclick="run()"><script>run()</script></div></main>';
+    expect(planManualEditDuplicate(activeSource, 'card').ok).toBe(false);
+    const activePlan = {
+      ...plan,
+      expectedSource: activeSource,
+      parentPath: '',
+      expectedNextSiblingPath: null,
+    };
+    const active = applyManualEditPatch(activeSource, {
+      id: 'card',
+      kind: 'duplicate-and-move',
+      plan: activePlan,
+      finalTranslate: '1px 2px',
+    });
+    expect(active.ok).toBe(false);
+    expect(active.source).toBe(activeSource);
+  });
+
+  it('rejects unsupported identity-coupled attributes instead of guessing their references', () => {
+    for (const attribute of ['data-ref="card-title"', 'data-idrefs="card-title"', 'name="card-title"']) {
+      const source = `<main><section data-od-id="card"><h2 data-od-id="card-title" id="title">Title</h2><p ${attribute}>Copy</p></section></main>`;
+      expect(planManualEditDuplicate(source, 'card').ok).toBe(false);
+    }
+  });
+
+  it('rejects native interactive content and microdata itemref references', () => {
+    const buttonSource = '<main><section data-od-id="card"><button>Copy</button></section></main>';
+    expect(planManualEditDuplicate(buttonSource, 'card').ok).toBe(false);
+
+    const itemrefSource = '<main><section data-od-id="card"><h2 id="title">Title</h2><div itemref="title">Copy</div></section></main>';
+    expect(planManualEditDuplicate(itemrefSource, 'card').ok).toBe(false);
+  });
+
+  it('rejects stylesheet identity references and animated content instead of guessing', () => {
+    const stylesheetReference = [
+      '<style>#card-title { color: red; }</style>',
+      '<main><section data-od-id="card"><h2 id="card-title">Title</h2></section></main>',
+    ].join('');
+    expect(planManualEditDuplicate(stylesheetReference, 'card').ok).toBe(false);
+
+    const animated = '<main><svg data-od-id="card"><animate attributeName="x" from="0" to="10" /></svg></main>';
+    expect(planManualEditDuplicate(animated, 'card').ok).toBe(false);
+  });
+
+  it('allocates safe maps for identity values that are object-prototype names', () => {
+    const source = '<main><div data-od-id="__proto__" id="constructor">Copy</div></main>';
+    const planned = planManualEditDuplicate(source, '__proto__');
+
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.error);
+    const result = applyManualEditPatch(source, {
+      id: '__proto__',
+      kind: 'duplicate-and-move',
+      plan: planned.plan,
+      finalTranslate: '1px 2px',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.source).toContain('data-od-id="__proto__-copy"');
+    expect(result.source).toContain('id="constructor-copy"');
+  });
+
+  it('prefers an authored path-shaped id over generated path lookup', () => {
+    const source = '<main><div data-od-id="path-0">Copy</div><p>Other</p></main>';
+    const planned = planManualEditDuplicate(source, 'path-0');
+
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.error);
+    const result = applyManualEditPatch(source, {
+      id: 'path-0',
+      kind: 'duplicate-and-move',
+      plan: planned.plan,
+      finalTranslate: '3px 4px',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.source).toContain('data-od-id="path-0-copy"');
+    expect(result.source).toContain('<p>Other</p>');
+  });
+
+  it('uses a strict path locator for unannotated source elements', () => {
+    const source = '<main><div>Original</div><p>After</p></main>';
+    const planned = planManualEditDuplicate(source, 'path-0-0');
+
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.error);
+    const plan = planned.plan!;
+    expect(plan.duplicateRootId).toBe('path-0-0-copy');
+    const result = applyManualEditPatch(source, {
+      id: 'path-0-0',
+      kind: 'duplicate-and-move',
+      plan,
+      finalTranslate: '4px 5px',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.source).toContain('data-od-id="path-0-0-copy"');
+    expect(result.source).toContain('<div>Original</div><div data-od-id="path-0-0-copy"');
   });
 });

@@ -38,6 +38,8 @@ export type ManualEditMoveFrameProps = {
   onSurfaceDoubleClick: (region: Region) => void;
   /** Fired when the Alt/Option key changes state during an active drag. */
   onAltChange?: (altKey: boolean) => void;
+  /** Fired when the Ctrl/Control key changes state during an active drag. */
+  onCtrlChange?: (ctrlKey: boolean) => void;
   // Returns true if a burst was in progress and got cancelled. The caller uses
   // this to decide whether to stop propagation of the Escape event.
   onBurstCancel: () => boolean;
@@ -75,6 +77,7 @@ export function ManualEditMoveFrame({
   onActivate,
   onSurfaceDoubleClick,
   onAltChange,
+  onCtrlChange,
   onBurstCancel,
 }: ManualEditMoveFrameProps) {
   const dragRef = useRef<DragState | null>(null);
@@ -93,6 +96,8 @@ export function ManualEditMoveFrame({
   } | null>(null);
   const lastAltReportedRef = useRef<boolean | null>(null);
   const altListenersRef = useRef<{ down: (event: KeyboardEvent) => void; up: (event: KeyboardEvent) => void } | null>(null);
+  const lastCtrlReportedRef = useRef<boolean | null>(null);
+  const ctrlListenersRef = useRef<{ down: (event: KeyboardEvent) => void; up: (event: KeyboardEvent) => void } | null>(null);
 
   const stopShiftTracking = () => {
     const listeners = shiftListenersRef.current;
@@ -116,12 +121,30 @@ export function ManualEditMoveFrame({
     altListenersRef.current = null;
   };
 
+  const reportCtrl = (ctrlKey: boolean) => {
+    if (ctrlKey === lastCtrlReportedRef.current) return;
+    lastCtrlReportedRef.current = ctrlKey;
+    onCtrlChange?.(ctrlKey);
+  };
+
+  const detachCtrlListeners = () => {
+    const listeners = ctrlListenersRef.current;
+    if (!listeners) return;
+    window.removeEventListener('keydown', listeners.down, true);
+    window.removeEventListener('keyup', listeners.up, true);
+    ctrlListenersRef.current = null;
+  };
+
   useEffect(() => () => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
     }
     stopShiftTracking();
     detachAltListeners();
+    detachCtrlListeners();
+    dragRef.current = null;
+    pendingUpdateRef.current = null;
+    flushScheduledRef.current = false;
   }, []);
 
   const flushPreview = () => {
@@ -203,6 +226,21 @@ export function ManualEditMoveFrame({
     window.addEventListener('keyup', up, true);
   };
 
+  const attachCtrlListeners = () => {
+    detachCtrlListeners();
+    const onKey = (ctrlKey: boolean) => (event: KeyboardEvent) => {
+      if (event.key !== 'Control') return;
+      if (!dragRef.current?.dragging) return;
+      flushPendingPreview();
+      reportCtrl(ctrlKey);
+    };
+    const down = onKey(true);
+    const up = onKey(false);
+    ctrlListenersRef.current = { down, up };
+    window.addEventListener('keydown', down, true);
+    window.addEventListener('keyup', up, true);
+  };
+
   const endDrag = () => {
     const drag = dragRef.current;
     if (!drag) return;
@@ -214,7 +252,9 @@ export function ManualEditMoveFrame({
     }
     stopShiftTracking();
     detachAltListeners();
+    detachCtrlListeners();
     lastAltReportedRef.current = null;
+    lastCtrlReportedRef.current = null;
     const target = drag.target;
     if (typeof target.releasePointerCapture === 'function') {
       try {
@@ -272,6 +312,7 @@ export function ManualEditMoveFrame({
     // Reset Alt tracking; a drag reports its initial Alt state at the threshold,
     // and a below-threshold click carries Alt through onActivate instead.
     lastAltReportedRef.current = null;
+    lastCtrlReportedRef.current = null;
     dragRef.current = {
       region,
       pointerId: event.pointerId,
@@ -293,11 +334,13 @@ export function ManualEditMoveFrame({
       onMoveStart();
       startShiftTracking();
       attachAltListeners();
+      attachCtrlListeners();
     }
     // Pointer events carry the modifier state even when keyboard focus lives in
     // the preview iframe, so this keeps Alt-gated snapping responsive during a
     // real drag; reportAlt() dedupes so an unchanged state is a no-op.
     reportAlt(event.altKey);
+    reportCtrl(event.ctrlKey);
     scheduleFlush(movementUpdate(drag, event.clientX, event.clientY, event.shiftKey));
   };
 
@@ -306,6 +349,12 @@ export function ManualEditMoveFrame({
     if (!drag || event.pointerId !== drag.pointerId) return;
     const dragging = drag.dragging;
     const region = drag.region;
+    if (dragging) {
+      // Keyboard transitions can be missed while the pointer is captured; the
+      // pointerup event is authoritative for the final modifier state.
+      reportAlt(event.altKey);
+      reportCtrl(event.ctrlKey);
+    }
     const update = dragging
       ? movementUpdate(drag, event.clientX, event.clientY, event.shiftKey)
       : null;

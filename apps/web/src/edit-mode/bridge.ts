@@ -1,5 +1,6 @@
 export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em, b, i, u, s, mark, code, pre, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo, figcaption, caption, th, td, dt, dd, summary, output';
 export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
+export const MANUAL_EDIT_TRANSIENT_ATTR = 'data-od-edit-transient';
 const MANUAL_EDIT_RUNTIME_HOVER_ATTR = 'data-od-runtime-hovered';
 const MANUAL_EDIT_INLINE_TEXT_WRAPPER_SELECTOR = 'strong, span, small, em, b, i, u, s, mark, code, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo';
 const MANUAL_EDIT_TEXT_PASSAGE_SELECTOR = 'div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, figcaption, caption, th, td, dt, dd, summary, output';
@@ -67,14 +68,28 @@ export function buildManualEditBridge(enabled: boolean): string {
   var discoverySelector = ${JSON.stringify(MANUAL_EDIT_DISCOVERY_SELECTOR)};
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
+  var transientAttr = ${JSON.stringify(MANUAL_EDIT_TRANSIENT_ATTR)};
   var runtimeHoverAttr = ${JSON.stringify(MANUAL_EDIT_RUNTIME_HOVER_ATTR)};
   var textPassageSelector = ${JSON.stringify(MANUAL_EDIT_TEXT_PASSAGE_SELECTOR)};
   var styleProps = ['fontFamily','fontSize','fontWeight','color','textAlign','lineHeight','letterSpacing','width','height','minHeight','translate','gap','flexDirection','justifyContent','alignItems','flex','backgroundColor','opacity','padding','paddingTop','paddingRight','paddingBottom','paddingLeft','margin','marginTop','marginRight','marginBottom','marginLeft','border','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderStyle','borderColor','borderRadius'];
   var authoredSizeProbeSeq = 0;
+  var documentEpoch = null;
+  var bridgeSequence = 0;
+  var duplicateTransaction = null;
   var inlineTextWrapperTags = { strong:1, span:1, small:1, em:1, b:1, i:1, u:1, s:1, mark:1, code:1, time:1, abbr:1, cite:1, q:1, sub:1, sup:1, kbd:1, samp:1, var:1, dfn:1, ins:1, del:1, bdi:1, bdo:1 };
   var decorativeTextlessTags = { div:1, svg:1, g:1, path:1, circle:1, ellipse:1, rect:1, line:1, polyline:1, polygon:1, defs:1, lineargradient:1, radialgradient:1, stop:1, clippath:1, mask:1, use:1 };
   function isHostNode(el){
     return !!(el && el.matches && el.matches(hostNodeSelector));
+  }
+  function isTransient(el){
+    return !!(el && el.closest && el.closest('[' + transientAttr + '="true"]'));
+  }
+  function postManualMessage(message, sequenceOverride){
+    if (documentEpoch !== null) {
+      message.documentEpoch = documentEpoch;
+      message.sequence = sequenceOverride === undefined ? ++bridgeSequence : sequenceOverride;
+    }
+    window.parent.postMessage(message, '*');
   }
   function domPath(el){
     var parts = [];
@@ -96,7 +111,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     return generated || 'unknown';
   }
   function isSourceMappable(el){
-    return !!(el && el.hasAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute(sourcePathAttr)));
+    return !!(el && !isTransient(el) && el.hasAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute(sourcePathAttr)));
   }
   function isDiscoveryTarget(el){
     return !!(el && el.matches && el.matches(discoverySelector));
@@ -462,6 +477,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var targets = [];
     for (var i = 0; i < nodes.length; i++) {
       var rect = nodes[i].getBoundingClientRect();
+      if (isTransient(nodes[i])) continue;
       if (!isSourceMappable(nodes[i])) continue;
       if (targetForInlineText(nodes[i]) !== nodes[i]) continue;
       if (!isHiddenTarget(nodes[i], rect) && (rect.width < 4 || rect.height < 4)) continue;
@@ -471,11 +487,12 @@ export function buildManualEditBridge(enabled: boolean): string {
   }
   function postTargets(){
     if (!enabled) return;
-    window.parent.postMessage({ type: 'od-edit-targets', targets: allTargets() }, '*');
+    postManualMessage({ type: 'od-edit-targets', targets: allTargets() });
   }
   var lastHoverId = null;
   var hoveredTarget = null;
   function setHoveredTarget(el){
+    if (isTransient(el)) el = null;
     hoveredTarget = el && el.isConnected ? el : null;
     var hovered = document.querySelectorAll('[' + runtimeHoverAttr + ']');
     for (var i = 0; i < hovered.length; i++) {
@@ -490,7 +507,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var id = stableId(el);
     if (id === lastHoverId) return;
     lastHoverId = id;
-    window.parent.postMessage({ type: 'od-edit-hover', target: targetFrom(el, true, false) }, '*');
+    postManualMessage({ type: 'od-edit-hover', target: targetFrom(el, true, false) });
   }
   function clearSelectedTarget(){
     var selected = document.querySelectorAll('[data-od-edit-selected]');
@@ -503,6 +520,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (el) el.setAttribute('data-od-edit-selected', 'true');
   }
   function ancestorTarget(el){
+    if (isTransient(el)) return null;
     while (el && el !== document.documentElement) {
       if (el !== document.body && el !== document.documentElement && isSourceMappable(el) && isDiscoveryTarget(el)) {
         return targetForInlineText(el);
@@ -519,6 +537,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     var nodes = document.elementsFromPoint(x, y) || [];
     var targets = [];
     for (var i = 0; i < nodes.length; i++) {
+      if (isTransient(nodes[i])) continue;
       var target = ancestorTarget(nodes[i]);
       if (!target || targets.indexOf(target) >= 0) continue;
       targets.push(target);
@@ -572,6 +591,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
   }
   function targetForSelection(el){
+    if (isTransient(el)) return null;
     var range = currentSelectedRange();
     if (!range || !el) return el;
     if (el.contains(range.startContainer) && el.contains(range.endContainer)) return el;
@@ -665,7 +685,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     postSelectionState();
   }
   function makeEditable(el, clickEvent){
-    if (!el || el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === 'plaintext-only') return;
+    if (!el || isTransient(el) || el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === 'plaintext-only') return;
     // Links (and any element the host routes here as a non-text leaf) stay on the
     // plain-text path: their inline label is the only editable surface and rich
     // markup would fight the panel's link/href fields. Everything else gets a
@@ -755,10 +775,17 @@ export function buildManualEditBridge(enabled: boolean): string {
   function findById(id){
     if (!id) return null;
     if (id === '__body__') return document.body;
-    var el = document.querySelector('[data-od-id="' + cssEscapeId(id) + '"]')
-          || document.querySelector('[data-od-runtime-id="' + cssEscapeId(id) + '"]')
-          || document.querySelector('[' + sourcePathAttr + '="' + cssEscapeId(id) + '"]');
-    if (el) return el;
+    function firstLive(selector){
+      var matches = document.querySelectorAll(selector);
+      for (var matchIndex = 0; matchIndex < matches.length; matchIndex++) {
+        if (!isTransient(matches[matchIndex])) return matches[matchIndex];
+      }
+      return null;
+    }
+    var el = firstLive('[data-od-id="' + cssEscapeId(id) + '"]')
+          || firstLive('[data-od-runtime-id="' + cssEscapeId(id) + '"]')
+          || firstLive('[' + sourcePathAttr + '="' + cssEscapeId(id) + '"]');
+    if (el && isSourceMappable(el)) return el;
     if (typeof id === 'string' && id.indexOf('path-') === 0) {
       var parts = id.slice('path-'.length).split('-').map(function(s){ return Number(s); });
       var node = document.body;
@@ -769,7 +796,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         var children = Array.prototype.slice.call(node.children).filter(function(c){ return !isHostNode(c); });
         node = children[idx] || null;
       }
-      return node;
+      return node && !isTransient(node) && isSourceMappable(node) ? node : null;
     }
     return null;
   }
@@ -813,6 +840,395 @@ export function buildManualEditBridge(enabled: boolean): string {
     } catch (e) {
       window.parent.postMessage({ type: 'od-edit-preview-style-applied', id: id, version: Number(version) || 0, ok: false, error: e && e.message ? String(e.message) : 'Could not apply preview styles' }, '*');
     }
+  }
+  var duplicateForbiddenTags = {
+    audio:1, base:1, button:1, canvas:1, dialog:1, datalist:1, details:1, embed:1, form:1,
+    frame:1, frameset:1, iframe:1, input:1, link:1, meta:1, object:1,
+    optgroup:1, option:1, portal:1, script:1, select:1, slot:1, source:1,
+    style:1, summary:1, template:1, textarea:1, title:1, track:1, video:1, label:1,
+    animate:1, animatemotion:1, animatetransform:1, marquee:1, set:1
+  };
+  // Static data assets are valid preview content and are preserved by the
+  // source planner. Only executable or local-file schemes are rejected here.
+  var duplicateForbiddenUrl = /^(?:javascript|vbscript|file):/i;
+  function duplicateElements(root){
+    var elements = [root];
+    var descendants = root.querySelectorAll ? root.querySelectorAll('*') : [];
+    for (var i = 0; i < descendants.length; i++) elements.push(descendants[i]);
+    return elements;
+  }
+  function validateDuplicateMarkup(root){
+    var elements = duplicateElements(root);
+    for (var i = 0; i < elements.length; i++) {
+      var el = elements[i];
+      var tag = el.tagName ? el.tagName.toLowerCase() : '';
+      if (duplicateForbiddenTags[tag] || tag.indexOf('-') >= 0) return 'Unsupported element in duplicate.';
+      for (var j = 0; j < el.attributes.length; j++) {
+        var attr = el.attributes[j];
+        var name = attr.name.toLowerCase();
+        if (
+          name.indexOf('on') === 0
+          || name === 'srcdoc'
+          || name === transientAttr
+          || name === 'data-od-source-path'
+          || name.indexOf('data-od-runtime-') === 0
+          || name === 'data-od-edit-selected'
+          || name === 'data-od-editing'
+          || name === 'data-od-edit-mode'
+          || name === 'data-od-authored-size-probe'
+          || name === 'data-od-authored-size-probe-style'
+        ) return 'Unsafe duplicate attribute.';
+        if (
+          name === 'autofocus'
+          || name === 'formaction'
+          || name === 'formenctype'
+          || name === 'formmethod'
+          || name === 'formnovalidate'
+          || name === 'formtarget'
+          || name === 'name'
+          || name === 'itemref'
+          || (name === 'contenteditable' && String(attr.value).toLowerCase() !== 'false')
+        ) return 'Unsupported duplicate attribute.';
+        if ((name === 'href' || name === 'src' || name === 'xlink:href') && duplicateForbiddenUrl.test(attr.value.replace(/[\\u0000-\\u0020]+/g, ''))) {
+          return 'Unsafe duplicate URL.';
+        }
+      }
+    }
+    return null;
+  }
+  function duplicatePseudoSignature(el, pseudo){
+    try {
+      var style = window.getComputedStyle(el, pseudo);
+      var parts = [];
+      for (var i = 0; i < style.length; i++) {
+        var name = style.item(i);
+        if (!name || duplicateIgnoredComputedProperties[name]) continue;
+        parts.push(name + ':' + style.getPropertyValue(name));
+      }
+      parts.sort();
+      return parts.join(';');
+    } catch (e) {
+      return '';
+    }
+  }
+  // The transient clone deliberately changes a few computed properties to
+  // become inert. Compare every other computed property at insertion time so
+  // sibling-sensitive selectors (for example :last-child or an id selector)
+  // cannot silently change the original or make the clone look different.
+  var duplicateIgnoredComputedProperties = {
+    'animation': 1,
+    'animation-delay': 1,
+    'animation-direction': 1,
+    'animation-duration': 1,
+    'animation-fill-mode': 1,
+    'animation-iteration-count': 1,
+    'animation-name': 1,
+    'animation-play-state': 1,
+    'animation-timing-function': 1,
+    'interactivity': 1,
+    'pointer-events': 1,
+    'transition': 1,
+    'transition-delay': 1,
+    'transition-duration': 1,
+    'transition-property': 1,
+    'transition-timing-function': 1,
+    'translate': 1
+  };
+  function duplicateComputedStyleSignature(el){
+    try {
+      var style = window.getComputedStyle(el);
+      var parts = [];
+      for (var i = 0; i < style.length; i++) {
+        var name = style.item(i);
+        if (!name || duplicateIgnoredComputedProperties[name]) continue;
+        parts.push(name + ':' + style.getPropertyValue(name));
+      }
+      parts.sort();
+      return parts.join(';');
+    } catch (e) {
+      return '';
+    }
+  }
+  function duplicateLayoutSnapshot(){
+    var nodes = [];
+    if (document.body) nodes.push(document.body);
+    var all = document.body ? document.body.querySelectorAll('*') : [];
+    for (var i = 0; i < all.length; i++) {
+      if (isHostNode(all[i]) || isTransient(all[i])) continue;
+      nodes.push(all[i]);
+    }
+    return nodes.map(function(el){
+      var rect = el.getBoundingClientRect();
+      return {
+        el: el,
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        before: duplicatePseudoSignature(el, '::before'),
+        after: duplicatePseudoSignature(el, '::after'),
+        computed: duplicateComputedStyleSignature(el)
+      };
+    });
+  }
+  function closeEnough(a, b){ return Math.abs(a - b) <= 1; }
+  function duplicateSnapshotUnchanged(snapshot){
+    for (var i = 0; i < snapshot.length; i++) {
+      var item = snapshot[i];
+      if (!item.el.isConnected || isTransient(item.el)) return false;
+      var rect = item.el.getBoundingClientRect();
+      if (!closeEnough(rect.x, item.rect.x) || !closeEnough(rect.y, item.rect.y)
+        || !closeEnough(rect.width, item.rect.width) || !closeEnough(rect.height, item.rect.height)
+        || duplicatePseudoSignature(item.el, '::before') !== item.before
+        || duplicatePseudoSignature(item.el, '::after') !== item.after) return false;
+    }
+    return true;
+  }
+  function duplicateSnapshotStylesUnchanged(snapshot){
+    for (var i = 0; i < snapshot.length; i++) {
+      var item = snapshot[i];
+      if (duplicateComputedStyleSignature(item.el) !== item.computed) return false;
+    }
+    return true;
+  }
+  function duplicateStylesMatchOriginal(original, root){
+    var originals = duplicateElements(original);
+    var duplicates = duplicateElements(root);
+    if (originals.length !== duplicates.length) return false;
+    for (var i = 0; i < originals.length; i++) {
+      if (duplicateComputedStyleSignature(originals[i]) !== duplicateComputedStyleSignature(duplicates[i])
+        || duplicatePseudoSignature(originals[i], '::before') !== duplicatePseudoSignature(duplicates[i], '::before')
+        || duplicatePseudoSignature(originals[i], '::after') !== duplicatePseudoSignature(duplicates[i], '::after')) return false;
+    }
+    return true;
+  }
+  function duplicateRectFor(el){
+    var rect = el.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  }
+  function duplicateCssOffset(original, originalRect, naturalRect){
+    var scaleX = rectScaleAxis(originalRect.width, original.offsetWidth);
+    var scaleY = rectScaleAxis(originalRect.height, original.offsetHeight);
+    return {
+      x: (originalRect.x - naturalRect.x) / scaleX,
+      y: (originalRect.y - naturalRect.y) / scaleY
+    };
+  }
+  function duplicateRectMatches(a, b){
+    return closeEnough(a.x, b.x) && closeEnough(a.y, b.y)
+      && closeEnough(a.width, b.width) && closeEnough(a.height, b.height);
+  }
+  function duplicateSizeMatches(a, b){
+    return closeEnough(a.width, b.width) && closeEnough(a.height, b.height);
+  }
+  function duplicateHasActiveAnimation(root){
+    var elements = duplicateElements(root);
+    for (var i = 0; i < elements.length; i++) {
+      var animationName = window.getComputedStyle(elements[i]).animationName || '';
+      if (animationName.trim() && animationName.trim() !== 'none') return true;
+    }
+    return false;
+  }
+  function parseDuplicateTranslate(value){
+    var text = typeof value === 'string' ? value.trim() : '';
+    if (!text || text === 'none') return { x: 0, y: 0 };
+    var tokens = text.split(/\\s+/);
+    function parse(token){
+      var match = /^(-?(?:\\d+|\\d*\\.\\d+))px$/.exec(token || '');
+      if (!match) return null;
+      var number = Number(match[1]);
+      return isFinite(number) ? number : null;
+    }
+    var x = parse(tokens[0]);
+    var y = tokens.length > 1 ? parse(tokens[1]) : 0;
+    return x === null || y === null ? null : { x: x, y: y };
+  }
+  function setDuplicateTranslate(root, value, offset){
+    var parsed = parseDuplicateTranslate(value);
+    if (!parsed) return false;
+    var x = parsed.x + (offset ? offset.x : 0);
+    var y = parsed.y + (offset ? offset.y : 0);
+    var serialized = (Math.abs(x) < 0.001 && Math.abs(y) < 0.001) ? '' : x + 'px ' + y + 'px';
+    if (serialized) root.style.setProperty('translate', serialized);
+    else root.style.removeProperty('translate');
+    return true;
+  }
+  function markDuplicateTransient(root){
+    root.setAttribute(transientAttr, 'true');
+    root.setAttribute('aria-hidden', 'true');
+    if (root.tabIndex >= 0) root.tabIndex = -1;
+    root.style.setProperty('pointer-events', 'none', 'important');
+    root.style.setProperty('animation', 'none', 'important');
+    root.style.setProperty('transition', 'none', 'important');
+    try { root.inert = true; } catch (e) {}
+    var descendants = root.querySelectorAll ? root.querySelectorAll('*') : [];
+    for (var i = 0; i < descendants.length; i++) {
+      descendants[i].setAttribute('aria-hidden', 'true');
+      descendants[i].style.setProperty('pointer-events', 'none', 'important');
+      descendants[i].style.setProperty('animation', 'none', 'important');
+      descendants[i].style.setProperty('transition', 'none', 'important');
+      if (descendants[i].hasAttribute('contenteditable')) descendants[i].removeAttribute('contenteditable');
+      if (descendants[i].tabIndex >= 0) descendants[i].tabIndex = -1;
+    }
+  }
+  function removeDuplicateRoot(rootOverride){
+    var root = rootOverride || (duplicateTransaction && duplicateTransaction.root);
+    if (duplicateTransaction && (!rootOverride || duplicateTransaction.root === rootOverride)) duplicateTransaction = null;
+    if (root && root.parentNode) root.parentNode.removeChild(root);
+  }
+  function postDuplicatePreview(command, ok, error, rect, naturalRect, placementOffset, sequence){
+    var message = {
+      type: 'od-edit-duplicate-preview',
+      transactionId: command.transactionId,
+      ok: ok
+    };
+    if (error) message.error = error;
+    if (rect) message.rect = rect;
+    if (naturalRect) message.naturalRect = naturalRect;
+    if (placementOffset) message.placementOffset = placementOffset;
+    postManualMessage(message, sequence);
+  }
+  function postDuplicateRemoved(command, sequence){
+    postManualMessage({ type: 'od-edit-duplicate-removed', transactionId: command.transactionId }, sequence);
+  }
+  function rejectDuplicate(command, error, root){
+    removeDuplicateRoot(root);
+    postDuplicatePreview(command, false, error || 'Could not create duplicate.', null, null, null, command.sequence);
+  }
+  function duplicateIdsAreUnique(root){
+    var existingManualIds = Object.create(null);
+    var existingNativeIds = Object.create(null);
+    var documentElements = document.querySelectorAll('*');
+    for (var i = 0; i < documentElements.length; i++) {
+      var existing = documentElements[i];
+      if (isTransient(existing)) continue;
+      var manualId = existing.getAttribute('data-od-id');
+      var nativeId = existing.getAttribute('id');
+      if (manualId) existingManualIds[manualId] = existing;
+      if (nativeId) existingNativeIds[nativeId] = existing;
+    }
+    var elements = duplicateElements(root);
+    var ownManualIds = Object.create(null);
+    var ownNativeIds = Object.create(null);
+    for (var j = 0; j < elements.length; j++) {
+      var el = elements[j];
+      var manual = el.getAttribute('data-od-id');
+      var nativeIdValue = el.getAttribute('id');
+      if (manual) {
+        if (ownManualIds[manual] || existingManualIds[manual]) return false;
+        ownManualIds[manual] = true;
+      }
+      if (nativeIdValue) {
+        if (ownNativeIds[nativeIdValue] || existingNativeIds[nativeIdValue]) return false;
+        ownNativeIds[nativeIdValue] = true;
+      }
+    }
+    return true;
+  }
+  function createDuplicate(command){
+    if (!enabled || documentEpoch === null || command.documentEpoch !== documentEpoch) return;
+    if (!command.transactionId || !Number.isInteger(Number(command.sequence)) || !command.previewHtml) return;
+    removeDuplicateRoot();
+    var original = findById(command.originalId);
+    if (!original || isTransient(original) || !original.parentNode) {
+      rejectDuplicate(command, 'Original target is no longer available.');
+      return;
+    }
+    var before = duplicateLayoutSnapshot();
+    var template = document.createElement('template');
+    template.innerHTML = String(command.previewHtml);
+    var children = Array.prototype.slice.call(template.content.children);
+    var hasUnexpectedTopLevelText = false;
+    for (var childIndex = 0; childIndex < template.content.childNodes.length; childIndex++) {
+      var childNode = template.content.childNodes[childIndex];
+      if (childNode.nodeType === 3 && (childNode.textContent || '').trim()) {
+        hasUnexpectedTopLevelText = true;
+        break;
+      }
+    }
+    if (children.length !== 1 || hasUnexpectedTopLevelText) {
+      rejectDuplicate(command, 'Duplicate markup must contain one element.');
+      return;
+    }
+    var root = children[0];
+    var markupError = validateDuplicateMarkup(root);
+    if (markupError || !duplicateIdsAreUnique(root)) {
+      rejectDuplicate(command, markupError || 'Duplicate IDs are not unique.');
+      return;
+    }
+    if (!command.duplicateRootId || stableId(root) !== command.duplicateRootId) {
+      rejectDuplicate(command, 'Duplicate identity does not match the source plan.');
+      return;
+    }
+    var originalRect = duplicateRectFor(original);
+    if (duplicateHasActiveAnimation(original)) {
+      rejectDuplicate(command, 'Animated duplicate content is unsupported.');
+      return;
+    }
+    markDuplicateTransient(root);
+    original.parentNode.insertBefore(root, original.nextSibling);
+    var naturalRect = duplicateRectFor(root);
+    if (!duplicateSnapshotUnchanged(before) || !duplicateSizeMatches(naturalRect, originalRect)) {
+      rejectDuplicate(command, 'Duplicate changes existing layout.', root);
+      return;
+    }
+    // The rects are in preview pixels while CSS translate is in the element's
+    // untransformed coordinate space. Convert the insertion offset just like
+    // ordinary movement converts its pointer delta.
+    var placementOffset = duplicateCssOffset(original, originalRect, naturalRect);
+    if (!setDuplicateTranslate(root, command.baselineTranslate, placementOffset)) {
+      rejectDuplicate(command, 'Duplicate translate is not a static pixel value.', root);
+      return;
+    }
+    if (!duplicateSnapshotStylesUnchanged(before) || !duplicateStylesMatchOriginal(original, root)) {
+      rejectDuplicate(command, 'Duplicate changes authored or computed styles.', root);
+      return;
+    }
+    var previewRect = duplicateRectFor(root);
+    if (!duplicateRectMatches(previewRect, originalRect)) {
+      rejectDuplicate(command, 'Duplicate cannot preserve the original geometry.', root);
+      return;
+    }
+    duplicateTransaction = {
+      transactionId: command.transactionId,
+      root: root,
+      lastSequence: Number(command.sequence),
+      placementOffset: placementOffset,
+      naturalRect: naturalRect,
+      layoutSnapshot: before
+    };
+    postDuplicatePreview(command, true, null, previewRect, naturalRect, placementOffset, command.sequence);
+  }
+  function updateDuplicate(command){
+    var transaction = duplicateTransaction;
+    if (!transaction || documentEpoch === null || command.documentEpoch !== documentEpoch
+      || command.transactionId !== transaction.transactionId) return;
+    var sequence = Number(command.sequence);
+    if (!Number.isInteger(sequence) || sequence <= transaction.lastSequence) return;
+    if (!duplicateSnapshotUnchanged(transaction.layoutSnapshot)) {
+      removeDuplicateRoot();
+      postDuplicatePreview(command, false, 'Duplicate layout changed during the drag.', null, null, null, sequence);
+      return;
+    }
+    if (!duplicateSizeMatches(duplicateRectFor(transaction.root), transaction.naturalRect)) {
+      removeDuplicateRoot();
+      postDuplicatePreview(command, false, 'Duplicate geometry changed during the drag.', null, transaction.naturalRect, transaction.placementOffset, sequence);
+      return;
+    }
+    transaction.lastSequence = sequence;
+    if (!setDuplicateTranslate(transaction.root, command.translate, transaction.placementOffset)) {
+      removeDuplicateRoot();
+      postDuplicatePreview(command, false, 'Duplicate translate is not a static pixel value.', null, transaction.naturalRect, transaction.placementOffset, sequence);
+      return;
+    }
+    postDuplicatePreview(command, true, null, duplicateRectFor(transaction.root), transaction.naturalRect, transaction.placementOffset, sequence);
+  }
+  function cancelDuplicate(command){
+    var transaction = duplicateTransaction;
+    if (!transaction || documentEpoch === null || command.documentEpoch !== documentEpoch
+      || command.transactionId !== transaction.transactionId) return;
+    var sequence = Number(command.sequence);
+    if (!Number.isInteger(sequence) || sequence <= transaction.lastSequence) return;
+    transaction.lastSequence = sequence;
+    removeDuplicateRoot();
+    postDuplicateRemoved(command, sequence);
   }
   var deferredOverlayClick = null;
   var hostSelectedTargetId = null;
@@ -872,6 +1288,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!ev.data) return;
     if (ev.data.type === 'od-edit-mode') {
       var nextEnabled = !!ev.data.enabled;
+      documentEpoch = typeof ev.data.documentEpoch === 'string' ? ev.data.documentEpoch : null;
       if (enabled !== nextEnabled) {
         resetClickCycle();
         clearDeferredOverlayClick();
@@ -879,12 +1296,25 @@ export function buildManualEditBridge(enabled: boolean): string {
       enabled = nextEnabled;
       document.documentElement.toggleAttribute('data-od-edit-mode', enabled);
       if (!enabled) {
+        removeDuplicateRoot();
         clearSelectedTarget();
         setHoveredTarget(null);
         lastHoverId = null;
         hostSelectedTargetId = null;
       }
       if (enabled) setTimeout(postTargets, 0);
+      return;
+    }
+    if (ev.data.type === 'od-edit-duplicate-create') {
+      createDuplicate(ev.data);
+      return;
+    }
+    if (ev.data.type === 'od-edit-duplicate-update') {
+      updateDuplicate(ev.data);
+      return;
+    }
+    if (ev.data.type === 'od-edit-duplicate-cancel') {
+      cancelDuplicate(ev.data);
       return;
     }
     if (ev.data.type === 'od-edit-click-cancel') {

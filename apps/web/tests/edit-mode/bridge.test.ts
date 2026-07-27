@@ -1974,6 +1974,293 @@ describe('manual edit bridge target normalization', () => {
   });
 });
 
+describe('manual edit duplicate preview bridge', () => {
+  it('creates, updates, and removes a transient source-derived clone without discovering it', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const original = dom.window.document.querySelector('[data-od-id="original"]') as HTMLElement;
+    const rect = () => ({
+      x: 10, y: 20, width: 100, height: 30, top: 20, right: 110, bottom: 50, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    dom.window.HTMLElement.prototype.getBoundingClientRect = rect;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-1' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-create',
+        documentEpoch: 'epoch-1',
+        transactionId: 'duplicate-1',
+        sequence: 1,
+        originalId: 'original',
+        duplicateRootId: 'original-copy',
+        previewHtml: '<h1 data-od-id="original-copy">Original</h1>',
+        baselineTranslate: '',
+      },
+    }));
+
+    const duplicate = dom.window.document.querySelector('[data-od-id="original-copy"]') as HTMLElement;
+    expect(duplicate).not.toBeNull();
+    expect(duplicate.getAttribute('data-od-edit-transient')).toBe('true');
+    expect(duplicate.getAttribute('aria-hidden')).toBe('true');
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview',
+      transactionId: 'duplicate-1',
+      documentEpoch: 'epoch-1',
+      sequence: 1,
+      ok: true,
+    }), '*');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-update',
+        documentEpoch: 'epoch-1',
+        transactionId: 'duplicate-1',
+        sequence: 2,
+        translate: '12px 7px',
+      },
+    }));
+    expect(duplicate.style.getPropertyValue('translate')).toBe('12px 7px');
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview',
+      transactionId: 'duplicate-1',
+      sequence: 2,
+      ok: true,
+    }), '*');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-cancel',
+        documentEpoch: 'epoch-1',
+        transactionId: 'duplicate-1',
+        sequence: 3,
+      },
+    }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-removed',
+      transactionId: 'duplicate-1',
+      sequence: 3,
+    }), '*');
+    expect(original.getAttribute('data-od-edit-transient')).toBeNull();
+    dom.window.close();
+  });
+
+  it('returns insertion offsets in CSS pixels under an ancestor transform', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const original = dom.window.document.querySelector('[data-od-id="original"]') as HTMLElement;
+    Object.defineProperty(original, 'offsetWidth', { configurable: true, value: 50 });
+    Object.defineProperty(original, 'offsetHeight', { configurable: true, value: 30 });
+    dom.window.HTMLElement.prototype.getBoundingClientRect = function getRect() {
+      const isDuplicate = this.getAttribute('data-od-id') === 'original-copy';
+      const translateX = Number.parseFloat(this.style.getPropertyValue('translate').split(/\s+/)[0] || '0') || 0;
+      return {
+        x: isDuplicate ? translateX * 2 : 20,
+        y: 10,
+        width: 100,
+        height: 60,
+        top: 10,
+        right: isDuplicate ? translateX * 2 + 100 : 120,
+        bottom: 70,
+        left: isDuplicate ? translateX * 2 : 20,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-scale' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-create', documentEpoch: 'epoch-scale', transactionId: 'duplicate-scale',
+        sequence: 1, originalId: 'original', duplicateRootId: 'original-copy',
+        previewHtml: '<h1 data-od-id="original-copy">Original</h1>', baselineTranslate: '',
+      },
+    }));
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview',
+      placementOffset: { x: 10, y: 0 },
+      ok: true,
+    }), '*');
+    dom.window.close();
+  });
+
+  it('removes a rejected in-flight clone and invalidates a transaction after external reflow', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const original = dom.window.document.querySelector('[data-od-id="original"]') as HTMLElement;
+    let originalMoved = false;
+    dom.window.HTMLElement.prototype.getBoundingClientRect = function getRect() {
+      const moved = this === original && originalMoved;
+      return {
+        x: moved ? 11 : 10,
+        y: 20,
+        width: this.getAttribute('data-od-edit-transient') === 'true' ? 80 : 100,
+        height: 30,
+        top: 20,
+        right: moved ? 91 : 110,
+        bottom: 50,
+        left: moved ? 11 : 10,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-1' },
+    }));
+    const create = {
+      type: 'od-edit-duplicate-create', documentEpoch: 'epoch-1', transactionId: 'duplicate-reject',
+      sequence: 1, originalId: 'original', duplicateRootId: 'original-copy',
+      previewHtml: '<h1 data-od-id="original-copy">Original</h1>', baselineTranslate: '',
+    };
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: create }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview', ok: false, transactionId: 'duplicate-reject',
+    }), '*');
+
+    // A successful preflight followed by an external layout change must remove
+    // the transient before it can be committed against stale geometry.
+    dom.window.HTMLElement.prototype.getBoundingClientRect = function getStableRect() {
+      return {
+        x: originalMoved && this === original ? 13 : 10,
+        y: 20,
+        width: 100,
+        height: 30,
+        top: 20,
+        right: originalMoved && this === original ? 113 : 110,
+        bottom: 50,
+        left: originalMoved && this === original ? 13 : 10,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
+    const validCreate = { ...create, transactionId: 'duplicate-reflow', sequence: 1 };
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: validCreate }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).not.toBeNull();
+    originalMoved = true;
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-update', documentEpoch: 'epoch-1', transactionId: 'duplicate-reflow',
+        sequence: 2, translate: '12px 0px',
+      },
+    }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview', ok: false, transactionId: 'duplicate-reflow', sequence: 2,
+    }), '*');
+    dom.window.close();
+  });
+
+  it('rejects a clone that changes computed styles through a sibling-sensitive selector', () => {
+    const dom = new JSDOM(
+      `<style>[data-od-id="original"]:last-child { color: rgb(1, 2, 3); }</style>
+       <main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.HTMLElement.prototype.getBoundingClientRect = (() => ({
+      x: 10, y: 20, width: 100, height: 30, top: 20, right: 110, bottom: 50, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect));
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-style' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-duplicate-create', documentEpoch: 'epoch-style', transactionId: 'duplicate-style',
+        sequence: 1, originalId: 'original', duplicateRootId: 'original-copy',
+        previewHtml: '<h1 data-od-id="original-copy">Original</h1>', baselineTranslate: '',
+      },
+    }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-duplicate-preview', transactionId: 'duplicate-style', ok: false,
+    }), '*');
+    dom.window.close();
+  });
+
+  it('rejects native interactive content and itemref references before insertion', () => {
+    const cases = [
+      { name: 'button', previewHtml: '<button data-od-id="original-copy">Copy</button>' },
+      { name: 'itemref', previewHtml: '<div data-od-id="original-copy" itemref="title">Copy</div>' },
+    ];
+    for (const testCase of cases) {
+      const dom = new JSDOM(
+        `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+        { runScripts: 'dangerously', url: 'http://localhost' },
+      );
+      dom.window.HTMLElement.prototype.getBoundingClientRect = (() => ({
+        x: 0, y: 0, width: 100, height: 20, top: 0, right: 100, bottom: 20, left: 0,
+        toJSON: () => ({}),
+      } as DOMRect));
+      const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-unsafe' },
+      }));
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-create',
+          documentEpoch: 'epoch-unsafe',
+          transactionId: `duplicate-${testCase.name}`,
+          sequence: 1,
+          originalId: 'original',
+          duplicateRootId: 'original-copy',
+          previewHtml: testCase.previewHtml,
+          baselineTranslate: '',
+        },
+      }));
+      expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+      expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'od-edit-duplicate-preview',
+        ok: false,
+      }), '*');
+      dom.window.close();
+    }
+  });
+
+  it('rejects stale epochs and stale command sequences without touching the original', () => {
+    const dom = new JSDOM(
+      `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    dom.window.HTMLElement.prototype.getBoundingClientRect = (() => ({
+      x: 0, y: 0, width: 100, height: 20, top: 0, right: 100, bottom: 20, left: 0,
+      toJSON: () => ({}),
+    } as DOMRect));
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-2' },
+    }));
+    const create = {
+      type: 'od-edit-duplicate-create', documentEpoch: 'epoch-2', transactionId: 'duplicate-2',
+      sequence: 1, originalId: 'original', duplicateRootId: 'original-copy',
+      previewHtml: '<h1 data-od-id="original-copy">Original</h1>', baselineTranslate: '',
+    };
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { ...create, documentEpoch: 'old-epoch' },
+    }));
+    expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data: create }));
+    const duplicate = dom.window.document.querySelector('[data-od-id="original-copy"]') as HTMLElement;
+    expect(duplicate).not.toBeNull();
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-duplicate-update', documentEpoch: 'epoch-2', transactionId: 'duplicate-2', sequence: 1, translate: '99px 99px' },
+    }));
+    expect(duplicate.style.getPropertyValue('translate')).toBe('');
+    expect(postMessage.mock.calls.filter(([message]) => (message as { type?: string }).type === 'od-edit-duplicate-preview')).toHaveLength(1);
+    dom.window.close();
+  });
+});
+
 describe('manual edit bridge rich-text editing', () => {
   function selectContents(window: Window & typeof globalThis, el: Element): void {
     const sel = window.getSelection();

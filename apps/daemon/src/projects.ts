@@ -7,6 +7,7 @@
 // All paths flowing in from HTTP handlers are validated against the project
 // directory to prevent path traversal — see resolveSafe().
 
+import { createHash } from 'node:crypto';
 import { link, lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import JSZip from 'jszip';
@@ -64,6 +65,35 @@ export class SandboxImportedProjectError extends Error {
       'Imported-folder projects are not available in OD_SANDBOX_MODE until their files are mirrored into the managed project directory.',
     );
     this.name = 'SandboxImportedProjectError';
+  }
+}
+
+export class ProjectFileContentConflictError extends Error {
+  readonly code = 'CONFLICT' as const;
+  readonly expectedContentSha256: string;
+  readonly actualContentSha256: string | null;
+
+  constructor(name: string, expectedContentSha256: string, actualContentSha256: string | null) {
+    super(`project file "${name}" changed since it was read`);
+    this.name = 'ProjectFileContentConflictError';
+    this.expectedContentSha256 = expectedContentSha256;
+    this.actualContentSha256 = actualContentSha256;
+  }
+}
+
+const projectFileWriteLocks = new Map<string, Promise<void>>();
+
+async function withProjectFileWriteLock<T>(key: string, work: () => Promise<T>): Promise<T> {
+  const previous = projectFileWriteLocks.get(key);
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => { release = resolve; });
+  projectFileWriteLocks.set(key, current);
+  if (previous) await previous;
+  try {
+    return await work();
+  } finally {
+    release();
+    if (projectFileWriteLocks.get(key) === current) projectFileWriteLocks.delete(key);
   }
 }
 
@@ -756,12 +786,48 @@ export async function writeProjectFile(
   projectId,
   name,
   body,
-  { overwrite = true, artifactManifest = null } = {},
+  options = {},
+  metadata?,
+) {
+  const dir = resolveProjectDir(projectsRoot, projectId, metadata);
+  const safeName = sanitizePath(name);
+  const lockKey = `${process.platform === 'win32' ? path.normalize(dir).toLowerCase() : path.normalize(dir)}\u0000${safeName}`;
+  return withProjectFileWriteLock(lockKey, () => writeProjectFileUnlocked(
+    projectsRoot,
+    projectId,
+    name,
+    body,
+    options,
+    metadata,
+  ));
+}
+
+async function writeProjectFileUnlocked(
+  projectsRoot,
+  projectId,
+  name,
+  body,
+  { overwrite = true, artifactManifest = null, expectedContentSha256 } = {},
   metadata?,
 ) {
   const dir = await ensureProject(projectsRoot, projectId, metadata);
   const safeName = sanitizePath(name);
   const target = await resolveSafeReal(dir, safeName);
+  if (expectedContentSha256 !== undefined) {
+    let actualContentSha256 = null;
+    try {
+      actualContentSha256 = createHash('sha256').update(await readFile(target)).digest('hex');
+    } catch (err) {
+      if (!err || err.code !== 'ENOENT') throw err;
+    }
+    if (actualContentSha256 !== expectedContentSha256.toLowerCase()) {
+      throw new ProjectFileContentConflictError(
+        safeName,
+        expectedContentSha256,
+        actualContentSha256,
+      );
+    }
+  }
   body = normalizeArtifactRuntimeImports(safeName, body);
   if (!overwrite) {
     try {

@@ -25,6 +25,8 @@ export interface ManualEditSnapCandidate {
   ancestorIds: readonly string[];
   /** Stable document order, used as a final deterministic tie-breaker. */
   index: number;
+  /** Opt-in candidate for the duplicate's stationary source origin. */
+  isStationaryOriginal?: boolean;
 }
 
 export interface ManualEditSnapMatch {
@@ -70,8 +72,14 @@ export interface ManualEditMovementSession {
   selectedParentId: string | null;
   /** Nearest-first discovery ancestors of the selected element. */
   selectedAncestorIds: readonly string[];
+  /** Original target's document-order index from the pointer-down snapshot. */
+  selectedIndex?: number;
+  /** False when the target did not expose the structural metadata needed to rank snaps. */
+  snapCandidatesReady?: boolean;
   /** Per-axis latch; mutated in-place across frames for snap hysteresis. */
   latch: ManualEditSnapLatch;
+  /** Set once the duplicate has escaped the stationary-original release band. */
+  stationaryOriginalEscaped?: boolean;
 }
 
 export interface ManualEditMovementResult {
@@ -109,24 +117,37 @@ function parentIdOf(target: Pick<ManualEditTarget, 'parentId' | 'ancestorIds'>):
  * relationships that drive ranking cannot be computed, so snapping is disabled
  * by returning no candidates. Excludes the selection itself, its descendants
  * (they move together), hidden or disconnected elements, and degenerate rects.
+ * `stationaryOriginalId` opts the original back in as a duplicate-origin
+ * candidate while keeping the selected target's structural ranking metadata.
  */
 export function buildManualEditMovementCandidates(
   targets: readonly ManualEditTarget[],
   selectedId: string,
+  options?: { stationaryOriginalId?: string },
 ): {
   candidates: ManualEditSnapCandidate[];
   selectedParentId: string | null;
   selectedAncestorIds: readonly string[];
+  selectedIndex: number;
+  snapCandidatesReady: boolean;
 } {
   const selected = targets.find((target) => target.id === selectedId);
   if (!selected || selected.ancestorIds === undefined) {
-    return { candidates: [], selectedParentId: null, selectedAncestorIds: [] };
+    return {
+      candidates: [],
+      selectedParentId: null,
+      selectedAncestorIds: [],
+      selectedIndex: -1,
+      snapCandidatesReady: false,
+    };
   }
   const selectedAncestorIds = selected.ancestorIds;
   const selectedParentId = parentIdOf(selected);
+  const selectedIndex = targets.indexOf(selected);
+  const stationaryOriginalId = options?.stationaryOriginalId;
   const candidates: ManualEditSnapCandidate[] = [];
   targets.forEach((target, index) => {
-    if (target.id === selectedId) return;
+    if (target.id === selectedId && target.id !== stationaryOriginalId) return;
     if (target.ancestorIds?.includes(selectedId)) return; // descendant of the selection
     if (target.isHidden) return;
     if (target.isConnected === false) return;
@@ -139,9 +160,10 @@ export function buildManualEditMovementCandidates(
       parentId: parentIdOf(target),
       ancestorIds: target.ancestorIds ?? [],
       index,
+      ...(target.id === stationaryOriginalId ? { isStationaryOriginal: true } : {}),
     });
   });
-  return { candidates, selectedParentId, selectedAncestorIds };
+  return { candidates, selectedParentId, selectedAncestorIds, selectedIndex, snapCandidatesReady: true };
 }
 
 const EDGES: readonly ManualEditSnapEdge[] = ['min', 'max'];
@@ -250,6 +272,18 @@ function samePairing(a: Pairing, latch: ManualEditSnapLatchEntry): boolean {
     && a.targetEdge === latch.targetEdge;
 }
 
+function updateStationaryOriginalEscape(
+  session: ManualEditMovementSession,
+  movingRect: Readonly<ManualEditRect>,
+): void {
+  if (session.stationaryOriginalEscaped || !session.candidates.some((candidate) => candidate.isStationaryOriginal)) return;
+  const screenDisplacement = Math.max(
+    Math.abs(movingRect.x - session.startRect.x),
+    Math.abs(movingRect.y - session.startRect.y),
+  ) * session.scale;
+  if (screenDisplacement > SNAP_RELEASE_PX) session.stationaryOriginalEscaped = true;
+}
+
 /** Resolve one axis: mutate the latch and return the active match (or null). */
 function resolveAxis(
   session: ManualEditMovementSession,
@@ -258,6 +292,7 @@ function resolveAxis(
 ): ManualEditSnapMatch | null {
   const pairings: Pairing[] = [];
   for (const candidate of session.candidates) {
+    if (candidate.isStationaryOriginal && !session.stationaryOriginalEscaped) continue;
     for (const movingEdge of EDGES) {
       for (const targetEdge of EDGES) {
         pairings.push(makePairing(session, axis, movingRect, candidate, movingEdge, targetEdge));
@@ -380,6 +415,7 @@ export function resolveManualEditMovement(
     width: session.startRect.width,
     height: session.startRect.height,
   };
+  updateStationaryOriginalEscape(session, movingRect);
 
   // Snap only on a free axis; a Shift-locked axis stays pinned and drops its latch.
   let matchX: ManualEditSnapMatch | null = null;

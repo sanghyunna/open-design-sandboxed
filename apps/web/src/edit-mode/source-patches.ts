@@ -1,4 +1,5 @@
-import { emptyManualEditStyles, MANUAL_EDIT_STYLE_PROPS, type ManualEditFields, type ManualEditPatch, type ManualEditStyles } from './types';
+import { moveCssCommitStyles } from './resize-geometry';
+import { emptyManualEditStyles, MANUAL_EDIT_STYLE_PROPS, type ManualEditDuplicatePlan, type ManualEditFields, type ManualEditPatch, type ManualEditStyles } from './types';
 
 export interface ManualEditPatchResult {
   ok: boolean;
@@ -26,12 +27,107 @@ const DECORATIVE_HTML_ALLOWED_TAGS = new Set([
   'div', 'svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon',
   'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'mask', 'use',
 ]);
+const DUPLICATE_RUNTIME_ATTRIBUTES = new Set([
+  'data-od-source-path',
+  'data-od-edit-selected',
+  'data-od-editing',
+  'data-od-edit-mode',
+  'data-od-authored-size-probe',
+  'data-od-authored-size-probe-style',
+]);
+const DUPLICATE_UNSUPPORTED_TAGS = new Set([
+  'audio', 'base', 'button', 'canvas', 'dialog', 'datalist', 'details', 'embed', 'form', 'frame', 'frameset',
+  'iframe', 'input', 'link', 'meta', 'object', 'optgroup', 'option', 'portal', 'script',
+  'select', 'slot', 'source', 'style', 'summary', 'template', 'textarea', 'title', 'track', 'video',
+  'label',
+  'animate', 'animatemotion', 'animatetransform', 'marquee', 'set',
+]);
+const DUPLICATE_ACTIVE_ROLES = new Set([
+  'combobox', 'columnheader', 'grid', 'gridcell', 'listbox', 'menu', 'menubar', 'menuitem',
+  'menuitemcheckbox', 'menuitemradio', 'option', 'radiogroup', 'row', 'rowheader', 'scrollbar',
+  'searchbox', 'slider', 'spinbutton', 'tab', 'tablist', 'textbox', 'tree', 'treegrid', 'treeitem',
+]);
+const DUPLICATE_FRAGMENT_ATTRIBUTES = new Set(['href', 'xlink:href']);
+const DUPLICATE_TOKEN_IDREF_ATTRIBUTES = new Set([
+  'for', 'form', 'headers', 'list',
+  'aria-activedescendant', 'aria-controls', 'aria-describedby', 'aria-details',
+  'aria-errormessage', 'aria-flowto', 'aria-labelledby', 'aria-owns',
+]);
+const DUPLICATE_CSS_URL_ATTRIBUTES = new Set([
+  'clip-path', 'fill', 'filter', 'mask', 'marker-end', 'marker-mid', 'marker-start',
+  'stroke', 'style',
+]);
+const DUPLICATE_IDREF_LIKE_ATTRIBUTE = /(?:^|[-_:])(?:id|ids|idref|idrefs|ref|refs)$/;
+
+export function planManualEditDuplicate(
+  source: string,
+  originalId: string,
+): { ok: true; plan: ManualEditDuplicatePlan } | { ok: false; error: string } {
+  const doc = parseSource(source);
+  if (!doc) return { ok: false, error: 'Could not parse source.' };
+
+  const located = findDuplicateSourceElement(doc, originalId);
+  if ('error' in located) return { ok: false, error: located.error };
+  const contentError = validateDuplicateContent(located.original);
+  if (contentError) return { ok: false, error: contentError };
+
+  const manualIds = collectIdentityValues(located.original, 'data-od-id');
+  const nativeIds = collectIdentityValues(located.original, 'id');
+  if (manualIds.error) return { ok: false, error: manualIds.error };
+  if (nativeIds.error) return { ok: false, error: nativeIds.error };
+  const globalManualIds = collectGlobalIdentityValues(doc, 'data-od-id');
+  const globalNativeIds = collectGlobalIdentityValues(doc, 'id');
+  if (globalManualIds.error) return { ok: false, error: globalManualIds.error };
+  if (globalNativeIds.error) return { ok: false, error: globalNativeIds.error };
+  const referenceError = validateDuplicateStylesheetReferences(doc, nativeIds.values, manualIds.values);
+  if (referenceError) return { ok: false, error: referenceError };
+
+  const manualIdMap = allocateDuplicateIds(manualIds.values, globalManualIds.values);
+  const nativeIdMap = allocateDuplicateIds(nativeIds.values, globalNativeIds.values);
+  const rootManualId = located.original.getAttribute('data-od-id');
+  const parent = located.original.parentElement;
+  if (!parent) return { ok: false, error: 'Duplicate source target has no parent.' };
+  const duplicateRootId = rootManualId
+    ? manualIdMap[rootManualId]!
+    : allocateDuplicateId(originalId, new Set([...globalManualIds.values, ...Object.values(manualIdMap)]));
+  const baselineTranslate = (located.original as HTMLElement).style.getPropertyValue('translate').trim();
+  if (!isSupportedDuplicateTranslate(baselineTranslate)) {
+    return { ok: false, error: 'Duplicate baseline translate is unsupported.' };
+  }
+
+  const plan: ManualEditDuplicatePlan = {
+    expectedSource: source,
+    originalId,
+    originalTagName: located.original.tagName.toLowerCase(),
+    parentPath: sourcePathForElement(parent),
+    expectedNextSiblingPath: located.original.nextElementSibling
+      ? sourcePathForElement(located.original.nextElementSibling)
+      : null,
+    duplicateRootId,
+    previewHtml: '',
+    manualIdMap,
+    nativeIdMap,
+    baselineTranslate,
+  };
+  const identityError = validateDuplicateIdentity(doc, located.original, plan);
+  if (identityError) return { ok: false, error: identityError };
+
+  const duplicate = located.original.cloneNode(true) as Element;
+  const rewriteError = rewriteDuplicateElement(duplicate, plan, baselineTranslate);
+  if (rewriteError) return { ok: false, error: rewriteError };
+  plan.previewHtml = duplicate.outerHTML;
+  return { ok: true, plan };
+}
 
 export function applyManualEditPatch(source: string, patch: ManualEditPatch): ManualEditPatchResult {
   if (patch.kind === 'set-full-source') return { ok: true, source: patch.source };
 
   const doc = parseSource(source);
   if (!doc) return { ok: false, source, error: 'Could not parse source.' };
+
+  if (patch.kind === 'duplicate-and-move') {
+    return applyDuplicateAndMovePatch(doc, source, patch);
+  }
 
   if (patch.kind === 'set-token') {
     const changed = setCssToken(doc, patch.token, patch.value);
@@ -92,6 +188,397 @@ export function applyManualEditPatch(source: string, patch: ManualEditPatch): Ma
   }
 
   return { ok: true, source: serializeSource(doc, source) };
+}
+
+function applyDuplicateAndMovePatch(
+  doc: Document,
+  source: string,
+  patch: Extract<ManualEditPatch, { kind: 'duplicate-and-move' }>,
+): ManualEditPatchResult {
+  const plan = patch.plan;
+  if (source !== plan.expectedSource) {
+    return { ok: false, source, error: 'Source changed while preparing the duplicate.' };
+  }
+  if (patch.id !== plan.originalId) {
+    return { ok: false, source, error: 'Duplicate target does not match its source plan.' };
+  }
+
+  const locator = locateDuplicateSourceElement(doc, plan);
+  if ('error' in locator) return { ok: false, source, error: locator.error };
+
+  const contentError = validateDuplicateContent(locator.original);
+  if (contentError) return { ok: false, source, error: contentError };
+  const manualIds = collectIdentityValues(locator.original, 'data-od-id');
+  const nativeIds = collectIdentityValues(locator.original, 'id');
+  if (manualIds.error) return { ok: false, source, error: manualIds.error };
+  if (nativeIds.error) return { ok: false, source, error: nativeIds.error };
+  const referenceError = validateDuplicateStylesheetReferences(doc, nativeIds.values, manualIds.values);
+  if (referenceError) return { ok: false, source, error: referenceError };
+
+  const identityError = validateDuplicateIdentity(doc, locator.original, plan);
+  if (identityError) return { ok: false, source, error: identityError };
+
+  const translate = duplicateTranslate(patch.finalTranslate, patch.placementOffset);
+  if ('error' in translate) return { ok: false, source, error: translate.error };
+
+  const duplicate = locator.original.cloneNode(true) as Element;
+  const rewriteError = rewriteDuplicateElement(duplicate, plan, translate.value);
+  if (rewriteError) return { ok: false, source, error: rewriteError };
+
+  locator.parent.insertBefore(duplicate, locator.original.nextSibling);
+  return { ok: true, source: serializeSource(doc, source) };
+}
+
+function locateDuplicateSourceElement(
+  doc: Document,
+  plan: Extract<ManualEditPatch, { kind: 'duplicate-and-move' }>['plan'],
+): { original: Element; parent: Element } | { error: string } {
+  if (!plan.originalTagName || typeof plan.parentPath !== 'string') {
+    return { error: 'Duplicate source locator is incomplete.' };
+  }
+  const found = findDuplicateSourceElement(doc, plan.originalId);
+  if ('error' in found) return found;
+  const original = found.original;
+  if (original.tagName.toLowerCase() !== plan.originalTagName.toLowerCase()) {
+    return { error: 'Duplicate source target tag does not match its plan.' };
+  }
+  const parent = original.parentElement;
+  if (!parent || sourcePathForElement(parent) !== plan.parentPath) {
+    return { error: 'Duplicate source parent does not match its plan.' };
+  }
+  const nextSibling = original.nextElementSibling;
+  const nextSiblingPath = nextSibling ? sourcePathForElement(nextSibling) : null;
+  if (nextSiblingPath !== plan.expectedNextSiblingPath) {
+    return { error: 'Duplicate source sibling does not match its plan.' };
+  }
+  return { original, parent };
+}
+
+function findDuplicateSourceElement(
+  doc: Document,
+  originalId: string,
+): { original: Element } | { error: string } {
+  if (!originalId) return { error: 'Duplicate source locator is incomplete.' };
+  // Authored IDs win over the path-shaped fallback, matching the normal
+  // Manual Edit resolver. `data-od-id="path-0"` is valid authored content and
+  // must not be mistaken for a generated locator.
+  const authoredMatches = Array.from(doc.querySelectorAll('*')).filter((el) =>
+    el.getAttribute('data-od-id') === originalId
+    || el.getAttribute('data-od-source-path') === originalId);
+  const matches = authoredMatches.length > 0
+    ? authoredMatches
+    : [findElementByPath(doc, originalId)].filter((el): el is Element => el !== null);
+  if (matches.length !== 1) {
+    return {
+      error: matches.length === 0 ? 'Duplicate source target not found.' : 'Duplicate source target is ambiguous.',
+    };
+  }
+  return { original: matches[0]! };
+}
+
+function sourcePathForElement(el: Element): string {
+  const parts: number[] = [];
+  let current: Element | null = el;
+  while (current && current !== current.ownerDocument.body) {
+    const parent: Element | null = current.parentElement;
+    if (!parent) break;
+    parts.unshift(Array.from(parent.children).indexOf(current));
+    current = parent;
+  }
+  return parts.length ? 'path-' + parts.join('-') : '';
+}
+
+function duplicateElements(root: Element): Element[] {
+  return [root, ...Array.from(root.querySelectorAll('*'))];
+}
+
+function validateDuplicateContent(root: Element): string | null {
+  for (const el of duplicateElements(root)) {
+    const tag = el.tagName.toLowerCase();
+    if (DUPLICATE_UNSUPPORTED_TAGS.has(tag)) {
+      return 'Duplicate content is unsupported: <' + tag + '>.';
+    }
+    if (tag.includes('-')) {
+      return 'Duplicate custom elements are unsupported: <' + tag + '>.';
+    }
+    const role = el.getAttribute('role')?.trim().toLowerCase();
+    if (role && DUPLICATE_ACTIVE_ROLES.has(role)) {
+      return 'Duplicate active content is unsupported: role=\"' + role + '\".';
+    }
+    const contenteditable = el.getAttribute('contenteditable')?.toLowerCase();
+    if (contenteditable !== undefined && contenteditable !== 'false') {
+      return 'Duplicate active content is unsupported: contenteditable.';
+    }
+    if (el.getAttribute('data-od-editing') === 'true') {
+      return 'Cannot duplicate content while it is being edited.';
+    }
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on')) return 'Duplicate active content is unsupported: ' + attr.name + '.';
+      if (
+        name === 'autofocus'
+        || name === 'formaction'
+        || name === 'formenctype'
+        || name === 'formmethod'
+        || name === 'formnovalidate'
+        || name === 'formtarget'
+        || name === 'srcdoc'
+      ) {
+        return 'Duplicate active content is unsupported: ' + attr.name + '.';
+      }
+      if (name === 'name') {
+        return 'Duplicate form/name-group semantics are unsupported: ' + attr.name + '.';
+      }
+      if (name === 'itemref') {
+        return 'Duplicate reference attribute is unsupported: ' + attr.name + '.';
+      }
+      if (
+        DUPLICATE_IDREF_LIKE_ATTRIBUTE.test(name)
+        && name !== 'id'
+        && name !== 'data-od-id'
+        && !name.startsWith('data-od-runtime-')
+      ) {
+        return 'Duplicate reference attribute is unsupported: ' + attr.name + '.';
+      }
+      if ((name === 'href' || name === 'src' || name === 'xlink:href') && isActiveDuplicateUrl(attr.value)) {
+        return 'Duplicate active content is unsupported: ' + attr.name + '.';
+      }
+    }
+  }
+  return null;
+}
+
+function validateDuplicateStylesheetReferences(
+  doc: Document,
+  nativeIds: readonly string[],
+  manualIds: readonly string[],
+): string | null {
+  const stylesheetText = Array.from(doc.querySelectorAll('style'))
+    .map((style) => style.textContent ?? '')
+    .join('\n');
+  if (!stylesheetText) return null;
+  for (const id of nativeIds) {
+    const escaped = escapeRegExp(id);
+    if (
+      new RegExp(`#${escaped}(?![a-zA-Z0-9_-])`, 'i').test(stylesheetText)
+      || new RegExp(`url\\(\\s*["']?#${escaped}(?:["']?\\s*)\\)`, 'i').test(stylesheetText)
+    ) {
+      return 'Duplicate stylesheet reference to a cloned id is unsupported: ' + id + '.';
+    }
+  }
+  for (const id of manualIds) {
+    const escaped = escapeRegExp(id);
+    if (new RegExp(`\\[\\s*data-od-id\\s*=\\s*["']?${escaped}(?:["']?\\s*\\])`, 'i').test(stylesheetText)) {
+      return 'Duplicate stylesheet reference to a cloned data-od-id is unsupported: ' + id + '.';
+    }
+  }
+  return null;
+}
+
+function isActiveDuplicateUrl(value: string): boolean {
+  const normalized = value.replace(/[\u0000-\u0020]+/g, '').toLowerCase();
+  return /^(?:javascript|vbscript|file):/.test(normalized);
+}
+
+function validateDuplicateIdentity(
+  doc: Document,
+  root: Element,
+  plan: Extract<ManualEditPatch, { kind: 'duplicate-and-move' }>['plan'],
+): string | null {
+  const manualIds = collectIdentityValues(root, 'data-od-id');
+  const nativeIds = collectIdentityValues(root, 'id');
+  if (manualIds.error) return manualIds.error;
+  if (nativeIds.error) return nativeIds.error;
+  const globalManualIds = collectGlobalIdentityValues(doc, 'data-od-id');
+  const globalNativeIds = collectGlobalIdentityValues(doc, 'id');
+  if (globalManualIds.error) return globalManualIds.error;
+  if (globalNativeIds.error) return globalNativeIds.error;
+
+  if (!isDuplicateId(plan.duplicateRootId)) return 'Duplicate root id is invalid.';
+  const manualMapError = validateDuplicateIdMap(
+    manualIds.values,
+    plan.manualIdMap,
+    globalManualIds.values,
+    'data-od-id',
+  );
+  if (manualMapError) return manualMapError;
+  const nativeMapError = validateDuplicateIdMap(nativeIds.values, plan.nativeIdMap, globalNativeIds.values, 'id');
+  if (nativeMapError) return nativeMapError;
+
+  const rootManualId = root.getAttribute('data-od-id');
+  if (rootManualId && plan.manualIdMap[rootManualId] !== plan.duplicateRootId) {
+    return 'Duplicate root id map does not match its plan.';
+  }
+  const nextManualIds = Object.values(plan.manualIdMap);
+  if (!rootManualId && nextManualIds.includes(plan.duplicateRootId)) {
+    return 'Duplicate root id collides with a nested manual id.';
+  }
+  const allNextManualIds = rootManualId ? nextManualIds : [...nextManualIds, plan.duplicateRootId];
+  if (new Set(allNextManualIds).size !== allNextManualIds.length) {
+    return 'Duplicate manual ids are not unique.';
+  }
+  if (globalManualIds.values.has(plan.duplicateRootId)) return 'Duplicate root id already exists.';
+  return null;
+}
+
+function collectIdentityValues(root: Element, attribute: string): { values: string[]; error?: string } {
+  const values: string[] = [];
+  for (const el of duplicateElements(root)) {
+    if (!el.hasAttribute(attribute)) continue;
+    const value = el.getAttribute(attribute) ?? '';
+    if (!isDuplicateId(value)) return { values, error: 'Duplicate ' + attribute + ' is invalid.' };
+    values.push(value);
+  }
+  if (new Set(values).size !== values.length) {
+    return { values, error: 'Duplicate ' + attribute + ' is ambiguous.' };
+  }
+  return { values };
+}
+
+function collectGlobalIdentityValues(doc: Document, attribute: string): { values: Set<string>; error?: string } {
+  const values = new Set<string>();
+  for (const el of Array.from(doc.querySelectorAll('*'))) {
+    if (!el.hasAttribute(attribute)) continue;
+    const value = el.getAttribute(attribute) ?? '';
+    if (!isDuplicateId(value)) return { values, error: 'Duplicate ' + attribute + ' is invalid.' };
+    if (values.has(value)) return { values, error: 'Duplicate ' + attribute + ' is ambiguous.' };
+    values.add(value);
+  }
+  return { values };
+}
+
+function validateDuplicateIdMap(
+  oldIds: readonly string[],
+  map: Record<string, string>,
+  existingIds: ReadonlySet<string>,
+  attribute: string,
+): string | null {
+  const entries = Object.entries(map);
+  if (entries.length !== oldIds.length || oldIds.some((id) => !Object.prototype.hasOwnProperty.call(map, id))) {
+    return 'Duplicate ' + attribute + ' map is incomplete.';
+  }
+  const newIds = entries.map(([, value]) => value);
+  if (newIds.some((id) => !isDuplicateId(id))) {
+    return 'Duplicate ' + attribute + ' map contains an invalid id.';
+  }
+  if (new Set(newIds).size !== newIds.length) return 'Duplicate ' + attribute + ' map is ambiguous.';
+  if (newIds.some((id) => existingIds.has(id))) return 'Duplicate ' + attribute + ' map collides with the source.';
+  return null;
+}
+
+function isDuplicateId(value: string): boolean {
+  return value.length > 0 && !/[\t\n\f\r ]/.test(value);
+}
+
+function allocateDuplicateIds(oldIds: readonly string[], existingIds: ReadonlySet<string>): Record<string, string> {
+  const used = new Set(existingIds);
+  const map: Record<string, string> = Object.create(null) as Record<string, string>;
+  for (const oldId of oldIds) {
+    const nextId = allocateDuplicateId(oldId, used);
+    map[oldId] = nextId;
+    used.add(nextId);
+  }
+  return map;
+}
+
+function allocateDuplicateId(oldId: string, used: ReadonlySet<string>): string {
+  const base = oldId + '-copy';
+  let candidate = base;
+  let suffix = 2;
+  while (used.has(candidate)) {
+    candidate = base + '-' + suffix;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+function rewriteDuplicateElement(
+  root: Element,
+  plan: Extract<ManualEditPatch, { kind: 'duplicate-and-move' }>['plan'],
+  translate: string,
+): string | null {
+  const elements = duplicateElements(root);
+  for (const el of elements) {
+    const manualId = el.getAttribute('data-od-id');
+    if (manualId) el.setAttribute('data-od-id', duplicateMapValue(plan.manualIdMap, manualId) ?? plan.duplicateRootId);
+    else if (el === root) el.setAttribute('data-od-id', plan.duplicateRootId);
+    const nativeId = el.getAttribute('id');
+    if (nativeId) el.setAttribute('id', duplicateMapValue(plan.nativeIdMap, nativeId) ?? nativeId);
+    for (const attr of Array.from(el.attributes)) {
+      if (isDuplicateRuntimeAttribute(attr.name)) {
+        el.removeAttribute(attr.name);
+        continue;
+      }
+      const name = attr.name.toLowerCase();
+      const nextValue = rewriteDuplicateAttribute(name, attr.value, plan.nativeIdMap);
+      if (nextValue !== attr.value) el.setAttribute(attr.name, nextValue);
+    }
+  }
+  const rootStyle = (root as HTMLElement).style;
+  if (translate.trim()) rootStyle.setProperty('translate', translate.trim());
+  else rootStyle.removeProperty('translate');
+  return null;
+}
+
+function isDuplicateRuntimeAttribute(name: string): boolean {
+  const normalized = name.toLowerCase();
+  return DUPLICATE_RUNTIME_ATTRIBUTES.has(normalized) || normalized.startsWith('data-od-runtime-');
+}
+
+function rewriteDuplicateAttribute(name: string, value: string, nativeIdMap: Record<string, string>): string {
+  if (DUPLICATE_FRAGMENT_ATTRIBUTES.has(name)) return rewriteDuplicateFragment(value, nativeIdMap);
+  if (DUPLICATE_TOKEN_IDREF_ATTRIBUTES.has(name)) return rewriteDuplicateTokens(value, nativeIdMap);
+  if (DUPLICATE_CSS_URL_ATTRIBUTES.has(name)) return rewriteDuplicateCssUrls(value, nativeIdMap);
+  return value;
+}
+
+function duplicateMapValue(map: Record<string, string>, key: string): string | undefined {
+  return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : undefined;
+}
+
+function rewriteDuplicateFragment(value: string, nativeIdMap: Record<string, string>): string {
+  const match = /^(\s*)#([^\s#]+)(\s*)$/.exec(value);
+  if (!match?.[2]) return value;
+  const replacement = duplicateMapValue(nativeIdMap, match[2]);
+  return replacement ? match[1] + '#' + replacement + match[3] : value;
+}
+
+function rewriteDuplicateTokens(value: string, nativeIdMap: Record<string, string>): string {
+  return value.replace(/\S+/g, (token) => duplicateMapValue(nativeIdMap, token) ?? token);
+}
+
+function rewriteDuplicateCssUrls(value: string, nativeIdMap: Record<string, string>): string {
+  return value.replace(/url\(\s*(["']?)#([^\s)"']+)\1\s*\)/gi, (full, quote: string, id: string) => {
+    const replacement = duplicateMapValue(nativeIdMap, id);
+    return replacement ? 'url(' + quote + '#' + replacement + quote + ')' : full;
+  });
+}
+
+function duplicateTranslate(
+  finalTranslate: string,
+  placementOffset: { x: number; y: number } | undefined,
+): { value: string } | { error: string } {
+  if (typeof finalTranslate !== 'string' || !isSupportedDuplicateTranslate(finalTranslate)) {
+    return { error: 'Duplicate final translate is unsupported.' };
+  }
+  if (!placementOffset) return { value: finalTranslate.trim() };
+  if (!Number.isFinite(placementOffset.x) || !Number.isFinite(placementOffset.y)) {
+    return { error: 'Duplicate placement offset is invalid.' };
+  }
+  return {
+    value: moveCssCommitStyles({
+      deltaRect: placementOffset,
+      baseTranslate: finalTranslate,
+      fractional: { x: true, y: true },
+    }).translate,
+  };
+}
+
+function isSupportedDuplicateTranslate(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === 'none') return true;
+  const tokens = trimmed.split(/\s+/);
+  return tokens.length <= 2 && tokens.every((token) => /^-?\d+(?:\.\d+)?px$/.test(token));
 }
 
 export function readManualEditFields(source: string, id: string): ManualEditFields {

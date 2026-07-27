@@ -58,13 +58,15 @@ describe('ManualEditMoveFrame', () => {
   });
 
   it('keeps a 4px by 4px movement as an immediate activation', () => {
-    const { interior, onActivate, onMoveStart, onMoveCommit } = renderFrame();
-    fireEvent.pointerDown(interior!, { pointerId: 2, clientX: 200, clientY: 100 });
-    fireEvent.pointerMove(interior!, { pointerId: 2, clientX: 204, clientY: 104 });
-    fireEvent.pointerUp(interior!, { pointerId: 2, clientX: 204, clientY: 104 });
+    const onCtrlChange = vi.fn();
+    const { interior, onActivate, onMoveStart, onMoveCommit } = renderFrame({ onCtrlChange });
+    fireEvent.pointerDown(interior!, { pointerId: 2, clientX: 200, clientY: 100, ctrlKey: true });
+    fireEvent.pointerMove(interior!, { pointerId: 2, clientX: 204, clientY: 104, ctrlKey: true });
+    fireEvent.pointerUp(interior!, { pointerId: 2, clientX: 204, clientY: 104, ctrlKey: true });
 
     expect(onMoveStart).not.toHaveBeenCalled();
     expect(onMoveCommit).not.toHaveBeenCalled();
+    expect(onCtrlChange).not.toHaveBeenCalled();
     expect(onActivate).toHaveBeenCalledWith({ region: 'interior', clientX: 204, clientY: 104, altKey: false });
   });
 
@@ -327,6 +329,43 @@ describe('ManualEditMoveFrame', () => {
     expect(onAltChange).toHaveBeenLastCalledWith(true);
   });
 
+  it('reports Ctrl at the exact threshold and tracks stationary keyboard toggles', () => {
+    const onCtrlChange = vi.fn();
+    const { interior, onMoveStart, onMoveCommit } = renderFrame({ onCtrlChange });
+    fireEvent.pointerDown(interior!, { pointerId: 19, clientX: 200, clientY: 100, ctrlKey: true });
+    fireEvent.pointerMove(interior!, { pointerId: 19, clientX: 204, clientY: 100, ctrlKey: true });
+    expect(onMoveStart).not.toHaveBeenCalled();
+    expect(onCtrlChange).not.toHaveBeenCalled();
+
+    fireEvent.pointerMove(interior!, { pointerId: 19, clientX: 205, clientY: 100, ctrlKey: true });
+    expect(onMoveStart).toHaveBeenCalledTimes(1);
+    expect(onCtrlChange).toHaveBeenLastCalledWith(true);
+
+    fireEvent.keyUp(window, { key: 'Control', ctrlKey: false });
+    fireEvent.keyUp(window, { key: 'Control', ctrlKey: false });
+    fireEvent.keyDown(window, { key: 'Control', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'Control', ctrlKey: true });
+    expect(onCtrlChange).toHaveBeenCalledTimes(3);
+    expect(onCtrlChange).toHaveBeenLastCalledWith(true);
+
+    fireEvent.pointerUp(interior!, { pointerId: 19, clientX: 210, clientY: 100, ctrlKey: false });
+    expect(onCtrlChange).toHaveBeenLastCalledWith(false);
+    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: 10, y: 0 }, shiftKey: false, axis: null });
+  });
+
+  it('uses pointerup modifier state when no keyboard transition was delivered', () => {
+    const onAltChange = vi.fn();
+    const onCtrlChange = vi.fn();
+    const { interior, onMoveCommit } = renderFrame({ onAltChange, onCtrlChange });
+    fireEvent.pointerDown(interior!, { pointerId: 20, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 20, clientX: 205, clientY: 100, altKey: true, ctrlKey: true });
+    fireEvent.pointerUp(interior!, { pointerId: 20, clientX: 210, clientY: 100, altKey: false, ctrlKey: false });
+
+    expect(onAltChange).toHaveBeenLastCalledWith(false);
+    expect(onCtrlChange).toHaveBeenLastCalledWith(false);
+    expect(onMoveCommit).toHaveBeenCalledWith({ delta: { x: 10, y: 0 }, shiftKey: false, axis: null });
+  });
+
   it('does not report Alt for a below-threshold press', () => {
     const onAltChange = vi.fn();
     const { interior } = renderFrame({ onAltChange });
@@ -347,6 +386,39 @@ describe('ManualEditMoveFrame', () => {
     fireEvent.keyDown(window, { key: 'Alt' });
     fireEvent.keyUp(window, { key: 'Alt' });
     expect(onAltChange).not.toHaveBeenCalled();
+  });
+
+  it.each(['pointerup', 'pointercancel', 'Escape'])('detaches Ctrl listeners after %s', (ending) => {
+    const onCtrlChange = vi.fn();
+    const { interior } = renderFrame({ onCtrlChange });
+    fireEvent.pointerDown(interior!, { pointerId: 21, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 21, clientX: 230, clientY: 100, ctrlKey: true });
+    onCtrlChange.mockClear();
+
+    if (ending === 'pointerup') {
+      fireEvent.pointerUp(interior!, { pointerId: 21, clientX: 230, clientY: 100, ctrlKey: true });
+    } else if (ending === 'pointercancel') {
+      fireEvent.pointerCancel(interior!, { pointerId: 21 });
+    } else {
+      fireEvent.keyDown(interior!, { key: 'Escape' });
+    }
+
+    fireEvent.keyDown(window, { key: 'Control', ctrlKey: true });
+    fireEvent.keyUp(window, { key: 'Control', ctrlKey: false });
+    expect(onCtrlChange).not.toHaveBeenCalled();
+  });
+
+  it('detaches Ctrl listeners when the frame unmounts', () => {
+    const onCtrlChange = vi.fn();
+    const { interior, unmount } = renderFrame({ onCtrlChange });
+    fireEvent.pointerDown(interior!, { pointerId: 22, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 22, clientX: 230, clientY: 100, ctrlKey: true });
+    onCtrlChange.mockClear();
+    unmount();
+
+    fireEvent.keyDown(window, { key: 'Control', ctrlKey: true });
+    fireEvent.keyUp(window, { key: 'Control', ctrlKey: false });
+    expect(onCtrlChange).not.toHaveBeenCalled();
   });
 
   it('never fires Alt reports outside of a drag', () => {

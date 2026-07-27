@@ -146,6 +146,34 @@ describe('writeProjectTextFileDetailed', () => {
       message: 'new artifact is smaller than the prior version',
     });
   });
+
+  it('forwards the expected content hash and returns a typed conflict', async () => {
+    const expectedContentSha256 = 'a'.repeat(64);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      error: { code: 'CONFLICT', message: 'project file changed since it was read' },
+    }), { status: 409, headers: { 'Content-Type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(writeProjectTextFileDetailed(
+      'project-1',
+      'preview.html',
+      '<html></html>',
+      { expectedContentSha256 },
+    )).resolves.toEqual({
+      ok: false,
+      conflict: true,
+      status: 409,
+      code: 'CONFLICT',
+      message: 'project file changed since it was read',
+    });
+
+    const requestBody = (fetchMock.mock.calls as unknown as Array<[string, RequestInit]>)[0]?.[1]?.body;
+    expect(JSON.parse(String(requestBody))).toEqual({
+      name: 'preview.html',
+      content: '<html></html>',
+      expectedContentSha256,
+    });
+  });
 });
 
 describe('fetchSkillExample', () => {
