@@ -171,7 +171,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     return true;
   }
   function isDiscoveryTarget(el){
-    return !!(el && el.matches && (el.matches(discoverySelector) || isSemanticVisualRoot(el)));
+    return !!(el && el.matches && (el.matches(discoverySelector) || (isSemanticVisualRoot(el) && !isHiddenTarget(el))));
   }
   function isInlineTextWrapper(el){
     var tag = el && el.tagName ? el.tagName.toLowerCase() : '';
