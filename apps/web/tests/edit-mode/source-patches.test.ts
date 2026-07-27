@@ -477,6 +477,14 @@ describe('manual edit source patches', () => {
     }
   });
 
+  it('rejects native interactive content and microdata itemref references', () => {
+    const buttonSource = '<main><section data-od-id="card"><button>Copy</button></section></main>';
+    expect(planManualEditDuplicate(buttonSource, 'card').ok).toBe(false);
+
+    const itemrefSource = '<main><section data-od-id="card"><h2 id="title">Title</h2><div itemref="title">Copy</div></section></main>';
+    expect(planManualEditDuplicate(itemrefSource, 'card').ok).toBe(false);
+  });
+
   it('rejects stylesheet identity references and animated content instead of guessing', () => {
     const stylesheetReference = [
       '<style>#card-title { color: red; }</style>',

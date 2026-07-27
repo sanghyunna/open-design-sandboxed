@@ -36,9 +36,10 @@ const DUPLICATE_RUNTIME_ATTRIBUTES = new Set([
   'data-od-authored-size-probe-style',
 ]);
 const DUPLICATE_UNSUPPORTED_TAGS = new Set([
-  'audio', 'base', 'canvas', 'dialog', 'datalist', 'embed', 'form', 'frame', 'frameset',
+  'audio', 'base', 'button', 'canvas', 'dialog', 'datalist', 'details', 'embed', 'form', 'frame', 'frameset',
   'iframe', 'input', 'link', 'meta', 'object', 'optgroup', 'option', 'portal', 'script',
-  'select', 'slot', 'source', 'style', 'template', 'textarea', 'title', 'track', 'video',
+  'select', 'slot', 'source', 'style', 'summary', 'template', 'textarea', 'title', 'track', 'video',
+  'label',
   'animate', 'animatemotion', 'animatetransform', 'marquee', 'set',
 ]);
 const DUPLICATE_ACTIVE_ROLES = new Set([
@@ -327,6 +328,9 @@ function validateDuplicateContent(root: Element): string | null {
       }
       if (name === 'name') {
         return 'Duplicate form/name-group semantics are unsupported: ' + attr.name + '.';
+      }
+      if (name === 'itemref') {
+        return 'Duplicate reference attribute is unsupported: ' + attr.name + '.';
       }
       if (
         DUPLICATE_IDREF_LIKE_ATTRIBUTE.test(name)

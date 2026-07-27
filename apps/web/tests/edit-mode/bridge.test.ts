@@ -2188,6 +2188,45 @@ describe('manual edit duplicate preview bridge', () => {
     dom.window.close();
   });
 
+  it('rejects native interactive content and itemref references before insertion', () => {
+    const cases = [
+      { name: 'button', previewHtml: '<button data-od-id="original-copy">Copy</button>' },
+      { name: 'itemref', previewHtml: '<div data-od-id="original-copy" itemref="title">Copy</div>' },
+    ];
+    for (const testCase of cases) {
+      const dom = new JSDOM(
+        `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,
+        { runScripts: 'dangerously', url: 'http://localhost' },
+      );
+      dom.window.HTMLElement.prototype.getBoundingClientRect = (() => ({
+        x: 0, y: 0, width: 100, height: 20, top: 0, right: 100, bottom: 20, left: 0,
+        toJSON: () => ({}),
+      } as DOMRect));
+      const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-unsafe' },
+      }));
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+        data: {
+          type: 'od-edit-duplicate-create',
+          documentEpoch: 'epoch-unsafe',
+          transactionId: `duplicate-${testCase.name}`,
+          sequence: 1,
+          originalId: 'original',
+          duplicateRootId: 'original-copy',
+          previewHtml: testCase.previewHtml,
+          baselineTranslate: '',
+        },
+      }));
+      expect(dom.window.document.querySelector('[data-od-id="original-copy"]')).toBeNull();
+      expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'od-edit-duplicate-preview',
+        ok: false,
+      }), '*');
+      dom.window.close();
+    }
+  });
+
   it('rejects stale epochs and stale command sequences without touching the original', () => {
     const dom = new JSDOM(
       `<main><h1 data-od-id="original">Original</h1></main>${buildManualEditBridge(true)}`,

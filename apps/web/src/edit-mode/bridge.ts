@@ -842,10 +842,10 @@ export function buildManualEditBridge(enabled: boolean): string {
     }
   }
   var duplicateForbiddenTags = {
-    audio:1, base:1, canvas:1, dialog:1, datalist:1, embed:1, form:1,
+    audio:1, base:1, button:1, canvas:1, dialog:1, datalist:1, details:1, embed:1, form:1,
     frame:1, frameset:1, iframe:1, input:1, link:1, meta:1, object:1,
     optgroup:1, option:1, portal:1, script:1, select:1, slot:1, source:1,
-    style:1, template:1, textarea:1, title:1, track:1, video:1,
+    style:1, summary:1, template:1, textarea:1, title:1, track:1, video:1, label:1,
     animate:1, animatemotion:1, animatetransform:1, marquee:1, set:1
   };
   // Static data assets are valid preview content and are preserved by the
@@ -886,6 +886,7 @@ export function buildManualEditBridge(enabled: boolean): string {
           || name === 'formnovalidate'
           || name === 'formtarget'
           || name === 'name'
+          || name === 'itemref'
           || (name === 'contenteditable' && String(attr.value).toLowerCase() !== 'false')
         ) return 'Unsupported duplicate attribute.';
         if ((name === 'href' || name === 'src' || name === 'xlink:href') && duplicateForbiddenUrl.test(attr.value.replace(/[\\u0000-\\u0020]+/g, ''))) {
