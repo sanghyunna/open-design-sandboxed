@@ -1,4 +1,6 @@
 export const MANUAL_EDIT_DISCOVERY_SELECTOR = 'main, nav, section, article, header, footer, div, h1, h2, h3, h4, h5, h6, p, li, label, a, button, img, strong, span, small, em, b, i, u, s, mark, code, pre, time, abbr, cite, q, sub, sup, kbd, samp, var, dfn, ins, del, bdi, bdo, figcaption, caption, th, td, dt, dd, summary, output';
+export const MANUAL_EDIT_SEMANTIC_TARGET_SELECTOR = 'svg';
+export const MANUAL_EDIT_TARGET_SELECTOR = `${MANUAL_EDIT_DISCOVERY_SELECTOR}, ${MANUAL_EDIT_SEMANTIC_TARGET_SELECTOR}`;
 export const MANUAL_EDIT_SOURCE_PATH_ATTR = 'data-od-source-path';
 export const MANUAL_EDIT_TRANSIENT_ATTR = 'data-od-edit-transient';
 const MANUAL_EDIT_RUNTIME_HOVER_ATTR = 'data-od-runtime-hovered';
@@ -41,7 +43,7 @@ export function manualEditStableIdForElement(el: Element): string {
 
 export function isMeaningfulManualEditElement(el: Element, rect: Pick<DOMRect, 'width' | 'height'>): boolean {
   return isSourceMappableManualEditElement(el)
-    && el.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)
+    && isManualEditDiscoveryElement(el)
     && !hasManualEditTextPassageAncestor(el)
     && rect.width >= 4
     && rect.height >= 4;
@@ -49,6 +51,32 @@ export function isMeaningfulManualEditElement(el: Element, rect: Pick<DOMRect, '
 
 export function isSourceMappableManualEditElement(el: Element): boolean {
   return el.hasAttribute('data-od-id') || el.hasAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR);
+}
+
+export function isManualEditSemanticVisualElement(el: Element): boolean {
+  if (el.tagName.toLowerCase() !== 'svg') return false;
+  if (el.getAttribute('aria-hidden')?.trim().toLowerCase() === 'true') return false;
+  const role = el.getAttribute('role')?.trim().toLowerCase();
+  if (role && role !== 'img') return false;
+  if (
+    role !== 'img'
+    && !el.getAttribute('aria-label')?.trim()
+    && !el.getAttribute('aria-labelledby')?.trim()
+    && !el.getAttribute('title')?.trim()
+    && !Array.from(el.children).some((child) => child.tagName.toLowerCase() === 'title' && !!child.textContent?.trim())
+  ) return false;
+  let parent = el.parentElement;
+  while (parent && parent !== parent.ownerDocument.body) {
+    const tag = parent.tagName.toLowerCase();
+    if (tag === 'a' || tag === 'button' || parent.getAttribute('role') === 'button') return false;
+    parent = parent.parentElement;
+  }
+  return true;
+}
+
+export function isManualEditDiscoveryElement(el: Element): boolean {
+  return el.matches(MANUAL_EDIT_DISCOVERY_SELECTOR)
+    || isManualEditSemanticVisualElement(el);
 }
 
 function hasManualEditTextPassageAncestor(el: Element): boolean {
@@ -66,6 +94,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   return `<script data-od-edit-bridge>(function(){
   var enabled = ${JSON.stringify(enabled)};
   var discoverySelector = ${JSON.stringify(MANUAL_EDIT_DISCOVERY_SELECTOR)};
+  var targetSelector = ${JSON.stringify(MANUAL_EDIT_TARGET_SELECTOR)};
   var hostNodeSelector = ${JSON.stringify(MANUAL_EDIT_HOST_NODE_SELECTOR)};
   var sourcePathAttr = ${JSON.stringify(MANUAL_EDIT_SOURCE_PATH_ATTR)};
   var transientAttr = ${JSON.stringify(MANUAL_EDIT_TRANSIENT_ATTR)};
@@ -113,8 +142,36 @@ export function buildManualEditBridge(enabled: boolean): string {
   function isSourceMappable(el){
     return !!(el && !isTransient(el) && el.hasAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute(sourcePathAttr)));
   }
+  function isSemanticVisualRoot(el){
+    if (!el || !el.tagName || el.tagName.toLowerCase() !== 'svg') return false;
+    if (String(el.getAttribute('aria-hidden') || '').trim().toLowerCase() === 'true') return false;
+    var role = String(el.getAttribute('role') || '').trim().toLowerCase();
+    if (role && role !== 'img') return false;
+    if (role !== 'img') {
+      var hasTitleElement = false;
+      var children = el.children || [];
+      for (var childIndex = 0; childIndex < children.length; childIndex++) {
+        var child = children[childIndex];
+        if (child.tagName && child.tagName.toLowerCase() === 'title' && String(child.textContent || '').trim()) {
+          hasTitleElement = true;
+          break;
+        }
+      }
+      if (!String(el.getAttribute('aria-label') || '').trim()
+        && !String(el.getAttribute('aria-labelledby') || '').trim()
+        && !String(el.getAttribute('title') || '').trim()
+        && !hasTitleElement) return false;
+    }
+    var parent = el.parentElement;
+    while (parent && parent !== document.body) {
+      var tag = parent.tagName ? parent.tagName.toLowerCase() : '';
+      if (tag === 'a' || tag === 'button' || parent.getAttribute('role') === 'button') return false;
+      parent = parent.parentElement;
+    }
+    return true;
+  }
   function isDiscoveryTarget(el){
-    return !!(el && el.matches && el.matches(discoverySelector));
+    return !!(el && el.matches && (el.matches(discoverySelector) || isSemanticVisualRoot(el)));
   }
   function isInlineTextWrapper(el){
     var tag = el && el.tagName ? el.tagName.toLowerCase() : '';
@@ -192,6 +249,7 @@ export function buildManualEditBridge(enabled: boolean): string {
   function inferKind(el){
     var explicit = el.getAttribute('data-od-edit');
     if (explicit) return explicit;
+    if (isSemanticVisualRoot(el)) return 'container';
     var tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (tag === 'a') return 'link';
     if (tag === 'img') return 'image';
@@ -203,6 +261,19 @@ export function buildManualEditBridge(enabled: boolean): string {
   function labelFor(el, id, kind){
     var explicit = el.getAttribute('data-od-label');
     if (explicit) return explicit;
+    var accessible = isSemanticVisualRoot(el) ? (el.getAttribute('aria-label') || el.getAttribute('title')) : '';
+    if (!accessible && isSemanticVisualRoot(el)) {
+      var labelledBy = el.getAttribute('aria-labelledby') || '';
+      var labelIds = labelledBy.trim() ? labelledBy.trim().split(/\\s+/) : [];
+      var labelParts = [];
+      for (var labelIndex = 0; labelIndex < labelIds.length; labelIndex++) {
+        var labelledNode = document.getElementById(labelIds[labelIndex]);
+        var labelText = labelledNode ? (labelledNode.textContent || '').replace(/\\s+/g, ' ').trim() : '';
+        if (labelText) labelParts.push(labelText);
+      }
+      accessible = labelParts.join(' ');
+    }
+    if (accessible) return accessible;
     var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
     var text = (el.textContent || '').replace(/\\s+/g, ' ').trim();
     if (text) return text.slice(0, 42);
@@ -473,12 +544,13 @@ export function buildManualEditBridge(enabled: boolean): string {
     return target;
   }
   function allTargets(){
-    var nodes = document.body ? document.body.querySelectorAll(discoverySelector) : [];
+    var nodes = document.body ? document.body.querySelectorAll(targetSelector) : [];
     var targets = [];
     for (var i = 0; i < nodes.length; i++) {
       var rect = nodes[i].getBoundingClientRect();
       if (isTransient(nodes[i])) continue;
       if (!isSourceMappable(nodes[i])) continue;
+      if (!isDiscoveryTarget(nodes[i])) continue;
       if (targetForInlineText(nodes[i]) !== nodes[i]) continue;
       if (!isHiddenTarget(nodes[i], rect) && (rect.width < 4 || rect.height < 4)) continue;
       targets.push(targetFrom(nodes[i], false, false));

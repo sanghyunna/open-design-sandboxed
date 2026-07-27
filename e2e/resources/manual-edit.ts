@@ -58,3 +58,12 @@ export function magneticEdgeAlignmentHtml(): string {
   </body>
 </html>`;
 }
+
+export function semanticSvgDeckVisualHtml(): string {
+  return `<div class="bd" style="display:flex;align-items:center;justify-content:center;padding:120px;">
+  <svg width="960" height="480" viewBox="0 0 960 480" role="img" aria-label="Diagram" style="display:block;background:#eef2ff;">
+    <rect x="8" y="8" width="944" height="464" rx="24" fill="#c7d2fe"></rect>
+    <text x="48" y="252" fill="#1e1b4b" font-size="48">Visualization label</text>
+  </svg>
+</div>`;
+}

@@ -2427,6 +2427,142 @@ describe('manual edit bridge rich-text editing', () => {
     dom.window.close();
   });
 
+  it('selects a semantic SVG root instead of its structural parent and keeps decorative SVG icons on their button', async () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="card" data-od-edit="container">
+          <svg data-od-source-path="path-0-0-0" role="img" aria-label="Diagram">
+            <text>Diagram label</text>
+          </svg>
+        </div>
+        <button data-od-id="save"><svg viewBox="0 0 1 1" aria-hidden="true"><path d="M0 0h1v1z"></path></svg>Save</button>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const card = dom.window.document.querySelector('[data-od-id="card"]') as HTMLElement;
+    const diagram = dom.window.document.querySelector('svg[role="img"]') as SVGSVGElement;
+    const diagramText = diagram.querySelector('text') as SVGTextElement;
+    const icon = dom.window.document.querySelector('path') as SVGPathElement;
+    diagram.getBoundingClientRect = () => ({
+      x: 10, y: 20, width: 100, height: 40,
+      top: 20, right: 110, bottom: 60, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [diagramText, diagram, card],
+    });
+    Object.defineProperty(dom.window.document, 'elementFromPoint', {
+      configurable: true,
+      value: () => diagramText,
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+    const targetsMessage = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; targets?: Array<{ id: string; kind: string; tagName: string }> })
+      .find((message) => message.type === 'od-edit-targets');
+    expect(targetsMessage?.targets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'path-0-0-0', kind: 'container', tagName: 'svg' }),
+    ]));
+    expect(targetsMessage?.targets?.some((target) => target.tagName === 'svg' && target.id !== 'path-0-0-0')).toBe(false);
+
+    diagramText.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 20 }));
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'od-edit-select',
+        target: expect.objectContaining({ id: 'path-0-0-0', kind: 'container', tagName: 'svg', label: 'Diagram' }),
+      }),
+      '*',
+    );
+    expect(diagram.getAttribute('data-od-edit-selected')).toBe('true');
+    expect(diagram.hasAttribute('contenteditable')).toBe(false);
+
+    const save = dom.window.document.querySelector('[data-od-id="save"]') as HTMLButtonElement;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [icon, save],
+    });
+    icon.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'save' }) }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
+  it('keeps an explicitly identified inline child owned by its text passage', () => {
+    const dom = new JSDOM(
+      `<main><p data-od-id="copy">Hello <span data-od-id="emphasis">world</span></p></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const paragraph = dom.window.document.querySelector('[data-od-id="copy"]') as HTMLElement;
+    const emphasis = dom.window.document.querySelector('[data-od-id="emphasis"]') as HTMLElement;
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    emphasis.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'copy' }) }),
+      '*',
+    );
+    expect(paragraph.getAttribute('data-od-editing')).toBe('true');
+    expect(emphasis.hasAttribute('data-od-edit-selected')).toBe(false);
+    dom.window.close();
+  });
+
+  it('selects titled and aria-labelledby SVG roots when their children are clicked', async () => {
+    const dom = new JSDOM(
+      `<main>
+        <div data-od-id="card">
+          <svg data-od-source-path="path-0-0-0"><title>Chart</title><path d="M0 0h1v1z"></path></svg>
+          <svg data-od-source-path="path-0-0-1" aria-labelledby="chart-label"><path d="M0 0h1v1z"></path></svg>
+          <span id="chart-label">Accessible chart</span>
+        </div>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const roots = Array.from(dom.window.document.querySelectorAll('svg')) as SVGSVGElement[];
+    const paths = roots.map((root) => root.querySelector('path') as SVGPathElement);
+    roots.forEach((root, index) => {
+      root.getBoundingClientRect = () => ({
+        x: 10, y: index * 50, width: 100, height: 40,
+        top: index * 50, right: 110, bottom: index * 50 + 40, left: 10,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [paths[0], roots[0]],
+    });
+    const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true },
+    }));
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 0));
+    const targetsMessage = postMessage.mock.calls
+      .map(([message]) => message as { type?: string; targets?: Array<{ id: string; kind: string; label?: string }> })
+      .find((message) => message.type === 'od-edit-targets');
+    expect(targetsMessage).toBeDefined();
+    expect(targetsMessage!.targets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'path-0-0-0', kind: 'container' }),
+      expect.objectContaining({ id: 'path-0-0-1', kind: 'container', label: 'Accessible chart' }),
+    ]));
+
+    paths[0]!.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+    expect(postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'path-0-0-0' }) }),
+      '*',
+    );
+
+    dom.window.close();
+  });
+
   it('commits mixed-markup paragraph edits as inner html', () => {
     const dom = new JSDOM(
       `<main><p data-od-id="nested"><strong>Nested</strong> copy</p></main>${buildManualEditBridge(true)}`,

@@ -17,7 +17,8 @@
 import {
   buildManualEditBridge,
   buildManualEditBridgeStyle,
-  MANUAL_EDIT_DISCOVERY_SELECTOR,
+  isManualEditDiscoveryElement,
+  MANUAL_EDIT_TARGET_SELECTOR,
   MANUAL_EDIT_SOURCE_PATH_ATTR,
 } from '../edit-mode/bridge';
 
@@ -566,7 +567,8 @@ function annotateManualEditSourcePaths(doc: string): string {
   if (typeof DOMParser === 'undefined') return doc;
   try {
     const parsed = new DOMParser().parseFromString(doc, 'text/html');
-    parsed.body.querySelectorAll(MANUAL_EDIT_DISCOVERY_SELECTOR).forEach((el) => {
+    parsed.body.querySelectorAll(MANUAL_EDIT_TARGET_SELECTOR).forEach((el) => {
+      if (!isManualEditDiscoveryElement(el)) return;
       if (el.hasAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR)) return;
       const path = sourcePathForElement(el);
       if (path) el.setAttribute(MANUAL_EDIT_SOURCE_PATH_ATTR, path);
