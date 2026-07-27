@@ -4,7 +4,7 @@ import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 import type { Locator, Page } from '@playwright/test';
 import { T } from '@/timeouts';
-import { issue41SelectionPaintHtml, magneticEdgeAlignmentHtml } from '../resources/manual-edit.ts';
+import { issue41SelectionPaintHtml, magneticEdgeAlignmentHtml, semanticSvgDeckVisualHtml } from '../resources/manual-edit.ts';
 
 const STORAGE_KEY = 'open-design:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
@@ -156,6 +156,67 @@ test('[P0] manual edit direct text typing persists text-only elements', async ({
 
   await expectFileSource(page, projectId, 'manual-edit.html', ['Edited left panel']);
   await expect(frame.getByText('Edited left panel')).toBeVisible();
+});
+
+test('[P0] manual edit selects and persists semantic SVG visualization roots', async ({ page }) => {
+  await routeMockAgents(page);
+  const projectId = await createEmptyProject(page, 'Manual edit semantic SVG deck');
+  const template = readFileSync(new URL('../../templates/deck-framework.html', import.meta.url), 'utf8');
+  const deckHtml = template
+    .replace('<!-- SLOT: deck title -->', 'Semantic SVG deck')
+    .replace('<!-- SLOT: slide 1 content -->', '<h1>Slide One</h1>')
+    .replace('<!-- SLOT: slide 2 content -->', semanticSvgDeckVisualHtml());
+  const seedResp = await page.request.post(
+    `/api/projects/${projectId}/files`,
+    {
+      data: {
+        name: 'semantic-svg-deck.html',
+        content: deckHtml,
+        artifactManifest: {
+          version: 1,
+          kind: 'deck',
+          title: 'Semantic SVG deck',
+          entry: 'semantic-svg-deck.html',
+          renderer: 'deck-html',
+          exports: ['html', 'pptx'],
+        },
+      },
+      timeout: T.medium,
+    },
+  );
+  expect(seedResp.ok()).toBeTruthy();
+  await page.goto(`/projects/${projectId}/files/semantic-svg-deck.html`);
+  await openDesignFile(page, 'semantic-svg-deck.html');
+
+  const frame = artifactPreviewFrame(page);
+  await expect(frame.locator('#deck-cur')).toHaveText('01');
+  await page.getByLabel('Next slide').click();
+  await expect(frame.locator('#deck-cur')).toHaveText('02');
+  const diagram = frame.locator('svg[role="img"][aria-label="Diagram"]');
+  await expect(diagram).toBeVisible();
+  const diagramText = diagram.locator('text');
+
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await diagramText.click();
+  await expect(frame.locator('svg[role="img"][aria-label="Diagram"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(diagram).not.toHaveAttribute('contenteditable');
+  await expect(inspectorSurface(page, 'Shape')).toBeVisible();
+
+  await page.keyboard.press('ArrowRight');
+
+  await expect.poll(async () => {
+    const resp = await page.request.get(`/api/projects/${projectId}/files/semantic-svg-deck.html`);
+    if (!resp.ok()) return '';
+    const source = await resp.text();
+    return source.match(/<svg\b[^>]*aria-label="Diagram"[^>]*>/)?.[0] ?? '';
+  }).toMatch(/translate:/);
+  await expect.poll(async () => {
+    const resp = await page.request.get(`/api/projects/${projectId}/files/semantic-svg-deck.html`);
+    if (!resp.ok()) return '';
+    const source = await resp.text();
+    return source.match(/<svg\b[^>]*aria-label="Diagram"[^>]*>/)?.[0] ?? '';
+  }).not.toMatch(/data-od-(?:source-path|runtime-id|edit-selected)/);
 });
 
 test('[P1] issue 33 manual edit history preserves preview identity and focus', async ({ page }) => {

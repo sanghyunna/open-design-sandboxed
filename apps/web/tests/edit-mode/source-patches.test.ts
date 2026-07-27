@@ -141,6 +141,23 @@ describe('manual edit source patches', () => {
     expect(styles.opacity).toBe('0.5');
   });
 
+  it('applies styles to a semantic SVG source-path target without flattening its markup', () => {
+    const source = '<main><section><svg role="img" aria-label="Diagram"><defs><linearGradient id="paint"></linearGradient></defs><text>Label</text></svg></section></main>';
+    const result = applyManualEditPatch(source, {
+      kind: 'set-style',
+      id: 'path-0-0-0',
+      styles: { translate: '8px 4px', opacity: '0.75' },
+    });
+
+    expect(result.ok).toBe(true);
+    const html = readManualEditOuterHtml(result.source, 'path-0-0-0');
+    expect(html).toContain('<svg');
+    expect(html).toContain('role="img"');
+    expect(html).toContain('aria-label="Diagram"');
+    expect(html).toContain('translate: 8px 4px');
+    expect(readManualEditStyles(result.source, 'path-0-0-0').opacity).toBe('0.75');
+  });
+
   it('applies attributes additively and preserves class/style unless explicitly updated', () => {
     const result = applyManualEditPatch(baseSource, {
       kind: 'set-attributes',

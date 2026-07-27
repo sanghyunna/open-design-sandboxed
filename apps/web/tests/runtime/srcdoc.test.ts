@@ -193,6 +193,47 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain('<figcaption data-od-source-path="path-0-0-1">Caption text</figcaption>');
   });
 
+  it('annotates semantic SVG roots inside deck slides without annotating decorative SVG icons', () => {
+    const dom = new JSDOM('');
+    globalThis.DOMParser = dom.window.DOMParser;
+    try {
+      const srcdoc = buildSrcdoc(
+        '<section class="slide"><div class="bd"><svg role="img" aria-label="Diagram"><text>Label</text></svg><img src="hero.png" alt="Hero"><button><svg aria-hidden="true"><path d="M0 0h1v1z"></path></svg>Save</button><div aria-hidden="true"><svg role="img" aria-label="Hidden ancestor"><path d="M0 0h1v1z"></path></svg></div></div></section>',
+        { deck: true, editBridge: true },
+      );
+      const parsed = new JSDOM(srcdoc).window.document;
+      const diagram = parsed.querySelector('section.slide > .bd > svg[role="img"]');
+      const image = parsed.querySelector('section.slide > .bd > img');
+      const icon = parsed.querySelector('button > svg');
+      const hiddenAncestor = parsed.querySelector('[aria-hidden="true"] > svg[role="img"]');
+
+      expect(diagram?.getAttribute('data-od-source-path')).toBe('path-0-0-0');
+      expect(image?.getAttribute('data-od-source-path')).toBe('path-0-0-1');
+      expect(icon?.hasAttribute('data-od-source-path')).toBe(false);
+      expect(hiddenAncestor?.hasAttribute('data-od-source-path')).toBe(false);
+    } finally {
+      Reflect.deleteProperty(globalThis, 'DOMParser');
+    }
+  });
+
+  it('annotates SVG roots identified by child titles or aria-labelledby', () => {
+    const dom = new JSDOM('');
+    globalThis.DOMParser = dom.window.DOMParser;
+    try {
+      const srcdoc = buildSrcdoc(
+        '<section class="slide"><div class="bd"><svg><title>Chart</title><path d="M0 0h1v1z"></path></svg><svg aria-labelledby="chart-label"><path d="M0 0h1v1z"></path></svg><span id="chart-label">Accessible chart</span></div></section>',
+        { deck: true, editBridge: true },
+      );
+      const parsed = new JSDOM(srcdoc).window.document;
+      const roots = parsed.querySelectorAll('section.slide > .bd > svg');
+
+      expect(roots[0]?.getAttribute('data-od-source-path')).toBe('path-0-0-0');
+      expect(roots[1]?.getAttribute('data-od-source-path')).toBe('path-0-0-1');
+    } finally {
+      Reflect.deleteProperty(globalThis, 'DOMParser');
+    }
+  });
+
   it('emits free-pin fallback coordinates in viewport space', () => {
     const srcdoc = buildSrcdoc('<main>Hero</main>', { commentBridge: true });
     const freePinStart = srcdoc.indexOf('var pinX = Math.round(ev.clientX);');
