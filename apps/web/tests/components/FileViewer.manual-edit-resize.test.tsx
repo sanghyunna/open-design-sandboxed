@@ -70,6 +70,43 @@ describe('FileViewer manual edit resize handles', () => {
     }
   });
 
+  it('clears hover around resize controls without forwarding overlay coordinates', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />,
+    );
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget();
+
+    const frame = await previewFrame();
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const se = seHandle();
+    const sendHover = () => act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-hover', target: { ...heroTarget(), id: 'hovered' } },
+        source: frame.contentWindow,
+      }));
+    });
+    sendHover();
+    await waitFor(() => expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy());
+    postSpy.mockClear();
+
+    fireEvent.pointerEnter(se, { clientX: 300, clientY: 150 });
+    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+
+    sendHover();
+    await waitFor(() => expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy());
+    postSpy.mockClear();
+    fireEvent.pointerDown(se, { pointerId: 90, clientX: 300, clientY: 150 });
+    fireEvent.pointerMove(se, { pointerId: 90, clientX: 340, clientY: 170 });
+    fireEvent.pointerCancel(se, { pointerId: 90 });
+    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+    expect(postSpy.mock.calls.some(([message]) => (
+      (message as { type?: string }).type === 'od-edit-hover-at'
+    ))).toBe(false);
+  });
+
   it('streams od-edit-preview-style with width/height while dragging the SE handle', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));

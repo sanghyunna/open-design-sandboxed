@@ -170,6 +170,30 @@ describe('FileViewer manual edit regressions', () => {
     expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy();
   });
 
+  it('removes the hover affordance when the bridge reports no hover target', async () => {
+    const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(source, { status: 200, headers: { 'Content-Type': 'text/html' } }),
+    ));
+    render(
+      <FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={source} />,
+    );
+
+    clickManualTool('manual-edit-mode-toggle');
+    await hoverManualEditTarget();
+    const frame = await previewFrame();
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-hover', target: null },
+        source: frame.contentWindow,
+      }));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('manual-edit-hover-open')).toBeNull();
+    });
+  });
+
   it('keeps the Desktop edit preview sized to the live canvas', async () => {
     const source = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
     vi.stubGlobal('fetch', vi.fn(async () =>

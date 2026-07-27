@@ -148,7 +148,7 @@ import {
   readManualEditOuterHtml,
   readManualEditStyles,
 } from '../edit-mode/source-patches';
-import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditDuplicatePlan, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
+import { MANUAL_EDIT_STYLE_PROPS, type ManualEditActivationMessage, type ManualEditBeginTextEditMessage, type ManualEditBridgeMessage, type ManualEditDuplicatePlan, type ManualEditEndTextEditMessage, type ManualEditHistoryEntry, type ManualEditHoverAtMessage, type ManualEditPatch, type ManualEditRect, type ManualEditResizeConstraint, type ManualEditResizeRequest, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import {
   isManualEditNudgeBlocked,
   isManualEditNudgeKey,
@@ -5222,7 +5222,7 @@ function HtmlViewer({
         // user clicks that affordance (or a container/image body), so moving
         // the cursor across the canvas never yanks the panel away mid-edit.
         setManualEditHoverTarget(
-          data.target.id === selectedManualEditTargetIdRef.current ? null : data.target,
+          data.target && data.target.id !== selectedManualEditTargetIdRef.current ? data.target : null,
         );
         return;
       }
@@ -6335,6 +6335,7 @@ function HtmlViewer({
   // affordance overlays the iframe, so reacting to the iframe leaving would
   // yank it out from under the cursor and strobe on/off.
   function clearManualEditHover() {
+    if (!manualEditHoverTarget) return;
     setManualEditHoverTarget(null);
     const win = iframeRef.current?.contentWindow;
     if (win) win.postMessage({ type: 'od-edit-hover-reset' }, '*');
@@ -8498,6 +8499,20 @@ function HtmlViewer({
         manualEditOverlayTransform.offsetY,
       )
       : manualEditResizeRect;
+  const postManualEditHoverAt = (clientX: number, clientY: number) => {
+    const frame = iframeRef.current;
+    const win = frame?.contentWindow;
+    if (!frame || !win || !selectedManualEditTarget) return;
+    const frameRect = frame.getBoundingClientRect();
+    const message: ManualEditHoverAtMessage = {
+      type: 'od-edit-hover-at',
+      clientX: (clientX - frameRect.left) / overlayPreviewScale,
+      clientY: (clientY - frameRect.top) / overlayPreviewScale,
+      selectedId: selectedManualEditTarget.id,
+      documentEpoch: manualEditDocumentEpoch(),
+    };
+    win.postMessage(message, '*');
+  };
   const manualEditResizeHandles =
     manualEditResizeRect && selectedManualEditTarget ? (
       <ManualEditResizeHandles
@@ -8519,6 +8534,7 @@ function HtmlViewer({
           clearManualEditMovement();
           beginManualEditResizeBaseline(selectedManualEditTarget);
         }}
+        onHoverClear={clearManualEditHover}
         onBurstCancel={() => cancelKeyboardBurst({ latchHeldKeys: true })}
         onResizePreview={(direction, size, startSize) => {
           previewStyleToIframe(
@@ -8533,6 +8549,7 @@ function HtmlViewer({
           void commitManualEditResize(selectedManualEditTarget, direction, size, startSize);
         }}
         onResizeCancel={() => {
+          clearManualEditHover();
           clearManualEditResizeFeedback();
           revertManualEditResizePreview(selectedManualEditTarget);
         }}
@@ -8552,6 +8569,7 @@ function HtmlViewer({
           ? undefined
           : t('manualEdit.selectBehindHint')}
         onMoveStart={() => {
+          clearManualEditHover();
           cancelKeyboardBurst();
           beginManualEditMovement(selectedManualEditTarget, 'pointer');
           // Dragging the border while editing commits the text and promotes to
@@ -8565,7 +8583,11 @@ function HtmlViewer({
         onMoveCommit={(update) => {
           void commitManualEditMovement(update);
         }}
-        onMoveCancel={cancelManualEditMovement}
+        onMoveCancel={() => {
+          clearManualEditHover();
+          cancelManualEditMovement();
+        }}
+        onHoverAt={postManualEditHoverAt}
         onAltChange={(altKey) => {
           rePreviewManualEditMovementWithAlt(altKey);
         }}

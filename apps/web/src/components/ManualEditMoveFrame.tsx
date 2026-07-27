@@ -36,6 +36,8 @@ export type ManualEditMoveFrameProps = {
   onPressStart: () => void;
   onActivate: (activation: ManualEditMoveActivation) => void;
   onSurfaceDoubleClick: (region: Region) => void;
+  /** Idle pointer coordinates for resolving the iframe target below this overlay. */
+  onHoverAt?: (clientX: number, clientY: number) => void;
   /** Fired when the Alt/Option key changes state during an active drag. */
   onAltChange?: (altKey: boolean) => void;
   /** Fired when the Ctrl/Control key changes state during an active drag. */
@@ -76,6 +78,7 @@ export function ManualEditMoveFrame({
   onPressStart,
   onActivate,
   onSurfaceDoubleClick,
+  onHoverAt,
   onAltChange,
   onCtrlChange,
   onBurstCancel,
@@ -325,7 +328,11 @@ export function ManualEditMoveFrame({
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag) {
+      onHoverAt?.(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerId !== drag.pointerId) return;
     const dxClient = event.clientX - drag.startX;
     const dyClient = event.clientY - drag.startY;
     if (!drag.dragging) {
@@ -406,9 +413,14 @@ export function ManualEditMoveFrame({
     onSurfaceDoubleClick(region);
   };
 
+  const handlePointerEnter = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) onHoverAt?.(event.clientX, event.clientY);
+  };
+
   const surfaceProps = (region: Region) => ({
     'data-region': region,
     tabIndex: -1,
+    onPointerEnter: handlePointerEnter,
     onPointerDown: handlePointerDown,
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,

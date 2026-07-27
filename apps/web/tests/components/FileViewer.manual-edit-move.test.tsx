@@ -238,6 +238,47 @@ describe('FileViewer manual edit move frame', () => {
     }, '*');
   });
 
+  it('forwards idle move-surface coordinates and clears them when a drag starts', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));
+    render(<FileViewer projectId="project-1" projectKind="prototype" file={htmlPreviewFile()} liveHtml={SOURCE} />);
+    fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
+    await selectManualEditTarget(imageTarget());
+
+    const frame = await previewFrame();
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      x: 100, y: 50, left: 100, top: 50, width: 800, height: 600,
+      right: 900, bottom: 650, toJSON: () => ({}),
+    } as DOMRect);
+    const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
+    const interior = interiorSurface();
+    postSpy.mockClear();
+
+    fireEvent.pointerEnter(interior, { clientX: 200, clientY: 150 });
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'od-edit-hover-at',
+      clientX: 100,
+      clientY: 100,
+      selectedId: 'pic',
+      documentEpoch: expect.any(String),
+    }), '*');
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { type: 'od-edit-hover', target: { ...imageTarget(), id: 'hovered' } },
+        source: frame.contentWindow,
+      }));
+    });
+    await waitFor(() => expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy());
+    postSpy.mockClear();
+    fireEvent.pointerDown(interior, { pointerId: 41, clientX: 200, clientY: 150 });
+    fireEvent.pointerMove(interior, { pointerId: 41, clientX: 220, clientY: 170 });
+    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+    expect(postSpy.mock.calls.some(([message]) => (
+      (message as { type?: string }).type === 'od-edit-hover-at'
+    ))).toBe(false);
+  });
+
   it('forwards a selected text click instead of directly beginning text edit', async () => {
     vi.stubGlobal('fetch', vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } })));

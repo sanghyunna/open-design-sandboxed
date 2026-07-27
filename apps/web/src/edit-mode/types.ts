@@ -175,7 +175,16 @@ export interface ManualEditSelectMessage {
 
 export interface ManualEditHoverMessage {
   type: 'od-edit-hover';
-  target: ManualEditTarget;
+  target: ManualEditTarget | null;
+}
+
+/** Host overlay -> iframe: re-resolve hover beneath an overlay surface. */
+export interface ManualEditHoverAtMessage {
+  type: 'od-edit-hover-at';
+  clientX: number;
+  clientY: number;
+  selectedId: string;
+  documentEpoch: string;
 }
 
 export interface ManualEditBackgroundMessage {
