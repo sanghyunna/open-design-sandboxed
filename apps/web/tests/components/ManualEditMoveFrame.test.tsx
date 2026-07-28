@@ -13,6 +13,7 @@ function renderFrame(overrides: Partial<Parameters<typeof ManualEditMoveFrame>[0
     onPressStart: vi.fn(),
     onActivate: vi.fn(),
     onSurfaceDoubleClick: vi.fn(),
+    onHoverAt: vi.fn(),
     onBurstCancel: vi.fn(() => false),
   };
   const utils = render(
@@ -47,6 +48,19 @@ afterEach(() => {
 });
 
 describe('ManualEditMoveFrame', () => {
+  it('forwards idle pointer coordinates but not drag coordinates', () => {
+    const { interior, onHoverAt } = renderFrame();
+
+    fireEvent.pointerEnter(interior!, { clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(interior!, { pointerId: 1, clientX: 210, clientY: 110 });
+    expect(onHoverAt).toHaveBeenNthCalledWith(1, 200, 100);
+    expect(onHoverAt).toHaveBeenNthCalledWith(2, 210, 110);
+
+    fireEvent.pointerDown(interior!, { pointerId: 1, clientX: 210, clientY: 110 });
+    fireEvent.pointerMove(interior!, { pointerId: 1, clientX: 230, clientY: 130 });
+    expect(onHoverAt).toHaveBeenCalledTimes(2);
+  });
+
   it('reports press start and unified ring activation coordinates', () => {
     const { ring, onPressStart, onActivate, onMoveStart } = renderFrame();
     fireEvent.pointerDown(ring, { pointerId: 1, clientX: 100, clientY: 50 });

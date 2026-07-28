@@ -1058,6 +1058,53 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
   });
 });
 
+test('[P1] manual edit hover follows the actual pointer beneath the selected move surface', async ({ page }) => {
+  await routeMockAgents(page);
+  const fileName = 'manual-edit-hover-sync.html';
+  const projectId = await createEmptyProject(page, 'Manual edit hover sync');
+  await seedHtmlArtifact(page, projectId, fileName, manualEditHoverSyncHtml());
+  await page.goto(`/projects/${projectId}/files/${fileName}`);
+  await openDesignFile(page, fileName);
+
+  const frame = artifactPreviewFrame(page);
+  const top = frame.locator('[data-od-id="hover-top"]');
+  const middle = frame.locator('[data-od-id="hover-middle"]');
+  const child = frame.locator('[data-od-id="hover-child"]');
+  const bottom = frame.locator('[data-od-id="hover-bottom"]');
+  await page.getByTestId('manual-edit-mode-toggle').click();
+  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+
+  await middle.click({ position: { x: 24, y: 24 } });
+  await expect(middle).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]')).toBeVisible();
+
+  const center = async (locator: Locator) => {
+    const box = await locator.boundingBox();
+    if (!box) throw new Error('hover sync fixture target has no bounding box');
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  const hoveredIds = () => frame.locator('[data-od-runtime-hovered="true"]').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-od-id')),
+  );
+
+  const topCenter = await center(top);
+  await page.mouse.move(topCenter.x, topCenter.y);
+  await expect.poll(hoveredIds).toEqual(['hover-top']);
+
+  const middleBox = await middle.boundingBox();
+  if (!middleBox) throw new Error('selected middle target has no bounding box');
+  await page.mouse.move(middleBox.x + 24, middleBox.y + 24);
+  await expect.poll(hoveredIds).toEqual([]);
+
+  const childCenter = await center(child);
+  await page.mouse.move(childCenter.x, childCenter.y);
+  await expect.poll(hoveredIds).toEqual(['hover-child']);
+
+  const bottomCenter = await center(bottom);
+  await page.mouse.move(bottomCenter.x, bottomCenter.y);
+  await expect.poll(hoveredIds).toEqual(['hover-bottom']);
+});
+
 test('[P1] issue 43 paints no focus outline on the pressed move surfaces', async ({ page }) => {
   await routeMockAgents(page);
   const projectId = await createEmptyProject(page, 'Issue 43 move surface focus');
@@ -2064,6 +2111,32 @@ function issue34NestedChildHtml(): string {
         style="position:absolute;box-sizing:border-box;left:2px;top:32px;width:12px;height:20px;padding:0;"
       ></button>
     </div>
+  </body>
+</html>`;
+}
+
+function manualEditHoverSyncHtml(): string {
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Manual edit hover sync</title>
+    <style>
+      main { display: grid; gap: 16px; width: 360px; padding: 24px; }
+      .card { box-sizing: border-box; width: 320px; min-height: 72px; padding: 20px; background: #e0f2fe; }
+      .middle { position: relative; height: 160px; background: #ffedd5; }
+      .child { position: absolute; left: 136px; top: 56px; width: 136px; height: 48px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="card" data-od-id="hover-top">Top card</section>
+      <section class="card middle" data-od-id="hover-middle">
+        Selected middle card
+        <button class="child" type="button" data-od-id="hover-child">Nested child</button>
+      </section>
+      <section class="card" data-od-id="hover-bottom">Bottom card</section>
+    </main>
   </body>
 </html>`;
 }

@@ -42,6 +42,8 @@ export type ManualEditResizeHandlesProps = {
   // Fired at pointerdown so the host can snapshot its drag baseline (computed
   // css size, base styles) BEFORE preview acks start mutating the live target.
   onResizeStart?: () => void;
+  /** Clears a hover affordance before this control owns the pointer. */
+  onHoverClear?: () => void;
 };
 
 type DragState = {
@@ -76,6 +78,7 @@ export function ManualEditResizeHandles({
   onResizeCancel,
   onBurstCancel,
   onResizeStart,
+  onHoverClear,
 }: ManualEditResizeHandlesProps) {
   const dragRef = useRef<DragState | null>(null);
   const lastDirectionRef = useRef<ResizeHandleDirection | null>(null);
@@ -146,6 +149,7 @@ export function ManualEditResizeHandles({
     if (disabled) return;
     event.preventDefault();
     event.stopPropagation();
+    onHoverClear?.();
     const target = event.currentTarget;
     if (typeof target.setPointerCapture === 'function') {
       try {
@@ -309,6 +313,7 @@ export function ManualEditResizeHandles({
             className={`${styles.handle} ${styles[`handle-${direction}`]} ${constrained ? styles.constrained : ''}`}
             style={{ left: position.left, top: position.top }}
             onPointerDown={handlePointerDown(direction)}
+            onPointerEnter={() => onHoverClear?.()}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerCancel}

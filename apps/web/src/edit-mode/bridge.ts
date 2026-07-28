@@ -563,7 +563,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!enabled) return;
     postManualMessage({ type: 'od-edit-targets', targets: allTargets() });
   }
-  var lastHoverId = null;
+  var lastHoverId;
   var hoveredTarget = null;
   function setHoveredTarget(el){
     if (isTransient(el)) el = null;
@@ -577,11 +577,16 @@ export function buildManualEditBridge(enabled: boolean): string {
   setHoveredTarget(null);
   function postHoverTarget(el){
     setHoveredTarget(el);
-    if (!enabled || !el) return;
-    var id = stableId(el);
+    if (!enabled) return;
+    var id = el ? stableId(el) : null;
     if (id === lastHoverId) return;
     lastHoverId = id;
-    postManualMessage({ type: 'od-edit-hover', target: targetFrom(el, true, false) });
+    postManualMessage({ type: 'od-edit-hover', target: el ? targetFrom(el, true, false) : null });
+  }
+  function resolveHoverAtPoint(clientX, clientY, fallback){
+    var el = topTargetAtPoint(clientX, clientY, fallback);
+    if (el && stableId(el) === hostSelectedTargetId) el = null;
+    postHoverTarget(el);
   }
   function clearSelectedTarget(){
     var selected = document.querySelectorAll('[data-od-edit-selected]');
@@ -1337,10 +1342,10 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (selectionAware) el = targetForSelection(el);
     var kind = inferKind(el);
     var id = stableId(el);
-    setHoveredTarget(el);
     setSelectedTarget(id);
     hostSelectedTargetId = id;
     window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(el, true, true) }, '*');
+    resolveHoverAtPoint(event.clientX, event.clientY, event.target);
     // Only enter inline edit on a fresh, non-modified click on the topmost
     // text/link target. Cycled clicks are explicitly drilling the z-stack;
     // Alt/Option clicks are an explicit "select without editing" gesture.
@@ -1373,7 +1378,7 @@ export function buildManualEditBridge(enabled: boolean): string {
         removeDuplicateRoot();
         clearSelectedTarget();
         setHoveredTarget(null);
-        lastHoverId = null;
+        lastHoverId = undefined;
         hostSelectedTargetId = null;
       }
       if (enabled) setTimeout(postTargets, 0);
@@ -1435,6 +1440,7 @@ export function buildManualEditBridge(enabled: boolean): string {
       if (!requestedEl) return;
       requestedEl = targetForSelection(requestedEl);
       var selectTargetId = stableId(requestedEl);
+      postHoverTarget(null);
       setSelectedTarget(selectTargetId);
       hostSelectedTargetId = selectTargetId;
       window.parent.postMessage({ type: 'od-edit-select', target: targetFrom(requestedEl, true, true) }, '*');
@@ -1453,7 +1459,17 @@ export function buildManualEditBridge(enabled: boolean): string {
       // Host signals the cursor truly left the canvas, so the next pointerover
       // re-announces the hovered element (defeats the per-element dedupe).
       setHoveredTarget(null);
-      lastHoverId = null;
+      lastHoverId = undefined;
+      return;
+    }
+    if (ev.data.type === 'od-edit-hover-at') {
+      var hoverX = Number(ev.data.clientX);
+      var hoverY = Number(ev.data.clientY);
+      if (!enabled || documentEpoch === null || ev.data.documentEpoch !== documentEpoch
+        || typeof ev.data.selectedId !== 'string' || ev.data.selectedId !== hostSelectedTargetId
+        || !isFinite(hoverX) || !isFinite(hoverY)) return;
+      var hoverEl = document.elementFromPoint ? document.elementFromPoint(hoverX, hoverY) : null;
+      resolveHoverAtPoint(hoverX, hoverY, hoverEl);
       return;
     }
     if (ev.data.type === 'od-edit-preview-style') {
@@ -1488,11 +1504,18 @@ export function buildManualEditBridge(enabled: boolean): string {
   document.addEventListener('pointerover', function(ev){
     if (!enabled) return;
     if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) {
-      setHoveredTarget(null);
+      postHoverTarget(null);
       return;
     }
-    var el = closestTarget(ev);
-    postHoverTarget(el);
+    resolveHoverAtPoint(ev.clientX, ev.clientY, ev.target);
+  }, true);
+  document.addEventListener('pointermove', function(ev){
+    if (!enabled) return;
+    if (ev.target && ev.target.closest && ev.target.closest('[data-od-editing="true"]')) {
+      postHoverTarget(null);
+      return;
+    }
+    resolveHoverAtPoint(ev.clientX, ev.clientY, ev.target);
   }, true);
   function isNudgeBlocked(target, isComposing){
     if (isComposing) return true;

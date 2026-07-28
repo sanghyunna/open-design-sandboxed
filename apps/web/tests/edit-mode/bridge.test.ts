@@ -266,7 +266,7 @@ describe('manual edit bridge target normalization', () => {
     const bridge = buildManualEditBridge(true);
 
     expect(bridge).toContain('targets.push(targetFrom(nodes[i], false, false))');
-    expect(bridge).toContain("type: 'od-edit-hover', target: targetFrom(el, true, false)");
+    expect(bridge).toContain("target: el ? targetFrom(el, true, false) : null");
     expect(bridge).toContain("type: 'od-edit-select', target: targetFrom(el, true, true)");
     expect(bridge).toContain('if (!isSourceMappable(nodes[i])) continue;');
     expect(bridge).toContain('return el;');
@@ -297,6 +297,260 @@ describe('manual edit bridge target normalization', () => {
     expect(hover?.target).not.toHaveProperty('authoredSize');
     expect(createElement.mock.calls.filter(([tag]) => tag === 'style')).toHaveLength(0);
 
+    dom.window.close();
+  });
+
+  it('clears a prior hover when overlay coordinates land on the selected target', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main>
+        <button data-od-id="top">Top</button>
+        <button data-od-id="middle">Selected middle</button>
+      </main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const top = dom.window.document.querySelector('[data-od-id="top"]')!;
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]')!;
+    let pointTargets: Element[] = [top];
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => pointTargets,
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-1' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'middle' },
+    }));
+    top.dispatchEvent(new dom.window.MouseEvent('pointerover', {
+      bubbles: true,
+      clientX: 10,
+      clientY: 10,
+    }));
+    expect(top.getAttribute('data-od-runtime-hovered')).toBe('true');
+
+    posts.length = 0;
+    pointTargets = [middle];
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-hover-at',
+        clientX: 80,
+        clientY: 10,
+        selectedId: 'middle',
+        documentEpoch: 'epoch-1',
+      },
+    }));
+
+    expect(dom.window.document.querySelectorAll('[data-od-runtime-hovered]')).toHaveLength(0);
+    expect(posts).toContainEqual(expect.objectContaining({ type: 'od-edit-hover', target: null }));
+    dom.window.close();
+  });
+
+  it('clears hover immediately when a click selects its current target', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main><img data-od-id="middle" alt="Middle"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]')!;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [middle],
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    middle.dispatchEvent(new dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 10 }));
+    expect(middle.getAttribute('data-od-runtime-hovered')).toBe('true');
+
+    middle.dispatchEvent(new dom.window.MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      clientX: 10,
+      clientY: 10,
+    }));
+
+    expect(middle.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    expect(posts).toContainEqual(expect.objectContaining({ type: 'od-edit-hover', target: null }));
+    dom.window.close();
+  });
+
+  it('keeps the top pointer target hovered when z-stack cycling selects behind it', () => {
+    const dom = new JSDOM(
+      `<main><img data-od-id="front" alt="Front"><img data-od-id="back" alt="Back"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const front = dom.window.document.querySelector('[data-od-id="front"]')!;
+    const back = dom.window.document.querySelector('[data-od-id="back"]')!;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [front, back],
+    });
+
+    for (let click = 0; click < 2; click += 1) {
+      front.dispatchEvent(new dom.window.MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        clientX: 10,
+        clientY: 10,
+      }));
+    }
+
+    expect(front.getAttribute('data-od-runtime-hovered')).toBe('true');
+    expect(back.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    dom.window.close();
+  });
+
+  it('clears hover immediately when the host selects the hovered target', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main><img data-od-id="middle" alt="Middle"></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const middle = dom.window.document.querySelector('[data-od-id="middle"]')!;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [middle],
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    middle.dispatchEvent(new dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 10 }));
+    expect(middle.getAttribute('data-od-runtime-hovered')).toBe('true');
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-select-target', id: 'middle' },
+    }));
+
+    expect(middle.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    expect(posts).toContainEqual(expect.objectContaining({ type: 'od-edit-hover', target: null }));
+    dom.window.close();
+  });
+
+  it('keeps a separate child hovered inside the selected parent', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main><section data-od-id="parent"><button data-od-id="child">Child</button></section></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const parent = dom.window.document.querySelector('[data-od-id="parent"]')!;
+    const child = dom.window.document.querySelector('[data-od-id="child"]')!;
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => [child, parent],
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-1' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'parent' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: {
+        type: 'od-edit-hover-at',
+        clientX: 20,
+        clientY: 20,
+        selectedId: 'parent',
+        documentEpoch: 'epoch-1',
+      },
+    }));
+
+    expect(parent.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    expect(child.getAttribute('data-od-runtime-hovered')).toBe('true');
+    expect(posts).toContainEqual(expect.objectContaining({
+      type: 'od-edit-hover',
+      target: expect.objectContaining({ id: 'child' }),
+    }));
+    dom.window.close();
+  });
+
+  it('replaces the previous hover marker on native pointer move', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main><button data-od-id="top">Top</button><button data-od-id="bottom">Bottom</button></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const top = dom.window.document.querySelector('[data-od-id="top"]')!;
+    const bottom = dom.window.document.querySelector('[data-od-id="bottom"]')!;
+    let pointTargets: Element[] = [top];
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => pointTargets,
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    top.dispatchEvent(new dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 10 }));
+    pointTargets = [bottom];
+    bottom.dispatchEvent(new dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 60 }));
+
+    expect(top.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    expect(bottom.getAttribute('data-od-runtime-hovered')).toBe('true');
+    expect(posts.filter((message) => message.type === 'od-edit-hover').map((message) => message.target?.id)).toEqual([
+      'top',
+      'bottom',
+    ]);
+    dom.window.close();
+  });
+
+  it('ignores stale overlay hover coordinates', () => {
+    const posts: Array<{ type?: string; target?: { id: string } | null }> = [];
+    const dom = new JSDOM(
+      `<main><button data-od-id="top">Top</button><button data-od-id="bottom">Bottom</button></main>${buildManualEditBridge(true)}`,
+      { runScripts: 'dangerously', url: 'http://localhost' },
+    );
+    const top = dom.window.document.querySelector('[data-od-id="top"]')!;
+    const bottom = dom.window.document.querySelector('[data-od-id="bottom"]')!;
+    let pointTargets: Element[] = [top];
+    Object.defineProperty(dom.window.document, 'elementsFromPoint', {
+      configurable: true,
+      value: () => pointTargets,
+    });
+    dom.window.parent.postMessage = ((message: unknown) => {
+      posts.push(message as { type?: string; target?: { id: string } | null });
+    }) as typeof dom.window.parent.postMessage;
+
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-mode', enabled: true, documentEpoch: 'epoch-current' },
+    }));
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'top' },
+    }));
+    // Establish a non-selected hover before testing stale overlay messages.
+    dom.window.dispatchEvent(new dom.window.MessageEvent('message', {
+      data: { type: 'od-edit-selected-target', id: 'other' },
+    }));
+    top.dispatchEvent(new dom.window.MouseEvent('pointermove', { bubbles: true, clientX: 10, clientY: 10 }));
+    const hoverCount = posts.filter((message) => message.type === 'od-edit-hover').length;
+    pointTargets = [bottom];
+
+    for (const data of [
+      {
+        type: 'od-edit-hover-at', clientX: 10, clientY: 60,
+        selectedId: 'other', documentEpoch: 'epoch-stale',
+      },
+      {
+        type: 'od-edit-hover-at', clientX: 10, clientY: 60,
+        selectedId: 'top', documentEpoch: 'epoch-current',
+      },
+    ]) {
+      dom.window.dispatchEvent(new dom.window.MessageEvent('message', { data }));
+    }
+
+    expect(top.getAttribute('data-od-runtime-hovered')).toBe('true');
+    expect(bottom.hasAttribute('data-od-runtime-hovered')).toBe(false);
+    expect(posts.filter((message) => message.type === 'od-edit-hover')).toHaveLength(hoverCount);
     dom.window.close();
   });
 
@@ -413,14 +667,14 @@ describe('manual edit bridge target normalization', () => {
     const postMessage = vi.spyOn(dom.window.parent, 'postMessage');
 
     top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'top' }) }),
       '*',
     );
 
     postMessage.mockClear();
     top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'bottom' }) }),
       '*',
     );
@@ -428,7 +682,7 @@ describe('manual edit bridge target normalization', () => {
     // A third click at the same spot wraps back to the topmost target.
     postMessage.mockClear();
     top.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'top' }) }),
       '*',
     );
@@ -584,7 +838,7 @@ describe('manual edit bridge target normalization', () => {
 
     link.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, altKey: true, clientX: 10, clientY: 10 }));
 
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'cta', kind: 'link' }) }),
       '*',
     );
@@ -2476,7 +2730,7 @@ describe('manual edit bridge rich-text editing', () => {
     expect(targetsMessage?.targets?.some((target) => ['hidden-attribute', 'hidden-display', 'hidden-visibility', 'hidden-ancestor'].includes(target.id))).toBe(false);
 
     diagramText.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 20 }));
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'od-edit-select',
         target: expect.objectContaining({ id: 'path-0-0-0', kind: 'container', tagName: 'svg', label: 'Diagram' }),
@@ -2560,7 +2814,7 @@ describe('manual edit bridge rich-text editing', () => {
     ]));
 
     paths[0]!.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-    expect(postMessage).toHaveBeenLastCalledWith(
+    expect(postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'od-edit-select', target: expect.objectContaining({ id: 'path-0-0-0' }) }),
       '*',
     );

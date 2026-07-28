@@ -21,6 +21,7 @@ function renderHandles(overrides: Partial<Parameters<typeof ManualEditResizeHand
   const onResizeCommit = vi.fn();
   const onResizeCancel = vi.fn();
   const onBurstCancel = vi.fn(() => false);
+  const onHoverClear = vi.fn();
   const utils = render(
     <ManualEditResizeHandles
       rect={{ left: 100, top: 50, width: 200, height: 100 }}
@@ -32,10 +33,11 @@ function renderHandles(overrides: Partial<Parameters<typeof ManualEditResizeHand
       onResizeCommit={onResizeCommit}
       onResizeCancel={onResizeCancel}
       onBurstCancel={onBurstCancel}
+      onHoverClear={onHoverClear}
       {...overrides}
     />,
   );
-  return { ...utils, onResizePreview, onResizeCommit, onResizeCancel, onBurstCancel };
+  return { ...utils, onResizePreview, onResizeCommit, onResizeCancel, onBurstCancel, onHoverClear };
 }
 
 beforeEach(() => {
@@ -51,6 +53,16 @@ afterEach(() => {
 });
 
 describe('ManualEditResizeHandles', () => {
+  it('clears hover on handle entry and pointer ownership', () => {
+    const { getByLabelText, onHoverClear } = renderHandles();
+    const se = getByLabelText(labels.se);
+
+    fireEvent.pointerEnter(se, { clientX: 300, clientY: 150 });
+    fireEvent.pointerDown(se, { pointerId: 1, clientX: 300, clientY: 150 });
+
+    expect(onHoverClear).toHaveBeenCalledTimes(2);
+  });
+
   it('renders 8 handles with direction-scoped aria labels', () => {
     const { getByLabelText } = renderHandles();
     for (const direction of Object.keys(labels) as ResizeHandleDirection[]) {
