@@ -525,7 +525,7 @@ export function EntryShell({
         examplePromptBrief: payload.examplePromptContext.brief,
       } : {}),
     };
-    onCreateProject({
+    return onCreateProject({
       name,
       skillId: payload.skillId ?? null,
       designSystemId: payload.designSystemId ?? null,
@@ -541,7 +541,7 @@ export function EntryShell({
       ...(payload.attachments && payload.attachments.length > 0
         ? { pendingFiles: payload.attachments }
         : {}),
-      autoSendFirstMessage: true,
+      autoSendFirstMessage: payload.autoSendFirstMessage ?? true,
     });
   }
 

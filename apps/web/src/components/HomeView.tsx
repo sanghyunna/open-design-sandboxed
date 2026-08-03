@@ -166,7 +166,7 @@ interface Props {
   projectsLoading?: boolean;
   designSystems?: DesignSystemSummary[];
   defaultDesignSystemId?: string | null;
-  onSubmit: (payload: PluginLoopSubmit) => void;
+  onSubmit: (payload: PluginLoopSubmit) => Promise<boolean> | boolean | void;
   onOpenProject: (id: string) => void;
   onViewAllProjects: () => void;
   onBrowseRegistry?: () => void;
@@ -231,6 +231,7 @@ export function HomeView({
   const [selectedPluginContexts, setSelectedPluginContexts] = useState<SelectedPluginContext[]>([]);
   const [selectedMcpContexts, setSelectedMcpContexts] = useState<SelectedMcpContext[]>([]);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [continuingWithoutPrompt, setContinuingWithoutPrompt] = useState(false);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [mcpLoading, setMcpLoading] = useState(true);
   const [prompt, setPrompt] = useState('');
@@ -1102,20 +1103,24 @@ export function HomeView({
     }
   }
 
-  async function submit() {
+  async function submit(autoSendFirstMessage = true): Promise<boolean> {
     const trimmed = prompt.trim();
-    if (!trimmed && stagedFiles.length === 0) return;
+    const submittedPrompt = autoSendFirstMessage ? trimmed : '';
+    const submittedAttachments = [...stagedFiles];
+    if (autoSendFirstMessage && !trimmed && submittedAttachments.length === 0) return false;
     // P0 ui_click area=chat_composer element=send_button. Fires before the
     // async plugin-apply roundtrip so the click count reflects user intent
     // even when the run is rejected (missing inputs, apply failure). The
     // subsequent run_created/run_finished events carry the result detail.
-    trackHomeChatComposerClick(analytics.track, {
-      page_name: 'home',
-      area: 'chat_composer',
-      element: 'send_button',
-    });
-    let submittedActive = active;
-    if (submittedActive && !submittedActive.inputsValid) {
+    if (autoSendFirstMessage) {
+      trackHomeChatComposerClick(analytics.track, {
+        page_name: 'home',
+        area: 'chat_composer',
+        element: 'send_button',
+      });
+    }
+    let submittedActive = autoSendFirstMessage ? active : null;
+    if (autoSendFirstMessage && submittedActive && !submittedActive.inputsValid) {
       const missing = missingRequiredInputs(
         submittedActive.inputFields,
         submittedActive.inputs,
@@ -1125,9 +1130,9 @@ export function HomeView({
           ? `Fill the required plugin ${missing.length === 1 ? 'parameter' : 'parameters'} before running: ${missing.join(', ')}.`
           : 'Fill the required plugin parameters before running.',
       );
-      return;
+      return false;
     }
-    const defaultInputs = { prompt: trimmed };
+    const defaultInputs = { prompt: submittedPrompt };
     const submittedDesignSystemId = homeDesignSystemSelectionForInputs(
       submittedActive?.inputs ?? null,
       designSystemPickerSystems,
@@ -1153,11 +1158,11 @@ export function HomeView({
     const activeInputsChangedForSubmit = submittedActive
       ? !inputsEqual(submittedActive.result?.appliedPlugin?.inputs ?? submittedActive.inputs, submittedPluginInputs)
       : false;
-    if (submittedActive && (!submittedActive.result || activeInputsChangedForSubmit)) {
+    if (autoSendFirstMessage && submittedActive && (!submittedActive.result || activeInputsChangedForSubmit)) {
       const result = await resolveActivePlugin(submittedActive.record, submittedPluginInputs);
       if (!result) {
         setError(`Failed to apply ${submittedActive.record.title}. Check the plugin parameters and try again.`);
-        return;
+        return false;
       }
       submittedActive = { ...submittedActive, result, inputs: submittedPluginInputs };
       setActive(submittedActive);
@@ -1170,7 +1175,7 @@ export function HomeView({
     // selections never carry a token, so they stay in the payload until the
     // user explicitly clears them.
     const contextPlugins = selectedPluginContexts
-      .filter((item) => !item.inlineBacked || mentionTokenPresent(trimmed, item.record.title))
+      .filter((item) => !item.inlineBacked || mentionTokenPresent(submittedPrompt, item.record.title))
       .map((item) => ({
         id: item.record.id,
         title: item.record.title,
@@ -1179,7 +1184,7 @@ export function HomeView({
           : {}),
       }));
     const contextMcpServers = selectedMcpContexts
-      .filter((item) => !item.inlineBacked || mentionTokenPresent(trimmed, item.server.label || item.server.id))
+      .filter((item) => !item.inlineBacked || mentionTokenPresent(submittedPrompt, item.server.label || item.server.id))
       .map((item) => ({
         id: item.server.id,
         ...(item.server.label ? { label: item.server.label } : {}),
@@ -1201,8 +1206,8 @@ export function HomeView({
       sessionMode === 'design'
         ? submittedActive?.record.id ?? DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID
         : submittedActive?.record.id ?? null;
-    onSubmit({
-      prompt: trimmed,
+    const submission = onSubmit({
+      prompt: submittedPrompt,
       pluginId: routedPluginId,
       pluginType: submittedActive?.record.marketplaceTrust ?? (routedPluginId ? 'official' : null),
       skillId: resolvedSkillId,
@@ -1215,9 +1220,11 @@ export function HomeView({
       designSystemId: submittedDesignSystemId,
       contextPlugins,
       contextMcpServers,
-      attachments: stagedFiles,
+      attachments: submittedAttachments,
       conversationMode: sessionMode,
+      ...(autoSendFirstMessage ? {} : { autoSendFirstMessage: false }),
       ...(() => {
+        if (!autoSendFirstMessage) return {};
         if (!examplePromptInfoRef.current) return {};
         const key = 'od:example-prompt-used';
         if (localStorage.getItem(key)) return {};
@@ -1225,8 +1232,27 @@ export function HomeView({
         return { examplePromptContext: examplePromptInfoRef.current };
       })(),
     });
-    setSelectedPluginContexts([]);
-    setSelectedMcpContexts([]);
+    if (autoSendFirstMessage) {
+      setSelectedPluginContexts([]);
+      setSelectedMcpContexts([]);
+      return (await submission) !== false;
+    }
+    const result = await submission;
+    if (result !== false) {
+      setSelectedPluginContexts([]);
+      setSelectedMcpContexts([]);
+    }
+    return result !== false;
+  }
+
+  async function continueWithoutPrompt() {
+    if (continuingWithoutPrompt) return;
+    setContinuingWithoutPrompt(true);
+    try {
+      await submit(false);
+    } finally {
+      setContinuingWithoutPrompt(false);
+    }
   }
 
   return (
@@ -1237,7 +1263,12 @@ export function HomeView({
         firstRunGuide={projectsLoading ? undefined : projects.length === 0}
         prompt={prompt}
         onPromptChange={handlePromptChange}
-        onSubmit={submit}
+        onSubmit={() => {
+          void submit();
+        }}
+        onContinueWithoutPrompt={() => {
+          void continueWithoutPrompt();
+        }}
         sessionMode={sessionMode}
         onSessionModeChange={setSessionMode}
         activePluginTitle={activeBadgeTitle}
@@ -1282,7 +1313,13 @@ export function HomeView({
         submitDisabled={
           Boolean(pendingApplyId) ||
           Boolean(pendingAuthoringChipId) ||
-          Boolean(active && !active.inputsValid)
+          Boolean(active && !active.inputsValid) ||
+          continuingWithoutPrompt
+        }
+        continueDisabled={
+          Boolean(pendingApplyId) ||
+          Boolean(pendingAuthoringChipId) ||
+          continuingWithoutPrompt
         }
         onPickPlugin={(record, nextPrompt) => addPluginContext(record, nextPrompt)}
         onPickExamplePlugin={useExamplePlugin}

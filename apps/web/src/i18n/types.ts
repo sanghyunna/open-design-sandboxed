@@ -743,6 +743,7 @@ export interface Dict {
   'homeHero.forNewLine': string;
   'homeHero.run': string;
   'homeHero.typeSomethingToRun': string;
+  'homeHero.continueWithoutPrompt': string;
   'homeHero.promptExamples': string;
   'homeHero.footer.designSystem': string;
   'homeHero.footer.autoDesignSystem': string;
