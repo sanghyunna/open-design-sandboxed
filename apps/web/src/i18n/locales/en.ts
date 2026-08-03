@@ -487,6 +487,7 @@ export const en: Dict = {
   'homeHero.forNewLine': 'for new line',
   'homeHero.run': 'Run',
   'homeHero.typeSomethingToRun': 'Type something to run',
+  'homeHero.continueWithoutPrompt': 'Continue without a prompt',
   'homeHero.promptExamples': 'Example prompts',
   'homeHero.footer.designSystem': 'Style',
   'homeHero.footer.autoDesignSystem': 'Auto',

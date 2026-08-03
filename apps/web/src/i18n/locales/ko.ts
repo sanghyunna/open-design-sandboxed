@@ -487,6 +487,7 @@ export const ko: Dict = {
   'homeHero.forNewLine': '줄 바꿈',
   'homeHero.run': '실행',
   'homeHero.typeSomethingToRun': '실행할 내용을 입력하세요',
+  'homeHero.continueWithoutPrompt': '프롬프트 없이 계속하기',
   'homeHero.promptExamples': '예시',
   'homeHero.footer.designSystem': '스타일',
   'homeHero.footer.autoDesignSystem': '자동',

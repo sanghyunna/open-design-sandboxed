@@ -29,6 +29,7 @@ import type {
   InstalledPluginRecord,
   McpServerConfig,
 } from '@open-design/contracts';
+import { Button } from '@open-design/components';
 import { DesignSystemPicker } from './DesignSystemPicker';
 import type { SkillSummary } from '../types';
 import { Icon, type IconName } from './Icon';
@@ -114,6 +115,7 @@ interface Props {
   prompt: string;
   onPromptChange: (value: string) => void;
   onSubmit: HomeHeroSubmitHandler;
+  onContinueWithoutPrompt?: () => void;
   sessionMode?: ChatSessionMode;
   onSessionModeChange?: (mode: ChatSessionMode) => void;
   activePluginTitle: string | null;
@@ -160,6 +162,7 @@ interface Props {
   pendingPluginId: string | null;
   pendingChipId: string | null;
   submitDisabled?: boolean;
+  continueDisabled?: boolean;
   onPickPlugin: (record: InstalledPluginRecord, nextPrompt: string | null) => void;
   onPickExamplePlugin?: (record: InstalledPluginRecord, chipId: string, promptText: string) => void;
   onPickSkill?: (skill: SkillSummary, nextPrompt: string | null) => void;
@@ -219,6 +222,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     prompt,
     onPromptChange,
     onSubmit,
+    onContinueWithoutPrompt = () => undefined,
     firstRunGuide,
     sessionMode = 'design',
     onSessionModeChange,
@@ -256,6 +260,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     pendingPluginId,
     pendingChipId,
     submitDisabled = false,
+    continueDisabled,
     onPickPlugin,
     onPickExamplePlugin = () => undefined,
     onPickSkill = () => undefined,
@@ -1445,6 +1450,20 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
           }}
         />
       ) : null}
+
+      <div className="home-hero__continue-row">
+        <Button
+          variant="ghost"
+          className="home-hero__continue"
+          type="button"
+          onClick={onContinueWithoutPrompt}
+          disabled={Boolean(continueDisabled ?? submitDisabled)}
+          data-testid="home-hero-continue-without-prompt"
+        >
+          <span>{t('homeHero.continueWithoutPrompt')}</span>
+          <span aria-hidden="true"> →</span>
+        </Button>
+      </div>
 
       {filteredExamplePlugins.length > 0 && activeChipId ? (
         <PluginPromptPresets

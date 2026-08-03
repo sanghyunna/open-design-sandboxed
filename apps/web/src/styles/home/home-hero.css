@@ -193,6 +193,25 @@
   margin: 6px 0 0;
   padding: 0 12px;
 }
+.home-hero__continue-row {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 12px;
+  margin: -4px 0 0;
+}
+.home-hero__continue {
+  border-color: transparent;
+  color: var(--text-muted);
+  padding: 4px 0;
+  font-size: 12px;
+}
+.home-hero__continue:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-strong);
+}
 .home-hero__subtype-chip {
   appearance: none;
   position: relative;
