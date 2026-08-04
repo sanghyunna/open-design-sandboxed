@@ -26,6 +26,12 @@ export interface HostedRouteRule {
 }
 
 export interface HostedRequestBoundaryOptions {
+  /**
+   * PR01 only exposes the boundary through an explicit test composition.
+   * Production startup has no identity adapter yet; later hosted PRs replace
+   * this seam with the real user-runtime adapter before enabling data routes.
+   */
+  readonly testComposition?: boolean;
   readonly resolveIdentity?: HostedIdentityResolver;
 }
 
@@ -265,6 +271,11 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'GET', path: '/api/skills/:id/example', reason: 'local skill example surface' },
     { method: 'GET', path: '/api/skills/:id/assets/*', reason: 'local skill asset surface' },
     { method: 'POST', path: '/api/tools/media/*', reason: 'credentialed media capability' },
+    { method: 'GET', path: '/api/runs/:runId/devloop-iterations', reason: 'local run replay/debug history' },
+    { method: 'POST', path: '/api/runs/:runId/replay', reason: 'local run replay/debug control' },
+    { method: 'POST', path: '/api/projects/:id/conversations/:cid/rollback', reason: 'local rollback control' },
+    { method: 'POST', path: '/api/projects/:id/conversations/:cid/agent-rollback-request', reason: 'local rollback control' },
+    { method: 'POST', path: '/api/projects/:id/conversations/:cid/agent-rollback-execute', reason: 'local rollback control' },
   ]),
 });
 
@@ -331,7 +342,7 @@ export function createHostedRequestBoundary(
       reject(response, 400, 'HOSTED_OWNER_FIELD_FORBIDDEN', 'client ownership fields are not accepted');
       return;
     }
-    if (options.resolveIdentity == null) {
+    if (options.testComposition !== true || options.resolveIdentity == null) {
       reject(response, 503, 'HOSTED_AUTH_UNAVAILABLE', 'hosted identity is not configured');
       return;
     }
