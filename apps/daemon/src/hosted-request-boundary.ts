@@ -451,7 +451,7 @@ function matchesPath(pattern: string, path: string): boolean {
 }
 
 function hasClientOwnershipMetadata(request: Request): boolean {
-  if (Object.keys(request.query ?? {}).some((key) => isOwnerFieldName(key, true))) return true;
+  if (containsOwnershipField(request.query, 0, true)) return true;
   if (Object.keys(request.headers ?? {}).some(isOwnerHeaderName)) return true;
   return false;
 }
@@ -462,7 +462,7 @@ function containsPathOwnershipMetadata(path: string): boolean {
   );
 }
 
-function containsOwnershipField(value: unknown, depth = 0): boolean {
+function containsOwnershipField(value: unknown, depth = 0, includeGeneric = false): boolean {
   if (value == null || typeof value !== 'object') return false;
   const pending: Array<{ value: unknown; depth: number }> = [{ value, depth }];
   let inspected = 0;
@@ -486,7 +486,7 @@ function containsOwnershipField(value: unknown, depth = 0): boolean {
     }
     for (const key in current.value) {
       if (!Object.prototype.hasOwnProperty.call(current.value, key)) continue;
-      if (isOwnerFieldName(key)) return true;
+      if (isOwnerFieldName(key, includeGeneric)) return true;
       if (!enqueue((current.value as Record<string, unknown>)[key])) return true;
     }
   }
@@ -495,8 +495,16 @@ function containsOwnershipField(value: unknown, depth = 0): boolean {
 
 function isOwnerFieldName(key: string, includeGeneric = false): boolean {
   const normalized = key.replaceAll(/[-_]/gu, '').toLowerCase();
-  return OWNER_FIELD_NAMES.has(normalized)
-    || (includeGeneric && GENERIC_OWNER_FIELD_NAMES.has(normalized));
+  if (
+    OWNER_FIELD_NAMES.has(normalized)
+    || (includeGeneric && GENERIC_OWNER_FIELD_NAMES.has(normalized))
+  ) {
+    return true;
+  }
+  if (!/[.[\]]/u.test(key)) return false;
+  return key
+    .split(/[^a-z0-9_-]+/iu)
+    .some((part) => part.length > 0 && isOwnerFieldName(part, includeGeneric));
 }
 
 function isOwnerHeaderName(key: string): boolean {

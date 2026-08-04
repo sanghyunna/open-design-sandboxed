@@ -165,6 +165,9 @@ describe('hosted request boundary', () => {
     ['query', '/api/projects/a?userKey=attacker', undefined],
     ['query account', '/api/projects/a?account=attacker', undefined],
     ['query storage', '/api/projects/a?storage=attacker', undefined],
+    ['nested query owner', '/api/projects/a?filters%5BownerId%5D=attacker', undefined],
+    ['nested query user', '/api/projects/a?filters%5BuserId%5D=attacker', undefined],
+    ['array query user', '/api/projects/a?userId%5B%5D=attacker', undefined],
     ['header', '/api/projects/a', { 'x-user-key': 'attacker' }],
     ['forwarded header', '/api/projects/a', { 'x-forwarded-user': 'attacker' }],
     ['header user-id', '/api/projects/a', { 'user-id': 'attacker' }],
@@ -208,6 +211,8 @@ describe('hosted request boundary', () => {
       '/api/projects/accountKey',
       '/api/projects/storageId',
       '/api/projects/tenantKey',
+      '/api/projects/a;meta[userId]=attacker',
+      '/api/projects/a;userId[]=attacker',
     ]) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status).toBe(404);
