@@ -1,5 +1,5 @@
 import express from 'express';
-import { readdir } from 'node:fs/promises';
+import { readdir, rm } from 'node:fs/promises';
 import type http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,6 +13,7 @@ import {
   type HostedIdentityResolver,
 } from '../src/hosted-request-boundary.js';
 import { startServer } from '../src/server.js';
+import { toolTokenRegistry } from '../src/tool-tokens.js';
 
 const context = {
   userKey: 'identity:user-a',
@@ -36,8 +37,9 @@ afterEach(async () => {
 
 async function listen(
   resolver?: HostedIdentityResolver,
-): Promise<{ baseUrl: string; resolverRequests: string[] }> {
+): Promise<{ baseUrl: string; resolverRequests: string[]; handlerRequests: string[] }> {
   const resolverRequests: string[] = [];
+  const handlerRequests: string[] = [];
   const app = express();
   const effectiveResolver: HostedIdentityResolver = resolver
     ? async (request, metadata) => {
@@ -57,7 +59,12 @@ async function listen(
   app.use(createHostedRequestBodyGuard());
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.get('/api/projects/:id', (req, res) => {
+    handlerRequests.push(`GET ${req.path}`);
     res.json({ projectId: req.params.id, auth: getHostedAuthContext(req) });
+  });
+  app.patch('/api/projects/:id', (req, res) => {
+    handlerRequests.push(`PATCH ${req.path}`);
+    res.json({ ok: true });
   });
 
   const server = await new Promise<http.Server>((resolve) => {
@@ -66,7 +73,7 @@ async function listen(
   servers.push(server);
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('server did not bind');
-  return { baseUrl: `http://127.0.0.1:${address.port}`, resolverRequests };
+  return { baseUrl: `http://127.0.0.1:${address.port}`, resolverRequests, handlerRequests };
 }
 
 describe('hosted request boundary', () => {
@@ -88,7 +95,7 @@ describe('hosted request boundary', () => {
   });
 
   it('attaches immutable server identity to an allowed request', async () => {
-    const { baseUrl, resolverRequests } = await listen(() => context);
+    const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
     const response = await fetch(`${baseUrl}/api/projects/a`);
     expect(response.status).toBe(200);
     const body = await response.json() as {
@@ -109,14 +116,23 @@ describe('hosted request boundary', () => {
   });
 
   it('rejects unknown routes and wrong methods before route handlers run', async () => {
-    const { baseUrl } = await listen(() => context);
-    expect((await fetch(`${baseUrl}/api/not-allowed`)).status).toBe(404);
-    expect((await fetch(`${baseUrl}/api/projects/a`, { method: 'POST' })).status).toBe(404);
+    const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
+    for (const response of [
+      await fetch(`${baseUrl}/api/not-allowed`),
+      await fetch(`${baseUrl}/api/projects/a`, { method: 'POST' }),
+    ]) {
+      expect(response.status).toBe(404);
+      const body = await response.json() as { error: { code: string } };
+      expect(body.error.code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
+    }
+    expect(resolverRequests).toEqual([]);
+    expect(handlerRequests).toEqual([]);
   });
 
   it.each([
     ['query', '/api/projects/a?userKey=attacker', undefined],
     ['header', '/api/projects/a', { 'x-user-key': 'attacker' }],
+    ['forwarded header', '/api/projects/a', { 'x-forwarded-user': 'attacker' }],
   ])('rejects client-selected ownership from %s', async (_kind, path, headers) => {
     const { baseUrl } = await listen(() => context);
     const response = await fetch(
@@ -137,10 +153,21 @@ describe('hosted request boundary', () => {
   });
 
   it('rejects encoded, slash, and backslash path variants', async () => {
-    const { baseUrl } = await listen(() => context);
+    const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
     for (const suffix of ['%2fsecret', '%5csecret', '%2e%2e%2fsecret']) {
-      expect((await fetch(`${baseUrl}/api/projects/a${suffix}`)).status).toBe(404);
+      const response = await fetch(`${baseUrl}/api/projects/a${suffix}`);
+      expect(response.status).toBe(404);
+      const body = await response.json() as { error: { code: string } };
+      expect(body.error.code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
     }
+    for (const path of ['/api/projects/a;ownerId=attacker', '/api/projects/ownerId']) {
+      const response = await fetch(`${baseUrl}${path}`);
+      expect(response.status).toBe(404);
+      const body = await response.json() as { error: { code: string } };
+      expect(body.error.code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
+    }
+    expect(resolverRequests).toEqual([]);
+    expect(handlerRequests).toEqual([]);
     expect(isHostedRouteAllowed('GET', '/api/projects/..')).toBe(false);
     expect(isHostedRouteAllowed('GET', '/api/projects/.')).toBe(false);
   });
@@ -193,8 +220,23 @@ describe('hosted request boundary', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       });
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(200);
     }
+  });
+
+  it('allows generic labels inside an otherwise valid hosted payload', async () => {
+    const { baseUrl } = await listen(() => context);
+    const response = await fetch(`${baseUrl}/api/projects/a`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        owner: 'Design team',
+        namespace: 'editor-canvas',
+        tenant: 'copy',
+        user: 'display label',
+      }),
+    });
+    expect(response.status).toBe(200);
   });
 
   it.each(HOSTED_ROUTE_CHARACTERIZATION.allowed)(
@@ -295,7 +337,7 @@ describe('hosted request boundary', () => {
     }
   });
 
-  it('replays the representative hosted trace twice with route-level assertions', async () => {
+  it('replays representative hosted workflows twice with deterministic route assertions', async () => {
     const started = (await startServer({
       port: 0,
       returnServer: true,
@@ -307,102 +349,289 @@ describe('hosted request boundary', () => {
         }),
       },
     })) as { url: string; server: http.Server; shutdown?: () => Promise<void> | void };
-    type TraceCase = {
-      method: string;
-      path: string;
-      body?: unknown;
-      headers?: Record<string, string>;
-      status: number;
-      routeCode?: string;
-      legacyError?: string;
-      boundaryDenied?: boolean;
-    };
-    const cases: TraceCase[] = [
-      // Boot and catalog requests.
-      { method: 'GET', path: '/api/health', status: 200 },
-      { method: 'GET', path: '/api/projects', status: 200 },
-      { method: 'GET', path: '/api/agents/catalog', status: 200 },
-      { method: 'GET', path: '/api/skills', status: 200 },
-      { method: 'GET', path: '/api/design-systems', status: 200 },
-      // Project/files workflow: invalid input is deliberate so no state is created.
-      { method: 'POST', path: '/api/projects', body: {}, status: 400, routeCode: 'BAD_REQUEST' },
-      { method: 'GET', path: '/api/projects/missing/files', status: 200 },
-      { method: 'GET', path: '/api/projects/missing/files/index.html', status: 404, routeCode: 'FILE_NOT_FOUND' },
-      { method: 'GET', path: '/api/projects/missing/preview-url', status: 404, routeCode: 'PROJECT_NOT_FOUND' },
-      { method: 'GET', path: '/api/projects/missing/files/index.html/preview', status: 404, routeCode: 'FILE_NOT_FOUND' },
-      { method: 'GET', path: '/api/projects/missing/archive', status: 404, routeCode: 'FILE_NOT_FOUND' },
-      { method: 'GET', path: '/api/projects/missing/export/manifest', status: 404, routeCode: 'PROJECT_NOT_FOUND' },
-      // Prompt, stream, reconnect, cancel, and session status/resume paths.
-      { method: 'POST', path: '/api/runs', body: { toolBundle: 'invalid' }, status: 400, routeCode: 'BAD_REQUEST' },
-      { method: 'POST', path: '/api/chat', body: { toolBundle: 'invalid' }, status: 400, routeCode: 'BAD_REQUEST' },
-      { method: 'GET', path: '/api/runs/missing', status: 404, routeCode: 'NOT_FOUND' },
-      { method: 'GET', path: '/api/runs/missing/events', headers: { 'Last-Event-ID': '42' }, status: 404, routeCode: 'NOT_FOUND' },
-      { method: 'GET', path: '/api/runs/missing/agui', headers: { 'Last-Event-ID': '42' }, status: 404, routeCode: 'NOT_FOUND' },
-      { method: 'POST', path: '/api/runs/missing/cancel', status: 404, routeCode: 'NOT_FOUND' },
-      // Tool and artifact traffic.
-      { method: 'POST', path: '/api/tools/design-systems/read', body: {}, status: 401, routeCode: 'TOOL_TOKEN_MISSING' },
-      { method: 'POST', path: '/api/artifacts/lint', body: {}, status: 400, legacyError: 'html required' },
-      { method: 'POST', path: '/api/artifacts/save', body: {}, status: 400, legacyError: 'html required' },
-      // Local-only route classes must remain denied by the hosted boundary.
-      { method: 'GET', path: '/api/agents', status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/app-config', status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/projects/a/raw/index.html', status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/projects/a/export/index.html', status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/projects/a/terminals', status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/dialog/open-folder', status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/mcp/servers', status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/mcp/oauth/start', body: {}, status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/plugins', status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/plugins/install', body: {}, status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/projects/a/upload', body: {}, status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/projects/a/working-dir', body: {}, status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/project-locations', status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/proxy/openai/stream', body: {}, status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/system/open-external', body: {}, status: 404, boundaryDenied: true },
-      { method: 'GET', path: '/api/system/fonts', status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/research/search', body: {}, status: 404, boundaryDenied: true },
-      { method: 'POST', path: '/api/agents/claude/oauth-launch', status: 404, boundaryDenied: true },
-    ];
 
-    const replayTrace = async () => {
-      const results: Array<{ status: number; code?: string; legacyError?: string }> = [];
-      for (const item of cases) {
-        const response = await fetch(`${started.url}${item.path}`, {
-          method: item.method,
-          headers: {
-            ...(item.body === undefined ? {} : { 'content-type': 'application/json' }),
-            ...(item.headers ?? {}),
-          },
-          ...(item.body === undefined ? {} : { body: JSON.stringify(item.body) }),
-        });
-        const text = await response.text();
-        let body: unknown;
-        try {
-          body = JSON.parse(text);
-        } catch {
-          body = undefined;
-        }
-        const record = body && typeof body === 'object' ? body as Record<string, unknown> : undefined;
-        const error = record?.error && typeof record.error === 'object'
-          ? record.error as Record<string, unknown>
-          : undefined;
-        const code = typeof error?.code === 'string' ? error.code : undefined;
-        const legacyError = typeof record?.error === 'string' ? record.error : undefined;
-        results.push({ status: response.status, ...(code ? { code } : {}), ...(legacyError ? { legacyError } : {}) });
-        expect(response.status).toBe(item.status);
-        if (item.boundaryDenied) {
-          expect(code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
-        } else {
-          expect(code).not.toBe('HOSTED_ROUTE_NOT_ALLOWED');
-        }
-        if (item.routeCode !== undefined) expect(code).toBe(item.routeCode);
-        if (item.legacyError !== undefined) expect(legacyError).toBe(item.legacyError);
-      }
-      return results;
+    type TraceRecord = { status: number; code?: string; legacyError?: string; stream?: boolean };
+
+    const jsonBody = async (response: Response): Promise<Record<string, any>> => {
+      const body = await response.json() as unknown;
+      return body && typeof body === 'object' ? body as Record<string, any> : {};
     };
+
+    const recordResponse = async (response: Response): Promise<TraceRecord> => {
+      const text = await response.text();
+      let body: unknown;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = undefined;
+      }
+      const record = body && typeof body === 'object' ? body as Record<string, unknown> : undefined;
+      const error = record?.error && typeof record.error === 'object'
+        ? record.error as Record<string, unknown>
+        : undefined;
+      const code = typeof error?.code === 'string' ? error.code : undefined;
+      const legacyError = typeof record?.error === 'string' ? record.error : undefined;
+      return {
+        status: response.status,
+        ...(code ? { code } : {}),
+        ...(legacyError ? { legacyError } : {}),
+      };
+    };
+
+    const request = async (
+      method: string,
+      requestPath: string,
+      body?: unknown,
+      headers: Record<string, string> = {},
+    ): Promise<TraceRecord> => {
+      const response = await fetch(`${started.url}${requestPath}`, {
+        method,
+        headers: {
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...headers,
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+      return recordResponse(response);
+    };
+
+    const openSse = async (
+      requestPath: string,
+      init: RequestInit = {},
+    ): Promise<TraceRecord> => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3_000);
+      try {
+        const response = await fetch(`${started.url}${requestPath}`, {
+          ...init,
+          signal: controller.signal,
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/event-stream');
+        const reader = response.body?.getReader();
+        expect(reader).toBeDefined();
+        await reader!.read();
+        await reader!.cancel();
+        return { status: response.status, stream: true };
+      } finally {
+        clearTimeout(timeout);
+        controller.abort();
+      }
+    };
+
+    const waitForTerminal = async (runId: string): Promise<void> => {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const response = await fetch(`${started.url}/api/runs/${runId}`);
+        if (response.status === 200) {
+          const body = await jsonBody(response);
+          if (['succeeded', 'failed', 'canceled'].includes(body.status)) return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      throw new Error(`run ${runId} did not reach a terminal state`);
+    };
+
+    const replayTrace = async (iteration: number): Promise<TraceRecord[]> => {
+      const projectId = `hosted-trace-${iteration}`;
+      const records: TraceRecord[] = [];
+      const runIds: string[] = [];
+      let artifactPath: string | undefined;
+
+      try {
+        records.push(await request('GET', '/api/health'));
+        records.push(await request('GET', '/api/projects'));
+        records.push(await request('GET', '/api/agents/catalog'));
+        records.push(await request('GET', '/api/skills'));
+        records.push(await request('GET', '/api/design-systems'));
+
+        for (const [method, requestPath] of [
+          ['GET', '/api/agents'],
+          ['GET', '/api/app-config'],
+          ['GET', `/api/projects/${projectId}/raw/index.html`],
+          ['DELETE', `/api/projects/${projectId}/raw/index.html`],
+          ['OPTIONS', `/api/projects/${projectId}/raw/index.html`],
+          ['POST', '/api/import/folder'],
+          ['POST', '/api/provider/models'],
+          ['POST', '/api/test/connection'],
+          ['GET', '/api/desktop/rollback-approvals/next'],
+          ['GET', '/api/daemon/status'],
+          ['GET', '/api/metrics'],
+          ['GET', '/api/critique/conformance'],
+          ['GET', '/api/automation-templates'],
+          ['GET', '/api/memory'],
+          ['GET', '/api/templates'],
+          ['GET', '/api/design-templates'],
+          ['GET', `/api/skills/${projectId}/assets/example.js`],
+          ['POST', '/api/tools/media/generate'],
+          ['GET', '/api/asset-cache'],
+          ['POST', `/api/projects/${projectId}/handoff`],
+          ['GET', '/api/analytics/config'],
+          ['POST', '/api/observability/event'],
+        ] as const) {
+          const denied = await request(method, requestPath);
+          expect(denied.status).toBe(404);
+          expect(denied.code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
+          records.push(denied);
+        }
+
+        const projectResponse = await fetch(`${started.url}/api/projects`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: projectId, name: 'Hosted trace', skipDiscoveryBrief: true }),
+        });
+        const projectBody = await jsonBody(projectResponse);
+        expect(projectResponse.status).toBe(200);
+        expect(projectBody.conversationId).toEqual(expect.any(String));
+        const conversationId = projectBody.conversationId as string;
+
+        records.push(await request('GET', `/api/projects/${projectId}`));
+        const genericGenUi = await request('POST', `/api/projects/${projectId}/genui/prefill`, {
+          snapshotId: 'hosted-trace-snapshot',
+          surfaceId: 'hosted-trace-surface',
+          value: { owner: 'Design team', namespace: 'editor-canvas', user: 'display label' },
+          schema: { user: { type: 'string' } },
+        });
+        expect(genericGenUi.code).not.toBe('HOSTED_OWNER_FIELD_FORBIDDEN');
+        records.push(genericGenUi);
+        records.push(await request('POST', `/api/projects/${projectId}/files`, {
+          name: 'index.html',
+          content: '<!doctype html><html><body>Hosted trace</body></html>',
+        }));
+        records.push(await request('GET', `/api/projects/${projectId}/files`));
+        records.push(await request('GET', `/api/projects/${projectId}/files/index.html`));
+        records.push(await request('GET', `/api/projects/${projectId}/files/index.html/preview`));
+
+        const previewUrlResponse = await fetch(`${started.url}/api/projects/${projectId}/preview-url?file=index.html`);
+        expect(previewUrlResponse.status).toBe(200);
+        const previewUrlBody = await jsonBody(previewUrlResponse);
+        expect(previewUrlBody.url).toEqual(expect.any(String));
+        records.push({ status: previewUrlResponse.status });
+        records.push(await request('GET', previewUrlBody.url as string));
+        records.push(await request('GET', `/api/projects/${projectId}/archive`));
+        records.push(await request('GET', `/api/projects/${projectId}/export/manifest`));
+
+        records.push(await request('POST', '/api/artifacts/lint', {
+          html: '<!doctype html><html><body>Lint trace</body></html>',
+        }));
+        const artifactResponse = await fetch(`${started.url}/api/artifacts/save`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            identifier: `hosted-trace-${iteration}`,
+            html: '<!doctype html><html><body>Artifact trace</body></html>',
+          }),
+        });
+        const artifactBody = await jsonBody(artifactResponse);
+        expect(artifactResponse.status).toBe(200);
+        artifactPath = typeof artifactBody.path === 'string' ? artifactBody.path : undefined;
+        records.push({ status: artifactResponse.status });
+
+        const grant = toolTokenRegistry.mint({
+          runId: `hosted-trace-tool-${iteration}`,
+          projectId,
+          allowedEndpoints: ['/api/tools/design-systems/read'],
+          allowedOperations: ['design-systems:read'],
+          ttlMs: 60_000,
+        });
+        try {
+          const toolResponse = await fetch(`${started.url}/api/tools/design-systems/read`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              authorization: `Bearer ${grant.token}`,
+            },
+            body: JSON.stringify({ path: 'manifest.json' }),
+          });
+          const toolRecord = await recordResponse(toolResponse);
+          expect(toolRecord.code).toBe('DESIGN_SYSTEM_NOT_FOUND');
+          records.push(toolRecord);
+        } finally {
+          toolTokenRegistry.revokeToken(grant.token, 'manual');
+        }
+
+        const chatResponse = await fetch(`${started.url}/api/chat`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            conversationId,
+            agentId: 'missing-agent',
+            message: 'hosted trace prompt',
+            sessionMode: 'design',
+          }),
+        });
+        expect(chatResponse.status).toBe(200);
+        expect(chatResponse.headers.get('content-type')).toContain('text/event-stream');
+        const chatReader = chatResponse.body?.getReader();
+        expect(chatReader).toBeDefined();
+        await chatReader!.read();
+        await chatReader!.cancel();
+        records.push({ status: chatResponse.status, stream: true });
+
+        const runResponse = await fetch(`${started.url}/api/runs`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            conversationId,
+            agentId: 'missing-agent',
+            message: 'hosted trace run',
+            sessionMode: 'design',
+          }),
+        });
+        const runBody = await jsonBody(runResponse);
+        expect(runResponse.status).toBe(202);
+        expect(runBody.runId).toEqual(expect.any(String));
+        const runId = runBody.runId as string;
+        runIds.push(runId);
+        records.push({ status: runResponse.status });
+        await waitForTerminal(runId);
+        records.push(await request('GET', `/api/runs/${runId}`));
+        records.push(await openSse(`/api/runs/${runId}/events`, {
+          headers: { 'Last-Event-ID': '1' },
+        }));
+        records.push(await openSse(`/api/runs/${runId}/agui`, {
+          headers: { 'Last-Event-ID': '1' },
+        }));
+        records.push(await request('POST', `/api/runs/${runId}/cancel`));
+
+        const resumedResponse = await fetch(`${started.url}/api/runs`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            conversationId,
+            agentId: 'missing-agent',
+            message: 'hosted trace resumed prompt',
+            resumeSessionId: 'hosted-trace-session',
+            sessionMode: 'design',
+          }),
+        });
+        const resumedBody = await jsonBody(resumedResponse);
+        expect(resumedResponse.status).toBe(202);
+        expect(resumedBody.runId).toEqual(expect.any(String));
+        const resumedRunId = resumedBody.runId as string;
+        runIds.push(resumedRunId);
+        records.push({ status: resumedResponse.status });
+        await waitForTerminal(resumedRunId);
+        records.push(await openSse(`/api/runs/${resumedRunId}/events`, {
+          headers: { 'Last-Event-ID': '1' },
+        }));
+        records.push(await openSse(`/api/projects/${projectId}/events`));
+      } finally {
+        for (const runId of runIds) {
+          await request('POST', `/api/runs/${runId}/cancel`).catch(() => undefined);
+        }
+        await request('DELETE', `/api/projects/${projectId}`).catch(() => undefined);
+        if (artifactPath) await rm(path.dirname(artifactPath), { recursive: true, force: true });
+      }
+
+      return records;
+    };
+
     try {
-      const first = await replayTrace();
-      const second = await replayTrace();
+      const first = await replayTrace(1);
+      const second = await replayTrace(2);
       expect(second).toEqual(first);
     } finally {
       await started.shutdown?.();
