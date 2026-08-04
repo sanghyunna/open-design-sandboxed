@@ -1,0 +1,408 @@
+import { randomUUID } from 'node:crypto';
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import {
+  createApiErrorResponse,
+  type ApiErrorCode,
+  type HostedAuthContext,
+} from '@open-design/contracts';
+
+export interface HostedIdentityRequest {
+  readonly method: string;
+  readonly path: string;
+  readonly requestId: string;
+}
+
+export type HostedIdentityResolver = (
+  request: Request,
+  metadata: HostedIdentityRequest,
+) => HostedIdentity | null | Promise<HostedIdentity | null>;
+
+export type HostedIdentity = Omit<HostedAuthContext, 'requestId'>;
+
+export interface HostedRouteRule {
+  readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  readonly path: string;
+  readonly probe?: boolean;
+}
+
+export interface HostedRequestBoundaryOptions {
+  readonly resolveIdentity?: HostedIdentityResolver;
+}
+
+export interface HostedExcludedRoute {
+  readonly method: string;
+  readonly path: string;
+  readonly reason: string;
+}
+
+const OWNER_FIELD_NAMES = new Set([
+  'accountid',
+  'namespace',
+  'owner',
+  'ownerid',
+  'ownerkey',
+  'storagekey',
+  'tenant',
+  'tenantid',
+  'user',
+  'userid',
+  'userkey',
+]);
+
+const OWNER_HEADER_NAMES = new Set([
+  'x-account-id',
+  'x-namespace',
+  'x-owner-id',
+  'x-owner-key',
+  'x-storage-key',
+  'x-tenant-id',
+  'x-user-id',
+  'x-user-key',
+]);
+
+const WINDOWS_DEVICE_NAMES = new Set([
+  'aux',
+  'con',
+  'nul',
+  'prn',
+  ...Array.from({ length: 9 }, (_, index) => `com${index + 1}`),
+  ...Array.from({ length: 9 }, (_, index) => `lpt${index + 1}`),
+]);
+
+/**
+ * The initial hosted characterization. Local-only capabilities intentionally
+ * do not appear here; future hosted PRs may add a route only with its own
+ * scoped implementation and tests.
+ */
+export const HOSTED_ROUTE_ALLOWLIST: readonly HostedRouteRule[] = Object.freeze([
+  { method: 'GET', path: '/health', probe: true },
+  { method: 'GET', path: '/ready', probe: true },
+  { method: 'GET', path: '/version', probe: true },
+  { method: 'GET', path: '/api/health', probe: true },
+  { method: 'GET', path: '/api/ready', probe: true },
+  { method: 'GET', path: '/api/version', probe: true },
+  { method: 'GET', path: '/api/projects' },
+  { method: 'POST', path: '/api/projects' },
+  { method: 'GET', path: '/api/projects/:id' },
+  { method: 'PATCH', path: '/api/projects/:id' },
+  { method: 'DELETE', path: '/api/projects/:id' },
+  { method: 'GET', path: '/api/projects/:id/events' },
+  { method: 'GET', path: '/api/projects/:id/conversations' },
+  { method: 'POST', path: '/api/projects/:id/conversations' },
+  { method: 'PATCH', path: '/api/projects/:id/conversations/:cid' },
+  { method: 'DELETE', path: '/api/projects/:id/conversations/:cid' },
+  { method: 'GET', path: '/api/projects/:id/conversations/:cid/messages' },
+  { method: 'PUT', path: '/api/projects/:id/conversations/:cid/messages/:mid' },
+  { method: 'GET', path: '/api/projects/:id/conversations/:cid/comments' },
+  { method: 'POST', path: '/api/projects/:id/conversations/:cid/comments' },
+  { method: 'GET', path: '/api/projects/:id/tabs' },
+  { method: 'PUT', path: '/api/projects/:id/tabs' },
+  { method: 'GET', path: '/api/projects/:id/checkpoints' },
+  { method: 'GET', path: '/api/projects/:id/checkpoints/:checkpointId' },
+  { method: 'GET', path: '/api/projects/:id/checkpoints/:checkpointId/diff' },
+  { method: 'GET', path: '/api/projects/:id/files' },
+  { method: 'GET', path: '/api/projects/:id/files/*' },
+  { method: 'POST', path: '/api/projects/:id/files' },
+  { method: 'POST', path: '/api/projects/:id/files/rename' },
+  { method: 'GET', path: '/api/projects/:id/search' },
+  { method: 'GET', path: '/api/projects/:id/folders' },
+  { method: 'POST', path: '/api/projects/:id/folders' },
+  { method: 'DELETE', path: '/api/projects/:id/folders' },
+  { method: 'GET', path: '/api/projects/:id/files/:name/preview' },
+  { method: 'DELETE', path: '/api/projects/:id/files/:name' },
+  { method: 'GET', path: '/api/projects/:id/preview-url' },
+  { method: 'GET', path: '/api/projects/:id/archive' },
+  { method: 'GET', path: '/api/projects/:id/export/manifest' },
+  { method: 'POST', path: '/api/artifacts/save' },
+  { method: 'POST', path: '/api/artifacts/lint' },
+  { method: 'GET', path: '/api/runs' },
+  { method: 'POST', path: '/api/runs' },
+  { method: 'GET', path: '/api/runs/:id' },
+  { method: 'GET', path: '/api/runs/:id/events' },
+  { method: 'POST', path: '/api/runs/:id/cancel' },
+  { method: 'POST', path: '/api/runs/:id/feedback' },
+  { method: 'GET', path: '/api/runs/:id/agui' },
+  { method: 'GET', path: '/api/runs/:id/genui' },
+  { method: 'GET', path: '/api/projects/:projectId/genui' },
+  { method: 'GET', path: '/api/runs/:runId/genui/:surfaceId' },
+  { method: 'POST', path: '/api/runs/:runId/genui/:surfaceId/respond' },
+  { method: 'POST', path: '/api/projects/:projectId/genui/:surfaceId/revoke' },
+  { method: 'POST', path: '/api/projects/:projectId/genui/prefill' },
+  { method: 'POST', path: '/api/chat' },
+  { method: 'GET', path: '/api/agents/catalog' },
+  { method: 'GET', path: '/api/skills' },
+  { method: 'GET', path: '/api/skills/:id' },
+  { method: 'GET', path: '/api/design-systems' },
+  { method: 'GET', path: '/api/design-systems/:id' },
+  { method: 'GET', path: '/api/skills/:id/files' },
+  { method: 'POST', path: '/api/tools/design-systems/read' },
+]);
+
+/**
+ * Route classes captured from the current daemon route trace. These are
+ * explicit exclusions, not an alternate authorization mechanism.
+ */
+export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
+  allowed: readonly HostedRouteRule[];
+  excluded: readonly HostedExcludedRoute[];
+}> = Object.freeze({
+  allowed: HOSTED_ROUTE_ALLOWLIST,
+  excluded: Object.freeze([
+    { method: 'GET', path: '/api/agents', reason: 'probes local executables' },
+    { method: 'GET', path: '/api/app-config', reason: 'local/browser configuration' },
+    { method: 'PUT', path: '/api/app-config', reason: 'local/browser configuration' },
+    { method: 'GET', path: '/api/projects/:id/raw/*', reason: 'ambient-origin artifact access' },
+    { method: 'GET', path: '/artifacts/*', reason: 'raw shared artifact surface' },
+    { method: 'GET', path: '/api/projects/:id/export/*', reason: 'raw exported file surface' },
+    { method: 'POST', path: '/api/projects/:id/export/pdf', reason: 'desktop-only native export' },
+    { method: 'POST', path: '/api/projects/:id/archive/batch', reason: 'unbounded archive expansion' },
+    { method: 'POST', path: '/api/upload', reason: 'global upload root before hosted limits' },
+    { method: 'GET', path: '/api/projects/:id/terminals', reason: 'terminal/process capability' },
+    { method: 'POST', path: '/api/projects/:id/terminals', reason: 'terminal/process capability' },
+    { method: 'GET', path: '/api/projects/:id/terminals/:tid/stream', reason: 'terminal/process capability' },
+    { method: 'POST', path: '/api/projects/:id/terminals/:tid/stdin', reason: 'terminal/process capability' },
+    { method: 'POST', path: '/api/projects/:id/terminals/:tid/resize', reason: 'terminal/process capability' },
+    { method: 'POST', path: '/api/projects/:id/terminals/:tid/kill', reason: 'terminal/process capability' },
+    { method: 'DELETE', path: '/api/projects/:id/terminals/:tid', reason: 'terminal/process capability' },
+    { method: 'POST', path: '/api/tools/media/generate', reason: 'credentialed media capability' },
+    { method: 'POST', path: '/api/dialog/open-folder', reason: 'native folder picker' },
+    { method: 'GET', path: '/api/mcp/*', reason: 'local MCP configuration/install/OAuth' },
+    { method: 'POST', path: '/api/mcp/*', reason: 'local MCP configuration/install/OAuth' },
+    { method: 'PUT', path: '/api/mcp/*', reason: 'local MCP configuration/install/OAuth' },
+    { method: 'DELETE', path: '/api/mcp/*', reason: 'local MCP configuration/install/OAuth' },
+    { method: 'GET', path: '/api/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'POST', path: '/api/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'PUT', path: '/api/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'PATCH', path: '/api/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'DELETE', path: '/api/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'GET', path: '/api/applied-plugins/*', reason: 'local plugin/package administration' },
+    { method: 'POST', path: '/api/applied-plugins/*', reason: 'local plugin/package administration' },
+    { method: 'DELETE', path: '/api/applied-plugins/*', reason: 'local plugin/package administration' },
+    { method: 'POST', path: '/api/skills/install', reason: 'runtime package/resource installation' },
+    { method: 'POST', path: '/api/design-systems/import/github', reason: 'unbounded external import' },
+    { method: 'POST', path: '/api/projects/:id/upload', reason: 'project upload before hosted storage limits' },
+    { method: 'POST', path: '/api/projects/:id/working-dir', reason: 'local working-directory selection' },
+    { method: 'GET', path: '/api/project-locations', reason: 'local project-location configuration' },
+    { method: 'PUT', path: '/api/project-locations', reason: 'local project-location configuration' },
+    { method: 'POST', path: '/api/project-locations/*', reason: 'local project-location scanning' },
+    { method: 'POST', path: '/api/proxy/*', reason: 'browser-direct provider proxy' },
+    { method: 'POST', path: '/api/system/open-external', reason: 'native external opener' },
+    { method: 'GET', path: '/api/system/fonts', reason: 'host system capability' },
+    { method: 'POST', path: '/api/research/search', reason: 'local/external research provider' },
+    { method: 'GET', path: '/api/deploy/*', reason: 'local deployment configuration' },
+    { method: 'PUT', path: '/api/deploy/*', reason: 'local deployment configuration' },
+    { method: 'POST', path: '/api/deploy/*', reason: 'local deployment side effect' },
+    { method: 'GET', path: '/api/routines/*', reason: 'local automation scheduler' },
+    { method: 'POST', path: '/api/routines/*', reason: 'local automation scheduler' },
+    { method: 'PATCH', path: '/api/routines/*', reason: 'local automation scheduler' },
+    { method: 'DELETE', path: '/api/routines/*', reason: 'local automation scheduler' },
+    { method: 'GET', path: '/api/xai/*', reason: 'local provider OAuth/search' },
+    { method: 'POST', path: '/api/xai/*', reason: 'local provider OAuth/search' },
+    { method: 'POST', path: '/api/agents/:agentId/oauth-launch', reason: 'local provider OAuth launcher' },
+    { method: 'POST', path: '/api/projects/:id/plugins/*', reason: 'local plugin/package administration' },
+    { method: 'POST', path: '/api/projects/:id/finalize/*', reason: 'local provider finalization' },
+    { method: 'POST', path: '/api/projects/:id/deploy/*', reason: 'local deployment side effect' },
+    { method: 'POST', path: '/api/projects/:id/deploy', reason: 'local deployment side effect' },
+  ]),
+});
+
+const contexts = new WeakMap<Request, HostedAuthContext>();
+
+export function validateHostedAuthContext(
+  context: HostedAuthContext | null | undefined,
+): context is HostedAuthContext {
+  if (context == null || typeof context !== 'object') return false;
+  if (!isNonEmptySafeText(context.userKey, 256)) return false;
+  if (!/^[a-z0-9][a-z0-9_-]{0,119}$/u.test(context.storageKey)) return false;
+  if (context.storageKey.includes('..')) return false;
+  if (WINDOWS_DEVICE_NAMES.has(context.storageKey)) return false;
+  if (!isNonEmptySafeText(context.requestId, 256)) return false;
+  return context.displayName === undefined || isSafeText(context.displayName, 256);
+}
+
+export function getHostedAuthContext(request: Request): HostedAuthContext | null {
+  return contexts.get(request) ?? null;
+}
+
+export function isHostedRouteAllowed(
+  method: string,
+  path: string,
+  allowlist: readonly HostedRouteRule[] = HOSTED_ROUTE_ALLOWLIST,
+): boolean {
+  const normalizedPath = normalizePath(path);
+  if (normalizedPath == null) return false;
+  return allowlist.some(
+    (rule) => rule.method === method.toUpperCase() && matchesPath(rule.path, normalizedPath),
+  );
+}
+
+export function createHostedRequestBoundary(
+  options: HostedRequestBoundaryOptions,
+): RequestHandler {
+  return async function hostedRequestBoundary(
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    const requestPathValue = requestPath(request);
+    const rule = requestPathValue == null
+      ? undefined
+      : HOSTED_ROUTE_ALLOWLIST.find(
+          (candidate) =>
+            candidate.method === request.method.toUpperCase() &&
+            matchesPath(candidate.path, requestPathValue),
+        );
+
+    if (requestPathValue == null || rule == null) {
+      reject(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', 'hosted route is not enabled');
+      return;
+    }
+    if (rule.probe) {
+      next();
+      return;
+    }
+
+    if (hasClientOwnershipMetadata(request)) {
+      reject(response, 400, 'HOSTED_OWNER_FIELD_FORBIDDEN', 'client ownership fields are not accepted');
+      return;
+    }
+    if (options.resolveIdentity == null) {
+      reject(response, 503, 'HOSTED_AUTH_UNAVAILABLE', 'hosted identity is not configured');
+      return;
+    }
+
+    const metadata: HostedIdentityRequest = {
+      method: request.method.toUpperCase(),
+      path: requestPathValue,
+      requestId: randomUUID(),
+    };
+    try {
+      const context = await options.resolveIdentity(request, metadata);
+      if (context == null) {
+        reject(response, 401, 'HOSTED_AUTH_REQUIRED', 'authenticated hosted identity is required');
+        return;
+      }
+      const boundaryContext = { ...context, requestId: metadata.requestId };
+      if (!validateHostedAuthContext(boundaryContext)) {
+        reject(response, 500, 'HOSTED_AUTH_INVALID', 'hosted identity adapter returned an invalid identity');
+        return;
+      }
+      const immutableContext = Object.freeze(boundaryContext);
+      contexts.set(request, immutableContext);
+      next();
+    } catch {
+      reject(response, 500, 'HOSTED_AUTH_INVALID', 'hosted identity could not be resolved');
+    }
+  };
+}
+
+/**
+ * Mount after the JSON/multipart parsers. The route/auth boundary itself is
+ * intentionally mounted before parsers so denied requests cannot spend parser
+ * work or memory before being rejected.
+ */
+export function createHostedRequestBodyGuard(): RequestHandler {
+  return function hostedRequestBodyGuard(request, response, next): void {
+    if (getHostedAuthContext(request) != null && containsOwnershipField(request.body)) {
+      reject(response, 400, 'HOSTED_OWNER_FIELD_FORBIDDEN', 'client ownership fields are not accepted');
+      return;
+    }
+    next();
+  };
+}
+
+function requestPath(request: Request): string | null {
+  const originalUrl = request.originalUrl || request.url || request.path;
+  const rawPath = originalUrl.split('?', 1)[0] ?? '';
+  if (
+    !rawPath.startsWith('/') ||
+    rawPath.includes('\\') ||
+    rawPath.includes('//') ||
+    /%/u.test(rawPath)
+  ) {
+    return null;
+  }
+  return normalizePath(request.path || rawPath);
+}
+
+function normalizePath(path: string): string | null {
+  if (!path.startsWith('/') || path.includes('\\') || path.includes('//')) return null;
+  if (path.length > 2048 || /[\u0000-\u001f\u007f%]/u.test(path)) return null;
+  if (path.split('/').some((segment) => segment === '.' || segment === '..')) return null;
+  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1);
+  return path;
+}
+
+function matchesPath(pattern: string, path: string): boolean {
+  const patternParts = pattern.split('/').filter(Boolean);
+  const pathParts = path.split('/').filter(Boolean);
+  if (patternParts.at(-1) === '*') {
+    if (pathParts.length < patternParts.length - 1) return false;
+  } else if (patternParts.length !== pathParts.length) {
+    return false;
+  }
+  return patternParts.every((part, index) => part.startsWith(':') || part === '*' || part === pathParts[index]);
+}
+
+function hasClientOwnershipMetadata(request: Request): boolean {
+  if (Object.keys(request.query ?? {}).some(isOwnerFieldName)) return true;
+  if (Object.keys(request.headers ?? {}).some(isOwnerHeaderName)) return true;
+  return false;
+}
+
+function containsOwnershipField(value: unknown, depth = 0): boolean {
+  if (value == null || typeof value !== 'object') return false;
+  const pending: Array<{ value: unknown; depth: number }> = [{ value, depth }];
+  let inspected = 0;
+  let scheduled = 1;
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (current == null) continue;
+    if (++inspected > 10_000 || current.depth > 64) return true;
+    if (current.value == null || typeof current.value !== 'object') continue;
+    const enqueue = (child: unknown): boolean => {
+      if (scheduled >= 10_000) return false;
+      scheduled += 1;
+      pending.push({ value: child, depth: current.depth + 1 });
+      return true;
+    };
+    if (Array.isArray(current.value)) {
+      for (let index = 0; index < current.value.length; index += 1) {
+        if (!enqueue(current.value[index])) return true;
+      }
+      continue;
+    }
+    for (const key in current.value) {
+      if (!Object.prototype.hasOwnProperty.call(current.value, key)) continue;
+      if (isOwnerFieldName(key)) return true;
+      if (!enqueue((current.value as Record<string, unknown>)[key])) return true;
+    }
+  }
+  return false;
+}
+
+function isOwnerFieldName(key: string): boolean {
+  return OWNER_FIELD_NAMES.has(key.replaceAll(/[-_]/gu, '').toLowerCase());
+}
+
+function isOwnerHeaderName(key: string): boolean {
+  const lower = key.toLowerCase();
+  return OWNER_HEADER_NAMES.has(lower) || /^(?:x|cf|databricks)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower);
+}
+
+function isNonEmptySafeText(value: unknown, maxLength: number): value is string {
+  return typeof value === 'string' && value.length > 0 && isSafeText(value, maxLength);
+}
+
+function isSafeText(value: string, maxLength: number): boolean {
+  return value.length <= maxLength && !/[\u0000-\u001f\u007f]/u.test(value);
+}
+
+function reject(
+  response: Response,
+  status: number,
+  code: Extract<ApiErrorCode, `HOSTED_${string}`>,
+  message: string,
+): void {
+  response.status(status).json(createApiErrorResponse({ code, message }));
+}

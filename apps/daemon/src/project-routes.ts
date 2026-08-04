@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
-import type { Express, Response } from 'express';
+import type { Express, RequestHandler, Response } from 'express';
 import {
   defaultScenarioPluginIdForProjectMetadata,
   type AgentRollbackRequestEvent,
@@ -2071,13 +2071,16 @@ export function registerProjectArtifactRoutes(app: Express, ctx: RegisterProject
 
 }
 
-export interface RegisterProjectFileRoutesDeps extends RouteDeps<'db' | 'http' | 'paths' | 'uploads' | 'node' | 'projectStore' | 'projectFiles' | 'documents' | 'artifacts' | 'projectPreviewScopes'> {}
+export interface RegisterProjectFileRoutesDeps extends RouteDeps<'db' | 'http' | 'paths' | 'uploads' | 'node' | 'projectStore' | 'projectFiles' | 'documents' | 'artifacts' | 'projectPreviewScopes'> {
+  readonly hostedRequestBodyGuard?: RequestHandler;
+}
 
 export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFileRoutesDeps) {
   const { db } = ctx;
   const { sendApiError, sendMulterError } = ctx.http;
   const { PROJECTS_DIR } = ctx.paths;
   const { upload } = ctx.uploads;
+  const { hostedRequestBodyGuard } = ctx;
   const { fs } = ctx.node;
   const { getProject } = ctx.projectStore;
   const { listFiles, listProjectFolders, createProjectFolder, deleteProjectFolder, searchProjectFiles, readProjectFile, resolveProjectDir, resolveProjectFilePath, parseByteRange, renameProjectFile, deleteProjectFile, writeProjectFile, sanitizeName, ensureProject } = ctx.projectFiles;
@@ -2585,6 +2588,13 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
     (req, res, next) => {
       upload.single('file')(req, res, (err: any) => {
         if (err) return sendMulterError(res, err);
+        if (hostedRequestBodyGuard) {
+          hostedRequestBodyGuard(req, res, next);
+          if (res.headersSent && req.file?.path) {
+            void fs.promises.unlink(req.file.path).catch(() => {});
+          }
+          return;
+        }
         next();
       });
     },
