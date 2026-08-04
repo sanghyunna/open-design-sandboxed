@@ -149,6 +149,10 @@ describe('hosted request boundary', () => {
     ['query', '/api/projects/a?userKey=attacker', undefined],
     ['header', '/api/projects/a', { 'x-user-key': 'attacker' }],
     ['forwarded header', '/api/projects/a', { 'x-forwarded-user': 'attacker' }],
+    ['generic user header', '/api/projects/a', { user: 'attacker' }],
+    ['generic owner header', '/api/projects/a', { owner: 'attacker' }],
+    ['generic tenant header', '/api/projects/a', { tenant: 'attacker' }],
+    ['generic namespace header', '/api/projects/a', { namespace: 'attacker' }],
   ])('rejects client-selected ownership from %s', async (_kind, path, headers) => {
     const { baseUrl } = await listen(() => context);
     const response = await fetch(

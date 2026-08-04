@@ -60,6 +60,12 @@ const OWNER_FIELD_NAMES = new Set([
 const GENERIC_OWNER_FIELD_NAMES = new Set(['namespace', 'owner', 'tenant', 'user']);
 
 const OWNER_HEADER_NAMES = new Set([
+  'account',
+  'namespace',
+  'owner',
+  'storage',
+  'tenant',
+  'user',
   'x-account-id',
   'x-namespace',
   'x-owner-id',
@@ -278,6 +284,16 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'POST', path: '/api/projects/:id/conversations/:cid/rollback', reason: 'local rollback control' },
     { method: 'POST', path: '/api/projects/:id/conversations/:cid/agent-rollback-request', reason: 'local rollback control' },
     { method: 'POST', path: '/api/projects/:id/conversations/:cid/agent-rollback-execute', reason: 'local rollback control' },
+    { method: 'PATCH', path: '/api/projects/:id/conversations/:cid/comments/:commentId', reason: 'local comment administration' },
+    { method: 'DELETE', path: '/api/projects/:id/conversations/:cid/comments/:commentId', reason: 'local comment administration' },
+    { method: 'GET', path: '/api/design-systems/generation-jobs/:jobId', reason: 'local design-system generation state' },
+    { method: 'GET', path: '/api/design-systems/:id/revisions', reason: 'local design-system revision state' },
+    { method: 'GET', path: '/api/design-systems/:id/files', reason: 'local design-system file administration' },
+    { method: 'GET', path: '/api/design-systems/:id/file', reason: 'local design-system file administration' },
+    { method: 'GET', path: '/api/projects/:projectId/critique/:runId/artifact', reason: 'local critique administration' },
+    { method: 'POST', path: '/api/projects/:projectId/critique/:runId/interrupt', reason: 'local critique administration' },
+    { method: 'POST', path: '/api/projects/:id/deployments/:deploymentId/check-link', reason: 'local deployment state' },
+    { method: 'GET', path: '/*splat', reason: 'static SPA fallback' },
   ]),
 });
 
