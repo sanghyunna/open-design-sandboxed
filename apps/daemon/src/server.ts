@@ -477,6 +477,11 @@ import { registerStaticResourceRoutes } from './routes/static-resource.js';
 import { registerRoutineRoutes, routineDbRowToContract } from './routes/routine.js';
 import { installRouteRegistrationGuard } from './route-registration-guard.js';
 import { assertServerContextSatisfiesRoutes } from './route-context-contract.js';
+import {
+  createHostedRequestBoundary,
+  createHostedRequestBodyGuard,
+  type HostedRequestBoundaryOptions,
+} from './hosted-request-boundary.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './tool-tokens.js';
 import {
   aggregateCloudflarePagesStatus,
@@ -3314,6 +3319,14 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
+// Hosted validation runs after multipart parsing so it can reject client
+// ownership fields. Keep that parser memory-only; a rejected hosted request
+// must not create a temporary file before the boundary makes its decision.
+const hostedUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
+
 const importUpload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
@@ -3676,6 +3689,7 @@ export interface StartServerOptions {
   runtime?: DaemonRuntimeContext | null;
   isolatedAgentProbe?: typeof probeIsolatedAgentSupport;
   isolatedAgentSpawn?: typeof spawnIsolatedAgent;
+  hostedRequestBoundary?: HostedRequestBoundaryOptions;
 }
 
 const DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -3876,6 +3890,7 @@ export async function startServer({
   runtime = null,
   isolatedAgentProbe = probeIsolatedAgentSupport,
   isolatedAgentSpawn = spawnIsolatedAgent,
+  hostedRequestBoundary,
 }: StartServerOptions = {}) {
   const desktopApprovalToken = consumeDesktopApprovalToken(process.env);
   const isolatedAgentSupport = desktopApprovalToken
@@ -3915,6 +3930,12 @@ export async function startServer({
 
   const app = express();
   installRouteRegistrationGuard(app);
+  const hostedRequestBodyGuard = hostedRequestBoundary === undefined
+    ? undefined
+    : createHostedRequestBodyGuard();
+  if (hostedRequestBoundary !== undefined) {
+    app.use(createHostedRequestBoundary(hostedRequestBoundary));
+  }
   // Project file uploads carry large standalone-deck HTML (~30 MB) as a JSON
   // { content } body, which blows the global 4 MB limit. Raise the ceiling for
   // just that route; every other endpoint keeps the 4 MB cap below.
@@ -3926,6 +3947,7 @@ export async function startServer({
     next();
   });
   app.use(express.json({ limit: '4mb' }));
+  if (hostedRequestBodyGuard) app.use(hostedRequestBodyGuard);
   const projectPreviewScopes = createProjectPreviewScopeRegistry();
 
   // Plan §3.K1 — bearer-token middleware.
@@ -5031,7 +5053,7 @@ export async function startServer({
   };
   const nodeDeps = { fs, path };
   const idDeps = { randomUUID };
-  const uploadDeps = { upload, importUpload, handleProjectUpload };
+  const uploadDeps = { upload, hostedUpload, importUpload, handleProjectUpload };
   const projectStoreDeps = {
     getProject,
     insertProject,
@@ -5318,6 +5340,7 @@ export async function startServer({
     documents: { buildDocumentPreview },
     artifacts: artifactDeps,
     projectPreviewScopes,
+    hostedRequestBodyGuard,
   });
 
   registerMediaRoutes(app, {
