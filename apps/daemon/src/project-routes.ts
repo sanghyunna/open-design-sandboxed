@@ -2080,6 +2080,9 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
   const { sendApiError, sendMulterError } = ctx.http;
   const { PROJECTS_DIR } = ctx.paths;
   const { upload } = ctx.uploads;
+  const fileUpload = ctx.hostedRequestBodyGuard
+    ? (ctx.uploads.hostedUpload ?? upload)
+    : upload;
   const { hostedRequestBodyGuard } = ctx;
   const { fs } = ctx.node;
   const { getProject } = ctx.projectStore;
@@ -2586,7 +2589,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
   app.post(
     '/api/projects/:id/files',
     (req, res, next) => {
-      upload.single('file')(req, res, (err: any) => {
+      fileUpload.single('file')(req, res, (err: any) => {
         if (err) return sendMulterError(res, err);
         if (hostedRequestBodyGuard) {
           hostedRequestBodyGuard(req, res, next);
@@ -2603,7 +2606,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
         const uploadProject = getProject(db, req.params.id);
         await ensureProject(PROJECTS_DIR, req.params.id, uploadProject?.metadata);
         if (req.file) {
-          const buf = await fs.promises.readFile(req.file.path);
+          const buf = req.file.buffer ?? await fs.promises.readFile(req.file.path);
           const desiredName = sanitizeName(
             req.body?.name || req.file.originalname,
           );
@@ -2615,7 +2618,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
             {},
             uploadProject?.metadata,
           );
-          fs.promises.unlink(req.file.path).catch(() => {});
+          if (req.file.path) fs.promises.unlink(req.file.path).catch(() => {});
           /** @type {import('@open-design/contracts').ProjectFileResponse} */
           const body = { file: meta };
           return res.json(body);

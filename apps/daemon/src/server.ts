@@ -3319,6 +3319,14 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
+// Hosted validation runs after multipart parsing so it can reject client
+// ownership fields. Keep that parser memory-only; a rejected hosted request
+// must not create a temporary file before the boundary makes its decision.
+const hostedUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
+
 const importUpload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
@@ -5045,7 +5053,7 @@ export async function startServer({
   };
   const nodeDeps = { fs, path };
   const idDeps = { randomUUID };
-  const uploadDeps = { upload, importUpload, handleProjectUpload };
+  const uploadDeps = { upload, hostedUpload, importUpload, handleProjectUpload };
   const projectStoreDeps = {
     getProject,
     insertProject,
