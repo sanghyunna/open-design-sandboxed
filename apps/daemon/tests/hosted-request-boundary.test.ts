@@ -110,6 +110,22 @@ describe('hosted request boundary', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'HOSTED_AUTH_UNAVAILABLE' } });
   });
 
+  it('does not activate the test composition outside the test runtime', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
+      const response = await fetch(`${baseUrl}/api/projects/a`);
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({ error: { code: 'HOSTED_AUTH_UNAVAILABLE' } });
+      expect(resolverRequests).toEqual([]);
+      expect(handlerRequests).toEqual([]);
+    } finally {
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
   it('attaches immutable server identity to an allowed request', async () => {
     const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
     const response = await fetch(`${baseUrl}/api/projects/a`);
@@ -147,8 +163,13 @@ describe('hosted request boundary', () => {
 
   it.each([
     ['query', '/api/projects/a?userKey=attacker', undefined],
+    ['query account', '/api/projects/a?account=attacker', undefined],
+    ['query storage', '/api/projects/a?storage=attacker', undefined],
     ['header', '/api/projects/a', { 'x-user-key': 'attacker' }],
     ['forwarded header', '/api/projects/a', { 'x-forwarded-user': 'attacker' }],
+    ['header user-id', '/api/projects/a', { 'user-id': 'attacker' }],
+    ['header owner-key', '/api/projects/a', { 'owner-key': 'attacker' }],
+    ['header account-id', '/api/projects/a', { 'account-id': 'attacker' }],
     ['generic user header', '/api/projects/a', { user: 'attacker' }],
     ['generic owner header', '/api/projects/a', { owner: 'attacker' }],
     ['generic tenant header', '/api/projects/a', { tenant: 'attacker' }],
@@ -172,7 +193,7 @@ describe('hosted request boundary', () => {
     expect(response.status).toBe(400);
   });
 
-  it('rejects encoded, slash, and backslash path variants', async () => {
+  it('rejects encoded, slash, backslash, and ownership-bearing path variants', async () => {
     const { baseUrl, resolverRequests, handlerRequests } = await listen(() => context);
     for (const suffix of ['%2fsecret', '%5csecret', '%2e%2e%2fsecret']) {
       const response = await fetch(`${baseUrl}/api/projects/a${suffix}`);
@@ -180,7 +201,14 @@ describe('hosted request boundary', () => {
       const body = await response.json() as { error: { code: string } };
       expect(body.error.code).toBe('HOSTED_ROUTE_NOT_ALLOWED');
     }
-    for (const path of ['/api/projects/a;ownerId=attacker', '/api/projects/ownerId']) {
+    for (const path of [
+      '/api/projects/a;ownerId=attacker',
+      '/api/projects/ownerId',
+      '/api/projects/namespaceId',
+      '/api/projects/accountKey',
+      '/api/projects/storageId',
+      '/api/projects/tenantKey',
+    ]) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status).toBe(404);
       const body = await response.json() as { error: { code: string } };

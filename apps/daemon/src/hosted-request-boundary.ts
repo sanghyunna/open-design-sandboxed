@@ -57,7 +57,14 @@ const OWNER_FIELD_NAMES = new Set([
   'userkey',
 ]);
 
-const GENERIC_OWNER_FIELD_NAMES = new Set(['namespace', 'owner', 'tenant', 'user']);
+const GENERIC_OWNER_FIELD_NAMES = new Set([
+  'account',
+  'namespace',
+  'owner',
+  'storage',
+  'tenant',
+  'user',
+]);
 
 const OWNER_HEADER_NAMES = new Set([
   'account',
@@ -451,7 +458,7 @@ function hasClientOwnershipMetadata(request: Request): boolean {
 
 function containsPathOwnershipMetadata(path: string): boolean {
   return path.split('/').some((segment) =>
-    /(?:^|[;,&=])(?:account(?:id)?|namespace|owner(?:id|key)?|storage(?:key)?|tenant(?:id)?|user(?:id|key)?)(?:$|[;,&=])/iu.test(segment),
+    segment.split(/[;,&=]/u).some((candidate) => isOwnerFieldName(candidate, true)),
   );
 }
 
@@ -494,7 +501,10 @@ function isOwnerFieldName(key: string, includeGeneric = false): boolean {
 
 function isOwnerHeaderName(key: string): boolean {
   const lower = key.toLowerCase();
+  const normalized = lower.replaceAll(/[-_]/gu, '');
   return OWNER_HEADER_NAMES.has(lower)
+    || OWNER_FIELD_NAMES.has(normalized)
+    || GENERIC_OWNER_FIELD_NAMES.has(normalized)
     || /^(?:x|cf|databricks)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower)
     || /^(?:x-forwarded|x-envoy-external|forwarded)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower);
 }
