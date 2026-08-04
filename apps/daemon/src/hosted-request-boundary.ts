@@ -37,17 +37,19 @@ export interface HostedExcludedRoute {
 
 const OWNER_FIELD_NAMES = new Set([
   'accountid',
-  'namespace',
-  'owner',
+  'accountkey',
+  'namespaceid',
   'ownerid',
   'ownerkey',
   'storagekey',
-  'tenant',
+  'storageid',
   'tenantid',
-  'user',
+  'tenantkey',
   'userid',
   'userkey',
 ]);
+
+const GENERIC_OWNER_FIELD_NAMES = new Set(['namespace', 'owner', 'tenant', 'user']);
 
 const OWNER_HEADER_NAMES = new Set([
   'x-account-id',
@@ -111,6 +113,7 @@ export const HOSTED_ROUTE_ALLOWLIST: readonly HostedRouteRule[] = Object.freeze(
   { method: 'GET', path: '/api/projects/:id/files/:name/preview' },
   { method: 'DELETE', path: '/api/projects/:id/files/:name' },
   { method: 'GET', path: '/api/projects/:id/preview-url' },
+  { method: 'GET', path: '/api/projects/:id/preview/*' },
   { method: 'GET', path: '/api/projects/:id/archive' },
   { method: 'GET', path: '/api/projects/:id/export/manifest' },
   { method: 'POST', path: '/api/artifacts/save' },
@@ -135,7 +138,7 @@ export const HOSTED_ROUTE_ALLOWLIST: readonly HostedRouteRule[] = Object.freeze(
   { method: 'GET', path: '/api/design-systems' },
   { method: 'GET', path: '/api/design-systems/:id' },
   { method: 'GET', path: '/api/skills/:id/files' },
-  { method: 'POST', path: '/api/tools/design-systems/read' },
+    { method: 'POST', path: '/api/tools/design-systems/read' },
 ]);
 
 /**
@@ -196,6 +199,7 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'POST', path: '/api/routines/*', reason: 'local automation scheduler' },
     { method: 'PATCH', path: '/api/routines/*', reason: 'local automation scheduler' },
     { method: 'DELETE', path: '/api/routines/*', reason: 'local automation scheduler' },
+    { method: 'GET', path: '/api/automation-templates/*', reason: 'local automation scheduler' },
     { method: 'GET', path: '/api/xai/*', reason: 'local provider OAuth/search' },
     { method: 'POST', path: '/api/xai/*', reason: 'local provider OAuth/search' },
     { method: 'POST', path: '/api/agents/:agentId/oauth-launch', reason: 'local provider OAuth launcher' },
@@ -203,6 +207,64 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'POST', path: '/api/projects/:id/finalize/*', reason: 'local provider finalization' },
     { method: 'POST', path: '/api/projects/:id/deploy/*', reason: 'local deployment side effect' },
     { method: 'POST', path: '/api/projects/:id/deploy', reason: 'local deployment side effect' },
+    { method: 'DELETE', path: '/api/projects/:id/raw/*', reason: 'ambient-origin artifact access' },
+    { method: 'OPTIONS', path: '/api/projects/:id/raw/*', reason: 'ambient-origin artifact preflight' },
+    { method: 'POST', path: '/api/import/*', reason: 'local folder import' },
+    { method: 'POST', path: '/api/provider/*', reason: 'local provider configuration/probing' },
+    { method: 'POST', path: '/api/test/*', reason: 'local provider connection probing' },
+    { method: 'GET', path: '/api/desktop/*', reason: 'desktop-only control plane' },
+    { method: 'POST', path: '/api/desktop/*', reason: 'desktop-only control plane' },
+    { method: 'GET', path: '/api/daemon/*', reason: 'local daemon administration' },
+    { method: 'POST', path: '/api/daemon/*', reason: 'local daemon administration' },
+    { method: 'GET', path: '/api/metrics', reason: 'local daemon metrics' },
+    { method: 'GET', path: '/api/critique/*', reason: 'local critique administration' },
+    { method: 'GET', path: '/api/analytics/*', reason: 'local analytics configuration' },
+    { method: 'POST', path: '/api/analytics/*', reason: 'local analytics configuration' },
+    { method: 'POST', path: '/api/observability/*', reason: 'local analytics ingestion' },
+    { method: 'GET', path: '/api/automation-source-packets', reason: 'local automation administration' },
+    { method: 'GET', path: '/api/automation-source-packets/:id', reason: 'local automation administration' },
+    { method: 'POST', path: '/api/automation-ingestions', reason: 'local automation administration' },
+    { method: 'GET', path: '/api/automation-proposals', reason: 'local automation administration' },
+    { method: 'POST', path: '/api/automation-proposals', reason: 'local automation administration' },
+    { method: 'GET', path: '/api/automation-proposals/:id', reason: 'local automation administration' },
+    { method: 'POST', path: '/api/automation-proposals/:id/*', reason: 'local automation administration' },
+    { method: 'GET', path: '/api/memory/*', reason: 'local memory administration' },
+    { method: 'POST', path: '/api/memory/*', reason: 'local memory administration' },
+    { method: 'PATCH', path: '/api/memory/*', reason: 'local memory administration' },
+    { method: 'PUT', path: '/api/memory/*', reason: 'local memory administration' },
+    { method: 'DELETE', path: '/api/memory/*', reason: 'local memory administration' },
+    { method: 'POST', path: '/api/social-share', reason: 'local/share integration' },
+    { method: 'GET', path: '/api/templates/*', reason: 'local template administration' },
+    { method: 'POST', path: '/api/templates', reason: 'local template administration' },
+    { method: 'DELETE', path: '/api/templates/*', reason: 'local template administration' },
+    { method: 'GET', path: '/api/design-templates/*', reason: 'local template administration' },
+    { method: 'POST', path: '/api/design-systems/*', reason: 'local design-system administration' },
+    { method: 'PATCH', path: '/api/design-systems/*', reason: 'local design-system administration' },
+    { method: 'DELETE', path: '/api/design-systems/*', reason: 'local design-system administration' },
+    { method: 'POST', path: '/api/skills/import', reason: 'local skill administration' },
+    { method: 'PUT', path: '/api/skills/:id', reason: 'local skill administration' },
+    { method: 'DELETE', path: '/api/skills/:id', reason: 'local skill administration' },
+    { method: 'GET', path: '/api/amr/*', reason: 'local AMR provider administration' },
+    { method: 'GET', path: '/api/integrations/vela/*', reason: 'local provider administration' },
+    { method: 'POST', path: '/api/integrations/vela/*', reason: 'local provider administration' },
+    { method: 'GET', path: '/api/marketplaces/*', reason: 'local plugin marketplace administration' },
+    { method: 'POST', path: '/api/marketplaces/*', reason: 'local plugin marketplace administration' },
+    { method: 'DELETE', path: '/api/marketplaces/*', reason: 'local plugin marketplace administration' },
+    { method: 'GET', path: '/api/applied-plugins', reason: 'local plugin/package administration' },
+    { method: 'GET', path: '/api/projects/:projectId/applied-plugins', reason: 'local plugin/package administration' },
+    { method: 'POST', path: '/api/applied-plugins/*', reason: 'local plugin/package administration' },
+    { method: 'GET', path: '/api/atoms/*', reason: 'local atom administration' },
+    { method: 'GET', path: '/api/craft/*', reason: 'local craft administration' },
+    { method: 'GET', path: '/api/codex-pets/*', reason: 'local desktop decoration' },
+    { method: 'GET', path: '/api/asset-cache', reason: 'local static-resource cache' },
+    { method: 'GET', path: '/api/projects/:id/deployments', reason: 'local deployment state' },
+    { method: 'POST', path: '/api/projects/:id/handoff', reason: 'local handoff integration' },
+    { method: 'GET', path: '/api/projects/:id/design-system-package-audit', reason: 'local design-system audit' },
+    { method: 'GET', path: '/api/design-systems/:id/preview', reason: 'local design-system preview' },
+    { method: 'GET', path: '/api/design-systems/:id/showcase', reason: 'local design-system showcase' },
+    { method: 'GET', path: '/api/skills/:id/example', reason: 'local skill example surface' },
+    { method: 'GET', path: '/api/skills/:id/assets/*', reason: 'local skill asset surface' },
+    { method: 'POST', path: '/api/tools/media/*', reason: 'credentialed media capability' },
   ]),
 });
 
@@ -229,10 +291,19 @@ export function isHostedRouteAllowed(
   path: string,
   allowlist: readonly HostedRouteRule[] = HOSTED_ROUTE_ALLOWLIST,
 ): boolean {
+  return findHostedRouteRule(method, path, allowlist) != null;
+}
+
+export function findHostedRouteRule(
+  method: string,
+  path: string,
+  allowlist: readonly HostedRouteRule[] = HOSTED_ROUTE_ALLOWLIST,
+): HostedRouteRule | undefined {
   const normalizedPath = normalizePath(path);
-  if (normalizedPath == null) return false;
-  return allowlist.some(
-    (rule) => rule.method === method.toUpperCase() && matchesPath(rule.path, normalizedPath),
+  if (normalizedPath == null) return undefined;
+  const normalizedMethod = method.toUpperCase();
+  return allowlist.find(
+    (rule) => rule.method === normalizedMethod && matchesPath(rule.path, normalizedPath),
   );
 }
 
@@ -247,11 +318,7 @@ export function createHostedRequestBoundary(
     const requestPathValue = requestPath(request);
     const rule = requestPathValue == null
       ? undefined
-      : HOSTED_ROUTE_ALLOWLIST.find(
-          (candidate) =>
-            candidate.method === request.method.toUpperCase() &&
-            matchesPath(candidate.path, requestPathValue),
-        );
+      : findHostedRouteRule(request.method, requestPathValue);
 
     if (requestPathValue == null || rule == null) {
       reject(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', 'hosted route is not enabled');
@@ -322,7 +389,8 @@ function requestPath(request: Request): string | null {
   ) {
     return null;
   }
-  return normalizePath(request.path || rawPath);
+  const normalized = normalizePath(request.path || rawPath);
+  return normalized == null || containsPathOwnershipMetadata(normalized) ? null : normalized;
 }
 
 function normalizePath(path: string): string | null {
@@ -345,9 +413,15 @@ function matchesPath(pattern: string, path: string): boolean {
 }
 
 function hasClientOwnershipMetadata(request: Request): boolean {
-  if (Object.keys(request.query ?? {}).some(isOwnerFieldName)) return true;
+  if (Object.keys(request.query ?? {}).some((key) => isOwnerFieldName(key, true))) return true;
   if (Object.keys(request.headers ?? {}).some(isOwnerHeaderName)) return true;
   return false;
+}
+
+function containsPathOwnershipMetadata(path: string): boolean {
+  return path.split('/').some((segment) =>
+    /(?:^|[;,&=])(?:account(?:id)?|namespace|owner(?:id|key)?|storage(?:key)?|tenant(?:id)?|user(?:id|key)?)(?:$|[;,&=])/iu.test(segment),
+  );
 }
 
 function containsOwnershipField(value: unknown, depth = 0): boolean {
@@ -381,13 +455,17 @@ function containsOwnershipField(value: unknown, depth = 0): boolean {
   return false;
 }
 
-function isOwnerFieldName(key: string): boolean {
-  return OWNER_FIELD_NAMES.has(key.replaceAll(/[-_]/gu, '').toLowerCase());
+function isOwnerFieldName(key: string, includeGeneric = false): boolean {
+  const normalized = key.replaceAll(/[-_]/gu, '').toLowerCase();
+  return OWNER_FIELD_NAMES.has(normalized)
+    || (includeGeneric && GENERIC_OWNER_FIELD_NAMES.has(normalized));
 }
 
 function isOwnerHeaderName(key: string): boolean {
   const lower = key.toLowerCase();
-  return OWNER_HEADER_NAMES.has(lower) || /^(?:x|cf|databricks)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower);
+  return OWNER_HEADER_NAMES.has(lower)
+    || /^(?:x|cf|databricks)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower)
+    || /^(?:x-forwarded|x-envoy-external|forwarded)-(?:account|namespace|owner|storage|tenant|user)(?:-|$)/u.test(lower);
 }
 
 function isNonEmptySafeText(value: unknown, maxLength: number): value is string {
