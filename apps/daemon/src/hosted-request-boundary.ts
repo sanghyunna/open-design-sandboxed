@@ -289,20 +289,18 @@ export function getHostedAuthContext(request: Request): HostedAuthContext | null
 export function isHostedRouteAllowed(
   method: string,
   path: string,
-  allowlist: readonly HostedRouteRule[] = HOSTED_ROUTE_ALLOWLIST,
 ): boolean {
-  return findHostedRouteRule(method, path, allowlist) != null;
+  return findHostedRouteRule(method, path) != null;
 }
 
 export function findHostedRouteRule(
   method: string,
   path: string,
-  allowlist: readonly HostedRouteRule[] = HOSTED_ROUTE_ALLOWLIST,
 ): HostedRouteRule | undefined {
   const normalizedPath = normalizePath(path);
   if (normalizedPath == null) return undefined;
   const normalizedMethod = method.toUpperCase();
-  return allowlist.find(
+  return HOSTED_ROUTE_ALLOWLIST.find(
     (rule) => rule.method === normalizedMethod && matchesPath(rule.path, normalizedPath),
   );
 }
