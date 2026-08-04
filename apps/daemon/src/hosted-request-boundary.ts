@@ -457,16 +457,19 @@ function hasClientOwnershipMetadata(request: Request): boolean {
 }
 
 function containsPathOwnershipMetadata(path: string): boolean {
-  return path.split('/').some((segment) =>
-    segment.split(/[;,&=]/u).some((candidate) => {
-      if (/[\[\]]/u.test(candidate)) {
-        return candidate
-          .split(/[^a-z0-9_-]+/iu)
-          .some((part) => part.length > 0 && isStrictOwnerFieldName(part, true));
-      }
-      return isStrictOwnerFieldName(candidate, true);
-    }),
-  );
+  return path.split('/').some((segment) => {
+    // A bare segment is an opaque route identifier. For explicit path
+    // parameters, inspect only the name before `=`; values are untrusted but
+    // are not field names and must not trigger a false positive.
+    return segment.split(/[;,&]/u).some((parameter) => {
+      const equals = parameter.indexOf('=');
+      if (equals < 0) return false;
+      return parameter
+        .slice(0, equals)
+        .split(/[^a-z0-9_-]+/iu)
+        .some((part) => part.length > 0 && isStrictOwnerFieldName(part, true));
+    });
+  });
 }
 
 function containsOwnershipField(value: unknown, depth = 0, includeGeneric = false): boolean {

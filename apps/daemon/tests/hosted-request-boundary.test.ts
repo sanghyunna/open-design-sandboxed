@@ -206,11 +206,9 @@ describe('hosted request boundary', () => {
     }
     for (const path of [
       '/api/projects/a;ownerId=attacker',
-      '/api/projects/ownerId',
-      '/api/projects/namespaceId',
-      '/api/projects/accountKey',
-      '/api/projects/storageId',
-      '/api/projects/tenantKey',
+      '/api/projects/a;user.id=attacker',
+      '/api/projects/a;owner.id=attacker',
+      '/api/projects/a[ownerId]=attacker',
       '/api/projects/a;meta[userId]=attacker',
       '/api/projects/a;userId[]=attacker',
     ]) {
@@ -225,7 +223,20 @@ describe('hosted request boundary', () => {
     expect(isHostedRouteAllowed('GET', '/api/projects/.')).toBe(false);
   });
 
-  it.each(['user.ts', 'ownerId.json', 'storageKey.css', 'user.id'])(
+  it.each([
+    'user.ts',
+    'ownerId.json',
+    'storageKey.css',
+    'user.id',
+    'ownerId',
+    'namespaceId',
+    'accountKey',
+    'storageId',
+    'tenantKey',
+    'user',
+    'a;title=user',
+    'a;value=ownerId',
+  ])(
     'allows ordinary hosted path identifiers that resemble ownership fields: %s',
     async (identifier) => {
       const { baseUrl } = await listen(() => context);
