@@ -225,6 +225,15 @@ describe('hosted request boundary', () => {
     expect(isHostedRouteAllowed('GET', '/api/projects/.')).toBe(false);
   });
 
+  it.each(['user.ts', 'ownerId.json', 'storageKey.css', 'user.id'])(
+    'allows ordinary hosted path identifiers that resemble ownership fields: %s',
+    async (identifier) => {
+      const { baseUrl } = await listen(() => context);
+      const response = await fetch(`${baseUrl}/api/projects/${identifier}`);
+      expect(response.status).toBe(200);
+    },
+  );
+
   it('fails closed when a resolver returns an invalid context', async () => {
     const { baseUrl } = await listen(() => ({ ...context, storageKey: '../escape' }));
     expect((await fetch(`${baseUrl}/api/projects/a`)).status).toBe(500);

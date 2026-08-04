@@ -458,7 +458,14 @@ function hasClientOwnershipMetadata(request: Request): boolean {
 
 function containsPathOwnershipMetadata(path: string): boolean {
   return path.split('/').some((segment) =>
-    segment.split(/[;,&=]/u).some((candidate) => isOwnerFieldName(candidate, true)),
+    segment.split(/[;,&=]/u).some((candidate) => {
+      if (/[\[\]]/u.test(candidate)) {
+        return candidate
+          .split(/[^a-z0-9_-]+/iu)
+          .some((part) => part.length > 0 && isStrictOwnerFieldName(part, true));
+      }
+      return isStrictOwnerFieldName(candidate, true);
+    }),
   );
 }
 
@@ -494,17 +501,17 @@ function containsOwnershipField(value: unknown, depth = 0, includeGeneric = fals
 }
 
 function isOwnerFieldName(key: string, includeGeneric = false): boolean {
-  const normalized = key.replaceAll(/[-_]/gu, '').toLowerCase();
-  if (
-    OWNER_FIELD_NAMES.has(normalized)
-    || (includeGeneric && GENERIC_OWNER_FIELD_NAMES.has(normalized))
-  ) {
-    return true;
-  }
+  if (isStrictOwnerFieldName(key, includeGeneric)) return true;
   if (!/[.[\]]/u.test(key)) return false;
   return key
     .split(/[^a-z0-9_-]+/iu)
-    .some((part) => part.length > 0 && isOwnerFieldName(part, includeGeneric));
+    .some((part) => part.length > 0 && isStrictOwnerFieldName(part, includeGeneric));
+}
+
+function isStrictOwnerFieldName(key: string, includeGeneric = false): boolean {
+  const normalized = key.replaceAll(/[-_]/gu, '').toLowerCase();
+  return OWNER_FIELD_NAMES.has(normalized)
+    || (includeGeneric && GENERIC_OWNER_FIELD_NAMES.has(normalized));
 }
 
 function isOwnerHeaderName(key: string): boolean {
