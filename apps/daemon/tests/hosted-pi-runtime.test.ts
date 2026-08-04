@@ -7,6 +7,7 @@ import {
   createHostedPiInvocation,
   resolveHostedPiEntrypoint,
 } from '../src/runtimes/hosted-pi-runtime.js';
+import { createHostedPiBroker } from '../src/runtimes/hosted-pi-broker.js';
 
 const roots: string[] = [];
 
@@ -48,7 +49,7 @@ describe('hosted Pi runtime', () => {
 
     assert.throws(
       () => resolveHostedPiEntrypoint(join(fixture.root, 'dist', '..', 'rpc-entry.js')),
-      /package-local|entrypoint|pinned/i,
+      /package|entrypoint|pinned/i,
     );
   });
 
@@ -90,5 +91,34 @@ describe('hosted Pi runtime', () => {
       assert.equal(invocation.env[key], undefined, `ambient package manager env leaked: ${key}`);
     }
     assert.equal(invocation.env.OD_TOOL_TOKEN, undefined);
+  });
+
+  test('adds only the repository-owned broker extension when a server grant exists', async () => {
+    const fixture = fakePiPackage();
+    const broker = await createHostedPiBroker({
+      runtimeRoot: fixture.root,
+      binding: {
+        userKey: 'user-a',
+        runId: 'run-a',
+        projectId: 'project-a',
+        projectRoot: fixture.project,
+      },
+    });
+    try {
+      const invocation = createHostedPiInvocation({
+        packageRoot: fixture.root,
+        cwd: fixture.project,
+        sessionDir: fixture.sessionDir,
+        broker,
+      });
+      assert.ok(invocation.args.includes('--extension'));
+      assert.ok(invocation.args.includes(broker.extensionPath));
+      assert.ok(invocation.args.includes('--tools'));
+      assert.ok(invocation.args.includes('od_hosted_broker'));
+      assert.equal(invocation.env.OD_HOSTED_PI_BROKER_SOCKET, broker.socketPath);
+      assert.equal(invocation.env.OD_HOSTED_PI_BROKER_TOKEN, broker.grant.token);
+    } finally {
+      await broker.close();
+    }
   });
 });

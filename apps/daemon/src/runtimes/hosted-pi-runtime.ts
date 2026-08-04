@@ -1,0 +1,200 @@
+import { createRequire } from 'node:module';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const HOSTED_PI_PACKAGE_NAME = '@earendil-works/pi-coding-agent';
+export const HOSTED_PI_PACKAGE_VERSION = '0.83.0';
+export const HOSTED_PI_RPC_ENTRYPOINT = path.join('dist', 'rpc-entry.js');
+
+const require = createRequire(import.meta.url);
+
+export type HostedPiPackage = {
+  packageRoot: string;
+  entrypoint: string;
+};
+
+export type HostedPiInvocationOptions = {
+  packageRoot?: string;
+  cwd: string;
+  sessionDir: string;
+  model?: string | null;
+  thinking?: string | null;
+  broker?: {
+    socketPath: string;
+    token: string;
+    extensionPath: string;
+  };
+};
+
+export type HostedPiInvocation = {
+  command: string;
+  args: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  packageRoot: string;
+  entrypoint: string;
+  agentDir: string;
+  sessionDir: string;
+};
+
+function defaultPackageRoot(): string {
+  const packageEntry = require.resolve(HOSTED_PI_PACKAGE_NAME);
+  return path.resolve(path.dirname(packageEntry), '..');
+}
+
+function pathInside(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === '' || (
+    !path.isAbsolute(relative)
+    && relative !== '..'
+    && !relative.startsWith(`..${path.sep}`)
+  );
+}
+
+function realDirectory(input: string, label: string): string {
+  if (!path.isAbsolute(input)) throw new Error(`${label} must be absolute`);
+  try {
+    if (!statSync(input).isDirectory()) throw new Error(`${label} must be a directory`);
+    return realpathSync(input);
+  } catch (error) {
+    throw new Error(`hosted Pi ${label} is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function createOwnedDirectory(input: string, label: string): string {
+  if (!path.isAbsolute(input)) throw new Error(`${label} must be absolute`);
+  try {
+    if (existsSync(input) && lstatSync(input).isSymbolicLink()) {
+      throw new Error(`${label} must not be a symlink or junction`);
+    }
+    mkdirSync(input, { recursive: true });
+    const resolved = realpathSync(input);
+    if (resolved !== path.resolve(input)) {
+      throw new Error(`${label} must not resolve through a symlink or junction`);
+    }
+    return resolved;
+  } catch (error) {
+    throw new Error(`hosted Pi ${label} is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function readPackageManifest(packageRoot: string): { name?: unknown; version?: unknown } {
+  try {
+    return JSON.parse(readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as {
+      name?: unknown;
+      version?: unknown;
+    };
+  } catch (error) {
+    throw new Error(`hosted Pi package manifest is unreadable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+export function resolveHostedPiEntrypoint(packageRoot = defaultPackageRoot()): HostedPiPackage {
+  const root = realDirectory(packageRoot, 'package root');
+  const manifest = readPackageManifest(root);
+  if (manifest.name !== HOSTED_PI_PACKAGE_NAME || manifest.version !== HOSTED_PI_PACKAGE_VERSION) {
+    throw new Error(
+      `hosted Pi package must be ${HOSTED_PI_PACKAGE_NAME}@${HOSTED_PI_PACKAGE_VERSION}`,
+    );
+  }
+
+  const entrypoint = path.join(root, HOSTED_PI_RPC_ENTRYPOINT);
+  let resolvedEntrypoint: string;
+  try {
+    if (!statSync(entrypoint).isFile()) throw new Error('entrypoint is not a file');
+    resolvedEntrypoint = realpathSync(entrypoint);
+  } catch (error) {
+    throw new Error(`hosted Pi package-local RPC entrypoint is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (!pathInside(root, resolvedEntrypoint)) {
+    throw new Error('hosted Pi package-local RPC entrypoint escapes the pinned package root');
+  }
+  return { packageRoot: root, entrypoint: resolvedEntrypoint };
+}
+
+function appendValue(args: string[], flag: string, value: string | null | undefined): void {
+  if (typeof value === 'string' && value.length > 0) args.push(flag, value);
+}
+
+function resolveOwnedBrokerExtension(input: string): string {
+  if (!path.isAbsolute(input) || !existsSync(input)) {
+    throw new Error('hosted Pi broker extension is unavailable');
+  }
+  let resolved: string;
+  try {
+    if (!statSync(input).isFile()) throw new Error('not a file');
+    resolved = realpathSync(input);
+  } catch (error) {
+    throw new Error(`hosted Pi broker extension is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const runtimeRoot = realpathSync(path.dirname(fileURLToPath(import.meta.url)));
+  if (!pathInside(runtimeRoot, resolved)) {
+    throw new Error('hosted Pi broker extension must be repository-owned');
+  }
+  return resolved;
+}
+
+/**
+ * Build the only supported hosted Pi child invocation.
+ *
+ * This intentionally does not inherit the daemon environment: provider
+ * credentials, package-manager variables, global agent overrides, and daemon
+ * tool tokens are all absent until a later hosted composition explicitly
+ * supplies a broker-bound capability.
+ */
+export function createHostedPiInvocation(options: HostedPiInvocationOptions): HostedPiInvocation {
+  const packageInfo = resolveHostedPiEntrypoint(options.packageRoot);
+  const cwd = realDirectory(options.cwd, 'project cwd');
+  const sessionDir = createOwnedDirectory(options.sessionDir, 'session directory');
+  const agentDir = createOwnedDirectory(path.join(sessionDir, 'agent-config'), 'agent config directory');
+
+  const args = [
+    packageInfo.entrypoint,
+    '--mode', 'rpc',
+    '--no-tools',
+    '--no-extensions',
+    '--no-skills',
+    '--no-prompt-templates',
+    '--no-themes',
+    '--no-context-files',
+    '--no-approve',
+    '--offline',
+    '--session-dir', sessionDir,
+  ];
+  const brokerEnv: NodeJS.ProcessEnv = {};
+  if (options.broker) {
+    const extensionPath = resolveOwnedBrokerExtension(options.broker.extensionPath);
+    if (!path.isAbsolute(options.broker.socketPath) || options.broker.token.length === 0) {
+      throw new Error('hosted Pi broker connection is invalid');
+    }
+    args.push('--extension', extensionPath, '--tools', 'od_hosted_broker');
+    brokerEnv.OD_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
+    brokerEnv.OD_HOSTED_PI_BROKER_TOKEN = options.broker.token;
+  }
+  appendValue(args, '--model', options.model);
+  appendValue(args, '--thinking', options.thinking);
+
+  return {
+    command: process.execPath,
+    args,
+    cwd,
+    env: {
+      PATH: '',
+      PI_OFFLINE: '1',
+      PI_CODING_AGENT_DIR: agentDir,
+      PI_CODING_AGENT_SESSION_DIR: sessionDir,
+      ...brokerEnv,
+    },
+    packageRoot: packageInfo.packageRoot,
+    entrypoint: packageInfo.entrypoint,
+    agentDir,
+    sessionDir,
+  };
+}
+
+export function hostedPiBrokerExtensionPath(): string {
+  const runtimeRoot = path.dirname(fileURLToPath(import.meta.url));
+  const compiled = path.join(runtimeRoot, 'hosted-pi-broker-extension.js');
+  return existsSync(compiled) ? compiled : path.join(runtimeRoot, 'hosted-pi-broker-extension.ts');
+}
