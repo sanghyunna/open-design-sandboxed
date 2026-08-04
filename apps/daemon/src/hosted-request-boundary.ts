@@ -30,6 +30,8 @@ export interface HostedRequestBoundaryOptions {
    * PR01 only exposes the boundary through an explicit test composition.
    * Production startup has no identity adapter yet; later hosted PRs replace
    * this seam with the real user-runtime adapter before enabling data routes.
+   * The runtime test guard also requires NODE_ENV=test, so this composition
+   * cannot be activated by a production launch configuration.
    */
   readonly testComposition?: boolean;
   readonly resolveIdentity?: HostedIdentityResolver;
@@ -342,7 +344,11 @@ export function createHostedRequestBoundary(
       reject(response, 400, 'HOSTED_OWNER_FIELD_FORBIDDEN', 'client ownership fields are not accepted');
       return;
     }
-    if (options.testComposition !== true || options.resolveIdentity == null) {
+    if (
+      options.testComposition !== true
+      || process.env.NODE_ENV !== 'test'
+      || options.resolveIdentity == null
+    ) {
       reject(response, 503, 'HOSTED_AUTH_UNAVAILABLE', 'hosted identity is not configured');
       return;
     }
