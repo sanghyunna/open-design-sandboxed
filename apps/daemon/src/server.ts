@@ -201,6 +201,7 @@ import {
 import { composeMemoryBody, extractFromMessage } from './memory.js';
 import { attachAcpSession } from './acp.js';
 import { attachPiRpcSession } from './pi-rpc.js';
+import type { HostedPiRuntimeAdapter } from './runtimes/hosted-pi-runtime.js';
 import { stageAmrImagePaths } from './amr-image-staging.js';
 import {
   applyAutomationProposal,
@@ -3690,6 +3691,8 @@ export interface StartServerOptions {
   isolatedAgentProbe?: typeof probeIsolatedAgentSupport;
   isolatedAgentSpawn?: typeof spawnIsolatedAgent;
   hostedRequestBoundary?: HostedRequestBoundaryOptions;
+  /** Optional server-owned hosted Pi seam; absent in local/desktop mode. */
+  hostedPiRuntime?: HostedPiRuntimeAdapter;
 }
 
 const DEFAULT_CHAT_RUN_INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -3891,6 +3894,7 @@ export async function startServer({
   isolatedAgentProbe = probeIsolatedAgentSupport,
   isolatedAgentSpawn = spawnIsolatedAgent,
   hostedRequestBoundary,
+  hostedPiRuntime,
 }: StartServerOptions = {}) {
   const desktopApprovalToken = consumeDesktopApprovalToken(process.env);
   const isolatedAgentSupport = desktopApprovalToken
@@ -9789,7 +9793,10 @@ export async function startServer({
       ? formatDesignFilesWorkspaceHint(cwd, existingProjectFiles, existingProjectFolders)
       : '';
     const attachmentHint = formatProjectAttachmentHint(safeAttachments);
-    const toolTokenGrant = cwd && typeof projectId === 'string' && projectId
+    const hostedPiEnabled = def.id === 'pi' && typeof hostedPiRuntime === 'function';
+    const toolTokenGrant = hostedPiEnabled
+      ? null
+      : cwd && typeof projectId === 'string' && projectId
       ? toolTokenRegistry.mint({
           runId,
           projectId,
@@ -9817,11 +9824,19 @@ export async function startServer({
       toolTokenRevoked = true;
       toolTokenRegistry.revokeToken(toolTokenGrant.token, reason);
     };
-    const runtimeToolPrompt = createAgentRuntimeToolPrompt(
-      daemonUrl,
-      toolTokenGrant,
-      agentRollbackIsolationEnabled,
-    );
+    const runtimeToolPrompt = hostedPiEnabled
+      ? [
+          '## Hosted Pi tool environment',
+          '',
+          '- Generic shell, process, filesystem, environment, extension, resource, package, and update tools are unavailable.',
+          '- Use only the daemon-owned `od_hosted_broker` project-file tool for the current run.',
+          '- The broker grant is fixed by the server and cannot be widened by the request or model.',
+        ].join('\n')
+      : createAgentRuntimeToolPrompt(
+          daemonUrl,
+          toolTokenGrant,
+          agentRollbackIsolationEnabled,
+        );
     const commentHint = renderCommentAttachmentHint(safeCommentAttachments);
 
     // Resolve external MCP config + stored OAuth tokens up-front so the
@@ -10606,7 +10621,49 @@ export async function startServer({
       ).catch(() => null);
     }
 
-    const agentLaunch = resolveAgentLaunch(def, configuredAgentEnv);
+    // Hosted Pi is opt-in through a server-owned adapter. The default local
+    // path still resolves the user's configured/global agent exactly as before;
+    // hosted callers provide an already-pinned process invocation and never
+    // enter executable discovery or inherit the daemon environment.
+    let hostedPiHandle = null;
+    let hostedPiClosed = false;
+    const closeHostedPi = async () => {
+      if (hostedPiClosed) return;
+      hostedPiClosed = true;
+      await hostedPiHandle?.close?.();
+    };
+    if (def.id === 'pi' && hostedPiRuntime) {
+      if (!cwd || typeof projectId !== 'string' || !projectId) {
+        return design.runs.fail(run, 'BAD_REQUEST', 'hosted Pi requires a managed project');
+      }
+      try {
+        hostedPiHandle = await hostedPiRuntime({
+          runId,
+          projectId,
+          projectRoot: cwd,
+          cwd,
+          model: safeModel,
+          thinking: safeReasoning,
+        });
+      } catch (error) {
+        return design.runs.fail(
+          run,
+          'AGENT_EXECUTION_FAILED',
+          `hosted Pi could not start: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    const agentLaunch = hostedPiHandle
+      ? {
+          configuredOverridePath: hostedPiHandle.invocation.command,
+          pathResolvedPath: hostedPiHandle.invocation.command,
+          selectedPath: hostedPiHandle.invocation.command,
+          launchPath: hostedPiHandle.invocation.command,
+          launchKind: 'selected',
+          childPathPrepend: [],
+          diagnostic: null,
+        }
+      : resolveAgentLaunch(def, configuredAgentEnv);
     const resolvedBin = agentLaunch.selectedPath;
 
     // Hoisted above the AMR catalog preflight: the empty-catalog branch
@@ -10805,22 +10862,25 @@ export async function startServer({
 
     let args;
     try {
-      args = def.buildArgs(
-        composed,
-        safeImages,
-        extraAllowedDirs,
-        agentOptions,
-        {
-          cwd: effectiveCwd,
-          hasPriorAssistantTurn,
-          agentLogFilePath,
-          promptFilePath: promptFile?.path,
-          resumeSessionId: agentResumeCtx.resumeSessionId,
-          newSessionId: agentResumeCtx.newSessionId,
-        },
-      );
+      args = hostedPiHandle
+        ? hostedPiHandle.invocation.args
+        : def.buildArgs(
+            composed,
+            safeImages,
+            extraAllowedDirs,
+            agentOptions,
+            {
+              cwd: effectiveCwd,
+              hasPriorAssistantTurn,
+              agentLogFilePath,
+              promptFilePath: promptFile?.path,
+              resumeSessionId: agentResumeCtx.resumeSessionId,
+              newSessionId: agentResumeCtx.newSessionId,
+            },
+          );
     } catch (err) {
       cleanupPromptFile();
+      await closeHostedPi();
       throw err;
     }
     // Second-pass budget check that knows about the Windows `.cmd` shim
@@ -10840,6 +10900,7 @@ export async function startServer({
     );
     if (cmdShimBudgetError) {
       cleanupPromptFile();
+      await closeHostedPi();
       design.runs.emit(
         run,
         'error',
@@ -10868,6 +10929,7 @@ export async function startServer({
     );
     if (directExeBudgetError) {
       cleanupPromptFile();
+      await closeHostedPi();
       design.runs.emit(
         run,
         'error',
@@ -11104,16 +11166,18 @@ export async function startServer({
       ));
       return design.runs.finish(run, 'failed', 1, null);
     }
-    const agentSpawnEnv = spawnEnvForAgent(
-      def.id,
-      {
-        ...createAgentRuntimeEnv(process.env, daemonUrl, toolTokenGrant),
-        ...(def.env || {}),
-      },
-      configuredAgentEnv,
-      undefined,
-      { resolvedBin: agentLaunch.selectedPath },
-    );
+    const agentSpawnEnv = hostedPiHandle
+      ? { ...hostedPiHandle.invocation.env }
+      : spawnEnvForAgent(
+          def.id,
+          {
+            ...createAgentRuntimeEnv(process.env, daemonUrl, toolTokenGrant),
+            ...(def.env || {}),
+          },
+          configuredAgentEnv,
+          undefined,
+          { resolvedBin: agentLaunch.selectedPath },
+        );
     if (def.id === 'amr') {
       const loginStatus = readVelaLoginStatus(agentSpawnEnv, configuredAgentEnv);
       if (!loginStatus.loggedIn) {
@@ -11140,6 +11204,7 @@ export async function startServer({
         : {}),
     };
     if (run.cancelRequested || design.runs.isTerminal(run.status)) {
+      await closeHostedPi();
       cleanupPromptFile();
       revokeToolToken('child_exit');
       unregisterChatAgentEventSink();
@@ -11147,7 +11212,7 @@ export async function startServer({
     }
 
     let isolatedToolBroker = null;
-    if (agentRollbackIsolationEnabled) {
+    if (!hostedPiHandle && agentRollbackIsolationEnabled) {
       try {
         isolatedToolBroker = await startIsolatedToolBroker({
           agentEnv: agentSpawnEnv,
@@ -11216,7 +11281,7 @@ export async function startServer({
         def.promptViaStdin || def.streamFormat === 'acp-json-rpc'
           ? 'pipe'
           : 'ignore';
-      const launchEnv = applyAgentLaunchEnv({
+      const launchEnv = hostedPiHandle ? agentSpawnEnv : applyAgentLaunchEnv({
         ...agentSpawnEnv,
         ...(mmdRouteLaunchEnv || {}),
         ...odMediaEnv,
@@ -11240,7 +11305,7 @@ export async function startServer({
           ? { OPENCODE_CONFIG_CONTENT: opencodeConfigContent }
           : {}),
       }, agentLaunch);
-      const env = agentRollbackIsolationEnabled
+      const env = !hostedPiHandle && agentRollbackIsolationEnabled
         ? isolatedAgentEnv(launchEnv, isolatedToolBroker, def.id)
         : launchEnv;
       spawnedAgentEnv = env;
@@ -11253,7 +11318,7 @@ export async function startServer({
         ...(run.analyticsTelemetry ?? {}),
         processSpawnStartedAt: Date.now(),
       };
-      if (agentRollbackIsolationEnabled) {
+      if (!hostedPiHandle && agentRollbackIsolationEnabled) {
         const systemReadRoots = [
           process.env.ProgramFiles,
           process.env['ProgramFiles(x86)'],
@@ -11274,7 +11339,7 @@ export async function startServer({
         child = await isolatedAgentSpawn({
           args,
           command: agentLaunch.launchPath,
-          cwd: effectiveCwd,
+          cwd: hostedPiHandle?.invocation.cwd ?? effectiveCwd,
           env,
           helperPath: PACKAGED_AGENT_ISOLATOR_PATH && fs.existsSync(PACKAGED_AGENT_ISOLATOR_PATH)
             ? PACKAGED_AGENT_ISOLATOR_PATH
@@ -11288,7 +11353,7 @@ export async function startServer({
         child = spawn(invocation.command, invocation.args, {
           env,
           stdio: [stdinMode, 'pipe', 'pipe'],
-          cwd: effectiveCwd,
+           cwd: hostedPiHandle?.invocation.cwd ?? effectiveCwd,
           shell: false,
           // Required when invocation wraps a Windows .cmd/.bat shim through
           // cmd.exe; without this, Node re-escapes the inner command line and
@@ -11376,13 +11441,14 @@ export async function startServer({
       }
     } catch (err) {
       await isolatedToolBroker?.close();
+      await closeHostedPi();
       cleanupPromptFile();
       revokeToolToken('child_exit');
       unregisterChatAgentEventSink();
       send('error', createSseErrorPayload(
-        agentRollbackIsolationEnabled ? 'AGENT_ISOLATION_UNAVAILABLE' : 'AGENT_EXECUTION_FAILED',
+        !hostedPiHandle && agentRollbackIsolationEnabled ? 'AGENT_ISOLATION_UNAVAILABLE' : 'AGENT_EXECUTION_FAILED',
         `spawn failed: ${err.message}`,
-        { retryable: !agentRollbackIsolationEnabled },
+        { retryable: hostedPiHandle ? false : !agentRollbackIsolationEnabled },
       ));
       design.runs.finish(run, 'failed', 1, null);
       return;
@@ -11904,11 +11970,14 @@ export async function startServer({
       //   - 'error' channel → route through the daemon's error path
       //     (createSseErrorPayload + send SSE + set agentStreamError)
       trackingSubstantiveOutput = true;
-      acpSession = attachPiRpcSession({
-        child,
-        prompt: composed,
-        cwd: effectiveCwd,
-        model: safeModel,
+        acpSession = attachPiRpcSession({
+          child,
+          prompt: composed,
+          cwd: effectiveCwd,
+          ...(hostedPiHandle?.invocation.sessionDir
+            ? { sessionDir: hostedPiHandle.invocation.sessionDir }
+            : {}),
+          model: safeModel,
         parentSession: agentResumeCtx.isResuming && agentResumeCtx.resumeSessionId
           ? agentResumeCtx.resumeSessionId
           : undefined,
@@ -12414,6 +12483,7 @@ export async function startServer({
           fs.promises.unlink(agentLogFilePath).catch(() => {});
         }
         await isolatedToolBroker?.close();
+        await closeHostedPi();
         cleanupPromptFile();
       }
     });

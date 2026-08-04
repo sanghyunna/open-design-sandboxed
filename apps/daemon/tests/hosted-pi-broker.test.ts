@@ -55,11 +55,18 @@ describe('hosted Pi broker', () => {
         content: 'created through the broker',
       });
 
-      const crossUser = await broker.invoke(
-        { token: broker.grant.token, operation: 'project:file:read', path: 'index.html' },
-        { ...f.binding, userKey: 'user-b' },
-      );
-      assert.equal(crossUser.ok, false);
+      for (const mismatch of [
+        { userKey: 'user-b' },
+        { runId: 'run-b' },
+        { projectId: 'project-b' },
+        { projectRoot: join(f.root, 'sibling-project') },
+      ]) {
+        const denied = await broker.invoke(
+          { token: broker.grant.token, operation: 'project:file:read', path: 'index.html' },
+          { ...f.binding, ...mismatch },
+        );
+        assert.equal(denied.ok, false);
+      }
 
       for (const operation of ['process:spawn', 'filesystem:read', 'environment:read']) {
         const denied = await broker.invoke({ token: broker.grant.token, operation, path: 'index.html' });
@@ -73,10 +80,16 @@ describe('hosted Pi broker', () => {
   test('rejects traversal, absolute paths, links, and sibling roots', async () => {
     const f = fixture();
     const sibling = join(f.root, 'sibling.txt');
+    const siblingProject = join(f.root, 'sibling-project');
+    mkdirSync(siblingProject, { recursive: true });
     writeFileSync(sibling, 'private');
     const link = join(f.project, 'outside.txt');
+    const linkedDirectory = join(f.project, 'outside-directory');
+    let linkedDirectoryCreated = false;
     try {
       symlinkSync(sibling, link, 'file');
+      symlinkSync(siblingProject, linkedDirectory, process.platform === 'win32' ? 'junction' : 'dir');
+      linkedDirectoryCreated = true;
     } catch {
       // Link creation is unavailable on some Windows CI accounts; the
       // absolute/traversal assertions still exercise the boundary there.
@@ -86,6 +99,17 @@ describe('hosted Pi broker', () => {
       for (const path of ['../sibling.txt', sibling, 'C:\\Windows\\system.ini', '/etc/passwd', 'outside.txt']) {
         const denied = await broker.invoke({ token: broker.grant.token, operation: 'project:file:read', path });
         assert.equal(denied.ok, false, path);
+      }
+      if (linkedDirectoryCreated) {
+        for (const operation of ['project:file:list', 'project:file:write'] as const) {
+          const denied = await broker.invoke({
+            token: broker.grant.token,
+            operation,
+            path: 'outside-directory/escape.txt',
+            ...(operation === 'project:file:write' ? { content: 'nope' } : {}),
+          });
+          assert.equal(denied.ok, false, operation);
+        }
       }
     } finally {
       await broker.close();

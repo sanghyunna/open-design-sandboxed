@@ -9,6 +9,7 @@ on:
       - 'apps/daemon/**'
       - 'packages/**'
       - 'scripts/hosted-pi-artifact.ts'
+      - 'tools/pack/package.json'
       - 'docs/hosted-pi-third-party.md'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -39,9 +40,9 @@ jobs:
       - name: Install build dependencies
         run: pnpm install --frozen-lockfile
       - name: Stage hosted artifact
-        run: pnpm hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
+        run: pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
       - name: Execute staged artifact smoke suite
-        run: pnpm hosted:pi:check -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
+        run: pnpm --filter @open-design/tools-pack hosted:pi:check -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
       - uses: actions/upload-artifact@v4
         with:
           name: hosted-pi-${{ matrix.os }}

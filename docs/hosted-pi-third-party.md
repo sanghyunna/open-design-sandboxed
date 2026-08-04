@@ -14,4 +14,11 @@ pnpm --filter @open-design/daemon build
 pnpm --filter @open-design/daemon deploy --prod --no-optional --ignore-scripts --legacy <staging-dir>
 ```
 
-`scripts/hosted-pi-artifact.ts` records the staged lockfile hash, package licenses, versions, repositories, Pi integrity, and Photon WASM hash. It also audits the daemon production importer and rejects any high/critical advisory; unrelated workspace importers do not change the hosted result. The optional clipboard/native UI dependency is intentionally not installed; hosted RPC does not require it. The exact `undici@8.10.0` and `brace-expansion@5.0.9` overrides, plus patched daemon transitive pins, are part of the root and workspace lockfile policy.
+`scripts/hosted-pi-artifact.ts` records the staged lockfile hash, package licenses, versions, repositories, Pi integrity, and Photon WASM hash. It relocates deploy links into a self-contained artifact, then `check` extracts that artifact into a fresh directory before launching it. The audit runs outside the workspace against that extracted manifest/lockfile and rejects any high/critical advisory; unrelated workspace importers do not change the hosted result. The optional clipboard/native UI dependency is intentionally not installed; hosted RPC does not require it. The exact `undici@8.10.0` and `brace-expansion@5.0.9` overrides, plus patched daemon transitive pins, are part of the root and workspace lockfile policy.
+
+The build/check entrypoints are owned by `@open-design/tools-pack`:
+`pnpm --filter @open-design/tools-pack hosted:pi:build -- --out <staging-dir>` and
+`pnpm --filter @open-design/tools-pack hosted:pi:check -- --out <staging-dir>`.
+The lockfile changed on the Windows development host, where Nix is unavailable;
+the Linux release gate must run `pnpm nix:update-hash` and
+`nix flake check --print-build-logs --keep-going` before merge.

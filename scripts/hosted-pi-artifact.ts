@@ -1,6 +1,22 @@
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  linkSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -35,6 +51,116 @@ function packageRoot(stage: string): string {
   const root = path.join(stage, 'node_modules', '@earendil-works', 'pi-coding-agent');
   if (!existsSync(root)) fail(`staged Pi package is missing: ${root}`);
   return realpathSync(root);
+}
+
+function pathInside(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
+}
+
+const WORKSPACE_SELF_LINK = path.join('node_modules', '.pnpm', 'node_modules', '@open-design', 'daemon');
+
+type RelocationContext = {
+  sourceRoot: string;
+  destinationRoot: string;
+  active: Set<string>;
+  hardlinks: Map<string, string>;
+};
+
+function mappedLinkTarget(sourceRoot: string, destinationRoot: string, source: string): string | null {
+  const raw = readlinkSync(source);
+  const resolved = path.resolve(path.dirname(source), raw);
+  if (!pathInside(sourceRoot, resolved)) {
+    if (path.relative(sourceRoot, source) === path.relative(sourceRoot, path.join(sourceRoot, WORKSPACE_SELF_LINK))) return null;
+    fail(`staged dependency link escapes the deploy root: ${path.relative(sourceRoot, source)}`);
+  }
+  return path.join(destinationRoot, path.relative(sourceRoot, resolved));
+}
+
+function tryCreateRelativeLink(target: string, destination: string, directory: boolean): boolean {
+  const relative = path.relative(path.dirname(destination), target);
+  try {
+    if (process.platform === 'win32') {
+      symlinkSync(relative, destination, directory ? 'dir' : 'file');
+    } else {
+      symlinkSync(relative, destination);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function copyRelocatableTree(source: string, destination: string, context: RelocationContext): void {
+  const metadata = lstatSync(source);
+  mkdirSync(path.dirname(destination), { recursive: true });
+  if (metadata.isSymbolicLink()) {
+    const target = mappedLinkTarget(context.sourceRoot, context.destinationRoot, source);
+    if (!target) return;
+    if (tryCreateRelativeLink(target, destination, statSync(source).isDirectory())) return;
+    copyRelocatableTree(path.resolve(path.dirname(source), readlinkSync(source)), destination, context);
+    return;
+  }
+  if (metadata.isDirectory()) {
+    const resolved = realpathSync(source);
+    if (context.active.has(resolved)) return;
+    context.active.add(resolved);
+    mkdirSync(destination, { recursive: true });
+    for (const entry of readdirSync(source)) {
+      copyRelocatableTree(path.join(source, entry), path.join(destination, entry), context);
+    }
+    context.active.delete(resolved);
+    return;
+  }
+  const resolved = realpathSync(source);
+  const previous = context.hardlinks.get(resolved);
+  if (previous) {
+    try {
+      linkSync(previous, destination);
+      return;
+    } catch {
+      // Files may cross a filesystem boundary in a downloaded artifact; copy
+      // the bytes when a hardlink cannot be recreated.
+    }
+  }
+  copyFileSync(source, destination);
+  context.hardlinks.set(resolved, destination);
+}
+
+function relocateTree(source: string, destination: string): void {
+  mkdirSync(destination, { recursive: true });
+  copyRelocatableTree(source, destination, {
+    sourceRoot: source,
+    destinationRoot: destination,
+    active: new Set(),
+    hardlinks: new Map(),
+  });
+}
+
+function removeWorkspaceSelfLink(stage: string): void {
+  const link = path.join(stage, WORKSPACE_SELF_LINK);
+  if (existsSync(link) && lstatSync(link).isSymbolicLink()) unlinkSync(link);
+}
+
+function verifyRelocatableTree(stage: string): void {
+  const oldRoot = path.resolve(stage);
+  const links: string[] = [];
+  const walk = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const current = path.join(directory, entry.name);
+      const metadata = lstatSync(current);
+      if (metadata.isSymbolicLink()) {
+        if (path.isAbsolute(readlinkSync(current))) fail(`artifact link is not relocatable: ${path.relative(oldRoot, current)}`);
+        const resolved = realpathSync(current);
+        if (!pathInside(oldRoot, resolved)) fail(`artifact link escapes the delivered root: ${path.relative(oldRoot, current)}`);
+        links.push(path.relative(oldRoot, current));
+      } else if (metadata.isDirectory()) {
+        walk(current);
+      }
+    }
+  };
+  walk(oldRoot);
+  void links;
 }
 
 function verifyPackage(stage: string): {
@@ -165,33 +291,40 @@ function runBuildCommand(args: string[]): void {
   if (result.status !== 0) fail(`pnpm ${args.join(' ')} exited with ${result.status ?? 'signal'}`);
 }
 
-function auditHostedProductionGraph(): void {
-  const result = spawnSync(packageManagerCommand(), ['audit', '--prod', '--audit-level', 'high', '--json'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
-  if (result.error) fail(`failed to run the production dependency audit: ${result.error.message}`);
-  let report: JsonObject;
+function auditHostedProductionGraph(stage: string): void {
+  const auditRoot = mkdtempSync(path.join(os.tmpdir(), 'od-hosted-pi-audit-'));
   try {
-    report = JSON.parse(result.stdout) as JsonObject;
-  } catch (error) {
-    fail(`production dependency audit did not return JSON: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  const advisories = report.advisories as Record<string, JsonObject> | undefined;
-  const violations: string[] = [];
-  for (const advisory of Object.values(advisories ?? {})) {
-    const severity = advisory.severity;
-    if (severity !== 'high' && severity !== 'critical') continue;
-    for (const finding of (advisory.findings as JsonObject[] | undefined) ?? []) {
-      const paths = (finding.paths as string[] | undefined) ?? [];
-      if (paths.some((dependencyPath) => dependencyPath.startsWith('apps__daemon>'))) {
+    // Running from outside the workspace prevents pnpm from silently auditing
+    // unrelated web/tools importers. The deployed package manifest and its
+    // production lockfile are the complete graph being shipped.
+    copyFileSync(path.join(stage, 'package.json'), path.join(auditRoot, 'package.json'));
+    copyFileSync(path.join(stage, 'node_modules', '.pnpm', 'lock.yaml'), path.join(auditRoot, 'pnpm-lock.yaml'));
+    const result = spawnSync(packageManagerCommand(), ['audit', '--dir', auditRoot, '--prod', '--no-optional', '--audit-level', 'high', '--json'], {
+      cwd: auditRoot,
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    });
+    if (result.error) fail(`failed to run the hosted production dependency audit: ${result.error.message}`);
+    let report: JsonObject;
+    try {
+      report = JSON.parse(result.stdout) as JsonObject;
+    } catch (error) {
+      fail(`hosted production dependency audit did not return JSON: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    const advisories = report.advisories as Record<string, JsonObject> | undefined;
+    const violations: string[] = [];
+    for (const advisory of Object.values(advisories ?? {})) {
+      const severity = advisory.severity;
+      if (severity !== 'high' && severity !== 'critical') continue;
+      for (const finding of (advisory.findings as JsonObject[] | undefined) ?? []) {
         violations.push(`${String(advisory.module_name)}@${String(finding.version)} (${String(severity)})`);
       }
     }
-  }
-  if (violations.length > 0) {
-    fail(`hosted production dependency graph has high/critical advisories: ${[...new Set(violations)].join(', ')}`);
+    if (violations.length > 0 || result.status !== 0) {
+      fail(`hosted production dependency graph has high/critical advisories: ${[...new Set(violations)].join(', ') || 'audit failed'}`);
+    }
+  } finally {
+    rmSync(auditRoot, { recursive: true, force: true });
   }
 }
 
@@ -204,18 +337,91 @@ function parseOutput(): string {
 function build(stage: string): void {
   const tmpRoot = path.join(repoRoot, '.tmp');
   const relative = path.relative(tmpRoot, stage);
-  if (stage === repoRoot || path.isAbsolute(relative) || relative.startsWith(`..${path.sep}`) || existsSync(stage)) {
+  const deployStage = `${stage}.deploy-${process.pid}`;
+  if (stage === repoRoot || path.isAbsolute(relative) || relative.startsWith(`..${path.sep}`) || existsSync(stage) || existsSync(deployStage)) {
     fail(`refusing to overwrite output outside a fresh .tmp directory: ${stage}`);
   }
   mkdirSync(path.dirname(stage), { recursive: true });
   runBuildCommand(['--filter', '@open-design/daemon', 'build']);
-  runBuildCommand(['--filter', '@open-design/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', stage]);
+  runBuildCommand(['--filter', '@open-design/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', deployStage]);
+  removeWorkspaceSelfLink(deployStage);
+  relocateTree(deployStage, stage);
+  rmSync(deployStage, { recursive: true, force: true });
+  verifyRelocatableTree(stage);
   verifyArtifact(stage, true);
-  auditHostedProductionGraph();
+  auditHostedProductionGraph(stage);
   process.stdout.write(`Hosted Pi artifact staged at ${stage}\n`);
 }
 
 type Child = ReturnType<typeof spawn>;
+
+const HOSTED_PI_FIXTURE_PROVIDER = `
+const usage = {
+  input: 3,
+  output: 2,
+  cacheRead: 0,
+  cacheWrite: 0,
+  totalTokens: 5,
+  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+};
+function message(stopReason = 'stop') {
+  return {
+    role: 'assistant',
+    content: [{ type: 'text', text: stopReason === 'stop' ? 'hosted fixture response' : '' }],
+    api: 'openai-completions',
+    provider: 'hosted-fixture',
+    model: 'fixture-model',
+    usage,
+    stopReason,
+    timestamp: Date.now(),
+  };
+}
+function stream(options = {}) {
+  let final = message();
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 250));
+  const events = async function* () {
+    if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
+    yield { type: 'start', partial: final };
+    await pause();
+    if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
+    yield { type: 'text_start', contentIndex: 0, partial: final };
+    await pause();
+    yield { type: 'text_delta', contentIndex: 0, delta: 'hosted fixture response', partial: final };
+    await pause();
+    yield { type: 'text_end', contentIndex: 0, content: 'hosted fixture response', partial: final };
+    await pause();
+    yield { type: 'done', reason: 'stop', message: final };
+  };
+  return { [Symbol.asyncIterator]: events, result: async () => final };
+}
+export default function hostedPiFixtureProvider(pi) {
+  pi.registerProvider({
+    id: 'hosted-fixture',
+    name: 'Hosted fixture',
+    auth: { apiKey: { name: 'Hosted fixture', check: async () => ({ type: 'api_key', source: 'fixture' }), resolve: async () => ({ auth: { apiKey: 'fixture' }, source: 'fixture' }) } },
+    getModels: () => [{
+      id: 'fixture-model', name: 'Hosted fixture', api: 'openai-completions', provider: 'hosted-fixture', baseUrl: 'http://127.0.0.1', reasoning: false, input: ['text'],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 4096, maxTokens: 256,
+      compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false, supportsUsageInStreaming: true, supportsStrictMode: false, maxTokensField: 'max_tokens' },
+    }],
+    stream: (_model, _context, options) => stream(options),
+    streamSimple: (_model, _context, options) => stream(options),
+  });
+}
+`;
+
+const HOSTED_PI_NETWORK_GUARD = `
+const fs = require('node:fs');
+fs.writeFileSync(process.env.HOSTED_PI_GUARD_MARKER, 'loaded');
+const deny = () => { throw new Error('hosted Pi smoke attempted network or process execution'); };
+global.fetch = deny;
+for (const name of ['node:http', 'node:https', 'node:net', 'node:tls']) {
+  const mod = require(name);
+  for (const method of ['request', 'get', 'connect', 'createConnection']) if (method in mod) mod[method] = deny;
+}
+const childProcess = require('node:child_process');
+for (const method of ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork']) childProcess[method] = deny;
+`;
 
 function send(child: Child, value: JsonObject): void {
   child.stdin?.write(`${JSON.stringify(value)}\n`);
@@ -224,29 +430,33 @@ function send(child: Child, value: JsonObject): void {
 async function runRpcSmoke(stage: string): Promise<void> {
   const runtimeDir = path.join(stage, 'dist', 'runtimes');
   const fixturePath = path.join(runtimeDir, 'hosted-pi-fixture-provider.ts');
-  copyFileSync(path.join(repoRoot, 'apps', 'daemon', 'tests', 'fixtures', 'hosted-pi-fixture-provider.ts'), fixturePath);
   const runtime = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-runtime.js')).href);
   const brokerModule = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-broker.js')).href);
   const smokeRoot = path.join(os.tmpdir(), `od-hosted-pi-smoke-${process.pid}-${Date.now()}`);
   const project = path.join(smokeRoot, 'project');
   const runtimeRoot = path.join(smokeRoot, 'runtime');
   const sessionDir = path.join(smokeRoot, 'sessions');
+  const networkGuardPath = path.join(smokeRoot, 'deny-runtime.cjs');
+  const networkGuardMarker = path.join(smokeRoot, 'network-guard.loaded');
   mkdirSync(project, { recursive: true });
   mkdirSync(runtimeRoot, { recursive: true });
   mkdirSync(sessionDir, { recursive: true });
+  writeFileSync(fixturePath, HOSTED_PI_FIXTURE_PROVIDER);
+  writeFileSync(networkGuardPath, HOSTED_PI_NETWORK_GUARD);
   writeFileSync(path.join(project, 'fixture.txt'), 'fixture');
   const broker = await brokerModule.createHostedPiBroker({
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
   });
   const invocation = runtime.createHostedPiInvocation({
-    packageRoot: path.join(stage, 'node_modules', '@earendil-works', 'pi-coding-agent'),
     cwd: project,
     sessionDir,
     model: 'hosted-fixture/fixture-model',
     broker,
+    extensions: [fixturePath],
   });
-  invocation.args.push('--extension', fixturePath);
+  invocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
+  invocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
   const child = spawn(invocation.command, invocation.args, {
     cwd: invocation.cwd,
     env: invocation.env,
@@ -325,6 +535,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
     send(child, { id: 1, type: 'get_state' });
     const state = await waitForLine((line) => line.type === 'response' && line.id === 1);
     if (state.success !== true || !(state.data as JsonObject | undefined)?.sessionFile) fail('get_state did not return a session reference');
+    if (!existsSync(networkGuardMarker)) fail('runtime network/process guard was not loaded');
     const sessionFile = (state.data as JsonObject).sessionFile as string;
 
     send(child, { id: 2, type: 'prompt', message: 'deterministic fixture turn' });
@@ -375,8 +586,18 @@ async function runRpcSmoke(stage: string): Promise<void> {
 
 async function check(stage: string): Promise<void> {
   verifyArtifact(stage, false);
-  auditHostedProductionGraph();
-  await runRpcSmoke(stage);
+  verifyRelocatableTree(stage);
+  const extractedRoot = mkdtempSync(path.join(os.tmpdir(), 'od-hosted-pi-extracted-'));
+  const extracted = path.join(extractedRoot, 'artifact');
+  try {
+    relocateTree(stage, extracted);
+    verifyRelocatableTree(extracted);
+    verifyArtifact(extracted, false);
+    auditHostedProductionGraph(extracted);
+    await runRpcSmoke(extracted);
+  } finally {
+    rmSync(extractedRoot, { recursive: true, force: true });
+  }
   process.stdout.write(`Hosted Pi artifact check passed for ${process.platform}/${process.arch}\n`);
 }
 

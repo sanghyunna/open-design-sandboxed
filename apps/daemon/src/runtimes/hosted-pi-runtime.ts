@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,8 +5,6 @@ import { fileURLToPath } from 'node:url';
 export const HOSTED_PI_PACKAGE_NAME = '@earendil-works/pi-coding-agent';
 export const HOSTED_PI_PACKAGE_VERSION = '0.83.0';
 export const HOSTED_PI_RPC_ENTRYPOINT = path.join('dist', 'rpc-entry.js');
-
-const require = createRequire(import.meta.url);
 
 export type HostedPiPackage = {
   packageRoot: string;
@@ -25,6 +22,8 @@ export type HostedPiInvocationOptions = {
     token: string;
     extensionPath: string;
   };
+  /** Server-owned extensions, primarily for deterministic artifact fixtures. */
+  extensions?: readonly string[];
 };
 
 export type HostedPiInvocation = {
@@ -38,8 +37,26 @@ export type HostedPiInvocation = {
   sessionDir: string;
 };
 
+export type HostedPiRuntimeRequest = {
+  runId: string;
+  projectId: string;
+  projectRoot: string;
+  cwd: string;
+  model?: string | null;
+  thinking?: string | null;
+};
+
+export type HostedPiRuntimeHandle = {
+  invocation: HostedPiInvocation;
+  close?: () => Promise<void>;
+};
+
+export type HostedPiRuntimeAdapter = (
+  request: HostedPiRuntimeRequest,
+) => Promise<HostedPiRuntimeHandle>;
+
 function defaultPackageRoot(): string {
-  const packageEntry = require.resolve(HOSTED_PI_PACKAGE_NAME);
+  const packageEntry = fileURLToPath(import.meta.resolve(`${HOSTED_PI_PACKAGE_NAME}/rpc-entry`));
   return path.resolve(path.dirname(packageEntry), '..');
 }
 
@@ -117,20 +134,20 @@ function appendValue(args: string[], flag: string, value: string | null | undefi
   if (typeof value === 'string' && value.length > 0) args.push(flag, value);
 }
 
-function resolveOwnedBrokerExtension(input: string): string {
+function resolveOwnedExtension(input: string, label: string): string {
   if (!path.isAbsolute(input) || !existsSync(input)) {
-    throw new Error('hosted Pi broker extension is unavailable');
+    throw new Error(`hosted Pi ${label} is unavailable`);
   }
   let resolved: string;
   try {
     if (!statSync(input).isFile()) throw new Error('not a file');
     resolved = realpathSync(input);
   } catch (error) {
-    throw new Error(`hosted Pi broker extension is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`hosted Pi ${label} is unavailable: ${error instanceof Error ? error.message : String(error)}`);
   }
   const runtimeRoot = realpathSync(path.dirname(fileURLToPath(import.meta.url)));
   if (!pathInside(runtimeRoot, resolved)) {
-    throw new Error('hosted Pi broker extension must be repository-owned');
+    throw new Error(`hosted Pi ${label} must be repository-owned`);
   }
   return resolved;
 }
@@ -163,15 +180,21 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
     '--session-dir', sessionDir,
   ];
   const brokerEnv: NodeJS.ProcessEnv = {};
+  const ownedExtensions: string[] = [];
   if (options.broker) {
-    const extensionPath = resolveOwnedBrokerExtension(options.broker.extensionPath);
+    const extensionPath = resolveOwnedExtension(options.broker.extensionPath, 'broker extension');
     if (!path.isAbsolute(options.broker.socketPath) || options.broker.token.length === 0) {
       throw new Error('hosted Pi broker connection is invalid');
     }
-    args.push('--extension', extensionPath, '--tools', 'od_hosted_broker');
+    ownedExtensions.push(extensionPath);
     brokerEnv.OD_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
     brokerEnv.OD_HOSTED_PI_BROKER_TOKEN = options.broker.token;
   }
+  for (const extension of options.extensions ?? []) {
+    ownedExtensions.push(resolveOwnedExtension(extension, 'repository extension'));
+  }
+  for (const extension of ownedExtensions) args.push('--extension', extension);
+  if (options.broker) args.push('--tools', 'od_hosted_broker');
   appendValue(args, '--model', options.model);
   appendValue(args, '--thinking', options.thinking);
 

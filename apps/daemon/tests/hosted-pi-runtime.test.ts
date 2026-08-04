@@ -33,6 +33,12 @@ function fakePiPackage(): { root: string; entrypoint: string; project: string; s
 }
 
 describe('hosted Pi runtime', () => {
+  test('resolves the installed package through its ESM RPC export by default', () => {
+    const resolved = resolveHostedPiEntrypoint();
+    assert.match(resolved.entrypoint, /rpc-entry\.js$/i);
+    assert.equal(resolved.packageRoot.endsWith('pi-coding-agent'), true);
+  });
+
   test('resolves only the pinned package-local RPC entrypoint', () => {
     const fixture = fakePiPackage();
     const resolved = resolveHostedPiEntrypoint(fixture.root);
@@ -120,5 +126,20 @@ describe('hosted Pi runtime', () => {
     } finally {
       await broker.close();
     }
+  });
+
+  test('rejects project-controlled extension paths', () => {
+    const fixture = fakePiPackage();
+    const extension = join(fixture.project, 'project-extension.ts');
+    writeFileSync(extension, 'export default () => undefined;');
+    assert.throws(
+      () => createHostedPiInvocation({
+        packageRoot: fixture.root,
+        cwd: fixture.project,
+        sessionDir: fixture.sessionDir,
+        extensions: [extension],
+      }),
+      /repository-owned/i,
+    );
   });
 });

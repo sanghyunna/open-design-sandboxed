@@ -3,8 +3,11 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import {
   existsSync,
   chmodSync,
+  closeSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -276,6 +279,33 @@ function writeProjectFile(root: string, target: ResolvedTarget, content: string)
   }
 }
 
+function readProjectFile(root: string, target: ResolvedTarget): string {
+  const file = openSync(target.path, 'r');
+  try {
+    const opened = fstatSync(file);
+    if (!opened.isFile() || opened.size > MAX_FILE_BYTES) throw new Error('project file is not a regular file');
+    const content = readFileSync(file, 'utf8');
+    const current = lstatSync(target.path);
+    const resolved = realpathSync(target.path);
+    if (current.isSymbolicLink() || resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
+      throw new Error('project target escaped');
+    }
+    return content;
+  } finally {
+    closeSync(file);
+  }
+}
+
+function listProjectDirectory(root: string, target: ResolvedTarget): string[] {
+  const entries = readdirSync(target.path, { withFileTypes: true });
+  const resolved = realpathSync(target.path);
+  if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
+    throw new Error('project directory escaped');
+  }
+  if (entries.some((entry) => entry.isSymbolicLink())) throw new Error('linked project entries are not allowed');
+  return entries.map((entry) => entry.name).sort();
+}
+
 async function listen(server: Server, socketPath: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const onError = (error: Error) => {
@@ -344,15 +374,17 @@ export async function createHostedPiBroker(options: {
 
     if (operation === 'project:file:list') {
       if (!target.exists || !target.stat?.isDirectory()) return deny('BROKER_PATH_DENIED', 'list target must be a directory');
-      const entries = readdirSync(target.path, { withFileTypes: true });
-      if (entries.some((entry) => entry.isSymbolicLink())) return deny('BROKER_PATH_DENIED', 'linked project entries are not allowed');
-      return { ok: true, operation, entries: entries.map((entry) => entry.name).sort() };
+      try {
+        return { ok: true, operation, entries: listProjectDirectory(grant.projectRoot, target) };
+      } catch {
+        return deny('BROKER_PATH_DENIED', 'linked project entries are not allowed');
+      }
     }
     if (operation === 'project:file:read') {
       if (!target.exists || !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'read target must be a regular file');
       if (target.stat.size > MAX_FILE_BYTES) return deny('BROKER_LIMIT', 'project file is too large');
       try {
-        return { ok: true, operation, content: readFileSync(target.path, 'utf8') };
+        return { ok: true, operation, content: readProjectFile(grant.projectRoot, target) };
       } catch {
         return deny('BROKER_READ_FAILED', 'project file could not be read');
       }
