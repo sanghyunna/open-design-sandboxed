@@ -1,5 +1,5 @@
 import express from 'express';
-import { readdir, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import type http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -52,6 +52,7 @@ async function listen(
       };
   app.use(
     createHostedRequestBoundary({
+      testComposition: true,
       resolveIdentity: effectiveResolver,
     }),
   );
@@ -92,6 +93,21 @@ describe('hosted request boundary', () => {
 
     await expect(fetch(`${baseUrl}/api/health`)).resolves.toMatchObject({ status: 200 });
     await expect(fetch(`${baseUrl}/api/projects/a`)).resolves.toMatchObject({ status: 503 });
+  });
+
+  it('does not activate data routes for an unmarked identity resolver', async () => {
+    const app = express();
+    app.use(createHostedRequestBoundary({ resolveIdentity: () => context }));
+    app.get('/api/projects/:id', (_req, res) => res.json({ ok: true }));
+    const server = await new Promise<http.Server>((resolve) => {
+      const next = app.listen(0, '127.0.0.1', () => resolve(next));
+    });
+    servers.push(server);
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('server did not bind');
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/projects/a`);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: { code: 'HOSTED_AUTH_UNAVAILABLE' } });
   });
 
   it('attaches immutable server identity to an allowed request', async () => {
@@ -296,6 +312,7 @@ describe('hosted request boundary', () => {
       port: 0,
       returnServer: true,
       hostedRequestBoundary: {
+        testComposition: true,
         resolveIdentity: () => ({
           userKey: 'identity:multipart',
           storageKey: 'multipart',
@@ -338,10 +355,12 @@ describe('hosted request boundary', () => {
   });
 
   it('replays representative hosted workflows twice with deterministic route assertions', async () => {
+    const fixture = await installHostedClaudeFixture();
     const started = (await startServer({
       port: 0,
       returnServer: true,
       hostedRequestBoundary: {
+        testComposition: true,
         resolveIdentity: () => ({
           userKey: 'identity:trace',
           storageKey: 'trace',
@@ -424,7 +443,10 @@ describe('hosted request boundary', () => {
         const response = await fetch(`${started.url}/api/runs/${runId}`);
         if (response.status === 200) {
           const body = await jsonBody(response);
-          if (['succeeded', 'failed', 'canceled'].includes(body.status)) return;
+          if (body.status === 'succeeded') return;
+          if (['failed', 'canceled'].includes(body.status)) {
+            throw new Error(`run ${runId} ended ${String(body.status)}: ${JSON.stringify(body)}`);
+          }
         }
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
@@ -467,6 +489,11 @@ describe('hosted request boundary', () => {
           ['POST', `/api/projects/${projectId}/handoff`],
           ['GET', '/api/analytics/config'],
           ['POST', '/api/observability/event'],
+          ['GET', `/api/runs/${projectId}/devloop-iterations`],
+          ['POST', `/api/runs/${projectId}/replay`],
+          ['POST', `/api/projects/${projectId}/conversations/conversation/rollback`],
+          ['POST', `/api/projects/${projectId}/conversations/conversation/agent-rollback-request`],
+          ['POST', `/api/projects/${projectId}/conversations/conversation/agent-rollback-execute`],
         ] as const) {
           const denied = await request(method, requestPath);
           expect(denied.status).toBe(404);
@@ -477,42 +504,100 @@ describe('hosted request boundary', () => {
         const projectResponse = await fetch(`${started.url}/api/projects`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id: projectId, name: 'Hosted trace', skipDiscoveryBrief: true }),
+          body: JSON.stringify({
+            id: projectId,
+            name: 'Hosted trace',
+            skipDiscoveryBrief: true,
+            pluginId: fixture.pluginId,
+          }),
         });
         const projectBody = await jsonBody(projectResponse);
         expect(projectResponse.status).toBe(200);
         expect(projectBody.conversationId).toEqual(expect.any(String));
+        expect(projectBody.appliedPluginSnapshotId).toEqual(expect.any(String));
+        const snapshotId = projectBody.appliedPluginSnapshotId as string;
         const conversationId = projectBody.conversationId as string;
 
-        records.push(await request('GET', `/api/projects/${projectId}`));
-        const genericGenUi = await request('POST', `/api/projects/${projectId}/genui/prefill`, {
-          snapshotId: 'hosted-trace-snapshot',
+        const projectReadResponse = await fetch(`${started.url}/api/projects/${projectId}`);
+        expect(projectReadResponse.status).toBe(200);
+        const projectReadBody = await jsonBody(projectReadResponse);
+        expect(projectReadBody.project).toMatchObject({ id: projectId });
+        records.push({ status: projectReadResponse.status });
+        const genericGenUiResponse = await fetch(`${started.url}/api/projects/${projectId}/genui/prefill`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+          snapshotId,
           surfaceId: 'hosted-trace-surface',
           value: { owner: 'Design team', namespace: 'editor-canvas', user: 'display label' },
           schema: { user: { type: 'string' } },
+          }),
         });
-        expect(genericGenUi.code).not.toBe('HOSTED_OWNER_FIELD_FORBIDDEN');
-        records.push(genericGenUi);
-        records.push(await request('POST', `/api/projects/${projectId}/files`, {
-          name: 'index.html',
-          content: '<!doctype html><html><body>Hosted trace</body></html>',
-        }));
-        records.push(await request('GET', `/api/projects/${projectId}/files`));
-        records.push(await request('GET', `/api/projects/${projectId}/files/index.html`));
-        records.push(await request('GET', `/api/projects/${projectId}/files/index.html/preview`));
+        expect(genericGenUiResponse.status).toBe(200);
+        const genericGenUiBody = await jsonBody(genericGenUiResponse);
+        expect(genericGenUiBody.surface).toMatchObject({
+          value: { owner: 'Design team', namespace: 'editor-canvas', user: 'display label' },
+        });
+        records.push({ status: genericGenUiResponse.status });
+        const fileWriteResponse = await fetch(`${started.url}/api/projects/${projectId}/files`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            name: 'index.html',
+            content: '<!doctype html><html><body>Hosted trace</body></html>',
+          }),
+        });
+        expect(fileWriteResponse.status).toBe(200);
+        const fileWriteBody = await jsonBody(fileWriteResponse);
+        expect(fileWriteBody.file).toMatchObject({ name: 'index.html' });
+        records.push({ status: fileWriteResponse.status });
+        const filesResponse = await fetch(`${started.url}/api/projects/${projectId}/files`);
+        expect(filesResponse.status).toBe(200);
+        const filesBody = await jsonBody(filesResponse);
+        expect(filesBody.files).toEqual(expect.arrayContaining([
+          expect.objectContaining({ name: 'index.html' }),
+        ]));
+        records.push({ status: filesResponse.status });
+        const fileResponse = await fetch(`${started.url}/api/projects/${projectId}/files/index.html`);
+        expect(fileResponse.status).toBe(200);
+        expect(await fileResponse.text()).toContain('Hosted trace');
+        records.push({ status: fileResponse.status });
+        const filePreviewResponse = await fetch(`${started.url}/api/projects/${projectId}/files/index.html/preview`);
+        expect(filePreviewResponse.status).toBe(415);
+        const filePreviewBody = await jsonBody(filePreviewResponse);
+        expect(filePreviewBody.error?.code).toBe('BAD_REQUEST');
+        expect(filePreviewBody.error?.message).toContain('unsupported preview type');
+        records.push({ status: filePreviewResponse.status, code: filePreviewBody.error?.code });
 
         const previewUrlResponse = await fetch(`${started.url}/api/projects/${projectId}/preview-url?file=index.html`);
         expect(previewUrlResponse.status).toBe(200);
         const previewUrlBody = await jsonBody(previewUrlResponse);
         expect(previewUrlBody.url).toEqual(expect.any(String));
         records.push({ status: previewUrlResponse.status });
-        records.push(await request('GET', previewUrlBody.url as string));
-        records.push(await request('GET', `/api/projects/${projectId}/archive`));
-        records.push(await request('GET', `/api/projects/${projectId}/export/manifest`));
+        const previewResponse = await fetch(`${started.url}${previewUrlBody.url as string}`);
+        expect(previewResponse.status).toBe(200);
+        expect(await previewResponse.text()).toContain('Hosted trace');
+        records.push({ status: previewResponse.status });
+        const archiveResponse = await fetch(`${started.url}/api/projects/${projectId}/archive`);
+        expect(archiveResponse.status).toBe(200);
+        expect(archiveResponse.headers.get('content-type')).toContain('application/zip');
+        expect((await archiveResponse.arrayBuffer()).byteLength).toBeGreaterThan(0);
+        records.push({ status: archiveResponse.status });
+        const manifestResponse = await fetch(`${started.url}/api/projects/${projectId}/export/manifest`);
+        expect(manifestResponse.status).toBe(200);
+        expect((await jsonBody(manifestResponse)).files).toEqual(expect.arrayContaining([
+          expect.objectContaining({ name: 'index.html' }),
+        ]));
+        records.push({ status: manifestResponse.status });
 
-        records.push(await request('POST', '/api/artifacts/lint', {
-          html: '<!doctype html><html><body>Lint trace</body></html>',
-        }));
+        const lintResponse = await fetch(`${started.url}/api/artifacts/lint`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ html: '<!doctype html><html><body>Lint trace</body></html>' }),
+        });
+        expect(lintResponse.status).toBe(200);
+        expect((await jsonBody(lintResponse)).findings).toEqual(expect.any(Array));
+        records.push({ status: lintResponse.status });
         const artifactResponse = await fetch(`${started.url}/api/artifacts/save`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -524,6 +609,8 @@ describe('hosted request boundary', () => {
         const artifactBody = await jsonBody(artifactResponse);
         expect(artifactResponse.status).toBe(200);
         artifactPath = typeof artifactBody.path === 'string' ? artifactBody.path : undefined;
+        expect(artifactPath).toEqual(expect.any(String));
+        expect(artifactBody.url).toEqual(expect.any(String));
         records.push({ status: artifactResponse.status });
 
         const grant = toolTokenRegistry.mint({
@@ -549,32 +636,13 @@ describe('hosted request boundary', () => {
           toolTokenRegistry.revokeToken(grant.token, 'manual');
         }
 
-        const chatResponse = await fetch(`${started.url}/api/chat`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            projectId,
-            conversationId,
-            agentId: 'missing-agent',
-            message: 'hosted trace prompt',
-            sessionMode: 'design',
-          }),
-        });
-        expect(chatResponse.status).toBe(200);
-        expect(chatResponse.headers.get('content-type')).toContain('text/event-stream');
-        const chatReader = chatResponse.body?.getReader();
-        expect(chatReader).toBeDefined();
-        await chatReader!.read();
-        await chatReader!.cancel();
-        records.push({ status: chatResponse.status, stream: true });
-
         const runResponse = await fetch(`${started.url}/api/runs`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             projectId,
             conversationId,
-            agentId: 'missing-agent',
+            agentId: 'claude',
             message: 'hosted trace run',
             sessionMode: 'design',
           }),
@@ -587,6 +655,11 @@ describe('hosted request boundary', () => {
         records.push({ status: runResponse.status });
         await waitForTerminal(runId);
         records.push(await request('GET', `/api/runs/${runId}`));
+        const firstRunEvents = await fetch(`${started.url}/api/runs/${runId}/events`);
+        expect(firstRunEvents.status).toBe(200);
+        const firstRunEventText = await firstRunEvents.text();
+        expect(firstRunEventText).toContain('tool_use');
+        expect(firstRunEventText).toContain('hosted fixture response');
         records.push(await openSse(`/api/runs/${runId}/events`, {
           headers: { 'Last-Event-ID': '1' },
         }));
@@ -601,9 +674,8 @@ describe('hosted request boundary', () => {
           body: JSON.stringify({
             projectId,
             conversationId,
-            agentId: 'missing-agent',
+            agentId: 'claude',
             message: 'hosted trace resumed prompt',
-            resumeSessionId: 'hosted-trace-session',
             sessionMode: 'design',
           }),
         });
@@ -614,13 +686,58 @@ describe('hosted request boundary', () => {
         runIds.push(resumedRunId);
         records.push({ status: resumedResponse.status });
         await waitForTerminal(resumedRunId);
+        const resumedEvents = await fetch(`${started.url}/api/runs/${resumedRunId}/events`);
+        expect(resumedEvents.status).toBe(200);
+        const resumedEventText = await resumedEvents.text();
+        expect(resumedEventText).toContain('tool_use');
+        const fixtureArgs = (await readFile(fixture.argsLogPath, 'utf8'))
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map((line) => JSON.parse(line) as string[]);
+        const firstArgs = fixtureArgs.find((args) => args.includes('--session-id'));
+        const resumeArgs = fixtureArgs.find((args) => args.includes('--resume'));
+        const firstSessionIndex = firstArgs?.indexOf('--session-id') ?? -1;
+        const resumeIndex = resumeArgs?.indexOf('--resume') ?? -1;
+        expect(firstSessionIndex).toBeGreaterThanOrEqual(0);
+        expect(resumeIndex).toBeGreaterThanOrEqual(0);
+        expect(firstArgs?.[firstSessionIndex + 1]).toEqual(expect.any(String));
+        expect(resumeArgs?.[resumeIndex + 1]).toBe(firstArgs?.[firstSessionIndex + 1]);
         records.push(await openSse(`/api/runs/${resumedRunId}/events`, {
           headers: { 'Last-Event-ID': '1' },
         }));
         records.push(await openSse(`/api/projects/${projectId}/events`));
+
+        const chatResponse = await fetch(`${started.url}/api/chat`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            conversationId,
+            agentId: 'claude',
+            message: 'hosted trace chat prompt',
+            sessionMode: 'design',
+          }),
+        });
+        expect(chatResponse.status).toBe(200);
+        expect(chatResponse.headers.get('content-type')).toContain('text/event-stream');
+        const chatText = await chatResponse.text();
+        expect(chatText).toContain('hosted fixture response');
+        expect(chatText).toContain('tool_use');
+        records.push({ status: chatResponse.status, stream: true });
       } finally {
         for (const runId of runIds) {
           await request('POST', `/api/runs/${runId}/cancel`).catch(() => undefined);
+        }
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const checkpointResponse = await fetch(`${started.url}/api/projects/${projectId}/checkpoints`);
+          if (checkpointResponse.status === 200) {
+            const checkpointBody = await jsonBody(checkpointResponse);
+            if (Array.isArray(checkpointBody.checkpoints) && checkpointBody.checkpoints.length >= runIds.length * 2) {
+              break;
+            }
+          }
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
         await request('DELETE', `/api/projects/${projectId}`).catch(() => undefined);
         if (artifactPath) await rm(path.dirname(artifactPath), { recursive: true, force: true });
@@ -636,6 +753,108 @@ describe('hosted request boundary', () => {
     } finally {
       await started.shutdown?.();
       await new Promise<void>((resolve) => started.server.close(() => resolve()));
+      await fixture.restore();
     }
   });
 });
+
+async function installHostedClaudeFixture(): Promise<{
+  pluginId: string;
+  argsLogPath: string;
+  restore: () => Promise<void>;
+}> {
+  const binDir = await mkdtemp(path.join(os.tmpdir(), 'od-hosted-boundary-claude-'));
+  const { bin, argsLogPath } = await writeHostedClaudeFixture(binDir);
+  const local = await startServer({ port: 0, returnServer: true }) as {
+    url: string;
+    server: http.Server;
+    shutdown?: () => Promise<void> | void;
+  };
+  let handedOff = false;
+  try {
+    const previousResponse = await fetch(`${local.url}/api/app-config`);
+    const previous = await previousResponse.json() as { config?: Record<string, unknown> };
+    const configured = await fetch(`${local.url}/api/app-config`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agentId: 'claude',
+        agentCliEnv: { claude: { CLAUDE_BIN: bin } },
+      }),
+    });
+    if (configured.status !== 200) throw new Error(`fixture config failed: ${configured.status}`);
+    const pluginsResponse = await fetch(`${local.url}/api/plugins`);
+    const pluginsBody = await pluginsResponse.json() as { plugins?: Array<{ id?: string }> };
+    const pluginId = pluginsBody.plugins?.find((plugin) => typeof plugin.id === 'string')?.id;
+    if (!pluginId) throw new Error('hosted fixture could not find a bundled plugin');
+    await local.shutdown?.();
+    await new Promise<void>((resolve) => local.server.close(() => resolve()));
+    handedOff = true;
+    return {
+      pluginId,
+      argsLogPath,
+      restore: async () => {
+        const restoreServer = await startServer({ port: 0, returnServer: true }) as {
+          url: string;
+          server: http.Server;
+          shutdown?: () => Promise<void> | void;
+        };
+        try {
+          await fetch(`${restoreServer.url}/api/app-config`, {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              agentId: Object.hasOwn(previous.config ?? {}, 'agentId')
+                ? previous.config?.agentId
+                : null,
+              agentCliEnv: Object.hasOwn(previous.config ?? {}, 'agentCliEnv')
+                ? previous.config?.agentCliEnv
+                : null,
+            }),
+          });
+        } finally {
+          await restoreServer.shutdown?.();
+          await new Promise<void>((resolve) => restoreServer.server.close(() => resolve()));
+          await rm(binDir, { recursive: true, force: true });
+        }
+      },
+    };
+  } finally {
+    if (!handedOff) {
+      await local.shutdown?.();
+      await new Promise<void>((resolve) => local.server.close(() => resolve()));
+      await rm(binDir, { recursive: true, force: true });
+    }
+  }
+}
+
+async function writeHostedClaudeFixture(dir: string): Promise<{
+  bin: string;
+  argsLogPath: string;
+}> {
+  const runnerPath = path.join(dir, 'claude-fixture.cjs');
+  const argsLogPath = path.join(dir, 'args.jsonl');
+  const body = `const fs = require('node:fs');
+const argsLogPath = ${JSON.stringify(argsLogPath)};
+if (process.argv.includes('--version')) { console.log('claude-code hosted-fixture'); process.exit(0); }
+if (process.argv.includes('--help')) { console.log('Usage: claude -p --input-format stream-json --output-format stream-json --verbose --add-dir DIR'); process.exit(0); }
+fs.appendFileSync(argsLogPath, JSON.stringify(process.argv.slice(2)) + '\\n');
+console.log(JSON.stringify({ type: 'system', subtype: 'init', model: 'hosted-fixture', session_id: 'hosted-trace-session' }));
+console.log(JSON.stringify({ type: 'assistant', message: { id: 'hosted-fixture-message', content: [
+  { type: 'tool_use', id: 'hosted-fixture-tool', name: 'Read', input: { path: 'index.html' } },
+  { type: 'text', text: 'hosted fixture response' }
+], stop_reason: 'end_turn' } }));
+console.log(JSON.stringify({ type: 'result', usage: { input_tokens: 1, output_tokens: 1 }, stop_reason: 'end_turn' }));
+setTimeout(() => process.exit(0), 20);
+`;
+  await writeFile(runnerPath, body, 'utf8');
+  if (process.platform === 'win32') {
+    const cmdPath = path.join(dir, 'claude-fixture.cmd');
+    await writeFile(cmdPath, `@echo off\n"${process.execPath}" "${runnerPath}" %*\n`, 'utf8');
+    return { bin: cmdPath, argsLogPath };
+  }
+  const bin = path.join(dir, 'claude-fixture');
+  await writeFile(bin, `#!/usr/bin/env node\n${body}`, 'utf8');
+  await chmod(bin, 0o755);
+  return { bin, argsLogPath };
+}
