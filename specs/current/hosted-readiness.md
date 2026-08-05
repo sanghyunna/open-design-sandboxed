@@ -1,7 +1,8 @@
 # Hosted readiness contract (Issue #63)
 
-Status: Wave 0 frozen. F0 is commit `28b24f79`; C2 is commit `23eadb71` in
-[PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR03 may
+Status: Wave 0 frozen. F0 is commit `28b24f79`; C2 is commit `23eadb71` and
+PR03 is commit `031a2273` in
+[PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR04 may
 begin under the required-check policy below.
 
 This document is the executable review contract for the local hosted composition in
@@ -353,7 +354,7 @@ Each row is filled only after checking out and validating that exact commit.
 | Boundary | Commit | Windows | Linux | Focused/prior suites | Review/enforcement |
 | --- | --- | --- | --- | --- | --- |
 | C2 | `23eadb71` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402933808) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934003) | 111 focused daemon tests; 6 tools-pack workspace-build tests; daemon/tools-pack typechecks; staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934008) | Spec `CLEAN`; standards `CLEAN`; protection verified |
-| PR03 | pending | n/a | n/a | pending | pending |
+| PR03 | `031a2273` | n/a | n/a | 127 focused daemon tests; 6 tools-pack workspace-build tests; `pnpm guard`; `pnpm typecheck` | Spec `CLEAN`; standards `CLEAN` |
 | PR04 | pending | pending | pending | pending | pending |
 | PR05 | pending | n/a | n/a | pending | pending |
 | PR06 | pending | pending | pending | pending | pending |
