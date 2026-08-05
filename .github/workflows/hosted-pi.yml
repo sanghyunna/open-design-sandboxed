@@ -1,0 +1,75 @@
+name: Hosted Pi artifact
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/hosted-pi.yml'
+      - 'apps/daemon/**'
+      - 'packages/**'
+      - 'tools/pack/src/hosted-pi-artifact.ts'
+      - 'tools/pack/src/**'
+      - 'tools/pack/package.json'
+      - 'nix/**'
+      - 'flake.nix'
+      - 'scripts/update-nix-pnpm-deps-hash.ts'
+      - 'docs/hosted-pi-third-party.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  hosted-pi:
+    name: ${{ matrix.os }} x64
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Assert supported architecture
+        run: node -e "if (process.arch !== 'x64') process.exit(1)"
+      - name: Install build dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Stage hosted artifact
+        run: pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
+      - name: Execute staged artifact smoke suite
+        run: pnpm --filter @open-design/tools-pack hosted:pi:check -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hosted-pi-${{ matrix.os }}
+          path: .tmp/hosted-pi-artifact-${{ matrix.os }}
+          if-no-files-found: error
+
+  nix-packaging:
+    name: Nix dependency hash and flake check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Install build dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Refresh and validate Nix pnpm dependency hash
+        run: |
+          pnpm nix:update-hash
+          nix flake check --print-build-logs --keep-going
+          git diff --exit-code -- nix/pnpm-deps.nix

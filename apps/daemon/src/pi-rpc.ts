@@ -46,6 +46,7 @@ type PiRpcSessionOptions = {
   child: ChildProcess;
   prompt: string;
   cwd?: string;
+  sessionDir?: string;
   model?: string | null;
   send: SendAgentEvent;
   imagePaths?: string[];
@@ -324,9 +325,12 @@ export function mapPiRpcEvent(
 
 type PiSessionFileSnapshot = Map<string, { mtimeMs: number; size: number }>;
 
-function readPiSessionFiles(cwd: string | undefined): Array<{ path: string; mtimeMs: number; size: number }> {
+function readPiSessionFiles(
+  cwd: string | undefined,
+  sessionDir?: string,
+): Array<{ path: string; mtimeMs: number; size: number }> {
   if (typeof cwd !== 'string' || cwd.length === 0) return [];
-  const sessionsDir = path.join(cwd, '.pi', 'sessions');
+  const sessionsDir = sessionDir || path.join(cwd, '.pi', 'sessions');
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
@@ -347,9 +351,9 @@ function readPiSessionFiles(cwd: string | undefined): Array<{ path: string; mtim
   return files;
 }
 
-function snapshotPiSessionFiles(cwd: string | undefined): PiSessionFileSnapshot {
+function snapshotPiSessionFiles(cwd: string | undefined, sessionDir?: string): PiSessionFileSnapshot {
   const snapshot: PiSessionFileSnapshot = new Map();
-  for (const file of readPiSessionFiles(cwd)) {
+  for (const file of readPiSessionFiles(cwd, sessionDir)) {
     snapshot.set(file.path, { mtimeMs: file.mtimeMs, size: file.size });
   }
   return snapshot;
@@ -369,8 +373,9 @@ function snapshotPiSessionFiles(cwd: string | undefined): PiSessionFileSnapshot 
 function resolveSessionPathChangedSince(
   cwd: string | undefined,
   before: PiSessionFileSnapshot,
+  sessionDir?: string,
 ): string | null {
-  const changed = readPiSessionFiles(cwd).filter((file) => {
+  const changed = readPiSessionFiles(cwd, sessionDir).filter((file) => {
     const previous = before.get(file.path);
     return !previous || file.mtimeMs > previous.mtimeMs || file.size !== previous.size;
   });
@@ -398,6 +403,7 @@ function resolveSessionPathChangedSince(
  * @param {import('node:child_process').ChildProcess} opts.child  - spawned pi process
  * @param {string} opts.prompt   - composed user message
  * @param {string} [opts.cwd]    - working directory (used to resolve .pi/sessions/)
+ * @param {string} [opts.sessionDir] - daemon-owned session directory override
  * @param {string|null} [opts.model] - model id (null = default)
  * @param {string[]} [opts.imagePaths] - absolute paths to image files for multimodal input
  * @param {string} [opts.uploadRoot] - root directory that image paths must remain inside after symlink resolution
@@ -409,6 +415,7 @@ export function attachPiRpcSession({
   child,
   prompt,
   cwd,
+  sessionDir,
   model,
   send,
   imagePaths,
@@ -425,7 +432,7 @@ export function attachPiRpcSession({
   }
 
   const runStartedAt = Date.now();
-  const sessionFilesBeforePrompt = snapshotPiSessionFiles(cwd);
+  const sessionFilesBeforePrompt = snapshotPiSessionFiles(cwd, sessionDir);
   let finished = false;
   let fatal = false;
   const sentFirstToken = { value: false };
@@ -592,7 +599,7 @@ export function attachPiRpcSession({
       // Capture only the session file changed by this run. If another pi
       // process wrote to the shared session directory concurrently, the
       // resolver returns null instead of risking cross-conversation resume.
-      capturedSessionPath = resolveSessionPathChangedSince(cwd, sessionFilesBeforePrompt);
+      capturedSessionPath = resolveSessionPathChangedSince(cwd, sessionFilesBeforePrompt, sessionDir);
       // pi's RPC process stays alive after agent_end (designed for
       // multi-prompt sessions). The daemon's /api/chat is single-shot,
       // so close stdin and let the process exit naturally, or kill it

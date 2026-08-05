@@ -1269,3 +1269,30 @@ test('attachPiRpcSession getLastSessionPath returns null when multiple session f
     await fsp.rm(piDir, { recursive: true, force: true }).catch(() => {});
   }
 });
+
+test('attachPiRpcSession captures sessions from the hosted session directory', async () => {
+  const tmpDir = await import('node:os').then((m) => m.tmpdir());
+  const piDir = path.join(tmpDir, `.pi-test-${Date.now()}-hosted`);
+  const sessionDir = path.join(piDir, 'owned-sessions');
+  const fsp = await import('node:fs/promises');
+  await fsp.mkdir(sessionDir, { recursive: true });
+  try {
+    const send = (_channel: string, _payload: JsonRecord) => {};
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'test',
+      cwd: piDir,
+      sessionDir,
+      send,
+    });
+    const sessionFile = path.join(sessionDir, 'hosted.jsonl');
+    await fsp.writeFile(sessionFile, '{"msg":"hosted"}\n');
+    feedStdoutLines(child, [{ type: 'agent_end' }]);
+    closeStdout(child);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(session.getLastSessionPath(), sessionFile);
+  } finally {
+    await fsp.rm(piDir, { recursive: true, force: true }).catch(() => {});
+  }
+});
