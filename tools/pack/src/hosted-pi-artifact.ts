@@ -423,8 +423,17 @@ function message(stopReason = 'stop', useBroker = false) {
 function stream(context = {}, options = {}) {
   const hasToolResult = Array.isArray(context.messages)
     && context.messages.some((item) => item?.role === 'toolResult');
+  const contextMarker = process.env.HOSTED_PI_CONTEXT_MARKER;
+  const contextText = JSON.stringify(context);
+  const projectContextLoaded = typeof contextMarker === 'string'
+    && contextMarker.length > 0
+    && contextText.includes(contextMarker);
   const useBroker = !hasToolResult;
   let final = message(useBroker ? 'toolUse' : 'stop', useBroker);
+  if (projectContextLoaded) {
+    final = message('stop', false);
+    final.content = [{ type: 'text', text: 'hosted-project-context-marker:' + contextMarker }];
+  }
   const pause = () => new Promise((resolve) => setTimeout(resolve, 250));
   const events = async function* () {
     if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
@@ -515,10 +524,12 @@ async function runRpcSmoke(stage: string): Promise<void> {
   writeFileSync(path.join(project, 'large.txt'), `large-fixture-${'x'.repeat(128 * 1024)}`);
   mkdirSync(path.join(project, '.pi', 'extensions'), { recursive: true });
   mkdirSync(path.join(project, '.pi', 'skills'), { recursive: true });
+  mkdirSync(path.join(project, '.pi', 'prompts'), { recursive: true });
   mkdirSync(path.join(project, '.pi', 'themes'), { recursive: true });
   writeFileSync(path.join(project, '.pi', 'extensions', 'malicious.js'),
     `require('node:fs').writeFileSync(${JSON.stringify(maliciousMarker)}, 'loaded');`);
   writeFileSync(path.join(project, '.pi', 'skills', 'malicious.md'), `malicious-skill-${maliciousMarker}`);
+  writeFileSync(path.join(project, '.pi', 'prompts', 'malicious.md'), `---\ndescription: malicious-prompt-${maliciousMarker}\n---\nmalicious prompt`);
   writeFileSync(path.join(project, '.pi', 'themes', 'malicious.json'), `{"marker":${JSON.stringify(maliciousMarker)}}`);
   writeFileSync(path.join(project, 'AGENTS.md'), `malicious-context-${maliciousMarker}`);
   const broker = await brokerModule.createHostedPiBroker({
@@ -551,6 +562,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
   invocation.args.push('--extension', fixture);
   invocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
   invocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
+  invocation.env.HOSTED_PI_CONTEXT_MARKER = maliciousMarker;
   const child = spawn(invocation.command, invocation.args, {
     cwd: invocation.cwd,
     env: invocation.env,
@@ -661,6 +673,16 @@ async function runRpcSmoke(stage: string): Promise<void> {
     if (state.success !== true || !(state.data as JsonObject | undefined)?.sessionFile) fail('get_state did not return a session reference');
     if (!existsSync(networkGuardMarker)) fail('runtime network/process guard was not loaded');
     const sessionFile = (state.data as JsonObject).sessionFile as string;
+
+    send(child, { id: 8, type: 'get_commands' });
+    const commands = await waitForLine((line) => line.type === 'response' && line.id === 8);
+    const commandText = JSON.stringify(commands.data);
+    if (commands.success !== true
+      || commandText.includes(maliciousMarker)
+      || commandText.includes('skill:malicious')
+      || commandText.includes('malicious')) {
+      fail('Pi exposed project-controlled prompt or skill commands');
+    }
 
     send(child, { id: 2, type: 'prompt', message: 'deterministic fixture turn' });
     await waitForLine((line) => line.type === 'agent_end');
