@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { createConnection } from 'node:net';
 import {
@@ -398,6 +398,7 @@ function build(stage: string): void {
 type Child = ReturnType<typeof spawn>;
 
 const HOSTED_PI_FIXTURE_PROVIDER = `
+import { appendFileSync } from 'node:fs';
 const usage = {
   input: 3,
   output: 2,
@@ -406,12 +407,12 @@ const usage = {
   totalTokens: 5,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
-function message(stopReason = 'stop', useBroker = false) {
+function message(stopReason = 'stop', useBroker = false, text = 'hosted fixture response') {
   return {
     role: 'assistant',
     content: useBroker
       ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'od_hosted_broker', arguments: { operation: 'project:file:read', path: 'large.txt' } }]
-      : [{ type: 'text', text: stopReason === 'stop' ? 'hosted fixture response' : '' }],
+      : [{ type: 'text', text: stopReason === 'stop' ? text : '' }],
     api: 'openai-completions',
     provider: 'hosted-fixture',
     model: 'fixture-model',
@@ -421,15 +422,22 @@ function message(stopReason = 'stop', useBroker = false) {
   };
 }
 function stream(context = {}, options = {}) {
+  if (process.env.HOSTED_PI_PROVIDER_MARKER) {
+    appendFileSync(process.env.HOSTED_PI_PROVIDER_MARKER, 'invoked\\n');
+  }
   const hasToolResult = Array.isArray(context.messages)
     && context.messages.some((item) => item?.role === 'toolResult');
   const contextSentinel = process.env.HOSTED_PI_CONTEXT_SENTINEL;
   const contextText = JSON.stringify(context);
+  const semanticNonce = contextText.match(/semantic-nonce:([0-9a-f-]+)/)?.[1];
+  const responseText = semanticNonce ? 'semantic-nonce:' + semanticNonce : 'semantic-nonce:missing';
   const projectContextLoaded = typeof contextSentinel === 'string'
     && contextSentinel.length > 0
     && contextText.includes(contextSentinel);
-  const useBroker = !hasToolResult && !projectContextLoaded;
-  let final = message(useBroker ? 'toolUse' : 'stop', useBroker);
+  const useBroker = Boolean(process.env.OD_HOSTED_PI_BROKER_SOCKET)
+    && !hasToolResult
+    && !projectContextLoaded;
+  let final = message(useBroker ? 'toolUse' : 'stop', useBroker, responseText);
   if (projectContextLoaded) {
     final = message('stop', false);
     final.content = [{ type: 'text', text: 'hosted-project-context-sentinel:' + contextSentinel }];
@@ -438,6 +446,10 @@ function stream(context = {}, options = {}) {
   const events = async function* () {
     if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
     yield { type: 'start', partial: final };
+    if (process.env.HOSTED_PI_FORCE_HANG === '1') {
+      await new Promise((resolve) => setTimeout(resolve, 60_000));
+      return;
+    }
     await pause();
     if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
     if (useBroker) {
@@ -453,9 +465,9 @@ function stream(context = {}, options = {}) {
     }
     yield { type: 'text_start', contentIndex: 0, partial: final };
     await pause();
-    yield { type: 'text_delta', contentIndex: 0, delta: 'hosted fixture response', partial: final };
+    yield { type: 'text_delta', contentIndex: 0, delta: responseText, partial: final };
     await pause();
-    yield { type: 'text_end', contentIndex: 0, content: 'hosted fixture response', partial: final };
+    yield { type: 'text_end', contentIndex: 0, content: responseText, partial: final };
     await pause();
     yield { type: 'done', reason: 'stop', message: final };
   };
@@ -503,10 +515,224 @@ function send(child: Child, value: JsonObject): void {
   child.stdin?.write(`${JSON.stringify(value)}\n`);
 }
 
+type StagedPiRpcSession = {
+  readonly ownsAbortLifecycle: true;
+  hasFatalError(): boolean;
+  abort(): void;
+  getLastSessionPath(): string | null;
+};
+
+type StagedPiRpc = {
+  attachPiRpcSession(options: {
+    child: Child;
+    prompt: string;
+    cwd: string;
+    sessionDir: string;
+    model: string;
+    send(channel: string, payload: JsonObject): void;
+    resumeSession?: {
+      path: string;
+      root: string;
+    };
+  }): StagedPiRpcSession;
+};
+
+type StagedInvocation = {
+  command: string;
+  args: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  sessionDir: string;
+};
+
+async function waitForChildClose(child: Child, timeoutMs: number): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error('timed out waiting for hosted Pi child to close'));
+    }, timeoutMs);
+    child.once('close', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
+async function runSemanticResumeSmoke(options: {
+  piRpc: StagedPiRpc;
+  invocation: StagedInvocation;
+  nonce: string;
+}): Promise<void> {
+  const runTurn = async (prompt: string, turnOptions: {
+    resumePath?: string;
+    abortOn?: 'turn_start' | 'message_start';
+    forceExitFallback?: boolean;
+  } = {}) => {
+    const previousGrace = process.env.PI_GRACEFUL_SHUTDOWN_MS;
+    if (turnOptions.forceExitFallback) process.env.PI_GRACEFUL_SHUTDOWN_MS = '100';
+    const child = spawn(options.invocation.command, options.invocation.args, {
+      cwd: options.invocation.cwd,
+      env: {
+        ...options.invocation.env,
+        ...(turnOptions.forceExitFallback ? { HOSTED_PI_FORCE_HANG: '1' } : {}),
+      },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const rawLines: JsonObject[] = [];
+    const events: Array<{ channel: string } & JsonObject> = [];
+    let session: StagedPiRpcSession | null = null;
+    let pending = '';
+    let stderr = '';
+    let abortSent = false;
+    child.stdout?.setEncoding('utf8');
+    child.stderr?.setEncoding('utf8');
+    child.stdout?.on('data', (chunk: string) => {
+      pending += chunk;
+      let newline = pending.indexOf('\n');
+      while (newline >= 0) {
+        const line = pending.slice(0, newline).trim();
+        pending = pending.slice(newline + 1);
+        if (line) {
+          try {
+            const parsed = JSON.parse(line) as JsonObject;
+            rawLines.push(parsed);
+            if (!abortSent && turnOptions.abortOn === parsed.type) {
+              abortSent = true;
+              session?.abort();
+            }
+          } catch { /* stderr carries diagnostics */ }
+        }
+        newline = pending.indexOf('\n');
+      }
+    });
+    child.stderr?.on('data', (chunk: string) => { stderr += chunk; });
+    session = options.piRpc.attachPiRpcSession({
+      child,
+      prompt,
+      cwd: options.invocation.cwd,
+      sessionDir: options.invocation.sessionDir,
+      model: 'hosted-fixture/fixture-model',
+      send: (channel, payload) => events.push({ channel, ...payload }),
+      ...(turnOptions.resumePath
+        ? { resumeSession: { path: turnOptions.resumePath, root: options.invocation.sessionDir } }
+        : {}),
+    });
+    try {
+      await waitForChildClose(child, 20_000);
+    } catch (error) {
+      throw new Error(`${error instanceof Error ? error.message : String(error)}${stderr.trim() ? `\nPi stderr:\n${stderr.trim()}` : ''}`);
+    } finally {
+      if (turnOptions.forceExitFallback) {
+        if (previousGrace === undefined) delete process.env.PI_GRACEFUL_SHUTDOWN_MS;
+        else process.env.PI_GRACEFUL_SHUTDOWN_MS = previousGrace;
+      }
+    }
+    if (session.hasFatalError()) fail(`semantic Pi turn failed${stderr.trim() ? `: ${stderr.trim()}` : ''}`);
+    return { rawLines, events, sessionPath: session.getLastSessionPath() };
+  };
+
+  const first = await runTurn(`Remember this exact semantic-nonce:${options.nonce}.`);
+  if (!first.sessionPath) fail('settled Pi turn did not capture its authoritative session path');
+  const settledIndex = first.rawLines.findIndex((line) => line.type === 'agent_settled');
+  const stateIndex = first.rawLines.findIndex((line) => line.type === 'response' && line.command === 'get_state');
+  if (settledIndex < 0 || stateIndex <= settledIndex) {
+    fail('Pi session state was not captured through get_state after agent_settled');
+  }
+
+  const second = await runTurn('Return the exact semantic continuity nonce from the prior turn.', {
+    resumePath: first.sessionPath,
+  });
+  const output = second.events
+    .filter((event) => event.channel === 'agent' && event.type === 'text_delta')
+    .map((event) => String(event.delta ?? ''))
+    .join('');
+  if (!output.includes(`semantic-nonce:${options.nonce}`)) {
+    fail('a new turn-scoped Pi child did not semantically resume the prior session');
+  }
+
+  const cancelled = await runTurn('Cancel this fixture turn after it starts.', {
+    abortOn: 'turn_start',
+  });
+  const cancelledEnd = cancelled.rawLines.findIndex((line) => line.type === 'agent_end');
+  const cancelledSettled = cancelled.rawLines.findIndex((line) => line.type === 'agent_settled');
+  const cancelledState = cancelled.rawLines.findIndex(
+    (line) => line.type === 'response' && line.command === 'get_state',
+  );
+  if (!cancelled.sessionPath || cancelledEnd < 0 || cancelledSettled <= cancelledEnd || cancelledState <= cancelledSettled) {
+    fail('cancelled Pi turn did not settle and capture authoritative session state before close');
+  }
+
+  const fallback = await runTurn('Cancel this fixture turn and force the bounded exit fallback.', {
+    resumePath: first.sessionPath,
+    abortOn: 'message_start',
+    forceExitFallback: true,
+  });
+  if (!fallback.sessionPath || fallback.rawLines.some((line) => line.type === 'agent_settled')) {
+    const lines = fallback.rawLines.map((line) => String(line.type)).join(', ');
+    fail(`cancelled Pi turn did not use the child-exit session fallback (path=${fallback.sessionPath ?? 'null'}; lines=${lines})`);
+  }
+}
+
+async function runRejectedResumeSmoke(options: {
+  piRpc: StagedPiRpc;
+  invocation: StagedInvocation;
+  smokeRoot: string;
+}): Promise<void> {
+  const otherRoot = path.join(options.smokeRoot, 'invalid-owner-root');
+  const otherCwd = path.join(options.smokeRoot, 'invalid-project');
+  mkdirSync(otherRoot, { recursive: true });
+  mkdirSync(otherCwd, { recursive: true });
+  const validPath = path.join(options.invocation.sessionDir, 'valid.jsonl');
+  const wrongCwdPath = path.join(options.invocation.sessionDir, 'wrong-cwd.jsonl');
+  const cyclePath = path.join(options.invocation.sessionDir, 'cycle.jsonl');
+  const header = (cwd: string, parentSession?: string) => `${JSON.stringify({
+    type: 'session',
+    version: 3,
+    id: randomUUID(),
+    timestamp: new Date().toISOString(),
+    cwd,
+    ...(parentSession ? { parentSession } : {}),
+  })}\n`;
+  writeFileSync(validPath, header(options.invocation.cwd));
+  writeFileSync(wrongCwdPath, header(otherCwd));
+  writeFileSync(cyclePath, header(options.invocation.cwd, cyclePath));
+
+  const cases = [
+    { name: 'missing', path: path.join(options.invocation.sessionDir, 'missing.jsonl'), root: options.invocation.sessionDir },
+    { name: 'out-of-root', path: validPath, root: otherRoot },
+    { name: 'wrong-cwd', path: wrongCwdPath, root: options.invocation.sessionDir },
+    { name: 'parent-cycle', path: cyclePath, root: options.invocation.sessionDir },
+  ];
+  for (const testCase of cases) {
+    const providerMarker = path.join(options.smokeRoot, `invalid-provider-${testCase.name}`);
+    rmSync(providerMarker, { force: true });
+    const child = spawn(options.invocation.command, options.invocation.args, {
+      cwd: options.invocation.cwd,
+      env: { ...options.invocation.env, HOSTED_PI_PROVIDER_MARKER: providerMarker },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const session = options.piRpc.attachPiRpcSession({
+      child,
+      prompt: 'must never reach the fixture provider',
+      cwd: options.invocation.cwd,
+      sessionDir: options.invocation.sessionDir,
+      model: 'hosted-fixture/fixture-model',
+      resumeSession: { path: testCase.path, root: testCase.root },
+      send: () => {},
+    });
+    await waitForChildClose(child, 10_000);
+    if (!session.hasFatalError() || existsSync(providerMarker)) {
+      fail(`${testCase.name} session was not rejected before prompt/provider invocation`);
+    }
+  }
+}
+
 async function runRpcSmoke(stage: string): Promise<void> {
   const runtimeDir = path.join(stage, 'dist', 'runtimes');
   const fixturePath = path.join(runtimeDir, 'hosted-pi-fixture-provider.ts');
   const runtime = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-runtime.js')).href);
+  const piRpc = await import(pathToFileURL(path.join(stage, 'dist', 'pi-rpc.js')).href) as StagedPiRpc;
   const brokerModule = await import(pathToFileURL(path.join(runtimeDir, 'hosted-pi-broker.js')).href);
   const smokeRoot = path.join(os.tmpdir(), `od-hosted-pi-smoke-${process.pid}-${Date.now()}`);
   const project = path.join(smokeRoot, 'project');
@@ -520,6 +746,11 @@ async function runRpcSmoke(stage: string): Promise<void> {
   mkdirSync(runtimeRoot, { recursive: true });
   mkdirSync(sessionDir, { recursive: true });
   writeFileSync(fixturePath, HOSTED_PI_FIXTURE_PROVIDER);
+  const stagedRuntimeRoot = realpathSync(runtimeDir);
+  const fixture = realpathSync(fixturePath);
+  if (!lstatSync(fixture).isFile() || !pathInside(stagedRuntimeRoot, fixture)) {
+    fail('hosted Pi smoke fixture escaped the staged runtime directory');
+  }
   writeFileSync(networkGuardPath, HOSTED_PI_NETWORK_GUARD);
   writeFileSync(path.join(project, 'fixture.txt'), 'fixture');
   writeFileSync(path.join(project, 'large.txt'), `large-fixture-${'x'.repeat(128 * 1024)}${'\0'.repeat(1024 * 1024)}`);
@@ -533,6 +764,24 @@ async function runRpcSmoke(stage: string): Promise<void> {
   writeFileSync(path.join(project, '.pi', 'prompts', 'malicious.md'), `---\ndescription: malicious-prompt-${contextSentinel}\n---\nmalicious prompt`);
   writeFileSync(path.join(project, '.pi', 'themes', 'malicious.json'), `{"marker":${JSON.stringify(contextSentinel)}}`);
   writeFileSync(path.join(project, 'AGENTS.md'), `malicious-context-${contextSentinel}`);
+  const semanticInvocation = runtime.createHostedPiInvocation({
+    cwd: project,
+    sessionDir: path.join(smokeRoot, 'semantic-sessions'),
+    model: 'hosted-fixture/fixture-model',
+  });
+  semanticInvocation.args.push('--extension', fixture);
+  semanticInvocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
+  semanticInvocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
+  await runRejectedResumeSmoke({
+    piRpc,
+    invocation: semanticInvocation,
+    smokeRoot,
+  });
+  await runSemanticResumeSmoke({
+    piRpc,
+    invocation: semanticInvocation,
+    nonce: randomUUID(),
+  });
   const broker = await brokerModule.createHostedPiBroker({
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
@@ -552,11 +801,6 @@ async function runRpcSmoke(stage: string): Promise<void> {
     model: 'hosted-fixture/fixture-model',
     broker,
   });
-  const stagedRuntimeRoot = realpathSync(runtimeDir);
-  const fixture = realpathSync(fixturePath);
-  if (!lstatSync(fixture).isFile() || !pathInside(stagedRuntimeRoot, fixture)) {
-    fail('hosted Pi smoke fixture escaped the staged runtime directory');
-  }
   // This explicit fixture argument is owned by this build/check script, not
   // by the production runtime API. The production invocation only accepts
   // the fixed broker extension.
@@ -703,9 +947,9 @@ async function runRpcSmoke(stage: string): Promise<void> {
       fail('Pi loaded project-controlled extensions, skills, themes, or context');
     }
 
-    send(child, { id: 3, type: 'new_session', parentSession: sessionFile });
+    send(child, { id: 3, type: 'switch_session', sessionPath: sessionFile });
     const resumed = await waitForLine((line) => line.type === 'response' && line.id === 3);
-    if (resumed.success !== true) fail('parent-session resume was rejected');
+    if (resumed.success !== true) fail('session resume was rejected');
     send(child, { id: 4, type: 'prompt', message: 'resumed fixture turn' });
     await waitForLine((line) => line.type === 'agent_end');
     await waitForLine((line) => line.type === 'agent_settled');
@@ -721,10 +965,21 @@ async function runRpcSmoke(stage: string): Promise<void> {
     send(child, { id: 7, type: 'set_model', provider: 'missing', modelId: 'missing' });
     const error = await waitForLine((line) => line.type === 'response' && line.id === 7);
     if (error.success !== false) fail('invalid model error path unexpectedly succeeded');
+
+    const rawChildClosed = waitForChildClose(child, 5_000);
+    child.stdin?.end();
+    child.kill();
+    await rawChildClosed;
   } catch (error) {
     const detail = stderr.trim();
     const observed = lines.map((line) => String(line.type)).join(', ');
-    const details = lines.filter((line) => line.type === 'turn_end' || line.type === 'response').map((line) => JSON.stringify(line)).join('\n');
+    const details = lines
+      .filter((line) => line.type === 'turn_end' || line.type === 'response')
+      .map((line) => {
+        const serialized = JSON.stringify(line);
+        return serialized.length > 4_096 ? `${serialized.slice(0, 4_096)}…` : serialized;
+      })
+      .join('\n');
     fail(`${error instanceof Error ? error.message : String(error)}\nObserved RPC lines: ${observed}\nRPC details:\n${details}${detail ? `\nPi stderr:\n${detail}` : ''}`);
   } finally {
     child.stdin?.end();

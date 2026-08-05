@@ -207,6 +207,31 @@ describe('chat run service shutdown', () => {
     expect(child.signals).toEqual(['SIGTERM']);
     expect(run.status).toBe('canceled');
   });
+
+  it('does not add a second shutdown timer when the adapter owns abort escalation', async () => {
+    vi.useFakeTimers();
+    const previousGrace = process.env.PI_ABORT_GRACE_MS;
+    process.env.PI_ABORT_GRACE_MS = '1';
+    try {
+      const runs = createRuns();
+      const child = new FakeChildProcess({ closeOn: 'SIGTERM' });
+      const abort = vi.fn();
+      const run = runs.create();
+      run.status = 'running';
+      (run as any).child = child;
+      (run as any).acpSession = { abort, ownsAbortLifecycle: true };
+
+      runs.cancel(run);
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(abort).toHaveBeenCalledTimes(1);
+      expect(child.signals).toEqual([]);
+    } finally {
+      if (previousGrace === undefined) delete process.env.PI_ABORT_GRACE_MS;
+      else process.env.PI_ABORT_GRACE_MS = previousGrace;
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('chat run service stream replay', () => {

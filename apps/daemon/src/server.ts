@@ -11972,17 +11972,24 @@ export async function startServer({
       //   - 'error' channel → route through the daemon's error path
       //     (createSseErrorPayload + send SSE + set agentStreamError)
       trackingSubstantiveOutput = true;
-        acpSession = attachPiRpcSession({
-          child,
-          prompt: composed,
-          cwd: effectiveCwd,
-          ...(hostedPiHandle?.invocation.sessionDir
-            ? { sessionDir: hostedPiHandle.invocation.sessionDir }
-            : {}),
-          model: safeModel,
-        parentSession: agentResumeCtx.isResuming && agentResumeCtx.resumeSessionId
-          ? agentResumeCtx.resumeSessionId
-          : undefined,
+      acpSession = attachPiRpcSession({
+        child,
+        prompt: composed,
+        cwd: effectiveCwd,
+        ...(hostedPiHandle?.invocation.sessionDir
+          ? { sessionDir: hostedPiHandle.invocation.sessionDir }
+          : {}),
+        model: safeModel,
+        ...(agentResumeCtx.isResuming && agentResumeCtx.resumeSessionId
+          ? {
+              resumeSession: {
+                path: agentResumeCtx.resumeSessionId,
+                root: hostedPiHandle?.invocation.sessionDir
+                  ? path.dirname(hostedPiHandle.invocation.sessionDir)
+                  : path.join(effectiveCwd, '.pi', 'sessions'),
+              },
+            }
+          : {}),
         send: (channel, payload) => {
           if (channel === 'agent') {
             sendAgentEvent(payload);
@@ -11994,7 +12001,11 @@ export async function startServer({
             if (piErrorCode) {
               run.errorCode = piErrorCode;
             }
-            if (piErrorCode === 'PI_PARENT_SESSION_FAILED' && run.conversationId) {
+            if (
+              (piErrorCode === 'PI_RESUME_SESSION_FAILED' ||
+                piErrorCode === 'PI_RESUME_SESSION_INVALID') &&
+              run.conversationId
+            ) {
               clearAgentSession(db, run.conversationId, def.id);
             }
             clearInactivityWatchdog();
@@ -12456,10 +12467,9 @@ export async function startServer({
         send('stdout', { chunk });
       }
       flushAgentRollbackTail();
-      // Capture the pi session file path for conversational continuity.
-      // The session path is discovered by attachPiRpcSession when it
-      // processes agent_end; persist it under (conversationId, agentId) so
-      // another conversation in the same cwd cannot inherit this history.
+      // Persist only the authoritative session path returned by Pi get_state
+      // after agent_end and agent_settled. Scoping it to the conversation and
+      // agent prevents another conversation in the same cwd inheriting it.
       if (acpSession && typeof acpSession.getLastSessionPath === 'function') {
         const sessionPath = acpSession.getLastSessionPath();
         if (status === 'succeeded' && def.streamFormat === 'pi-rpc') {
