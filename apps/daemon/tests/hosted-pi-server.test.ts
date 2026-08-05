@@ -90,7 +90,18 @@ describe('hosted Pi server runtime seam', () => {
       };
     });
 
-    const started = await startServer({ port: 0, returnServer: true, hostedPiRuntime }) as {
+    const started = await startServer({
+      port: 0,
+      returnServer: true,
+      hostedPiRuntime,
+      hostedRequestBoundary: {
+        testComposition: true,
+        resolveIdentity: async () => ({
+          userKey: 'authenticated-user',
+          storageKey: 'hosted-test',
+        }),
+      },
+    }) as {
       url: string;
       server: http.Server;
     };
@@ -109,6 +120,7 @@ describe('hosted Pi server runtime seam', () => {
     assert.equal(hostedPiRuntime.mock.calls.length, 1);
     assert.ok(requestSeen?.projectRoot === requestSeen?.cwd);
     assert.equal(requestSeen?.projectId, project.projectId);
+    assert.equal(requestSeen?.userKey, 'authenticated-user');
     assert.equal(close.mock.calls.length, 1);
     const deleted = await fetch(`${started.url}/api/projects/${encodeURIComponent(project.projectId)}`, { method: 'DELETE' });
     assert.equal(deleted.ok, true);

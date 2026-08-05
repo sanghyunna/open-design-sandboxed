@@ -85,6 +85,12 @@ type ResolvedTarget = {
   stat?: ReturnType<typeof statSync>;
 };
 
+type RootIdentity = {
+  dev: number;
+  ino: number;
+  birthtimeMs: number;
+};
+
 const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/u;
@@ -125,7 +131,7 @@ function systemPath(input: string): boolean {
         process.env['CommonProgramFiles(x86)'],
         process.env.CommonProgramW6432,
       ]
-    : ['/etc', '/proc', '/sys', '/dev', '/boot', '/usr', '/var'];
+    : ['/etc', '/proc', '/sys', '/dev', '/boot', '/usr', '/var', '/root', '/run'];
   return roots
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
     .map(comparable)
@@ -152,12 +158,18 @@ function safeProjectRoot(input: string): string {
   return resolved;
 }
 
-function projectRootStillBound(root: string): boolean {
+function projectRootStillBound(root: string, expected?: RootIdentity): boolean {
   try {
     if (lstatSync(root).isSymbolicLink()) return false;
     const resolved = realpathSync(root);
+    const current = statSync(resolved);
     return comparable(resolved) === comparable(root)
-      && statSync(resolved).isDirectory()
+      && current.isDirectory()
+      && (!expected || (
+        current.dev === expected.dev
+        && current.ino === expected.ino
+        && current.birthtimeMs === expected.birthtimeMs
+      ))
       && !systemPath(resolved);
   } catch {
     return false;
@@ -223,6 +235,9 @@ function safeRelativePath(value: unknown, allowRoot: boolean): string | null {
   if (CONTROL_CHARS.test(normalized)) return null;
   const segments = normalized.split('/');
   if (segments.some((segment) => segment === '..' || segment === '.')) return null;
+  // ponytail: root-level entries only until an openat/CreateFile-handle
+  // implementation exists for nested paths on both POSIX and Windows.
+  if (segments.length > 1) return null;
   return normalized;
 }
 
@@ -285,8 +300,8 @@ function writeResponse(socket: Socket, response: HostedPiBrokerResponse): void {
   socket.write(`${JSON.stringify(response)}\n`);
 }
 
-function writeProjectFile(root: string, target: ResolvedTarget, content: string): void {
-  if (!projectRootStillBound(root)) throw new Error('project root escaped');
+function writeProjectFile(root: string, rootIdentity: RootIdentity, target: ResolvedTarget, content: string): void {
+  if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
   const parent = path.dirname(target.path);
   const parentResolved = realpathSync(parent);
   if (!inside(root, parentResolved) || systemPath(parentResolved)) throw new Error('project parent escaped');
@@ -297,7 +312,7 @@ function writeProjectFile(root: string, target: ResolvedTarget, content: string)
   const temporary = path.join(parentResolved, `.od-hosted-${randomBytes(12).toString('hex')}.tmp`);
   try {
     writeFileSync(temporary, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-    if (!projectRootStillBound(root)) throw new Error('project root escaped');
+    if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
     if (existsSync(destination)) {
       if (lstatSync(destination).isSymbolicLink()) throw new Error('project target became a link');
       const resolved = realpathSync(destination);
@@ -311,8 +326,8 @@ function writeProjectFile(root: string, target: ResolvedTarget, content: string)
   }
 }
 
-function readProjectFile(root: string, target: ResolvedTarget): string {
-  if (!projectRootStillBound(root)) throw new Error('project root escaped');
+function readProjectFile(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): string {
+  if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
   const file = openSync(
     target.path,
     process.platform === 'win32' ? 'r' : constants.O_RDONLY | constants.O_NOFOLLOW,
@@ -321,7 +336,7 @@ function readProjectFile(root: string, target: ResolvedTarget): string {
     const opened = fstatSync(file);
     if (!opened.isFile() || opened.size > MAX_FILE_BYTES) throw new Error('project file is not a regular file');
     const content = readFileSync(file, 'utf8');
-    if (!projectRootStillBound(root)) throw new Error('project root escaped');
+    if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
     const current = lstatSync(target.path);
     const resolved = realpathSync(target.path);
     if (current.isSymbolicLink() || resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
@@ -333,10 +348,10 @@ function readProjectFile(root: string, target: ResolvedTarget): string {
   }
 }
 
-function listProjectDirectory(root: string, target: ResolvedTarget): string[] {
-  if (!projectRootStillBound(root)) throw new Error('project root escaped');
+function listProjectDirectory(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): string[] {
+  if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
   const entries = readdirSync(target.path, { withFileTypes: true });
-  if (!projectRootStillBound(root)) throw new Error('project root escaped');
+  if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
   const resolved = realpathSync(target.path);
   if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
     throw new Error('project directory escaped');
@@ -370,6 +385,12 @@ export async function createHostedPiBroker(options: {
   validBindingValue(binding.runId, 'run id');
   validBindingValue(binding.projectId, 'project id');
   const projectRoot = safeProjectRoot(binding.projectRoot);
+  const projectRootStat = statSync(projectRoot);
+  const projectRootIdentity: RootIdentity = {
+    dev: projectRootStat.dev,
+    ino: projectRootStat.ino,
+    birthtimeMs: projectRootStat.birthtimeMs,
+  };
   const allowedOperations = normalizeOperations(binding.allowedOperations);
   const allowedEndpoints = normalizeEndpoints(binding.allowedEndpoints);
   const grant: HostedPiBrokerGrant = Object.freeze({
@@ -397,7 +418,7 @@ export async function createHostedPiBroker(options: {
     expectedBinding?: HostedPiBinding,
   ): Promise<HostedPiBrokerResponse> => {
     if (closed) return deny('BROKER_CLOSED', 'hosted Pi broker is closed');
-    if (!projectRootStillBound(grant.projectRoot)) return deny('BROKER_PATH_DENIED', 'bound project root changed');
+    if (!projectRootStillBound(grant.projectRoot, projectRootIdentity)) return deny('BROKER_PATH_DENIED', 'bound project root changed');
     if (!sameSecret(grant.token, request.token)) return deny('BROKER_TOKEN_INVALID', 'broker token is invalid');
     if (expectedBinding && !bindingMatches(expectedBinding, grant)) {
       return deny('BROKER_BINDING_MISMATCH', 'broker grant does not match the authenticated binding');
@@ -423,7 +444,7 @@ export async function createHostedPiBroker(options: {
     if (operation === 'project:file:list') {
       if (!target.exists || !target.stat?.isDirectory()) return deny('BROKER_PATH_DENIED', 'list target must be a directory');
       try {
-        return { ok: true, operation, entries: listProjectDirectory(grant.projectRoot, target) };
+        return { ok: true, operation, entries: listProjectDirectory(grant.projectRoot, projectRootIdentity, target) };
       } catch {
         return deny('BROKER_PATH_DENIED', 'linked project entries are not allowed');
       }
@@ -432,7 +453,7 @@ export async function createHostedPiBroker(options: {
       if (!target.exists || !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'read target must be a regular file');
       if (target.stat.size > MAX_FILE_BYTES) return deny('BROKER_LIMIT', 'project file is too large');
       try {
-        return { ok: true, operation, content: readProjectFile(grant.projectRoot, target) };
+        return { ok: true, operation, content: readProjectFile(grant.projectRoot, projectRootIdentity, target) };
       } catch {
         return deny('BROKER_READ_FAILED', 'project file could not be read');
       }
@@ -442,7 +463,7 @@ export async function createHostedPiBroker(options: {
     }
     if (target.exists && !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'write target must be a regular file');
     try {
-      writeProjectFile(grant.projectRoot, target, request.content);
+      writeProjectFile(grant.projectRoot, projectRootIdentity, target, request.content);
       return { ok: true, operation };
     } catch {
       return deny('BROKER_WRITE_FAILED', 'project file could not be written');

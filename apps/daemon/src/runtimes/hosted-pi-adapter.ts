@@ -13,8 +13,6 @@ import {
 export type HostedPiRuntimeAdapterOptions = {
   /** A server-owned writable root for one run's broker socket and session files. */
   runtimeRoot: string;
-  /** Resolves the authenticated identity from the server's request composition. */
-  resolveUserKey: (request: HostedPiRuntimeRequest) => string;
   packageRoot?: string;
   sessionRoot?: string;
 };
@@ -28,7 +26,7 @@ function safeRunId(runId: string): string {
 
 /**
  * Compose the server-owned hosted Pi broker and package-local invocation.
- * The identity resolver is injected by the authenticated hosted composition;
+ * The request's userKey is copied by the authenticated hosted composition;
  * Pi and clients never supply the binding.
  */
 export function createHostedPiRuntimeAdapter(
@@ -38,11 +36,10 @@ export function createHostedPiRuntimeAdapter(
   const sessionRoot = path.resolve(options.sessionRoot ?? path.join(runtimeRoot, 'sessions'));
   return async (request) => {
     const runId = safeRunId(request.runId);
-    const userKey = options.resolveUserKey(request);
     const broker: HostedPiBroker = await createHostedPiBroker({
       runtimeRoot,
       binding: {
-        userKey,
+        userKey: request.userKey,
         runId,
         projectId: request.projectId,
         projectRoot: request.projectRoot,

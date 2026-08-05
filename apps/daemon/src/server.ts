@@ -481,6 +481,7 @@ import { assertServerContextSatisfiesRoutes } from './route-context-contract.js'
 import {
   createHostedRequestBoundary,
   createHostedRequestBodyGuard,
+  getHostedAuthContext,
   type HostedRequestBoundaryOptions,
 } from './hosted-request-boundary.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from './tool-tokens.js';
@@ -10638,6 +10639,7 @@ export async function startServer({
       }
       try {
         hostedPiHandle = await hostedPiRuntime({
+          userKey: typeof chatBody.hostedPiUserKey === 'string' ? chatBody.hostedPiUserKey : '',
           runId,
           projectId,
           projectRoot: cwd,
@@ -12607,6 +12609,11 @@ export async function startServer({
       ...requestBody,
       toolBundle: toolBundle.bundle,
     };
+    Object.defineProperty(meta, 'hostedPiUserKey', {
+      value: getHostedAuthContext(req)?.userKey ?? null,
+      enumerable: false,
+      writable: false,
+    });
     if (resolvedSnapshot?.ok) {
       meta.appliedPluginSnapshotId = resolvedSnapshot.snapshotId;
       if (!meta.pluginId) meta.pluginId = resolvedSnapshot.snapshot.pluginId;
@@ -13358,6 +13365,11 @@ export async function startServer({
       toolBundle: toolBundle.bundle,
       ...(chatProject?.metadata ? { projectMetadata: chatProject.metadata } : {}),
     };
+    Object.defineProperty(meta, 'hostedPiUserKey', {
+      value: getHostedAuthContext(req)?.userKey ?? null,
+      enumerable: false,
+      writable: false,
+    });
     // Web chat callers normally supply both conversationId and assistantMessageId,
     // but test / headless callers may pass only conversationId. Synthesize the
     // assistant message id so checkpoint capture and the chat log pin can proceed.

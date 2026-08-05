@@ -81,7 +81,10 @@ describe('hosted Pi broker', () => {
     const f = fixture();
     const sibling = join(f.root, 'sibling.txt');
     const siblingProject = join(f.root, 'sibling-project');
+    const nested = join(f.project, 'nested');
     mkdirSync(siblingProject, { recursive: true });
+    mkdirSync(nested, { recursive: true });
+    writeFileSync(join(nested, 'index.html'), 'nested');
     writeFileSync(sibling, 'private');
     const link = join(f.project, 'outside.txt');
     const linkedDirectory = join(f.project, 'outside-directory');
@@ -99,6 +102,15 @@ describe('hosted Pi broker', () => {
       for (const path of ['../sibling.txt', sibling, 'C:\\Windows\\system.ini', '/etc/passwd', 'outside.txt']) {
         const denied = await broker.invoke({ token: broker.grant.token, operation: 'project:file:read', path });
         assert.equal(denied.ok, false, path);
+      }
+      for (const operation of ['project:file:list', 'project:file:read', 'project:file:write'] as const) {
+        const denied = await broker.invoke({
+          token: broker.grant.token,
+          operation,
+          path: 'nested/index.html',
+          ...(operation === 'project:file:write' ? { content: 'nope' } : {}),
+        });
+        assert.equal(denied.ok, false, operation);
       }
       if (linkedDirectoryCreated) {
         for (const operation of ['project:file:list', 'project:file:write'] as const) {
@@ -169,6 +181,25 @@ describe('hosted Pi broker', () => {
       } catch {
         return;
       }
+      const denied = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:write',
+        path: 'escape.txt',
+        content: 'nope',
+      });
+      assert.equal(denied.ok, false);
+    } finally {
+      await broker.close();
+    }
+  });
+
+  test('denies a grant after its project root is replaced by another directory', async () => {
+    const f = fixture();
+    const broker = await createHostedPiBroker({ binding: f.binding, runtimeRoot: f.root });
+    const moved = join(f.root, 'moved-project');
+    try {
+      renameSync(f.project, moved);
+      mkdirSync(f.project, { recursive: true });
       const denied = await broker.invoke({
         token: broker.grant.token,
         operation: 'project:file:write',

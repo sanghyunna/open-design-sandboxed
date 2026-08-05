@@ -485,13 +485,21 @@ async function runRpcSmoke(stage: string): Promise<void> {
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
   });
-  const invocation = runtime.createHostedPiSmokeInvocation({
+  const invocation = runtime.createHostedPiInvocation({
     cwd: project,
     sessionDir,
     model: 'hosted-fixture/fixture-model',
     broker,
-    fixtureExtensionPath: fixturePath,
   });
+  const stagedRuntimeRoot = realpathSync(runtimeDir);
+  const fixture = realpathSync(fixturePath);
+  if (!lstatSync(fixture).isFile() || !pathInside(stagedRuntimeRoot, fixture)) {
+    fail('hosted Pi smoke fixture escaped the staged runtime directory');
+  }
+  // This explicit fixture argument is owned by this build/check script, not
+  // by the production runtime API. The production invocation only accepts
+  // the fixed broker extension.
+  invocation.args.push('--extension', fixture);
   invocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
   invocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
   const child = spawn(invocation.command, invocation.args, {

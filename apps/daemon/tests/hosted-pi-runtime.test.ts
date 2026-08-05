@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, test } from 'vitest';
 import {
   createHostedPiInvocation,
-  createHostedPiSmokeInvocation,
   resolveHostedPiEntrypoint,
 } from '../src/runtimes/hosted-pi-runtime.js';
 import type { HostedPiRuntimeRequest } from '../src/runtimes/hosted-pi-runtime.js';
@@ -131,26 +130,12 @@ describe('hosted Pi runtime', () => {
     }
   });
 
-  test('rejects project-controlled fixture extension paths', () => {
-    const fixture = fakePiPackage();
-    const extension = join(fixture.project, 'project-extension.ts');
-    writeFileSync(extension, 'export default () => undefined;');
-    assert.throws(
-      () => createHostedPiSmokeInvocation({
-        packageRoot: fixture.root,
-        cwd: fixture.project,
-        sessionDir: fixture.sessionDir,
-        fixtureExtensionPath: extension,
-      }),
-      /repository-owned/i,
-    );
-  });
-
   test('composes a server-owned broker with the package-local invocation', async () => {
     const fixture = fakePiPackage();
     const runtimeRoot = join(fixture.root, 'broker-runtime');
     const sessionRoot = join(fixture.root, 'broker-sessions');
     const request: HostedPiRuntimeRequest = {
+      userKey: 'authenticated-user',
       runId: 'run-a',
       projectId: 'project-a',
       projectRoot: fixture.project,
@@ -158,20 +143,14 @@ describe('hosted Pi runtime', () => {
       model: 'fixture/model',
       thinking: 'off',
     };
-    let resolvedUser: HostedPiRuntimeRequest | undefined;
     const adapter = createHostedPiRuntimeAdapter({
       runtimeRoot,
       sessionRoot,
       packageRoot: fixture.root,
-      resolveUserKey: (value) => {
-        resolvedUser = value;
-        return 'authenticated-user';
-      },
     });
 
     const handle = await adapter(request);
     try {
-      assert.equal(resolvedUser, request);
       assert.equal(handle.invocation.command, process.execPath);
       assert.equal(handle.invocation.env.OD_HOSTED_PI_BROKER_TOKEN?.startsWith('odpi_'), true);
       if (process.platform === 'win32') {
