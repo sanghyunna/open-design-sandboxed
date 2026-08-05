@@ -277,7 +277,9 @@ Limits are server-owned and may only become smaller without revising this contra
 
 | Resource | Per user | Process/global |
 | --- | ---: | ---: |
+| process-lifetime identity bindings | 1 | 65,536 |
 | resident runtimes / open DBs | 1 | 64 |
+| conversation/session references | 1,000 and 1 MiB | 64,000 and 64 MiB |
 | active Pi children | 1 | 32 |
 | live Pi broker grants | 1, 31-minute TTL | 32 |
 | queued mutations | 16 | 512 |
