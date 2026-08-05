@@ -1,7 +1,8 @@
 # Hosted readiness contract (Issue #63)
 
-Status: Wave 0 contract draft; implementation remains gated by C2, adversarial
-re-review, and required-check enforcement.
+Status: Wave 0 frozen. F0 is commit `28b24f79`; C2 is commit `23eadb71` in
+[PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR03 may
+begin under the required-check policy below.
 
 This document is the executable review contract for the local hosted composition in
 issue #63. It does not describe Databricks Apps, Databricks identity, Unity Catalog,
@@ -329,14 +330,19 @@ named GitHub Actions checks:
 The hosted workflow runs for every pull request so required jobs are never skipped by
 path filtering. The Windows/Linux jobs run the exact logical-boundary suite selected
 by the committed validation manifest. C2, PR04, PR06, PR08, PR10, and the final SHA
-record their platform evidence. As of Wave 0 preflight, `main` is unprotected; this is
-an open stop condition, not a required-check claim. Before PR03 begins, repository
-settings must require all three checks above, require two approving reviews, dismiss
-stale approvals, and require conversation resolution. If repository settings cannot
-enforce this, a maintainer must record an explicit manual gate naming the exact green
-SHA and all three successful check URLs; the umbrella must not merge automatically.
-The protection/ruleset URL or exact-SHA manual record belongs in the ledger before
-Wave 0 is marked frozen.
+record their platform evidence. Before PR03 begins, repository settings must require
+all three checks above, require two approving reviews, dismiss stale approvals, and
+require conversation resolution. If repository settings cannot enforce this, a
+maintainer must record an explicit manual gate naming the exact green SHA and all
+three successful check URLs; the umbrella must not merge automatically. The
+protection/ruleset URL or exact-SHA manual record belongs in the ledger before Wave 0
+is marked frozen.
+
+Wave 0 enforcement was verified at the
+[`main` branch protection endpoint](https://api.github.com/repos/sanghyunna/open-design-sandboxed/branches/main/protection):
+strict required checks name exactly the three jobs above, two approvals are required,
+stale approvals are dismissed, conversation resolution and admin enforcement are
+enabled, and force pushes and deletion are disabled.
 
 ## Logical-boundary validation ledger
 
@@ -344,7 +350,7 @@ Each row is filled only after checking out and validating that exact commit.
 
 | Boundary | Commit | Windows | Linux | Focused/prior suites | Review/enforcement |
 | --- | --- | --- | --- | --- | --- |
-| C2 | pending | pending | pending | pending | pending |
+| C2 | `23eadb71` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402933808) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934003) | 111 focused daemon tests; 6 tools-pack workspace-build tests; daemon/tools-pack typechecks; staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934008) | Spec `CLEAN`; standards `CLEAN`; protection verified |
 | PR03 | pending | n/a | n/a | pending | pending |
 | PR04 | pending | pending | pending | pending | pending |
 | PR05 | pending | n/a | n/a | pending | pending |
