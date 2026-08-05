@@ -361,7 +361,7 @@ function readProjectFile(root: string, rootIdentity: RootIdentity, target: Resol
   }
 }
 
-function listProjectDirectory(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): string[] {
+function captureProjectDirectory(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): Set<string> {
   if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
   const directory = opendirSync(target.path);
   try {
@@ -376,8 +376,9 @@ function listProjectDirectory(root: string, rootIdentity: RootIdentity, target: 
     if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
       throw new Error('project directory escaped');
     }
-    if (entries.some((item) => item.isSymbolicLink())) throw new Error('linked project entries are not allowed');
-    return entries.map((item) => item.name).sort();
+    // ponytail: keep a grant-time root listing; refreshing a path during a
+    // client request would reintroduce a cross-platform directory-handle race.
+    return new Set(entries.filter((item) => !item.isSymbolicLink()).map((item) => item.name));
   } finally {
     directory.closeSync();
   }
@@ -429,6 +430,8 @@ export async function createHostedPiBroker(options: {
   if (inside(projectRoot, runtimeRoot)) {
     throw new Error('hosted Pi broker runtime root must stay outside the project root');
   }
+  const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
+  const rootEntries = captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget);
   const socketPath = process.platform === 'win32'
     ? `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`
     : path.join(runtimeRoot, `hosted-pi-${randomBytes(12).toString('hex')}.sock`);
@@ -469,11 +472,7 @@ export async function createHostedPiBroker(options: {
 
     if (operation === 'project:file:list') {
       if (!target.exists || !target.stat?.isDirectory()) return deny('BROKER_PATH_DENIED', 'list target must be a directory');
-      try {
-        return { ok: true, operation, entries: listProjectDirectory(grant.projectRoot, projectRootIdentity, target) };
-      } catch {
-        return deny('BROKER_PATH_DENIED', 'linked project entries are not allowed');
-      }
+      return { ok: true, operation, entries: [...rootEntries].sort() };
     }
     if (operation === 'project:file:read') {
       if (!target.exists || !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'read target must be a regular file');
@@ -490,6 +489,7 @@ export async function createHostedPiBroker(options: {
     if (target.exists && !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'write target must be a regular file');
     try {
       writeProjectFile(grant.projectRoot, projectRootIdentity, target, request.content);
+      rootEntries.add(path.basename(target.path));
       return { ok: true, operation };
     } catch {
       return deny('BROKER_WRITE_FAILED', 'project file could not be written');

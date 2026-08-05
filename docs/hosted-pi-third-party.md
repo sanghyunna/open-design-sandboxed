@@ -22,6 +22,9 @@ The build/check entrypoints are owned by `@open-design/tools-pack`:
 The fixed broker intentionally exposes only root-level project files and the
 root directory listing; nested paths stay denied until a shared POSIX
 `openat`/Windows handle implementation can make those operations race-safe.
+The listing is captured when the grant is created and updated only by broker
+writes, so a concurrent root swap cannot disclose names from an external
+directory.
 The lockfile changed on the Windows development host. `pnpm nix:update-hash`
 was attempted here and failed before any file edit because `nix` is not
 installed (`spawnSync nix ENOENT`); the generated hash was deliberately not
