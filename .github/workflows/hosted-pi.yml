@@ -4,32 +4,22 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths:
-      - '.github/workflows/hosted-pi.yml'
-      - 'apps/daemon/**'
-      - 'packages/**'
-      - 'tools/pack/src/hosted-pi-artifact.ts'
-      - 'tools/pack/src/**'
-      - 'tools/pack/package.json'
-      - 'nix/**'
-      - 'flake.nix'
-      - 'scripts/update-nix-pnpm-deps-hash.ts'
-      - 'docs/hosted-pi-third-party.md'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
 
 permissions:
   contents: read
 
 jobs:
   hosted-pi:
-    name: ${{ matrix.os }} x64
+    name: Hosted / ${{ matrix.displayName }} x64
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-24.04]
+        include:
+          - os: windows-latest
+            displayName: Windows
+          - os: ubuntu-24.04
+            displayName: Linux
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -54,7 +44,7 @@ jobs:
           if-no-files-found: error
 
   nix-packaging:
-    name: Nix dependency hash and flake check
+    name: Hosted / Nix dependency hash and flake check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
