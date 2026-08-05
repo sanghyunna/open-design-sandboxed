@@ -423,16 +423,16 @@ function message(stopReason = 'stop', useBroker = false) {
 function stream(context = {}, options = {}) {
   const hasToolResult = Array.isArray(context.messages)
     && context.messages.some((item) => item?.role === 'toolResult');
-  const contextMarker = process.env.HOSTED_PI_CONTEXT_MARKER;
+  const contextSentinel = process.env.HOSTED_PI_CONTEXT_SENTINEL;
   const contextText = JSON.stringify(context);
-  const projectContextLoaded = typeof contextMarker === 'string'
-    && contextMarker.length > 0
-    && contextText.includes(contextMarker);
-  const useBroker = !hasToolResult;
+  const projectContextLoaded = typeof contextSentinel === 'string'
+    && contextSentinel.length > 0
+    && contextText.includes(contextSentinel);
+  const useBroker = !hasToolResult && !projectContextLoaded;
   let final = message(useBroker ? 'toolUse' : 'stop', useBroker);
   if (projectContextLoaded) {
     final = message('stop', false);
-    final.content = [{ type: 'text', text: 'hosted-project-context-marker:' + contextMarker }];
+    final.content = [{ type: 'text', text: 'hosted-project-context-sentinel:' + contextSentinel }];
   }
   const pause = () => new Promise((resolve) => setTimeout(resolve, 250));
   const events = async function* () {
@@ -515,6 +515,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
   const networkGuardPath = path.join(smokeRoot, 'deny-runtime.cjs');
   const networkGuardMarker = path.join(smokeRoot, 'network-guard.loaded');
   const maliciousMarker = path.join(smokeRoot, 'malicious-project-context.loaded');
+  const contextSentinel = 'hosted-pi-project-context-sentinel-7f2c';
   mkdirSync(project, { recursive: true });
   mkdirSync(runtimeRoot, { recursive: true });
   mkdirSync(sessionDir, { recursive: true });
@@ -528,10 +529,10 @@ async function runRpcSmoke(stage: string): Promise<void> {
   mkdirSync(path.join(project, '.pi', 'themes'), { recursive: true });
   writeFileSync(path.join(project, '.pi', 'extensions', 'malicious.js'),
     `require('node:fs').writeFileSync(${JSON.stringify(maliciousMarker)}, 'loaded');`);
-  writeFileSync(path.join(project, '.pi', 'skills', 'malicious.md'), `malicious-skill-${maliciousMarker}`);
-  writeFileSync(path.join(project, '.pi', 'prompts', 'malicious.md'), `---\ndescription: malicious-prompt-${maliciousMarker}\n---\nmalicious prompt`);
-  writeFileSync(path.join(project, '.pi', 'themes', 'malicious.json'), `{"marker":${JSON.stringify(maliciousMarker)}}`);
-  writeFileSync(path.join(project, 'AGENTS.md'), `malicious-context-${maliciousMarker}`);
+  writeFileSync(path.join(project, '.pi', 'skills', 'malicious.md'), `malicious-skill-${contextSentinel}`);
+  writeFileSync(path.join(project, '.pi', 'prompts', 'malicious.md'), `---\ndescription: malicious-prompt-${contextSentinel}\n---\nmalicious prompt`);
+  writeFileSync(path.join(project, '.pi', 'themes', 'malicious.json'), `{"marker":${JSON.stringify(contextSentinel)}}`);
+  writeFileSync(path.join(project, 'AGENTS.md'), `malicious-context-${contextSentinel}`);
   const broker = await brokerModule.createHostedPiBroker({
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
@@ -562,7 +563,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
   invocation.args.push('--extension', fixture);
   invocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
   invocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
-  invocation.env.HOSTED_PI_CONTEXT_MARKER = maliciousMarker;
+  invocation.env.HOSTED_PI_CONTEXT_SENTINEL = contextSentinel;
   const child = spawn(invocation.command, invocation.args, {
     cwd: invocation.cwd,
     env: invocation.env,
@@ -678,7 +679,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
     const commands = await waitForLine((line) => line.type === 'response' && line.id === 8);
     const commandText = JSON.stringify(commands.data);
     if (commands.success !== true
-      || commandText.includes(maliciousMarker)
+      || commandText.includes(contextSentinel)
       || commandText.includes('skill:malicious')
       || commandText.includes('malicious')) {
       fail('Pi exposed project-controlled prompt or skill commands');
@@ -695,7 +696,10 @@ async function runRpcSmoke(stage: string): Promise<void> {
     if (!brokerToolEnd || brokerToolEnd.isError === true || !JSON.stringify(brokerToolEnd.result).includes('large-fixture')) {
       fail('Pi did not execute the staged od_hosted_broker extension through the broker socket');
     }
-    if (existsSync(maliciousMarker) || lines.some((line) => JSON.stringify(line).includes(maliciousMarker))) {
+    if (existsSync(maliciousMarker) || lines.some((line) => {
+      const text = JSON.stringify(line);
+      return text.includes(maliciousMarker) || text.includes(contextSentinel);
+    })) {
       fail('Pi loaded project-controlled extensions, skills, themes, or context');
     }
 
