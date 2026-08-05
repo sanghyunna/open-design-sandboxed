@@ -19,6 +19,9 @@ pnpm --filter @open-design/daemon deploy --prod --no-optional --ignore-scripts -
 The build/check entrypoints are owned by `@open-design/tools-pack`:
 `pnpm --filter @open-design/tools-pack hosted:pi:build -- --out <staging-dir>` and
 `pnpm --filter @open-design/tools-pack hosted:pi:check -- --out <staging-dir>`.
+The fixed broker intentionally exposes only root-level project files and the
+root directory listing; nested paths stay denied until a shared POSIX
+`openat`/Windows handle implementation can make those operations race-safe.
 The lockfile changed on the Windows development host. `pnpm nix:update-hash`
 was attempted here and failed before any file edit because `nix` is not
 installed (`spawnSync nix ENOENT`); the generated hash was deliberately not

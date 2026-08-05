@@ -140,7 +140,7 @@ describe('hosted Pi broker', () => {
           process.env['CommonProgramFiles(x86)'],
           process.env.CommonProgramW6432,
         ]
-      : ['/etc', '/proc', '/sys', '/dev', '/usr', '/var'];
+      : ['/etc', '/proc', '/sys', '/dev', '/usr', '/var', '/root', '/run'];
     for (const systemRoot of systemRoots.filter((value): value is string => Boolean(value))) {
       await assert.rejects(
         () => createHostedPiBroker({ binding: { ...f.binding, projectRoot: systemRoot }, runtimeRoot: f.root }),
