@@ -72,3 +72,4 @@ jobs:
         run: |
           pnpm nix:update-hash
           nix flake check --print-build-logs --keep-going
+          git diff --exit-code -- nix/pnpm-deps.nix
