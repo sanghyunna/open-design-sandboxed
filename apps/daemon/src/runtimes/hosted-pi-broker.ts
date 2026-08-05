@@ -9,14 +9,15 @@ import {
   lstatSync,
   mkdirSync,
   openSync,
+  opendirSync,
   readFileSync,
-  readdirSync,
   realpathSync,
   renameSync,
   rmSync,
   statSync,
   unlinkSync,
   writeFileSync,
+  type Stats,
 } from 'node:fs';
 import path from 'node:path';
 import { hostedPiBrokerExtensionPath } from './hosted-pi-runtime.js';
@@ -90,6 +91,16 @@ type RootIdentity = {
   ino: number;
   birthtimeMs: number;
 };
+
+function sameIdentity(left: RootIdentity, right: RootIdentity): boolean {
+  return left.dev === right.dev
+    && left.ino === right.ino
+    && left.birthtimeMs === right.birthtimeMs;
+}
+
+function identityOf(stat: Stats): RootIdentity {
+  return { dev: stat.dev, ino: stat.ino, birthtimeMs: stat.birthtimeMs };
+}
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
@@ -165,11 +176,7 @@ function projectRootStillBound(root: string, expected?: RootIdentity): boolean {
     const current = statSync(resolved);
     return comparable(resolved) === comparable(root)
       && current.isDirectory()
-      && (!expected || (
-        current.dev === expected.dev
-        && current.ino === expected.ino
-        && current.birthtimeMs === expected.birthtimeMs
-      ))
+      && (!expected || sameIdentity(identityOf(current), expected))
       && !systemPath(resolved);
   } catch {
     return false;
@@ -335,11 +342,17 @@ function readProjectFile(root: string, rootIdentity: RootIdentity, target: Resol
   try {
     const opened = fstatSync(file);
     if (!opened.isFile() || opened.size > MAX_FILE_BYTES) throw new Error('project file is not a regular file');
+    const openedIdentity = identityOf(opened);
+    const currentBeforeRead = statSync(target.path);
+    if (!sameIdentity(openedIdentity, identityOf(currentBeforeRead))) {
+      throw new Error('project target changed during open');
+    }
     const content = readFileSync(file, 'utf8');
     if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
     const current = lstatSync(target.path);
     const resolved = realpathSync(target.path);
-    if (current.isSymbolicLink() || resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
+    if (current.isSymbolicLink() || resolved !== target.path || !inside(root, resolved) || systemPath(resolved)
+      || !sameIdentity(openedIdentity, identityOf(current))) {
       throw new Error('project target escaped');
     }
     return content;
@@ -350,14 +363,24 @@ function readProjectFile(root: string, rootIdentity: RootIdentity, target: Resol
 
 function listProjectDirectory(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): string[] {
   if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
-  const entries = readdirSync(target.path, { withFileTypes: true });
-  if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
-  const resolved = realpathSync(target.path);
-  if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
-    throw new Error('project directory escaped');
+  const directory = opendirSync(target.path);
+  try {
+    const entries = [] as Array<{ name: string; isSymbolicLink(): boolean }>;
+    let entry = directory.readSync();
+    while (entry) {
+      entries.push(entry);
+      entry = directory.readSync();
+    }
+    if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
+    const resolved = realpathSync(target.path);
+    if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
+      throw new Error('project directory escaped');
+    }
+    if (entries.some((item) => item.isSymbolicLink())) throw new Error('linked project entries are not allowed');
+    return entries.map((item) => item.name).sort();
+  } finally {
+    directory.closeSync();
   }
-  if (entries.some((entry) => entry.isSymbolicLink())) throw new Error('linked project entries are not allowed');
-  return entries.map((entry) => entry.name).sort();
 }
 
 async function listen(server: Server, socketPath: string): Promise<void> {
