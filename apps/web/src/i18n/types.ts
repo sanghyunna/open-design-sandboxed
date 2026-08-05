@@ -2414,6 +2414,12 @@ export interface Dict {
   'fileViewer.exportJsx': string;
   'fileViewer.exportReactHtml': string;
   'fileViewer.exportStarted': string;
+  'fileViewer.standaloneExportSuccess': string;
+  'fileViewer.standaloneExportExternal': string;
+  'fileViewer.standaloneExportMissing': string;
+  'fileViewer.standaloneExportExternalAndMissing': string;
+  'fileViewer.standaloneExportFailed': string;
+  'fileViewer.standaloneExportTooLarge': string;
   'fileViewer.saveAsTemplate': string;
   'fileViewer.savingTemplate': string;
   'fileViewer.savedTemplate': string;

@@ -24,6 +24,7 @@ export * from './api/routines.js';
 export * from './api/registry.js';
 export * from './api/research.js';
 export * from './api/social-share.js';
+export * from './api/standalone-html.js';
 export * from './api/terminals.js';
 export * from './api/version.js';
 export * from './examples.js';

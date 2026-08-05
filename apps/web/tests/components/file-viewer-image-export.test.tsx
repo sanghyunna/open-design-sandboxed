@@ -8,16 +8,27 @@ const {
   captureHostIframeSnapshotMock,
   downloadImageDataUrlMock,
   imageDataUrlToBlobMock,
+  exportProjectAsHtmlMock,
   prepareImageExportTargetMock,
   requestPreviewSnapshotMock,
   saveImageBlobMock,
+  analyticsTrackMock,
 } = vi.hoisted(() => ({
   captureHostIframeSnapshotMock: vi.fn(),
   downloadImageDataUrlMock: vi.fn(),
   imageDataUrlToBlobMock: vi.fn(),
+  exportProjectAsHtmlMock: vi.fn(),
   prepareImageExportTargetMock: vi.fn(),
   requestPreviewSnapshotMock: vi.fn(),
   saveImageBlobMock: vi.fn(),
+  analyticsTrackMock: vi.fn(),
+}));
+
+vi.mock('../../src/analytics/provider', () => ({
+  useAnalytics: () => ({
+    track: analyticsTrackMock,
+    newRequestId: () => 'request-1',
+  }),
 }));
 
 vi.mock('../../src/runtime/exports', async () => {
@@ -29,6 +40,7 @@ vi.mock('../../src/runtime/exports', async () => {
     captureHostIframeSnapshot: captureHostIframeSnapshotMock,
     downloadImageDataUrl: downloadImageDataUrlMock,
     imageDataUrlToBlob: imageDataUrlToBlobMock,
+    exportProjectAsHtml: exportProjectAsHtmlMock,
     prepareImageExportTarget: prepareImageExportTargetMock,
     requestPreviewSnapshot: requestPreviewSnapshotMock,
   };
@@ -92,6 +104,46 @@ describe('FileViewer image export', () => {
   afterEach(() => {
     cleanup();
     vi.resetAllMocks();
+  });
+
+  it('exports project HTML and reports external and missing references', async () => {
+    exportProjectAsHtmlMock.mockResolvedValueOnce({
+      outputBytes: 10,
+      externalReferenceCount: 2,
+      missingLocalReferenceCount: 1,
+      skippedSystemFontCount: 0,
+    });
+    renderHtmlPreview();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /standalone html/i }));
+    await waitFor(() => {
+      expect(exportProjectAsHtmlMock).toHaveBeenCalledWith({
+        projectId: 'project-1', filePath: 'workspace.html', title: 'Workspace',
+      });
+      expect(document.body.textContent).toContain('2 external');
+      expect(document.body.textContent).toContain('1 missing');
+      expect(analyticsTrackMock).toHaveBeenCalledWith(
+        'artifact_export_result',
+        expect.objectContaining({ export_format: 'html', result: 'success' }),
+        expect.anything(),
+      );
+    });
+  });
+
+  it('shows the standalone export failure without falling back to preview HTML', async () => {
+    const error = new Error('bundle failed');
+    error.name = 'BUNDLE_FAILED';
+    exportProjectAsHtmlMock.mockRejectedValueOnce(error);
+    renderHtmlPreview();
+    fireEvent.click(screen.getByRole('button', { name: /download/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /standalone html/i }));
+    await waitFor(() => expect(document.body.textContent).toContain('Could not export standalone HTML'));
+    expect(exportProjectAsHtmlMock).toHaveBeenCalledTimes(1);
+    expect(analyticsTrackMock).toHaveBeenCalledWith(
+      'artifact_export_result',
+      expect.objectContaining({ export_format: 'html', result: 'failed', error_code: 'BUNDLE_FAILED' }),
+      expect.anything(),
+    );
   });
 
   it('portals the image export dialog above fixed chat composer layers', async () => {

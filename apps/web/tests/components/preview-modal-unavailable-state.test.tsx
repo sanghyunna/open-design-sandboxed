@@ -341,6 +341,7 @@ describe('PreviewModal unavailable state', () => {
             id: 'preview',
             label: 'Preview',
             html: '<!doctype html><p>Local-only preview</p>',
+            standaloneSource: { kind: 'inline', html: '<!doctype html><p>Local-only preview</p>' },
           },
         ]}
         shareTarget={{
@@ -370,6 +371,7 @@ describe('PreviewModal unavailable state', () => {
             id: 'preview',
             label: 'Preview',
             html: '<!doctype html><p>Generic preview</p>',
+            standaloneSource: { kind: 'inline', html: '<!doctype html><p>Generic preview</p>' },
           },
         ]}
         onView={() => {}}

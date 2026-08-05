@@ -49,6 +49,7 @@
     "cheerio": "1.2.0",
     "chokidar": "5.0.0",
     "express": "5.2.1",
+    "esbuild": "0.28.0",
     "jszip": "3.10.1",
     "multer": "2.2.0",
     "node-pty": "1.1.0",

@@ -99,7 +99,7 @@ const VISUAL_PLUGINS = [
     taskKind: 'new-generation',
     tags: ['slides'],
     query: 'Draft a {{topic}} deck.',
-    previewEntry: 'preview.html',
+    exampleOutput: 'examples/deck.html',
   }),
   makeVisualPlugin({
     id: 'visual-video-storyboard',
@@ -241,6 +241,15 @@ export async function configureVisualPage(page: Page, options: VisualPageOptions
     await route.fulfill({
       contentType: 'text/html',
       body: `<!doctype html><html><body><main><h1>${escapeHtml(id)} preview</h1></main></body></html>`,
+    });
+  });
+
+  await page.route('**/api/plugins/*/example/*', async (route) => {
+    const parts = new URL(route.request().url()).pathname.split('/');
+    const id = decodeURIComponent(parts.at(-3) ?? 'plugin');
+    await route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><html><body><main><h1>${escapeHtml(id)} example</h1></main></body></html>`,
     });
   });
 
@@ -414,6 +423,7 @@ function makeVisualPlugin(input: {
   tags?: string[];
   query?: string;
   previewEntry?: string;
+  exampleOutput?: string;
 }) {
   return {
     id: input.id,
@@ -437,10 +447,11 @@ function makeVisualPlugin(input: {
         taskKind: input.taskKind,
         mode: input.mode,
         ...(input.featured ? { featured: true } : {}),
-        ...(input.query
+        ...(input.query || input.exampleOutput
           ? {
               useCase: {
-                query: { en: input.query },
+                ...(input.query ? { query: { en: input.query } } : {}),
+                ...(input.exampleOutput ? { exampleOutputs: [{ path: input.exampleOutput, title: 'Example' }] } : {}),
               },
             }
           : {}),

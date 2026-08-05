@@ -22,6 +22,11 @@ import {
   isOpenDesignHostAvailable,
   printHostPdf,
 } from '@open-design/host';
+import {
+  STANDALONE_HTML_EXPORT_HEADERS,
+  type StandaloneHtmlExportSummary,
+  type StandaloneHtmlSource,
+} from '@open-design/contracts';
 
 const DESIGN_HANDOFF_FILENAME = 'DESIGN-HANDOFF.md';
 const DESIGN_MANIFEST_FILENAME = 'DESIGN-MANIFEST.json';
@@ -51,35 +56,56 @@ function triggerDownload(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-// @dsp func-f4e4308d
-export function exportAsHtml(html: string, title: string): void {
-  const doc = injectStandaloneDeckKeyDedupe(buildSrcdoc(html));
-  const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
-  triggerDownload(blob, `${safeFilename(title, 'artifact')}.html`);
+// @dsp func-40a5435e
+export class StandaloneHtmlExportError extends Error {
+  constructor(message: string, public readonly code = 'STANDALONE_HTML_EXPORT_FAILED') {
+    super(message);
+    this.name = code;
+  }
 }
 
-// @dsp func-40a5435e
-export async function exportProjectAsHtml(opts: {
+export async function exportStandaloneHtml(options: {
+  source: StandaloneHtmlSource;
+  title: string;
+}): Promise<StandaloneHtmlExportSummary> {
+  const response = await fetch('/api/exports/standalone-html', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ source: options.source }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { code?: string; message?: string } } | null;
+    throw new StandaloneHtmlExportError(
+      body?.error?.message ?? `HTML export request failed (${response.status})`,
+      body?.error?.code ?? `HTTP_${response.status}`,
+    );
+  }
+  const count = (name: string) => {
+    const raw = response.headers.get(name);
+    const value = raw == null ? NaN : Number(raw);
+    if (!Number.isSafeInteger(value) || value < 0) throw new StandaloneHtmlExportError(`Invalid export response header: ${name}`);
+    return value;
+  };
+  const blob = await response.blob();
+  const summary = {
+    outputBytes: blob.size,
+    externalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.externalReferenceCount),
+    missingLocalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.missingLocalReferenceCount),
+    skippedSystemFontCount: count(STANDALONE_HTML_EXPORT_HEADERS.skippedSystemFontCount),
+  };
+  triggerDownload(blob, `${safeFilename(options.title, 'artifact')}.html`);
+  return summary;
+}
+
+export function exportProjectAsHtml(opts: {
   projectId: string;
   filePath: string;
-  fallbackHtml: string;
-  fallbackTitle: string;
-}): Promise<void> {
-  const segments = opts.filePath
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-  const url = `/api/projects/${encodeURIComponent(opts.projectId)}/export/${segments}?inline=1`;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`html export request failed (${resp.status})`);
-    const blob = await resp.blob();
-    triggerDownload(blob, `${safeFilename(opts.fallbackTitle, 'artifact')}.html`);
-  } catch (err) {
-    console.warn('[exportProjectAsHtml] falling back to source HTML export:', err);
-    exportAsHtml(opts.fallbackHtml, opts.fallbackTitle);
-  }
+  title: string;
+}): Promise<StandaloneHtmlExportSummary> {
+  return exportStandaloneHtml({
+    source: { kind: 'project', projectId: opts.projectId, filePath: opts.filePath },
+    title: opts.title,
+  });
 }
 
 // A file is treated as a preview-chrome wrapper only when it lives inside

@@ -6,8 +6,7 @@
 
 import { readFile, stat } from 'node:fs/promises';
 
-import { MAX_INLINE_ASSET_BYTES } from './inline-assets.js';
-import { embedSystemFonts, type EmbedFontsOptions, type EmbedFontsResult } from './font-embed.js';
+import { MAX_SYSTEM_FONT_FACE_BYTES, embedSystemFonts, type EmbedFontsOptions, type EmbedFontsResult } from './font-embed.js';
 import { indexFamiliesByName, listSystemFonts } from './system-fonts.js';
 
 /**
@@ -36,7 +35,7 @@ export async function embedUsedSystemFonts(
     readFontBytes: async (p) => {
       try {
         const s = await stat(p);
-        if (!s.isFile() || s.size > MAX_INLINE_ASSET_BYTES) return null;
+        if (!s.isFile() || s.size > MAX_SYSTEM_FONT_FACE_BYTES) return null;
         return await readFile(p);
       } catch {
         return null;

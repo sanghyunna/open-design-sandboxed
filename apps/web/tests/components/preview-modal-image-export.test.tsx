@@ -11,15 +11,16 @@ import { PreviewModal } from '../../src/components/PreviewModal';
 // mock them so the test can exercise the full button flow without a real
 // iframe or DOM snapshot.
 
-const { captureHostIframeSnapshotMock, exportAsImageMock, requestPreviewSnapshotMock } = vi.hoisted(() => ({
+const { captureHostIframeSnapshotMock, exportAsImageMock, exportStandaloneHtmlMock, requestPreviewSnapshotMock } = vi.hoisted(() => ({
   captureHostIframeSnapshotMock: vi.fn(),
   exportAsImageMock: vi.fn(),
+  exportStandaloneHtmlMock: vi.fn(),
   requestPreviewSnapshotMock: vi.fn(),
 }));
 
 vi.mock('../../src/runtime/exports', () => ({
   captureHostIframeSnapshot: captureHostIframeSnapshotMock,
-  exportAsHtml: vi.fn(),
+  exportStandaloneHtml: exportStandaloneHtmlMock,
   exportAsImage: exportAsImageMock,
   exportAsPdf: vi.fn(),
   exportAsZip: vi.fn(),
@@ -29,7 +30,12 @@ vi.mock('../../src/runtime/exports', () => ({
 
 const baseProps = {
   title: 'Sample',
-  views: [{ id: 'main', label: 'Main', html: '<p>hello</p>' }],
+  views: [{
+    id: 'main',
+    label: 'Main',
+    html: '<p>hello</p>',
+    standaloneSource: { kind: 'plugin' as const, pluginId: 'plugin-1' },
+  }],
   exportTitleFor: (id: string) => id,
 };
 
@@ -54,6 +60,64 @@ describe('PreviewModal image export', () => {
     expect(
       screen.getByRole('menuitem', { name: /export as image/i }),
     ).toBeTruthy();
+  });
+
+  it('exports HTML through the active view standalone source', async () => {
+    exportStandaloneHtmlMock.mockResolvedValueOnce({
+      outputBytes: 10,
+      externalReferenceCount: 0,
+      missingLocalReferenceCount: 0,
+      skippedSystemFontCount: 0,
+    });
+    render(<PreviewModal {...baseProps} onClose={() => {}} />);
+    openShareMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: /export as html/i }));
+    await waitFor(() => {
+      expect(exportStandaloneHtmlMock).toHaveBeenCalledWith({
+        source: { kind: 'plugin', pluginId: 'plugin-1' },
+        title: 'main',
+      });
+    });
+  });
+
+  it('switches standalone sources with the active design-system view and shows warnings', async () => {
+    exportStandaloneHtmlMock.mockResolvedValueOnce({
+      outputBytes: 10,
+      externalReferenceCount: 3,
+      missingLocalReferenceCount: 2,
+      skippedSystemFontCount: 0,
+    });
+    render(<PreviewModal
+      title="Design system"
+      views={[
+        { id: 'showcase', label: 'Showcase', html: '<p>showcase</p>', standaloneSource: { kind: 'design-system', designSystemId: 'ds-1', view: 'showcase' } },
+        { id: 'tokens', label: 'Tokens', html: '<p>tokens</p>', standaloneSource: { kind: 'design-system', designSystemId: 'ds-1', view: 'preview' } },
+      ]}
+      exportTitleFor={(id) => id}
+      onClose={() => {}}
+    />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Tokens' }));
+    openShareMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: /export as html/i }));
+    await waitFor(() => {
+      expect(exportStandaloneHtmlMock).toHaveBeenCalledWith({
+        source: { kind: 'design-system', designSystemId: 'ds-1', view: 'preview' },
+        title: 'tokens',
+      });
+      expect(document.body.textContent).toContain('3 external');
+      expect(document.body.textContent).toContain('2 missing');
+    });
+  });
+
+  it('shows a server bundle failure and never saves active preview HTML as a fallback', async () => {
+    const error = new Error('invalid module');
+    error.name = 'BUNDLE_FAILED';
+    exportStandaloneHtmlMock.mockRejectedValueOnce(error);
+    render(<PreviewModal {...baseProps} onClose={() => {}} />);
+    openShareMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: /export as html/i }));
+    await waitFor(() => expect(document.body.textContent).toContain('Could not export standalone HTML'));
+    expect(exportStandaloneHtmlMock).toHaveBeenCalledTimes(1);
   });
 
   it('hides the share menu (including image export) when the view is custom (no iframe)', () => {

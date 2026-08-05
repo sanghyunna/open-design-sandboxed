@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import Database from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { startServer } from '../src/server.js';
 
@@ -34,7 +34,7 @@ let pluginRoot: string;
 let server: http.Server | undefined;
 let baseUrl: string;
 
-beforeEach(async () => {
+beforeAll(async () => {
   pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-preview-'));
   const folder = path.join(pluginRoot, PLUGIN_ID);
   await mkdir(path.join(folder, 'preview'), { recursive: true });
@@ -56,6 +56,7 @@ beforeEach(async () => {
     path.join(folder, 'examples', 'wrapped', 'inner.html'),
     '<!DOCTYPE html><title>wrapped</title><img src="./hero.png"><p>wrapped body</p>',
   );
+  await writeFile(path.join(folder, 'examples', 'wrapped', 'hero.png'), Buffer.from('plugin-image'));
   await writeFile(
     path.join(folder, 'open-design.json'),
     JSON.stringify({
@@ -111,9 +112,9 @@ beforeEach(async () => {
       throw new Error(`installer did not finalize:\n${raw}`);
     }
   }
-});
+}, 30_000);
 
-afterEach(async () => {
+afterAll(async () => {
   await new Promise((resolve, reject) => {
     if (!server) return resolve(undefined);
     server.close((error?: Error) => (error ? reject(error) : resolve(undefined)));
@@ -131,7 +132,7 @@ afterEach(async () => {
   }
 
   await rm(pluginRoot, { recursive: true, force: true });
-});
+}, 30_000);
 
 describe('GET /api/plugins/:id/preview', () => {
   it('serves preview/index.html with the §9.2 sandbox CSP', async () => {
@@ -190,5 +191,61 @@ describe('GET /api/plugins/:id/example/:name', () => {
   it('returns 404 for an unknown example name', async () => {
     const resp = await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/example/missing-thing`);
     expect(resp.status).toBe(404);
+  });
+});
+
+describe('POST /api/exports/standalone-html plugin sources', () => {
+  it('uses the same resolver for preview and named example assets', async () => {
+    const preview = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID } }),
+    });
+    expect(preview.status).toBe(200);
+    expect(await preview.text()).toContain('preview body');
+
+    const example = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID, exampleName: 'wrapped' } }),
+    });
+    expect(example.status).toBe(200);
+    const body = await example.text();
+    expect(body).toContain('wrapped body');
+    expect(body).toContain('src="data:image/png;base64,');
+    expect(body).not.toContain('/api/plugins/');
+  });
+
+  it('maps an oversized plugin preview to PAYLOAD_TOO_LARGE', async () => {
+    const db = new Database(path.join(serverRuntimeDataRoot, 'app.sqlite'));
+    const installed = db.prepare('SELECT fs_path AS fsPath FROM installed_plugins WHERE id = ?').get(PLUGIN_ID) as { fsPath: string };
+    db.close();
+    const previewPath = path.join(installed.fsPath, 'preview', 'index.html');
+    try {
+      await writeFile(previewPath, Buffer.alloc(5 * 1024 * 1024 + 1));
+      expect((await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/preview`)).status).toBe(413);
+      const response = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: { kind: 'plugin', pluginId: PLUGIN_ID } }),
+      });
+      expect(response.status).toBe(413);
+      expect((await response.json()) as unknown).toMatchObject({ error: { code: 'PAYLOAD_TOO_LARGE' } });
+    } finally {
+      await writeFile(previewPath, '<!DOCTYPE html><title>preview</title><p>preview body</p>');
+    }
+  });
+
+  it('maps an oversized named example to 413 on the preview route', async () => {
+    const db = new Database(path.join(serverRuntimeDataRoot, 'app.sqlite'));
+    const installed = db.prepare('SELECT fs_path AS fsPath FROM installed_plugins WHERE id = ?').get(PLUGIN_ID) as { fsPath: string };
+    db.close();
+    const examplePath = path.join(installed.fsPath, 'examples', 'desk-warm', 'index.html');
+    try {
+      await writeFile(examplePath, Buffer.alloc(5 * 1024 * 1024 + 1));
+      expect((await fetch(`${baseUrl}/api/plugins/${PLUGIN_ID}/example/desk-warm`)).status).toBe(413);
+    } finally {
+      await writeFile(examplePath, '<!DOCTYPE html><title>desk-warm</title><p>example body</p>');
+    }
   });
 });

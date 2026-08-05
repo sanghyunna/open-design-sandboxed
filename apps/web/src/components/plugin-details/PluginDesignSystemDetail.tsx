@@ -124,16 +124,24 @@ export function PluginDesignSystemDetail({
   // back to a minimal placeholder that explains the design spec lives
   // in the plugin-info sidebar; the user can still apply the plugin
   // from the primary CTA.
+  const specPlaceholderHtml = '<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:0 24px;margin:0;">This plugin ships only the design spec — open Plugin info to read DESIGN.md.</body>';
   const views: PreviewView[] = dsRef
     ? [
-        { id: 'showcase', label: t('ds.showcase'), html: showcaseHtml },
-        { id: 'tokens', label: t('ds.tokens'), html: tokensHtml },
+        {
+          id: 'showcase', label: t('ds.showcase'), html: showcaseHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: dsRef, view: 'showcase' },
+        },
+        {
+          id: 'tokens', label: t('ds.tokens'), html: tokensHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: dsRef, view: 'preview' },
+        },
       ]
     : [
         {
           id: 'spec',
           label: 'Spec',
-          html: '<!doctype html><meta charset="utf-8"><body style="font:14px system-ui;color:#666;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:0 24px;margin:0;">This plugin ships only the design spec — open Plugin info to read DESIGN.md.</body>',
+          standaloneSource: { kind: 'inline', html: specPlaceholderHtml },
+          html: specPlaceholderHtml,
         },
       ];
 

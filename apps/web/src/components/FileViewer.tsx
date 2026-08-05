@@ -3455,7 +3455,7 @@ function HtmlViewer({
         { requestId },
       );
     };
-    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'html', 'image', 'markdown']);
+    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'image', 'markdown']);
     try {
       const out = fn();
       if (out && typeof (out as Promise<unknown>).then === 'function') {
@@ -9392,12 +9392,35 @@ function HtmlViewer({
                     role="menuitem"
                     onClick={() => {
                       setDownloadMenuOpen(false);
-                      fireShareExport('html', () => exportProjectAsHtml({
-                        projectId,
-                        filePath: file.name,
-                        fallbackHtml: source ?? '',
-                        fallbackTitle: exportTitle,
-                      }));
+                      fireShareExport('html', async () => {
+                        try {
+                          const summary = await exportProjectAsHtml({
+                            projectId,
+                            filePath: file.name,
+                            title: exportTitle,
+                          });
+                          const external = summary.externalReferenceCount;
+                          const missing = summary.missingLocalReferenceCount;
+                          setExportToast({
+                            message: external && missing
+                              ? t('fileViewer.standaloneExportExternalAndMissing', { external, missing })
+                              : external
+                                ? t('fileViewer.standaloneExportExternal', { count: external })
+                                : missing
+                                  ? t('fileViewer.standaloneExportMissing', { count: missing })
+                                  : t('fileViewer.standaloneExportSuccess'),
+                            tone: 'default',
+                          });
+                        } catch (error) {
+                          setExportToast({
+                            message: error instanceof Error && error.name === 'PAYLOAD_TOO_LARGE'
+                              ? t('fileViewer.standaloneExportTooLarge')
+                              : t('fileViewer.standaloneExportFailed'),
+                            tone: 'error',
+                          });
+                          throw error;
+                        }
+                      });
                     }}
                   >
                     <span className="share-menu-icon"><RemixIcon name="file-code-line" size={15} /></span>

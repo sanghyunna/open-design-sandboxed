@@ -434,52 +434,82 @@ describe('exportProjectAsHtml', () => {
     vi.restoreAllMocks();
   });
 
-  it('downloads daemon-inlined project HTML instead of the raw source body', async () => {
+  it('downloads daemon-bundled project HTML through the shared POST endpoint', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<!doctype html><p>inlined</p>', {
-      headers: { 'content-type': 'text/html' },
+      headers: {
+        'content-type': 'text/html',
+        'x-open-design-external-reference-count': '2',
+        'x-open-design-missing-local-reference-count': '1',
+        'x-open-design-skipped-system-font-count': '0',
+      },
       status: 200,
     })));
 
-    await exportProjectAsHtml({
+    const summary = await exportProjectAsHtml({
       projectId: 'proj 1',
       filePath: 'screens/main page.html',
-      fallbackHtml: '<script type="module" src="/src/main.tsx"></script>',
-      fallbackTitle: 'Main Page',
+      title: 'Main Page',
     });
 
-    expect(fetch).toHaveBeenCalledWith('/api/projects/proj%201/export/screens/main%20page.html?inline=1');
+    expect(fetch).toHaveBeenCalledWith('/api/exports/standalone-html', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId: 'proj 1', filePath: 'screens/main page.html' } }),
+    });
     expect(capturedFilename).toBe('Main-Page.html');
     expect(await capturedBlob!.text()).toBe('<!doctype html><p>inlined</p>');
+    expect(summary).toEqual({
+      outputBytes: capturedBlob!.size,
+      externalReferenceCount: 2,
+      missingLocalReferenceCount: 1,
+      skippedSystemFontCount: 0,
+    });
   });
 
-  it('falls back to the source HTML export when the daemon inline endpoint fails', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+  it('rejects instead of downloading source HTML when bundling fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: { code: 'BUNDLE_FAILED', message: 'bad module' } }), {
+      status: 422,
+      headers: { 'content-type': 'application/json' },
+    })));
 
-    await exportProjectAsHtml({
+    await expect(exportProjectAsHtml({
       projectId: 'proj-1',
       filePath: 'index.html',
-      fallbackHtml: '<main>fallback</main>',
-      fallbackTitle: 'Fallback',
-    });
+      title: 'Fallback',
+    })).rejects.toMatchObject({ name: 'BUNDLE_FAILED', message: 'bad module' });
 
-    expect(capturedFilename).toBe('Fallback.html');
-    expect(await capturedBlob!.text()).toContain('<main>fallback</main>');
+    expect(capturedFilename).toBeUndefined();
+    expect(capturedBlob).toBeUndefined();
   });
 
-  it('injects standalone deck key dedupe into fallback HTML exports', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
+  it('rejects an invalid summary header before starting a download', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<!doctype html>', {
+      status: 200,
+      headers: {
+        'x-open-design-external-reference-count': 'not-a-number',
+        'x-open-design-missing-local-reference-count': '0',
+        'x-open-design-skipped-system-font-count': '0',
+      },
+    })));
 
-    await exportProjectAsHtml({
+    await expect(exportProjectAsHtml({
       projectId: 'proj-1',
-      filePath: 'deck.html',
-      fallbackHtml: duplicateDeckHtml(),
-      fallbackTitle: 'Deck',
-    });
+      filePath: 'index.html',
+      title: 'Invalid',
+    })).rejects.toThrow('Invalid export response header');
+    expect(capturedFilename).toBeUndefined();
+  });
 
-    const html = await capturedBlob!.text();
-    expectSingleStepStandaloneDeckNavigation(html);
+  it('rejects a network failure without starting a fallback download', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('network down'); }));
+
+    await expect(exportProjectAsHtml({
+      projectId: 'proj-1',
+      filePath: 'index.html',
+      title: 'Offline',
+    })).rejects.toThrow('network down');
+    expect(capturedFilename).toBeUndefined();
+    expect(capturedBlob).toBeUndefined();
   });
 
   it('injects standalone deck key dedupe into fallback ZIP exports', async () => {

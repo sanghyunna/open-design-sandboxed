@@ -13,7 +13,7 @@
 // with `plugins-preview-route.test.ts`.
 
 import http from 'node:http';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PluginHtmlTooLargeError, resolvePluginHtml, resolvePluginSourceFile } from '../src/plugin-html-source.js';
 import { startServer } from '../src/server.js';
 
 type StartedServer = { server: http.Server; url: string };
@@ -33,6 +34,7 @@ const serverRuntimeDataRoot = process.env.OD_DATA_DIR
 
 const PLUGIN_ID = `phase2b-preview-fallback-${Date.now()}`;
 let pluginRoot: string;
+let pluginFolder: string;
 let server: http.Server | undefined;
 let baseUrl: string;
 
@@ -59,6 +61,7 @@ async function bootInstall(folder: string): Promise<void> {
 beforeEach(async () => {
   pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-preview-fallback-'));
   const folder = path.join(pluginRoot, PLUGIN_ID);
+  pluginFolder = folder;
   await mkdir(path.join(folder, 'assets'), { recursive: true });
   // Deliberately omit ./index.html so the declared entry is stale.
   await writeFile(
@@ -128,5 +131,27 @@ describe('GET /api/plugins/:id/preview — fallback chain', () => {
     expect(body).toContain('<main id="deck">');
     expect(body).toContain('fallback body via assets');
     expect(body).toContain('Preview fallback fixture | Open Design Example');
+  });
+
+  it('rejects an oversized selected preview before reading it', async () => {
+    await writeFile(path.join(pluginFolder, 'huge.html'), Buffer.alloc(5 * 1024 * 1024 + 1));
+    const plugin = {
+      id: PLUGIN_ID,
+      title: 'Oversized fixture',
+      fsPath: pluginFolder,
+      manifest: { od: { preview: { entry: 'huge.html' } } },
+    } as any;
+    await expect(resolvePluginHtml(plugin)).rejects.toBeInstanceOf(PluginHtmlTooLargeError);
+  });
+
+  it('rejects intermediate directory symlinks in plugin assets', async () => {
+    const outside = await mkdtemp(path.join(os.tmpdir(), 'od-plugin-outside-'));
+    try {
+      await writeFile(path.join(outside, 'secret.png'), 'secret');
+      await symlink(outside, path.join(pluginFolder, 'linked'), 'junction');
+      await expect(resolvePluginSourceFile(pluginFolder, 'linked/secret.png', 'index.html')).resolves.toBeNull();
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 });
