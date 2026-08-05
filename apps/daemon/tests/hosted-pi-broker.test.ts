@@ -112,6 +112,12 @@ describe('hosted Pi broker', () => {
         });
         assert.equal(denied.ok, false, operation);
       }
+      const nestedListing = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:list',
+        path: 'nested',
+      });
+      assert.equal(nestedListing.ok, false);
       if (linkedDirectoryCreated) {
         for (const operation of ['project:file:list', 'project:file:write'] as const) {
           const denied = await broker.invoke({

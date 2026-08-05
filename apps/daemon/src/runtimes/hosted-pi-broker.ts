@@ -431,6 +431,9 @@ export async function createHostedPiBroker(options: {
 
     const relative = safeRelativePath(request.path ?? '', operation === 'project:file:list');
     if (relative === null) return deny('BROKER_PATH_DENIED', 'project path must be relative and link-free');
+    if (operation === 'project:file:list' && relative !== '') {
+      return deny('BROKER_PATH_DENIED', 'project listing is restricted to the bound root');
+    }
     const target = targetInsideProject(grant.projectRoot, relative, operation === 'project:file:write');
     if (!target) return deny('BROKER_PATH_DENIED', 'project path escapes the bound project root');
     // Re-resolve immediately before touching the filesystem. The operation
