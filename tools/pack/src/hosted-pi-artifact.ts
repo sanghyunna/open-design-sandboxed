@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { createConnection } from 'node:net';
 import {
   copyFileSync,
   existsSync,
@@ -22,7 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const repoRoot = path.resolve(import.meta.dirname, '..');
+const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const hostedPiPackageName = '@earendil-works/pi-coding-agent';
 const hostedPiVersion = '0.83.0';
 const hostedPiIntegrity = 'sha512-uYhF+FsZxogoSX/AxBcUdiY+ZklubwaXyAoEGA2eQwsHcyEAhUYIKh/WLXe/a8+k8eTCmxb+ZN2Zo9mzQtzbWw==';
@@ -30,6 +31,35 @@ const photonVersion = '0.3.4';
 const defaultOutput = path.join(repoRoot, '.tmp', 'hosted-pi-artifact');
 
 type JsonObject = Record<string, unknown>;
+
+async function brokerSocketRequest(socketPath: string, request: JsonObject): Promise<JsonObject> {
+  return new Promise<JsonObject>((resolve, reject) => {
+    const socket = createConnection(socketPath);
+    let buffer = '';
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error('hosted Pi broker socket request timed out'));
+    }, 5_000);
+    const finish = (callback: () => void): void => {
+      clearTimeout(timer);
+      socket.destroy();
+      callback();
+    };
+    socket.setEncoding('utf8');
+    socket.once('connect', () => socket.end(`${JSON.stringify(request)}\n`));
+    socket.on('data', (chunk: string) => {
+      buffer += chunk;
+      const newline = buffer.indexOf('\n');
+      if (newline < 0) return;
+      try {
+        finish(() => resolve(JSON.parse(buffer.slice(0, newline)) as JsonObject));
+      } catch (error) {
+        finish(() => reject(error));
+      }
+    });
+    socket.once('error', (error) => finish(() => reject(error)));
+  });
+}
 
 function fail(message: string): never {
   throw new Error(`[hosted-pi-artifact] ${message}`);
@@ -380,7 +410,7 @@ function message(stopReason = 'stop', useBroker = false) {
   return {
     role: 'assistant',
     content: useBroker
-      ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'od_hosted_broker', arguments: { operation: 'project:file:read', path: 'fixture.txt' } }]
+      ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'od_hosted_broker', arguments: { operation: 'project:file:read', path: 'large.txt' } }]
       : [{ type: 'text', text: stopReason === 'stop' ? 'hosted fixture response' : '' }],
     api: 'openai-completions',
     provider: 'hosted-fixture',
@@ -475,15 +505,34 @@ async function runRpcSmoke(stage: string): Promise<void> {
   const sessionDir = path.join(smokeRoot, 'sessions');
   const networkGuardPath = path.join(smokeRoot, 'deny-runtime.cjs');
   const networkGuardMarker = path.join(smokeRoot, 'network-guard.loaded');
+  const maliciousMarker = path.join(smokeRoot, 'malicious-project-context.loaded');
   mkdirSync(project, { recursive: true });
   mkdirSync(runtimeRoot, { recursive: true });
   mkdirSync(sessionDir, { recursive: true });
   writeFileSync(fixturePath, HOSTED_PI_FIXTURE_PROVIDER);
   writeFileSync(networkGuardPath, HOSTED_PI_NETWORK_GUARD);
   writeFileSync(path.join(project, 'fixture.txt'), 'fixture');
+  writeFileSync(path.join(project, 'large.txt'), `large-fixture-${'x'.repeat(128 * 1024)}`);
+  mkdirSync(path.join(project, '.pi', 'extensions'), { recursive: true });
+  mkdirSync(path.join(project, '.pi', 'skills'), { recursive: true });
+  mkdirSync(path.join(project, '.pi', 'themes'), { recursive: true });
+  writeFileSync(path.join(project, '.pi', 'extensions', 'malicious.js'),
+    `require('node:fs').writeFileSync(${JSON.stringify(maliciousMarker)}, 'loaded');`);
+  writeFileSync(path.join(project, '.pi', 'skills', 'malicious.md'), `malicious-skill-${maliciousMarker}`);
+  writeFileSync(path.join(project, '.pi', 'themes', 'malicious.json'), `{"marker":${JSON.stringify(maliciousMarker)}}`);
+  writeFileSync(path.join(project, 'AGENTS.md'), `malicious-context-${maliciousMarker}`);
   const broker = await brokerModule.createHostedPiBroker({
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
+  });
+  const secondProject = path.join(smokeRoot, 'second-project');
+  const secondRuntimeRoot = path.join(smokeRoot, 'second-runtime');
+  mkdirSync(secondProject, { recursive: true });
+  mkdirSync(secondRuntimeRoot, { recursive: true });
+  writeFileSync(path.join(secondProject, 'fixture.txt'), 'second fixture');
+  const secondBroker = await brokerModule.createHostedPiBroker({
+    runtimeRoot: secondRuntimeRoot,
+    binding: { userKey: 'second-user', runId: 'second-run', projectId: 'second-project', projectRoot: secondProject },
   });
   const invocation = runtime.createHostedPiInvocation({
     cwd: project,
@@ -548,6 +597,36 @@ async function runRpcSmoke(stage: string): Promise<void> {
     check();
   });
   try {
+    const wrongSocketToken = await brokerSocketRequest(secondBroker.socketPath, {
+      token: broker.token,
+      operation: 'project:file:read',
+      path: 'fixture.txt',
+    });
+    if (wrongSocketToken.code !== 'BROKER_TOKEN_INVALID') fail('broker token crossed a socket grant boundary');
+    const outside = path.join(smokeRoot, 'outside');
+    mkdirSync(outside, { recursive: true });
+    writeFileSync(path.join(outside, 'secret.txt'), 'outside secret');
+    for (const request of [
+      { operation: 'project:file:read', path: '../outside/secret.txt' },
+      { operation: 'project:file:read', path: path.join(outside, 'secret.txt') },
+      { operation: 'project:file:read', path: '/etc/passwd' },
+      { operation: 'project:file:write', path: '../outside/escape.txt', content: 'nope' },
+    ]) {
+      const denied = await broker.invoke({ token: broker.token, ...request });
+      if (denied.ok !== false) fail(`broker accepted an unsafe path: ${request.path}`);
+    }
+    const linkedDirectory = path.join(project, 'linked-outside');
+    try {
+      symlinkSync(outside, linkedDirectory, process.platform === 'win32' ? 'junction' : 'dir');
+    } catch (error) {
+      fail(`hosted artifact could not create its required junction/symlink attack fixture: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    const linkedDenied = await broker.invoke({
+      token: broker.token,
+      operation: 'project:file:read',
+      path: 'linked-outside/secret.txt',
+    });
+    if (linkedDenied.ok !== false) fail('broker followed a project junction/symlink');
     const brokerWrite = await broker.invoke({
       token: broker.grant.token,
       operation: 'project:file:write',
@@ -585,13 +664,17 @@ async function runRpcSmoke(stage: string): Promise<void> {
 
     send(child, { id: 2, type: 'prompt', message: 'deterministic fixture turn' });
     await waitForLine((line) => line.type === 'agent_end');
+    await waitForLine((line) => line.type === 'agent_settled');
     if (!lines.some((line) => line.type === 'turn_end' && (line.message as JsonObject | undefined)?.usage)) {
       fail('fixture turn did not emit usage');
     }
     const brokerToolEnd = lines.find((line) => line.type === 'tool_execution_end'
       && line.toolName === 'od_hosted_broker');
-    if (!brokerToolEnd || brokerToolEnd.isError === true || !JSON.stringify(brokerToolEnd.result).includes('fixture')) {
+    if (!brokerToolEnd || brokerToolEnd.isError === true || !JSON.stringify(brokerToolEnd.result).includes('large-fixture')) {
       fail('Pi did not execute the staged od_hosted_broker extension through the broker socket');
+    }
+    if (existsSync(maliciousMarker) || lines.some((line) => JSON.stringify(line).includes(maliciousMarker))) {
+      fail('Pi loaded project-controlled extensions, skills, themes, or context');
     }
 
     send(child, { id: 3, type: 'new_session', parentSession: sessionFile });
@@ -599,6 +682,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
     if (resumed.success !== true) fail('parent-session resume was rejected');
     send(child, { id: 4, type: 'prompt', message: 'resumed fixture turn' });
     await waitForLine((line) => line.type === 'agent_end');
+    await waitForLine((line) => line.type === 'agent_settled');
 
     send(child, { id: 5, type: 'prompt', message: 'cancel fixture turn' });
     await waitForLine((line) => line.type === 'turn_start');
@@ -629,6 +713,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
       });
     }
     await broker.close();
+    await secondBroker.close();
     rmSync(fixturePath, { force: true });
     rmSync(smokeRoot, { recursive: true, force: true });
   }

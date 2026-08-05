@@ -11,8 +11,8 @@
     "dev": "tsx ./src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
-    "hosted:pi:build": "node --experimental-strip-types ../../scripts/hosted-pi-artifact.ts build",
-    "hosted:pi:check": "node --experimental-strip-types ../../scripts/hosted-pi-artifact.ts check"
+    "hosted:pi:build": "node --experimental-strip-types ./src/hosted-pi-artifact.ts build",
+    "hosted:pi:check": "node --experimental-strip-types ./src/hosted-pi-artifact.ts check"
   },
   "dependencies": {
     "@electron/notarize": "3.1.1",

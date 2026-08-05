@@ -8,8 +8,12 @@ on:
       - '.github/workflows/hosted-pi.yml'
       - 'apps/daemon/**'
       - 'packages/**'
-      - 'scripts/hosted-pi-artifact.ts'
+      - 'tools/pack/src/hosted-pi-artifact.ts'
+      - 'tools/pack/src/**'
       - 'tools/pack/package.json'
+      - 'nix/**'
+      - 'flake.nix'
+      - 'scripts/update-nix-pnpm-deps-hash.ts'
       - 'docs/hosted-pi-third-party.md'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -48,3 +52,23 @@ jobs:
           name: hosted-pi-${{ matrix.os }}
           path: .tmp/hosted-pi-artifact-${{ matrix.os }}
           if-no-files-found: error
+
+  nix-packaging:
+    name: Nix dependency hash and flake check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Install build dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Refresh and validate Nix pnpm dependency hash
+        run: |
+          pnpm nix:update-hash
+          nix flake check --print-build-logs --keep-going
