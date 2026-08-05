@@ -103,7 +103,9 @@ function identityOf(stat: Stats): RootIdentity {
   return { dev: stat.dev, ino: stat.ino, birthtimeMs: stat.birthtimeMs };
 }
 
-const MAX_REQUEST_BYTES = 5 * 1024 * 1024;
+// JSON can expand each control byte in a 4 MiB file to a six-byte `\\u00XX`
+// escape. Keep the wire ceiling above that worst case for both reads and writes.
+const MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/u;
 

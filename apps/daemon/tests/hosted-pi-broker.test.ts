@@ -217,6 +217,21 @@ describe('hosted Pi broker', () => {
       });
       assert.equal(validToken.ok, true);
       if (validToken.ok) assert.equal(validToken.content, '<h1>safe</h1>');
+      const escapeHeavyContent = '\0'.repeat(1024 * 1024);
+      const escapedWrite = await socketRequest(brokerB.socketPath, {
+        token: brokerB.token,
+        operation: 'project:file:write',
+        path: 'escape-heavy.txt',
+        content: escapeHeavyContent,
+      });
+      assert.equal(escapedWrite.ok, true);
+      const escapedContent = await socketRequest(brokerB.socketPath, {
+        token: brokerB.token,
+        operation: 'project:file:read',
+        path: 'escape-heavy.txt',
+      });
+      assert.equal(escapedContent.ok, true);
+      if (escapedContent.ok) assert.equal(escapedContent.content, escapeHeavyContent);
     } finally {
       await brokerA.close();
       await brokerB.close();

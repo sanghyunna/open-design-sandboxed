@@ -522,7 +522,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
   writeFileSync(fixturePath, HOSTED_PI_FIXTURE_PROVIDER);
   writeFileSync(networkGuardPath, HOSTED_PI_NETWORK_GUARD);
   writeFileSync(path.join(project, 'fixture.txt'), 'fixture');
-  writeFileSync(path.join(project, 'large.txt'), `large-fixture-${'x'.repeat(128 * 1024)}`);
+  writeFileSync(path.join(project, 'large.txt'), `large-fixture-${'x'.repeat(128 * 1024)}${'\0'.repeat(1024 * 1024)}`);
   mkdirSync(path.join(project, '.pi', 'extensions'), { recursive: true });
   mkdirSync(path.join(project, '.pi', 'skills'), { recursive: true });
   mkdirSync(path.join(project, '.pi', 'prompts'), { recursive: true });

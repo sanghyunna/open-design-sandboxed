@@ -1,6 +1,7 @@
 import { createConnection } from 'node:net';
 
-const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+// Keep this above the broker's worst-case JSON expansion of a 4 MiB file.
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 type BrokerParams = {
