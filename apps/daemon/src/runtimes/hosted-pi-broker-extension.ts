@@ -1,6 +1,6 @@
 import { createConnection } from 'node:net';
 
-const MAX_RESPONSE_BYTES = 64 * 1024;
+const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 type BrokerParams = {

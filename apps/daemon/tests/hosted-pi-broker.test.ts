@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createConnection } from 'node:net';
 import { mkdtempSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -6,6 +7,8 @@ import { afterEach, describe, test } from 'vitest';
 import {
   createHostedPiBroker,
   type HostedPiBinding,
+  type HostedPiBrokerRequest,
+  type HostedPiBrokerResponse,
 } from '../src/runtimes/hosted-pi-broker.js';
 
 const roots: string[] = [];
@@ -30,6 +33,36 @@ function fixture(): { root: string; project: string; binding: HostedPiBinding } 
       projectRoot: project,
     },
   };
+}
+
+function socketRequest(socketPath: string, request: HostedPiBrokerRequest): Promise<HostedPiBrokerResponse> {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection(socketPath);
+    let buffer = '';
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error('broker socket request timed out'));
+    }, 5_000);
+    const finish = (callback: () => void): void => {
+      clearTimeout(timer);
+      socket.destroy();
+      callback();
+    };
+    socket.setEncoding('utf8');
+    socket.once('connect', () => socket.end(`${JSON.stringify(request)}\n`));
+    socket.on('data', (chunk: string) => {
+      buffer += chunk;
+      const newline = buffer.indexOf('\n');
+      if (newline < 0) return;
+      try {
+        const response = JSON.parse(buffer.slice(0, newline)) as HostedPiBrokerResponse;
+        finish(() => resolve(response));
+      } catch (error) {
+        finish(() => reject(error));
+      }
+    });
+    socket.once('error', (error) => finish(() => reject(error)));
+  });
 }
 
 describe('hosted Pi broker', () => {
@@ -118,21 +151,33 @@ describe('hosted Pi broker', () => {
         const denied = await broker.invoke({ token: broker.grant.token, operation: 'project:file:read', path });
         assert.equal(denied.ok, false, path);
       }
-      for (const operation of ['project:file:list', 'project:file:read', 'project:file:write'] as const) {
-        const denied = await broker.invoke({
-          token: broker.grant.token,
-          operation,
-          path: 'nested/index.html',
-          ...(operation === 'project:file:write' ? { content: 'nope' } : {}),
-        });
-        assert.equal(denied.ok, false, operation);
-      }
       const nestedListing = await broker.invoke({
         token: broker.grant.token,
         operation: 'project:file:list',
         path: 'nested',
       });
-      assert.equal(nestedListing.ok, false);
+      assert.deepEqual(nestedListing, {
+        ok: true,
+        operation: 'project:file:list',
+        entries: ['index.html'],
+      });
+      const nestedRead = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:read',
+        path: 'nested/index.html',
+      });
+      assert.deepEqual(nestedRead, {
+        ok: true,
+        operation: 'project:file:read',
+        content: 'nested',
+      });
+      const nestedWrite = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:write',
+        path: 'nested/index.html',
+        content: 'updated nested',
+      });
+      assert.equal(nestedWrite.ok, true);
       if (linkedDirectoryCreated) {
         for (const operation of ['project:file:list', 'project:file:write'] as const) {
           const denied = await broker.invoke({
@@ -146,6 +191,35 @@ describe('hosted Pi broker', () => {
       }
     } finally {
       await broker.close();
+    }
+  });
+
+  test('rejects a token from another broker over the real socket boundary', async () => {
+    const first = fixture();
+    const second = fixture();
+    const brokerA = await createHostedPiBroker({ binding: first.binding, runtimeRoot: first.root });
+    const brokerB = await createHostedPiBroker({ binding: second.binding, runtimeRoot: second.root });
+    try {
+      const wrongToken = await socketRequest(brokerB.socketPath, {
+        token: brokerA.token,
+        operation: 'project:file:read',
+        path: 'index.html',
+      });
+      assert.deepEqual(wrongToken, {
+        ok: false,
+        code: 'BROKER_TOKEN_INVALID',
+        message: 'broker token is invalid',
+      });
+      const validToken = await socketRequest(brokerB.socketPath, {
+        token: brokerB.token,
+        operation: 'project:file:read',
+        path: 'index.html',
+      });
+      assert.equal(validToken.ok, true);
+      if (validToken.ok) assert.equal(validToken.content, '<h1>safe</h1>');
+    } finally {
+      await brokerA.close();
+      await brokerB.close();
     }
   });
 

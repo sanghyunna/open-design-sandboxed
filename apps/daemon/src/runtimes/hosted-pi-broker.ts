@@ -17,6 +17,7 @@ import {
   statSync,
   unlinkSync,
   writeFileSync,
+  type Dirent,
   type Stats,
 } from 'node:fs';
 import path from 'node:path';
@@ -102,7 +103,7 @@ function identityOf(stat: Stats): RootIdentity {
   return { dev: stat.dev, ino: stat.ino, birthtimeMs: stat.birthtimeMs };
 }
 
-const MAX_REQUEST_BYTES = 64 * 1024;
+const MAX_REQUEST_BYTES = 5 * 1024 * 1024;
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/u;
 
@@ -237,14 +238,11 @@ function normalizeEndpoints(input: readonly string[] | undefined): readonly stri
 function safeRelativePath(value: unknown, allowRoot: boolean): string | null {
   if (typeof value !== 'string' || value.length > 1024 || value.includes('\0')) return null;
   const normalized = value.replaceAll('\\', '/');
-  if (!allowRoot && normalized.length === 0) return null;
+  if (normalized.length === 0) return allowRoot ? '' : null;
   if (normalized.startsWith('/') || /^[A-Za-z]:/u.test(normalized)) return null;
   if (CONTROL_CHARS.test(normalized)) return null;
   const segments = normalized.split('/');
-  if (segments.some((segment) => segment === '..' || segment === '.')) return null;
-  // ponytail: root-level entries only until an openat/CreateFile-handle
-  // implementation exists for nested paths on both POSIX and Windows.
-  if (segments.length > 1) return null;
+  if (segments.some((segment) => segment.length === 0 || segment === '..' || segment === '.')) return null;
   return normalized;
 }
 
@@ -361,11 +359,24 @@ function readProjectFile(root: string, rootIdentity: RootIdentity, target: Resol
   }
 }
 
-function captureProjectDirectory(root: string, rootIdentity: RootIdentity, target: ResolvedTarget): Set<string> {
+type DirectorySnapshot = Map<string, Set<string>>;
+
+const MAX_SNAPSHOT_ENTRIES = 100_000;
+const MAX_SNAPSHOT_DEPTH = 32;
+
+function captureProjectDirectory(
+  root: string,
+  rootIdentity: RootIdentity,
+  target: ResolvedTarget,
+  relative: string,
+  snapshot: DirectorySnapshot,
+  state: { entries: number },
+): void {
   if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
+  if (relative.split('/').length > MAX_SNAPSHOT_DEPTH) throw new Error('project tree is too deep');
   const directory = opendirSync(target.path);
   try {
-    const entries = [] as Array<{ name: string; isSymbolicLink(): boolean }>;
+    const entries: Dirent[] = [];
     let entry = directory.readSync();
     while (entry) {
       entries.push(entry);
@@ -376,9 +387,20 @@ function captureProjectDirectory(root: string, rootIdentity: RootIdentity, targe
     if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
       throw new Error('project directory escaped');
     }
-    // ponytail: keep a grant-time root listing; refreshing a path during a
-    // client request would reintroduce a cross-platform directory-handle race.
-    return new Set(entries.filter((item) => !item.isSymbolicLink()).map((item) => item.name));
+    const names = new Set<string>();
+    snapshot.set(relative, names);
+    for (const item of entries) {
+      if (item.isSymbolicLink()) continue;
+      const childRelative = relative.length > 0 ? `${relative}/${item.name}` : item.name;
+      names.add(item.name);
+      state.entries += 1;
+      if (state.entries > MAX_SNAPSHOT_ENTRIES) throw new Error('project tree is too large');
+      if (item.isDirectory()) {
+        const child = targetInsideProject(root, childRelative, false);
+        if (!child?.exists || !child.stat?.isDirectory()) throw new Error('project tree changed');
+        captureProjectDirectory(root, rootIdentity, child, childRelative, snapshot, state);
+      }
+    }
   } finally {
     directory.closeSync();
   }
@@ -431,7 +453,8 @@ export async function createHostedPiBroker(options: {
     throw new Error('hosted Pi broker runtime root must stay outside the project root');
   }
   const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
-  const rootEntries = captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget);
+  const directorySnapshot: DirectorySnapshot = new Map();
+  captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget, '', directorySnapshot, { entries: 0 });
   const socketPath = process.platform === 'win32'
     ? `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`
     : path.join(runtimeRoot, `hosted-pi-${randomBytes(12).toString('hex')}.sock`);
@@ -457,9 +480,6 @@ export async function createHostedPiBroker(options: {
 
     const relative = safeRelativePath(request.path ?? '', operation === 'project:file:list');
     if (relative === null) return deny('BROKER_PATH_DENIED', 'project path must be relative and link-free');
-    if (operation === 'project:file:list' && relative !== '') {
-      return deny('BROKER_PATH_DENIED', 'project listing is restricted to the bound root');
-    }
     const target = targetInsideProject(grant.projectRoot, relative, operation === 'project:file:write');
     if (!target) return deny('BROKER_PATH_DENIED', 'project path escapes the bound project root');
     // Re-resolve immediately before touching the filesystem. The operation
@@ -472,7 +492,9 @@ export async function createHostedPiBroker(options: {
 
     if (operation === 'project:file:list') {
       if (!target.exists || !target.stat?.isDirectory()) return deny('BROKER_PATH_DENIED', 'list target must be a directory');
-      return { ok: true, operation, entries: [...rootEntries].sort() };
+      const entries = directorySnapshot.get(relative);
+      if (!entries) return deny('BROKER_PATH_DENIED', 'directory was not present when the grant was created');
+      return { ok: true, operation, entries: [...entries].sort() };
     }
     if (operation === 'project:file:read') {
       if (!target.exists || !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'read target must be a regular file');
@@ -489,7 +511,8 @@ export async function createHostedPiBroker(options: {
     if (target.exists && !target.stat?.isFile()) return deny('BROKER_PATH_DENIED', 'write target must be a regular file');
     try {
       writeProjectFile(grant.projectRoot, projectRootIdentity, target, request.content);
-      rootEntries.add(path.basename(target.path));
+      const parentRelative = path.posix.dirname(relative) === '.' ? '' : path.posix.dirname(relative);
+      directorySnapshot.get(parentRelative)?.add(path.posix.basename(relative));
       return { ok: true, operation };
     } catch {
       return deny('BROKER_WRITE_FAILED', 'project file could not be written');
