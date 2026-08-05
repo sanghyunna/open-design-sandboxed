@@ -54,6 +54,21 @@ describe('hosted Pi broker', () => {
         operation: 'project:file:read',
         content: 'created through the broker',
       });
+      const list = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:list',
+        path: '',
+      });
+      assert.equal(list.ok, true);
+      assert.equal(list.entries?.includes('index.html'), true);
+      writeFileSync(join(f.project, 'external.txt'), 'created outside the broker');
+      const stableList = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:list',
+        path: '',
+      });
+      assert.equal(stableList.ok, true);
+      assert.equal(stableList.entries?.includes('external.txt'), false);
 
       for (const mismatch of [
         { userKey: 'user-b' },
