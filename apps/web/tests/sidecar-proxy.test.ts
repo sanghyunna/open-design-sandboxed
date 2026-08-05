@@ -5,14 +5,71 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  createHostedDaemonProxyHeaders,
   createStandaloneBackendEnv,
   createStandaloneParentMonitorImport,
   createStandaloneServerArgs,
   normalizeDaemonProxyOriginHeader,
   resolveDaemonProxyTarget,
+  resolveHostedPublicOrigin,
+  resolveHostedSidecarRoute,
   resolveStandaloneBackendOrigin,
   resolveStandaloneServerEntry,
 } from '../sidecar/server';
+
+describe('hosted public sidecar boundary', () => {
+  it('routes only the api prefix to the daemon and terminates raw content routes', () => {
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api/projects?limit=10')).toEqual({
+      kind: 'daemon',
+      target: new URL('http://127.0.0.1:7456/api/projects?limit=10'),
+    });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/artifacts/file')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/frames/example')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/apiary')).toEqual({ kind: 'next' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/settings')).toEqual({ kind: 'next' });
+  });
+
+  it('requires an exact HTTP public origin', () => {
+    expect(resolveHostedPublicOrigin('https://design.example:8443').href).toBe('https://design.example:8443/');
+    expect(() => resolveHostedPublicOrigin(undefined)).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('https://design.example/path')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('file:///tmp/design')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+  });
+
+  it('preserves browser credentials and origin while replacing every identity assertion header', () => {
+    expect(
+      createHostedDaemonProxyHeaders({
+        headers: {
+          authorization: 'Bearer adapter-token',
+          cookie: 'session=adapter-cookie',
+          forwarded: 'for=attacker',
+          host: 'design.example:8443',
+          origin: 'https://exact-browser-origin.example',
+          'remote-user': 'attacker',
+          'x-auth-user': 'attacker',
+          'x-databricks-user': 'attacker',
+          'x-forwarded-for': 'attacker',
+          'x-forwarded-host': 'attacker',
+          'x-open-design-hosted-user': 'attacker',
+          'x-request-id': 'ordinary-header',
+        },
+        publicOrigin: new URL('https://design.example:8443'),
+        remoteAddress: '10.0.0.8',
+        targetHost: '127.0.0.1:7456',
+      }),
+    ).toEqual({
+      authorization: 'Bearer adapter-token',
+      cookie: 'session=adapter-cookie',
+      host: '127.0.0.1:7456',
+      origin: 'https://exact-browser-origin.example',
+      'x-forwarded-for': '10.0.0.8',
+      'x-forwarded-host': 'design.example:8443',
+      'x-forwarded-port': '8443',
+      'x-forwarded-proto': 'https',
+      'x-request-id': 'ordinary-header',
+    });
+  });
+});
 
 describe('resolveDaemonProxyTarget', () => {
   it('proxies allowlisted relative paths to the daemon origin', () => {

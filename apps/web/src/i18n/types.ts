@@ -88,6 +88,25 @@ export interface Dict {
   'app.brandSubtitle': string;
   'app.welcomeLoading': string;
 
+  // Hosted provider bootstrap
+  'hosted.provider.eyebrow': string;
+  'hosted.provider.title': string;
+  'hosted.provider.description': string;
+  'hosted.provider.runtime': string;
+  'hosted.provider.provider': string;
+  'hosted.provider.apiKey': string;
+  'hosted.provider.apiKeyPlaceholder': string;
+  'hosted.provider.save': string;
+  'hosted.provider.test': string;
+  'hosted.provider.clear': string;
+  'hosted.provider.loading': string;
+  'hosted.provider.configured': string;
+  'hosted.provider.notConfigured': string;
+  'hosted.provider.setSuccess': string;
+  'hosted.provider.testSuccess': string;
+  'hosted.provider.clearSuccess': string;
+  'hosted.provider.error': string;
+
   // Settings dialog
   'settings.welcomeKicker': string;
   'settings.welcomeTitle': string;

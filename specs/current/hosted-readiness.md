@@ -120,6 +120,25 @@ retries once with the identical normalized body and `clientRequestId`. CLI base 
 and returned public origin must have equal canonical origins; redirects to another
 origin are rejected.
 
+The PR04 provider contract is closed and versionless because its only accepted
+catalogue is shipped with the pinned Pi runtime. Provider IDs are `anthropic` and
+`vercel-ai-gateway`. Anthropic uses model `claude-sonnet-4-5-20250929`, base URL
+`https://api.anthropic.com`, and child variable `ANTHROPIC_API_KEY`. Vercel AI
+Gateway uses model `anthropic/claude-sonnet-4.5`, base URL
+`https://ai-gateway.vercel.sh`, and child variable `AI_GATEWAY_API_KEY`. The client
+cannot submit a model, base URL, protocol, header, or environment name.
+
+`HostedSessionResponse` is `{publicOrigin,csrfToken,csrfExpiresAt,providers}` where
+`csrfExpiresAt` is epoch milliseconds and each provider descriptor is `{id,model}`.
+Provider GET returns `{provider,configured}`. PUT accepts exactly `{provider,key}`
+and returns `{result:'set',provider,configured:true}`. Test accepts exactly
+`{provider}` and returns `{result:'passed',provider,model}`. DELETE accepts no body
+and returns `{result:'cleared',provider:null,configured:false}`. The nonce header is
+exactly `X-Open-Design-CSRF`. Provider key files and stdin remove exactly one final
+LF or CRLF; all other bytes, including spaces, are preserved. Empty, NUL-containing,
+line-broken, or greater-than-16-KiB secrets are rejected and no response contains a
+secret or reversible derivative.
+
 Common rejected fields at any authority-bearing location include `owner`, `userId`,
 `userKey`, `storageKey`, `tenant`, `namespace`, filesystem/base/root/location paths,
 provider base URL/headers/environment/executable, plugin/template identifiers or

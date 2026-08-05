@@ -2,7 +2,9 @@ import { spawn, type ChildProcess } from "node:child_process";
 import {
   createServer as createHttpServer,
   request as createHttpRequest,
+  type IncomingHttpHeaders,
   type IncomingMessage,
+  type OutgoingHttpHeaders,
   type Server as HttpServer,
   type ServerResponse,
 } from "node:http";
@@ -41,6 +43,8 @@ const WEB_OUTPUT_MODE_ENV = "OD_WEB_OUTPUT_MODE";
 const WEB_STANDALONE_ROOT_ENV = "OD_WEB_STANDALONE_ROOT";
 const STANDALONE_PARENT_PID_ENV = "OD_STANDALONE_PARENT_PID";
 const STANDALONE_STARTUP_TIMEOUT_ENV = "OD_STANDALONE_STARTUP_TIMEOUT_MS";
+const WEB_COMPOSITION_ENV = "OD_WEB_COMPOSITION";
+const HOSTED_PUBLIC_ORIGIN_ENV = "OD_HOSTED_PUBLIC_ORIGIN";
 const SHUTDOWN_TIMEOUT_MS = 3000;
 const require = createRequire(import.meta.url);
 
@@ -213,6 +217,87 @@ function isDaemonProxyPathname(pathname: string): boolean {
     pathname === "/frames" ||
     pathname.startsWith("/frames/")
   );
+}
+
+function hasPathPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+export function resolveHostedPublicOrigin(value: string | undefined): URL {
+  const fail = () => {
+    throw new Error(`${HOSTED_PUBLIC_ORIGIN_ENV} must be an exact HTTP(S) origin`);
+  };
+  if (value == null || value.length === 0 || value.trim() !== value) return fail();
+
+  try {
+    const origin = new URL(value);
+    if (
+      (origin.protocol !== "http:" && origin.protocol !== "https:") ||
+      origin.username.length > 0 ||
+      origin.password.length > 0 ||
+      origin.pathname !== "/" ||
+      origin.search.length > 0 ||
+      origin.hash.length > 0
+    ) {
+      return fail();
+    }
+    return origin;
+  } catch {
+    return fail();
+  }
+}
+
+export type HostedSidecarRoute =
+  | { kind: "daemon"; target: URL }
+  | { kind: "deny" | "next" | "unavailable" };
+
+export function resolveHostedSidecarRoute(
+  daemonOrigin: string | null,
+  requestUrl: string | undefined,
+): HostedSidecarRoute {
+  const parsed = resolveHttpProxyTarget(daemonOrigin ?? "http://127.0.0.1", requestUrl);
+  if (parsed == null) return { kind: "deny" };
+  if (hasPathPrefix(parsed.pathname, "/api")) {
+    return daemonOrigin == null ? { kind: "unavailable" } : { kind: "daemon", target: parsed };
+  }
+  if (hasPathPrefix(parsed.pathname, "/artifacts") || hasPathPrefix(parsed.pathname, "/frames")) {
+    return { kind: "deny" };
+  }
+  return { kind: "next" };
+}
+
+function isHostedAssertionHeader(name: string): boolean {
+  const lowerName = name.toLowerCase();
+  return (
+    lowerName === "forwarded" ||
+    lowerName.startsWith("x-forwarded-") ||
+    lowerName === "x-real-ip" ||
+    lowerName === "remote-user" ||
+    lowerName === "x-auth-user" ||
+    lowerName.startsWith("x-databricks-") ||
+    lowerName.startsWith("x-open-design-hosted-")
+  );
+}
+
+export function createHostedDaemonProxyHeaders(options: {
+  headers: IncomingHttpHeaders;
+  publicOrigin: URL;
+  remoteAddress: string | undefined;
+  targetHost: string;
+}): OutgoingHttpHeaders {
+  const headers: OutgoingHttpHeaders = {};
+  for (const [name, value] of Object.entries(options.headers)) {
+    if (!isHostedAssertionHeader(name)) headers[name] = value;
+  }
+
+  headers.host = options.targetHost;
+  headers["x-forwarded-proto"] = options.publicOrigin.protocol.slice(0, -1);
+  headers["x-forwarded-host"] = options.publicOrigin.host;
+  headers["x-forwarded-port"] = options.publicOrigin.port || (options.publicOrigin.protocol === "https:" ? "443" : "80");
+  if (options.remoteAddress != null && options.remoteAddress.length > 0) {
+    headers["x-forwarded-for"] = options.remoteAddress;
+  }
+  return headers;
 }
 
 export function resolveDaemonProxyTarget(
@@ -391,11 +476,21 @@ async function proxyHttpRequest(
   target: URL,
   request: IncomingMessage,
   response: ServerResponse,
-  options: { daemonWebPort?: number } = {},
+  options: {
+    daemonWebPort?: number;
+    hostedPublicOrigin?: URL;
+  } = {},
 ): Promise<void> {
   const proxyRequestFactory = target.protocol === "https:" ? createHttpsRequest : createHttpRequest;
-  const headers = { ...request.headers, host: target.host };
-  if (options.daemonWebPort != null) {
+  const headers = options.hostedPublicOrigin == null
+    ? { ...request.headers, host: target.host }
+    : createHostedDaemonProxyHeaders({
+      headers: request.headers,
+      publicOrigin: options.hostedPublicOrigin,
+      remoteAddress: request.socket.remoteAddress,
+      targetHost: target.host,
+    });
+  if (options.daemonWebPort != null && options.hostedPublicOrigin == null) {
     const origin = normalizeDaemonProxyOriginHeader({
       daemonOrigin: target.origin,
       origin: typeof request.headers.origin === "string" ? request.headers.origin : undefined,
@@ -726,8 +821,36 @@ async function createWebSidecarHandle(
 function createDaemonProxyHandler(
   daemonOrigin: string | null,
   fallback: (request: IncomingMessage, response: ServerResponse) => Promise<void>,
+  hostedPublicOrigin: URL | null = null,
 ): (request: IncomingMessage, response: ServerResponse) => void {
   return (request, response) => {
+    if (hostedPublicOrigin != null) {
+      request.headers = createHostedDaemonProxyHeaders({
+        headers: request.headers,
+        publicOrigin: hostedPublicOrigin,
+        remoteAddress: request.socket.remoteAddress,
+        targetHost: firstHeaderValue(request.headers.host) ?? hostedPublicOrigin.host,
+      }) as IncomingHttpHeaders;
+      const route = resolveHostedSidecarRoute(daemonOrigin, request.url);
+      if (route.kind === "deny") {
+        response.statusCode = 404;
+        response.end("not found");
+        return;
+      }
+      if (route.kind === "unavailable") {
+        response.statusCode = 502;
+        response.end("daemon is not available");
+        return;
+      }
+      if (route.kind === "daemon") {
+        void proxyHttpRequest(route.target, request, response, { hostedPublicOrigin }).catch((error: unknown) => {
+          response.statusCode = 502;
+          response.end(error instanceof Error ? error.message : String(error));
+        });
+        return;
+      }
+    }
+
     const daemonProxyTarget = daemonOrigin == null ? null : resolveDaemonProxyTarget(daemonOrigin, request.url);
     if (daemonProxyTarget != null) {
       const localPort = request.socket.localPort;
@@ -750,13 +873,15 @@ function createDaemonProxyHandler(
 async function startRegularNextSidecar(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   webRoot: string,
+  hostedPublicOrigin: URL | null,
 ): Promise<WebSidecarHandle> {
   const app = createNextApp({ dev: process.env.OD_WEB_PROD !== "1" && runtime.mode === "dev", dir: webRoot });
   await prepareNextApp(app, webRoot);
 
   const daemonOrigin = resolveDaemonOrigin();
   const handleRequest = app.getRequestHandler();
-  const httpServer = createHttpServer(createDaemonProxyHandler(daemonOrigin, handleRequest));
+  const httpServer = createHttpServer(createDaemonProxyHandler(daemonOrigin, handleRequest, hostedPublicOrigin));
+  if (hostedPublicOrigin != null) httpServer.on("upgrade", (_request, socket) => socket.destroy());
 
   return await createWebSidecarHandle(runtime, httpServer, async () => {
     await app.close?.();
@@ -766,6 +891,7 @@ async function startRegularNextSidecar(
 async function startStandaloneNextSidecar(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   webRoot: string | null,
+  hostedPublicOrigin: URL | null,
 ): Promise<WebSidecarHandle> {
   const daemonOrigin = resolveDaemonOrigin();
   const backend = await startStandaloneBackend(webRoot);
@@ -782,7 +908,8 @@ async function startStandaloneNextSidecar(
       return;
     }
     await proxyHttpRequest(target, request, response);
-  }));
+  }, hostedPublicOrigin));
+  if (hostedPublicOrigin != null) httpServer.on("upgrade", (_request, socket) => socket.destroy());
 
   try {
     return await createWebSidecarHandle(runtime, httpServer, backend.stop, backend.isRunning);
@@ -793,11 +920,14 @@ async function startStandaloneNextSidecar(
 }
 
 export async function startWebSidecar(runtime: SidecarRuntimeContext<SidecarStamp>): Promise<WebSidecarHandle> {
+  const hostedPublicOrigin = process.env[WEB_COMPOSITION_ENV] === "hosted"
+    ? resolveHostedPublicOrigin(process.env[HOSTED_PUBLIC_ORIGIN_ENV])
+    : null;
   if (shouldUseStandaloneOutput(runtime)) {
     const webRoot = resolveConfiguredStandaloneRoot() == null ? resolveWebRoot() : null;
-    return await startStandaloneNextSidecar(runtime, webRoot);
+    return await startStandaloneNextSidecar(runtime, webRoot, hostedPublicOrigin);
   }
 
   const webRoot = resolveWebRoot();
-  return await startRegularNextSidecar(runtime, webRoot);
+  return await startRegularNextSidecar(runtime, webRoot, hostedPublicOrigin);
 }

@@ -49,6 +49,7 @@ export function createHostedPiRuntimeAdapter(
       const invocationOptions: HostedPiInvocationOptions = {
         ...(options.packageRoot ? { packageRoot: options.packageRoot } : {}),
         cwd: request.cwd,
+        ...(request.credential ? { credential: request.credential } : {}),
         sessionDir: path.join(sessionRoot, runId),
         broker,
         ...(request.model !== undefined ? { model: request.model } : {}),

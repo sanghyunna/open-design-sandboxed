@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import type { ApiErrorCode } from '@open-design/contracts';
+import type { ApiErrorCode, HostedProviderId } from '@open-design/contracts';
 
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
@@ -76,7 +76,18 @@ export interface HostedRuntimeLease {
   release(): void;
 }
 
+export interface HostedProviderCredential {
+  readonly provider: HostedProviderId;
+  readonly key: string;
+}
+
+export interface HostedProviderCredentialStatus {
+  readonly provider: HostedProviderId | null;
+  readonly configured: boolean;
+}
+
 export interface HostedRunExecutionContext {
+  readonly credential: HostedProviderCredential | null;
   readonly signal: AbortSignal;
   readonly sessionReference: string | null;
 }
@@ -109,6 +120,11 @@ export interface HostedRuntimeRegistry {
     lease: HostedRuntimeLease,
     operation: HostedRunDispatch<T>,
   ): Promise<T>;
+  credentialStatus(lease: HostedRuntimeLease): HostedProviderCredentialStatus;
+  replaceCredential(
+    lease: HostedRuntimeLease,
+    credential: HostedProviderCredential | null,
+  ): Promise<HostedProviderCredentialStatus>;
   cancel(control: HostedRunControl, reason?: string): boolean;
   shutdown(): Promise<void>;
 }
@@ -126,17 +142,30 @@ interface LeaseState {
   released: boolean;
 }
 
-interface QueueEntry {
-  readonly runId: string;
-  readonly conversationId: string;
-  readonly execute: HostedRunDispatch<unknown>['execute'];
-  readonly resolve: (value: unknown) => void;
+interface QueueEntryBase {
+  readonly kind: 'credential' | 'run';
   readonly reject: (reason: unknown) => void;
   admissionTimer: ReturnType<typeof setTimeout> | null;
 }
 
+interface RunQueueEntry extends QueueEntryBase {
+  readonly kind: 'run';
+  readonly runId: string;
+  readonly conversationId: string;
+  readonly execute: HostedRunDispatch<unknown>['execute'];
+  readonly resolve: (value: unknown) => void;
+}
+
+interface CredentialQueueEntry extends QueueEntryBase {
+  readonly kind: 'credential';
+  readonly credential: HostedProviderCredential | null;
+  readonly resolve: (value: HostedProviderCredentialStatus) => void;
+}
+
+type QueueEntry = RunQueueEntry | CredentialQueueEntry;
+
 interface ActiveRun {
-  readonly entry: QueueEntry;
+  readonly entry: RunQueueEntry;
   readonly abort: AbortController;
   timeout: ReturnType<typeof setTimeout> | null;
   terminalError: HostedRuntimeError | null;
@@ -149,7 +178,7 @@ interface RuntimeState {
   readonly sessions: Map<string, string>;
   readonly queue: QueueEntry[];
   active: ActiveRun | null;
-  credential: null;
+  credential: HostedProviderCredential | null;
   idleTimer: ReturnType<typeof setTimeout> | null;
   sessionReferenceBytes: number;
   strongLeases: number;
@@ -331,16 +360,7 @@ export function createHostedRuntimeRegistry(
   ): Promise<T> {
     try {
       if (shuttingDown) runtimeUnavailable('hosted runtime registry is shutting down');
-      const state = leaseStates.get(lease);
-      if (
-        state == null
-        || state.released
-        || state.strength !== 'strong'
-        || runtimes.get(lease.userKey) !== state.runtime
-        || state.runtime.generation !== lease.generation
-      ) {
-        runtimeUnavailable('hosted runtime lease is not active');
-      }
+      const state = stateForLease(lease, 'strong');
       validateInternalId(operation.runId, 'run');
       validateInternalId(operation.conversationId, 'conversation');
       const runtime = state.runtime;
@@ -365,10 +385,11 @@ export function createHostedRuntimeRegistry(
       acquireStrong(runtime);
 
       return new Promise<T>((resolve, reject) => {
-        const entry: QueueEntry = {
+        const entry: RunQueueEntry = {
           admissionTimer: null,
           conversationId: operation.conversationId,
           execute: operation.execute as HostedRunDispatch<unknown>['execute'],
+          kind: 'run',
           reject,
           resolve: resolve as (value: unknown) => void,
           runId: operation.runId,
@@ -391,14 +412,87 @@ export function createHostedRuntimeRegistry(
     }
   }
 
+  function credentialStatus(lease: HostedRuntimeLease): HostedProviderCredentialStatus {
+    return statusForCredential(stateForLease(lease).runtime.credential);
+  }
+
+  function replaceCredential(
+    lease: HostedRuntimeLease,
+    credential: HostedProviderCredential | null,
+  ): Promise<HostedProviderCredentialStatus> {
+    try {
+      if (shuttingDown) runtimeUnavailable('hosted runtime registry is shutting down');
+      const state = stateForLease(lease, 'strong');
+      const nextCredential = credential == null ? null : validateHostedProviderCredential(credential);
+      const runtime = state.runtime;
+      if (runtime.queue.length >= limits.queuedMutationsPerUser) {
+        throw new HostedRuntimeError('HOSTED_OVERLOADED', 'hosted user mutation queue is full');
+      }
+      if (queuedMutations >= limits.queuedMutationsGlobal) {
+        throw new HostedRuntimeError(
+          'HOSTED_CAPACITY_EXHAUSTED',
+          'hosted process mutation queue is full',
+        );
+      }
+      acquireStrong(runtime);
+
+      return new Promise<HostedProviderCredentialStatus>((resolve, reject) => {
+        const entry: CredentialQueueEntry = {
+          admissionTimer: null,
+          credential: nextCredential,
+          kind: 'credential',
+          reject,
+          resolve,
+        };
+        runtime.queue.push(entry);
+        queuedMutations += 1;
+        entry.admissionTimer = unrefTimer(setTimeout(() => {
+          removeQueued(runtime, entry, new HostedRuntimeError(
+            runtime.active == null ? 'HOSTED_CAPACITY_EXHAUSTED' : 'HOSTED_OVERLOADED',
+            'hosted credential mutation admission timed out',
+          ));
+        }, admissionTimeoutMs));
+        pump(runtime);
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  function stateForLease(
+    lease: HostedRuntimeLease,
+    strength?: HostedLeaseStrength,
+  ): LeaseState {
+    const state = leaseStates.get(lease);
+    if (
+      state == null
+      || state.released
+      || (strength != null && state.strength !== strength)
+      || runtimes.get(lease.userKey) !== state.runtime
+      || state.runtime.generation !== lease.generation
+    ) {
+      runtimeUnavailable('hosted runtime lease is not active');
+    }
+    return state;
+  }
+
   function pump(runtime: RuntimeState): void {
     if (shuttingDown || runtime.active != null || runtime.queue.length === 0) return;
-    if (activeChildren >= limits.activeChildren) return;
+    const next = runtime.queue[0];
+    if (next?.kind === 'run' && activeChildren >= limits.activeChildren) return;
     const entry = runtime.queue.shift();
     if (entry == null) return;
     queuedMutations -= 1;
     clearTimer(entry.admissionTimer);
     entry.admissionTimer = null;
+    if (entry.kind === 'credential') {
+      runtime.credential = entry.credential;
+      releaseStrong(runtime);
+      entry.resolve(statusForCredential(runtime.credential));
+      pump(runtime);
+      pumpAll();
+      return;
+    }
     const abort = new AbortController();
     const active: ActiveRun = {
       abort,
@@ -418,7 +512,11 @@ export function createHostedRuntimeRegistry(
     }, runTimeoutMs));
     const sessionReference = runtime.sessions.get(entry.conversationId) ?? null;
     void Promise.resolve()
-      .then(() => entry.execute({ sessionReference, signal: abort.signal }))
+      .then(() => entry.execute({
+        credential: runtime.credential,
+        sessionReference,
+        signal: abort.signal,
+      }))
       .then(
         (result) => finishRun(runtime, active, result, null),
         (error: unknown) => finishRun(runtime, active, null, error),
@@ -461,6 +559,7 @@ export function createHostedRuntimeRegistry(
         error = sessionError;
       }
     }
+    if (error != null) runtime.credential = null;
     runtime.active = null;
     activeChildren -= 1;
     releaseStrong(runtime);
@@ -512,7 +611,9 @@ export function createHostedRuntimeRegistry(
       runtime.active.abort.abort(runtime.active.terminalError);
       return true;
     }
-    const queued = runtime.queue.find((entry) => entry.runId === control.runId);
+    const queued = runtime.queue.find(
+      (entry): entry is RunQueueEntry => entry.kind === 'run' && entry.runId === control.runId,
+    );
     return queued == null ? false : removeQueued(runtime, queued, error);
   }
 
@@ -575,6 +676,7 @@ export function createHostedRuntimeRegistry(
     );
     for (const runtime of runtimes.values()) {
       clearIdleTimer(runtime);
+      runtime.credential = null;
       for (const entry of [...runtime.queue]) removeQueued(runtime, entry, canceled);
       if (runtime.active != null) {
         runtime.active.terminalError ??= canceled;
@@ -598,17 +700,52 @@ export function createHostedRuntimeRegistry(
   function conversationIsReserved(runtime: RuntimeState, conversationId: string): boolean {
     return runtime.sessions.has(conversationId)
       || runtime.active?.entry.conversationId === conversationId
-      || runtime.queue.some((entry) => entry.conversationId === conversationId);
+      || runtime.queue.some(
+        (entry) => entry.kind === 'run' && entry.conversationId === conversationId,
+      );
   }
 
   function reservedConversationCount(runtime: RuntimeState): number {
     const conversations = new Set(runtime.sessions.keys());
     if (runtime.active != null) conversations.add(runtime.active.entry.conversationId);
-    for (const entry of runtime.queue) conversations.add(entry.conversationId);
+    for (const entry of runtime.queue) {
+      if (entry.kind === 'run') conversations.add(entry.conversationId);
+    }
     return conversations.size;
   }
 
-  return { acquire, cancel, dispatch, shutdown };
+  return { acquire, cancel, credentialStatus, dispatch, replaceCredential, shutdown };
+}
+
+export function validateHostedProviderCredential(
+  credential: HostedProviderCredential,
+): HostedProviderCredential {
+  if (
+    credential == null
+    || (credential.provider !== 'anthropic' && credential.provider !== 'vercel-ai-gateway')
+    || typeof credential.key !== 'string'
+  ) {
+    throw new HostedRuntimeError('HOSTED_AUTH_INVALID', 'hosted provider credential is invalid');
+  }
+  const keyBytes = Buffer.from(credential.key, 'utf8');
+  if (
+    keyBytes.length < 1
+    || keyBytes.length > 16 * 1024
+    || keyBytes.toString('utf8') !== credential.key
+    || /[\u0000\r\n]/u.test(credential.key)
+  ) {
+    throw new HostedRuntimeError('HOSTED_AUTH_INVALID', 'hosted provider credential is invalid');
+  }
+  return Object.freeze({ key: credential.key, provider: credential.provider });
+}
+
+function statusForCredential(
+  credential: HostedProviderCredential | null,
+): HostedProviderCredentialStatus {
+  return Object.freeze({
+    configured: credential != null,
+    provider: credential?.provider ?? null,
+  });
 }
 
 function validateUserKey(userKey: string): void {

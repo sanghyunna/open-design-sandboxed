@@ -69,6 +69,7 @@ describe('hosted Pi runtime', () => {
       sessionDir: fixture.sessionDir,
       model: 'fixture/model',
       thinking: 'off',
+      credential: { provider: 'anthropic', key: 'anthropic-secret' },
     });
 
     assert.equal(invocation.command, process.execPath);
@@ -99,6 +100,48 @@ describe('hosted Pi runtime', () => {
       assert.equal(invocation.env[key], undefined, `ambient package manager env leaked: ${key}`);
     }
     assert.equal(invocation.env.OD_TOOL_TOKEN, undefined);
+    assert.equal(invocation.env.ANTHROPIC_API_KEY, 'anthropic-secret');
+    assert.equal(invocation.env.AI_GATEWAY_API_KEY, undefined);
+    assert.equal(invocation.args.includes('anthropic-secret'), false);
+  });
+
+  test('maps only the closed hosted provider credential into the child environment', () => {
+    const fixture = fakePiPackage();
+    const beforeAnthropic = process.env.ANTHROPIC_API_KEY;
+    const beforeGateway = process.env.AI_GATEWAY_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'ambient-anthropic';
+    process.env.AI_GATEWAY_API_KEY = 'ambient-gateway';
+    try {
+      const invocation = createHostedPiInvocation({
+        packageRoot: fixture.root,
+        cwd: fixture.project,
+        sessionDir: fixture.sessionDir,
+        credential: { provider: 'vercel-ai-gateway', key: 'gateway-secret' },
+      });
+
+      assert.equal(process.env.ANTHROPIC_API_KEY, 'ambient-anthropic');
+      assert.equal(process.env.AI_GATEWAY_API_KEY, 'ambient-gateway');
+      assert.equal(invocation.env.AI_GATEWAY_API_KEY, 'gateway-secret');
+      assert.equal(invocation.env.ANTHROPIC_API_KEY, undefined);
+      assert.equal(invocation.args.includes('gateway-secret'), false);
+      assert.throws(() => createHostedPiInvocation({
+        packageRoot: fixture.root,
+        cwd: fixture.project,
+        sessionDir: fixture.sessionDir,
+        credential: { provider: 'anthropic', key: 'line\nbreak' },
+      }), /credential/u);
+      assert.throws(() => createHostedPiInvocation({
+        packageRoot: fixture.root,
+        cwd: fixture.project,
+        sessionDir: fixture.sessionDir,
+        credential: { provider: 'other' as never, key: 'secret' },
+      }), /credential/u);
+    } finally {
+      if (beforeAnthropic == null) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = beforeAnthropic;
+      if (beforeGateway == null) delete process.env.AI_GATEWAY_API_KEY;
+      else process.env.AI_GATEWAY_API_KEY = beforeGateway;
+    }
   });
 
   test('adds only the repository-owned broker extension when a server grant exists', async () => {
@@ -125,6 +168,8 @@ describe('hosted Pi runtime', () => {
       assert.ok(invocation.args.includes('od_hosted_broker'));
       assert.equal(invocation.env.OD_HOSTED_PI_BROKER_SOCKET, broker.socketPath);
       assert.equal(invocation.env.OD_HOSTED_PI_BROKER_TOKEN, broker.grant.token);
+      assert.equal(invocation.env.ANTHROPIC_API_KEY, undefined);
+      assert.equal(invocation.env.AI_GATEWAY_API_KEY, undefined);
     } finally {
       await broker.close();
     }
@@ -142,6 +187,7 @@ describe('hosted Pi runtime', () => {
       cwd: fixture.project,
       model: 'fixture/model',
       thinking: 'off',
+      credential: { provider: 'vercel-ai-gateway', key: 'gateway-secret' },
     };
     const adapter = createHostedPiRuntimeAdapter({
       runtimeRoot,
@@ -161,6 +207,7 @@ describe('hosted Pi runtime', () => {
       assert.equal(handle.invocation.sessionDir, join(sessionRoot, request.runId));
       assert.ok(handle.invocation.args.includes('--extension'));
       assert.equal(handle.invocation.args.includes('od_hosted_broker'), true);
+      assert.equal(handle.invocation.env.AI_GATEWAY_API_KEY, 'gateway-secret');
     } finally {
       await handle.close?.();
     }

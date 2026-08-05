@@ -6,6 +6,7 @@ import { splitResearchSubcommand } from './research/cli-args.js';
 import { resolveDaemonUrl } from './daemon-url.js';
 import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-cli-help.js';
 import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
+import { runProviderCli } from './provider-cli.js';
 import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@open-design/sidecar-proto';
 import {
   AGENT_SLUGS,
@@ -263,6 +264,7 @@ const SUBCOMMAND_MAP = {
   doctor: runDoctor,
   config: runConfig,
   agent: runAgent,
+  provider: runProvider,
 };
 
 const first = argv.find((a) => !a.startsWith('-'));
@@ -272,7 +274,7 @@ await (async () => {
     const rest = [...argv.slice(0, idx), ...argv.slice(idx + 1)];
     await SUBCOMMAND_MAP[first](rest);
     // Allow stdout/stderr to drain; hard process.exit(0) crashed libuv on Windows.
-    process.exitCode = 0;
+    process.exitCode ??= 0;
     return;
   }
 
@@ -314,6 +316,10 @@ function printRootHelp() {
 
   od artifacts create --name <path> --input <file> [--project <id-or-name>]
       Create a normal project artifact through the local daemon.
+
+  od provider <status|set|test|clear> [options]
+      Configure and verify an ephemeral hosted provider credential. Secrets are
+      read only from identity/key files or stdin; use --json for automation.
 
 
   od tools design-systems read --path <manifest-declared-path>
@@ -448,6 +454,11 @@ async function runArtifacts(args) {
   const { runArtifactsCli } = await import('./artifacts-cli.js');
   const { exitCode } = await runArtifactsCli(args);
   process.exit(exitCode);
+}
+
+async function runProvider(args) {
+  const { exitCode } = await runProviderCli(args);
+  process.exitCode = exitCode;
 }
 
 function printResearchHelp() {
@@ -7983,5 +7994,3 @@ async function runAutomation(args) {
       process.exit(2);
   }
 }
-
-

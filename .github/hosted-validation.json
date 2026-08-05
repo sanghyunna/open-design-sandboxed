@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "pr04": [
+    "pnpm --filter @open-design/contracts build",
+    "pnpm --filter @open-design/daemon test tests/hosted-server.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-pi-runtime.test.ts tests/provider-cli.test.ts",
+    "pnpm --filter @open-design/web test tests/providers/hosted.test.ts tests/components/hosted-provider-panel.test.tsx tests/app/layout-theme-init.test.tsx tests/sidecar-proxy.test.ts tests/i18n/locales.test.ts tests/i18n/hosted.test.tsx",
+    "pnpm guard",
+    "pnpm typecheck"
+  ]
+}

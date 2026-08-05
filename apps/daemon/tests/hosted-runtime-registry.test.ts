@@ -236,6 +236,78 @@ describe('HostedRuntimeRegistry', () => {
     await registry.shutdown();
   });
 
+  it('rotates provider credentials in the user FIFO and captures them when a run starts', async () => {
+    const registry = createRegistry();
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    await registry.replaceCredential(a, { provider: 'anthropic', key: 'a-old' });
+    await registry.replaceCredential(b, { provider: 'vercel-ai-gateway', key: 'b-key' });
+    const activeStarted = deferred();
+    const releaseActive = deferred();
+
+    const active = registry.dispatch(a, {
+      conversationId: 'c',
+      runId: 'a-old',
+      execute: async ({ credential }) => {
+        activeStarted.resolve();
+        await releaseActive.promise;
+        return { value: credential };
+      },
+    });
+    await activeStarted.promise;
+    const rotated = registry.replaceCredential(a, {
+      provider: 'vercel-ai-gateway',
+      key: 'a-new',
+    });
+    const afterRotation = registry.dispatch(a, {
+      conversationId: 'c',
+      runId: 'a-new',
+      execute: async ({ credential }) => ({ value: credential }),
+    });
+    await expect(registry.dispatch(b, {
+      conversationId: 'c',
+      runId: 'b',
+      execute: async ({ credential }) => ({ value: credential }),
+    })).resolves.toEqual({ provider: 'vercel-ai-gateway', key: 'b-key' });
+    expect(registry.credentialStatus(a)).toEqual({ configured: true, provider: 'anthropic' });
+
+    releaseActive.resolve();
+    await expect(active).resolves.toEqual({ provider: 'anthropic', key: 'a-old' });
+    await expect(rotated).resolves.toEqual({ configured: true, provider: 'vercel-ai-gateway' });
+    await expect(afterRotation).resolves.toEqual({ provider: 'vercel-ai-gateway', key: 'a-new' });
+
+    a.release();
+    b.release();
+    await registry.shutdown();
+  });
+
+  it('rejects malformed credentials and clears them on execution failure and eviction', async () => {
+    vi.useFakeTimers();
+    const registry = createRegistry({ idleEvictionMs: 25 });
+    const lease = registry.acquire({ userKey: 'a' });
+    for (const key of ['', 'line\nbreak', 'nul\0key', 'x'.repeat(16 * 1024 + 1)]) {
+      await expect(registry.replaceCredential(lease, {
+        provider: 'anthropic',
+        key,
+      })).rejects.toThrow(/credential/u);
+    }
+    await registry.replaceCredential(lease, { provider: 'anthropic', key: 'secret' });
+    await expect(registry.dispatch(lease, {
+      conversationId: 'c',
+      runId: 'crash',
+      execute: async () => { throw new Error('worker failed'); },
+    })).rejects.toThrow('worker failed');
+    expect(registry.credentialStatus(lease)).toEqual({ configured: false, provider: null });
+
+    await registry.replaceCredential(lease, { provider: 'anthropic', key: 'secret' });
+    lease.release();
+    await vi.advanceTimersByTimeAsync(25);
+    const recreated = registry.acquire({ userKey: 'a' });
+    expect(registry.credentialStatus(recreated)).toEqual({ configured: false, provider: null });
+    recreated.release();
+    await registry.shutdown();
+  });
+
   it('bounds retained session references before admitting another conversation', async () => {
     const registry = createRegistry({
       limits: {
@@ -381,6 +453,7 @@ describe('HostedRuntimeRegistry', () => {
   it('shutdown cancels work, rejects queued turns, and waits for strong leases', async () => {
     const registry = createRegistry();
     const lease = registry.acquire({ userKey: 'a' });
+    await registry.replaceCredential(lease, { provider: 'anthropic', key: 'secret' });
     const started = deferred();
     const active = registry.dispatch(lease, {
       conversationId: 'c',
@@ -398,6 +471,7 @@ describe('HostedRuntimeRegistry', () => {
     });
     let shutdownFinished = false;
     const shutdown = registry.shutdown().then(() => { shutdownFinished = true; });
+    expect(registry.credentialStatus(lease)).toEqual({ configured: false, provider: null });
 
     await expect(active).rejects.toSatisfy(
       (error: unknown) => expectHostedCode(error, 'HOSTED_RUN_CANCELED'),

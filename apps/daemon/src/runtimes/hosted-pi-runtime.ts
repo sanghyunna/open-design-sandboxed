@@ -1,6 +1,10 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  type HostedProviderCredential,
+  validateHostedProviderCredential,
+} from '../hosted-runtime-registry.js';
 
 export const HOSTED_PI_PACKAGE_NAME = '@earendil-works/pi-coding-agent';
 export const HOSTED_PI_PACKAGE_VERSION = '0.83.0';
@@ -15,6 +19,7 @@ export type HostedPiInvocationOptions = {
   packageRoot?: string;
   cwd: string;
   sessionDir: string;
+  credential?: HostedProviderCredential;
   model?: string | null;
   thinking?: string | null;
   broker?: {
@@ -42,6 +47,8 @@ export type HostedPiRuntimeRequest = {
   projectId: string;
   projectRoot: string;
   cwd: string;
+  /** Server-owned credential captured by the hosted runtime lane. */
+  credential?: HostedProviderCredential;
   model?: string | null;
   thinking?: string | null;
 };
@@ -165,6 +172,9 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
   const cwd = realDirectory(options.cwd, 'project cwd');
   const sessionDir = createOwnedDirectory(options.sessionDir, 'session directory');
   const agentDir = createOwnedDirectory(path.join(sessionDir, 'agent-config'), 'agent config directory');
+  const credential = options.credential == null
+    ? null
+    : validateHostedProviderCredential(options.credential);
 
   const args = [
     packageInfo.entrypoint,
@@ -179,7 +189,11 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
     '--offline',
     '--session-dir', sessionDir,
   ];
-  const brokerEnv: NodeJS.ProcessEnv = {};
+  const brokerEnv: NodeJS.ProcessEnv = credential == null
+    ? {}
+    : credential.provider === 'anthropic'
+    ? { ANTHROPIC_API_KEY: credential.key }
+    : { AI_GATEWAY_API_KEY: credential.key };
   const ownedExtensions: string[] = [];
   if (options.broker) {
     const extensionPath = resolveOwnedExtension(options.broker.extensionPath, 'broker extension');
