@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, test } from 'vitest';
@@ -118,15 +118,66 @@ describe('hosted Pi broker', () => {
 
   test('rejects system project and runtime roots', async () => {
     const f = fixture();
-    const systemRoot = process.platform === 'win32' ? process.env.SystemRoot : '/etc';
-    if (!systemRoot) return;
+    const systemRoots = process.platform === 'win32'
+      ? [
+          process.env.SystemRoot,
+          process.env.ProgramFiles,
+          process.env['ProgramFiles(x86)'],
+          process.env.ProgramData,
+          process.env.CommonProgramFiles,
+          process.env['CommonProgramFiles(x86)'],
+          process.env.CommonProgramW6432,
+        ]
+      : ['/etc', '/proc', '/sys', '/dev', '/usr', '/var'];
+    for (const systemRoot of systemRoots.filter((value): value is string => Boolean(value))) {
+      await assert.rejects(
+        () => createHostedPiBroker({ binding: { ...f.binding, projectRoot: systemRoot }, runtimeRoot: f.root }),
+        /system path/i,
+      );
+      await assert.rejects(
+        () => createHostedPiBroker({ binding: f.binding, runtimeRoot: systemRoot }),
+        /system path/i,
+      );
+    }
+  });
+
+  test('rejects a project root that is itself a symlink or junction', async () => {
+    const f = fixture();
+    const linkedRoot = join(f.root, 'linked-project-root');
+    try {
+      symlinkSync(f.project, linkedRoot, process.platform === 'win32' ? 'junction' : 'dir');
+    } catch {
+      return;
+    }
     await assert.rejects(
-      () => createHostedPiBroker({ binding: { ...f.binding, projectRoot: systemRoot }, runtimeRoot: f.root }),
-      /system path/i,
+      () => createHostedPiBroker({
+        binding: { ...f.binding, projectRoot: linkedRoot },
+        runtimeRoot: f.root,
+      }),
+      /symlink|junction/i,
     );
-    await assert.rejects(
-      () => createHostedPiBroker({ binding: f.binding, runtimeRoot: systemRoot }),
-      /system path/i,
-    );
+  });
+
+  test('denies a grant after its project root is replaced by a link', async () => {
+    const f = fixture();
+    const broker = await createHostedPiBroker({ binding: f.binding, runtimeRoot: f.root });
+    const moved = join(f.root, 'moved-project');
+    try {
+      renameSync(f.project, moved);
+      try {
+        symlinkSync(moved, f.project, process.platform === 'win32' ? 'junction' : 'dir');
+      } catch {
+        return;
+      }
+      const denied = await broker.invoke({
+        token: broker.grant.token,
+        operation: 'project:file:write',
+        path: 'escape.txt',
+        content: 'nope',
+      });
+      assert.equal(denied.ok, false);
+    } finally {
+      await broker.close();
+    }
   });
 });

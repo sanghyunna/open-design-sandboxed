@@ -22,8 +22,6 @@ export type HostedPiInvocationOptions = {
     token: string;
     extensionPath: string;
   };
-  /** Server-owned extensions, primarily for deterministic artifact fixtures. */
-  extensions?: readonly string[];
 };
 
 export type HostedPiInvocation = {
@@ -160,7 +158,10 @@ function resolveOwnedExtension(input: string, label: string): string {
  * tool tokens are all absent until a later hosted composition explicitly
  * supplies a broker-bound capability.
  */
-export function createHostedPiInvocation(options: HostedPiInvocationOptions): HostedPiInvocation {
+function createHostedPiInvocationInternal(
+  options: HostedPiInvocationOptions,
+  extraExtensions: readonly string[],
+): HostedPiInvocation {
   const packageInfo = resolveHostedPiEntrypoint(options.packageRoot);
   const cwd = realDirectory(options.cwd, 'project cwd');
   const sessionDir = createOwnedDirectory(options.sessionDir, 'session directory');
@@ -190,7 +191,7 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
     brokerEnv.OD_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
     brokerEnv.OD_HOSTED_PI_BROKER_TOKEN = options.broker.token;
   }
-  for (const extension of options.extensions ?? []) {
+  for (const extension of extraExtensions) {
     ownedExtensions.push(resolveOwnedExtension(extension, 'repository extension'));
   }
   for (const extension of ownedExtensions) args.push('--extension', extension);
@@ -214,6 +215,21 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
     agentDir,
     sessionDir,
   };
+}
+
+export function createHostedPiInvocation(options: HostedPiInvocationOptions): HostedPiInvocation {
+  return createHostedPiInvocationInternal(options, []);
+}
+
+/**
+ * Artifact-only fixture seam. Production callers must use the fixed broker
+ * invocation above; this accepts one repository-owned provider solely so the
+ * clean staged artifact can exercise a deterministic tool turn offline.
+ */
+export function createHostedPiSmokeInvocation(
+  options: HostedPiInvocationOptions & { fixtureExtensionPath: string },
+): HostedPiInvocation {
+  return createHostedPiInvocationInternal(options, [options.fixtureExtensionPath]);
 }
 
 export function hostedPiBrokerExtensionPath(): string {

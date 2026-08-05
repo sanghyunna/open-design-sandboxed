@@ -264,14 +264,26 @@ function verifyArtifact(stage: string, writeManifest: boolean): void {
     const recorded = readJson(path.join(stage, 'hosted-pi-manifest.json'));
     const recordedPi = recorded.pi as JsonObject | undefined;
     const recordedPhoton = recorded.photon as JsonObject | undefined;
-    if (recordedPi?.integrity !== hostedPiIntegrity || recordedPi.version !== hostedPiVersion) {
+    if (recorded.schemaVersion !== manifest.schemaVersion
+      || recordedPi?.name !== manifest.pi.name
+      || recordedPi.version !== hostedPiVersion
+      || recordedPi.integrity !== hostedPiIntegrity
+      || recordedPi.license !== manifest.pi.license
+      || recordedPi.entrypoint !== manifest.pi.entrypoint) {
       fail('hosted manifest does not match the pinned Pi package');
     }
-    if (recordedPhoton?.version !== photonVersion || recordedPhoton.wasmSha256 !== manifest.photon.wasmSha256) {
+    if (recordedPhoton?.name !== manifest.photon.name
+      || recordedPhoton.version !== photonVersion
+      || recordedPhoton.license !== manifest.photon.license
+      || recordedPhoton.wasm !== manifest.photon.wasm
+      || recordedPhoton.wasmSha256 !== manifest.photon.wasmSha256) {
       fail('hosted manifest does not match the staged Photon WASM');
     }
     if (!Array.isArray(recorded.dependencies) || recorded.dependencies.length === 0) {
       fail('hosted manifest is missing the dependency inventory');
+    }
+    if (JSON.stringify(recorded.dependencies) !== JSON.stringify(manifest.dependencies)) {
+      fail('hosted manifest dependency inventory does not match the staged artifact');
     }
     if (recorded.lockfileSha256 !== manifest.lockfileSha256) fail('hosted manifest lockfile hash does not match the staged lockfile');
   }
@@ -364,10 +376,12 @@ const usage = {
   totalTokens: 5,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
-function message(stopReason = 'stop') {
+function message(stopReason = 'stop', useBroker = false) {
   return {
     role: 'assistant',
-    content: [{ type: 'text', text: stopReason === 'stop' ? 'hosted fixture response' : '' }],
+    content: useBroker
+      ? [{ type: 'toolCall', id: 'hosted-broker-call', name: 'od_hosted_broker', arguments: { operation: 'project:file:read', path: 'fixture.txt' } }]
+      : [{ type: 'text', text: stopReason === 'stop' ? 'hosted fixture response' : '' }],
     api: 'openai-completions',
     provider: 'hosted-fixture',
     model: 'fixture-model',
@@ -376,14 +390,28 @@ function message(stopReason = 'stop') {
     timestamp: Date.now(),
   };
 }
-function stream(options = {}) {
-  let final = message();
+function stream(context = {}, options = {}) {
+  const hasToolResult = Array.isArray(context.messages)
+    && context.messages.some((item) => item?.role === 'toolResult');
+  const useBroker = !hasToolResult;
+  let final = message(useBroker ? 'toolUse' : 'stop', useBroker);
   const pause = () => new Promise((resolve) => setTimeout(resolve, 250));
   const events = async function* () {
     if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
     yield { type: 'start', partial: final };
     await pause();
     if (options.signal?.aborted) { final = message('aborted'); yield { type: 'error', reason: 'aborted', error: final }; return; }
+    if (useBroker) {
+      const block = final.content[0];
+      const delta = JSON.stringify(block.arguments);
+      yield { type: 'toolcall_start', contentIndex: 0, partial: final };
+      await pause();
+      yield { type: 'toolcall_delta', contentIndex: 0, delta, partial: final };
+      await pause();
+      yield { type: 'toolcall_end', contentIndex: 0, toolCall: block, partial: final };
+      yield { type: 'done', reason: 'toolUse', message: final };
+      return;
+    }
     yield { type: 'text_start', contentIndex: 0, partial: final };
     await pause();
     yield { type: 'text_delta', contentIndex: 0, delta: 'hosted fixture response', partial: final };
@@ -404,8 +432,8 @@ export default function hostedPiFixtureProvider(pi) {
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 4096, maxTokens: 256,
       compat: { supportsStore: false, supportsDeveloperRole: false, supportsReasoningEffort: false, supportsUsageInStreaming: true, supportsStrictMode: false, maxTokensField: 'max_tokens' },
     }],
-    stream: (_model, _context, options) => stream(options),
-    streamSimple: (_model, _context, options) => stream(options),
+    stream: (_model, context, options) => stream(context, options),
+    streamSimple: (_model, context, options) => stream(context, options),
   });
 }
 `;
@@ -415,9 +443,18 @@ const fs = require('node:fs');
 fs.writeFileSync(process.env.HOSTED_PI_GUARD_MARKER, 'loaded');
 const deny = () => { throw new Error('hosted Pi smoke attempted network or process execution'); };
 global.fetch = deny;
-for (const name of ['node:http', 'node:https', 'node:net', 'node:tls']) {
+const net = require('node:net');
+const brokerSocket = process.env.OD_HOSTED_PI_BROKER_SOCKET;
+const allowBrokerSocket = (original) => function (...args) {
+  const first = args[0];
+  const socket = typeof first === 'string' ? first : first && typeof first.path === 'string' ? first.path : undefined;
+  if (socket !== brokerSocket) return deny();
+  return original.apply(this, args);
+};
+for (const method of ['connect', 'createConnection']) if (method in net) net[method] = allowBrokerSocket(net[method]);
+for (const name of ['node:http', 'node:https', 'node:tls', 'node:dgram', 'node:dns', 'node:http2']) {
   const mod = require(name);
-  for (const method of ['request', 'get', 'connect', 'createConnection']) if (method in mod) mod[method] = deny;
+  for (const method of ['request', 'get', 'connect', 'createConnection', 'lookup', 'lookupService', 'resolve']) if (method in mod) mod[method] = deny;
 }
 const childProcess = require('node:child_process');
 for (const method of ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork']) childProcess[method] = deny;
@@ -448,12 +485,12 @@ async function runRpcSmoke(stage: string): Promise<void> {
     runtimeRoot,
     binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
   });
-  const invocation = runtime.createHostedPiInvocation({
+  const invocation = runtime.createHostedPiSmokeInvocation({
     cwd: project,
     sessionDir,
     model: 'hosted-fixture/fixture-model',
     broker,
-    extensions: [fixturePath],
+    fixtureExtensionPath: fixturePath,
   });
   invocation.env.NODE_OPTIONS = `--require=${networkGuardPath}`;
   invocation.env.HOSTED_PI_GUARD_MARKER = networkGuardMarker;
@@ -542,6 +579,11 @@ async function runRpcSmoke(stage: string): Promise<void> {
     await waitForLine((line) => line.type === 'agent_end');
     if (!lines.some((line) => line.type === 'turn_end' && (line.message as JsonObject | undefined)?.usage)) {
       fail('fixture turn did not emit usage');
+    }
+    const brokerToolEnd = lines.find((line) => line.type === 'tool_execution_end'
+      && line.toolName === 'od_hosted_broker');
+    if (!brokerToolEnd || brokerToolEnd.isError === true || !JSON.stringify(brokerToolEnd.result).includes('fixture')) {
+      fail('Pi did not execute the staged od_hosted_broker extension through the broker socket');
     }
 
     send(child, { id: 3, type: 'new_session', parentSession: sessionFile });

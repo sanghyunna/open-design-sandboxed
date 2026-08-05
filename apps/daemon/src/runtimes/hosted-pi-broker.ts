@@ -4,6 +4,7 @@ import {
   existsSync,
   chmodSync,
   closeSync,
+  constants,
   fstatSync,
   lstatSync,
   mkdirSync,
@@ -115,7 +116,15 @@ function inside(root: string, candidate: string): boolean {
 function systemPath(input: string): boolean {
   const candidate = comparable(input);
   const roots = process.platform === 'win32'
-    ? [process.env.SystemRoot, process.env.ProgramFiles, process.env['ProgramFiles(x86)']]
+    ? [
+        process.env.SystemRoot,
+        process.env.ProgramFiles,
+        process.env['ProgramFiles(x86)'],
+        process.env.ProgramData,
+        process.env.CommonProgramFiles,
+        process.env['CommonProgramFiles(x86)'],
+        process.env.CommonProgramW6432,
+      ]
     : ['/etc', '/proc', '/sys', '/dev', '/boot', '/usr', '/var'];
   return roots
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
@@ -128,13 +137,31 @@ function safeProjectRoot(input: string): string {
   if (!path.isAbsolute(input)) throw new Error('hosted Pi broker project root must be absolute');
   let resolved: string;
   try {
+    if (lstatSync(input).isSymbolicLink()) {
+      throw new Error('project root must not be a symlink or junction');
+    }
     resolved = realpathSync(input);
+    if (comparable(resolved) !== comparable(path.resolve(input))) {
+      throw new Error('project root must not resolve through a symlink or junction');
+    }
     if (!statSync(resolved).isDirectory()) throw new Error('not a directory');
   } catch (error) {
     throw new Error(`hosted Pi broker project root is unavailable: ${error instanceof Error ? error.message : String(error)}`);
   }
   if (systemPath(resolved)) throw new Error('hosted Pi broker project root is a system path');
   return resolved;
+}
+
+function projectRootStillBound(root: string): boolean {
+  try {
+    if (lstatSync(root).isSymbolicLink()) return false;
+    const resolved = realpathSync(root);
+    return comparable(resolved) === comparable(root)
+      && statSync(resolved).isDirectory()
+      && !systemPath(resolved);
+  } catch {
+    return false;
+  }
 }
 
 function safeRuntimeRoot(input: string): string {
@@ -259,13 +286,18 @@ function writeResponse(socket: Socket, response: HostedPiBrokerResponse): void {
 }
 
 function writeProjectFile(root: string, target: ResolvedTarget, content: string): void {
+  if (!projectRootStillBound(root)) throw new Error('project root escaped');
   const parent = path.dirname(target.path);
   const parentResolved = realpathSync(parent);
   if (!inside(root, parentResolved) || systemPath(parentResolved)) throw new Error('project parent escaped');
+  if (lstatSync(parentResolved).isSymbolicLink() || comparable(realpathSync(parentResolved)) !== comparable(parentResolved)) {
+    throw new Error('project parent became a link');
+  }
   const destination = path.join(parentResolved, path.basename(target.path));
   const temporary = path.join(parentResolved, `.od-hosted-${randomBytes(12).toString('hex')}.tmp`);
   try {
     writeFileSync(temporary, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+    if (!projectRootStillBound(root)) throw new Error('project root escaped');
     if (existsSync(destination)) {
       if (lstatSync(destination).isSymbolicLink()) throw new Error('project target became a link');
       const resolved = realpathSync(destination);
@@ -280,11 +312,16 @@ function writeProjectFile(root: string, target: ResolvedTarget, content: string)
 }
 
 function readProjectFile(root: string, target: ResolvedTarget): string {
-  const file = openSync(target.path, 'r');
+  if (!projectRootStillBound(root)) throw new Error('project root escaped');
+  const file = openSync(
+    target.path,
+    process.platform === 'win32' ? 'r' : constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
   try {
     const opened = fstatSync(file);
     if (!opened.isFile() || opened.size > MAX_FILE_BYTES) throw new Error('project file is not a regular file');
     const content = readFileSync(file, 'utf8');
+    if (!projectRootStillBound(root)) throw new Error('project root escaped');
     const current = lstatSync(target.path);
     const resolved = realpathSync(target.path);
     if (current.isSymbolicLink() || resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
@@ -297,7 +334,9 @@ function readProjectFile(root: string, target: ResolvedTarget): string {
 }
 
 function listProjectDirectory(root: string, target: ResolvedTarget): string[] {
+  if (!projectRootStillBound(root)) throw new Error('project root escaped');
   const entries = readdirSync(target.path, { withFileTypes: true });
+  if (!projectRootStillBound(root)) throw new Error('project root escaped');
   const resolved = realpathSync(target.path);
   if (resolved !== target.path || !inside(root, resolved) || systemPath(resolved)) {
     throw new Error('project directory escaped');
@@ -352,11 +391,13 @@ export async function createHostedPiBroker(options: {
   if (process.platform !== 'win32' && existsSync(socketPath)) rmSync(socketPath, { force: true });
 
   let closed = false;
-  const invoke = async (
+  let operationTail: Promise<void> = Promise.resolve();
+  const invokeUnlocked = async (
     request: HostedPiBrokerRequest,
     expectedBinding?: HostedPiBinding,
   ): Promise<HostedPiBrokerResponse> => {
     if (closed) return deny('BROKER_CLOSED', 'hosted Pi broker is closed');
+    if (!projectRootStillBound(grant.projectRoot)) return deny('BROKER_PATH_DENIED', 'bound project root changed');
     if (!sameSecret(grant.token, request.token)) return deny('BROKER_TOKEN_INVALID', 'broker token is invalid');
     if (expectedBinding && !bindingMatches(expectedBinding, grant)) {
       return deny('BROKER_BINDING_MISMATCH', 'broker grant does not match the authenticated binding');
@@ -371,6 +412,13 @@ export async function createHostedPiBroker(options: {
     if (relative === null) return deny('BROKER_PATH_DENIED', 'project path must be relative and link-free');
     const target = targetInsideProject(grant.projectRoot, relative, operation === 'project:file:write');
     if (!target) return deny('BROKER_PATH_DENIED', 'project path escapes the bound project root');
+    // Re-resolve immediately before touching the filesystem. The operation
+    // lock prevents broker-side races; these checks reject a concurrent
+    // project/link swap before the path-based primitives below run.
+    const currentTarget = targetInsideProject(grant.projectRoot, relative, operation === 'project:file:write');
+    if (!currentTarget || comparable(currentTarget.path) !== comparable(target.path)) {
+      return deny('BROKER_PATH_DENIED', 'project path changed during validation');
+    }
 
     if (operation === 'project:file:list') {
       if (!target.exists || !target.stat?.isDirectory()) return deny('BROKER_PATH_DENIED', 'list target must be a directory');
@@ -398,6 +446,23 @@ export async function createHostedPiBroker(options: {
       return { ok: true, operation };
     } catch {
       return deny('BROKER_WRITE_FAILED', 'project file could not be written');
+    }
+  };
+
+  // ponytail: serialize each broker's tiny file operation; per-project locks
+  // can replace this if a future workload needs concurrent file throughput.
+  const invoke = async (
+    request: HostedPiBrokerRequest,
+    expectedBinding?: HostedPiBinding,
+  ): Promise<HostedPiBrokerResponse> => {
+    const previous = operationTail;
+    let release!: () => void;
+    operationTail = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try {
+      return await invokeUnlocked(request, expectedBinding);
+    } finally {
+      release();
     }
   };
 

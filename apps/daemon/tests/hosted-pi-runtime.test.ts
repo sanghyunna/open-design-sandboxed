@@ -5,9 +5,12 @@ import { tmpdir } from 'node:os';
 import { afterEach, describe, test } from 'vitest';
 import {
   createHostedPiInvocation,
+  createHostedPiSmokeInvocation,
   resolveHostedPiEntrypoint,
 } from '../src/runtimes/hosted-pi-runtime.js';
+import type { HostedPiRuntimeRequest } from '../src/runtimes/hosted-pi-runtime.js';
 import { createHostedPiBroker } from '../src/runtimes/hosted-pi-broker.js';
+import { createHostedPiRuntimeAdapter } from '../src/runtimes/hosted-pi-adapter.js';
 
 const roots: string[] = [];
 
@@ -128,18 +131,59 @@ describe('hosted Pi runtime', () => {
     }
   });
 
-  test('rejects project-controlled extension paths', () => {
+  test('rejects project-controlled fixture extension paths', () => {
     const fixture = fakePiPackage();
     const extension = join(fixture.project, 'project-extension.ts');
     writeFileSync(extension, 'export default () => undefined;');
     assert.throws(
-      () => createHostedPiInvocation({
+      () => createHostedPiSmokeInvocation({
         packageRoot: fixture.root,
         cwd: fixture.project,
         sessionDir: fixture.sessionDir,
-        extensions: [extension],
+        fixtureExtensionPath: extension,
       }),
       /repository-owned/i,
     );
+  });
+
+  test('composes a server-owned broker with the package-local invocation', async () => {
+    const fixture = fakePiPackage();
+    const runtimeRoot = join(fixture.root, 'broker-runtime');
+    const sessionRoot = join(fixture.root, 'broker-sessions');
+    const request: HostedPiRuntimeRequest = {
+      runId: 'run-a',
+      projectId: 'project-a',
+      projectRoot: fixture.project,
+      cwd: fixture.project,
+      model: 'fixture/model',
+      thinking: 'off',
+    };
+    let resolvedUser: HostedPiRuntimeRequest | undefined;
+    const adapter = createHostedPiRuntimeAdapter({
+      runtimeRoot,
+      sessionRoot,
+      packageRoot: fixture.root,
+      resolveUserKey: (value) => {
+        resolvedUser = value;
+        return 'authenticated-user';
+      },
+    });
+
+    const handle = await adapter(request);
+    try {
+      assert.equal(resolvedUser, request);
+      assert.equal(handle.invocation.command, process.execPath);
+      assert.equal(handle.invocation.env.OD_HOSTED_PI_BROKER_TOKEN?.startsWith('odpi_'), true);
+      if (process.platform === 'win32') {
+        assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /OpenDesign\.HostedPi\./);
+      } else {
+        assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /hosted-pi-/);
+      }
+      assert.equal(handle.invocation.sessionDir, join(sessionRoot, request.runId));
+      assert.ok(handle.invocation.args.includes('--extension'));
+      assert.equal(handle.invocation.args.includes('od_hosted_broker'), true);
+    } finally {
+      await handle.close?.();
+    }
   });
 });
