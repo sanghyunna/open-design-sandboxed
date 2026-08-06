@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createHostedMetadataAdapter,
+  HOSTED_METADATA_RESOURCE_LIMITS,
   HostedMetadataAdapterError,
   type HostedMetadataAuthority,
   type HostedMetadataMutationOperation,
@@ -40,6 +41,16 @@ const CHECKPOINT = {
 } as const;
 
 describe('hosted metadata adapter', () => {
+  it('freezes conservative per-user metadata cardinality ceilings', () => {
+    expect(HOSTED_METADATA_RESOURCE_LIMITS).toEqual({
+      commentsPerUser: 10_000,
+      conversationsPerUser: 1_000,
+      messagesPerUser: 10_000,
+      projectsPerUser: 100,
+      tabsPerUser: 1_000,
+    });
+  });
+
   it('dispatches every read through the supplied lease-bound semantic reader', async () => {
     const harness = createHarness();
     const requests: readonly unknown[] = [
@@ -345,6 +356,41 @@ describe('hosted metadata adapter', () => {
         name: 'HostedMetadataAdapterError',
         code: 'INTERNAL_ERROR',
       }));
+  });
+
+  it.each([
+    ['projects.list', 'projects', HOSTED_METADATA_RESOURCE_LIMITS.projectsPerUser],
+    ['conversations.list', 'conversations', HOSTED_METADATA_RESOURCE_LIMITS.conversationsPerUser],
+    ['messages.list', 'messages', HOSTED_METADATA_RESOURCE_LIMITS.messagesPerUser],
+    ['comments.list', 'comments', HOSTED_METADATA_RESOURCE_LIMITS.commentsPerUser],
+  ] as const)('rejects an oversized %s semantic response before mapping it', async (
+    kind,
+    field,
+    limit,
+  ) => {
+    const request = kind === 'projects.list'
+      ? { kind }
+      : kind === 'conversations.list'
+        ? { kind, projectId: 'project-1' }
+        : { kind, projectId: 'project-1', conversationId: 'conversation-1' };
+    const harness = createHarness(() => ({ [field]: Array(limit + 1).fill(null) }));
+
+    await expect(harness.adapter.dispatch(AUTHORITY, request)).rejects.toMatchObject({
+      code: 'INTERNAL_ERROR',
+    });
+  });
+
+  it('rejects oversized tab collections returned by the semantic layer', async () => {
+    const harness = createHarness(() => ({
+      tabs: Array.from({ length: 101 }, (_, index) => `file-${index}.html`),
+      active: null,
+      browserTabs: [],
+    }));
+
+    await expect(harness.adapter.dispatch(AUTHORITY, {
+      kind: 'tabs.get',
+      projectId: 'project-1',
+    })).rejects.toMatchObject({ code: 'INTERNAL_ERROR' });
   });
 });
 

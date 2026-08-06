@@ -236,12 +236,44 @@ export function createHostedEventJournal(options: {
   const generationTag = createHash('sha256').update(options.generation).digest('base64url');
   const events: StoredEvent[] = [];
   const connections = new Set<EventConnection>();
-  const closedChannels = new Set<string>();
+  const closedChannels = new Map<string, number>();
   const invalidatedThrough = new Map<string, number>();
   let eventBytes = 0;
   let evictedThrough = 0;
   let nextSequence = 1;
   let disposed = false;
+
+  const pruneChannelTombstones = (): void => {
+    if (closedChannels.size === 0 && invalidatedThrough.size === 0) return;
+    // Once a channel's protected history leaves the bounded event journal,
+    // the global eviction cursor preserves cursor-expired semantics without
+    // retaining that channel id forever.
+    const earliestRetained = new Map<string, number>();
+    for (const event of events) {
+      if (!earliestRetained.has(event.channelKey)) {
+        earliestRetained.set(event.channelKey, event.sequence);
+      }
+    }
+
+    for (const [scope, through] of invalidatedThrough) {
+      if ((earliestRetained.get(scope) ?? Number.POSITIVE_INFINITY) > through) {
+        invalidatedThrough.delete(scope);
+      }
+    }
+    for (const [scope, lastSequence] of closedChannels) {
+      if (
+        lastSequence > 0
+        && lastSequence <= evictedThrough
+        && !earliestRetained.has(scope)
+      ) {
+        closedChannels.delete(scope);
+      }
+    }
+    for (const scope of closedChannels.keys()) {
+      if (closedChannels.size <= limits.maxEvents) break;
+      if (!earliestRetained.has(scope)) closedChannels.delete(scope);
+    }
+  };
 
   const signCursor = (scope: string, sequence: number): string => createHmac('sha256', secret)
     .update(`${options.ownerKey}\0${scope}\0${generationTag}\0${sequence}`)
@@ -492,6 +524,7 @@ export function createHostedEventJournal(options: {
       const storedRecord = { ...publicRecord, bytes, channelKey: scope, dataJson, sequence };
       events.push(storedRecord);
       eventBytes += bytes;
+      pruneChannelTombstones();
       for (const connection of connections) {
         if (connection.channelKey === scope) writeToConnection(connection, frameForEvent(storedRecord));
       }
@@ -499,7 +532,16 @@ export function createHostedEventJournal(options: {
     },
     close(channel: HostedEventChannel): void {
       const scope = channelKey(channel);
-      closedChannels.add(scope);
+      let lastSequence = evictedThrough;
+      for (let index = events.length - 1; index >= 0; index -= 1) {
+        const event = events[index]!;
+        if (event.channelKey !== scope) continue;
+        lastSequence = event.sequence;
+        break;
+      }
+      closedChannels.delete(scope);
+      closedChannels.set(scope, lastSequence);
+      pruneChannelTombstones();
       for (const connection of [...connections]) {
         if (connection.channelKey !== scope) continue;
         const response = connection.response;
@@ -511,7 +553,9 @@ export function createHostedEventJournal(options: {
     },
     invalidate(channel: HostedEventChannel): void {
       const scope = channelKey(channel);
+      invalidatedThrough.delete(scope);
       invalidatedThrough.set(scope, nextSequence - 1);
+      pruneChannelTombstones();
       for (const connection of [...connections]) {
         if (connection.channelKey !== scope) continue;
         const response = connection.response;
@@ -535,6 +579,7 @@ export function createHostedEventJournal(options: {
       events.length = 0;
       eventBytes = 0;
       closedChannels.clear();
+      invalidatedThrough.clear();
     },
   };
 }

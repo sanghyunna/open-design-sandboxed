@@ -35,11 +35,14 @@ import {
   upsertMessage,
   upsertPreviewComment,
 } from './db.js';
-import type {
-  HostedMetadataMutationOperation,
-  HostedMetadataReadOperation,
+import {
+  HOSTED_METADATA_RESOURCE_LIMITS,
+  type HostedMetadataMutationOperation,
+  type HostedMetadataReadOperation,
 } from './hosted-metadata-adapter.js';
-import type { NormalizedHostedRunIntentV1 } from './hosted-run-adapter.js';
+import type {
+  NormalizedHostedRunIntentV1,
+} from './hosted-run-adapter.js';
 import type {
   HostedPiTurnInput,
   HostedPiTurnResult,
@@ -53,6 +56,11 @@ import { createChatRunService } from './runs.js';
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
   identityBindings: 65_536,
+  metadataCommentsPerUser: HOSTED_METADATA_RESOURCE_LIMITS.commentsPerUser,
+  metadataConversationsPerUser: HOSTED_METADATA_RESOURCE_LIMITS.conversationsPerUser,
+  metadataMessagesPerUser: HOSTED_METADATA_RESOURCE_LIMITS.messagesPerUser,
+  metadataProjectsPerUser: HOSTED_METADATA_RESOURCE_LIMITS.projectsPerUser,
+  metadataTabsPerUser: HOSTED_METADATA_RESOURCE_LIMITS.tabsPerUser,
   queuedMutationsGlobal: 512,
   queuedMutationsPerUser: 16,
   retainedRunsPerUser: 1_000,
@@ -82,6 +90,11 @@ export interface HostedRuntimeIdentity {
 export interface HostedRuntimeLimits {
   readonly activeChildren: number;
   readonly identityBindings: number;
+  readonly metadataCommentsPerUser: number;
+  readonly metadataConversationsPerUser: number;
+  readonly metadataMessagesPerUser: number;
+  readonly metadataProjectsPerUser: number;
+  readonly metadataTabsPerUser: number;
   readonly queuedMutationsGlobal: number;
   readonly queuedMutationsPerUser: number;
   readonly retainedRunsPerUser: number;
@@ -1702,31 +1715,37 @@ export function createHostedRuntimeRegistry(
     operation: HostedMetadataReadOperation,
   ): unknown {
     const storage = storageFor(runtime);
+    const db = storage.database;
     switch (operation.kind) {
       case 'projects.list':
-        return { projects: listProjects(storage.database) };
+        admitMetadataCount(db, 'projects', limits.metadataProjectsPerUser);
+        return { projects: listProjects(db) };
       case 'project.get':
         return { project: requireOwnedProject(runtime, operation.projectId) };
       case 'conversations.list':
         requireOwnedProject(runtime, operation.projectId);
-        return { conversations: listConversations(storage.database, operation.projectId) };
+        admitMetadataCount(db, 'conversations', limits.metadataConversationsPerUser);
+        return { conversations: listConversations(db, operation.projectId) };
       case 'messages.list':
         requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        admitMetadataCount(db, 'messages', limits.metadataMessagesPerUser);
         return {
-          messages: listMessages(storage.database, operation.conversationId).map(hostedMessageRow),
+          messages: listMessages(db, operation.conversationId).map(hostedMessageRow),
         };
       case 'comments.list':
         requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        admitMetadataCount(db, 'comments', limits.metadataCommentsPerUser);
         return {
           comments: listPreviewComments(
-            storage.database,
+            db,
             operation.projectId,
             operation.conversationId,
           ),
         };
       case 'tabs.get':
         requireOwnedProject(runtime, operation.projectId);
-        return listTabs(storage.database, operation.projectId);
+        admitMetadataCount(db, 'tabs', limits.metadataTabsPerUser);
+        return listTabs(db, operation.projectId);
       case 'checkpoints.list':
         requireOwnedProject(runtime, operation.projectId);
         if (operation.conversationId !== undefined) {
@@ -1767,6 +1786,7 @@ export function createHostedRuntimeRegistry(
         if (catalogueId !== undefined && !projectCatalogueIds.has(catalogueId)) {
           throw new HostedRuntimeError('BAD_REQUEST', 'hosted project catalogue selection is invalid');
         }
+        admitMetadataCount(db, 'projects', limits.metadataProjectsPerUser, 1);
         const id = nextEntityId(runtime, 'project');
         const now = Date.now();
         createOwnedProjectRoot(storage.roots.projectsRoot, id);
@@ -1817,6 +1837,15 @@ export function createHostedRuntimeRegistry(
             'hosted fork source conversation was not found',
           );
         }
+        admitMetadataCount(
+          db,
+          'conversations',
+          limits.metadataConversationsPerUser,
+          1,
+        );
+        if (source != null) {
+          admitMetadataCount(db, 'messages', limits.metadataMessagesPerUser);
+        }
         let seedMessages = source == null ? [] : listMessages(db, source.id);
         if (operation.body.forkAfterMessageId !== undefined) {
           const index = seedMessages.findIndex(
@@ -1827,6 +1856,12 @@ export function createHostedRuntimeRegistry(
           }
           seedMessages = seedMessages.slice(0, index + 1);
         }
+        admitMetadataCount(
+          db,
+          'messages',
+          limits.metadataMessagesPerUser,
+          seedMessages.length,
+        );
         const id = nextEntityId(runtime, 'conversation');
         const now = Date.now();
         const conversation = insertConversation(db, {
@@ -1855,7 +1890,11 @@ export function createHostedRuntimeRegistry(
         return { ok: true };
       case 'message.upsert': {
         requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        assertMessageIdentifierAvailable(db, operation.conversationId, operation.messageId);
+        const exists = assertMessageIdentifierAvailable(
+          db,
+          operation.conversationId,
+          operation.messageId,
+        );
         if (operation.body.agentId !== undefined && operation.body.agentId !== 'pi') {
           throw new HostedRuntimeError('BAD_REQUEST', 'hosted agent is outside the fixed catalogue');
         }
@@ -1868,6 +1907,12 @@ export function createHostedRuntimeRegistry(
         assertOwnedCommentIds(runtime, operation.conversationId, operation.body.commentIds);
         assertUnavailableContentIds(operation.body.attachmentIds, 'attachment');
         assertUnavailableContentIds(operation.body.producedFileIds, 'produced file');
+        admitMetadataCount(
+          db,
+          'messages',
+          limits.metadataMessagesPerUser,
+          exists ? 0 : 1,
+        );
         const hostedState = {
           ...(operation.body.resumable === undefined
             ? {}
@@ -1905,6 +1950,17 @@ export function createHostedRuntimeRegistry(
             throw new HostedRuntimeError('FILE_NOT_FOUND', 'hosted comment attachment was not found');
           }
         }
+        admitMetadataCount(
+          db,
+          'comments',
+          limits.metadataCommentsPerUser,
+          previewCommentExists(
+            db,
+            operation.projectId,
+            operation.conversationId,
+            operation.body,
+          ) ? 0 : 1,
+        );
         return {
           comment: upsertPreviewComment(
             db,
@@ -1914,13 +1970,24 @@ export function createHostedRuntimeRegistry(
           ),
         };
       }
-      case 'tabs.put':
+      case 'tabs.put': {
         requireOwnedProject(runtime, operation.projectId);
+        const current = listTabs(db, operation.projectId);
+        const currentCount = hostedTabCount(current);
+        const nextCount = (operation.body.tabs?.length ?? 0)
+          + (operation.body.browserTabs?.length ?? 0);
+        admitMetadataCount(
+          db,
+          'tabs',
+          limits.metadataTabsPerUser,
+          nextCount - currentCount,
+        );
         return setTabs(db, operation.projectId, {
           tabs: operation.body.tabs ?? [],
           active: operation.body.active ?? null,
           browserTabs: operation.body.browserTabs ?? [],
         });
+      }
     }
   }
 
@@ -2063,6 +2130,74 @@ export function createHostedRuntimeRegistry(
   return registry;
 }
 
+type MetadataResource = 'comments' | 'conversations' | 'messages' | 'projects' | 'tabs';
+
+const METADATA_COUNT_SQL: Readonly<Record<Exclude<MetadataResource, 'tabs'>, string>> =
+  Object.freeze({
+    comments: 'SELECT COUNT(*) AS count FROM preview_comments',
+    conversations: 'SELECT COUNT(*) AS count FROM conversations',
+    messages: 'SELECT COUNT(*) AS count FROM messages',
+    projects: 'SELECT COUNT(*) AS count FROM projects',
+  });
+
+function admitMetadataCount(
+  db: HostedRuntimeStorage['database'],
+  resource: MetadataResource,
+  maximum: number,
+  change = 0,
+): void {
+  const row = db.prepare(resource === 'tabs'
+    ? `SELECT
+         (SELECT COUNT(*) FROM tabs)
+         + (SELECT COALESCE(SUM(
+             CASE
+               WHEN json_valid(state_json)
+                AND json_type(state_json, '$.browserTabs') = 'array'
+                 THEN json_array_length(state_json, '$.browserTabs')
+               ELSE 0
+             END
+           ), 0) FROM tabs_state) AS count`
+    : METADATA_COUNT_SQL[resource]).get() as { count?: unknown } | undefined;
+  const count = Number(row?.count);
+  if (!Number.isSafeInteger(count) || count < 0) {
+    runtimeUnavailable('hosted metadata cardinality is invalid');
+  }
+  if (count + change > maximum) {
+    throw new HostedRuntimeError(
+      'HOSTED_QUOTA_EXCEEDED',
+      `hosted ${resource} quota is exceeded`,
+    );
+  }
+}
+
+function hostedTabCount(state: ReturnType<typeof listTabs>): number {
+  return state.tabs.length
+    + ('browserTabs' in state && Array.isArray(state.browserTabs) ? state.browserTabs.length : 0);
+}
+
+function previewCommentExists(
+  db: HostedRuntimeStorage['database'],
+  projectId: string,
+  conversationId: string,
+  body: Extract<HostedMetadataMutationOperation, { kind: 'comment.create' }>['body'],
+): boolean {
+  return db.prepare(
+    `SELECT 1
+       FROM preview_comments
+      WHERE project_id = ?
+        AND conversation_id = ?
+        AND file_path = ?
+        AND element_id = ?
+        AND slide_key = ?`,
+  ).get(
+    projectId,
+    conversationId,
+    body.target.filePath.trim(),
+    body.target.elementId.trim(),
+    body.target.slideIndex ?? -1,
+  ) != null;
+}
+
 function hostedMessageRow(message: Record<string, any> | null) {
   if (message == null) return null;
   const hosted = message.runContext?.hosted;
@@ -2100,13 +2235,14 @@ function assertMessageIdentifierAvailable(
   db: HostedRuntimeStorage['database'],
   conversationId: string,
   messageId: string,
-): void {
+): boolean {
   const existing = db.prepare(
     'SELECT conversation_id AS conversationId FROM messages WHERE id = ?',
   ).get(messageId) as { conversationId?: unknown } | undefined;
   if (existing != null && existing.conversationId !== conversationId) {
     throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
   }
+  return existing != null;
 }
 
 function createOwnedProjectRoot(projectsRoot: string, projectId: string): void {

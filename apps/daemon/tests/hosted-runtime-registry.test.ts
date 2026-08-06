@@ -1038,6 +1038,211 @@ describe('HostedRuntimeRegistry', () => {
     expect(() => createRegistry({
       runTimeoutMs: 30 * 60_000 + 1,
     })).toThrow(/fixed maximum/u);
+    expect(() => createRegistry({
+      limits: { metadataProjectsPerUser: 101 },
+    })).toThrow(/fixed maximum/u);
+  });
+
+  it('admits bounded per-user metadata growth while allowing updates at the ceiling', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-metadata-limits-'));
+    const counters = { conversation: 0, message: 0, project: 0 };
+    const registry = createRegistry({
+      runtimeRoot,
+      createEntityId(kind) {
+        counters[kind] += 1;
+        return `${kind}-${counters[kind]}`;
+      },
+      limits: {
+        metadataCommentsPerUser: 1,
+        metadataConversationsPerUser: 2,
+        metadataMessagesPerUser: 1,
+        metadataProjectsPerUser: 1,
+        metadataTabsPerUser: 2,
+      },
+    });
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    const mutate = (lease: typeof a, operation: Extract<
+      Parameters<typeof dispatchHostedRuntimeInternalOperation>[2],
+      { kind: 'metadata:mutate' }
+    >['operation']) => dispatchHostedRuntimeInternalOperation(registry, lease, {
+      kind: 'metadata:mutate',
+      operation,
+    });
+    const target = {
+      filePath: 'src/index.html',
+      elementId: 'hero',
+      selector: '#hero',
+      label: 'Hero',
+      text: 'Hello',
+      position: { x: 0, y: 0, width: 100, height: 100 },
+      htmlHint: '<section id="hero">',
+    };
+    try {
+      await expect(mutate(a, {
+        kind: 'project.create',
+        body: { title: 'A' },
+      })).resolves.toHaveProperty('project.id', 'project-1');
+      await expect(mutate(a, {
+        kind: 'project.create',
+        body: { title: 'A2' },
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+      await expect(mutate(b, {
+        kind: 'project.create',
+        body: { title: 'B' },
+      })).resolves.toHaveProperty('project.id', 'project-2');
+
+      await expect(mutate(a, {
+        kind: 'conversation.create',
+        projectId: 'project-1',
+        body: {},
+      })).resolves.toHaveProperty('conversation.id', 'conversation-1');
+      await expect(mutate(a, {
+        kind: 'conversation.create',
+        projectId: 'project-1',
+        body: {},
+      })).resolves.toHaveProperty('conversation.id', 'conversation-2');
+      await expect(mutate(a, {
+        kind: 'conversation.create',
+        projectId: 'project-1',
+        body: {},
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+
+      const firstMessage = {
+        kind: 'message.upsert' as const,
+        projectId: 'project-1',
+        conversationId: 'conversation-1',
+        messageId: 'message-client-1',
+        body: { role: 'user' as const, content: 'first' },
+      };
+      await expect(mutate(a, firstMessage)).resolves.toHaveProperty('message.id', 'message-client-1');
+      await expect(mutate(a, {
+        ...firstMessage,
+        messageId: 'message-client-2',
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+      await expect(mutate(a, {
+        ...firstMessage,
+        body: { role: 'user', content: 'updated' },
+      })).resolves.toHaveProperty('message.content', 'updated');
+
+      const firstComment = {
+        kind: 'comment.create' as const,
+        projectId: 'project-1',
+        conversationId: 'conversation-1',
+        body: { target, note: 'first' },
+      };
+      await expect(mutate(a, firstComment)).resolves.toHaveProperty('comment.note', 'first');
+      await expect(mutate(a, {
+        ...firstComment,
+        body: { target: { ...target, elementId: 'other' }, note: 'second' },
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+      await expect(mutate(a, {
+        ...firstComment,
+        body: { target, note: 'updated' },
+      })).resolves.toHaveProperty('comment.note', 'updated');
+
+      await expect(mutate(a, {
+        kind: 'tabs.put',
+        projectId: 'project-1',
+        body: {
+          tabs: ['src/index.html'],
+          active: 'src/index.html',
+          browserTabs: [{ id: 'preview-1', label: 'Preview' }],
+        },
+      })).resolves.toMatchObject({ tabs: ['src/index.html'] });
+      await expect(mutate(a, {
+        kind: 'tabs.put',
+        projectId: 'project-1',
+        body: {
+          tabs: ['src/index.html', 'src/other.html'],
+          active: 'src/index.html',
+          browserTabs: [{ id: 'preview-1', label: 'Preview' }],
+        },
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+    } finally {
+      a.release();
+      b.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('charges copied seed messages before creating a conversation', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-seed-limits-'));
+    const counters = { conversation: 0, message: 0, project: 0 };
+    const registry = createRegistry({
+      runtimeRoot,
+      createEntityId(kind) {
+        counters[kind] += 1;
+        return `${kind}-${counters[kind]}`;
+      },
+      limits: {
+        metadataConversationsPerUser: 2,
+        metadataMessagesPerUser: 1,
+      },
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    const mutate = (operation: Extract<
+      Parameters<typeof dispatchHostedRuntimeInternalOperation>[2],
+      { kind: 'metadata:mutate' }
+    >['operation']) => dispatchHostedRuntimeInternalOperation(registry, lease, {
+      kind: 'metadata:mutate',
+      operation,
+    });
+    try {
+      await mutate({ kind: 'project.create', body: { title: 'A' } });
+      await mutate({ kind: 'conversation.create', projectId: 'project-1', body: {} });
+      await mutate({
+        kind: 'message.upsert',
+        projectId: 'project-1',
+        conversationId: 'conversation-1',
+        messageId: 'message-client-1',
+        body: { role: 'user', content: 'seed' },
+      });
+
+      await expect(mutate({
+        kind: 'conversation.create',
+        projectId: 'project-1',
+        body: { seedFromConversationId: 'conversation-1' },
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+      await expect(dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'metadata:read',
+        operation: { kind: 'conversations.list', projectId: 'project-1' },
+      })).resolves.toMatchObject({ conversations: [{ id: 'conversation-1' }] });
+    } finally {
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses to materialize metadata lists already beyond their fixed ceiling', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-list-limits-'));
+    const registry = createRegistry({
+      runtimeRoot,
+      limits: { metadataProjectsPerUser: 1 },
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    try {
+      const now = Date.now();
+      for (const id of ['project-1', 'project-2']) {
+        await dispatchHostedRuntimeInternalOperation(registry, lease, {
+          kind: 'project:insert',
+          conversationId: 'conversation-1',
+          project: { id, name: id, createdAt: now, updatedAt: now },
+          runId: `insert-${id}`,
+        });
+      }
+
+      await expect(dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'metadata:read',
+        operation: { kind: 'projects.list' },
+      })).rejects.toSatisfy((error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'));
+    } finally {
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
   });
 
   it.each([

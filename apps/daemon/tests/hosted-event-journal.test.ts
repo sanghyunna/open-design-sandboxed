@@ -114,6 +114,43 @@ describe('hosted event journal', () => {
     journal.dispose();
   });
 
+  it('retires channel tombstones with evicted history without reviving expired cursors', () => {
+    const budget = createHostedEventBudget();
+    const journal = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      limits: { maxEvents: 1 },
+      ownerKey: 'owner-a',
+    });
+    const closedRun = { kind: 'run' as const, runId: 'run-1' };
+    const invalidatedProject = { kind: 'project' as const, projectId: 'project-1' };
+    const runEvent = journal.publish(closedRun, 'run.finished', { status: 'succeeded' });
+    journal.close(closedRun);
+    const projectEvent = journal.publish(invalidatedProject, 'project.updated', { revision: 1 });
+    journal.invalidate(invalidatedProject);
+    journal.publish({ kind: 'owner' }, 'owner.updated', { revision: 2 });
+
+    expect(journal.replay({ ownerKey: 'owner-a', channel: closedRun, after: runEvent.cursor })).toEqual({
+      kind: 'resync',
+      reason: 'cursor-expired',
+    });
+    expect(journal.replay({
+      ownerKey: 'owner-a',
+      channel: invalidatedProject,
+      after: projectEvent.cursor,
+    })).toEqual({
+      kind: 'resync',
+      reason: 'cursor-expired',
+    });
+
+    const response = new FakeResponse();
+    const attached = journal.attach({ ownerKey: 'owner-a', channel: closedRun, response });
+    expect(attached).toMatchObject({ kind: 'attached' });
+    expect(response.writableEnded).toBe(false);
+    if (attached.kind === 'attached') attached.close();
+    journal.dispose();
+  });
+
   it('returns an explicit resync event when a reconnect cursor has fallen out of the bounded journal', () => {
     const budget = createHostedEventBudget();
     const journal = createHostedEventJournal({

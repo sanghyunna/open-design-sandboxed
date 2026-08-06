@@ -476,12 +476,12 @@ describe('run event log persistence', () => {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort */ }
   });
 
-  function createRunsWithLog(runsLogDir: string | null) {
+  function createRunsWithLog(runsLogDir: string | null, ttlMs = 60_000) {
     return createChatRunService({
       createSseResponse: () => ({ send: vi.fn(() => true), end: vi.fn(), cleanup: vi.fn() }),
       createSseErrorPayload: (code: string, message: string) => ({ error: { code, message } }),
       shutdownGraceMs: 10,
-      ttlMs: 60_000,
+      ttlMs,
       // runs.ts is `// @ts-nocheck`, so the inferred type for the
       // `runsLogDir = null` default narrows to literal `null` from the
       // outside; cast to bypass and pass the real string. Production
@@ -612,5 +612,35 @@ describe('run event log persistence', () => {
     // The tmpDir we'd otherwise have written under stays empty
     // because we configured runsLogDir=null.
     expect(fs.readdirSync(tmpDir)).toEqual([]);
+  });
+
+  it('removes only the expired terminal run log directory at TTL cleanup', async () => {
+    vi.useFakeTimers();
+    try {
+      const runs = createRunsWithLog(tmpDir, 25);
+      const expired = runs.createWithId('expired-run');
+      const active = runs.createWithId('active-run');
+      runs.emit(expired, 'start', { status: 'running' });
+      runs.emit(active, 'start', { status: 'running' });
+      runs.finish(expired, 'succeeded', 0, null);
+
+      const closing = expired.eventsLogClosePromise as Promise<void> | null;
+      if (closing) await closing;
+      expect(fs.existsSync(path.join(tmpDir, 'expired-run', 'events.jsonl'))).toBe(true);
+      expect(fs.existsSync(path.join(tmpDir, 'active-run', 'events.jsonl'))).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(25);
+
+      expect(runs.get('expired-run')).toBeNull();
+      expect(fs.existsSync(path.join(tmpDir, 'expired-run'))).toBe(false);
+      expect(runs.get('active-run')).toBe(active);
+      expect(fs.existsSync(path.join(tmpDir, 'active-run', 'events.jsonl'))).toBe(true);
+
+      runs.dispose();
+      const activeClosing = active.eventsLogClosePromise as Promise<void> | null;
+      if (activeClosing) await activeClosing;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

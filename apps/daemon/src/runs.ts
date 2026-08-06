@@ -46,10 +46,35 @@ export function createChatRunService({
   runsLogDir = null,
 }: ChatRunServiceOptions) {
   const runs = new Map();
+  const retiringRunIds = new Set<string>();
+  const resolvedRunsLogDir = runsLogDir ? path.resolve(runsLogDir) : null;
+
+  const samePath = (left: string, right: string): boolean => (
+    process.platform === 'win32'
+      ? left.toLowerCase() === right.toLowerCase()
+      : left === right
+  );
+
+  const removeRunLogDirectory = (run): void => {
+    if (!resolvedRunsLogDir || !run.eventsLogPath) return;
+    const runLogDir = path.dirname(path.resolve(run.eventsLogPath));
+    if (path.relative(resolvedRunsLogDir, runLogDir) !== run.id) return;
+    try {
+      const entry = fs.lstatSync(runLogDir, { throwIfNoEntry: false });
+      if (!entry?.isDirectory() || entry.isSymbolicLink()) return;
+      const realRoot = fs.realpathSync.native(resolvedRunsLogDir);
+      const realRunLogDir = fs.realpathSync.native(runLogDir);
+      if (!samePath(path.dirname(realRunLogDir), realRoot)) return;
+      fs.rmSync(runLogDir, { recursive: true, force: true });
+    } catch {
+      // Log retirement is best-effort; a transient filesystem failure must
+      // not keep a terminal run in the in-memory registry indefinitely.
+    }
+  };
 
   const createRun = (id, meta = {}) => {
     const now = Date.now();
-    if (runs.has(id)) throw new Error(`Run already exists: ${id}`);
+    if (runs.has(id) || retiringRunIds.has(id)) throw new Error(`Run already exists: ${id}`);
     const run = {
       id,
       projectId: typeof meta.projectId === 'string' && meta.projectId ? meta.projectId : null,
@@ -87,8 +112,9 @@ export function createChatRunService({
       error: null,
       errorCode: null,
       cancelRequested: false,
-      eventsLogPath: runsLogDir ? path.join(runsLogDir, id, 'events.jsonl') : null,
+      eventsLogPath: resolvedRunsLogDir ? path.join(resolvedRunsLogDir, id, 'events.jsonl') : null,
       eventsLogStream: null,
+      eventsLogClosePromise: null,
       pendingDelta: null,
       cleanupTimer: null,
       abortFallbackTimer: null,
@@ -111,14 +137,6 @@ export function createChatRunService({
 
   const get = (id) => runs.get(id) ?? null;
 
-  const scheduleCleanup = (run) => {
-    run.cleanupTimer = setTimeout(() => {
-      run.cleanupTimer = null;
-      if (TERMINAL_RUN_STATUSES.has(run.status)) runs.delete(run.id);
-    }, ttlMs);
-    run.cleanupTimer.unref?.();
-  };
-
   // Lazily open the per-run event log on first emit. The directory may
   // not exist yet; mkdir is recursive so it's safe to call repeatedly.
   // Disk failures are best-effort — if we can't write, the run still
@@ -128,17 +146,66 @@ export function createChatRunService({
     if (run.eventsLogStream) return run.eventsLogStream;
     try {
       fs.mkdirSync(path.dirname(run.eventsLogPath), { recursive: true });
-      run.eventsLogStream = fs.createWriteStream(run.eventsLogPath, { flags: 'a' });
+      const stream = fs.createWriteStream(run.eventsLogPath, { flags: 'a' });
+      run.eventsLogStream = stream;
       // Don't crash the daemon on a stream-level error; just stop
       // trying to use this stream so subsequent emits silently skip.
-      run.eventsLogStream.on('error', () => {
-        try { run.eventsLogStream?.destroy(); } catch { /* ignore */ }
-        run.eventsLogStream = null;
+      stream.on('error', () => {
+        try { stream.destroy(); } catch { /* ignore */ }
+        if (run.eventsLogStream === stream) run.eventsLogStream = null;
       });
-      return run.eventsLogStream;
+      return stream;
     } catch {
       return null;
     }
+  };
+
+  const closeLogStream = (run): Promise<void> | null => {
+    if (run.eventsLogClosePromise) return run.eventsLogClosePromise;
+    const stream = run.eventsLogStream;
+    run.eventsLogStream = null;
+    if (!stream) return null;
+    if (!run.eventsLogPath || typeof stream.once !== 'function') {
+      try { stream.end(); } catch { /* ignore */ }
+      return null;
+    }
+
+    run.eventsLogClosePromise = new Promise<void>((resolve) => {
+      let settled = false;
+      const onClosed = () => {
+        if (settled) return;
+        settled = true;
+        run.eventsLogClosePromise = null;
+        resolve();
+      };
+      stream.once('close', onClosed);
+      try { stream.end(); } catch { onClosed(); }
+    });
+    return run.eventsLogClosePromise;
+  };
+
+  const retireRun = (run): void => {
+    runs.delete(run.id);
+    if (!run.eventsLogPath) {
+      closeLogStream(run);
+      return;
+    }
+    retiringRunIds.add(run.id);
+    const finishRetirement = () => {
+      removeRunLogDirectory(run);
+      retiringRunIds.delete(run.id);
+    };
+    const closing = closeLogStream(run);
+    if (closing) void closing.then(finishRetirement, finishRetirement);
+    else finishRetirement();
+  };
+
+  const scheduleCleanup = (run) => {
+    run.cleanupTimer = setTimeout(() => {
+      run.cleanupTimer = null;
+      if (TERMINAL_RUN_STATUSES.has(run.status)) retireRun(run);
+    }, ttlMs);
+    run.cleanupTimer.unref?.();
   };
 
   const writeRecord = (run, event, data) => {
@@ -237,10 +304,9 @@ export function createChatRunService({
     run.clients.clear();
     for (const waiter of run.waiters) waiter(statusBody(run));
     run.waiters.clear();
-    // Close the event log stream now that no more events will be
-    // emitted for this run. The file stays on disk for tail/grep.
-    try { run.eventsLogStream?.end(); } catch { /* ignore */ }
-    run.eventsLogStream = null;
+    // Close the event log stream now that no more events will be emitted.
+    // The file remains available for tail/grep until terminal-run TTL expiry.
+    closeLogStream(run);
     scheduleCleanup(run);
   };
 
@@ -418,9 +484,7 @@ export function createChatRunService({
     run.clients.clear();
     for (const waiter of run.waiters) waiter(statusBody(run));
     run.waiters.clear();
-    try { run.eventsLogStream?.end(); } catch { /* ignore */ }
-    run.eventsLogStream = null;
-    runs.delete(run.id);
+    retireRun(run);
   };
 
   const dispose = () => {

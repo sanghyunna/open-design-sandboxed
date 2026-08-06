@@ -43,6 +43,14 @@ const MAX_COMMENT_BYTES = 64 * 1024;
 const MAX_COMMENT_TEXT_BYTES = 4 * 1024;
 const MAX_RELATIVE_PATH_BYTES = 1024;
 
+export const HOSTED_METADATA_RESOURCE_LIMITS = Object.freeze({
+  commentsPerUser: 10_000,
+  conversationsPerUser: 1_000,
+  messagesPerUser: 10_000,
+  projectsPerUser: 100,
+  tabsPerUser: 1_000,
+});
+
 export interface HostedMetadataAuthority {
   readonly userKey: string;
   readonly generation: number;
@@ -597,7 +605,13 @@ function sanitizeResponse(operation: HostedMetadataOperation, input: unknown): H
   const value = record(input, 'hosted metadata response');
   switch (operation.kind) {
     case 'projects.list':
-      return { projects: array(value.projects, 'projects').map(projectResponse) };
+      return {
+        projects: boundedResponseArray(
+          value.projects,
+          'projects',
+          HOSTED_METADATA_RESOURCE_LIMITS.projectsPerUser,
+        ).map(projectResponse),
+      };
     case 'project.create':
     case 'project.get':
     case 'project.patch':
@@ -605,18 +619,36 @@ function sanitizeResponse(operation: HostedMetadataOperation, input: unknown): H
     case 'project.delete':
       return okResponse(value);
     case 'conversations.list':
-      return { conversations: array(value.conversations, 'conversations').map(conversationResponse) };
+      return {
+        conversations: boundedResponseArray(
+          value.conversations,
+          'conversations',
+          HOSTED_METADATA_RESOURCE_LIMITS.conversationsPerUser,
+        ).map(conversationResponse),
+      };
     case 'conversation.create':
     case 'conversation.patch':
       return { conversation: conversationResponse(value.conversation) };
     case 'conversation.delete':
       return okResponse(value);
     case 'messages.list':
-      return { messages: array(value.messages, 'messages').map(messageResponse) };
+      return {
+        messages: boundedResponseArray(
+          value.messages,
+          'messages',
+          HOSTED_METADATA_RESOURCE_LIMITS.messagesPerUser,
+        ).map(messageResponse),
+      };
     case 'message.upsert':
       return { message: messageResponse(value.message) };
     case 'comments.list':
-      return { comments: array(value.comments, 'comments').map(commentResponse) };
+      return {
+        comments: boundedResponseArray(
+          value.comments,
+          'comments',
+          HOSTED_METADATA_RESOURCE_LIMITS.commentsPerUser,
+        ).map(commentResponse),
+      };
     case 'comment.create':
       return { comment: commentResponse(value.comment) };
     case 'tabs.get':
@@ -957,6 +989,12 @@ function jsonValue(input: unknown, name: string): void {
 function array(input: unknown, name: string): unknown[] {
   if (!Array.isArray(input)) throw internalError(`${name} response is invalid`);
   return input;
+}
+
+function boundedResponseArray(input: unknown, name: string, maximum: number): unknown[] {
+  const values = array(input, name);
+  if (values.length > maximum) throw internalError(`${name} response exceeds its hosted bound`);
+  return values;
 }
 
 function responseId(input: unknown, name: string): string {
