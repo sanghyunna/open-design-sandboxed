@@ -8,6 +8,114 @@ import {
 } from '../src/hosted-event-journal.js';
 
 describe('hosted durable event journal milestones', () => {
+  it('publishes a prepared durable batch atomically and restores it completely on rollback', () => {
+    const budget = createHostedEventBudget();
+    const journal = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      ownerKey: 'owner-a',
+      secret: Buffer.alloc(32, 1),
+    });
+    const channel = { kind: 'run' as const, runId: 'run-1' };
+    const live = new FakeResponse();
+    journal.attach({ ownerKey: 'owner-a', channel, response: live });
+    const input = [
+      {
+        channel,
+        data: { runId: 'run-1', status: 'queued' },
+        event: 'run.created',
+        milestone: 'run-created' as const,
+      },
+      {
+        channel,
+        data: { runId: 'run-1', status: 'running' },
+        event: 'run.status',
+        milestone: 'status-transition' as const,
+      },
+    ];
+
+    const abandoned = journal.prepareDurableBatch(input);
+
+    expect(abandoned.snapshot.events.map(({ event, sequence }) => ({ event, sequence }))).toEqual([
+      { event: 'run.created', sequence: 1 },
+      { event: 'run.status', sequence: 2 },
+    ]);
+    expect(budget.snapshot().events).toBe(0);
+    expect(journal.replay({ ownerKey: 'owner-a', channel })).toEqual({ kind: 'events', events: [] });
+    expect(live.writes).toEqual([]);
+
+    abandoned.rollback();
+    expect(budget.snapshot().events).toBe(0);
+
+    const prepared = journal.prepareDurableBatch(input);
+    expect(prepared.records.map(({ cursor }) => cursor)).toEqual(
+      abandoned.records.map(({ cursor }) => cursor),
+    );
+    const committed = prepared.commit();
+    expect(committed).toEqual(prepared.records);
+    expect(prepared.commit()).toEqual(prepared.records);
+    expect(budget.snapshot().events).toBe(2);
+    expect(journal.replay({ ownerKey: 'owner-a', channel })).toEqual({
+      kind: 'events',
+      events: prepared.records,
+    });
+    expect(live.writes.map((frame) => frame.match(/^event: (.+)$/mu)?.[1])).toEqual([
+      'run.created',
+      'run.status',
+    ]);
+    journal.dispose();
+  });
+
+  it.each([
+    { maxBytes: 10_000, maxEvents: 1 },
+    { maxBytes: 200, maxEvents: 10 },
+  ])('rejects an atomic batch that cannot fit in the journal (%o)', (limits) => {
+    const budget = createHostedEventBudget();
+    const journal = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      limits,
+      ownerKey: 'owner-a',
+      secret: Buffer.alloc(32, 1),
+    });
+    const channel = { kind: 'run' as const, runId: 'run-1' };
+    const input = [
+      { channel, data: { n: 1 }, event: 'run.created', milestone: 'run-created' as const },
+      { channel, data: { n: 2 }, event: 'run.status', milestone: 'status-transition' as const },
+    ];
+
+    expect(() => journal.prepareDurableBatch(input)).toThrowError(
+      expect.objectContaining({ code: 'HOSTED_QUOTA_EXCEEDED' }),
+    );
+    expect(budget.snapshot().events).toBe(0);
+    expect(journal.replay({ ownerKey: 'owner-a', channel })).toEqual({ kind: 'events', events: [] });
+    journal.dispose();
+  });
+
+  it('delivers the whole batch before a durable terminal closes its channel', () => {
+    const journal = createHostedEventJournal({
+      budget: createHostedEventBudget(),
+      generation: 'generation-one',
+      ownerKey: 'owner-a',
+    });
+    const channel = { kind: 'run' as const, runId: 'run-1' };
+    const live = new FakeResponse();
+    journal.attach({ ownerKey: 'owner-a', channel, response: live });
+    const prepared = journal.prepareDurableBatch([
+      { channel, data: { status: 'succeeded' }, event: 'run.finished', milestone: 'terminal' },
+      { channel, data: { persisted: true }, event: 'run.receipt', milestone: 'status-transition' },
+    ]);
+
+    prepared.commit();
+
+    expect(live.writes.map((frame) => frame.match(/^event: (.+)$/mu)?.[1])).toEqual([
+      'run.finished',
+      'run.receipt',
+    ]);
+    expect(live.writableEnded).toBe(true);
+    journal.dispose();
+  });
+
   it('keeps a prepared milestone and its cursor invisible until commit', () => {
     const budget = createHostedEventBudget();
     const journal = createHostedEventJournal({

@@ -88,6 +88,20 @@ export interface HostedPreparedDurableEvent {
   rollback(): void;
 }
 
+export interface HostedDurableEventInput {
+  readonly channel: HostedEventChannel;
+  readonly data: unknown;
+  readonly event: string;
+  readonly milestone: HostedDurableEventMilestone;
+}
+
+export interface HostedPreparedDurableEventBatch {
+  readonly records: readonly HostedEventRecord[];
+  readonly snapshot: HostedEventJournalSnapshotV1;
+  commit(): readonly HostedEventRecord[];
+  rollback(): void;
+}
+
 export class HostedEventJournalError extends Error {
   constructor(
     readonly code: 'HOSTED_CAPACITY_EXHAUSTED' | 'HOSTED_OVERLOADED' | 'HOSTED_QUOTA_EXCEEDED',
@@ -666,6 +680,7 @@ export function createHostedEventJournal(options: {
     event: string,
     data: unknown,
     milestone: HostedDurableEventMilestone | null,
+    sequence = nextSequence,
   ): StoredEvent => {
     if (disposed) throw new Error('hosted event journal is disposed');
     if (pending != null) throw new Error('hosted durable event is awaiting commit');
@@ -684,7 +699,6 @@ export function createHostedEventJournal(options: {
       }
     }
     const dataJson = safeJson(normalizedData);
-    const sequence = nextSequence;
     const cursor = makeCursor(scope, sequence);
     const bytes = Buffer.byteLength(`id: ${cursor}\nevent: ${event}\ndata: ${dataJson}\n\n`);
     if (bytes > limits.maxBytes) {
@@ -704,19 +718,21 @@ export function createHostedEventJournal(options: {
     };
   };
 
-  const retentionFor = (record: StoredEvent): {
+  const retentionFor = (records: readonly StoredEvent[]): {
     readonly evictedThrough: number;
     readonly removeBytes: number;
     readonly removeCount: number;
     readonly retained: StoredEvent[];
   } => {
+    const candidates = [...events, ...records];
+    const candidateBytes = records.reduce((total, record) => total + record.bytes, eventBytes);
     let removeCount = 0;
     let removeBytes = 0;
     while (
-      events.length - removeCount + 1 > limits.maxEvents
-      || eventBytes - removeBytes + record.bytes > limits.maxBytes
+      candidates.length - removeCount > limits.maxEvents
+      || candidateBytes - removeBytes > limits.maxBytes
     ) {
-      const removed = events[removeCount];
+      const removed = candidates[removeCount];
       if (removed == null) break;
       removeCount += 1;
       removeBytes += removed.bytes;
@@ -724,10 +740,10 @@ export function createHostedEventJournal(options: {
     return {
       evictedThrough: removeCount === 0
         ? evictedThrough
-        : Math.max(evictedThrough, events[removeCount - 1]!.sequence),
+        : Math.max(evictedThrough, candidates[removeCount - 1]!.sequence),
       removeBytes,
       removeCount,
-      retained: [...events.slice(removeCount), record],
+      retained: candidates.slice(removeCount),
     };
   };
 
@@ -887,101 +903,134 @@ export function createHostedEventJournal(options: {
 
   if (options.restore != null) restoreSnapshot(options.restore);
 
+  const prepareDurableBatch = (
+    input: readonly HostedDurableEventInput[],
+  ): HostedPreparedDurableEventBatch => {
+    if (input.length === 0) throw new Error('hosted durable event batch is empty');
+    const records = input.map(({ channel, data, event, milestone }, index) => {
+      if (!isMilestone(milestone)) throw new Error('hosted durable event milestone is invalid');
+      return createStoredEvent(channel, event, data, milestone, nextSequence + index);
+    });
+    if (
+      records.length > limits.maxEvents
+      || records.reduce((total, record) => total + record.bytes, 0) > limits.maxBytes
+    ) {
+      throw new HostedEventJournalError('HOSTED_QUOTA_EXCEEDED', 'hosted durable event batch exceeds the journal limit');
+    }
+    const retention = retentionFor(records);
+    const retainedBytes = retention.retained.reduce((total, record) => total + record.bytes, 0);
+    const reservation = options.budget.reserveEvents(
+      retention.retained.length - events.length,
+      retainedBytes - eventBytes,
+    );
+    if (reservation == null) {
+      throw new HostedEventJournalError('HOSTED_CAPACITY_EXHAUSTED', 'hosted event journal global capacity is exhausted');
+    }
+    const candidateClosed = new Map(closedChannels);
+    const candidateInvalidated = new Map(invalidatedThrough);
+    for (const record of records) {
+      if (record.milestone === 'terminal') {
+        candidateClosed.delete(record.channelKey);
+        candidateClosed.set(record.channelKey, record.sequence);
+      } else if (record.milestone === 'resync') {
+        candidateInvalidated.delete(record.channelKey);
+        candidateInvalidated.set(record.channelKey, record.sequence);
+      }
+    }
+    pruneTombstones(
+      retention.retained,
+      retention.evictedThrough,
+      candidateClosed,
+      candidateInvalidated,
+    );
+
+    let state: 'committed' | 'pending' | 'rolled-back' = 'pending';
+    const rollback = (): void => {
+      if (state !== 'pending') return;
+      state = 'rolled-back';
+      reservation.rollback();
+      pending = null;
+    };
+    try {
+      const snapshot = buildSnapshot(
+        retention.retained,
+        retention.evictedThrough,
+        nextSequence + records.length,
+        candidateClosed,
+        candidateInvalidated,
+      );
+      const publicRecords = records.map(({ at, cursor, dataJson, event }) => ({
+        at,
+        cursor,
+        data: JSON.parse(dataJson) as unknown,
+        event,
+      }));
+      const prepared: HostedPreparedDurableEventBatch = {
+        records: publicRecords,
+        snapshot,
+        commit(): readonly HostedEventRecord[] {
+          if (state === 'committed') return prepared.records;
+          if (state !== 'pending' || disposed || pending?.rollback !== rollback) {
+            throw new Error('hosted durable event is no longer pending');
+          }
+          state = 'committed';
+          pending = null;
+          reservation.commit();
+          events.splice(0, events.length, ...retention.retained);
+          eventBytes = retainedBytes;
+          evictedThrough = retention.evictedThrough;
+          nextSequence += records.length;
+          closedChannels.clear();
+          for (const [scope, through] of candidateClosed) closedChannels.set(scope, through);
+          invalidatedThrough.clear();
+          for (const [scope, through] of candidateInvalidated) invalidatedThrough.set(scope, through);
+          const closingScopes = new Set<string>();
+          for (const record of records) {
+            for (const connection of connections) {
+              if (connection.channelKey === record.channelKey) {
+                writeToConnection(connection, frameForEvent(record));
+              }
+            }
+            if (record.milestone === 'terminal' || record.milestone === 'resync') {
+              closingScopes.add(record.channelKey);
+            }
+          }
+          for (const scope of closingScopes) closeConnections(scope);
+          return prepared.records;
+        },
+        rollback,
+      };
+      pending = { rollback };
+      return prepared;
+    } catch (error) {
+      reservation.rollback();
+      throw error;
+    }
+  };
+
   return {
+    prepareDurableBatch,
     prepareDurable(
       channel: HostedEventChannel,
       event: string,
       data: unknown,
       milestone: HostedDurableEventMilestone,
     ): HostedPreparedDurableEvent {
-      if (!isMilestone(milestone)) throw new Error('hosted durable event milestone is invalid');
-      const record = createStoredEvent(channel, event, data, milestone);
-      const retention = retentionFor(record);
-      const reservation = options.budget.reserveEvents(
-        1 - retention.removeCount,
-        record.bytes - retention.removeBytes,
-      );
-      if (reservation == null) {
-        throw new HostedEventJournalError('HOSTED_CAPACITY_EXHAUSTED', 'hosted event journal global capacity is exhausted');
-      }
-      const candidateClosed = new Map(closedChannels);
-      const candidateInvalidated = new Map(invalidatedThrough);
-      if (milestone === 'terminal') {
-        candidateClosed.delete(record.channelKey);
-        candidateClosed.set(record.channelKey, record.sequence);
-      } else if (milestone === 'resync') {
-        candidateInvalidated.delete(record.channelKey);
-        candidateInvalidated.set(record.channelKey, record.sequence);
-      }
-      pruneTombstones(
-        retention.retained,
-        retention.evictedThrough,
-        candidateClosed,
-        candidateInvalidated,
-      );
-
-      let state: 'committed' | 'pending' | 'rolled-back' = 'pending';
-      const rollback = (): void => {
-        if (state !== 'pending') return;
-        state = 'rolled-back';
-        reservation.rollback();
-        pending = null;
+      const batch = prepareDurableBatch([{ channel, data, event, milestone }]);
+      const record = batch.records[0]!;
+      return {
+        record,
+        snapshot: batch.snapshot,
+        commit() {
+          batch.commit();
+          return record;
+        },
+        rollback: batch.rollback,
       };
-      try {
-        const snapshot = buildSnapshot(
-          retention.retained,
-          retention.evictedThrough,
-          nextSequence + 1,
-          candidateClosed,
-          candidateInvalidated,
-        );
-        const prepared: HostedPreparedDurableEvent = {
-          record: {
-            at: record.at,
-            cursor: record.cursor,
-            data: JSON.parse(record.dataJson) as unknown,
-            event: record.event,
-          },
-          snapshot,
-          commit(): HostedEventRecord {
-            if (state === 'committed') return prepared.record;
-            if (state !== 'pending' || disposed || pending?.rollback !== rollback) {
-              throw new Error('hosted durable event is no longer pending');
-            }
-            state = 'committed';
-            pending = null;
-            reservation.commit();
-            if (retention.removeCount > 0) events.splice(0, retention.removeCount);
-            eventBytes = eventBytes - retention.removeBytes + record.bytes;
-            evictedThrough = retention.evictedThrough;
-            nextSequence += 1;
-            events.push(record);
-            closedChannels.clear();
-            for (const [scope, through] of candidateClosed) closedChannels.set(scope, through);
-            invalidatedThrough.clear();
-            for (const [scope, through] of candidateInvalidated) invalidatedThrough.set(scope, through);
-            for (const connection of connections) {
-              if (connection.channelKey === record.channelKey) {
-                writeToConnection(connection, frameForEvent(record));
-              }
-            }
-            if (milestone === 'terminal' || milestone === 'resync') {
-              closeConnections(record.channelKey);
-            }
-            return prepared.record;
-          },
-          rollback,
-        };
-        pending = { rollback };
-        return prepared;
-      } catch (error) {
-        reservation.rollback();
-        throw error;
-      }
     },
     publish(channel: HostedEventChannel, event: string, data: unknown): HostedEventRecord {
       const record = createStoredEvent(channel, event, data, null);
-      const retention = retentionFor(record);
+      const retention = retentionFor([record]);
       if (!options.budget.adjustEvents(
         1 - retention.removeCount,
         record.bytes - retention.removeBytes,
