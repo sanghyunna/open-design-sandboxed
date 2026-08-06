@@ -22,7 +22,7 @@ type ZipEntryWithSize = JSZip.JSZipObject & {
   _data?: { uncompressedSize?: number };
 };
 
-class PreviewHttpError extends Error {
+export class PreviewHttpError extends Error {
   constructor(message: string, readonly statusCode: number) {
     super(message);
     this.name = 'PreviewHttpError';

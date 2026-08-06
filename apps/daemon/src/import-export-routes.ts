@@ -751,7 +751,7 @@ function rewriteViteDistRootAssetUrls(html: string): string {
   );
 }
 
-function buildProjectExportManifestResponse({
+export function buildProjectExportManifestResponse({
   project,
   projectId,
   files,

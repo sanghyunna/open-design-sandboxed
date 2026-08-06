@@ -86,6 +86,7 @@ import {
   writeProjectFile,
   ProjectFileContentConflictError,
 } from './projects.js';
+import { buildProjectExportManifestResponse } from './import-export-routes.js';
 
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
@@ -303,6 +304,7 @@ export type HostedRuntimeInternalOperation =
       readonly signal?: AbortSignal;
     }
   | { readonly kind: 'upload:begin'; readonly projectId: string }
+  | { readonly kind: 'export:manifest'; readonly projectId: string }
   | { readonly kind: 'artifact:save'; readonly request: unknown }
   | { readonly kind: 'artifact:lint'; readonly request: unknown }
   | { readonly kind: 'artifact:download'; readonly artifactId: string };
@@ -1812,6 +1814,22 @@ export function createHostedRuntimeRegistry(
           requireOwnedProject(state.runtime, operation.projectId);
           return createUploadIntake(state.runtime, operation.projectId);
         }
+        case 'export:manifest': {
+          validateInternalId(operation.projectId, 'project');
+          await waitForRuntime(state.runtime);
+          const project = requireOwnedProject(state.runtime, operation.projectId);
+          const storage = storageFor(state.runtime);
+          exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
+          try {
+            return buildProjectExportManifestResponse({
+              files: await listFiles(storage.roots.projectsRoot, operation.projectId),
+              project,
+              projectId: operation.projectId,
+            });
+          } catch (error) {
+            throw projectContentError(error);
+          }
+        }
         case 'artifact:save': {
           return enqueueMutation(
             state.runtime,
@@ -1859,18 +1877,18 @@ export function createHostedRuntimeRegistry(
     try {
       switch (operation.kind) {
         case 'files.list':
-          return listFiles(projectsRoot, operation.projectId, {
+          return await listFiles(projectsRoot, operation.projectId, {
             ...(operation.since === undefined ? {} : { since: operation.since }),
           });
         case 'file.read':
-          return readProjectFile(projectsRoot, operation.projectId, operation.path);
+          return await readProjectFile(projectsRoot, operation.projectId, operation.path);
         case 'files.search':
-          return searchProjectFiles(projectsRoot, operation.projectId, operation.q, {
+          return await searchProjectFiles(projectsRoot, operation.projectId, operation.q, {
             max: operation.max,
             ...(operation.pattern === undefined ? {} : { pattern: operation.pattern }),
           });
         case 'folders.list':
-          return listProjectFolders(projectsRoot, operation.projectId);
+          return await listProjectFolders(projectsRoot, operation.projectId);
       }
     } catch (error) {
       throw projectContentError(error);
@@ -1905,7 +1923,7 @@ export function createHostedRuntimeRegistry(
               ),
             };
           case 'file.rename':
-            return renameProjectFile(
+            return await renameProjectFile(
               storage.roots.projectsRoot,
               operation.projectId,
               operation.body.from,
