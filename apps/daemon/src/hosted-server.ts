@@ -159,6 +159,7 @@ export interface HostedTestComposition {
   ) => Promise<HostedPiTurnResult>;
   readonly bodyReadTimeoutMs?: number;
   readonly eventBudgetLimits?: Partial<HostedEventLimits>;
+  readonly idleEvictionMs?: number;
   readonly shutdownRegistry?: (shutdown: () => Promise<void>) => Promise<void>;
 }
 
@@ -256,6 +257,9 @@ export async function startHostedServer(
     ...(testComposition?.eventBudgetLimits === undefined
       ? {}
       : { eventBudgetLimits: testComposition.eventBudgetLimits }),
+    ...(testComposition?.idleEvictionMs === undefined
+      ? {}
+      : { idleEvictionMs: testComposition.idleEvictionMs }),
     onGenerationRetired: (binding) => retireGenerationResources(binding),
     ...(testComposition?.createEntityId === undefined
       ? {}

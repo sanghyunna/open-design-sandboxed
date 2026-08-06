@@ -368,6 +368,21 @@ describe('provider-only hosted server', () => {
     expectNoProcessGlobalSecret();
   });
 
+  it('allows tests to shorten idle eviction without persisting credentials', async () => {
+    const started = await start({ idleEvictionMs: 10 });
+    const session = await getSession(started, USER_A);
+    await mutate(started, USER_A, session.csrfToken, 'PUT', '/api/hosted/provider', {
+      provider: 'anthropic', key: SECRET_A,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(await getProviderStatus(started, USER_A)).toEqual({
+      provider: null,
+      configured: false,
+    });
+  });
+
   it('accepts only the closed provider request shapes', async () => {
     const started = await start();
     const session = await getSession(started, USER_A);
@@ -435,7 +450,10 @@ describe('provider-only hosted server', () => {
   });
 });
 
-async function start(options: { productionIdentity?: boolean } = {}): Promise<StartedServer> {
+async function start(options: {
+  idleEvictionMs?: number;
+  productionIdentity?: boolean;
+} = {}): Promise<StartedServer> {
   const started = await startHostedServer({
     port: 0,
     host: '127.0.0.1',
@@ -456,6 +474,9 @@ async function start(options: { productionIdentity?: boolean } = {}): Promise<St
           anthropic: anthropicFixture.origin,
           'vercel-ai-gateway': gatewayFixture.origin,
         },
+        ...(options.idleEvictionMs === undefined
+          ? {}
+          : { idleEvictionMs: options.idleEvictionMs }),
       },
     }),
   });
