@@ -171,6 +171,9 @@ describe('hosted run receipts', () => {
     expect(() => store.updateStatus('retry-1', 'canceled')).toThrowError(
       expect.objectContaining({ code: 'CONFLICT', statusCode: 409 }),
     );
+    expect(() => store.updateStatus('retry-1', 'succeeded', { resumable: true })).toThrowError(
+      expect.objectContaining({ code: 'BAD_REQUEST', statusCode: 400 }),
+    );
     expect(store.updateStatus('retry-1', 'succeeded')).toMatchObject({ status: 'succeeded' });
     expect(store.get('retry-1')).toMatchObject({ status: 'succeeded', result: result() });
     database.close();

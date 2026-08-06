@@ -220,6 +220,10 @@ export function createHostedRunReceiptStore(
     const clientRequestId = validClientRequestId(input.clientRequestId);
     const existing = readReceipt(select.get(clientRequestId));
     if (existing == null) return null;
+    const resumable = input.status === 'interrupted';
+    if (input.resumable !== undefined && input.resumable !== resumable) {
+      throw badRequest('hosted run receipt resumable flag conflicts with status');
+    }
     if (!validStatusTransition(existing.status, input.status)) {
       throw new HostedRunReceiptError(
         'CONFLICT',
@@ -229,7 +233,7 @@ export function createHostedRunReceiptStore(
     update.run({
       clientRequestId,
       status: input.status,
-      resumable: input.resumable === undefined ? null : Number(input.resumable),
+      resumable: Number(resumable),
       now: validTimestamp(now()),
     });
     return readReceipt(select.get(clientRequestId));
@@ -367,6 +371,7 @@ function readReceipt(input: unknown): HostedRunReceipt | null {
     || !validStoredId(row.assistant_message_id)
     || !RECEIPT_STATUSES.has(row.status as HostedRunReceiptStatus)
     || (row.resumable !== 0 && row.resumable !== 1)
+    || (row.resumable === 1) !== (row.status === 'interrupted')
     || !Number.isSafeInteger(row.created_at)
     || row.created_at < 0
     || !Number.isSafeInteger(row.updated_at)
