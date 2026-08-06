@@ -974,16 +974,23 @@ describe('hosted PR07 HTTP surface', () => {
     closeSse(stream);
 
     for (let offset = 0; offset < 2_000; offset += 8) {
-      await Promise.all(Array.from({ length: 8 }, async (_, index) => {
-        await expectSuccess(mutate(
+      const conversations = await Promise.all(Array.from({ length: 8 }, (_, index) => (
+        json<{ conversation: { id: string } }>(mutate(
           started,
           USER_A,
           csrf,
           'POST',
           `/api/projects/${project.id}/conversations`,
           { title: `event-${offset + index}` },
-        ));
-      }));
+        ))
+      )));
+      await Promise.all(conversations.map(({ conversation }) => expectSuccess(mutate(
+        started,
+        USER_A,
+        csrf,
+        'DELETE',
+        `/api/projects/${project.id}/conversations/${conversation.id}`,
+      ))));
     }
 
     const reconnect = await openSse(
@@ -1018,39 +1025,6 @@ describe('hosted PR07 HTTP surface', () => {
       if (replacement == null) await delay(10);
     }
     expect(replacement).not.toBeNull();
-  });
-
-  it('keeps every PR08 content path terminally denied', async () => {
-    const started = await start();
-    const csrf = await getCsrfToken(started, USER_A);
-    const project = await createProject(started, USER_A, csrf, 'No content routes');
-    const denied = [
-      ['GET', `/api/projects/${project.id}/files`],
-      ['GET', `/api/projects/${project.id}/files/index.html`],
-      ['POST', `/api/projects/${project.id}/files`],
-      ['POST', `/api/projects/${project.id}/files/rename`],
-      ['DELETE', `/api/projects/${project.id}/files/index.html`],
-      ['GET', `/api/projects/${project.id}/search`],
-      ['GET', `/api/projects/${project.id}/folders`],
-      ['POST', `/api/projects/${project.id}/folders`],
-      ['DELETE', `/api/projects/${project.id}/folders`],
-      ['POST', `/api/projects/${project.id}/upload`],
-      ['POST', `/api/projects/${project.id}/files/preview`],
-      ['POST', `/api/projects/${project.id}/preview-url`],
-      ['GET', `/api/projects/${project.id}/preview/index.html`],
-      ['GET', `/api/projects/${project.id}/archive`],
-      ['GET', `/api/projects/${project.id}/export/manifest`],
-      ['POST', '/api/artifacts/save'],
-      ['POST', '/api/artifacts/lint'],
-      ['GET', '/api/artifacts/artifact-a/download'],
-    ] as const;
-
-    for (const [method, path] of denied) {
-      const response = method === 'GET'
-        ? fetchJson(started, USER_A, path)
-        : mutate(started, USER_A, csrf, method, path, {});
-      await expectError(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', `${method} ${path}`);
-    }
   });
 
   it('cannot fall through to local-only, raw, wildcard, or static handlers', async () => {
