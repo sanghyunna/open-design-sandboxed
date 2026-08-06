@@ -108,6 +108,7 @@ export interface HostedSnapshotStore {
   publish(input: {
     readonly storage: HostedRuntimeStorage;
     readonly quiesce: () => Promise<void>;
+    readonly signal?: AbortSignal;
   }): Promise<HostedSnapshotPublication>;
   restore(): Promise<HostedSnapshotRestore | null>;
 }
@@ -182,6 +183,7 @@ export function createHostedSnapshotStore(
   function publish(input: {
     readonly storage: HostedRuntimeStorage;
     readonly quiesce: () => Promise<void>;
+    readonly signal?: AbortSignal;
   }): Promise<HostedSnapshotPublication> {
     return withPublicationLock(publicationLockKey, () => publishSnapshot({
         ...(options.failpoint ? { failpoint: options.failpoint } : {}),
@@ -311,22 +313,29 @@ async function publishSnapshot(options: {
   readonly input: {
     readonly storage: HostedRuntimeStorage;
     readonly quiesce: () => Promise<void>;
+    readonly signal?: AbortSignal;
   };
 }): Promise<HostedSnapshotPublication> {
+  const signal = options.input.signal;
+  throwIfPublicationAborted(signal);
   assertOwnedLiveStorage(options.input.storage, options.runtimeRoot, options.identity);
-  await options.input.quiesce();
+  await publicationPhase(signal, options.input.quiesce);
   assertOwnedLiveStorage(options.input.storage, options.runtimeRoot, options.identity);
+  throwIfPublicationAborted(signal);
 
   const sequence = nextSequence(options.snapshotRoot, options.versionsRoot);
-  await removeStaleStaging(options.snapshotRoot);
+  await publicationPhase(signal, () => removeStaleStaging(options.snapshotRoot));
   const stagingRoot = fs.mkdtempSync(
     path.join(options.snapshotRoot, `.staging-${sequence}-`),
   );
+  throwIfPublicationAborted(signal);
   activePublicationStaging.add(stagingRoot);
   const payloadRoot = path.join(stagingRoot, 'payload');
   fs.mkdirSync(payloadRoot);
   const captureBudget = createCaptureBudget(options.limits);
   let completedRoot: string | null = null;
+  let pendingRoot: string | null = null;
+  let previousAuthoritySequence: string | null | undefined;
   try {
     for (const name of PAYLOAD_DIRECTORIES) {
       fs.mkdirSync(path.join(payloadRoot, name));
@@ -343,27 +352,28 @@ async function publishSnapshot(options: {
       captureBudget,
       databasePageSize,
     );
-    await options.input.storage.database.backup(stagedDatabase, {
+    await publicationPhase(signal, () => options.input.storage.database.backup(stagedDatabase, {
       progress({ totalPages }) {
+        throwIfPublicationAborted(signal);
         ensureProjectedBytesFit(captureBudget, totalPages * databasePageSize);
         return 256;
       },
-    });
+    }));
     reserveCapturedFile(captureBudget, fs.lstatSync(stagedDatabase).size);
-    await copyReachableSessions(
+    await publicationPhase(signal, () => copyReachableSessions(
       stagedDatabase,
       options.input.storage.roots.liveRoot,
       payloadRoot,
       captureBudget,
-    );
-    await fire(options.failpoint, 'after-session-copy');
-    await normalizeStagedSessions(
+    ));
+    await publicationPhase(signal, () => fire(options.failpoint, 'after-session-copy'));
+    await publicationPhase(signal, () => normalizeStagedSessions(
       stagedDatabase,
       options.input.storage.roots.liveRoot,
       payloadRoot,
-    );
-    await syncFileAsync(stagedDatabase);
-    await fire(options.failpoint, 'after-database-backup');
+    ));
+    await publicationPhase(signal, () => syncFileAsync(stagedDatabase));
+    await publicationPhase(signal, () => fire(options.failpoint, 'after-database-backup'));
 
     const sourceRoots = {
       projects: options.input.storage.roots.projectsRoot,
@@ -373,13 +383,24 @@ async function publishSnapshot(options: {
       runs: options.input.storage.roots.runsRoot,
     } as const;
     for (const [name, source] of Object.entries(sourceRoots)) {
-      await copyTreeExact(source, path.join(payloadRoot, name), captureBudget, name);
+      await publicationPhase(signal, () => copyTreeExact(
+        source,
+        path.join(payloadRoot, name),
+        captureBudget,
+        name,
+      ));
     }
-    await fire(options.failpoint, 'after-payload-copy');
+    await publicationPhase(signal, () => fire(options.failpoint, 'after-payload-copy'));
 
-    const inventory = await inventoryTreeExact(payloadRoot, options.limits);
+    const inventory = await publicationPhase(
+      signal,
+      () => inventoryTreeExact(payloadRoot, options.limits),
+    );
     const directories = inventory.directories;
-    const files = await checksumPayload(payloadRoot, inventory.files, options.limits);
+    const files = await publicationPhase(
+      signal,
+      () => checksumPayload(payloadRoot, inventory.files, options.limits),
+    );
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
     const checksums: SnapshotChecksums = {
       directories,
@@ -417,12 +438,16 @@ async function publishSnapshot(options: {
     if (immutableBytes > options.limits.bytesPerVersion) {
       snapshotQuota('hosted snapshot version byte quota exceeded');
     }
+    throwIfPublicationAborted(signal);
     writeDurable(path.join(stagingRoot, 'checksums.json'), checksumsText);
     writeDurable(path.join(stagingRoot, 'manifest.json'), manifestText);
-    await fire(options.failpoint, 'after-manifest-write');
+    throwIfPublicationAborted(signal);
+    await publicationPhase(signal, () => fire(options.failpoint, 'after-manifest-write'));
 
-    return await withPublicationLock(options.globalPublicationLockKey, async () => {
-      await preflightRetention({
+    return await withPublicationLock(
+      options.globalPublicationLockKey,
+      async () => {
+      await publicationPhase(signal, () => preflightRetention({
         completionBytes: Buffer.byteLength(completionText),
         identity: options.identity,
         limits: options.limits,
@@ -431,30 +456,65 @@ async function publishSnapshot(options: {
         snapshotRoot: options.snapshotRoot,
         stagingRoot,
         versionsRoot: options.versionsRoot,
-      });
-      await fire(options.failpoint, 'before-completion-marker');
+      }));
+      previousAuthoritySequence = listVersionSequences(options.versionsRoot).at(-1) ?? null;
+      await publicationPhase(signal, () => fire(options.failpoint, 'before-completion-marker'));
+      throwIfPublicationAborted(signal);
       writeDurable(path.join(stagingRoot, '.complete.json'), completionText);
-      await fire(options.failpoint, 'after-completion-marker');
-      const validated = await validateSnapshot(
+      throwIfPublicationAborted(signal);
+      await publicationPhase(signal, () => fire(options.failpoint, 'after-completion-marker'));
+      const validated = await publicationPhase(signal, () => validateSnapshot(
         stagingRoot,
         options.identity,
         sequence,
         options.limits,
-      );
+      ));
 
       const versionRoot = path.join(options.versionsRoot, sequence);
-      fs.renameSync(stagingRoot, versionRoot);
-      completedRoot = versionRoot;
+      throwIfPublicationAborted(signal);
       const publication = {
         bytes: validated.bytesOnDisk,
         fileCount: files.length,
         sequence,
         versionRoot,
       };
+      if (signal != null) {
+        pendingRoot = path.join(
+          options.versionsRoot,
+          `.retired-pending-${sequence}-${randomUUID()}`,
+        );
+        fs.renameSync(stagingRoot, pendingRoot);
+        await publicationPhase(signal, () => fire(options.failpoint, 'after-version-rename'));
+        let maintenanceError: unknown;
+        try {
+          await repairPublishedSnapshot(options, sequence, true, signal);
+        } catch (error) {
+          if (signal.aborted) throw publicationAborted(signal);
+          maintenanceError = error;
+        }
+        if (maintenanceError != null) {
+          try {
+            await repairPublishedSnapshot(options, sequence, false, signal);
+          } catch (error) {
+            if (signal.aborted) throw publicationAborted(signal);
+            // The latest hint is non-authoritative. A later restore/publish
+            // repairs maintenance after the candidate is committed below.
+          }
+        }
+        throwIfPublicationAborted(signal);
+        fs.renameSync(pendingRoot, versionRoot);
+        pendingRoot = null;
+        completedRoot = versionRoot;
+        try { writeLatestHint(options.snapshotRoot, sequence); } catch { /* cache hint */ }
+        return publication;
+      }
+
+      fs.renameSync(stagingRoot, versionRoot);
+      completedRoot = versionRoot;
       let maintenanceError: unknown;
       try {
-        await fire(options.failpoint, 'after-version-rename');
-        await repairPublishedSnapshot(options, sequence, true);
+        await publicationPhase(signal, () => fire(options.failpoint, 'after-version-rename'));
+        await repairPublishedSnapshot(options, sequence, true, signal);
       } catch (error) {
         maintenanceError = error;
       }
@@ -470,8 +530,30 @@ async function publishSnapshot(options: {
       return publication;
     });
   } catch (error) {
-    if (completedRoot == null) {
-      await removeExactDirectory(stagingRoot, options.snapshotRoot);
+    const cleanupErrors: unknown[] = [];
+    if (pendingRoot != null) {
+      try {
+        await removeExactDirectory(pendingRoot, options.versionsRoot);
+        pendingRoot = null;
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+    } else if (completedRoot == null) {
+      try {
+        await removeExactDirectory(stagingRoot, options.snapshotRoot);
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+    }
+    if (signal?.aborted && previousAuthoritySequence !== undefined) {
+      restoreLatestAfterAbort(options.snapshotRoot, previousAuthoritySequence);
+    }
+    if (cleanupErrors.length > 0) {
+      throw new HostedSnapshotError(
+        'HOSTED_RUNTIME_UNAVAILABLE',
+        'hosted snapshot abort cleanup failed',
+        new AggregateError([error, ...cleanupErrors]),
+      );
     }
     throw error;
   } finally {
@@ -489,26 +571,96 @@ async function repairPublishedSnapshot(
   },
   sequence: string,
   fireFailpoints: boolean,
+  signal?: AbortSignal,
 ): Promise<void> {
   const failures: unknown[] = [];
+  throwIfPublicationAborted(signal);
   try {
     writeLatestHint(options.snapshotRoot, sequence);
   } catch (error) {
     failures.push(error);
   }
+  throwIfPublicationAborted(signal);
   if (fireFailpoints) {
-    try { await fire(options.failpoint, 'after-latest-write'); } catch (error) { failures.push(error); }
+    try {
+      await publicationPhase(signal, () => fire(options.failpoint, 'after-latest-write'));
+    } catch (error) {
+      if (signal?.aborted) throw publicationAborted(signal);
+      failures.push(error);
+    }
   }
   try {
-    await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
+    await publicationPhase(
+      signal,
+      () => pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits),
+    );
   } catch (error) {
+    if (signal?.aborted) throw publicationAborted(signal);
     failures.push(error);
   }
   if (fireFailpoints) {
-    try { await fire(options.failpoint, 'after-retention-prune'); } catch (error) { failures.push(error); }
+    try {
+      await publicationPhase(signal, () => fire(options.failpoint, 'after-retention-prune'));
+    } catch (error) {
+      if (signal?.aborted) throw publicationAborted(signal);
+      failures.push(error);
+    }
   }
+  throwIfPublicationAborted(signal);
   if (failures.length === 1) throw failures[0];
   if (failures.length > 1) throw new AggregateError(failures, 'hosted snapshot maintenance failed');
+}
+
+async function publicationPhase<T>(
+  signal: AbortSignal | undefined,
+  work: () => Promise<T>,
+): Promise<T> {
+  throwIfPublicationAborted(signal);
+  try {
+    const result = await work();
+    throwIfPublicationAborted(signal);
+    return result;
+  } catch (error) {
+    if (signal?.aborted) throw publicationAborted(signal);
+    throw error;
+  }
+}
+
+function throwIfPublicationAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw publicationAborted(signal);
+}
+
+function publicationAborted(signal: AbortSignal): HostedSnapshotError {
+  return new HostedSnapshotError(
+    'HOSTED_RUNTIME_UNAVAILABLE',
+    'hosted snapshot publication was aborted before becoming authoritative',
+    signal.reason,
+  );
+}
+
+function restoreLatestAfterAbort(
+  snapshotRoot: string,
+  previousSequence: string | null,
+): void {
+  const latest = path.join(snapshotRoot, 'latest');
+  if (fs.existsSync(latest)) {
+    try {
+      const info = fs.lstatSync(latest);
+      if (
+        !info.isFile()
+        || info.isSymbolicLink()
+        || !samePath(fs.realpathSync(latest), latest)
+      ) return;
+    } catch {
+      return;
+    }
+  }
+  try {
+    if (previousSequence != null) writeLatestHint(snapshotRoot, previousSequence);
+    else fs.rmSync(latest, { force: true });
+  } catch {
+    // latest is a non-authoritative cache hint; restore scans valid versions.
+  }
 }
 
 async function withPublicationLock<T>(key: string, operation: () => Promise<T>): Promise<T> {
