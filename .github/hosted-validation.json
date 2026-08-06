@@ -26,5 +26,11 @@
     "pnpm --filter @open-design/web test tests/providers/hosted.test.ts tests/components/hosted-content-panel.test.tsx tests/hosted-content-provider.test.ts tests/i18n/hosted.test.tsx tests/i18n/locales.test.ts",
     "pnpm guard",
     "pnpm typecheck"
+  ],
+  "pr09": [
+    "pnpm --filter @open-design/daemon test tests/hosted-pr09-durability.test.ts tests/hosted-durability.test.ts tests/hosted-run-receipts.test.ts tests/hosted-event-journal-durability.test.ts tests/hosted-snapshots-abort.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-server.test.ts",
+    "pnpm --filter @open-design/contracts test tests/hosted-contract.test.ts",
+    "pnpm guard",
+    "pnpm typecheck"
   ]
 }

@@ -47,6 +47,8 @@ jobs:
         run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr07
       - name: Run PR08 protected content boundary suite
         run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr08
+      - name: Run PR09 durable acknowledgement boundary suite
+        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr09
       - name: Stage hosted artifact
         run: pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
       - name: Execute staged artifact smoke suite
