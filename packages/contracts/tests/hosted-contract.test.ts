@@ -163,3 +163,9 @@ describe('hosted PR07 contracts', () => {
     expect(artifactWithPath).toHaveProperty('path');
   });
 });
+
+describe('hosted PR09 contracts', () => {
+  it('publishes the stable retry-key conflict failure', () => {
+    expect(API_ERROR_CODES).toContain('RETRY_KEY_REUSED');
+  });
+});
