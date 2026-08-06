@@ -57,14 +57,22 @@ function expectHostedThrow(run: () => unknown, code: string): void {
 function createRegistry(
   overrides: Partial<HostedRuntimeRegistryOptions> = {},
 ) {
+  const runtimeRoot = overrides.runtimeRoot
+    ?? mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-default-'));
+  if (overrides.runtimeRoot === undefined) defaultRuntimeRoots.push(runtimeRoot);
   return createHostedRuntimeRegistry({
-    runtimeRoot: join(tmpdir(), 'od-hosted-runtime-registry-tests'),
     ...overrides,
+    runtimeRoot,
   });
 }
 
+const defaultRuntimeRoots: string[] = [];
+
 afterEach(() => {
   vi.useRealTimers();
+  for (const root of defaultRuntimeRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 describe('HostedRuntimeRegistry', () => {
@@ -310,7 +318,7 @@ describe('HostedRuntimeRegistry', () => {
       releaseSnapshot.resolve();
       await expect(Promise.all([run, publication, write])).resolves.toEqual([
         'done',
-        expect.objectContaining({ sequence: '00000000000000000001' }),
+        expect.objectContaining({ sequence: expect.stringMatching(/^\d{20}$/u) }),
         { id: 'after-snapshot', name: 'After' },
       ]);
     } finally {
@@ -1252,6 +1260,7 @@ describe('HostedRuntimeRegistry', () => {
     ['HOSTED_RUNTIME_UNAVAILABLE', 503],
     ['HOSTED_RUN_CANCELED', 409],
     ['HOSTED_RUN_TIMED_OUT', 504],
+    ['RETRY_KEY_REUSED', 409],
     ['HOSTED_SHUTDOWN_TIMEOUT', 504],
   ] as const)('maps %s to HTTP %i', (code, status) => {
     expect(statusForError(createApiError(code, 'test'))).toBe(status);
