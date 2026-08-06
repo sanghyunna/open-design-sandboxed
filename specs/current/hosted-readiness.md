@@ -2,8 +2,8 @@
 
 Status: Wave 0 frozen. F0 is commit `28b24f79`; C2 is commit `23eadb71` and
 PR03 is commit `031a2273` in
-[PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR04 may
-begin under the required-check policy below.
+[PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR04 is
+commit `b9d847f8`; PR05 may begin under the required-check policy below.
 
 This document is the executable review contract for the local hosted composition in
 issue #63. It does not describe Databricks Apps, Databricks identity, Unity Catalog,
@@ -374,7 +374,7 @@ Each row is filled only after checking out and validating that exact commit.
 | --- | --- | --- | --- | --- | --- |
 | C2 | `23eadb71` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402933808) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934003) | 111 focused daemon tests; 6 tools-pack workspace-build tests; daemon/tools-pack typechecks; staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31034456875/job/92402934008) | Spec `CLEAN`; standards `CLEAN`; protection verified |
 | PR03 | `031a2273` | n/a | n/a | 127 focused daemon tests; 6 tools-pack workspace-build tests; `pnpm guard`; `pnpm typecheck` | Spec `CLEAN`; standards `CLEAN` |
-| PR04 | pending | pending | pending | pending | pending |
+| PR04 | `b9d847f8` | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515096) | [pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515086) | 49 focused daemon tests; 49 focused web tests; Windows/Linux staged Pi build/check; `pnpm guard`; `pnpm typecheck`; [Nix pass](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31060919679/job/92488515055) | Spec `CLEAN`; standards `CLEAN`; entry screenshot pending a browser-capable session |
 | PR05 | pending | n/a | n/a | pending | pending |
 | PR06 | pending | pending | pending | pending | pending |
 | PR07 | pending | n/a | n/a | pending | pending |
