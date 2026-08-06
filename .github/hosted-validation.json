@@ -23,7 +23,7 @@
   "pr08": [
     "pnpm --filter @open-design/daemon test tests/hosted-pr08-http.test.ts tests/hosted-runtime-content.test.ts tests/hosted-content-adapter.test.ts tests/hosted-content-quota.test.ts tests/hosted-upload-adapter.test.ts tests/hosted-artifact-adapter.test.ts tests/hosted-download-stream.test.ts tests/hosted-preview-scope.test.ts tests/hosted-request-boundary.test.ts tests/hosted-content-cli.test.ts",
     "pnpm --filter @open-design/contracts test tests/hosted-contract.test.ts",
-    "pnpm --filter @open-design/web test tests/providers/hosted.test.ts tests/hosted-content-provider.test.ts",
+    "pnpm --filter @open-design/web test tests/providers/hosted.test.ts tests/components/hosted-content-panel.test.tsx tests/hosted-content-provider.test.ts tests/i18n/hosted.test.tsx tests/i18n/locales.test.ts",
     "pnpm guard",
     "pnpm typecheck"
   ]
