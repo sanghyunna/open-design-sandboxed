@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -41,7 +42,24 @@ export type HostedSnapshotFailpoint =
   | 'after-payload-copy'
   | 'after-manifest-write'
   | 'before-completion-marker'
-  | 'after-completion-marker';
+  | 'after-completion-marker'
+  | 'after-version-rename'
+  | 'after-latest-write'
+  | 'after-retention-prune';
+
+export type HostedSnapshotErrorCode =
+  | 'HOSTED_QUOTA_EXCEEDED'
+  | 'HOSTED_RUNTIME_UNAVAILABLE';
+
+export class HostedSnapshotError extends Error {
+  readonly code: HostedSnapshotErrorCode;
+
+  constructor(code: HostedSnapshotErrorCode, message: string, cause?: unknown) {
+    super(message, cause === undefined ? undefined : { cause });
+    this.name = 'HostedSnapshotError';
+    this.code = code;
+  }
+}
 
 export interface HostedSnapshotLimits {
   readonly filesPerVersion: number;
@@ -55,6 +73,11 @@ export interface HostedSnapshotStoreOptions {
   readonly identity: HostedStorageIdentity;
   readonly limits?: Partial<HostedSnapshotLimits>;
   readonly failpoint?: (name: HostedSnapshotFailpoint) => void | Promise<void>;
+  /** Test seam for proving Windows case-alias lock identity on every platform. */
+  readonly publicationLockIdentity?: {
+    readonly canonicalPath: string;
+    readonly platform: NodeJS.Platform;
+  };
 }
 
 export interface HostedSnapshotPublication {
@@ -119,6 +142,13 @@ interface ValidSnapshot {
   readonly bytesOnDisk: number;
 }
 
+interface CaptureBudget {
+  readonly limits: HostedSnapshotLimits;
+  readonly directories: Set<string>;
+  bytes: number;
+  files: number;
+}
+
 export function createHostedSnapshotStore(
   options: HostedSnapshotStoreOptions,
 ): HostedSnapshotStore {
@@ -127,12 +157,16 @@ export function createHostedSnapshotStore(
   const limits = validateLimits({ ...DEFAULT_LIMITS, ...options.limits });
   const snapshotRoot = prepareSnapshotRoot(runtimeRoot, options.identity);
   const versionsRoot = assertDirectory(path.join(snapshotRoot, 'versions'), snapshotRoot);
+  const publicationLockKey = canonicalPublicationLockKey(
+    options.publicationLockIdentity?.canonicalPath ?? snapshotRoot,
+    options.publicationLockIdentity?.platform ?? process.platform,
+  );
 
   function publish(input: {
     readonly storage: HostedRuntimeStorage;
     readonly quiesce: () => Promise<void>;
   }): Promise<HostedSnapshotPublication> {
-    return withPublicationLock(snapshotRoot, () => publishSnapshot({
+    return withPublicationLock(publicationLockKey, () => publishSnapshot({
         ...(options.failpoint ? { failpoint: options.failpoint } : {}),
         identity: options.identity,
         input,
@@ -144,8 +178,9 @@ export function createHostedSnapshotStore(
   }
 
   async function restore(): Promise<HostedSnapshotRestore | null> {
-    await publicationLocks.get(snapshotRoot);
-    for (const sequence of listVersionSequences(versionsRoot).reverse()) {
+    await publicationLocks.get(publicationLockKey);
+    const sequences = listVersionSequences(versionsRoot);
+    for (const sequence of sequences.reverse()) {
       const versionRoot = path.join(versionsRoot, sequence);
       let snapshot: ValidSnapshot;
       try {
@@ -154,22 +189,52 @@ export function createHostedSnapshotStore(
         // Scan order is authoritative; a corrupt newer version falls back.
         continue;
       }
-      const storage = createHostedRuntimeStorage({
-        identity: options.identity,
-        runtimeRoot,
-        databaseOpener(databaseFile) {
-          const generationRoot = path.dirname(databaseFile);
-          materializeSnapshot(snapshot, generationRoot);
-          relocateRestoredSessions(databaseFile, generationRoot);
-          return openRestoredDatabase(databaseFile);
-        },
-      });
-      return { sequence, storage };
+      const stagedPayload = await stageSnapshotPayload(snapshot, runtimeRoot, limits);
+      let storage: HostedRuntimeStorage | null = null;
+      try {
+        storage = createHostedRuntimeStorage({
+          identity: options.identity,
+          runtimeRoot,
+          databaseOpener(databaseFile) {
+            installStagedPayload(stagedPayload, path.dirname(databaseFile));
+            return openRestoredDatabase(databaseFile);
+          },
+        });
+        await relocateRestoredSessions(storage.database, storage.roots.liveRoot);
+        return { sequence, storage };
+      } catch (error) {
+        storage?.close();
+        throw new HostedSnapshotError(
+          'HOSTED_RUNTIME_UNAVAILABLE',
+          error instanceof Error ? error.message : 'hosted snapshot restoration failed',
+          error,
+        );
+      } finally {
+        await removeRestoreStaging(stagedPayload, runtimeRoot);
+      }
+    }
+    if (sequences.length > 0) {
+      throw new HostedSnapshotError(
+        'HOSTED_RUNTIME_UNAVAILABLE',
+        'hosted snapshot history contains no valid restorable version',
+      );
     }
     return null;
   }
 
   return Object.freeze({ publish, restore });
+}
+
+function canonicalPublicationLockKey(
+  canonicalPath: string,
+  platform: NodeJS.Platform,
+): string {
+  const normalized = path.normalize(canonicalPath);
+  return platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function snapshotQuota(message: string): never {
+  throw new HostedSnapshotError('HOSTED_QUOTA_EXCEEDED', message);
 }
 
 async function publishSnapshot(options: {
@@ -189,26 +254,35 @@ async function publishSnapshot(options: {
   assertOwnedLiveStorage(options.input.storage, options.runtimeRoot, options.identity);
 
   const sequence = nextSequence(options.snapshotRoot, options.versionsRoot);
-  removeStaleStaging(options.snapshotRoot);
+  await removeStaleStaging(options.snapshotRoot);
   const stagingRoot = fs.mkdtempSync(
     path.join(options.snapshotRoot, `.staging-${sequence}-`),
   );
   const payloadRoot = path.join(stagingRoot, 'payload');
   fs.mkdirSync(payloadRoot);
+  const captureBudget = createCaptureBudget(options.limits);
   let completedRoot: string | null = null;
   try {
-    for (const name of PAYLOAD_DIRECTORIES) fs.mkdirSync(path.join(payloadRoot, name));
-    copyTreeExact(options.input.storage.roots.sessionsRoot, path.join(payloadRoot, 'sessions'));
-    await fire(options.failpoint, 'after-session-copy');
-
+    for (const name of PAYLOAD_DIRECTORIES) {
+      fs.mkdirSync(path.join(payloadRoot, name));
+      reserveCapturedDirectory(captureBudget, name);
+    }
     const stagedDatabase = path.join(payloadRoot, 'app.sqlite');
     await options.input.storage.database.backup(stagedDatabase);
-    normalizeStagedSessions(
+    reserveCapturedFile(captureBudget, fs.lstatSync(stagedDatabase).size);
+    await copyReachableSessions(
+      stagedDatabase,
+      options.input.storage.roots.liveRoot,
+      payloadRoot,
+      captureBudget,
+    );
+    await fire(options.failpoint, 'after-session-copy');
+    await normalizeStagedSessions(
       stagedDatabase,
       options.input.storage.roots.liveRoot,
       payloadRoot,
     );
-    syncFile(stagedDatabase);
+    await syncFileAsync(stagedDatabase);
     await fire(options.failpoint, 'after-database-backup');
 
     const sourceRoots = {
@@ -219,13 +293,13 @@ async function publishSnapshot(options: {
       runs: options.input.storage.roots.runsRoot,
     } as const;
     for (const [name, source] of Object.entries(sourceRoots)) {
-      copyTreeExact(source, path.join(payloadRoot, name));
+      await copyTreeExact(source, path.join(payloadRoot, name), captureBudget, name);
     }
     await fire(options.failpoint, 'after-payload-copy');
 
     const directories = listDirectoriesExact(payloadRoot);
     if (directories.length > options.limits.filesPerVersion) {
-      throw new Error('hosted snapshot directory quota exceeded');
+      snapshotQuota('hosted snapshot directory quota exceeded');
     }
     const files = await checksumPayload(payloadRoot, options.limits);
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
@@ -250,22 +324,6 @@ async function publishSnapshot(options: {
       version: SNAPSHOT_VERSION,
     };
     const manifestText = `${JSON.stringify(manifest)}\n`;
-    writeDurable(path.join(stagingRoot, 'checksums.json'), checksumsText);
-    writeDurable(path.join(stagingRoot, 'manifest.json'), manifestText);
-    await fire(options.failpoint, 'after-manifest-write');
-
-    if (directoryBytes(stagingRoot) > options.limits.bytesPerVersion) {
-      throw new Error('hosted snapshot version byte quota exceeded');
-    }
-
-    await preflightRetention({
-      identity: options.identity,
-      limits: options.limits,
-      runtimeRoot: options.runtimeRoot,
-      snapshotRoot: options.snapshotRoot,
-      versionsRoot: options.versionsRoot,
-    });
-    await fire(options.failpoint, 'before-completion-marker');
     const completion: SnapshotCompletion = {
       checksumsSha256,
       manifestSha256: sha256(manifestText),
@@ -273,22 +331,56 @@ async function publishSnapshot(options: {
       sequence,
       version: SNAPSHOT_VERSION,
     };
-    writeDurable(path.join(stagingRoot, '.complete.json'), `${JSON.stringify(completion)}\n`);
+    const completionText = `${JSON.stringify(completion)}\n`;
+    const immutableBytes = totalBytes
+      + Buffer.byteLength(checksumsText)
+      + Buffer.byteLength(manifestText)
+      + Buffer.byteLength(completionText);
+    if (immutableBytes > options.limits.bytesPerVersion) {
+      snapshotQuota('hosted snapshot version byte quota exceeded');
+    }
+    writeDurable(path.join(stagingRoot, 'checksums.json'), checksumsText);
+    writeDurable(path.join(stagingRoot, 'manifest.json'), manifestText);
+    await fire(options.failpoint, 'after-manifest-write');
 
-    completedRoot = path.join(options.versionsRoot, sequence);
-    fs.renameSync(stagingRoot, completedRoot);
-    await validateSnapshot(completedRoot, options.identity, sequence, options.limits);
+    await preflightRetention({
+      completionBytes: Buffer.byteLength(completionText),
+      identity: options.identity,
+      limits: options.limits,
+      runtimeRoot: options.runtimeRoot,
+      sequence,
+      snapshotRoot: options.snapshotRoot,
+      versionsRoot: options.versionsRoot,
+    });
+    await fire(options.failpoint, 'before-completion-marker');
+    writeDurable(path.join(stagingRoot, '.complete.json'), completionText);
     await fire(options.failpoint, 'after-completion-marker');
-    writeLatestHint(options.snapshotRoot, sequence);
-    await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
-    return {
-      bytes: directoryBytes(completedRoot),
+    const validated = await validateSnapshot(stagingRoot, options.identity, sequence, options.limits);
+
+    const versionRoot = path.join(options.versionsRoot, sequence);
+    fs.renameSync(stagingRoot, versionRoot);
+    completedRoot = versionRoot;
+    const publication = {
+      bytes: validated.bytesOnDisk,
       fileCount: files.length,
       sequence,
-      versionRoot: completedRoot,
+      versionRoot,
     };
+    try {
+      await fire(options.failpoint, 'after-version-rename');
+      writeLatestHint(options.snapshotRoot, sequence);
+      await fire(options.failpoint, 'after-latest-write');
+      await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
+      await fire(options.failpoint, 'after-retention-prune');
+    } catch {
+      // Rename is the authority commit point. Hints and pruning are repairable
+      // maintenance and can never turn a committed publication into failure.
+    }
+    return publication;
   } catch (error) {
-    if (completedRoot == null) removeExactDirectory(stagingRoot, options.snapshotRoot);
+    if (completedRoot == null) {
+      await removeExactDirectory(stagingRoot, options.snapshotRoot);
+    }
     throw error;
   }
 }
@@ -307,10 +399,10 @@ async function withPublicationLock<T>(key: string, operation: () => Promise<T>):
   }
 }
 
-function removeStaleStaging(snapshotRoot: string): void {
-  for (const entry of fs.readdirSync(snapshotRoot, { withFileTypes: true })) {
+async function removeStaleStaging(snapshotRoot: string): Promise<void> {
+  for (const entry of await fsp.readdir(snapshotRoot, { withFileTypes: true })) {
     if (entry.isDirectory() && /^\.staging-\d{20}-/u.test(entry.name)) {
-      removeExactDirectory(path.join(snapshotRoot, entry.name), snapshotRoot);
+      await removeExactDirectory(path.join(snapshotRoot, entry.name), snapshotRoot);
     }
   }
 }
@@ -442,25 +534,56 @@ function maxBigInt(left: bigint, right: bigint): bigint {
   return left > right ? left : right;
 }
 
-function copyTreeExact(sourceRoot: string, targetRoot: string): void {
+function createCaptureBudget(limits: HostedSnapshotLimits): CaptureBudget {
+  return { bytes: 0, directories: new Set(), files: 0, limits };
+}
+
+function reserveCapturedDirectory(budget: CaptureBudget, relative: string): void {
+  if (budget.directories.has(relative)) return;
+  budget.directories.add(relative);
+  if (budget.directories.size > budget.limits.filesPerVersion) {
+    snapshotQuota('hosted snapshot directory quota exceeded');
+  }
+}
+
+function reserveCapturedFile(budget: CaptureBudget, bytes: number): void {
+  budget.files += 1;
+  budget.bytes += bytes;
+  if (budget.files > budget.limits.filesPerVersion) {
+    snapshotQuota('hosted snapshot file quota exceeded');
+  }
+  if (budget.bytes > budget.limits.bytesPerVersion) {
+    snapshotQuota('hosted snapshot byte quota exceeded');
+  }
+}
+
+async function copyTreeExact(
+  sourceRoot: string,
+  targetRoot: string,
+  budget: CaptureBudget,
+  targetPrefix: string,
+): Promise<void> {
   const source = assertDirectory(sourceRoot);
   const target = assertDirectory(targetRoot);
-  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+  for (const entry of await fsp.readdir(source, { withFileTypes: true })) {
     const sourcePath = path.join(source, entry.name);
     const targetPath = path.join(target, entry.name);
-    const before = fs.lstatSync(sourcePath);
-    if (before.isSymbolicLink() || fs.realpathSync(sourcePath) !== path.resolve(sourcePath)) {
+    const before = await fsp.lstat(sourcePath);
+    if (before.isSymbolicLink() || await fsp.realpath(sourcePath) !== path.resolve(sourcePath)) {
       throw new Error('hosted snapshot source contains a link or reparse point');
     }
+    const relative = targetPrefix ? `${targetPrefix}/${entry.name}` : entry.name;
     if (before.isDirectory()) {
-      fs.mkdirSync(targetPath);
-      copyTreeExact(sourcePath, targetPath);
+      reserveCapturedDirectory(budget, relative);
+      await fsp.mkdir(targetPath);
+      await copyTreeExact(sourcePath, targetPath, budget, relative);
       continue;
     }
     if (!before.isFile()) throw new Error('hosted snapshot source contains a special file');
-    fs.copyFileSync(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
-    syncFile(targetPath);
-    const after = fs.lstatSync(sourcePath);
+    reserveCapturedFile(budget, before.size);
+    await fsp.copyFile(sourcePath, targetPath, fs.constants.COPYFILE_EXCL);
+    await syncFileAsync(targetPath);
+    const after = await fsp.lstat(sourcePath);
     if (!sameFileState(before, after)) {
       throw new Error('hosted snapshot source changed during capture');
     }
@@ -474,11 +597,125 @@ function sameFileState(left: fs.Stats, right: fs.Stats): boolean {
     && left.mtimeMs === right.mtimeMs;
 }
 
-function normalizeStagedSessions(
+async function copyReachableSessions(
   databaseFile: string,
   liveRoot: string,
   payloadRoot: string,
-): void {
+  budget: CaptureBudget,
+): Promise<void> {
+  const database = new Database(databaseFile, { fileMustExist: true, readonly: true });
+  try {
+    const rows = database.prepare(
+      `SELECT s.session_id AS sessionId, c.project_id AS projectId
+         FROM agent_sessions s
+         JOIN conversations c ON c.id = s.conversation_id`,
+    ).all() as Array<{ projectId: string; sessionId: string }>;
+    const copied = new Map<string, string>();
+    for (const row of rows) {
+      const logical = logicalLivePath(row.sessionId, liveRoot);
+      if (!logical.startsWith('sessions/')) {
+        throw new Error('hosted snapshot session reference is outside the session root');
+      }
+      await copyReachableSessionLineage(
+        logical,
+        liveRoot,
+        payloadRoot,
+        `projects/${row.projectId}`,
+        copied,
+        new Set(),
+        budget,
+        0,
+      );
+    }
+  } finally {
+    database.close();
+  }
+}
+
+async function copyReachableSessionLineage(
+  logicalPath: string,
+  liveRoot: string,
+  payloadRoot: string,
+  expectedCwd: string,
+  copied: Map<string, string>,
+  active: Set<string>,
+  budget: CaptureBudget,
+  depth: number,
+): Promise<void> {
+  const copiedCwd = copied.get(logicalPath);
+  if (copiedCwd != null) {
+    if (copiedCwd !== expectedCwd) {
+      throw new Error('hosted snapshot session is referenced by multiple projects');
+    }
+    return;
+  }
+  if (depth >= MAX_SESSION_PARENT_DEPTH) throw new Error('hosted snapshot session chain is too deep');
+  if (active.has(logicalPath)) throw new Error('hosted snapshot session chain contains a cycle');
+  active.add(logicalPath);
+  const source = containedFile(liveRoot, logicalPath);
+  const before = await fsp.lstat(source);
+  const { header } = await readSessionFileAsync(source);
+  const cwd = logicalLivePath(header.cwd, liveRoot);
+  if (cwd !== expectedCwd) {
+    throw new Error('hosted snapshot session cwd does not match its owning project');
+  }
+  if (typeof header.parentSession === 'string') {
+    const parentAbsolute = path.isAbsolute(header.parentSession)
+      ? header.parentSession
+      : path.resolve(path.dirname(path.join(liveRoot, logicalPath)), header.parentSession);
+    const parent = logicalLivePath(parentAbsolute, liveRoot);
+    if (!parent.startsWith('sessions/')) {
+      throw new Error('hosted snapshot session parent is outside the session root');
+    }
+    await copyReachableSessionLineage(
+      parent,
+      liveRoot,
+      payloadRoot,
+      expectedCwd,
+      copied,
+      active,
+      budget,
+      depth + 1,
+    );
+  }
+  const target = containedTarget(payloadRoot, logicalPath);
+  await ensureCapturedParents(payloadRoot, path.posix.dirname(logicalPath), budget);
+  reserveCapturedFile(budget, before.size);
+  await fsp.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+  await syncFileAsync(target);
+  const after = await fsp.lstat(source);
+  if (!sameFileState(before, after)) {
+    throw new Error('hosted snapshot source changed during capture');
+  }
+  active.delete(logicalPath);
+  copied.set(logicalPath, expectedCwd);
+}
+
+async function ensureCapturedParents(
+  root: string,
+  relativeDirectory: string,
+  budget: CaptureBudget,
+): Promise<void> {
+  if (relativeDirectory === '.') return;
+  let current = '';
+  for (const part of relativeDirectory.split('/')) {
+    current = current ? `${current}/${part}` : part;
+    if (budget.directories.has(current)) continue;
+    reserveCapturedDirectory(budget, current);
+    try {
+      await fsp.mkdir(containedTarget(root, current));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      containedDirectory(root, current);
+    }
+  }
+}
+
+async function normalizeStagedSessions(
+  databaseFile: string,
+  liveRoot: string,
+  payloadRoot: string,
+): Promise<void> {
   const database = new Database(databaseFile);
   try {
     const rows = database.prepare(
@@ -497,22 +734,26 @@ function normalizeStagedSessions(
     const update = database.prepare(
       'UPDATE agent_sessions SET session_id = ? WHERE conversation_id = ? AND agent_id = ?',
     );
+    const updates: Array<{ logical: string; conversationId: string; agentId: string }> = [];
+    for (const row of rows) {
+      const logical = logicalLivePath(row.sessionId, liveRoot);
+      if (!logical.startsWith('sessions/')) {
+        throw new Error('hosted snapshot session reference is outside the session root');
+      }
+      await normalizeSessionLineage(
+        logical,
+        liveRoot,
+        payloadRoot,
+        `projects/${row.projectId}`,
+        normalized,
+        active,
+        0,
+      );
+      updates.push({ agentId: row.agentId, conversationId: row.conversationId, logical });
+    }
     const transaction = database.transaction(() => {
-      for (const row of rows) {
-        const logical = logicalLivePath(row.sessionId, liveRoot);
-        if (!logical.startsWith('sessions/')) {
-          throw new Error('hosted snapshot session reference is outside the session root');
-        }
-        normalizeSessionLineage(
-          logical,
-          liveRoot,
-          payloadRoot,
-          `projects/${row.projectId}`,
-          normalized,
-          active,
-          0,
-        );
-        update.run(logical, row.conversationId, row.agentId);
+      for (const row of updates) {
+        update.run(row.logical, row.conversationId, row.agentId);
       }
     });
     transaction();
@@ -522,7 +763,7 @@ function normalizeStagedSessions(
   }
 }
 
-function normalizeSessionLineage(
+async function normalizeSessionLineage(
   logicalPath: string,
   liveRoot: string,
   payloadRoot: string,
@@ -530,7 +771,7 @@ function normalizeSessionLineage(
   normalized: Map<string, string>,
   active: Set<string>,
   depth: number,
-): void {
+): Promise<void> {
   const normalizedCwd = normalized.get(logicalPath);
   if (normalizedCwd != null) {
     if (normalizedCwd !== expectedCwd) {
@@ -542,7 +783,7 @@ function normalizeSessionLineage(
   if (active.has(logicalPath)) throw new Error('hosted snapshot session chain contains a cycle');
   active.add(logicalPath);
   const file = containedFile(payloadRoot, logicalPath);
-  const { header, lines, trailingNewline } = readSessionFile(file);
+  const { header, lines, trailingNewline } = await readSessionFileAsync(file);
   header.cwd = logicalLivePath(header.cwd, liveRoot);
   if (header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd does not match its owning project');
@@ -556,7 +797,7 @@ function normalizeSessionLineage(
       throw new Error('hosted snapshot session parent is outside the session root');
     }
     header.parentSession = parent;
-    normalizeSessionLineage(
+    await normalizeSessionLineage(
       parent,
       liveRoot,
       payloadRoot,
@@ -567,7 +808,7 @@ function normalizeSessionLineage(
     );
   }
   lines[0] = JSON.stringify(header);
-  writeDurable(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
+  await writeDurableAsync(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
   active.delete(logicalPath);
   normalized.set(logicalPath, expectedCwd);
 }
@@ -582,6 +823,32 @@ function readSessionFile(file: string): {
     throw new Error('hosted snapshot session file is invalid');
   }
   const text = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(file));
+  return parseSessionText(text);
+}
+
+async function readSessionFileAsync(file: string): Promise<{
+  header: Record<string, unknown> & { cwd: string; parentSession?: string };
+  lines: string[];
+  trailingNewline: boolean;
+}> {
+  const info = await fsp.lstat(file);
+  if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > MAX_SESSION_FILE_BYTES) {
+    throw new Error('hosted snapshot session file is invalid');
+  }
+  let text: string;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(await fsp.readFile(file));
+  } catch {
+    throw new Error('hosted snapshot session JSONL is invalid');
+  }
+  return parseSessionText(text);
+}
+
+function parseSessionText(text: string): {
+  header: Record<string, unknown> & { cwd: string; parentSession?: string };
+  lines: string[];
+  trailingNewline: boolean;
+} {
   const trailingNewline = text.endsWith('\n');
   const lines = (trailingNewline ? text.slice(0, -1) : text).split('\n');
   if (lines.length === 0 || lines.some((line) => line.length === 0)) {
@@ -590,7 +857,12 @@ function readSessionFile(file: string): {
   if (Buffer.byteLength(lines[0]!, 'utf8') > MAX_SESSION_HEADER_BYTES) {
     throw new Error('hosted snapshot session header is too large');
   }
-  const records = lines.map((line) => JSON.parse(line.replace(/\r$/u, '')) as unknown);
+  let records: unknown[];
+  try {
+    records = lines.map((line) => JSON.parse(line.replace(/\r$/u, '')) as unknown);
+  } catch {
+    throw new Error('hosted snapshot session JSONL is invalid');
+  }
   if (records.some((record) => record == null || typeof record !== 'object' || Array.isArray(record))) {
     throw new Error('hosted snapshot session JSONL is invalid');
   }
@@ -629,7 +901,7 @@ async function checksumPayload(
 ): Promise<readonly SnapshotFileChecksum[]> {
   const relativeFiles = listFilesExact(payloadRoot);
   if (relativeFiles.length > limits.filesPerVersion) {
-    throw new Error('hosted snapshot file quota exceeded');
+    snapshotQuota('hosted snapshot file quota exceeded');
   }
   const files: SnapshotFileChecksum[] = [];
   let totalBytes = 0;
@@ -638,7 +910,7 @@ async function checksumPayload(
     const info = fs.lstatSync(file);
     totalBytes += info.size;
     if (totalBytes > limits.bytesPerVersion) {
-      throw new Error('hosted snapshot byte quota exceeded');
+      snapshotQuota('hosted snapshot byte quota exceeded');
     }
     files.push({ path: relative, sha256: await hashFile(file), size: info.size });
   }
@@ -728,12 +1000,13 @@ async function validateSnapshot(
       throw new Error('hosted snapshot payload checksum does not match');
     }
   }
-  if (totalBytes !== manifest.totalBytes || totalBytes > limits.bytesPerVersion) {
+  if (totalBytes !== manifest.totalBytes) {
     throw new Error('hosted snapshot payload byte count does not match');
   }
+  const bytesOnDisk = await directoryBytesAsync(root, limits.bytesPerVersion);
   const databaseFile = containedFile(payloadRoot, 'app.sqlite');
-  withDatabaseCopy(databaseFile, (copy) => {
-    validateSnapshotSessions(copy, payloadRoot);
+  await withDatabaseCopy(databaseFile, async (copy) => {
+    await validateSnapshotSessions(copy, payloadRoot);
     const database = new Database(copy, { fileMustExist: true, readonly: true });
     try {
       verifyDatabase(database);
@@ -742,7 +1015,7 @@ async function validateSnapshot(
     }
   });
   return {
-    bytesOnDisk: directoryBytes(root),
+    bytesOnDisk,
     files: checksums.files,
     manifest,
     root,
@@ -846,7 +1119,7 @@ function parseChecksums(
   };
 }
 
-function validateSnapshotSessions(databaseFile: string, payloadRoot: string): void {
+async function validateSnapshotSessions(databaseFile: string, payloadRoot: string): Promise<void> {
   const database = new Database(databaseFile, { fileMustExist: true, readonly: true });
   try {
     const sessions = database.prepare(
@@ -861,7 +1134,7 @@ function validateSnapshotSessions(databaseFile: string, payloadRoot: string): vo
       if (!isCanonicalRelativePath(row.sessionId) || !row.sessionId.startsWith('sessions/')) {
         throw new Error('hosted snapshot database session reference is invalid');
       }
-      validateLogicalSessionLineage(
+      await validateLogicalSessionLineage(
         row.sessionId,
         payloadRoot,
         `projects/${row.projectId}`,
@@ -874,18 +1147,18 @@ function validateSnapshotSessions(databaseFile: string, payloadRoot: string): vo
   }
 }
 
-function validateLogicalSessionLineage(
+async function validateLogicalSessionLineage(
   logicalPath: string,
   payloadRoot: string,
   expectedCwd: string,
   seen: Set<string>,
   depth: number,
-): void {
+): Promise<void> {
   if (depth >= MAX_SESSION_PARENT_DEPTH || seen.has(logicalPath)) {
     throw new Error('hosted snapshot session closure is invalid');
   }
   seen.add(logicalPath);
-  const { header } = readSessionFile(containedFile(payloadRoot, logicalPath));
+  const { header } = await readSessionFileAsync(containedFile(payloadRoot, logicalPath));
   if (!isCanonicalRelativePath(header.cwd) || header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd reference is invalid');
   }
@@ -894,7 +1167,7 @@ function validateLogicalSessionLineage(
     if (!isCanonicalRelativePath(header.parentSession) || !header.parentSession.startsWith('sessions/')) {
       throw new Error('hosted snapshot session parent reference is invalid');
     }
-    validateLogicalSessionLineage(
+    await validateLogicalSessionLineage(
       header.parentSession,
       payloadRoot,
       expectedCwd,
@@ -905,24 +1178,45 @@ function validateLogicalSessionLineage(
   seen.delete(logicalPath);
 }
 
-function materializeSnapshot(snapshot: ValidSnapshot, generationRoot: string): void {
+async function stageSnapshotPayload(
+  snapshot: ValidSnapshot,
+  runtimeRoot: string,
+  limits: HostedSnapshotLimits,
+): Promise<string> {
   const payloadRoot = assertDirectory(path.join(snapshot.root, 'payload'), snapshot.root);
-  for (const relative of listDirectoriesExact(payloadRoot)) {
-    fs.mkdirSync(containedTarget(generationRoot, relative), { recursive: true });
-  }
-  for (const relative of listFilesExact(payloadRoot)) {
-    const source = containedFile(payloadRoot, relative);
-    const target = containedTarget(generationRoot, relative);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.copyFileSync(source, target, fs.constants.COPYFILE_EXCL);
-    syncFile(target);
+  const stagingRoot = await fsp.mkdtemp(path.join(runtimeRoot, '.restore-'));
+  try {
+    await copyTreeExact(payloadRoot, stagingRoot, createCaptureBudget(limits), '');
+    return stagingRoot;
+  } catch (error) {
+    await removeRestoreStaging(stagingRoot, runtimeRoot);
+    throw error;
   }
 }
 
-function relocateRestoredSessions(databaseFile: string, generationRoot: string): void {
-  const database = new Database(databaseFile);
-  try {
-    const rows = database.prepare(
+async function removeRestoreStaging(stagingRoot: string, runtimeRoot: string): Promise<void> {
+  if (!fs.existsSync(stagingRoot)) return;
+  const exact = assertDirectory(stagingRoot, runtimeRoot);
+  await fsp.rm(exact, { force: true, recursive: true });
+}
+
+function installStagedPayload(stagedPayload: string, generationRoot: string): void {
+  const staging = assertDirectory(stagedPayload);
+  const generation = assertDirectory(generationRoot);
+  for (const name of PAYLOAD_DIRECTORIES) {
+    const source = assertDirectory(path.join(staging, name), staging);
+    const target = assertDirectory(path.join(generation, name), generation);
+    fs.rmdirSync(target);
+    fs.renameSync(source, target);
+  }
+  fs.renameSync(containedFile(staging, 'app.sqlite'), path.join(generation, 'app.sqlite'));
+}
+
+async function relocateRestoredSessions(
+  database: Database.Database,
+  generationRoot: string,
+): Promise<void> {
+  const rows = database.prepare(
       `SELECT s.conversation_id AS conversationId, s.agent_id AS agentId,
               s.session_id AS sessionId, c.project_id AS projectId
          FROM agent_sessions s
@@ -933,43 +1227,48 @@ function relocateRestoredSessions(databaseFile: string, generationRoot: string):
       projectId: string;
       sessionId: string;
     }>;
-    const relocated = new Map<string, string>();
-    const update = database.prepare(
-      'UPDATE agent_sessions SET session_id = ? WHERE conversation_id = ? AND agent_id = ?',
+  const relocated = new Map<string, string>();
+  const updates: Array<{ conversationId: string; agentId: string; sessionId: string }> = [];
+  for (const row of rows) {
+    await relocateSessionLineage(
+      row.sessionId,
+      generationRoot,
+      `projects/${row.projectId}`,
+      relocated,
+      new Set(),
+      0,
     );
-    const transaction = database.transaction(() => {
-      for (const row of rows) {
-        relocateSessionLineage(
-          row.sessionId,
-          generationRoot,
-          `projects/${row.projectId}`,
-          relocated,
-          new Set(),
-          0,
-        );
+    updates.push({
+      agentId: row.agentId,
+      conversationId: row.conversationId,
+      sessionId: containedFile(generationRoot, row.sessionId),
+    });
+  }
+  const update = database.prepare(
+    'UPDATE agent_sessions SET session_id = ? WHERE conversation_id = ? AND agent_id = ?',
+  );
+  const transaction = database.transaction(() => {
+      for (const row of updates) {
         update.run(
-          containedFile(generationRoot, row.sessionId),
+          row.sessionId,
           row.conversationId,
           row.agentId,
         );
       }
-    });
-    transaction();
-    verifyDatabase(database);
-  } finally {
-    database.close();
-  }
-  syncFile(databaseFile);
+  });
+  transaction();
+  verifyDatabase(database);
+  await syncFileAsync(path.join(generationRoot, 'app.sqlite'));
 }
 
-function relocateSessionLineage(
+async function relocateSessionLineage(
   logicalPath: string,
   generationRoot: string,
   expectedCwd: string,
   relocated: Map<string, string>,
   active: Set<string>,
   depth: number,
-): void {
+): Promise<void> {
   const relocatedCwd = relocated.get(logicalPath);
   if (relocatedCwd != null) {
     if (relocatedCwd !== expectedCwd) {
@@ -982,7 +1281,7 @@ function relocateSessionLineage(
   }
   active.add(logicalPath);
   const file = containedFile(generationRoot, logicalPath);
-  const { header, lines, trailingNewline } = readSessionFile(file);
+  const { header, lines, trailingNewline } = await readSessionFileAsync(file);
   if (!isCanonicalRelativePath(header.cwd) || header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd is invalid');
   }
@@ -990,7 +1289,7 @@ function relocateSessionLineage(
   if (typeof header.parentSession === 'string') {
     const parent = header.parentSession;
     if (!isCanonicalRelativePath(parent)) throw new Error('hosted snapshot session parent is invalid');
-    relocateSessionLineage(
+    await relocateSessionLineage(
       parent,
       generationRoot,
       expectedCwd,
@@ -1001,7 +1300,7 @@ function relocateSessionLineage(
     header.parentSession = containedFile(generationRoot, parent);
   }
   lines[0] = JSON.stringify(header);
-  writeDurable(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
+  await writeDurableAsync(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
   active.delete(logicalPath);
   relocated.set(logicalPath, expectedCwd);
 }
@@ -1012,14 +1311,17 @@ function openRestoredDatabase(databaseFile: string): Database.Database {
   return database;
 }
 
-function withDatabaseCopy<T>(databaseFile: string, use: (copy: string) => T): T {
-  const root = fs.mkdtempSync(path.join(tmpdir(), 'od-hosted-snapshot-db-'));
+async function withDatabaseCopy<T>(
+  databaseFile: string,
+  use: (copy: string) => Promise<T>,
+): Promise<T> {
+  const root = await fsp.mkdtemp(path.join(tmpdir(), 'od-hosted-snapshot-db-'));
   const copy = path.join(root, 'app.sqlite');
   try {
-    fs.copyFileSync(databaseFile, copy, fs.constants.COPYFILE_EXCL);
-    return use(copy);
+    await fsp.copyFile(databaseFile, copy, fs.constants.COPYFILE_EXCL);
+    return await use(copy);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    await fsp.rm(root, { recursive: true, force: true });
   }
 }
 
@@ -1033,22 +1335,45 @@ function verifyDatabase(database: Database.Database): void {
 }
 
 async function preflightRetention(options: {
+  readonly completionBytes: number;
   readonly runtimeRoot: string;
+  readonly sequence: string;
   readonly snapshotRoot: string;
   readonly versionsRoot: string;
   readonly identity: HostedStorageIdentity;
   readonly limits: HostedSnapshotLimits;
 }): Promise<void> {
   await pruneUnreachableVersions(options.versionsRoot, options.identity, options.limits);
-  if (directoryBytes(options.snapshotRoot) > options.limits.retainedBytesPerUser) {
-    throw new Error('hosted snapshot retained user byte quota exceeded');
+  const latestFile = path.join(options.snapshotRoot, 'latest');
+  const latestBytes = Buffer.byteLength(`${options.sequence}\n`);
+  const replacedLatestBytes = existingRegularFileBytes(latestFile);
+  const authorityOverhead = options.completionBytes + latestBytes - replacedLatestBytes;
+  if (
+    await directoryBytesAsync(options.snapshotRoot, options.limits.retainedBytesPerUser)
+      + authorityOverhead
+    > options.limits.retainedBytesPerUser
+  ) {
+    snapshotQuota('hosted snapshot retained user byte quota exceeded');
   }
 
   const snapshotsRoot = assertDirectory(path.join(options.runtimeRoot, 'snapshots'), options.runtimeRoot);
   await pruneGlobalReachableVersions(snapshotsRoot, options.limits);
-  if (directoryBytes(snapshotsRoot) > options.limits.retainedBytesGlobal) {
-    throw new Error('hosted snapshot retained global byte quota exceeded');
+  if (
+    await directoryBytesAsync(snapshotsRoot, options.limits.retainedBytesGlobal)
+      + authorityOverhead
+    > options.limits.retainedBytesGlobal
+  ) {
+    snapshotQuota('hosted snapshot retained global byte quota exceeded');
   }
+}
+
+function existingRegularFileBytes(file: string): number {
+  if (!fs.existsSync(file)) return 0;
+  const info = fs.lstatSync(file);
+  if (!info.isFile() || info.isSymbolicLink() || fs.realpathSync(file) !== path.resolve(file)) {
+    throw new Error('hosted snapshot latest hint is invalid');
+  }
+  return info.size;
 }
 
 async function pruneGlobalReachableVersions(
@@ -1106,7 +1431,7 @@ async function pruneUnreachableVersions(
     }
   }
   for (const root of [...invalid, ...valid.slice(2).map((snapshot) => snapshot.root)]) {
-    removeExactDirectory(root, versionsRoot);
+    await removeExactDirectory(root, versionsRoot);
   }
 }
 
@@ -1190,21 +1515,30 @@ function prepareBaseDirectory(input: string): string {
   return current;
 }
 
-function removeExactDirectory(target: string, parent: string): void {
+async function removeExactDirectory(target: string, parent: string): Promise<void> {
   if (!fs.existsSync(target)) return;
-  assertDirectory(target, parent);
-  fs.rmSync(target, { recursive: true, force: true });
+  const exact = assertDirectory(target, parent);
+  await fsp.rm(exact, { recursive: true, force: true });
 }
 
-function directoryBytes(root: string): number {
+async function directoryBytesAsync(root: string, maximum: number): Promise<number> {
   if (!fs.existsSync(root)) return 0;
-  const info = fs.lstatSync(root);
-  if (info.isSymbolicLink() || fs.realpathSync(root) !== path.resolve(root)) {
-    throw new Error('hosted snapshot quota path contains a link or reparse point');
+  let total = 0;
+  async function visit(target: string): Promise<void> {
+    const info = await fsp.lstat(target);
+    if (info.isSymbolicLink() || await fsp.realpath(target) !== path.resolve(target)) {
+      throw new Error('hosted snapshot quota path contains a link or reparse point');
+    }
+    if (info.isFile()) {
+      total += info.size;
+      if (total > maximum) snapshotQuota('hosted snapshot retained byte quota exceeded');
+      return;
+    }
+    if (!info.isDirectory()) throw new Error('hosted snapshot quota path contains a special file');
+    for (const name of await fsp.readdir(target)) await visit(path.join(target, name));
   }
-  if (info.isFile()) return info.size;
-  if (!info.isDirectory()) throw new Error('hosted snapshot quota path contains a special file');
-  return fs.readdirSync(root).reduce((sum, name) => sum + directoryBytes(path.join(root, name)), 0);
+  await visit(root);
+  return total;
 }
 
 function writeDurable(file: string, contents: string, flag: 'w' | 'wx' = 'w'): void {
@@ -1217,12 +1551,22 @@ function writeDurable(file: string, contents: string, flag: 'w' | 'wx' = 'w'): v
   }
 }
 
-function syncFile(file: string): void {
-  const descriptor = fs.openSync(file, 'r+');
+async function writeDurableAsync(file: string, contents: string): Promise<void> {
+  const handle = await fsp.open(file, 'w', 0o600);
   try {
-    fs.fsyncSync(descriptor);
+    await handle.writeFile(contents, 'utf8');
+    await handle.sync();
   } finally {
-    fs.closeSync(descriptor);
+    await handle.close();
+  }
+}
+
+async function syncFileAsync(file: string): Promise<void> {
+  const handle = await fsp.open(file, 'r+');
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
   }
 }
 

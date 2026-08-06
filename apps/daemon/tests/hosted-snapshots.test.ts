@@ -13,7 +13,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import fsp from 'node:fs/promises';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getAgentSession,
@@ -110,7 +111,14 @@ describe('hosted snapshots', () => {
     writeFileSync(path.join(stale.roots.projectsRoot, 'stale.txt'), 'must not survive');
     const staleGeneration = stale.roots.liveRoot;
 
-    const restored = await snapshots.restore();
+    let restoreYielded = false;
+    const restorePromise = snapshots.restore();
+    await new Promise<void>((resolve) => setImmediate(() => {
+      restoreYielded = true;
+      resolve();
+    }));
+    const restored = await restorePromise;
+    expect(restoreYielded).toBe(true);
     expect(restored?.sequence).toBe(published.sequence);
     if (restored == null) {
       stale.close();
@@ -179,6 +187,118 @@ describe('hosted snapshots', () => {
     expect(restored && getProject(restored.storage.database, 'wal-project')?.name)
       .toBe('Uncheckpointed WAL');
     restored?.storage.close();
+  });
+
+  it('retains only DB-reachable session lineage and drops every orphan shape', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const now = Date.now();
+    insertProject(storage.database, {
+      createdAt: now,
+      id: 'project-a',
+      name: 'Project A',
+      updatedAt: now,
+    });
+    insertConversation(storage.database, {
+      createdAt: now,
+      id: 'conversation-a',
+      projectId: 'project-a',
+      updatedAt: now,
+    });
+    const projectRoot = path.join(storage.roots.projectsRoot, 'project-a');
+    mkdirSync(projectRoot);
+    const parent = path.join(storage.roots.sessionsRoot, 'parent.jsonl');
+    const child = path.join(storage.roots.sessionsRoot, 'child.jsonl');
+    writeFileSync(parent, `${JSON.stringify({ type: 'session', cwd: projectRoot })}\n`);
+    writeFileSync(child, `${JSON.stringify({
+      type: 'session',
+      cwd: projectRoot,
+      parentSession: parent,
+    })}\n`);
+    writeFileSync(
+      path.join(storage.roots.sessionsRoot, 'orphan-absolute.jsonl'),
+      `${JSON.stringify({ type: 'session', cwd: runtimeRoot, parentSession: runtimeRoot })}\n`,
+    );
+    writeFileSync(path.join(storage.roots.sessionsRoot, 'orphan-malformed.jsonl'), '{not-json}\n');
+    writeFileSync(
+      path.join(storage.roots.sessionsRoot, 'orphan-missing-parent.jsonl'),
+      `${JSON.stringify({
+        type: 'session',
+        cwd: projectRoot,
+        parentSession: path.join(storage.roots.sessionsRoot, 'missing.jsonl'),
+      })}\n`,
+    );
+    upsertAgentSession(storage.database, {
+      agentId: 'pi',
+      conversationId: 'conversation-a',
+      sessionId: child,
+    });
+    const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    const published = await snapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+
+    const retainedSessions = filesBelow(path.join(published.versionRoot, 'payload', 'sessions'))
+      .map((file) => path.basename(file))
+      .sort();
+    expect(retainedSessions).toEqual(['child.jsonl', 'parent.jsonl']);
+    for (const file of filesBelow(path.join(published.versionRoot, 'payload', 'sessions'))) {
+      expect(readFileSync(file, 'utf8')).not.toContain(runtimeRoot);
+    }
+
+    const restored = await snapshots.restore();
+    expect(restored).not.toBeNull();
+    if (restored == null) return;
+    try {
+      expect(readdirSync(restored.storage.roots.sessionsRoot).sort())
+        .toEqual(['child.jsonl', 'parent.jsonl']);
+      const restoredChild = getAgentSession(restored.storage.database, 'conversation-a', 'pi');
+      const header = JSON.parse(readFileSync(restoredChild!, 'utf8')) as Record<string, unknown>;
+      expect(header.parentSession).toBe(path.join(restored.storage.roots.sessionsRoot, 'parent.jsonl'));
+      expect(header.cwd).toBe(restored.storage.roots.projectsRoot + path.sep + 'project-a');
+    } finally {
+      restored.storage.close();
+    }
+  });
+
+  it('case-folds Windows publication lock aliases before concurrent admission', async () => {
+    const runtimeRoot = tempRoot();
+    const firstStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const secondStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    let active = 0;
+    let peak = 0;
+    const createStore = (canonicalPath: string) => createHostedSnapshotStore({
+      identity,
+      publicationLockIdentity: { canonicalPath, platform: 'win32' },
+      runtimeRoot,
+    });
+    const upper = createStore('C:\\Snapshots\\OD1_USER');
+    const lower = createStore('c:\\snapshots\\od1_user');
+    const publish = async (
+      snapshots: ReturnType<typeof createHostedSnapshotStore>,
+      storage: ReturnType<typeof createHostedRuntimeStorage>,
+    ) => snapshots.publish({
+      quiesce: async () => {
+        active += 1;
+        peak = Math.max(peak, active);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        active -= 1;
+      },
+      storage,
+    });
+    try {
+      const publications = await Promise.all([
+        publish(upper, firstStorage),
+        publish(lower, secondStorage),
+      ]);
+      expect(peak).toBe(1);
+      expect(publications.map((item) => item.sequence)).toEqual([
+        '00000000000000000001',
+        '00000000000000000002',
+      ]);
+    } finally {
+      firstStorage.close();
+      secondStorage.close();
+    }
   });
 
   it('falls back from corrupt and incomplete newer sequences without trusting latest', async () => {
@@ -285,7 +405,9 @@ describe('hosted snapshots', () => {
     const completion = JSON.parse(readFileSync(completionFile, 'utf8')) as Record<string, unknown>;
     completion.manifestSha256 = createHash('sha256').update(manifestText).digest('hex');
     writeFileSync(completionFile, `${JSON.stringify(completion)}\n`);
-    await expect(snapshots.restore()).resolves.toBeNull();
+    await expect(snapshots.restore()).rejects.toMatchObject({
+      code: 'HOSTED_RUNTIME_UNAVAILABLE',
+    });
 
     const copiedRoot = tempRoot();
     const sourceStorage = createHostedRuntimeStorage({ identity, runtimeRoot: copiedRoot });
@@ -302,7 +424,9 @@ describe('hosted snapshots', () => {
       path.join(copiedRoot, 'snapshots', otherIdentity.storageKey, 'versions', source.sequence),
       { errorOnExist: true, recursive: true },
     );
-    await expect(otherSnapshots.restore()).resolves.toBeNull();
+    await expect(otherSnapshots.restore()).rejects.toMatchObject({
+      code: 'HOSTED_RUNTIME_UNAVAILABLE',
+    });
   });
 
   it('serializes publication, retains two valid versions, and enforces quotas without advancing authority', async () => {
@@ -388,4 +512,156 @@ describe('hosted snapshots', () => {
     expect(restored && getProject(restored.storage.database, 'newer')).toBeNull();
     restored?.storage.close();
   });
+
+  it('includes completion metadata in exact version and retained byte boundaries', async () => {
+    const measurementRoot = tempRoot();
+    const measurementStore = createHostedSnapshotStore({ identity, runtimeRoot: measurementRoot });
+    const publishEmpty = async (
+      runtimeRoot: string,
+      snapshots: ReturnType<typeof createHostedSnapshotStore>,
+    ) => {
+      const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+      try {
+        return await snapshots.publish({ quiesce: async () => {}, storage });
+      } finally {
+        storage.close();
+      }
+    };
+    const first = await publishEmpty(measurementRoot, measurementStore);
+    const second = await publishEmpty(measurementRoot, measurementStore);
+    expect(second.bytes).toBe(first.bytes);
+    const retainedBoundary = treeBytes(path.join(
+      measurementRoot,
+      'snapshots',
+      identity.storageKey,
+    ));
+
+    const exactRoot = tempRoot();
+    const exactStore = createHostedSnapshotStore({
+      identity,
+      limits: {
+        bytesPerVersion: first.bytes,
+        retainedBytesGlobal: retainedBoundary,
+        retainedBytesPerUser: retainedBoundary,
+      },
+      runtimeRoot: exactRoot,
+    });
+    await expect(publishEmpty(exactRoot, exactStore)).resolves.toMatchObject({ bytes: first.bytes });
+    await expect(publishEmpty(exactRoot, exactStore)).resolves.toMatchObject({ bytes: first.bytes });
+    expect(treeBytes(path.join(exactRoot, 'snapshots', identity.storageKey)))
+      .toBe(retainedBoundary);
+
+    const underRoot = tempRoot();
+    const underStore = createHostedSnapshotStore({
+      identity,
+      limits: {
+        bytesPerVersion: first.bytes - 1,
+        retainedBytesGlobal: retainedBoundary,
+        retainedBytesPerUser: retainedBoundary,
+      },
+      runtimeRoot: underRoot,
+    });
+    await expect(publishEmpty(underRoot, underStore)).rejects.toMatchObject({
+      code: 'HOSTED_QUOTA_EXCEEDED',
+    });
+    expect(versionRoots(underRoot)).toEqual([]);
+
+    const retainedUnderRoot = tempRoot();
+    const retainedUnderStore = createHostedSnapshotStore({
+      identity,
+      limits: {
+        bytesPerVersion: first.bytes,
+        retainedBytesGlobal: retainedBoundary - 1,
+        retainedBytesPerUser: retainedBoundary - 1,
+      },
+      runtimeRoot: retainedUnderRoot,
+    });
+    await publishEmpty(retainedUnderRoot, retainedUnderStore);
+    await expect(publishEmpty(retainedUnderRoot, retainedUnderStore)).rejects.toMatchObject({
+      code: 'HOSTED_QUOTA_EXCEEDED',
+    });
+    expect(versionRoots(retainedUnderRoot)).toEqual(['00000000000000000001']);
+  });
+
+  it('rejects oversized capture before copying the offending file and yields the event loop', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const oversized = path.join(storage.roots.projectsRoot, 'oversized.bin');
+    writeFileSync(oversized, Buffer.alloc(2 * 1024 * 1024));
+    const copiedSources: string[] = [];
+    const originalCopy = fsp.copyFile.bind(fsp);
+    const copySpy = vi.spyOn(fsp, 'copyFile').mockImplementation(async (...args) => {
+      copiedSources.push(String(args[0]));
+      return originalCopy(...args);
+    });
+    const snapshots = createHostedSnapshotStore({
+      identity,
+      limits: { bytesPerVersion: 1024 * 1024 },
+      runtimeRoot,
+    });
+    let yielded = false;
+    const eventLoopTurn = new Promise<void>((resolve) => setImmediate(() => {
+      yielded = true;
+      resolve();
+    }));
+    try {
+      await expect(snapshots.publish({ quiesce: async () => {}, storage }))
+        .rejects.toMatchObject({ code: 'HOSTED_QUOTA_EXCEEDED' });
+      await eventLoopTurn;
+      expect(yielded).toBe(true);
+      expect(copiedSources).not.toContain(oversized);
+      expect(versionRoots(runtimeRoot)).toEqual([]);
+    } finally {
+      copySpy.mockRestore();
+      storage.close();
+    }
+  });
+
+  it.each([
+    'after-version-rename',
+    'after-latest-write',
+    'after-retention-prune',
+  ] as const)('treats %s maintenance failure as committed success', async (failpoint) => {
+    const runtimeRoot = tempRoot();
+    const baselineStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(baselineStorage.database, {
+      createdAt: 1,
+      id: 'state',
+      name: 'baseline',
+      updatedAt: 1,
+    });
+    const baselineStore = createHostedSnapshotStore({ identity, runtimeRoot });
+    await baselineStore.publish({ quiesce: async () => {}, storage: baselineStorage });
+    baselineStorage.close();
+
+    const candidateStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(candidateStorage.database, {
+      createdAt: 2,
+      id: 'state',
+      name: 'candidate',
+      updatedAt: 2,
+    });
+    const candidateStore = createHostedSnapshotStore({
+      failpoint(stage) {
+        if (stage === failpoint) throw new Error(`maintenance failed at ${stage}`);
+      },
+      identity,
+      runtimeRoot,
+    });
+    const publication = await candidateStore.publish({
+      quiesce: async () => {},
+      storage: candidateStorage,
+    });
+    candidateStorage.close();
+    expect(publication.sequence).toBe('00000000000000000002');
+    const restored = await baselineStore.restore();
+    expect(restored && getProject(restored.storage.database, 'state')?.name).toBe('candidate');
+    restored?.storage.close();
+  });
 });
+
+function treeBytes(root: string): number {
+  const info = statSync(root);
+  if (info.isFile()) return info.size;
+  return readdirSync(root).reduce((sum, name) => sum + treeBytes(path.join(root, name)), 0);
+}

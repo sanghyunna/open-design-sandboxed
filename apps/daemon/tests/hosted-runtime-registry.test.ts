@@ -21,7 +21,10 @@ import {
   type HostedRuntimeRegistryOptions,
 } from '../src/hosted-runtime-registry.js';
 import { createHostedRuntimeStorage } from '../src/hosted-runtime-storage.js';
-import { createHostedSnapshotStore } from '../src/hosted-snapshots.js';
+import {
+  createHostedSnapshotStore,
+  HostedSnapshotError,
+} from '../src/hosted-snapshots.js';
 import { statusForError } from '../src/http/response.js';
 import { createChatRunService } from '../src/runs.js';
 
@@ -351,6 +354,38 @@ describe('HostedRuntimeRegistry', () => {
     } finally {
       a.release();
       b.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves snapshot quota failures while poisoning the generation', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-quota-'));
+    const registry = createRegistry({
+      runtimeRoot,
+      createSnapshotStore() {
+        return {
+          restore: async () => null,
+          publish: async () => {
+            throw new HostedSnapshotError(
+              'HOSTED_QUOTA_EXCEEDED',
+              'simulated snapshot quota failure',
+            );
+          },
+        };
+      },
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    try {
+      await waitForReady(registry, lease);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'snapshot:publish',
+        quiesce: async () => {},
+      })).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_QUOTA_EXCEEDED'),
+      );
+    } finally {
+      lease.release();
       await registry.shutdown();
       rmSync(runtimeRoot, { recursive: true, force: true });
     }

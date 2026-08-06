@@ -11,6 +11,7 @@ import {
 } from './hosted-runtime-storage.js';
 import {
   createHostedSnapshotStore,
+  HostedSnapshotError,
   type HostedSnapshotStore,
 } from './hosted-snapshots.js';
 import { getProject, insertProject } from './db.js';
@@ -871,10 +872,12 @@ export function createHostedRuntimeRegistry(
           scheduleIdleEviction(runtime);
           tryFinishShutdown();
         },
-        () => {
+        (cause) => {
           runtime.snapshotActive = false;
           const error = new HostedRuntimeError(
-            'HOSTED_RUNTIME_UNAVAILABLE',
+            cause instanceof HostedSnapshotError
+              ? cause.code
+              : 'HOSTED_RUNTIME_UNAVAILABLE',
             'hosted snapshot publication failed',
           );
           poisonRuntime(runtime, error);

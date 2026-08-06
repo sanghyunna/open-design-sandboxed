@@ -42,7 +42,7 @@ const failureCases = [
   ['after-payload-copy', 'baseline'],
   ['after-manifest-write', 'baseline'],
   ['before-completion-marker', 'baseline'],
-  ['after-completion-marker', 'candidate'],
+  ['after-completion-marker', 'baseline'],
 ] as const satisfies ReadonlyArray<readonly [HostedSnapshotFailpoint, string]>;
 
 afterEach(() => {
