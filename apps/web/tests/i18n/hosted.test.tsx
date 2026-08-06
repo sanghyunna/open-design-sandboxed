@@ -4,8 +4,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   HOSTED_LOCALES,
-  HOSTED_PROVIDER_MESSAGES,
-  HOSTED_PROVIDER_KEYS,
+  HOSTED_MESSAGE_KEYS,
+  HOSTED_MESSAGES,
   HostedI18nProvider,
   hostedDirection,
   resolveHostedLocale,
@@ -30,16 +30,16 @@ describe('hosted-only i18n', () => {
     expect(LOCALES).toEqual(['en', 'ko']);
   });
 
-  it('ships every provider message in all 18 hosted locales', () => {
+  it('ships every hosted message in all 18 hosted locales', () => {
     expect(HOSTED_LOCALES).toEqual([
       'ar', 'de', 'en', 'es-ES', 'fa', 'fr', 'hu', 'id', 'ja', 'ko', 'pl',
       'pt-BR', 'ru', 'th', 'tr', 'uk', 'zh-CN', 'zh-TW',
     ]);
     for (const locale of HOSTED_LOCALES) {
-      expect(Object.keys(HOSTED_PROVIDER_MESSAGES[locale]).sort()).toEqual(
-        [...HOSTED_PROVIDER_KEYS].sort(),
+      expect(Object.keys(HOSTED_MESSAGES[locale]).sort()).toEqual(
+        [...HOSTED_MESSAGE_KEYS].sort(),
       );
-      for (const key of HOSTED_PROVIDER_KEYS) {
+      for (const key of HOSTED_MESSAGE_KEYS) {
         expect(translateHosted(locale, key).trim(), `${locale}.${key}`).not.toBe('');
       }
     }
@@ -48,6 +48,11 @@ describe('hosted-only i18n', () => {
   it('uses formal German provider copy', () => {
     expect(translateHosted('de', 'hosted.provider.description')).toContain('Ihr Schlüssel');
     expect(translateHosted('de', 'hosted.provider.error')).toContain('Versuchen Sie');
+  });
+
+  it('interpolates hosted content labels', () => {
+    expect(translateHosted('ko', 'hosted.content.previewTitle', { path: 'index.html' }))
+      .toBe('index.html 미리보기');
   });
 
   it('resolves hosted browser locales without consulting local app persistence', () => {

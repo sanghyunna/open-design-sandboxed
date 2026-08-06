@@ -106,6 +106,38 @@ export interface Dict {
   'hosted.provider.testSuccess': string;
   'hosted.provider.clearSuccess': string;
   'hosted.provider.error': string;
+  'hosted.content.eyebrow': string;
+  'hosted.content.title': string;
+  'hosted.content.description': string;
+  'hosted.content.error': string;
+  'hosted.content.downloadArchive': string;
+  'hosted.content.projectId': string;
+  'hosted.content.projectIdPlaceholder': string;
+  'hosted.content.openProject': string;
+  'hosted.content.browserLabel': string;
+  'hosted.content.files': string;
+  'hosted.content.newFile': string;
+  'hosted.content.noFiles': string;
+  'hosted.content.fileSize': string;
+  'hosted.content.folders': string;
+  'hosted.content.noFolders': string;
+  'hosted.content.deleteNamed': string;
+  'hosted.content.delete': string;
+  'hosted.content.newFolderPath': string;
+  'hosted.content.createFolder': string;
+  'hosted.content.uploadFiles': string;
+  'hosted.content.uploadDirectory': string;
+  'hosted.content.upload': string;
+  'hosted.content.filePath': string;
+  'hosted.content.filePathPlaceholder': string;
+  'hosted.content.content': string;
+  'hosted.content.saveFile': string;
+  'hosted.content.preview': string;
+  'hosted.content.deleteFile': string;
+  'hosted.content.renameFile': string;
+  'hosted.content.rename': string;
+  'hosted.content.confirmDelete': string;
+  'hosted.content.previewTitle': string;
 
   // Settings dialog
   'settings.welcomeKicker': string;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { HostedContentPanel } from './components/HostedContentPanel';
 import { HostedProviderPanel } from './components/HostedProviderPanel';
 import { HostedI18nProvider } from './i18n/hosted';
 import { HostedProviderClient } from './providers/hosted';
@@ -11,7 +12,10 @@ export function HostedApp() {
   return (
     <main className={styles.main}>
       <HostedI18nProvider>
-        <HostedProviderPanel client={client} />
+        <div className={styles.layout}>
+          <HostedProviderPanel client={client} />
+          <HostedContentPanel client={client} />
+        </div>
       </HostedI18nProvider>
     </main>
   );

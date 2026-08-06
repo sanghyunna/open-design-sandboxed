@@ -48,19 +48,59 @@ export const HOSTED_PROVIDER_KEYS = [
   'hosted.provider.error',
 ] as const satisfies readonly (keyof Dict)[];
 
-export type HostedProviderMessageKey = (typeof HOSTED_PROVIDER_KEYS)[number];
+export const HOSTED_CONTENT_KEYS = [
+  'hosted.content.eyebrow',
+  'hosted.content.title',
+  'hosted.content.description',
+  'hosted.content.error',
+  'hosted.content.downloadArchive',
+  'hosted.content.projectId',
+  'hosted.content.projectIdPlaceholder',
+  'hosted.content.openProject',
+  'hosted.content.browserLabel',
+  'hosted.content.files',
+  'hosted.content.newFile',
+  'hosted.content.noFiles',
+  'hosted.content.fileSize',
+  'hosted.content.folders',
+  'hosted.content.noFolders',
+  'hosted.content.deleteNamed',
+  'hosted.content.delete',
+  'hosted.content.newFolderPath',
+  'hosted.content.createFolder',
+  'hosted.content.uploadFiles',
+  'hosted.content.uploadDirectory',
+  'hosted.content.upload',
+  'hosted.content.filePath',
+  'hosted.content.filePathPlaceholder',
+  'hosted.content.content',
+  'hosted.content.saveFile',
+  'hosted.content.preview',
+  'hosted.content.deleteFile',
+  'hosted.content.renameFile',
+  'hosted.content.rename',
+  'hosted.content.confirmDelete',
+  'hosted.content.previewTitle',
+] as const satisfies readonly (keyof Dict)[];
 
-export type HostedProviderMessages = {
-  [Key in HostedProviderMessageKey]: string;
+export const HOSTED_MESSAGE_KEYS = [
+  ...HOSTED_PROVIDER_KEYS,
+  ...HOSTED_CONTENT_KEYS,
+] as const;
+
+export type HostedMessageKey = (typeof HOSTED_MESSAGE_KEYS)[number];
+
+export type HostedMessages = {
+  [Key in HostedMessageKey]: string;
 };
 
-function hostedMessagesFromGlobal(dict: Dict): HostedProviderMessages {
+function hostedMessagesFromGlobal(dict: Dict): HostedMessages {
   return Object.fromEntries(
-    HOSTED_PROVIDER_KEYS.map((key) => [key, dict[key]]),
-  ) as HostedProviderMessages;
+    HOSTED_MESSAGE_KEYS.map((key) => [key, dict[key]]),
+  ) as HostedMessages;
 }
 
-export const HOSTED_PROVIDER_MESSAGES: Record<HostedLocale, HostedProviderMessages> = {
+export const HOSTED_MESSAGES: Record<HostedLocale, HostedMessages> = {
   'ar': ar,
   'de': de,
   'en': hostedMessagesFromGlobal(en),
@@ -100,10 +140,10 @@ export function hostedDirection(locale: HostedLocale): 'ltr' | 'rtl' {
 
 export function translateHosted(
   locale: HostedLocale,
-  key: HostedProviderMessageKey,
+  key: HostedMessageKey,
   vars?: Record<string, string | number>,
 ): string {
-  const raw = HOSTED_PROVIDER_MESSAGES[locale][key];
+  const raw = HOSTED_MESSAGES[locale][key];
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (_, name: string) => {
     const value = vars[name];
@@ -112,7 +152,7 @@ export function translateHosted(
 }
 
 type HostedTranslator = (
-  key: HostedProviderMessageKey,
+  key: HostedMessageKey,
   vars?: Record<string, string | number>,
 ) => string;
 
