@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export const HOSTED_PREVIEW_SCOPE_LIMITS = Object.freeze({
   global: 2_048,
@@ -8,6 +8,7 @@ export const HOSTED_PREVIEW_SCOPE_LIMITS = Object.freeze({
 
 const MAX_BINDING_BYTES = 1_024;
 const TOKEN_PATTERN = /^odpv_[A-Za-z0-9_-]{43}$/u;
+const BROWSER_PROOF_PATTERN = /^odpb_[A-Za-z0-9_-]{43}$/u;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
 
 export class HostedPreviewScopeError extends Error {
@@ -28,6 +29,8 @@ export interface HostedPreviewScopeBinding {
 }
 
 export interface HostedPreviewScopeGrant {
+  /** Secret transported only in an HttpOnly, scope-path cookie. */
+  readonly browserProof: string;
   readonly token: string;
   readonly url: string;
   readonly expiresAt: string;
@@ -38,10 +41,10 @@ export interface HostedPreviewScopeRegistry {
     binding: HostedPreviewScopeBinding,
     options?: { readonly ttlMs?: number },
   ): HostedPreviewScopeGrant;
-  validate(token: string, binding: HostedPreviewScopeBinding): boolean;
+  validate(token: string, binding: HostedPreviewScopeBinding, browserProof: string): boolean;
   resolve(
     token: string,
-    binding: Pick<HostedPreviewScopeBinding, 'projectId'>,
+    binding: Pick<HostedPreviewScopeBinding, 'projectId'> & { readonly browserProof: string },
   ): Readonly<HostedPreviewScopeBinding> | null;
   revokeGeneration(binding: Pick<HostedPreviewScopeBinding, 'userKey' | 'generation'>): number;
   dispose(): void;
@@ -49,6 +52,7 @@ export interface HostedPreviewScopeRegistry {
 
 type StoredScope = {
   readonly binding: Readonly<HostedPreviewScopeBinding>;
+  readonly browserProofHash: string;
   readonly expiresAtMs: number;
   readonly timer: NodeJS.Timeout;
 };
@@ -120,25 +124,36 @@ export function createHostedPreviewScopeRegistry(options: {
       token = `odpv_${randomBytes(32).toString('base64url')}`;
       tokenHash = hashToken(token);
     } while (scopes.has(tokenHash));
+    const browserProof = `odpb_${randomBytes(32).toString('base64url')}`;
 
     const timer = setTimeout(() => revokeHash(tokenHash), ttlMs);
     timer.unref?.();
     const storedBinding = Object.freeze({ ...binding });
-    scopes.set(tokenHash, { binding: storedBinding, expiresAtMs, timer });
+    scopes.set(tokenHash, {
+      binding: storedBinding,
+      browserProofHash: hashToken(browserProof),
+      expiresAtMs,
+      timer,
+    });
     const nextUserScopes = userScopes ?? new Set<string>();
     nextUserScopes.add(tokenHash);
     scopesByUser.set(binding.userKey, nextUserScopes);
 
     return Object.freeze({
+      browserProof,
       token,
       url: previewUrl(token, storedBinding),
       expiresAt: new Date(expiresAtMs).toISOString(),
     });
   };
 
-  const validate = (token: string, binding: HostedPreviewScopeBinding): boolean => {
+  const validate = (
+    token: string,
+    binding: HostedPreviewScopeBinding,
+    browserProof: string,
+  ): boolean => {
     if (!validBinding(binding)) return false;
-    const scope = resolveScope(token);
+    const scope = resolveScope(token, browserProof);
     if (scope == null) return false;
     return scope.binding.userKey === binding.userKey
       && scope.binding.generation === binding.generation
@@ -148,19 +163,24 @@ export function createHostedPreviewScopeRegistry(options: {
 
   const resolve = (
     token: string,
-    binding: Pick<HostedPreviewScopeBinding, 'projectId'>,
+    binding: Pick<HostedPreviewScopeBinding, 'projectId'> & { readonly browserProof: string },
   ): Readonly<HostedPreviewScopeBinding> | null => {
     if (!validProjectId(binding?.projectId)) return null;
-    const scope = resolveScope(token);
+    const scope = resolveScope(token, binding.browserProof);
     if (scope == null || scope.binding.projectId !== binding.projectId) return null;
     return scope.binding;
   };
 
-  const resolveScope = (token: string): StoredScope | null => {
-    if (disposed || !TOKEN_PATTERN.test(token)) return null;
+  const resolveScope = (token: string, browserProof: string): StoredScope | null => {
+    if (
+      disposed
+      || !TOKEN_PATTERN.test(token)
+      || !BROWSER_PROOF_PATTERN.test(browserProof)
+    ) return null;
     const tokenHash = hashToken(token);
     const scope = scopes.get(tokenHash);
     if (!scope) return null;
+    if (!safeHashEqual(scope.browserProofHash, hashToken(browserProof))) return null;
     const currentTime = now();
     if (!Number.isSafeInteger(currentTime) || currentTime < 0 || currentTime >= scope.expiresAtMs) {
       revokeHash(tokenHash);
@@ -194,6 +214,12 @@ export function createHostedPreviewScopeRegistry(options: {
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function safeHashEqual(left: string, right: string): boolean {
+  const leftBytes = Buffer.from(left, 'hex');
+  const rightBytes = Buffer.from(right, 'hex');
+  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
 }
 
 function previewUrl(token: string, binding: HostedPreviewScopeBinding): string {

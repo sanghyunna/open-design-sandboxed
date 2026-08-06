@@ -24,17 +24,25 @@ describe('hosted preview scope registry', () => {
       );
       expect(grant.url).not.toContain('file:');
       expect(grant.url).not.toContain('C:');
-      expect(registry.validate(grant.token, binding)).toBe(true);
-      expect(registry.resolve(grant.token, { projectId: binding.projectId })).toEqual(binding);
-      expect(registry.resolve(grant.token, { projectId: 'project-b' })).toBeNull();
+      expect(grant.browserProof).toMatch(/^odpb_[A-Za-z0-9_-]{43}$/u);
+      expect(registry.validate(grant.token, binding, grant.browserProof)).toBe(true);
+      expect(registry.resolve(grant.token, {
+        projectId: binding.projectId,
+        browserProof: grant.browserProof,
+      })).toEqual(binding);
+      expect(registry.resolve(grant.token, {
+        projectId: 'project-b',
+        browserProof: grant.browserProof,
+      })).toBeNull();
 
       for (const copied of [
         { ...binding, userKey: 'user-b' },
         { ...binding, generation: 2 },
         { ...binding, projectId: 'project-b' },
         { ...binding, filePath: 'slides/other.html' },
-      ]) expect(registry.validate(grant.token, copied)).toBe(false);
-      expect(registry.validate('odpv_invalid', binding)).toBe(false);
+      ]) expect(registry.validate(grant.token, copied, grant.browserProof)).toBe(false);
+      expect(registry.validate(grant.token, binding, 'odpb_invalid')).toBe(false);
+      expect(registry.validate('odpv_invalid', binding, grant.browserProof)).toBe(false);
     } finally {
       registry.dispose();
     }
@@ -56,7 +64,7 @@ describe('hosted preview scope registry', () => {
       ]) expect(() => registry.mint({ ...binding, filePath })).toThrow(TypeError);
 
       const grant = registry.mint(binding);
-      expect(registry.validate(grant.token, binding)).toBe(true);
+      expect(registry.validate(grant.token, binding, grant.browserProof)).toBe(true);
     } finally {
       registry.dispose();
     }
@@ -74,10 +82,13 @@ describe('hosted preview scope registry', () => {
       const grant = registry.mint(binding, { ttlMs: 1_000 });
       expect(grant.expiresAt).toBe(new Date(2_000).toISOString());
       now = 2_000;
-      expect(registry.validate(grant.token, binding)).toBe(false);
-      expect(registry.resolve(grant.token, { projectId: binding.projectId })).toBeNull();
+      expect(registry.validate(grant.token, binding, grant.browserProof)).toBe(false);
+      expect(registry.resolve(grant.token, {
+        projectId: binding.projectId,
+        browserProof: grant.browserProof,
+      })).toBeNull();
       now = 2_001;
-      expect(registry.validate(grant.token, binding)).toBe(false);
+      expect(registry.validate(grant.token, binding, grant.browserProof)).toBe(false);
     } finally {
       registry.dispose();
     }
@@ -95,13 +106,13 @@ describe('hosted preview scope registry', () => {
         expect(registry.validate(grant.token, {
           ...binding,
           filePath: `slides/${index}.html`,
-        })).toBe(true);
+        }, grant.browserProof)).toBe(true);
       }
 
       expect(registry.revokeGeneration({ userKey: binding.userKey, generation: 2 })).toBe(0);
       expect(registry.revokeGeneration({ userKey: binding.userKey, generation: 1 }))
         .toBe(HOSTED_PREVIEW_SCOPE_LIMITS.perUser);
-      expect(registry.validate(grants[0]!.token, binding)).toBe(false);
+      expect(registry.validate(grants[0]!.token, binding, grants[0]!.browserProof)).toBe(false);
       expect(() => registry.mint(binding)).not.toThrow();
     } finally {
       registry.dispose();
@@ -142,7 +153,7 @@ describe('hosted preview scope registry', () => {
     const grant = registry.mint(binding);
     registry.dispose();
     registry.dispose();
-    expect(registry.validate(grant.token, binding)).toBe(false);
+    expect(registry.validate(grant.token, binding, grant.browserProof)).toBe(false);
     expect(registry.revokeGeneration({ userKey: binding.userKey, generation: 1 })).toBe(0);
     expect(() => registry.mint(binding))
       .toThrowError(expect.objectContaining({ code: 'INTERNAL_ERROR' }));

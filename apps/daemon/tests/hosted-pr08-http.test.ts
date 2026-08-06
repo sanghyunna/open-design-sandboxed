@@ -170,6 +170,31 @@ describe('hosted PR08 HTTP content boundary', () => {
     );
   });
 
+  it('forces authenticated raw active content to download under a non-executable policy', async () => {
+    const started = await start();
+    const csrf = await getCsrf(started, USER_A);
+    const project = await createProject(started, USER_A, csrf, 'Raw active content');
+    const fixtures = [
+      ['active.html', '<!doctype html><script>top.location="/api/projects"</script>'],
+      ['active.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'],
+    ] as const;
+    for (const [name, content] of fixtures) {
+      await writeFile(started, USER_A, csrf, project.id, name, content);
+      const response = await get(
+        started,
+        USER_A,
+        `/api/projects/${project.id}/files/${name}`,
+      );
+      expect(response.status, await bodyOnFailure(response)).toBe(200);
+      expect(response.headers.get('content-disposition')).toContain('attachment');
+      expect(response.headers.get('content-security-policy')).toBe(
+        "default-src 'none'; base-uri 'none'; sandbox",
+      );
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(await response.text()).toBe(content);
+    }
+  });
+
   it('serves credentialless opaque preview scopes with restrictive headers and owner-correct content', async () => {
     const started = await start();
     const [csrfA, csrfB] = await csrfPair(started);
@@ -184,8 +209,8 @@ describe('hosted PR08 HTTP content boundary', () => {
       writeFile(started, USER_B, csrfB, projectB.id, 'index.html', maliciousB),
     ]);
 
-    const [scopeA, scopeB] = await Promise.all([
-      json<PreviewResponse>(mutate(
+    const [mintedA, mintedB] = await Promise.all([
+      mintPreview(mutate(
         started,
         USER_A,
         csrfA,
@@ -193,7 +218,7 @@ describe('hosted PR08 HTTP content boundary', () => {
         `/api/projects/${projectA.id}/preview-url`,
         { file: 'index.html' },
       )),
-      json<PreviewResponse>(mutate(
+      mintPreview(mutate(
         started,
         USER_B,
         csrfB,
@@ -202,13 +227,25 @@ describe('hosted PR08 HTTP content boundary', () => {
         { file: 'index.html' },
       )),
     ]);
+    const { scope: scopeA, cookie: cookieA } = mintedA;
+    const { scope: scopeB, cookie: cookieB } = mintedB;
     expect(scopeA).toMatchObject({ file: 'index.html', iframeSandbox: 'allow-scripts', opaqueOrigin: true });
     expect(scopeB).toMatchObject({ file: 'index.html', iframeSandbox: 'allow-scripts', opaqueOrigin: true });
     expect(scopeA.url).not.toBe(scopeB.url);
+    await apiError(fetch(`${started.url}${scopeA.url}`), 404);
+    const copiedBrowserProof = `${cookieA.split('=', 1)[0]}=${cookieB.split('=')[1]}`;
+    await apiError(fetch(`${started.url}${scopeA.url}`, {
+      headers: { cookie: copiedBrowserProof },
+    }), 404);
 
-    for (const [scope, html] of [[scopeA, maliciousA], [scopeB, maliciousB]] as const) {
+    for (const [scope, cookie, html] of [
+      [scopeA, cookieA, maliciousA],
+      [scopeB, cookieB, maliciousB],
+    ] as const) {
       expect(scope.url).toMatch(/^\/api\/projects\/[A-Za-z0-9._-]+\/preview\/odpv_[A-Za-z0-9_-]+\/index\.html$/u);
-      const preview = await fetch(`${started.url}${scope.url}`);
+      const preview = await fetch(`${started.url}${scope.url}`, {
+        headers: { cookie },
+      });
       expect(preview.status, await bodyOnFailure(preview)).toBe(200);
       expect(preview.headers.get('cache-control')).toBe('no-store');
       expect(preview.headers.get('x-content-type-options')).toBe('nosniff');
@@ -557,6 +594,21 @@ async function json<T>(responsePromise: Promise<Response>): Promise<T> {
   expect(response.status, text).toBeGreaterThanOrEqual(200);
   expect(response.status, text).toBeLessThan(300);
   return JSON.parse(text) as T;
+}
+
+async function mintPreview(
+  responsePromise: Promise<Response>,
+): Promise<{ readonly scope: PreviewResponse; readonly cookie: string }> {
+  const response = await responsePromise;
+  const text = await response.text();
+  expect(response.status, text).toBe(200);
+  const setCookie = response.headers.get('set-cookie');
+  expect(setCookie).toContain('HttpOnly');
+  expect(setCookie).toContain('SameSite=Strict');
+  expect(setCookie).toContain('Secure');
+  const cookie = setCookie?.split(';', 1)[0];
+  if (cookie == null) throw new Error('preview browser-binding cookie is missing');
+  return { scope: JSON.parse(text) as PreviewResponse, cookie };
 }
 
 async function success(responsePromise: Promise<Response>): Promise<void> {
