@@ -456,6 +456,14 @@ function hasClientOwnershipMetadata(request: Request): boolean {
   return false;
 }
 
+export function hasHostedClientOwnershipMetadata(
+  request: Request,
+  includeBody = false,
+): boolean {
+  return hasClientOwnershipMetadata(request)
+    || (includeBody && containsOwnershipField(request.body));
+}
+
 function containsPathOwnershipMetadata(path: string): boolean {
   return path.split('/').some((segment) => {
     // A bare segment is an opaque route identifier. For explicit path

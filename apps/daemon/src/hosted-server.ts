@@ -1,13 +1,17 @@
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import fs from 'node:fs';
 import http, { type IncomingMessage, type Server } from 'node:http';
 import https from 'node:https';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Socket } from 'node:net';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import {
+  API_ERROR_CODES,
   createApiError,
   HOSTED_CSRF_HEADER,
   HOSTED_PROVIDER_IDS,
+  HOSTED_RUN_STATUSES,
   type ApiErrorCode,
   type HostedProviderClearResponse,
   type HostedProviderDescriptor,
@@ -15,24 +19,80 @@ import {
   type HostedProviderSetResponse,
   type HostedProviderStatusResponse,
   type HostedProviderTestResponse,
+  type HostedGenUiSurface,
+  type HostedRunFeedbackRequest,
   type HostedSessionResponse,
 } from '@open-design/contracts';
 import {
   createHostedRuntimeRegistry,
+  dispatchHostedRuntimeInternalOperation,
   HostedRuntimeError,
   type HostedProviderCredential,
   type HostedRuntimeLease,
   type HostedRuntimeRegistry,
 } from './hosted-runtime-registry.js';
+import {
+  createHostedCatalogueAdapter,
+  HostedCatalogueAdapterError,
+  type HostedCatalogueSnapshot,
+} from './hosted-catalogue-adapter.js';
+import {
+  createHostedDesignSystemToolAdapter,
+  HOSTED_DESIGN_SYSTEM_READ_ENDPOINT,
+  HostedDesignSystemToolAdapterError,
+} from './hosted-design-system-tool-adapter.js';
+import {
+  createHostedEventBudget,
+  createHostedEventJournal,
+} from './hosted-event-journal.js';
+import {
+  createHostedMetadataAdapter,
+  HostedMetadataAdapterError,
+  type HostedMetadataMutationOperation,
+  type HostedMetadataReadOperation,
+} from './hosted-metadata-adapter.js';
+import {
+  createHostedSseAdapter,
+  type HostedSseOpenResult,
+} from './hosted-sse-adapter.js';
+import {
+  createHostedRunAdapter,
+  HostedRunAdapterError,
+  type HostedRunMutationOperation,
+  type HostedRunReadOperation,
+  type HostedRunStartOperation,
+} from './hosted-run-adapter.js';
+import {
+  startHostedPiTurn,
+  type HostedPiTurnDependencies,
+  type HostedPiTurnInput,
+  type HostedPiTurnResult,
+} from './runtimes/hosted-pi-turn.js';
 import { sendApiError, statusForError } from './http/response.js';
+import { resolveProjectRoot } from './project-root.js';
+import { listSkills } from './skills.js';
+import { listDesignSystems } from './design-systems.js';
+import { hasHostedClientOwnershipMetadata } from './hosted-request-boundary.js';
+import { ProjectCheckpointError } from './project-checkpoints.js';
+import { createHostedBodyCapacity } from './hosted-body-capacity.js';
 
 const CSRF_TTL_MS = 10 * 60_000;
 const MAX_CSRF_BINDINGS = 65_536;
 const MAX_PROVIDER_SECRET_BYTES = 16 * 1024;
 const MAX_PROVIDER_JSON_BYTES = 128 * 1024;
+const MAX_HOSTED_JSON_BYTES = 4 * 1024 * 1024;
+const HOSTED_JSON_BODY_TIMEOUT_MS = 30_000;
 const MAX_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024;
 const PROVIDER_CONNECT_TIMEOUT_MS = 5_000;
 const PROVIDER_CALL_TIMEOUT_MS = 60_000;
+const HOSTED_THINKING_CATALOGUE = Object.freeze([
+  'off',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+]);
 
 type ProviderEntry = HostedProviderDescriptor & {
   readonly baseUrl: string;
@@ -75,6 +135,16 @@ export interface HostedIdentityAdapter {
 export interface HostedTestComposition {
   readonly resolveIdentity: HostedIdentityAdapter['resolveIdentity'];
   readonly providerBaseUrls?: Partial<Record<HostedProviderId, string>>;
+  readonly createEntityId?: (
+    kind: 'project' | 'conversation' | 'message',
+    userKey: string,
+  ) => string;
+  readonly createRunId?: (userKey: string) => string;
+  readonly startTurn?: (
+    input: HostedPiTurnInput,
+    dependencies: Pick<HostedPiTurnDependencies, 'designSystemTool'>,
+  ) => Promise<HostedPiTurnResult>;
+  readonly bodyReadTimeoutMs?: number;
 }
 
 export interface StartHostedServerOptions {
@@ -82,6 +152,8 @@ export interface StartHostedServerOptions {
   readonly port?: number;
   readonly publicOrigin: string;
   readonly runtimeRoot?: string;
+  /** Trusted immutable resource root; never populated from an HTTP request. */
+  readonly resourceRoot?: string;
   readonly identityAdapter?: HostedIdentityAdapter;
   /** Test identities and loopback fixtures are structurally absent from production startup. */
   readonly testComposition?: HostedTestComposition;
@@ -98,6 +170,8 @@ type HostedRequestState = {
   readonly identity: HostedResolvedIdentity;
   readonly lease: HostedRuntimeLease;
 };
+
+type HostedIdentityRequestState = Omit<HostedRequestState, 'lease'>;
 
 type CsrfState = {
   readonly expiresAt: number;
@@ -131,10 +205,166 @@ export async function startHostedServer(
     ?? testComposition?.resolveIdentity
     ?? null;
   const providerBaseUrls = providerDestinations(testComposition?.providerBaseUrls);
+  const createRunId = testComposition?.createRunId ?? (() => randomUUID());
+  const bodyReadTimeoutMs = testComposition?.bodyReadTimeoutMs ?? HOSTED_JSON_BODY_TIMEOUT_MS;
+  if (
+    !Number.isSafeInteger(bodyReadTimeoutMs)
+    || bodyReadTimeoutMs < 1
+    || bodyReadTimeoutMs > HOSTED_JSON_BODY_TIMEOUT_MS
+  ) throw new Error('hosted body read timeout is invalid');
+  const catalogueSnapshot = await loadHostedCatalogue(options.resourceRoot);
+  const catalogue = createHostedCatalogueAdapter(catalogueSnapshot);
+  const hostedSkills = catalogue.dispatch({ kind: 'skills.list' });
+  const hostedDesignSystems = catalogue.dispatch({ kind: 'designSystems.list' });
+  if (!('skills' in hostedSkills) || !('designSystems' in hostedDesignSystems)) {
+    throw new Error('hosted catalogue initialization failed');
+  }
+  const projectCatalogueIds = new Set([
+    ...hostedSkills.skills.map(({ id }) => id),
+    ...hostedDesignSystems.designSystems.map(({ id }) => id),
+  ]);
+  const skillCatalogueIds = new Set(hostedSkills.skills.map(({ id }) => id));
+  const designSystemCatalogueIds = new Set(
+    hostedDesignSystems.designSystems.map(({ id }) => id),
+  );
+  let toolReadUrl: string | null = null;
+  let retireGenerationResources = (_binding: {
+    readonly generation: number;
+    readonly userKey: string;
+  }): void => {};
   const registry = createHostedRuntimeRegistry({
     runtimeRoot: path.resolve(options.runtimeRoot ?? '.tmp/hosted/runtime'),
+    designSystemCatalogueIds,
+    projectCatalogueIds,
+    skillCatalogueIds,
+    onGenerationRetired: (binding) => retireGenerationResources(binding),
+    ...(testComposition?.createEntityId === undefined
+      ? {}
+      : { createEntityId: testComposition.createEntityId }),
+    startTurn: (input) => {
+      if (toolReadUrl == null) {
+        throw new HostedRuntimeError(
+          'HOSTED_RUNTIME_UNAVAILABLE',
+          'hosted design-system tool endpoint is unavailable',
+        );
+      }
+      const dependencies = {
+        designSystemTool: {
+          readUrl: toolReadUrl,
+          mintGrant(binding) {
+            const grant = designSystemTool.mintGrant({
+              endpoint: HOSTED_DESIGN_SYSTEM_READ_ENDPOINT,
+              generation: binding.generation,
+              userKey: binding.userKey,
+              runId: binding.runId,
+              projectId: binding.projectId,
+              designSystemId: binding.designSystemId,
+            }, { carrierToken: binding.carrierToken });
+            return {
+              token: grant.token,
+              revoke: () => designSystemTool.revoke(grant.token),
+            };
+          },
+        },
+      } satisfies Pick<HostedPiTurnDependencies, 'designSystemTool'>;
+      return testComposition?.startTurn == null
+        ? startHostedPiTurn(input, dependencies)
+        : testComposition.startTurn(input, dependencies);
+    },
+  });
+  const designSystemTool = createHostedDesignSystemToolAdapter({
+    catalogue: hostedDesignSystems.designSystems.map(({ id }) => {
+      const files = catalogueSnapshot.designSystemFiles?.[id];
+      if (files === undefined) {
+        throw new Error('hosted design-system catalogue initialization failed');
+      }
+      return { id, files };
+    }),
+    async validateBinding(binding) {
+      const lease = registry.acquire({ userKey: binding.userKey });
+      if (lease.generation !== binding.generation) {
+        lease.release();
+        return null;
+      }
+      try {
+        const [project, run] = await Promise.all([
+          dispatchHostedRuntimeInternalOperation(registry, lease, {
+            kind: 'project:get',
+            projectId: binding.projectId,
+          }),
+          dispatchHostedRuntimeInternalOperation(registry, lease, {
+            kind: 'run:get',
+            runId: binding.runId,
+          }),
+        ]);
+        if (
+          project == null
+          || run == null
+          || typeof run !== 'object'
+          || (run as { projectId?: unknown }).projectId !== binding.projectId
+        ) {
+          lease.release();
+          return null;
+        }
+        return { release: () => lease.release() };
+      } catch (error) {
+        lease.release();
+        throw error;
+      }
+    },
+  });
+  const eventBudget = createHostedEventBudget();
+  const eventJournals = new Map<string, {
+    generation: number;
+    journal: ReturnType<typeof createHostedEventJournal>;
+    userKey: string;
+  }>();
+  retireGenerationResources = ({ generation, userKey }) => {
+    designSystemTool.revokeGeneration({ generation, userKey });
+    for (const [storageKey, current] of eventJournals) {
+      if (current.generation !== generation || current.userKey !== userKey) continue;
+      current.journal.dispose();
+      eventJournals.delete(storageKey);
+    }
+  };
+  const journalForLease = (lease: HostedRuntimeLease) => {
+    const current = eventJournals.get(lease.storageKey);
+    if (current?.generation === lease.generation) return current.journal;
+    current?.journal.dispose();
+    const journal = createHostedEventJournal({
+      budget: eventBudget,
+      generation: String(lease.generation),
+      ownerKey: lease.storageKey,
+    });
+    eventJournals.set(lease.storageKey, {
+      generation: lease.generation,
+      journal,
+      userKey: lease.userKey,
+    });
+    return journal;
+  };
+  const sse = createHostedSseAdapter({
+    acquireWeak(binding) {
+      const current = eventJournals.get(binding.ownerKey);
+      if (current == null || current.generation !== binding.generation) return null;
+      const lease = registry.acquire({ userKey: current.userKey }, 'weak');
+      if (
+        lease.storageKey !== binding.ownerKey
+        || lease.generation !== binding.generation
+      ) {
+        lease.release();
+        return null;
+      }
+      return {
+        generation: lease.generation,
+        journal: current.journal,
+        ownerKey: lease.storageKey,
+        release: () => lease.release(),
+      };
+    },
   });
   const csrf = new Map<string, CsrfState>();
+  const bodyCapacity = createHostedBodyCapacity();
   const app = express();
   app.disable('x-powered-by');
   app.set('case sensitive routing', true);
@@ -151,7 +381,7 @@ export async function startHostedServer(
   app.get('/api/ready', noInput, (_request, response) => response.json({ ready: true }));
   app.get('/api/version', noInput, (_request, response) => response.json({ composition: 'hosted' }));
 
-  const authenticate: RequestHandler = async (request, response, next) => {
+  const authenticateIdentity: RequestHandler = async (request, response, next) => {
     if (resolveIdentity == null) {
       apiFailure(response, 503, 'HOSTED_AUTH_UNAVAILABLE', 'hosted identity adapter is unavailable');
       return;
@@ -168,17 +398,26 @@ export async function startHostedServer(
         return;
       }
       validateSessionKey(identity.sessionKey);
-      const lease = registry.acquire({ userKey: identity.userKey });
-      const state: HostedRequestState = {
+      const state: HostedIdentityRequestState = {
         bindingKey: sessionBindingKey(identity),
         identity: Object.freeze({
           userKey: identity.userKey,
           sessionKey: identity.sessionKey,
           ...(identity.displayName === undefined ? {} : { displayName: identity.displayName }),
         }),
-        lease,
       };
-      response.locals.hosted = state;
+      response.locals.hostedIdentity = state;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const acquireRuntime: RequestHandler = (_request, response, next) => {
+    try {
+      const authenticated = identityState(response);
+      const lease = registry.acquire({ userKey: authenticated.identity.userKey });
+      response.locals.hosted = { ...authenticated, lease } satisfies HostedRequestState;
       let released = false;
       const release = (): void => {
         if (released) return;
@@ -191,6 +430,15 @@ export async function startHostedServer(
     } catch (error) {
       next(error);
     }
+  };
+  const authenticate: RequestHandler = (request, response, next) => {
+    void authenticateIdentity(request, response, (error?: unknown) => {
+      if (error != null) {
+        next(error);
+        return;
+      }
+      acquireRuntime(request, response, next);
+    });
   };
 
   const requireMutationAuthority: RequestHandler = (request, response, next) => {
@@ -214,7 +462,355 @@ export async function startHostedServer(
     next();
   };
 
-  const json = express.json({ limit: MAX_PROVIDER_JSON_BYTES, strict: true });
+  const boundedJson = (maximumBytes: number): RequestHandler => {
+    const parse = express.json({ limit: maximumBytes, strict: true });
+    return (request, response, next) => {
+      const declaredBytes = request.headers['content-length'];
+      if (declaredBytes != null && !/^(?:0|[1-9]\d*)$/u.test(declaredBytes)) {
+        next(new HostedHttpError('BAD_REQUEST', 'hosted content length is invalid', 400));
+        return;
+      }
+      const bytes = declaredBytes == null ? maximumBytes : Number(declaredBytes);
+      if (!Number.isSafeInteger(bytes) || bytes > maximumBytes) {
+        next(new HostedRuntimeError('HOSTED_QUOTA_EXCEEDED', 'hosted request body is too large'));
+        return;
+      }
+      const reservation = bodyCapacity.reserve(requestState(response).identity.userKey, bytes);
+      let released = false;
+      let timedOut = false;
+      const release = (): void => {
+        if (released) return;
+        released = true;
+        reservation.release();
+        request.off('aborted', release);
+        response.off('finish', release);
+        response.off('close', release);
+      };
+      const finishReading = (): void => {
+        clearTimeout(timer);
+      };
+      const timer = setTimeout(() => {
+        timedOut = true;
+        if (!response.headersSent) {
+          apiFailure(response, 408, 'BAD_REQUEST', 'hosted request body timed out');
+          response.once('finish', () => request.destroy());
+        } else {
+          request.destroy();
+        }
+      }, bodyReadTimeoutMs);
+      timer.unref?.();
+      request.once('aborted', release);
+      response.once('finish', release);
+      response.once('close', release);
+      parse(request, response, (error) => {
+        finishReading();
+        if (timedOut) return;
+        next(error);
+      });
+    };
+  };
+  const json = boundedJson(MAX_PROVIDER_JSON_BYTES);
+  const hostedJson = boundedJson(MAX_HOSTED_JSON_BYTES);
+  const rejectAuthorityMetadata: RequestHandler = (request, response, next) => {
+    if (hasHostedClientOwnershipMetadata(request)) {
+      apiFailure(
+        response,
+        400,
+        'HOSTED_OWNER_FIELD_FORBIDDEN',
+        'client ownership fields are not accepted',
+      );
+      return;
+    }
+    next();
+  };
+  const rejectAuthorityBody: RequestHandler = (request, response, next) => {
+    if (hasHostedClientOwnershipMetadata(request, true)) {
+      apiFailure(
+        response,
+        400,
+        'HOSTED_OWNER_FIELD_FORBIDDEN',
+        'client ownership fields are not accepted',
+      );
+      return;
+    }
+    next();
+  };
+  const dispatchMetadata = (
+    state: HostedRequestState,
+    request: unknown,
+  ) => createHostedMetadataAdapter({
+    read(_authority, operation: HostedMetadataReadOperation) {
+      return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+        kind: 'metadata:read',
+        operation,
+      });
+    },
+    mutateInLane(_authority, operation: HostedMetadataMutationOperation) {
+      return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+        kind: 'metadata:mutate',
+        operation,
+      });
+    },
+  }).dispatch({
+    userKey: state.identity.userKey,
+    generation: state.lease.generation,
+  }, request);
+  const requireRun = async (
+    state: HostedRequestState,
+    runId: string,
+  ): Promise<Record<string, unknown>> => {
+    const result = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+      kind: 'run:get',
+      runId,
+    });
+    if (result == null || typeof result !== 'object' || Array.isArray(result)) {
+      throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
+    }
+    return result as Record<string, unknown>;
+  };
+  const runEvents = (state: HostedRequestState, runId: string): unknown[] => {
+    const replay = journalForLease(state.lease).replay({
+      channel: { kind: 'run-ui', runId },
+      ownerKey: state.lease.storageKey,
+    });
+    return replay.kind === 'events' ? replay.events.map(({ data }) => data) : [];
+  };
+  const dispatchRun = (
+    state: HostedRequestState,
+    request: unknown,
+  ) => createHostedRunAdapter({
+    async read(_authority, operation: HostedRunReadOperation) {
+      switch (operation.kind) {
+        case 'runs.list':
+          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'runs:list',
+            ...(operation.projectId === undefined ? {} : { projectId: operation.projectId }),
+            ...(operation.conversationId === undefined
+              ? {}
+              : { conversationId: operation.conversationId }),
+            ...(operation.status === undefined ? {} : { status: operation.status }),
+          });
+        case 'run.status':
+          return requireRun(state, operation.runId);
+        case 'run.agui':
+          await requireRun(state, operation.runId);
+          return { events: runEvents(state, operation.runId) };
+        case 'run.genui.list': {
+          const run = await requireRun(state, operation.runId);
+          return {
+            runId: operation.runId,
+            surfaces: hostedGenUiSurfaces(run, runEvents(state, operation.runId)),
+          };
+        }
+        case 'project.genui.list': {
+          await dispatchMetadata(state, {
+            kind: 'project.get',
+            projectId: operation.projectId,
+          });
+          const listed = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'runs:list',
+            projectId: operation.projectId,
+          }) as { runs?: unknown };
+          const runs = Array.isArray(listed.runs) ? listed.runs : [];
+          return {
+            projectId: operation.projectId,
+            surfaces: runs.flatMap((run) => {
+              if (run == null || typeof run !== 'object' || Array.isArray(run)) return [];
+              const record = run as Record<string, unknown>;
+              return typeof record.id === 'string'
+                ? hostedGenUiSurfaces(record, runEvents(state, record.id))
+                : [];
+            }),
+          };
+        }
+        case 'run.genui.surface': {
+          const run = await requireRun(state, operation.runId);
+          const surface = hostedGenUiSurfaces(run, runEvents(state, operation.runId))
+            .find(({ surfaceId }) => surfaceId === operation.surfaceId);
+          if (surface == null) {
+            throw new HostedRuntimeError('NOT_FOUND', 'hosted GenUI surface was not found');
+          }
+          return surface;
+        }
+      }
+    },
+    async mutateInLane(
+      _authority,
+      operation: HostedRunMutationOperation,
+      execute?: () => Promise<unknown>,
+    ) {
+      if (execute != null) return execute();
+      switch (operation.kind) {
+        case 'run.cancel': {
+          const status = await requireRun(state, operation.runId);
+          if (!HOSTED_RUN_STATUSES.slice(2).includes(status.status as never)) {
+            registry.cancel({
+              userKey: state.identity.userKey,
+              generation: state.lease.generation,
+              runId: operation.runId,
+            }, 'client request');
+            await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+              kind: 'run:wait',
+              runId: operation.runId,
+            });
+          }
+          return { ok: true };
+        }
+        case 'run.feedback': {
+          const status = await requireRun(state, operation.runId);
+          assertRunReferences(status, operation.body);
+          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'run:mutate',
+            scope: { kind: 'run', runId: operation.runId },
+            execute: () => ({ status: 'skipped_no_sink' }),
+          });
+        }
+        case 'run.genui.respond': {
+          const run = await requireRun(state, operation.runId);
+          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'run:mutate',
+            scope: { kind: 'run', runId: operation.runId },
+            execute: () => {
+              const surfaces = hostedGenUiSurfaces(run, runEvents(state, operation.runId));
+              const current = surfaces.find(({ surfaceId, status }) => (
+                surfaceId === operation.surfaceId && status === 'pending'
+              ));
+              if (current == null) {
+                throw new HostedRuntimeError('NOT_FOUND', 'hosted GenUI surface was not found');
+              }
+              const at = Date.now();
+              const next = {
+                ...current,
+                value: operation.body.value,
+                status: 'resolved',
+                respondedBy: 'user',
+                respondedAt: at,
+              } as const;
+              journalForLease(state.lease).publish(
+                { kind: 'run-ui', runId: operation.runId },
+                'genui-responded',
+                { kind: 'ui.surface_responded', runId: operation.runId, ts: at,
+                  surfaceId: operation.surfaceId, value: operation.body.value,
+                  respondedBy: 'user' },
+              );
+              return { ok: true, surface: next };
+            },
+          });
+        }
+        case 'project.genui.revoke': {
+          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'run:mutate',
+            scope: { kind: 'project', projectId: operation.projectId },
+            execute: async () => {
+              const listed = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+                kind: 'runs:list',
+                projectId: operation.projectId,
+              }) as { runs?: unknown };
+              const runs = Array.isArray(listed.runs) ? listed.runs : [];
+              const matches = runs.flatMap((run) => {
+                if (run == null || typeof run !== 'object' || Array.isArray(run)) return [];
+                const record = run as Record<string, unknown>;
+                if (typeof record.id !== 'string') return [];
+                return hostedGenUiSurfaces(record, runEvents(state, record.id))
+                  .filter(({ surfaceId, status }) => (
+                    surfaceId === operation.surfaceId && status === 'pending'
+                  ))
+                  .map(() => record.id as string);
+              });
+              if (matches.length === 0) {
+                throw new HostedRuntimeError('NOT_FOUND', 'hosted GenUI surface was not found');
+              }
+              const at = Date.now();
+              for (const runId of matches) {
+                journalForLease(state.lease).publish(
+                  { kind: 'run-ui', runId },
+                  'genui-invalidated',
+                  { kind: 'ui.surface_invalidated', runId, ts: at, surfaceId: operation.surfaceId },
+                );
+              }
+              return { ok: true, invalidated: matches.length };
+            },
+          });
+        }
+        case 'run.create':
+        case 'chat.create':
+          throw new HostedRuntimeError('INTERNAL_ERROR', 'hosted run dispatch is invalid');
+      }
+    },
+    async startChat(_authority, operation: HostedRunStartOperation) {
+      await dispatchMetadata(state, {
+        kind: 'project.get',
+        projectId: operation.intent.projectId,
+      });
+      const messages = await dispatchMetadata(state, {
+        kind: 'messages.list',
+        projectId: operation.intent.projectId,
+        conversationId: operation.intent.conversationId,
+      });
+      if (
+        !('messages' in messages)
+        || !messages.messages.some((message) => (
+          message.id === operation.intent.assistantMessageId
+          && message.role === 'assistant'
+        ))
+      ) {
+        throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
+      }
+      const credential = registry.credentialStatus(state.lease);
+      if (!credential.configured || credential.provider == null) {
+        throw new HostedRuntimeError(
+          'HOSTED_PROVIDER_MISSING',
+          'hosted provider credential is not configured',
+        );
+      }
+      const fixedModel = providerEntry(credential.provider).model;
+      if (operation.intent.model !== null && operation.intent.model !== fixedModel) {
+        throw new HostedRuntimeError('BAD_REQUEST', 'hosted model is outside the fixed catalogue');
+      }
+      if (
+        operation.intent.reasoning !== null
+        && !HOSTED_THINKING_CATALOGUE.includes(operation.intent.reasoning)
+      ) {
+        throw new HostedRuntimeError(
+          'BAD_REQUEST',
+          'hosted reasoning level is outside the fixed catalogue',
+        );
+      }
+      const runId = createRunId(state.identity.userKey);
+      const journal = journalForLease(state.lease);
+      return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+        kind: 'run:start',
+        runId,
+        intent: operation.intent,
+        model: fixedModel,
+        modelCatalogue: [fixedModel],
+        thinkingCatalogue: HOSTED_THINKING_CATALOGUE,
+        onEvent(channel, payload) {
+          const events = hostedRunEvents(channel, payload, {
+            agentId: operation.intent.agentId,
+            model: fixedModel,
+            projectId: operation.intent.projectId,
+            reasoning: operation.intent.reasoning,
+            runId,
+          });
+          for (const event of events.publicEvents) {
+            journal.publish({ kind: 'run', runId }, event.event, event.data);
+          }
+          if (events.internalEvent != null) {
+            journal.publish(
+              { kind: 'run-ui', runId },
+              events.internalEvent.event,
+              events.internalEvent.data,
+            );
+          }
+          if (events.terminal) journal.close({ kind: 'run', runId });
+        },
+      });
+    },
+  }).dispatch({
+    userKey: state.identity.userKey,
+    generation: state.lease.generation,
+  }, request);
 
   app.get('/api/hosted/session', authenticate, noInput, (_request, response) => {
     removeExpiredCsrf(csrf);
@@ -324,6 +920,550 @@ export async function startHostedServer(
     },
   );
 
+  app.get(
+    '/api/projects',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (_request, response) => {
+      response.json(await dispatchMetadata(requestState(response), { kind: 'projects.list' }));
+    },
+  );
+  app.post(
+    '/api/projects',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      const result = await dispatchMetadata(requestState(response), {
+        kind: 'project.create',
+        body: request.body,
+      });
+      response.status(201).json(result);
+    },
+  );
+  app.get(
+    '/api/projects/:id',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'project.get',
+        projectId: request.params.id,
+      }));
+    },
+  );
+  app.patch(
+    '/api/projects/:id',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'project.patch',
+        projectId: request.params.id,
+        body: request.body,
+      }));
+    },
+  );
+  app.delete(
+    '/api/projects/:id',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'project.delete',
+        projectId: request.params.id,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/conversations',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'conversations.list',
+        projectId: request.params.id,
+      }));
+    },
+  );
+  app.post(
+    '/api/projects/:id/conversations',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      const state = requestState(response);
+      const projectId = routeParam(request, 'id');
+      const result = await dispatchMetadata(state, {
+        kind: 'conversation.create',
+        projectId,
+        body: request.body,
+      });
+      if ('conversation' in result) {
+        journalForLease(state.lease).publish(
+          { kind: 'project', projectId },
+          'conversation-created',
+          {
+            type: 'conversation-created',
+            projectId,
+            conversationId: result.conversation.id,
+            title: result.conversation.title,
+            createdAt: result.conversation.createdAt,
+          },
+        );
+      }
+      response.status(201).json(result);
+    },
+  );
+  app.patch(
+    '/api/projects/:id/conversations/:cid',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'conversation.patch',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+        body: request.body,
+      }));
+    },
+  );
+  app.delete(
+    '/api/projects/:id/conversations/:cid',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'conversation.delete',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/conversations/:cid/messages',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'messages.list',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+      }));
+    },
+  );
+  app.put(
+    '/api/projects/:id/conversations/:cid/messages/:mid',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'message.upsert',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+        messageId: request.params.mid,
+        body: request.body,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/conversations/:cid/comments',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'comments.list',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+      }));
+    },
+  );
+  app.post(
+    '/api/projects/:id/conversations/:cid/comments',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.status(201).json(await dispatchMetadata(requestState(response), {
+        kind: 'comment.create',
+        projectId: request.params.id,
+        conversationId: request.params.cid,
+        body: request.body,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/tabs',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'tabs.get',
+        projectId: request.params.id,
+      }));
+    },
+  );
+  app.put(
+    '/api/projects/:id/tabs',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'tabs.put',
+        projectId: request.params.id,
+        body: request.body,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/checkpoints',
+    authenticate,
+    rejectAuthorityMetadata,
+    exactQuery(['conversationId']),
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'checkpoints.list',
+        projectId: request.params.id,
+        ...(Object.hasOwn(request.query, 'conversationId')
+          ? { conversationId: request.query.conversationId }
+          : {}),
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/checkpoints/:checkpointId',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'checkpoint.get',
+        projectId: request.params.id,
+        checkpointId: request.params.checkpointId,
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:id/checkpoints/:checkpointId/diff',
+    authenticate,
+    rejectAuthorityMetadata,
+    exactQuery(['base']),
+    async (request, response) => {
+      response.json(await dispatchMetadata(requestState(response), {
+        kind: 'checkpoint.diff',
+        projectId: request.params.id,
+        checkpointId: request.params.checkpointId,
+        ...(Object.hasOwn(request.query, 'base') ? { base: request.query.base } : {}),
+      }));
+    },
+  );
+
+  app.get(
+    '/api/projects/:id/events',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      const state = requestState(response);
+      const projectId = routeParam(request, 'id');
+      await dispatchMetadata(state, {
+        kind: 'project.get',
+        projectId,
+      });
+      journalForLease(state.lease);
+      const lastEventId = request.headers['last-event-id'];
+      const result = sse.openProjectStream({
+        generation: state.lease.generation,
+        ...(lastEventId === undefined ? {} : { lastEventId }),
+        ownerKey: state.lease.storageKey,
+        projectId,
+        response,
+      });
+      state.lease.release();
+      handleSseOpenResult(response, result);
+    },
+  );
+
+  app.get(
+    '/api/runs',
+    authenticate,
+    rejectAuthorityMetadata,
+    exactQuery(['projectId', 'conversationId', 'status']),
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'runs.list',
+        ...(Object.hasOwn(request.query, 'projectId')
+          ? { projectId: request.query.projectId }
+          : {}),
+        ...(Object.hasOwn(request.query, 'conversationId')
+          ? { conversationId: request.query.conversationId }
+          : {}),
+        ...(Object.hasOwn(request.query, 'status')
+          ? { status: request.query.status }
+          : {}),
+      }));
+    },
+  );
+  app.post(
+    '/api/runs',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      const result = await dispatchRun(requestState(response), {
+        kind: 'run.create',
+        body: request.body,
+      });
+      response.status(202).json(result);
+    },
+  );
+  app.post(
+    '/api/chat',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      const state = requestState(response);
+      const result = await dispatchRun(state, {
+        kind: 'chat.create',
+        body: request.body,
+      });
+      if (
+        result == null
+        || typeof result !== 'object'
+        || Array.isArray(result)
+        || typeof (result as { runId?: unknown }).runId !== 'string'
+      ) throw new HostedRuntimeError('INTERNAL_ERROR', 'hosted chat admission failed');
+      const runId = (result as { runId: string }).runId;
+      journalForLease(state.lease);
+      const opened = sse.openRunStream({
+        generation: state.lease.generation,
+        ownerKey: state.lease.storageKey,
+        runId,
+        response,
+      });
+      state.lease.release();
+      handleSseOpenResult(response, opened);
+    },
+  );
+  app.get(
+    '/api/runs/:id',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.status',
+        runId: routeParam(request, 'id'),
+      }));
+    },
+  );
+  app.get(
+    '/api/runs/:id/events',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      const state = requestState(response);
+      const runId = routeParam(request, 'id');
+      await requireRun(state, runId);
+      journalForLease(state.lease);
+      const lastEventId = request.headers['last-event-id'];
+      const result = sse.openRunStream({
+        generation: state.lease.generation,
+        ...(lastEventId === undefined ? {} : { lastEventId }),
+        ownerKey: state.lease.storageKey,
+        runId,
+        response,
+      });
+      state.lease.release();
+      handleSseOpenResult(response, result);
+    },
+  );
+  app.post(
+    '/api/runs/:id/cancel',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.cancel',
+        runId: routeParam(request, 'id'),
+      }));
+    },
+  );
+  app.post(
+    '/api/runs/:id/feedback',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    rejectAuthorityBody,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.feedback',
+        runId: routeParam(request, 'id'),
+        body: request.body,
+      }));
+    },
+  );
+  app.get(
+    '/api/runs/:id/agui',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.agui',
+        runId: routeParam(request, 'id'),
+      }));
+    },
+  );
+  app.get(
+    '/api/runs/:id/genui',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.genui.list',
+        runId: routeParam(request, 'id'),
+      }));
+    },
+  );
+  app.get(
+    '/api/projects/:projectId/genui',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'project.genui.list',
+        projectId: routeParam(request, 'projectId'),
+      }));
+    },
+  );
+  app.get(
+    '/api/runs/:runId/genui/:surfaceId',
+    authenticate,
+    rejectAuthorityMetadata,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.genui.surface',
+        runId: routeParam(request, 'runId'),
+        surfaceId: routeParam(request, 'surfaceId'),
+      }));
+    },
+  );
+  app.post(
+    '/api/runs/:runId/genui/:surfaceId/respond',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    hostedJson,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'run.genui.respond',
+        runId: routeParam(request, 'runId'),
+        surfaceId: routeParam(request, 'surfaceId'),
+        body: request.body,
+      }));
+    },
+  );
+  app.post(
+    '/api/projects/:projectId/genui/:surfaceId/revoke',
+    authenticate,
+    rejectAuthorityMetadata,
+    requireMutationAuthority,
+    noInput,
+    async (request, response) => {
+      response.json(await dispatchRun(requestState(response), {
+        kind: 'project.genui.revoke',
+        projectId: routeParam(request, 'projectId'),
+        surfaceId: routeParam(request, 'surfaceId'),
+      }));
+    },
+  );
+
+  app.get('/api/agents/catalog', authenticateIdentity, rejectAuthorityMetadata, noInput, (_request, response) => {
+    response.json(catalogue.dispatch({ kind: 'agents.list' }));
+  });
+  app.get('/api/skills', authenticateIdentity, rejectAuthorityMetadata, noInput, (_request, response) => {
+    response.json(catalogue.dispatch({ kind: 'skills.list' }));
+  });
+  app.get('/api/skills/:id', authenticateIdentity, rejectAuthorityMetadata, noInput, (request, response) => {
+    response.json(catalogue.dispatch({ kind: 'skill.get', id: request.params.id }));
+  });
+  app.get('/api/skills/:id/files', authenticateIdentity, rejectAuthorityMetadata, noInput, (request, response) => {
+    response.json(catalogue.dispatch({ kind: 'skill.files', id: request.params.id }));
+  });
+  app.get('/api/design-systems', authenticateIdentity, rejectAuthorityMetadata, noInput, (_request, response) => {
+    response.json(catalogue.dispatch({ kind: 'designSystems.list' }));
+  });
+  app.get('/api/design-systems/:id', authenticateIdentity, rejectAuthorityMetadata, noInput, (request, response) => {
+    response.json(catalogue.dispatch({ kind: 'designSystem.get', id: request.params.id }));
+  });
+
+  const toolJson = express.json({ limit: 8 * 1024, strict: true });
+  app.post('/api/tools/design-systems/read', async (request, response) => {
+    const authorization = request.get('authorization');
+    const token = authorization?.match(/^Bearer ([^\s]+)$/u)?.[1] ?? null;
+    const carrierToken = request.get('x-open-design-tool-token') ?? null;
+    if (token == null || carrierToken == null || carrierToken.length === 0) {
+      apiFailure(response, 403, 'TOOL_TOKEN_MISSING', 'hosted tool token is required');
+      return;
+    }
+    response.json(await designSystemTool.read({
+      auth: {
+        token,
+        carrierToken,
+        cookiePresent: request.headers.cookie != null,
+        csrfPresent: request.get(HOSTED_CSRF_HEADER) != null,
+        origin: request.get('origin') ?? null,
+      },
+      readBody: () => new Promise((resolve, reject) => {
+        toolJson(request, response, (error) => {
+          if (error != null) reject(error);
+          else resolve(request.body);
+        });
+      }),
+    }));
+  });
+
   app.use((_request, response) => {
     apiFailure(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', 'hosted route is not allowed');
   });
@@ -331,6 +1471,49 @@ export async function startHostedServer(
     if (response.headersSent) return;
     if (error instanceof HostedHttpError) {
       apiFailure(response, error.status, error.code, error.message);
+      return;
+    }
+    if (error instanceof HostedMetadataAdapterError) {
+      apiFailure(
+        response,
+        error.code === 'BAD_REQUEST' ? 400 : 500,
+        error.code,
+        error.message,
+      );
+      return;
+    }
+    if (error instanceof HostedRunAdapterError) {
+      apiFailure(
+        response,
+        error.code === 'BAD_REQUEST' ? 400 : 500,
+        error.code,
+        error.message,
+      );
+      return;
+    }
+    if (error instanceof HostedCatalogueAdapterError) {
+      const status = error.code === 'BAD_REQUEST' ? 400 : error.code === 'NOT_FOUND' ? 404 : 500;
+      apiFailure(response, status, error.code, error.message);
+      return;
+    }
+    if (error instanceof HostedDesignSystemToolAdapterError) {
+      const status = error.code === 'BAD_REQUEST'
+        ? 400
+        : error.code === 'NOT_FOUND'
+          ? 404
+          : error.code === 'HOSTED_CAPACITY_EXHAUSTED'
+            ? 503
+          : error.code === 'INTERNAL_ERROR'
+            ? 500
+            : 403;
+      apiFailure(response, status, error.code, error.message);
+      return;
+    }
+    if (error instanceof ProjectCheckpointError) {
+      const code = API_ERROR_CODES.includes(error.code as ApiErrorCode)
+        ? error.code as ApiErrorCode
+        : 'INTERNAL_ERROR';
+      apiFailure(response, code === 'INTERNAL_ERROR' ? 500 : error.status, code, error.message);
       return;
     }
     if (error instanceof HostedRuntimeError) {
@@ -358,6 +1541,7 @@ export async function startHostedServer(
     throw new Error('hosted server did not bind a TCP address');
   }
   const url = `http://${host === 'localhost' ? '127.0.0.1' : host}:${address.port}`;
+  toolReadUrl = `${url}${HOSTED_DESIGN_SYSTEM_READ_ENDPOINT}`;
   let shutdownPromise: Promise<void> | null = null;
   return {
     server,
@@ -365,6 +1549,9 @@ export async function startHostedServer(
     shutdown(): Promise<void> {
       shutdownPromise ??= (async () => {
         csrf.clear();
+        designSystemTool.dispose();
+        for (const entry of eventJournals.values()) entry.journal.dispose();
+        eventJournals.clear();
         await registry.shutdown();
         await closeServer(server);
       })();
@@ -374,9 +1561,10 @@ export async function startHostedServer(
 }
 
 const noInput: RequestHandler = (request, response, next) => {
+  const contentLength = request.headers['content-length'];
   if (
     request.url.includes('?')
-    || request.headers['content-length'] != null
+    || (contentLength != null && contentLength !== '0')
     || request.headers['transfer-encoding'] != null
   ) {
     apiFailure(response, 400, 'BAD_REQUEST', 'hosted route does not accept input');
@@ -385,10 +1573,278 @@ const noInput: RequestHandler = (request, response, next) => {
   next();
 };
 
+function exactQuery(allowed: readonly string[]): RequestHandler {
+  const keys = new Set(allowed);
+  return (request, response, next) => {
+    if (Object.keys(request.query).some((key) => !keys.has(key))) {
+      apiFailure(response, 400, 'BAD_REQUEST', 'hosted query contains unsupported fields');
+      return;
+    }
+    if (
+      request.headers['content-length'] != null
+      || request.headers['transfer-encoding'] != null
+    ) {
+      apiFailure(response, 400, 'BAD_REQUEST', 'hosted route does not accept a body');
+      return;
+    }
+    next();
+  };
+}
+
+function handleSseOpenResult(response: Response, result: HostedSseOpenResult): void {
+  if (result.kind === 'attached' || result.kind === 'resync') return;
+  if (result.kind === 'bad-request') {
+    apiFailure(response, 400, result.code, result.message);
+    return;
+  }
+  if (result.kind === 'not-owned') {
+    apiFailure(response, 404, 'NOT_FOUND', 'hosted stream was not found');
+    return;
+  }
+  if (result.kind === 'unavailable') {
+    apiFailure(response, 503, result.code, 'hosted stream is unavailable');
+    return;
+  }
+  apiFailure(
+    response,
+    result.code === 'HOSTED_OVERLOADED' ? 429 : 503,
+    result.code,
+    'hosted stream capacity is exhausted',
+  );
+}
+
 function requestState(response: Response): HostedRequestState {
   const state = response.locals.hosted as HostedRequestState | undefined;
   if (state == null) throw new HostedHttpError('HOSTED_AUTH_REQUIRED', 'hosted authentication is required', 401);
   return state;
+}
+
+function identityState(response: Response): HostedIdentityRequestState {
+  const state = response.locals.hostedIdentity as HostedIdentityRequestState | undefined;
+  if (state == null) {
+    throw new HostedHttpError(
+      'HOSTED_AUTH_REQUIRED',
+      'hosted authentication is required',
+      401,
+    );
+  }
+  return state;
+}
+
+function routeParam(request: Request, name: string): string {
+  const value = request.params[name];
+  if (typeof value !== 'string') {
+    throw new HostedHttpError('BAD_REQUEST', 'hosted route parameter is invalid', 400);
+  }
+  return value;
+}
+
+function assertRunReferences(
+  run: Record<string, unknown>,
+  feedback: HostedRunFeedbackRequest,
+): void {
+  if (
+    run.projectId !== feedback.projectId
+    || run.conversationId !== feedback.conversationId
+    || run.assistantMessageId !== feedback.assistantMessageId
+  ) {
+    throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
+  }
+}
+
+function hostedRunEvents(
+  channel: string,
+  payload: Record<string, unknown>,
+  context: {
+    readonly agentId: string;
+    readonly model: string;
+    readonly projectId: string;
+    readonly reasoning: string | null;
+    readonly runId: string;
+  },
+): {
+  internalEvent: { event: string; data: Record<string, unknown> } | null;
+  publicEvents: Array<{ event: string; data: Record<string, unknown> }>;
+  terminal: boolean;
+} {
+  const ts = Number.isSafeInteger(payload.ts) ? payload.ts : Date.now();
+  const runId = context.runId;
+  if (payload.kind === 'run.lifecycle') {
+    const status = String(payload.status);
+    const internalEvent = {
+      event: 'run.lifecycle',
+      data: { ...payload, runId, status, ts },
+    };
+    if (status === 'started') {
+      return {
+        internalEvent,
+        publicEvents: [{
+          event: 'start',
+          data: {
+            agentId: context.agentId,
+            model: context.model,
+            projectId: context.projectId,
+            reasoning: context.reasoning,
+            runId,
+          },
+        }],
+        terminal: false,
+      };
+    }
+    if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+      const endStatus = status === 'completed'
+        ? 'succeeded'
+        : status === 'cancelled'
+          ? 'canceled'
+          : 'failed';
+      const errorCode = API_ERROR_CODES.includes(payload.errorCode as ApiErrorCode)
+        ? payload.errorCode as ApiErrorCode
+        : 'INTERNAL_ERROR';
+      return {
+        internalEvent,
+        publicEvents: [
+          ...(status === 'failed'
+            ? [{
+                event: 'error',
+                data: {
+                  message: 'hosted run failed',
+                  error: createApiError(errorCode, 'hosted run failed'),
+                },
+              }]
+            : []),
+          {
+            event: 'end',
+            data: {
+              code: Number.isInteger(payload.exitCode) ? payload.exitCode : null,
+              signal: typeof payload.signal === 'string' ? payload.signal : null,
+              status: endStatus,
+            },
+          },
+        ],
+        terminal: true,
+      };
+    }
+    return { internalEvent, publicEvents: [], terminal: false };
+  }
+  if (typeof payload.kind === 'string') {
+    return {
+      internalEvent: {
+        event: /^[A-Za-z0-9_.-]{1,64}$/u.test(channel) ? channel : 'agent',
+        data: { ...payload, runId, ts },
+      },
+      publicEvents: [],
+      terminal: false,
+    };
+  }
+  const text = typeof payload.delta === 'string'
+    ? payload.delta
+    : typeof payload.text === 'string'
+      ? payload.text
+      : typeof payload.content === 'string'
+        ? payload.content
+        : null;
+  if (text != null) {
+    return {
+      internalEvent: { event: 'agent.message', data: { kind: 'agent.message', runId, text, ts } },
+      publicEvents: [{ event: 'agent', data: { type: 'text_delta', delta: text } }],
+      terminal: false,
+    };
+  }
+  return {
+    internalEvent: null,
+    publicEvents: [],
+    terminal: false,
+  };
+}
+
+function hostedGenUiSurfaces(
+  run: Record<string, unknown>,
+  events: readonly unknown[],
+): Array<HostedGenUiSurface & { spec: Record<string, unknown> | null }> {
+  if (
+    typeof run.id !== 'string'
+    || typeof run.projectId !== 'string'
+  ) return [];
+  const surfaces = new Map<
+    string,
+    HostedGenUiSurface & { spec: Record<string, unknown> | null }
+  >();
+  for (const raw of events) {
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const event = raw as Record<string, unknown>;
+    if (
+      event.kind === 'ui.surface_requested'
+      && typeof event.surfaceId === 'string'
+      && ['form', 'choice', 'confirmation', 'oauth-prompt'].includes(
+        String(event.surfaceKind),
+      )
+    ) {
+      const payload = event.payload != null
+        && typeof event.payload === 'object'
+        && !Array.isArray(event.payload)
+        ? event.payload as Record<string, unknown>
+        : {};
+      const requestedAt = Number.isSafeInteger(event.ts) ? event.ts as number : Date.now();
+      const persist = ['run', 'conversation', 'project'].includes(String(payload.persist))
+        ? payload.persist as HostedGenUiSurface['persist']
+        : 'run';
+      const surfaceId = event.surfaceId;
+      surfaces.set(surfaceId, {
+        id: `${run.id}-${surfaceId}`,
+        projectId: run.projectId,
+        conversationId: typeof run.conversationId === 'string' ? run.conversationId : null,
+        runId: run.id,
+        surfaceId,
+        kind: event.surfaceKind as HostedGenUiSurface['kind'],
+        persist,
+        value: null,
+        status: 'pending',
+        respondedBy: null,
+        requestedAt,
+        respondedAt: null,
+        expiresAt: Number.isSafeInteger(payload.expiresAt)
+          ? payload.expiresAt as number
+          : null,
+        spec: {
+          id: surfaceId,
+          kind: event.surfaceKind,
+          persist,
+          ...(payload.schema === undefined ? {} : { schema: payload.schema }),
+          ...(payload.prompt === undefined ? {} : { prompt: payload.prompt }),
+          ...(payload.timeout === undefined ? {} : { timeout: payload.timeout }),
+          ...(payload.onTimeout === undefined ? {} : { onTimeout: payload.onTimeout }),
+          ...(payload.default === undefined ? {} : { default: payload.default }),
+        },
+      });
+      continue;
+    }
+      if (
+        event.kind === 'ui.surface_responded'
+      && typeof event.surfaceId === 'string'
+    ) {
+      const current = surfaces.get(event.surfaceId);
+      if (current == null) continue;
+      surfaces.set(event.surfaceId, {
+        ...current,
+        value: event.value as HostedGenUiSurface['value'],
+        status: 'resolved',
+        respondedBy: 'user',
+        respondedAt: Number.isSafeInteger(event.ts) ? event.ts as number : Date.now(),
+      });
+    } else if (
+      event.kind === 'ui.surface_invalidated'
+      && typeof event.surfaceId === 'string'
+    ) {
+      const existing = surfaces.get(event.surfaceId);
+      if (existing == null) continue;
+      surfaces.set(event.surfaceId, {
+        ...existing,
+        status: 'invalidated',
+        respondedAt: Number.isSafeInteger(event.ts) ? event.ts as number : Date.now(),
+      });
+    }
+  }
+  return [...surfaces.values()];
 }
 
 function providerDestinations(
@@ -652,4 +2108,187 @@ function closeServer(server: Server): Promise<void> {
   return new Promise((resolve, reject) => {
     server.close((error) => error == null ? resolve() : reject(error));
   });
+}
+
+async function loadHostedCatalogue(resourceRoot?: string): Promise<HostedCatalogueSnapshot> {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const workspaceRoot = resolveProjectRoot(moduleDir);
+  const root = exactResourceRoot(
+    resourceRoot ?? process.env.OD_RESOURCE_ROOT ?? workspaceRoot,
+  );
+  const skillsRoot = path.join(root, 'skills');
+  const designSystemsRoot = path.join(root, 'design-systems');
+  const skills = (await listSkills([skillsRoot])).map((skill) => ({
+    ...skill,
+    source: 'built-in' as const,
+  }));
+  const designSystems = await listDesignSystems(designSystemsRoot, {
+    source: 'built-in',
+    isEditable: false,
+    defaultStatus: 'published',
+  });
+  const skillFiles = Object.fromEntries(skills.map((skill) => [
+    skill.id,
+    collectCatalogueFiles(skillsRoot, skill.dir),
+  ]));
+  const designSystemFiles = Object.fromEntries(designSystems.map(({ id }) => [
+    id,
+    collectDesignSystemToolFiles(designSystemsRoot, id),
+  ]));
+  return {
+    agents: [{ id: 'pi', name: 'Pi', source: 'built-in' }],
+    skills,
+    skillFiles,
+    designSystems,
+    designSystemFiles,
+  };
+}
+
+function collectDesignSystemToolFiles(
+  root: string,
+  id: string,
+): Array<{ path: string; content: string }> {
+  const exactRoot = fs.realpathSync(root);
+  const directory = path.join(exactRoot, id);
+  const directoryStat = fs.lstatSync(directory);
+  const exactDirectory = fs.realpathSync(directory);
+  if (
+    !directoryStat.isDirectory()
+    || directoryStat.isSymbolicLink()
+    || !sameServerPath(directory, exactDirectory)
+    || !sameServerPath(path.dirname(exactDirectory), exactRoot)
+  ) throw new Error('hosted design-system catalogue escaped its immutable root');
+  const manifestContent = readDesignSystemToolFile(exactDirectory, 'manifest.json');
+  let manifest: unknown;
+  try { manifest = JSON.parse(manifestContent); } catch {
+    throw new Error('hosted design-system manifest is invalid');
+  }
+  if (manifest == null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('hosted design-system manifest is invalid');
+  }
+  const record = manifest as Record<string, unknown>;
+  const paths = new Set<string>(['manifest.json']);
+  const add = (value: unknown): void => {
+    if (typeof value === 'string') paths.add(value);
+  };
+  if (record.files != null && typeof record.files === 'object' && !Array.isArray(record.files)) {
+    for (const value of Object.values(record.files)) add(value);
+  }
+  add(record.usage);
+  add(record.componentsManifest);
+  if (
+    record.preview != null
+    && typeof record.preview === 'object'
+    && !Array.isArray(record.preview)
+    && Array.isArray((record.preview as Record<string, unknown>).pages)
+  ) {
+    for (const page of (record.preview as { pages: unknown[] }).pages) {
+      if (page != null && typeof page === 'object' && !Array.isArray(page)) {
+        add((page as Record<string, unknown>).path);
+      }
+    }
+  }
+  if (
+    record.sourceFiles != null
+    && typeof record.sourceFiles === 'object'
+    && !Array.isArray(record.sourceFiles)
+  ) {
+    for (const value of Object.values(record.sourceFiles)) add(value);
+  }
+  if (Array.isArray(record.fonts)) {
+    for (const font of record.fonts) {
+      if (font != null && typeof font === 'object' && !Array.isArray(font)) {
+        add((font as Record<string, unknown>).file);
+      }
+    }
+  }
+  if (paths.size > 128) throw new Error('hosted design-system manifest is too large');
+  return [...paths].sort().map((relativePath) => ({
+    path: relativePath,
+    content: relativePath === 'manifest.json'
+      ? manifestContent
+      : readDesignSystemToolFile(exactDirectory, relativePath),
+  }));
+}
+
+function readDesignSystemToolFile(root: string, relativePath: string): string {
+  if (
+    Buffer.byteLength(relativePath, 'utf8') < 1
+    || Buffer.byteLength(relativePath, 'utf8') > 1_024
+    || relativePath.startsWith('/')
+    || relativePath.includes('\\')
+    || /^[A-Za-z]:/u.test(relativePath)
+    || relativePath.split('/').some((part) => part === '' || part === '.' || part === '..')
+  ) throw new Error('hosted design-system manifest path is invalid');
+  let current = root;
+  for (const segment of relativePath.split('/')) {
+    current = path.join(current, segment);
+    const stat = fs.lstatSync(current);
+    if (stat.isSymbolicLink()) throw new Error('hosted design-system catalogue contains a link');
+  }
+  const stat = fs.statSync(current);
+  const resolved = fs.realpathSync(current);
+  const relative = path.relative(root, resolved);
+  if (
+    !stat.isFile()
+    || stat.size > 4 * 1024 * 1024
+    || path.isAbsolute(relative)
+    || relative === '..'
+    || relative.startsWith(`..${path.sep}`)
+  ) throw new Error('hosted design-system catalogue file is invalid');
+  const content = fs.readFileSync(resolved);
+  const decoded = content.toString('utf8');
+  if (!content.equals(Buffer.from(decoded, 'utf8'))) {
+    throw new Error('hosted design-system catalogue file is not UTF-8');
+  }
+  return decoded;
+}
+
+function exactResourceRoot(input: string): string {
+  const requested = path.resolve(input);
+  const stat = fs.lstatSync(requested);
+  const resolved = fs.realpathSync(requested);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || !sameServerPath(requested, resolved)) {
+    throw new Error('hosted resource root must be an exact directory');
+  }
+  return resolved;
+}
+
+function collectCatalogueFiles(root: string, directory: string): Array<{
+  path: string;
+  kind: 'directory' | 'file';
+  size: number | null;
+}> {
+  const exactRoot = fs.realpathSync(root);
+  const exactDirectory = fs.realpathSync(directory);
+  const relativeDirectory = path.relative(exactRoot, exactDirectory);
+  if (
+    path.isAbsolute(relativeDirectory)
+    || relativeDirectory === '..'
+    || relativeDirectory.startsWith(`..${path.sep}`)
+  ) throw new Error('hosted skill catalogue escaped its immutable root');
+  const files: Array<{ path: string; kind: 'directory' | 'file'; size: number | null }> = [];
+  const visit = (current: string, prefix: string): void => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      if (entry.isSymbolicLink()) throw new Error('hosted skill catalogue contains a link');
+      const file = path.join(current, entry.name);
+      const relative = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) {
+        files.push({ path: relative, kind: 'directory', size: null });
+        if (files.length > 500) throw new Error('hosted skill catalogue is too large');
+        visit(file, relative);
+      } else if (entry.isFile()) {
+        files.push({ path: relative, kind: 'file', size: fs.statSync(file).size });
+        if (files.length > 500) throw new Error('hosted skill catalogue is too large');
+      }
+    }
+  };
+  visit(exactDirectory, '');
+  return files;
+}
+
+function sameServerPath(left: string, right: string): boolean {
+  const a = path.resolve(left);
+  const b = path.resolve(right);
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }

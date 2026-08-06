@@ -28,6 +28,10 @@ export interface HostedCatalogueSnapshot {
   readonly skills: readonly unknown[];
   readonly skillFiles?: Readonly<Record<string, readonly unknown[]>>;
   readonly designSystems: readonly unknown[];
+  readonly designSystemFiles?: Readonly<Record<string, readonly {
+    readonly path: string;
+    readonly content: string;
+  }[]>>;
 }
 
 export type HostedCatalogueRequest =

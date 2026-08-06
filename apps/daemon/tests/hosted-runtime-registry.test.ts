@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApiError } from '@open-design/contracts';
-import { insertProject } from '../src/db.js';
+import { insertConversation, insertProject, upsertAgentSession } from '../src/db.js';
 import {
   createHostedRuntimeRegistry,
   deriveHostedStorageKey,
@@ -150,9 +150,9 @@ describe('HostedRuntimeRegistry', () => {
       await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
         kind: 'run:get',
         runId: 'write-a',
-      })).resolves.toEqual({
+      })).resolves.toMatchObject({
+        id: 'write-a',
         conversationId: 'conversation-a',
-        runId: 'write-a',
         status: 'succeeded',
       });
       await expect(dispatchHostedRuntimeInternalOperation(registry, b, {
@@ -212,6 +212,48 @@ describe('HostedRuntimeRegistry', () => {
       await expect(read).resolves.toEqual({ id: 'persisted', name: 'Persisted' });
     } finally {
       releaseRestore.resolve();
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('hydrates the restored Pi session before the next turn', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-session-'));
+    const identity = { storageKey: deriveHostedStorageKey('a'), userKey: 'a' };
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const now = Date.now();
+    insertProjectForTest(storage, 'project-a', 'Project A');
+    insertConversation(storage.database, {
+      createdAt: now,
+      id: 'conversation-a',
+      projectId: 'project-a',
+      updatedAt: now,
+    });
+    const projectRoot = join(storage.roots.projectsRoot, 'project-a');
+    mkdirSync(projectRoot);
+    const sessionPath = join(storage.roots.sessionsRoot, 'session.jsonl');
+    writeFileSync(sessionPath, `${JSON.stringify({ type: 'session', cwd: projectRoot })}\n`);
+    upsertAgentSession(storage.database, {
+      agentId: 'pi',
+      conversationId: 'conversation-a',
+      sessionId: sessionPath,
+    });
+    await createHostedSnapshotStore({ identity, runtimeRoot }).publish({
+      quiesce: async () => {},
+      storage,
+    });
+    storage.close();
+
+    const registry = createRegistry({ runtimeRoot });
+    const lease = registry.acquire({ userKey: 'a' });
+    try {
+      await expect(registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'resumed-run',
+        execute: async ({ sessionReference }) => ({ value: sessionReference }),
+      })).resolves.toMatch(/session\.jsonl$/u);
+    } finally {
       lease.release();
       await registry.shutdown();
       rmSync(runtimeRoot, { recursive: true, force: true });
@@ -983,6 +1025,24 @@ describe('HostedRuntimeRegistry', () => {
     const recreated = registry.acquire({ userKey: 'a' });
     expect(registry.credentialStatus(recreated)).toEqual({ configured: false, provider: null });
     recreated.release();
+    await registry.shutdown();
+  });
+
+  it('retires server-owned generation resources on idle eviction', async () => {
+    vi.useFakeTimers();
+    const retired: Array<{ generation: number; userKey: string }> = [];
+    const registry = createRegistry({
+      idleEvictionMs: 25,
+      onGenerationRetired: (binding) => retired.push(binding),
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    await waitForReady(registry, lease);
+    const generation = lease.generation;
+    lease.release();
+
+    await vi.advanceTimersByTimeAsync(25);
+
+    expect(retired).toEqual([{ generation, userKey: 'a' }]);
     await registry.shutdown();
   });
 

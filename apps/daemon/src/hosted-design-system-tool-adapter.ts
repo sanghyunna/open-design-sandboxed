@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 import type {
   HostedDesignSystemReadResponse,
@@ -7,15 +7,20 @@ import type {
 
 export const HOSTED_DESIGN_SYSTEM_READ_ENDPOINT = '/api/tools/design-systems/read' as const;
 export const HOSTED_DESIGN_SYSTEM_GRANT_MAX_TTL_MS = 31 * 60 * 1_000;
+export const HOSTED_DESIGN_SYSTEM_GRANT_GLOBAL_LIMIT = 32;
 export const HOSTED_DESIGN_SYSTEM_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
 
 const MAX_PATH_BYTES = 1_024;
 const MAX_BINDING_BYTES = 1_024;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
+const TOOL_TOKEN_PATTERN = /^odds_[A-Za-z0-9_-]{43}$/u;
+const TOOL_CARRIER_PATTERN = /^odpi_[A-Za-z0-9_-]{43}$/u;
+const DUMMY_SECRET_HASH = createHash('sha256').update('invalid hosted tool carrier').digest();
 
 export type HostedDesignSystemToolAdapterErrorCode =
   | 'BAD_REQUEST'
   | 'FORBIDDEN'
+  | 'HOSTED_CAPACITY_EXHAUSTED'
   | 'INTERNAL_ERROR'
   | 'NOT_FOUND'
   | 'UNAUTHORIZED';
@@ -49,11 +54,10 @@ export interface HostedDesignSystemToolBinding {
 
 export interface HostedDesignSystemToolAuthInput {
   readonly token: string | null;
+  readonly carrierToken: string | null;
   readonly cookiePresent: boolean;
   readonly csrfPresent: boolean;
   readonly origin: string | null;
-  /** Server-resolved runtime binding; never populate this from request data. */
-  readonly binding: HostedDesignSystemToolBinding | null;
 }
 
 export interface HostedDesignSystemToolGrant {
@@ -61,7 +65,17 @@ export interface HostedDesignSystemToolGrant {
   readonly expiresAt: string;
 }
 
+export interface HostedDesignSystemToolBindingLease {
+  release(): void | Promise<void>;
+}
+
+export type HostedDesignSystemToolBindingValidator = (
+  binding: HostedDesignSystemToolBinding,
+) => HostedDesignSystemToolBindingLease | null | Promise<HostedDesignSystemToolBindingLease | null>;
+
 type StoredGrant = {
+  readonly tokenHash: string;
+  readonly carrierHash: Buffer;
   readonly binding: HostedDesignSystemToolBinding;
   readonly allowedPaths: ReadonlySet<string>;
   readonly expiresAtMs: number;
@@ -79,8 +93,20 @@ function fail(
   throw new HostedDesignSystemToolAdapterError(code, message);
 }
 
-function tokenHash(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+function secretHash(secret: string): Buffer {
+  return createHash('sha256').update(secret).digest();
+}
+
+function secretHashKey(secret: string): string {
+  return secretHash(secret).toString('hex');
+}
+
+function sameSecretHash(expected: Buffer, actual: Buffer): boolean {
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+function createSecret(prefix: 'odds_'): string {
+  return `${prefix}${randomBytes(32).toString('base64url')}`;
 }
 
 function boundedString(value: unknown, maxBytes: number): value is string {
@@ -114,18 +140,6 @@ function validateBinding(binding: HostedDesignSystemToolBinding): void {
     || binding.generation < 1
     || !validDesignSystemId(binding.designSystemId)
   ) fail('INTERNAL_ERROR', 'design-system grant binding is invalid');
-}
-
-function sameBinding(
-  expected: HostedDesignSystemToolBinding,
-  actual: HostedDesignSystemToolBinding,
-): boolean {
-  return expected.userKey === actual.userKey
-    && expected.runId === actual.runId
-    && expected.projectId === actual.projectId
-    && expected.endpoint === actual.endpoint
-    && expected.generation === actual.generation
-    && expected.designSystemId === actual.designSystemId;
 }
 
 function fixedCatalogue(
@@ -172,9 +186,12 @@ function exactReadRequest(value: unknown): HostedDesignSystemReadV1 {
 export function createHostedDesignSystemToolAdapter(options: {
   readonly catalogue: readonly HostedDesignSystemToolCatalogueEntry[];
   readonly now?: () => number;
+  /** Server-owned generation/ownership validation. Without it, every read fails closed. */
+  readonly validateBinding?: HostedDesignSystemToolBindingValidator;
 }) {
   const catalogue = fixedCatalogue(options.catalogue);
   const grants = new Map<string, StoredGrant>();
+  const grantsByUser = new Map<string, string>();
   const now = options.now ?? Date.now;
   let disposed = false;
 
@@ -182,38 +199,82 @@ export function createHostedDesignSystemToolAdapter(options: {
     const stored = grants.get(hash);
     if (!stored) return false;
     clearTimeout(stored.timer);
+    stored.carrierHash.fill(0);
     grants.delete(hash);
+    if (grantsByUser.get(stored.binding.userKey) === hash) {
+      grantsByUser.delete(stored.binding.userKey);
+    }
     return true;
+  };
+
+  const removeExpired = (at: number): void => {
+    for (const [hash, grant] of grants) {
+      if (at >= grant.expiresAtMs) revokeHash(hash);
+    }
   };
 
   const mintGrant = (
     binding: HostedDesignSystemToolBinding,
-    grantOptions: { readonly ttlMs?: number } = {},
+    grantOptions: {
+      /** Existing per-turn Pi broker token; never persisted or returned by this adapter. */
+      readonly carrierToken: string;
+      readonly ttlMs?: number;
+    },
   ): HostedDesignSystemToolGrant => {
     if (disposed) fail('INTERNAL_ERROR', 'design-system tool adapter is closed');
     validateBinding(binding);
     const fixed = catalogue.get(binding.designSystemId);
     if (!fixed) fail('INTERNAL_ERROR', 'design-system grant catalogue is invalid');
     const ttlMs = grantOptions.ttlMs ?? HOSTED_DESIGN_SYSTEM_GRANT_MAX_TTL_MS;
+    if (!TOOL_CARRIER_PATTERN.test(grantOptions.carrierToken)) {
+      fail('INTERNAL_ERROR', 'design-system grant carrier is invalid');
+    }
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1 || ttlMs > HOSTED_DESIGN_SYSTEM_GRANT_MAX_TTL_MS) {
       fail('INTERNAL_ERROR', 'design-system grant lifetime is invalid');
     }
+    const currentTime = now();
+    if (!Number.isSafeInteger(currentTime) || currentTime < 0) {
+      fail('INTERNAL_ERROR', 'design-system grant clock is invalid');
+    }
+    removeExpired(currentTime);
+    const previousHash = grantsByUser.get(binding.userKey);
+    if (previousHash === undefined && grants.size >= HOSTED_DESIGN_SYSTEM_GRANT_GLOBAL_LIMIT) {
+      fail('HOSTED_CAPACITY_EXHAUSTED', 'hosted design-system grant capacity is exhausted');
+    }
+    const carrierHash = secretHash(grantOptions.carrierToken);
+    if ([...grants].some(([hash, grant]) => (
+      hash !== previousHash && sameSecretHash(grant.carrierHash, carrierHash)
+    ))) {
+      carrierHash.fill(0);
+      fail('INTERNAL_ERROR', 'design-system grant carrier is already active');
+    }
+
     let token: string;
-    let hash: string;
+    let tokenHash: string;
     do {
-      token = `odds_${randomBytes(32).toString('base64url')}`;
-      hash = tokenHash(token);
-    } while (grants.has(hash));
-    const expiresAtMs = now() + ttlMs;
-    const timer = setTimeout(() => revokeHash(hash), ttlMs);
+      token = createSecret('odds_');
+      tokenHash = secretHashKey(token);
+    } while (grants.has(tokenHash));
+    const expiresAtMs = currentTime + ttlMs;
+    if (!Number.isSafeInteger(expiresAtMs)) {
+      fail('INTERNAL_ERROR', 'design-system grant lifetime is invalid');
+    }
+    const timer = setTimeout(() => revokeHash(tokenHash), ttlMs);
     timer.unref?.();
-    grants.set(hash, {
+    if (previousHash !== undefined) revokeHash(previousHash);
+    grants.set(tokenHash, {
+      tokenHash,
+      carrierHash,
       binding: Object.freeze({ ...binding }),
       allowedPaths: new Set(fixed.files.keys()),
       expiresAtMs,
       timer,
     });
-    return Object.freeze({ token, expiresAt: new Date(expiresAtMs).toISOString() });
+    grantsByUser.set(binding.userKey, tokenHash);
+    return Object.freeze({
+      token,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+    });
   };
 
   const authorize = (auth: HostedDesignSystemToolAuthInput): StoredGrant => {
@@ -223,19 +284,25 @@ export function createHostedDesignSystemToolAdapter(options: {
       || auth.cookiePresent !== false
       || auth.csrfPresent !== false
       || auth.origin !== null
-      || !auth.binding
       || typeof auth.token !== 'string'
-      || auth.token.length === 0
+      || !TOOL_TOKEN_PATTERN.test(auth.token)
+      || typeof auth.carrierToken !== 'string'
+      || !TOOL_CARRIER_PATTERN.test(auth.carrierToken)
     ) fail('UNAUTHORIZED', 'design-system broker authorization failed');
-    const hash = tokenHash(auth.token);
-    const grant = grants.get(hash);
-    if (!grant) fail('UNAUTHORIZED', 'design-system broker authorization failed');
-    if (now() >= grant.expiresAtMs) {
-      revokeHash(hash);
+
+    const grant = grants.get(secretHashKey(auth.token));
+    const suppliedCarrierHash = secretHash(auth.carrierToken);
+    const carrierMatches = sameSecretHash(
+      grant?.carrierHash ?? DUMMY_SECRET_HASH,
+      suppliedCarrierHash,
+    );
+    suppliedCarrierHash.fill(0);
+    if (!grant || !carrierMatches) {
       fail('UNAUTHORIZED', 'design-system broker authorization failed');
     }
-    if (!sameBinding(auth.binding, grant.binding)) {
-      fail('FORBIDDEN', 'design-system broker binding does not match');
+    if (now() >= grant.expiresAtMs) {
+      revokeHash(grant.tokenHash);
+      fail('UNAUTHORIZED', 'design-system broker authorization failed');
     }
     return grant;
   };
@@ -245,37 +312,55 @@ export function createHostedDesignSystemToolAdapter(options: {
     readonly readBody: () => unknown | Promise<unknown>;
   }): Promise<HostedDesignSystemReadResponse> => {
     const grant = authorize(input.auth);
-    let rawBody: unknown;
+    const validation = options.validateBinding == null
+      ? null
+      : await options.validateBinding(grant.binding);
+    if (validation == null || typeof validation.release !== 'function') {
+      fail('FORBIDDEN', 'design-system broker binding is not active');
+    }
     try {
-      rawBody = await input.readBody();
-    } catch {
-      fail('BAD_REQUEST', 'design-system read request is invalid');
+      let rawBody: unknown;
+      try {
+        rawBody = await input.readBody();
+      } catch {
+        fail('BAD_REQUEST', 'design-system read request is invalid');
+      }
+      const request = exactReadRequest(rawBody);
+      if (
+        request.designSystemId !== undefined
+        && request.designSystemId !== grant.binding.designSystemId
+      ) fail('FORBIDDEN', 'design-system is outside the broker grant');
+      if (!grant.allowedPaths.has(request.path)) {
+        fail('NOT_FOUND', 'design-system content is not available');
+      }
+      const content = catalogue.get(grant.binding.designSystemId)?.files.get(request.path);
+      if (content === undefined) fail('NOT_FOUND', 'design-system content is not available');
+      return Object.freeze({ content });
+    } finally {
+      await validation.release();
     }
-    const request = exactReadRequest(rawBody);
-    if (
-      request.designSystemId !== undefined
-      && request.designSystemId !== grant.binding.designSystemId
-    ) fail('FORBIDDEN', 'design-system is outside the broker grant');
-    if (!grant.allowedPaths.has(request.path)) {
-      fail('NOT_FOUND', 'design-system content is not available');
-    }
-    const content = catalogue.get(grant.binding.designSystemId)?.files.get(request.path);
-    if (content === undefined) fail('NOT_FOUND', 'design-system content is not available');
-    return Object.freeze({ content });
   };
 
   const revoke = (token: string | null | undefined): boolean => (
-    typeof token === 'string' && token.length > 0
-      ? revokeHash(tokenHash(token))
+    typeof token === 'string' && TOOL_TOKEN_PATTERN.test(token)
+      ? revokeHash(secretHashKey(token))
       : false
   );
+
+  const revokeGeneration = (binding: {
+    readonly userKey: string;
+    readonly generation: number;
+  }): boolean => {
+    const hash = grantsByUser.get(binding.userKey);
+    const grant = hash === undefined ? undefined : grants.get(hash);
+    return grant?.binding.generation === binding.generation ? revokeHash(grant.tokenHash) : false;
+  };
 
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
-    for (const grant of grants.values()) clearTimeout(grant.timer);
-    grants.clear();
+    for (const hash of [...grants.keys()]) revokeHash(hash);
   };
 
-  return { mintGrant, read, revoke, dispose };
+  return { mintGrant, read, revoke, revokeGeneration, dispose };
 }

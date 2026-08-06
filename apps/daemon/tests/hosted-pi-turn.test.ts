@@ -14,6 +14,7 @@ import {
   type HostedPiTurnCapabilities,
   type HostedPiTurnInput,
 } from '../src/runtimes/hosted-pi-turn.js';
+import type { HostedPiDesignSystemGrantBinding } from '../src/runtimes/hosted-pi-runtime.js';
 
 const roots: string[] = [];
 
@@ -256,17 +257,27 @@ describe('startHostedPiTurn', () => {
 
   it('returns only a terminal value and opaque verified session reference', async () => {
     const f = fixture();
-    const caps = capabilities(f, 'a');
+    const caps = { ...capabilities(f, 'a'), designSystemId: 'calm-web' };
     const child = new MockPiChild();
     const spawns: SpawnRecord[] = [];
     const events: Array<{ channel: string; payload: Record<string, unknown> }> = [];
     const credential = { provider: 'anthropic' as const, key: 'lane-secret' };
+    const readUrl = 'https://host.example/api/tools/design-systems/read';
+    const designToolToken = `odds_${'t'.repeat(43)}`;
+    const revoke = vi.fn();
+    const mintGrant = vi.fn((_binding: HostedPiDesignSystemGrantBinding) => ({
+      token: designToolToken,
+      revoke,
+    }));
     vi.stubEnv('ANTHROPIC_API_KEY', 'ambient-secret');
     const turn = startHostedPiTurn(input(caps, {
       credential,
       prompt: 'prompt-not-in-argv',
       send: (channel, payload) => events.push({ channel, payload }),
-    }), turnDependencies(f, child, spawns));
+    }), {
+      ...turnDependencies(f, child, spawns),
+      designSystemTool: { readUrl, mintGrant },
+    });
     credential.key = 'mutated-after-start';
 
     await nextCommand(child, 'prompt');
@@ -275,6 +286,9 @@ describe('startHostedPiTurn', () => {
     const env = spawned.options.env as NodeJS.ProcessEnv;
     expect(env.ANTHROPIC_API_KEY).toBe('lane-secret');
     expect(env.AI_GATEWAY_API_KEY).toBeUndefined();
+    expect(env.OD_HOSTED_DESIGN_SYSTEM_READ_URL).toBe(readUrl);
+    expect(env.OD_TOOL_TOKEN).toBe(designToolToken);
+    expect(env.OD_DAEMON_URL).toBeUndefined();
     expect(Object.values(env)).not.toContain('ambient-secret');
     expect(spawned.args).not.toContain('lane-secret');
     expect(spawned.args).not.toContain('prompt-not-in-argv');
@@ -283,7 +297,7 @@ describe('startHostedPiTurn', () => {
       type: 'message_update',
       assistantMessageEvent: {
         type: 'text_delta',
-        delta: `hidden ${caps.projectRoot} lane-secret ${env.OD_HOSTED_PI_BROKER_TOKEN}`,
+        delta: `hidden ${caps.projectRoot} lane-secret ${env.OD_HOSTED_PI_BROKER_TOKEN} ${readUrl} ${designToolToken}`,
       },
     });
     const file = sessionFile(caps);
@@ -294,6 +308,15 @@ describe('startHostedPiTurn', () => {
       sessionReference: 'same-run/session.jsonl',
       value: { exitCode: 0, signal: null, status: 'succeeded' },
     });
+    expect(mintGrant).toHaveBeenCalledWith({
+      userKey: caps.userKey,
+      runId: caps.runId,
+      projectId: caps.projectId,
+      generation: caps.generation,
+      designSystemId: caps.designSystemId,
+      carrierToken: env.OD_HOSTED_PI_BROKER_TOKEN,
+    });
+    expect(revoke).toHaveBeenCalledTimes(1);
     const serialized = JSON.stringify({ events, result });
     for (const secret of [
       'lane-secret',
@@ -303,6 +326,8 @@ describe('startHostedPiTurn', () => {
       caps.uploadRoot,
       env.OD_HOSTED_PI_BROKER_TOKEN!,
       env.OD_HOSTED_PI_BROKER_SOCKET!,
+      env.OD_HOSTED_DESIGN_SYSTEM_READ_URL!,
+      env.OD_TOOL_TOKEN!,
     ]) expect(serialized).not.toContain(secret);
   });
 
@@ -387,13 +412,20 @@ describe('startHostedPiTurn', () => {
 
   it('revokes the grant after bounded cancel and verified exit fallback', async () => {
     const f = fixture();
-    const caps = capabilities(f, 'a');
+    const caps = { ...capabilities(f, 'a'), designSystemId: 'calm-web' };
     const child = new MockPiChild();
     const spawns: SpawnRecord[] = [];
     const controller = new AbortController();
+    const revoke = vi.fn();
     const turn = startHostedPiTurn(
       input(caps, { signal: controller.signal }),
-      turnDependencies(f, child, spawns),
+      {
+        ...turnDependencies(f, child, spawns),
+        designSystemTool: {
+          readUrl: 'https://host.example/api/tools/design-systems/read',
+          mintGrant: () => ({ token: `odds_${'t'.repeat(43)}`, revoke }),
+        },
+      },
     );
     await nextCommand(child, 'prompt');
     const file = sessionFile(caps, 'canceled.jsonl');
@@ -411,14 +443,22 @@ describe('startHostedPiTurn', () => {
       operation: 'project:file:list',
       path: '',
     })).rejects.toBeInstanceOf(Error);
+    expect(revoke).toHaveBeenCalledTimes(1);
   });
 
   it('returns a failed terminal value after safe crash reconciliation and rejects ambient input', async () => {
     const f = fixture();
-    const caps = capabilities(f, 'a');
+    const caps = { ...capabilities(f, 'a'), designSystemId: 'calm-web' };
     const child = new MockPiChild();
     const spawns: SpawnRecord[] = [];
-    const turn = startHostedPiTurn(input(caps), turnDependencies(f, child, spawns));
+    const revoke = vi.fn();
+    const turn = startHostedPiTurn(input(caps), {
+      ...turnDependencies(f, child, spawns),
+      designSystemTool: {
+        readUrl: 'https://host.example/api/tools/design-systems/read',
+        mintGrant: () => ({ token: `odds_${'t'.repeat(43)}`, revoke }),
+      },
+    });
     await nextCommand(child, 'prompt');
     const file = sessionFile(caps, 'crashed.jsonl');
     child.close(1, null);
@@ -432,6 +472,7 @@ describe('startHostedPiTurn', () => {
       operation: 'project:file:list',
       path: '',
     })).rejects.toBeInstanceOf(Error);
+    expect(revoke).toHaveBeenCalledTimes(1);
 
     const spawnInvalid = vi.fn();
     await expect(startHostedPiTurn(input(caps, { model: 'request-controlled/model' }), {

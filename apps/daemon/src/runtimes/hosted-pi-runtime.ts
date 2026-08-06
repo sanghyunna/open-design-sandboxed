@@ -27,6 +27,10 @@ export type HostedPiInvocationOptions = {
     token: string;
     extensionPath: string;
   };
+  designSystemTool?: {
+    readUrl: string;
+    token: string;
+  };
 };
 
 export type HostedPiInvocation = {
@@ -47,6 +51,8 @@ export type HostedPiRuntimeRequest = {
   projectId: string;
   projectRoot: string;
   cwd: string;
+  generation?: number;
+  designSystemId?: string | null;
   /** Server-owned credential captured by the hosted runtime lane. */
   credential?: HostedProviderCredential;
   model?: string | null;
@@ -56,6 +62,28 @@ export type HostedPiRuntimeRequest = {
 export type HostedPiRuntimeHandle = {
   invocation: HostedPiInvocation;
   close?: () => Promise<void>;
+};
+
+export type HostedPiDesignSystemGrantBinding = {
+  readonly userKey: string;
+  readonly runId: string;
+  readonly projectId: string;
+  readonly generation: number;
+  readonly designSystemId: string;
+  /** The existing turn-scoped Pi broker token, used only as an HTTP carrier binding. */
+  readonly carrierToken: string;
+};
+
+export type HostedPiDesignSystemGrant = {
+  readonly token: string;
+  revoke(): unknown | Promise<unknown>;
+};
+
+export type HostedPiDesignSystemTool = {
+  readonly readUrl: string;
+  readonly mintGrant: (
+    binding: HostedPiDesignSystemGrantBinding,
+  ) => HostedPiDesignSystemGrant | Promise<HostedPiDesignSystemGrant>;
 };
 
 export type HostedPiRuntimeAdapter = (
@@ -159,6 +187,37 @@ function resolveOwnedExtension(input: string, label: string): string {
   return resolved;
 }
 
+function exactDesignSystemReadUrl(input: string): string {
+  if (typeof input !== 'string' || input.length > 4_096 || /[\u0000-\u001f\u007f]/u.test(input)) {
+    throw new Error('hosted Pi design-system read URL is invalid');
+  }
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    throw new Error('hosted Pi design-system read URL is invalid');
+  }
+  if (
+    (url.protocol !== 'http:' && url.protocol !== 'https:')
+    || url.username !== ''
+    || url.password !== ''
+    || url.search !== ''
+    || url.hash !== ''
+    || url.pathname !== '/api/tools/design-systems/read'
+    || url.toString() !== input
+  ) {
+    throw new Error('hosted Pi design-system read URL is invalid');
+  }
+  return input;
+}
+
+function exactToolToken(input: string): string {
+  if (typeof input !== 'string' || !/^odds_[A-Za-z0-9_-]{43}$/u.test(input)) {
+    throw new Error('hosted Pi design-system tool token is invalid');
+  }
+  return input;
+}
+
 /**
  * Build the only supported hosted Pi child invocation.
  *
@@ -203,6 +262,13 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
     ownedExtensions.push(extensionPath);
     brokerEnv.OD_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
     brokerEnv.OD_HOSTED_PI_BROKER_TOKEN = options.broker.token;
+  }
+  if (options.designSystemTool) {
+    if (!options.broker) throw new Error('hosted Pi design-system tool requires the broker carrier');
+    brokerEnv.OD_HOSTED_DESIGN_SYSTEM_READ_URL = exactDesignSystemReadUrl(
+      options.designSystemTool.readUrl,
+    );
+    brokerEnv.OD_TOOL_TOKEN = exactToolToken(options.designSystemTool.token);
   }
   for (const extension of ownedExtensions) args.push('--extension', extension);
   if (options.broker) args.push('--tools', 'od_hosted_broker');

@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import {
   createApiError,
@@ -14,7 +15,35 @@ import {
   HostedSnapshotError,
   type HostedSnapshotStore,
 } from './hosted-snapshots.js';
-import { getProject, insertProject } from './db.js';
+import {
+  clearAgentSession,
+  deleteConversation,
+  deleteProject,
+  getConversation,
+  getProject,
+  insertConversation,
+  insertProject,
+  listConversations,
+  listMessages,
+  listPreviewComments,
+  listProjects,
+  listTabs,
+  setTabs,
+  updateConversation,
+  updateProject,
+  upsertAgentSession,
+  upsertMessage,
+  upsertPreviewComment,
+} from './db.js';
+import type {
+  HostedMetadataMutationOperation,
+  HostedMetadataReadOperation,
+} from './hosted-metadata-adapter.js';
+import type { NormalizedHostedRunIntentV1 } from './hosted-run-adapter.js';
+import type {
+  HostedPiTurnInput,
+  HostedPiTurnResult,
+} from './runtimes/hosted-pi-turn.js';
 import {
   createProjectCheckpointService,
   type ProjectCheckpointService,
@@ -35,21 +64,10 @@ const DEFAULT_LIMITS = Object.freeze({
   weakLeasesPerUser: 4,
 });
 
-type HostedRuntimeErrorCode = Extract<ApiErrorCode,
-  | 'HOSTED_AUTH_INVALID'
-  | 'HOSTED_CAPACITY_EXHAUSTED'
-  | 'HOSTED_OVERLOADED'
-  | 'HOSTED_QUOTA_EXCEEDED'
-  | 'HOSTED_RUNTIME_UNAVAILABLE'
-  | 'HOSTED_RUN_CANCELED'
-  | 'HOSTED_RUN_TIMED_OUT'
-  | 'HOSTED_SHUTDOWN_TIMEOUT'
->;
-
 export class HostedRuntimeError extends Error {
-  readonly code: HostedRuntimeErrorCode;
+  readonly code: ApiErrorCode;
 
-  constructor(code: HostedRuntimeErrorCode, message: string) {
+  constructor(code: ApiErrorCode, message: string) {
     super(message);
     this.name = 'HostedRuntimeError';
     this.code = code;
@@ -89,6 +107,19 @@ export interface HostedRuntimeRegistryOptions {
   readonly createRunService?: typeof createChatRunService;
   /** System-boundary seam for proving snapshot publication failures. */
   readonly createSnapshotStore?: typeof createHostedSnapshotStore;
+  /** Test-only deterministic identifier seam; production uses UUIDs. */
+  readonly createEntityId?: (
+    kind: 'project' | 'conversation' | 'message',
+    userKey: string,
+  ) => string;
+  /** Server-owned curated project catalogue membership. */
+  readonly projectCatalogueIds?: ReadonlySet<string>;
+  readonly skillCatalogueIds?: ReadonlySet<string>;
+  readonly designSystemCatalogueIds?: ReadonlySet<string>;
+  /** Process-boundary seam; production dynamically loads the hosted Pi turn. */
+  readonly startTurn?: (input: HostedPiTurnInput) => Promise<HostedPiTurnResult>;
+  /** Generation lifecycle hook for server-owned journals and scoped grants. */
+  readonly onGenerationRetired?: (binding: HostedRuntimeGenerationControl) => void;
 }
 
 export type HostedLeaseStrength = 'strong' | 'weak';
@@ -125,6 +156,11 @@ export interface HostedRunExecutionResult<T> {
 export interface HostedRunDispatch<T> {
   readonly runId: string;
   readonly conversationId: string;
+  readonly projectId?: string;
+  readonly assistantMessageId?: string;
+  readonly agentId?: string;
+  readonly clientRequestId?: string;
+  readonly onAdmitted?: () => void;
   readonly execute: (
     context: HostedRunExecutionContext,
   ) => Promise<HostedRunExecutionResult<T>>;
@@ -173,6 +209,37 @@ export type HostedRuntimeInternalOperation =
       readonly conversationId?: string | null;
     }
   | { readonly kind: 'run:get'; readonly runId: string }
+  | {
+      readonly kind: 'runs:list';
+      readonly projectId?: string;
+      readonly conversationId?: string;
+      readonly status?: string;
+    }
+  | { readonly kind: 'run:wait'; readonly runId: string }
+  | {
+      readonly kind: 'run:mutate';
+      readonly scope:
+        | { readonly kind: 'run'; readonly runId: string }
+        | { readonly kind: 'project'; readonly projectId: string };
+      readonly execute: () => unknown;
+    }
+  | {
+      readonly kind: 'run:start';
+      readonly runId: string;
+      readonly intent: NormalizedHostedRunIntentV1;
+      readonly model: string;
+      readonly modelCatalogue: readonly string[];
+      readonly thinkingCatalogue: readonly string[];
+      readonly onEvent: (channel: string, payload: Record<string, unknown>) => void;
+    }
+  | {
+      readonly kind: 'metadata:read';
+      readonly operation: HostedMetadataReadOperation;
+    }
+  | {
+      readonly kind: 'metadata:mutate';
+      readonly operation: HostedMetadataMutationOperation;
+    }
   | {
       readonly kind: 'snapshot:publish';
       readonly quiesce: () => Promise<void>;
@@ -235,7 +302,7 @@ interface LeaseState {
 }
 
 interface QueueEntryBase {
-  readonly kind: 'credential' | 'run' | 'snapshot';
+  readonly kind: 'credential' | 'mutation' | 'run' | 'snapshot';
   readonly reject: (reason: unknown) => void;
   admissionTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -263,7 +330,13 @@ interface SnapshotQueueEntry extends QueueEntryBase {
   }) => void;
 }
 
-type QueueEntry = RunQueueEntry | CredentialQueueEntry | SnapshotQueueEntry;
+interface MutationQueueEntry extends QueueEntryBase {
+  readonly kind: 'mutation';
+  readonly execute: () => unknown;
+  readonly resolve: (value: unknown) => void;
+}
+
+type QueueEntry = RunQueueEntry | CredentialQueueEntry | MutationQueueEntry | SnapshotQueueEntry;
 
 interface ActiveRun {
   readonly entry: RunQueueEntry;
@@ -316,6 +389,14 @@ export function createHostedRuntimeRegistry(
   const createStorage = options.createStorage ?? createHostedRuntimeStorage;
   const createRunService = options.createRunService ?? createChatRunService;
   const createSnapshotStore = options.createSnapshotStore ?? createHostedSnapshotStore;
+  const createEntityId = options.createEntityId ?? (() => randomUUID());
+  const projectCatalogueIds = options.projectCatalogueIds ?? new Set<string>();
+  const skillCatalogueIds = options.skillCatalogueIds ?? new Set<string>();
+  const designSystemCatalogueIds = options.designSystemCatalogueIds ?? new Set<string>();
+  const startTurn = options.startTurn ?? (async (input: HostedPiTurnInput) => {
+    const module = await import('./runtimes/hosted-pi-turn.js');
+    return module.startHostedPiTurn(input);
+  });
   const bindingsByUser = new Map<string, IdentityBinding>();
   const bindingsByStorage = new Map<string, IdentityBinding>();
   const runtimes = new Map<string, RuntimeState>();
@@ -460,6 +541,7 @@ export function createHostedRuntimeRegistry(
         db: storage.database,
         projectsRoot: storage.roots.projectsRoot,
       });
+      hydrateSessionReferences(runtime, storage, limits);
       if (
         runtimes.get(runtime.binding.userKey) !== runtime
         || runtime.lifecycle !== 'initializing'
@@ -660,6 +742,14 @@ export function createHostedRuntimeRegistry(
       }
       const ownedRun = runServiceFor(runtime).createWithId(operation.runId, {
         conversationId: operation.conversationId,
+        ...(operation.projectId === undefined ? {} : { projectId: operation.projectId }),
+        ...(operation.assistantMessageId === undefined
+          ? {}
+          : { assistantMessageId: operation.assistantMessageId }),
+        ...(operation.agentId === undefined ? {} : { agentId: operation.agentId }),
+        ...(operation.clientRequestId === undefined
+          ? {}
+          : { clientRequestId: operation.clientRequestId }),
       });
 
       return new Promise<T>((resolve, reject) => {
@@ -682,6 +772,7 @@ export function createHostedRuntimeRegistry(
             'hosted run admission timed out',
           ));
         }, admissionTimeoutMs));
+        operation.onAdmitted?.();
         pump(runtime);
       });
     } catch (error) {
@@ -745,6 +836,60 @@ export function createHostedRuntimeRegistry(
               ? 'HOSTED_CAPACITY_EXHAUSTED'
               : 'HOSTED_OVERLOADED',
             'hosted credential mutation admission timed out',
+          ));
+        }, admissionTimeoutMs));
+        pump(runtime);
+      });
+    } catch (error) {
+      releaseStrong(runtime);
+      throw error;
+    }
+  }
+
+  function enqueueMutation(
+    runtime: RuntimeState,
+    execute: () => unknown,
+  ): Promise<unknown> {
+    try {
+      acquireStrong(runtime);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    return enqueueMutationAfterReady(runtime, execute);
+  }
+
+  async function enqueueMutationAfterReady(
+    runtime: RuntimeState,
+    execute: () => unknown,
+  ): Promise<unknown> {
+    try {
+      if (runtime.lifecycle === 'initializing') await waitForRuntime(runtime);
+      else assertRuntimeAvailable(runtime);
+      if (runtime.queue.length >= limits.queuedMutationsPerUser) {
+        throw new HostedRuntimeError('HOSTED_OVERLOADED', 'hosted user mutation queue is full');
+      }
+      if (queuedMutations >= limits.queuedMutationsGlobal) {
+        throw new HostedRuntimeError(
+          'HOSTED_CAPACITY_EXHAUSTED',
+          'hosted process mutation queue is full',
+        );
+      }
+      return new Promise((resolve, reject) => {
+        const entry: MutationQueueEntry = {
+          admissionTimer: null,
+          execute,
+          kind: 'mutation',
+          reject,
+          resolve,
+        };
+        runtime.queue.push(entry);
+        queuedMutations += 1;
+        entry.admissionTimer = unrefTimer(setTimeout(() => {
+          removeQueued(runtime, entry, new HostedRuntimeError(
+            runtime.active == null && !runtime.snapshotActive
+              ? 'HOSTED_CAPACITY_EXHAUSTED'
+              : 'HOSTED_OVERLOADED',
+            'hosted mutation admission timed out',
           ));
         }, admissionTimeoutMs));
         pump(runtime);
@@ -889,6 +1034,21 @@ export function createHostedRuntimeRegistry(
       );
       return;
     }
+    if (entry.kind === 'mutation') {
+      try {
+        const value = entry.execute();
+        releaseStrong(runtime);
+        entry.resolve(value);
+      } catch (error) {
+        releaseStrong(runtime);
+        entry.reject(error);
+      }
+      pump(runtime);
+      pumpAll();
+      scheduleIdleEviction(runtime);
+      tryFinishShutdown();
+      return;
+    }
     const abort = new AbortController();
     const active: ActiveRun = {
       abort,
@@ -942,6 +1102,7 @@ export function createHostedRuntimeRegistry(
         const previous = runtime.sessions.get(conversationId);
         const previousBytes = previous == null ? 0 : Buffer.byteLength(previous, 'utf8');
         if (sessionReference == null) {
+          clearAgentSession(storageFor(runtime).database, conversationId, 'pi');
           runtime.sessions.delete(conversationId);
           runtime.sessionReferenceBytes -= previousBytes;
         } else {
@@ -955,6 +1116,14 @@ export function createHostedRuntimeRegistry(
               'HOSTED_QUOTA_EXCEEDED',
               'hosted user session reference bytes exceeded',
             );
+          }
+          const database = storageFor(runtime).database;
+          if (getConversation(database, conversationId) != null) {
+            upsertAgentSession(database, {
+              agentId: 'pi',
+              conversationId,
+              sessionId: sessionReference,
+            });
           }
           runtime.sessions.set(conversationId, sessionReference);
           runtime.sessionReferenceBytes = runtime.sessionReferenceBytes - previousBytes + nextBytes;
@@ -1119,6 +1288,14 @@ export function createHostedRuntimeRegistry(
     }
     try {
       runtime.storage?.close();
+    } catch (error) {
+      errors.push(error);
+    }
+    try {
+      options.onGenerationRetired?.({
+        generation,
+        userKey: runtime.binding.userKey,
+      });
     } catch (error) {
       errors.push(error);
     }
@@ -1301,12 +1478,206 @@ export function createHostedRuntimeRegistry(
           const runService = runServiceFor(state.runtime);
           const run = runService.get(operation.runId);
           if (run == null) return null;
-          const status = runService.statusBody(run);
+          return runService.statusBody(run);
+        }
+        case 'runs:list': {
+          await waitForRuntime(state.runtime);
+          if (operation.projectId !== undefined) {
+            requireOwnedProject(state.runtime, operation.projectId);
+          }
+          if (operation.conversationId !== undefined) {
+            const conversation = getConversation(
+              storageFor(state.runtime).database,
+              operation.conversationId,
+            );
+            if (conversation == null) {
+              throw new HostedRuntimeError(
+                'CONVERSATION_NOT_FOUND',
+                'hosted conversation was not found',
+              );
+            }
+            if (
+              operation.projectId !== undefined
+              && conversation.projectId !== operation.projectId
+            ) {
+              throw new HostedRuntimeError(
+                'CONVERSATION_NOT_FOUND',
+                'hosted conversation was not found',
+              );
+            }
+          }
+          const runService = runServiceFor(state.runtime);
           return {
-            conversationId: status.conversationId,
-            runId: status.id,
-            status: status.status,
+            runs: runService.list({
+              ...(operation.projectId === undefined
+                ? {}
+                : { projectId: operation.projectId }),
+              ...(operation.conversationId === undefined
+                ? {}
+                : { conversationId: operation.conversationId }),
+              ...(operation.status === undefined ? {} : { status: operation.status }),
+            }).filter((run: { projectId?: unknown }) => typeof run.projectId === 'string')
+              .map((run: unknown) => runService.statusBody(run)),
           };
+        }
+        case 'run:wait': {
+          validateInternalId(operation.runId, 'run');
+          await waitForRuntime(state.runtime);
+          const runService = runServiceFor(state.runtime);
+          const run = runService.get(operation.runId);
+          return run == null ? null : runService.wait(run);
+        }
+        case 'run:mutate': {
+          return enqueueMutation(state.runtime, () => {
+            if (operation.scope.kind === 'project') {
+              requireOwnedProject(state.runtime, operation.scope.projectId);
+            } else {
+              validateInternalId(operation.scope.runId, 'run');
+              if (runServiceFor(state.runtime).get(operation.scope.runId) == null) {
+                throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
+              }
+            }
+            return operation.execute();
+          });
+        }
+        case 'run:start': {
+          await waitForRuntime(state.runtime);
+          const intent = operation.intent;
+          validateHostedRunIntentOwnership(state.runtime, intent);
+          if (state.runtime.credential == null) {
+            throw new HostedRuntimeError(
+              'HOSTED_PROVIDER_MISSING',
+              'hosted provider credential is not configured',
+            );
+          }
+          let admittedResolve!: () => void;
+          let admittedReject!: (error: unknown) => void;
+          const admitted = new Promise<void>((resolve, reject) => {
+            admittedResolve = resolve;
+            admittedReject = reject;
+          });
+          let terminalResult: HostedPiTurnResult['value'] | null = null;
+          const completion = dispatch(lease, {
+            runId: operation.runId,
+            conversationId: intent.conversationId,
+            projectId: intent.projectId,
+            assistantMessageId: intent.assistantMessageId,
+            agentId: intent.agentId,
+            clientRequestId: intent.clientRequestId,
+            onAdmitted: admittedResolve,
+            execute: async ({ credential, sessionReference, signal }) => {
+              validateHostedRunIntentOwnership(state.runtime, intent);
+              if (credential == null) {
+                throw new HostedRuntimeError(
+                  'HOSTED_PROVIDER_MISSING',
+                  'hosted provider credential is not configured',
+                );
+              }
+              const storage = storageFor(state.runtime);
+              const projectRoot = exactOwnedProjectRoot(
+                storage.roots.projectsRoot,
+                intent.projectId,
+              );
+              operation.onEvent('run.lifecycle', {
+                kind: 'run.lifecycle',
+                runId: operation.runId,
+                status: 'started',
+                ts: Date.now(),
+              });
+              const result = await startTurn({
+                capabilities: {
+                  generation: state.runtime.generation,
+                  userKey: state.runtime.binding.userKey,
+                  runId: operation.runId,
+                  projectId: intent.projectId,
+                  projectRoot,
+                  brokerRoot: storage.roots.brokerRoot,
+                  sessionRoot: storage.roots.sessionsRoot,
+                  uploadRoot: storage.roots.uploadsRoot,
+                  modelCatalogue: operation.modelCatalogue,
+                  thinkingCatalogue: operation.thinkingCatalogue,
+                  designSystemId: intent.designSystemId,
+                },
+                credential,
+                prompt: intent.currentPrompt,
+                model: operation.model,
+                thinking: intent.reasoning,
+                sessionReference,
+                imagePaths: [],
+                signal,
+                send: operation.onEvent,
+              });
+              terminalResult = result.value;
+              if (result.value.status === 'canceled') {
+                throw new HostedRuntimeError('HOSTED_RUN_CANCELED', 'hosted run was canceled');
+              }
+              if (result.value.status === 'failed') {
+                throw new HostedRuntimeError(
+                  'INTERNAL_ERROR',
+                  'hosted Pi turn failed',
+                );
+              }
+              return {
+                sessionReference: result.sessionReference,
+                value: {
+                  runId: operation.runId,
+                  conversationId: intent.conversationId,
+                  assistantMessageId: intent.assistantMessageId,
+                },
+              };
+            },
+          });
+          void completion.then(
+            () => {
+              try {
+                operation.onEvent('run.lifecycle', {
+                  kind: 'run.lifecycle',
+                  runId: operation.runId,
+                  status: 'completed',
+                  exitCode: terminalResult?.exitCode ?? 0,
+                  signal: terminalResult?.signal ?? null,
+                  ts: Date.now(),
+                });
+              } catch {
+                // The turn already settled; journal exhaustion cannot reopen it.
+              }
+            },
+            (error: unknown) => {
+              admittedReject(error);
+              try {
+                operation.onEvent('run.lifecycle', {
+                  kind: 'run.lifecycle',
+                  runId: operation.runId,
+                  status: error instanceof HostedRuntimeError
+                    && error.code === 'HOSTED_RUN_CANCELED'
+                    ? 'cancelled'
+                    : 'failed',
+                  errorCode: error instanceof HostedRuntimeError ? error.code : 'INTERNAL_ERROR',
+                  exitCode: terminalResult?.exitCode ?? null,
+                  signal: terminalResult?.signal ?? null,
+                  ts: Date.now(),
+                });
+              } catch {
+                // The run registry already owns the terminal error.
+              }
+            },
+          );
+          await admitted;
+          return {
+            runId: operation.runId,
+            conversationId: intent.conversationId,
+            assistantMessageId: intent.assistantMessageId,
+          };
+        }
+        case 'metadata:read': {
+          await waitForRuntime(state.runtime);
+          return executeMetadataRead(state.runtime, operation.operation);
+        }
+        case 'metadata:mutate': {
+          return enqueueMutation(
+            state.runtime,
+            () => executeMetadataMutation(state.runtime, operation.operation),
+          );
         }
         case 'snapshot:publish': {
           return publishSnapshot(state.runtime, operation.quiesce);
@@ -1314,6 +1685,359 @@ export function createHostedRuntimeRegistry(
       }
     } catch (error) {
       return Promise.reject(error);
+    }
+  }
+
+  function executeMetadataRead(
+    runtime: RuntimeState,
+    operation: HostedMetadataReadOperation,
+  ): unknown {
+    const storage = storageFor(runtime);
+    switch (operation.kind) {
+      case 'projects.list':
+        return { projects: listProjects(storage.database) };
+      case 'project.get':
+        return { project: requireOwnedProject(runtime, operation.projectId) };
+      case 'conversations.list':
+        requireOwnedProject(runtime, operation.projectId);
+        return { conversations: listConversations(storage.database, operation.projectId) };
+      case 'messages.list':
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        return {
+          messages: listMessages(storage.database, operation.conversationId).map(hostedMessageRow),
+        };
+      case 'comments.list':
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        return {
+          comments: listPreviewComments(
+            storage.database,
+            operation.projectId,
+            operation.conversationId,
+          ),
+        };
+      case 'tabs.get':
+        requireOwnedProject(runtime, operation.projectId);
+        return listTabs(storage.database, operation.projectId);
+      case 'checkpoints.list':
+        requireOwnedProject(runtime, operation.projectId);
+        if (operation.conversationId !== undefined) {
+          requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        }
+        return {
+          checkpoints: checkpointServiceFor(runtime).listCheckpoints(
+            operation.projectId,
+            operation.conversationId,
+          ),
+        };
+      case 'checkpoint.get':
+        requireOwnedProject(runtime, operation.projectId);
+        return {
+          checkpoint: checkpointServiceFor(runtime).getCheckpoint(
+            operation.projectId,
+            operation.checkpointId,
+          ),
+        };
+      case 'checkpoint.diff':
+        requireOwnedProject(runtime, operation.projectId);
+        return checkpointServiceFor(runtime).diffCheckpoint(
+          operation.projectId,
+          operation.checkpointId,
+        );
+    }
+  }
+
+  function executeMetadataMutation(
+    runtime: RuntimeState,
+    operation: HostedMetadataMutationOperation,
+  ): unknown {
+    const storage = storageFor(runtime);
+    const db = storage.database;
+    switch (operation.kind) {
+      case 'project.create': {
+        const catalogueId = operation.body.catalogueId;
+        if (catalogueId !== undefined && !projectCatalogueIds.has(catalogueId)) {
+          throw new HostedRuntimeError('BAD_REQUEST', 'hosted project catalogue selection is invalid');
+        }
+        const id = nextEntityId(runtime, 'project');
+        const now = Date.now();
+        createOwnedProjectRoot(storage.roots.projectsRoot, id);
+        try {
+          const project = insertProject(db, {
+            id,
+            name: operation.body.title,
+            createdAt: now,
+            updatedAt: now,
+            metadata: {
+              kind: operation.body.kind ?? 'prototype',
+              ...(catalogueId === undefined ? {} : { catalogueId }),
+            },
+          });
+          return { project };
+        } catch (error) {
+          removeOwnedProjectRoot(storage.roots.projectsRoot, id);
+          throw error;
+        }
+      }
+      case 'project.patch': {
+        requireOwnedProject(runtime, operation.projectId);
+        const project = updateProject(db, operation.projectId, {
+          ...(operation.body.title === undefined ? {} : { name: operation.body.title }),
+        });
+        return { project };
+      }
+      case 'project.delete': {
+        requireOwnedProject(runtime, operation.projectId);
+        const conversations = listConversations(db, operation.projectId);
+        deleteProject(db, operation.projectId);
+        for (const conversation of conversations) forgetSession(runtime, conversation.id);
+        removeOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
+        return { ok: true };
+      }
+      case 'conversation.create': {
+        requireOwnedProject(runtime, operation.projectId);
+        const source = operation.body.seedFromConversationId === undefined
+          ? null
+          : requireOwnedConversation(
+              runtime,
+              operation.projectId,
+              operation.body.seedFromConversationId,
+            );
+        if (operation.body.forkAfterMessageId !== undefined && source == null) {
+          throw new HostedRuntimeError(
+            'CONVERSATION_NOT_FOUND',
+            'hosted fork source conversation was not found',
+          );
+        }
+        let seedMessages = source == null ? [] : listMessages(db, source.id);
+        if (operation.body.forkAfterMessageId !== undefined) {
+          const index = seedMessages.findIndex(
+            (message) => message.id === operation.body.forkAfterMessageId,
+          );
+          if (index < 0) {
+            throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted fork message was not found');
+          }
+          seedMessages = seedMessages.slice(0, index + 1);
+        }
+        const id = nextEntityId(runtime, 'conversation');
+        const now = Date.now();
+        const conversation = insertConversation(db, {
+          id,
+          projectId: operation.projectId,
+          title: operation.body.title ?? null,
+          sessionMode: operation.body.sessionMode ?? source?.sessionMode ?? 'design',
+          createdAt: now,
+          updatedAt: now,
+        });
+        for (const message of seedMessages) {
+          upsertMessage(db, id, cloneHostedMessage(runtime, message));
+        }
+        return { conversation };
+      }
+      case 'conversation.patch': {
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        return {
+          conversation: updateConversation(db, operation.conversationId, operation.body),
+        };
+      }
+      case 'conversation.delete':
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        deleteConversation(db, operation.conversationId);
+        forgetSession(runtime, operation.conversationId);
+        return { ok: true };
+      case 'message.upsert': {
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        assertMessageIdentifierAvailable(db, operation.conversationId, operation.messageId);
+        if (operation.body.agentId !== undefined && operation.body.agentId !== 'pi') {
+          throw new HostedRuntimeError('BAD_REQUEST', 'hosted agent is outside the fixed catalogue');
+        }
+        if (operation.body.runId !== undefined) {
+          const run = runServiceFor(runtime).get(operation.body.runId);
+          if (run == null || run.conversationId !== operation.conversationId) {
+            throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
+          }
+        }
+        assertOwnedCommentIds(runtime, operation.conversationId, operation.body.commentIds);
+        assertUnavailableContentIds(operation.body.attachmentIds, 'attachment');
+        assertUnavailableContentIds(operation.body.producedFileIds, 'produced file');
+        const hostedState = {
+          ...(operation.body.resumable === undefined
+            ? {}
+            : { resumable: operation.body.resumable }),
+          ...(operation.body.telemetryFinalized === undefined
+            ? {}
+            : { telemetryFinalized: operation.body.telemetryFinalized }),
+        };
+        const message = upsertMessage(db, operation.conversationId, {
+          id: operation.messageId,
+          role: operation.body.role,
+          content: operation.body.content,
+          agentId: operation.body.agentId,
+          events: operation.body.events,
+          runId: operation.body.runId,
+          runStatus: operation.body.runStatus,
+          lastRunEventId: operation.body.lastRunEventId,
+          startedAt: operation.body.startedAt,
+          endedAt: operation.body.endedAt,
+          sessionMode: operation.body.sessionMode,
+          attachments: operation.body.attachmentIds,
+          commentAttachments: operation.body.commentIds,
+          producedFiles: operation.body.producedFileIds,
+          ...(Object.keys(hostedState).length === 0
+            ? {}
+            : { runContext: { hosted: hostedState } }),
+        });
+        updateProject(db, operation.projectId, {});
+        return { message: hostedMessageRow(message) };
+      }
+      case 'comment.create': {
+        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
+        for (const attachment of operation.body.attachments ?? []) {
+          if (!ownedRelativeFile(storage.roots.projectsRoot, operation.projectId, attachment.path)) {
+            throw new HostedRuntimeError('FILE_NOT_FOUND', 'hosted comment attachment was not found');
+          }
+        }
+        return {
+          comment: upsertPreviewComment(
+            db,
+            operation.projectId,
+            operation.conversationId,
+            operation.body,
+          ),
+        };
+      }
+      case 'tabs.put':
+        requireOwnedProject(runtime, operation.projectId);
+        return setTabs(db, operation.projectId, {
+          tabs: operation.body.tabs ?? [],
+          active: operation.body.active ?? null,
+          browserTabs: operation.body.browserTabs ?? [],
+        });
+    }
+  }
+
+  function requireOwnedProject(runtime: RuntimeState, projectId: string) {
+    const project = getProject(storageFor(runtime).database, projectId);
+    if (project == null) {
+      throw new HostedRuntimeError('PROJECT_NOT_FOUND', 'hosted project was not found');
+    }
+    return project;
+  }
+
+  function requireOwnedConversation(
+    runtime: RuntimeState,
+    projectId: string,
+    conversationId: string,
+  ) {
+    requireOwnedProject(runtime, projectId);
+    const conversation = getConversation(storageFor(runtime).database, conversationId);
+    if (conversation == null || conversation.projectId !== projectId) {
+      throw new HostedRuntimeError('CONVERSATION_NOT_FOUND', 'hosted conversation was not found');
+    }
+    return conversation;
+  }
+
+  function nextEntityId(
+    runtime: RuntimeState,
+    kind: 'project' | 'conversation' | 'message',
+  ): string {
+    const id = createEntityId(kind, runtime.binding.userKey);
+    validateInternalId(id, kind);
+    return id;
+  }
+
+  function cloneHostedMessage(runtime: RuntimeState, message: Record<string, unknown>) {
+    return {
+      id: nextEntityId(runtime, 'message'),
+      role: message.role,
+      content: message.content,
+      agentId: message.agentId,
+      agentName: message.agentName,
+      events: message.events,
+      attachments: message.attachments,
+      commentAttachments: message.commentAttachments,
+      producedFiles: message.producedFiles,
+      sessionMode: message.sessionMode,
+    };
+  }
+
+  function forgetSession(runtime: RuntimeState, conversationId: string): void {
+    const reference = runtime.sessions.get(conversationId);
+    if (reference == null) return;
+    runtime.sessions.delete(conversationId);
+    runtime.sessionReferenceBytes -= Buffer.byteLength(reference, 'utf8');
+  }
+
+  function assertOwnedCommentIds(
+    runtime: RuntimeState,
+    conversationId: string,
+    commentIds: readonly string[] | undefined,
+  ): void {
+    if (commentIds === undefined || commentIds.length === 0) return;
+    const conversation = getConversation(storageFor(runtime).database, conversationId);
+    if (conversation == null) {
+      throw new HostedRuntimeError('CONVERSATION_NOT_FOUND', 'hosted conversation was not found');
+    }
+    const owned = new Set(listPreviewComments(
+      storageFor(runtime).database,
+      conversation.projectId,
+      conversationId,
+    ).map((comment) => comment.id));
+    if (commentIds.some((id) => !owned.has(id))) {
+      throw new HostedRuntimeError('NOT_FOUND', 'hosted comment was not found');
+    }
+  }
+
+  function assertUnavailableContentIds(
+    ids: readonly string[] | undefined,
+    label: string,
+  ): void {
+    if (ids !== undefined && ids.length > 0) {
+      throw new HostedRuntimeError('FILE_NOT_FOUND', `hosted ${label} was not found`);
+    }
+  }
+
+  function validateHostedRunIntentOwnership(
+    runtime: RuntimeState,
+    intent: NormalizedHostedRunIntentV1,
+  ): void {
+    validateInternalId(intent.projectId, 'project');
+    validateInternalId(intent.conversationId, 'conversation');
+    validateInternalId(intent.assistantMessageId, 'message');
+    if (intent.agentId !== 'pi') {
+      throw new HostedRuntimeError('BAD_REQUEST', 'hosted agent is outside the fixed catalogue');
+    }
+    requireOwnedProject(runtime, intent.projectId);
+    requireOwnedConversation(runtime, intent.projectId, intent.conversationId);
+    const message = listMessages(
+      storageFor(runtime).database,
+      intent.conversationId,
+    ).find((candidate) => candidate.id === intent.assistantMessageId);
+    if (message == null || message.role !== 'assistant') {
+      throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
+    }
+    for (const id of intent.skillIds) {
+      if (!skillCatalogueIds.has(id)) {
+        throw new HostedRuntimeError('BAD_REQUEST', 'hosted skill is outside the fixed catalogue');
+      }
+    }
+    if (
+      intent.designSystemId !== null
+      && !designSystemCatalogueIds.has(intent.designSystemId)
+    ) {
+      throw new HostedRuntimeError(
+        'BAD_REQUEST',
+        'hosted design system is outside the fixed catalogue',
+      );
+    }
+    if (
+      intent.attachmentIds.length > 0
+      || intent.commentAttachmentIds.length > 0
+      || intent.contextSelectionIds.length > 0
+    ) {
+      throw new HostedRuntimeError(
+        'BAD_REQUEST',
+        'hosted content attachments are unavailable before content activation',
+      );
     }
   }
 
@@ -1328,6 +2052,123 @@ export function createHostedRuntimeRegistry(
   internalOperationsByRegistry.set(registry, dispatchInternalOperation);
   poisonByRegistry.set(registry, poison);
   return registry;
+}
+
+function hostedMessageRow(message: Record<string, any> | null) {
+  if (message == null) return null;
+  const hosted = message.runContext?.hosted;
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    ...(message.agentId === undefined ? {} : { agentId: message.agentId }),
+    ...(message.agentName === undefined ? {} : { agentName: message.agentName }),
+    ...(message.events === undefined ? {} : { events: message.events }),
+    ...(message.runId === undefined ? {} : { runId: message.runId }),
+    ...(message.runStatus === undefined ? {} : { runStatus: message.runStatus }),
+    ...(hosted?.resumable === undefined ? {} : { resumable: hosted.resumable }),
+    ...(message.lastRunEventId === undefined
+      ? {}
+      : { lastRunEventId: message.lastRunEventId }),
+    ...(message.startedAt === undefined ? {} : { startedAt: Number(message.startedAt) }),
+    ...(message.endedAt === undefined ? {} : { endedAt: Number(message.endedAt) }),
+    ...(message.sessionMode === undefined ? {} : { sessionMode: message.sessionMode }),
+    ...(message.attachments === undefined ? {} : { attachmentIds: message.attachments }),
+    ...(message.commentAttachments === undefined
+      ? {}
+      : { commentIds: message.commentAttachments }),
+    ...(message.producedFiles === undefined
+      ? {}
+      : { producedFileIds: message.producedFiles }),
+    ...(message.createdAt === undefined ? {} : { createdAt: Number(message.createdAt) }),
+    ...(hosted?.telemetryFinalized === undefined
+      ? {}
+      : { telemetryFinalized: hosted.telemetryFinalized }),
+  };
+}
+
+function assertMessageIdentifierAvailable(
+  db: HostedRuntimeStorage['database'],
+  conversationId: string,
+  messageId: string,
+): void {
+  const existing = db.prepare(
+    'SELECT conversation_id AS conversationId FROM messages WHERE id = ?',
+  ).get(messageId) as { conversationId?: unknown } | undefined;
+  if (existing != null && existing.conversationId !== conversationId) {
+    throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
+  }
+}
+
+function createOwnedProjectRoot(projectsRoot: string, projectId: string): void {
+  const root = fs.realpathSync(projectsRoot);
+  const target = path.join(root, projectId);
+  fs.mkdirSync(target);
+  const stat = fs.lstatSync(target);
+  const resolved = fs.realpathSync(target);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFsPath(path.dirname(resolved), root)) {
+    try { fs.rmSync(target, { recursive: true, force: true }); } catch { /* preserve primary failure */ }
+    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
+  }
+}
+
+function exactOwnedProjectRoot(projectsRoot: string, projectId: string): string {
+  const root = fs.realpathSync(projectsRoot);
+  const target = path.join(root, projectId);
+  const stat = fs.lstatSync(target);
+  const resolved = fs.realpathSync(target);
+  if (
+    !stat.isDirectory()
+    || stat.isSymbolicLink()
+    || !sameFsPath(path.dirname(resolved), root)
+  ) {
+    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
+  }
+  return resolved;
+}
+
+function removeOwnedProjectRoot(projectsRoot: string, projectId: string): void {
+  const root = fs.realpathSync(projectsRoot);
+  const target = path.join(root, projectId);
+  if (!fs.existsSync(target)) return;
+  const stat = fs.lstatSync(target);
+  const resolved = fs.realpathSync(target);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFsPath(path.dirname(resolved), root)) {
+    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
+  }
+  fs.rmSync(resolved, { recursive: true, force: false });
+}
+
+function ownedRelativeFile(
+  projectsRoot: string,
+  projectId: string,
+  relativePath: string,
+): boolean {
+  try {
+    const projectRoot = fs.realpathSync(path.join(projectsRoot, projectId));
+    let current = projectRoot;
+    for (const segment of relativePath.split('/')) {
+      current = path.join(current, segment);
+      const stat = fs.lstatSync(current);
+      if (stat.isSymbolicLink()) return false;
+    }
+    const stat = fs.statSync(current);
+    const resolved = fs.realpathSync(current);
+    const relative = path.relative(projectRoot, resolved);
+    return stat.isFile()
+      && relative !== ''
+      && !path.isAbsolute(relative)
+      && relative !== '..'
+      && !relative.startsWith(`..${path.sep}`);
+  } catch {
+    return false;
+  }
+}
+
+function sameFsPath(left: string, right: string): boolean {
+  const a = path.resolve(left);
+  const b = path.resolve(right);
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
 
 export function validateHostedProviderCredential(
@@ -1378,6 +2219,38 @@ function validateInternalId(value: string, label: string): void {
 function validateSessionReference(value: string): void {
   if (value.length < 1 || value.length > 32_768 || value.includes('\u0000')) {
     throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted session reference is invalid');
+  }
+}
+
+function hydrateSessionReferences(
+  runtime: RuntimeState,
+  storage: HostedRuntimeStorage,
+  limits: HostedRuntimeLimits,
+): void {
+  const rows = storage.database.prepare(
+    `SELECT conversation_id AS conversationId, session_id AS sessionReference
+       FROM agent_sessions
+      WHERE agent_id = 'pi'
+      ORDER BY conversation_id
+      LIMIT ?`,
+  ).all(limits.sessionReferencesPerUser + 1) as Array<{
+    conversationId?: unknown;
+    sessionReference?: unknown;
+  }>;
+  if (rows.length > limits.sessionReferencesPerUser) {
+    runtimeUnavailable('hosted session reference quota is invalid');
+  }
+  for (const row of rows) {
+    if (typeof row.conversationId !== 'string' || typeof row.sessionReference !== 'string') {
+      runtimeUnavailable('hosted session reference is invalid');
+    }
+    validateInternalId(row.conversationId, 'conversation');
+    validateSessionReference(row.sessionReference);
+    runtime.sessionReferenceBytes += Buffer.byteLength(row.sessionReference, 'utf8');
+    if (runtime.sessionReferenceBytes > limits.sessionReferenceBytesPerUser) {
+      runtimeUnavailable('hosted session reference quota is invalid');
+    }
+    runtime.sessions.set(row.conversationId, row.sessionReference);
   }
 }
 

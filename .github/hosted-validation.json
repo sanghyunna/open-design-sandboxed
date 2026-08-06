@@ -12,5 +12,10 @@
     "pnpm --filter @open-design/tools-pack test tests/workspace-build.test.ts",
     "pnpm guard",
     "pnpm typecheck"
+  ],
+  "pr07": [
+    "pnpm --filter @open-design/daemon test tests/hosted-pr07-http.test.ts tests/hosted-catalogue-adapter.test.ts tests/hosted-design-system-tool-adapter.test.ts tests/hosted-event-journal.test.ts tests/hosted-metadata-adapter.test.ts tests/hosted-run-adapter.test.ts tests/hosted-sse-adapter.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-pi-runtime.test.ts tests/hosted-pi-turn.test.ts tests/hosted-request-boundary.test.ts",
+    "pnpm guard",
+    "pnpm typecheck"
   ]
 }

@@ -28,7 +28,8 @@ export const HOSTED_EVENT_GLOBAL_LIMITS = Object.freeze({
 export type HostedEventChannel =
   | { kind: 'owner' }
   | { kind: 'project'; projectId: string }
-  | { kind: 'run'; runId: string };
+  | { kind: 'run'; runId: string }
+  | { kind: 'run-ui'; runId: string };
 
 export interface HostedEventRecord {
   at: number;
@@ -235,6 +236,7 @@ export function createHostedEventJournal(options: {
   const generationTag = createHash('sha256').update(options.generation).digest('base64url');
   const events: StoredEvent[] = [];
   const connections = new Set<EventConnection>();
+  const closedChannels = new Set<string>();
   let eventBytes = 0;
   let evictedThrough = 0;
   let nextSequence = 1;
@@ -427,6 +429,10 @@ export function createHostedEventJournal(options: {
       ) continue;
       writeToConnection(connection, frameForEvent(record));
     }
+    if (closedChannels.has(scope)) {
+      detach(connection);
+      if (!input.response.destroyed && !input.response.writableEnded) input.response.end();
+    }
     return {
       close: () => {
         const response = connection.response;
@@ -487,6 +493,18 @@ export function createHostedEventJournal(options: {
       }
       return publicRecord;
     },
+    close(channel: HostedEventChannel): void {
+      const scope = channelKey(channel);
+      closedChannels.add(scope);
+      for (const connection of [...connections]) {
+        if (connection.channelKey !== scope) continue;
+        const response = connection.response;
+        detach(connection);
+        if (!response.destroyed && !response.writableEnded) {
+          try { response.end(); } catch { /* The peer has already gone away. */ }
+        }
+      }
+    },
     attach,
     replay,
     dispose(): void {
@@ -502,6 +520,7 @@ export function createHostedEventJournal(options: {
       options.budget.adjustEvents(-events.length, -eventBytes);
       events.length = 0;
       eventBytes = 0;
+      closedChannels.clear();
     },
   };
 }

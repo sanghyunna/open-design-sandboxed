@@ -8,6 +8,7 @@ import {
 } from '../hosted-runtime-registry.js';
 import { attachPiRpcSession } from '../pi-rpc.js';
 import { createHostedPiRuntimeAdapter } from './hosted-pi-adapter.js';
+import type { HostedPiDesignSystemTool } from './hosted-pi-runtime.js';
 
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/u;
 const MAX_PROMPT_BYTES = 4 * 1024 * 1024;
@@ -26,6 +27,7 @@ export type HostedPiTurnCapabilities = {
   readonly uploadRoot: string;
   readonly modelCatalogue: readonly string[];
   readonly thinkingCatalogue: readonly string[];
+  readonly designSystemId?: string | null;
 };
 
 export type HostedPiTurnInput = {
@@ -81,14 +83,17 @@ export type HostedPiTurnDependencies = {
   readonly spawnChild?: SpawnChild;
   /** Test/deployment seam; production resolves the pinned installed package. */
   readonly packageRoot?: string;
+  /** Server composition seam for the exact hosted design-system read capability. */
+  readonly designSystemTool?: HostedPiDesignSystemTool;
 };
 
 type ResolvedCapabilities = Omit<
   HostedPiTurnCapabilities,
-  'modelCatalogue' | 'thinkingCatalogue'
+  'modelCatalogue' | 'thinkingCatalogue' | 'designSystemId'
 > & {
   readonly modelCatalogue: ReadonlySet<string>;
   readonly thinkingCatalogue: ReadonlySet<string>;
+  readonly designSystemId: string | null;
 };
 
 type ChildExit = {
@@ -127,6 +132,7 @@ export async function startHostedPiTurn(
     runtimeRoot: capabilities.brokerRoot,
     sessionRoot: capabilities.sessionRoot,
     ...(packageRoot ? { packageRoot } : {}),
+    ...(dependencies.designSystemTool ? { designSystemTool: dependencies.designSystemTool } : {}),
   });
   const spawnChild = dependencies.spawnChild ?? defaultSpawnChild;
   let handle: Awaited<ReturnType<typeof runtime>> | null = null;
@@ -145,6 +151,8 @@ export async function startHostedPiTurn(
       projectId: capabilities.projectId,
       projectRoot: capabilities.projectRoot,
       cwd: capabilities.projectRoot,
+      generation: capabilities.generation,
+      designSystemId: capabilities.designSystemId,
       ...(request.credential ? { credential: request.credential } : {}),
       model: request.model,
       thinking: request.thinking,
@@ -326,6 +334,7 @@ function resolveCapabilities(input: HostedPiTurnCapabilities): ResolvedCapabilit
     brokerRoot,
     sessionRoot,
     uploadRoot,
+    designSystemId: input.designSystemId ?? null,
     modelCatalogue: catalogue(input.modelCatalogue, 'model'),
     thinkingCatalogue: catalogue(input.thinkingCatalogue, 'thinking'),
   });
@@ -525,6 +534,8 @@ function sensitiveValues(
     packageRoot,
     env.OD_HOSTED_PI_BROKER_SOCKET,
     env.OD_HOSTED_PI_BROKER_TOKEN,
+    env.OD_HOSTED_DESIGN_SYSTEM_READ_URL,
+    env.OD_TOOL_TOKEN,
   ].filter((value): value is string => typeof value === 'string' && value.length > 0))];
 }
 

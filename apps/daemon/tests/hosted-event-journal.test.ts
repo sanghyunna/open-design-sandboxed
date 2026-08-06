@@ -90,6 +90,30 @@ describe('hosted event journal', () => {
     journal.dispose();
   });
 
+  it('ends live and replayed streams after their run channel closes', () => {
+    const budget = createHostedEventBudget();
+    const journal = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      ownerKey: 'owner-a',
+    });
+    const channel = { kind: 'run' as const, runId: 'run-1' };
+    const live = new FakeResponse();
+    journal.attach({ ownerKey: 'owner-a', channel, response: live });
+    journal.publish(channel, 'run.finished', { status: 'succeeded' });
+
+    journal.close(channel);
+
+    expect(live.writableEnded).toBe(true);
+    expect(budget.snapshot().connections).toBe(0);
+    const replay = new FakeResponse();
+    journal.attach({ ownerKey: 'owner-a', channel, response: replay });
+    expect(replay.writes.at(-1)).toContain('event: run.finished');
+    expect(replay.writableEnded).toBe(true);
+    expect(budget.snapshot().connections).toBe(0);
+    journal.dispose();
+  });
+
   it('returns an explicit resync event when a reconnect cursor has fallen out of the bounded journal', () => {
     const budget = createHostedEventBudget();
     const journal = createHostedEventJournal({
