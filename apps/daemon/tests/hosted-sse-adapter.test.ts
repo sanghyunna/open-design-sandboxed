@@ -88,6 +88,28 @@ describe('hosted SSE adapter', () => {
     expect(base.response.headers).toEqual({});
   });
 
+  it('removes SSE headers when connection admission is overloaded', () => {
+    const adapter = createHostedSseAdapter({
+      acquireWeak: () => ({
+        generation: 1,
+        journal: {
+          attach: () => ({ code: 'HOSTED_OVERLOADED' as const, kind: 'overloaded' as const }),
+        },
+        ownerKey: 'owner-a',
+        release() {},
+      }),
+    });
+    const response = new FakeResponse();
+
+    expect(adapter.openProjectStream({
+      generation: 1,
+      ownerKey: 'owner-a',
+      projectId: 'project-1',
+      response,
+    })).toEqual({ code: 'HOSTED_OVERLOADED', kind: 'overloaded' });
+    expect(response.headers).toEqual({});
+  });
+
   it('releases and rejects a weak lease whose owner or generation does not match the authenticated binding', () => {
     const budget = createHostedEventBudget();
     const journal = createHostedEventJournal({ budget, generation: '2', ownerKey: 'owner-b' });
@@ -301,6 +323,10 @@ class FakeResponse extends EventEmitter {
 
   setHeader(name: string, value: string): void {
     this.headers[name] = value;
+  }
+
+  removeHeader(name: string): void {
+    delete this.headers[name];
   }
 
   flushHeaders(): void {

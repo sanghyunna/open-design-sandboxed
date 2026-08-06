@@ -27,6 +27,7 @@ function fixture(): { root: string; project: string; binding: HostedPiBinding } 
     root,
     project,
     binding: {
+      generation: 7,
       userKey: 'user-a',
       runId: 'run-a',
       projectId: 'project-a',
@@ -104,6 +105,7 @@ describe('hosted Pi broker', () => {
       assert.equal(stableList.entries?.includes('external.txt'), false);
 
       for (const mismatch of [
+        { generation: 8 },
         { userKey: 'user-b' },
         { runId: 'run-b' },
         { projectId: 'project-b' },

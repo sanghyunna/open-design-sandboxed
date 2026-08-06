@@ -322,6 +322,126 @@ describe('HostedRuntimeRegistry', () => {
     }
   });
 
+  it('keeps async failures inside the per-user mutation lane until they settle', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-async-lane-'));
+    const registry = createRegistry({ runtimeRoot });
+    const lease = registry.acquire({ userKey: 'a' });
+    const now = Date.now();
+    const started = deferred();
+    const release = deferred();
+    const order: string[] = [];
+    try {
+      await dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'project-a', name: 'Project A', createdAt: now, updatedAt: now },
+        runId: 'seed-project',
+      });
+      const first = dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'run:mutate',
+        scope: { kind: 'project', projectId: 'project-a' },
+        execute: async () => {
+          order.push('first:start');
+          started.resolve();
+          await release.promise;
+          order.push('first:reject');
+          throw new Error('expected mutation failure');
+        },
+      });
+      await started.promise;
+      const second = dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'run:mutate',
+        scope: { kind: 'project', projectId: 'project-a' },
+        execute: () => {
+          order.push('second');
+          return 'done';
+        },
+      });
+      await Promise.resolve();
+      expect(order).toEqual(['first:start']);
+
+      release.resolve();
+      await expect(first).rejects.toThrow('expected mutation failure');
+      await expect(second).resolves.toBe('done');
+      expect(order).toEqual(['first:start', 'first:reject', 'second']);
+    } finally {
+      release.resolve();
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('runs terminal finalization before the next queued operation can enter the lane', async () => {
+    const registry = createRegistry();
+    const lease = registry.acquire({ userKey: 'a' });
+    const started = deferred();
+    const release = deferred();
+    const order: string[] = [];
+    try {
+      const first = registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'first',
+        execute: async () => {
+          order.push('first:start');
+          started.resolve();
+          await release.promise;
+          order.push('first:end');
+          return { value: 'first' };
+        },
+        onTerminal(error) {
+          expect(error).toBeNull();
+          order.push('first:terminal');
+        },
+      });
+      await started.promise;
+      const second = registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'second',
+        execute: async () => {
+          order.push('second:start');
+          return { value: 'second' };
+        },
+      });
+
+      release.resolve();
+      await expect(first).resolves.toBe('first');
+      await expect(second).resolves.toBe('second');
+      expect(order).toEqual([
+        'first:start',
+        'first:end',
+        'first:terminal',
+        'second:start',
+      ]);
+    } finally {
+      release.resolve();
+      lease.release();
+      await registry.shutdown();
+    }
+  });
+
+  it('bounds retained terminal runs per hosted runtime', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-run-bound-'));
+    const registry = createRegistry({ runtimeRoot, limits: { retainedRunsPerUser: 1 } });
+    const lease = registry.acquire({ userKey: 'a' });
+    try {
+      await expect(registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'first-run',
+        execute: async () => ({ value: 'done' }),
+      })).resolves.toBe('done');
+      await expect(registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'second-run',
+        execute: async () => ({ value: 'should-not-run' }),
+      })).rejects.toMatchObject({ code: 'HOSTED_OVERLOADED' });
+    } finally {
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
   it('poisons only a failed publisher and restores its last valid snapshot', async () => {
     const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-publish-fail-'));
     let failA = false;

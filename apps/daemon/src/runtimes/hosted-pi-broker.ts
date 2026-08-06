@@ -37,6 +37,8 @@ export const HOSTED_PI_BROKER_OPERATIONS = [
 export type HostedPiBrokerOperation = (typeof HOSTED_PI_BROKER_OPERATIONS)[number];
 
 export type HostedPiBinding = {
+  /** Runtime generation that owns this turn-scoped capability. */
+  generation: number;
   /** Server-authenticated identity; never accepted from a broker request. */
   userKey: string;
   /** Daemon-created run identifier. */
@@ -53,6 +55,7 @@ export type HostedPiBinding = {
 
 export type HostedPiBrokerGrant = {
   token: string;
+  generation: number;
   userKey: string;
   runId: string;
   projectId: string;
@@ -281,7 +284,8 @@ function targetInsideProject(root: string, relative: string, allowMissing: boole
 }
 
 function bindingMatches(expected: HostedPiBinding, grant: HostedPiBrokerGrant): boolean {
-  return expected.userKey === grant.userKey
+  return expected.generation === grant.generation
+    && expected.userKey === grant.userKey
     && expected.runId === grant.runId
     && expected.projectId === grant.projectId
     && comparable(expected.projectRoot) === comparable(grant.projectRoot);
@@ -429,6 +433,9 @@ export async function createHostedPiBroker(options: {
   runtimeRoot: string;
 }): Promise<HostedPiBroker> {
   const binding = options.binding;
+  if (!Number.isSafeInteger(binding.generation) || binding.generation < 1) {
+    throw new Error('hosted Pi broker generation is invalid');
+  }
   validBindingValue(binding.userKey, 'user key');
   validBindingValue(binding.runId, 'run id');
   validBindingValue(binding.projectId, 'project id');
@@ -443,6 +450,7 @@ export async function createHostedPiBroker(options: {
   const allowedEndpoints = normalizeEndpoints(binding.allowedEndpoints);
   const grant: HostedPiBrokerGrant = Object.freeze({
     token: createToken(),
+    generation: binding.generation,
     userKey: binding.userKey,
     runId: binding.runId,
     projectId: binding.projectId,

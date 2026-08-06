@@ -156,6 +156,7 @@ describe('hosted Pi runtime', () => {
         userKey: 'user-a',
         runId: 'run-a',
         projectId: 'project-a',
+        generation: 1,
         projectRoot: fixture.project,
       },
     });
@@ -187,6 +188,7 @@ describe('hosted Pi runtime', () => {
       userKey: 'authenticated-user',
       runId: 'run-a',
       projectId: 'project-a',
+      generation: 1,
       projectRoot: fixture.project,
       cwd: fixture.project,
       model: 'fixture/model',

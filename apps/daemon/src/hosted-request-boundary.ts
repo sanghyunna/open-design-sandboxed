@@ -419,23 +419,22 @@ export function createHostedRequestBodyGuard(): RequestHandler {
 function requestPath(request: Request): string | null {
   const originalUrl = request.originalUrl || request.url || request.path;
   const rawPath = originalUrl.split('?', 1)[0] ?? '';
-  if (
-    !rawPath.startsWith('/') ||
-    rawPath.includes('\\') ||
-    rawPath.includes('//') ||
-    /%/u.test(rawPath)
-  ) {
-    return null;
-  }
-  const normalized = normalizePath(request.path || rawPath);
+  const normalized = normalizePath(rawPath);
   return normalized == null || containsPathOwnershipMetadata(normalized) ? null : normalized;
+}
+
+/** Validate the untouched request target before Express can decode or normalize route aliases. */
+export function hasCanonicalHostedRawPath(request: Request): boolean {
+  const originalUrl = request.originalUrl || request.url || request.path;
+  const rawPath = originalUrl.split('?', 1)[0] ?? '';
+  return normalizePath(rawPath) === rawPath;
 }
 
 function normalizePath(path: string): string | null {
   if (!path.startsWith('/') || path.includes('\\') || path.includes('//')) return null;
   if (path.length > 2048 || /[\u0000-\u001f\u007f%]/u.test(path)) return null;
   if (path.split('/').some((segment) => segment === '.' || segment === '..')) return null;
-  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1);
+  if (path.length > 1 && path.endsWith('/')) return null;
   return path;
 }
 

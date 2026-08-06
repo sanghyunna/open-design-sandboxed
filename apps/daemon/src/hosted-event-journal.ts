@@ -237,6 +237,7 @@ export function createHostedEventJournal(options: {
   const events: StoredEvent[] = [];
   const connections = new Set<EventConnection>();
   const closedChannels = new Set<string>();
+  const invalidatedThrough = new Map<string, number>();
   let eventBytes = 0;
   let evictedThrough = 0;
   let nextSequence = 1;
@@ -267,7 +268,9 @@ export function createHostedEventJournal(options: {
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
       return { kind: 'resync', reason: 'cursor-invalid' };
     }
-    if (sequence <= evictedThrough) return { kind: 'resync', reason: 'cursor-expired' };
+    if (sequence <= Math.max(evictedThrough, invalidatedThrough.get(scope) ?? 0)) {
+      return { kind: 'resync', reason: 'cursor-expired' };
+    }
     return { kind: 'ok', sequence };
   };
 
@@ -285,6 +288,7 @@ export function createHostedEventJournal(options: {
       if (parsed.kind === 'resync') return parsed;
       afterSequence = parsed.sequence;
     }
+    afterSequence = Math.max(afterSequence, invalidatedThrough.get(scope) ?? 0);
     return {
       kind: 'events',
       events: events
@@ -503,6 +507,16 @@ export function createHostedEventJournal(options: {
         if (!response.destroyed && !response.writableEnded) {
           try { response.end(); } catch { /* The peer has already gone away. */ }
         }
+      }
+    },
+    invalidate(channel: HostedEventChannel): void {
+      const scope = channelKey(channel);
+      invalidatedThrough.set(scope, nextSequence - 1);
+      for (const connection of [...connections]) {
+        if (connection.channelKey !== scope) continue;
+        const response = connection.response;
+        detach(connection);
+        writeResync(response, 'cursor-expired');
       }
     },
     attach,

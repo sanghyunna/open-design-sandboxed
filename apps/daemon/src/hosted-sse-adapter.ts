@@ -8,6 +8,7 @@ export const HOSTED_LAST_EVENT_ID_MAX_BYTES = 256;
 
 export interface HostedSseResponse extends HostedEventResponse {
   flushHeaders(): void;
+  removeHeader(name: string): void;
   setHeader(name: string, value: string): void;
 }
 
@@ -68,6 +69,12 @@ function setSseHeaders(response: HostedSseResponse): void {
   response.setHeader('X-Accel-Buffering', 'no');
 }
 
+function clearSseHeaders(response: HostedSseResponse): void {
+  for (const name of ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering']) {
+    response.removeHeader(name);
+  }
+}
+
 export function createHostedSseAdapter(options: {
   acquireWeak: AcquireHostedSseWeakLease;
 }) {
@@ -116,6 +123,7 @@ export function createHostedSseAdapter(options: {
     }
     if (attached.kind !== 'attached') {
       release();
+      if (attached.kind !== 'resync') clearSseHeaders(input.response);
       return attached;
     }
     if (input.response.destroyed || input.response.writableEnded) {

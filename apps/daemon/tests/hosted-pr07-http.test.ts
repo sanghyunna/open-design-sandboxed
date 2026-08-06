@@ -41,6 +41,17 @@ describe('hosted PR07 HTTP surface', () => {
     await expect(readdir(runtimeRoots.at(-1)!)).resolves.toEqual([]);
   });
 
+  it('closes the HTTP listener even when runtime shutdown fails', async () => {
+    const started = await start({
+      shutdownRegistry: async () => { throw new Error('injected registry shutdown failure'); },
+    });
+    startedServers.splice(startedServers.indexOf(started), 1);
+
+    await expect(started.shutdown()).rejects.toThrow('injected registry shutdown failure');
+    expect(started.server.listening).toBe(false);
+    await expect(fetch(`${started.url}/api/health`)).rejects.toThrow();
+  });
+
   it('holds body capacity through request completion and releases it after timeout', async () => {
     const started = await start({ bodyReadTimeoutMs: 500 });
     const csrf = await getCsrfToken(started, USER_A);
@@ -64,6 +75,27 @@ describe('hosted PR07 HTTP surface', () => {
       '/api/projects',
       { title: 'capacity released' },
     ));
+  });
+
+  it('does not report a committed conversation as failed when event capacity is exhausted', async () => {
+    const started = await start({ eventBudgetLimits: { maxBytes: 1 } });
+    const csrf = await getCsrfToken(started, USER_A);
+    const project = await createProject(started, USER_A, csrf, 'event pressure');
+
+    const conversation = await createConversation(
+      started,
+      USER_A,
+      csrf,
+      project.id,
+      'committed once',
+    );
+    expect(conversation.title).toBe('committed once');
+    const listed = await json<{ conversations: Conversation[] }>(fetchJson(
+      started,
+      USER_A,
+      `/api/projects/${project.id}/conversations`,
+    ));
+    expect(listed.conversations).toEqual([expect.objectContaining({ id: conversation.id })]);
   });
 
   it('isolates project, conversation, message, comment, tab, and checkpoint metadata by identity', async () => {
@@ -973,13 +1005,11 @@ describe('hosted PR07 HTTP surface', () => {
     const path = `/api/projects/${project.id}/events`;
     const streams = await Promise.all(Array.from({ length: 4 }, () => openSse(started, USER_A, path)));
 
-    await expectError(
-      fetch(`${started.url}${path}`, {
-        headers: { ...auth(USER_A), accept: 'text/event-stream' },
-      }),
-      429,
-      'HOSTED_OVERLOADED',
-    );
+    const overloaded = await fetch(`${started.url}${path}`, {
+      headers: { ...auth(USER_A), accept: 'text/event-stream' },
+    });
+    expect(overloaded.headers.get('content-type')).toContain('application/json');
+    await expectError(Promise.resolve(overloaded), 429, 'HOSTED_OVERLOADED');
 
     closeSse(streams[0]!);
     let replacement: SseStream | null = null;
@@ -1045,12 +1075,38 @@ describe('hosted PR07 HTTP surface', () => {
       await expectError(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', `${method} ${path}`);
     }
   });
+
+  it('rejects non-canonical raw paths before Express routing or ownership lookup', async () => {
+    const started = await start();
+    const csrf = await getCsrfToken(started, USER_A);
+    const project = await createProject(started, USER_A, csrf, 'Canonical path');
+    await expectSuccess(fetchJson(started, USER_A, `/api/projects/${project.id}`));
+
+    for (const rawPath of [
+      '/api/projects/%73ame-project-1',
+      `/api//projects/${project.id}`,
+      `/api/projects\\${project.id}`,
+      `/api/projects/./${project.id}`,
+      `/api/projects/${project.id}/.`,
+      `/api/projects/${project.id}/`,
+    ]) {
+      await expectRawError(
+        rawGet(started, USER_B, rawPath),
+        404,
+        'HOSTED_ROUTE_NOT_ALLOWED',
+      );
+    }
+  });
 });
 
 async function start(
   runComposition: Pick<
     HostedTestComposition,
-    'bodyReadTimeoutMs' | 'createRunId' | 'startTurn'
+    | 'bodyReadTimeoutMs'
+    | 'createRunId'
+    | 'eventBudgetLimits'
+    | 'shutdownRegistry'
+    | 'startTurn'
   > = {},
 ): Promise<StartedServer> {
   const runtimeRoot = await mkdtemp(join(tmpdir(), 'od-hosted-pr07-'));
@@ -1203,6 +1259,32 @@ async function getCsrfToken(started: StartedServer, user: string): Promise<strin
 
 function fetchJson(started: StartedServer, user: string, path: string): Promise<Response> {
   return fetch(`${started.url}${path}`, { headers: auth(user) });
+}
+
+function rawGet(
+  started: StartedServer,
+  user: string,
+  rawPath: string,
+): Promise<{ body: string; status: number }> {
+  const target = new URL(started.url);
+  return new Promise((resolve, reject) => {
+    const request = httpRequest({
+      hostname: target.hostname,
+      method: 'GET',
+      path: rawPath,
+      port: target.port,
+      headers: auth(user),
+    }, (response) => {
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      response.once('end', () => resolve({
+        body: Buffer.concat(chunks).toString('utf8'),
+        status: response.statusCode ?? 0,
+      }));
+    });
+    request.once('error', reject);
+    request.end();
+  });
 }
 
 function mutate(

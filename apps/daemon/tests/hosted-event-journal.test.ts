@@ -239,6 +239,39 @@ describe('hosted event journal', () => {
     expect(budget.snapshot()).toEqual({ bufferedBytes: 0, bytes: 0, connections: 0, events: 0 });
   });
 
+  it('resyncs an invalidated channel and accepts later events after pressure clears', () => {
+    const budget = createHostedEventBudget({ maxEvents: 1, maxBytes: 10_000 });
+    const pressure = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      ownerKey: 'owner-a',
+    });
+    const journal = createHostedEventJournal({
+      budget,
+      generation: 'generation-one',
+      ownerKey: 'owner-b',
+    });
+    const channel = { kind: 'project' as const, projectId: 'project-1' };
+    const live = new FakeResponse();
+    journal.attach({ ownerKey: 'owner-b', channel, response: live });
+    pressure.publish({ kind: 'owner' }, 'owner.updated', { value: 1 });
+    expect(() => journal.publish(channel, 'conversation-created', { value: 1 })).toThrow();
+
+    journal.invalidate(channel);
+    expect(live.writes.at(-1)).toBe('event: resync\ndata: {"reason":"cursor-expired"}\n\n');
+    expect(live.writableEnded).toBe(true);
+    pressure.dispose();
+
+    const later = journal.publish(channel, 'conversation-created', { value: 2 });
+    const reconnect = new FakeResponse();
+    expect(journal.attach({ ownerKey: 'owner-b', channel, response: reconnect }))
+      .toMatchObject({ kind: 'attached' });
+    expect(reconnect.writes).toEqual([
+      `id: ${later.cursor}\nevent: conversation-created\ndata: {"value":2}\n\n`,
+    ]);
+    journal.dispose();
+  });
+
   it('enforces per-owner and global journal byte ceilings', () => {
     const ownerBudget = createHostedEventBudget();
     const ownerJournal = createHostedEventJournal({

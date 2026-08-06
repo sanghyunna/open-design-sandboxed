@@ -55,6 +55,7 @@ const DEFAULT_LIMITS = Object.freeze({
   identityBindings: 65_536,
   queuedMutationsGlobal: 512,
   queuedMutationsPerUser: 16,
+  retainedRunsPerUser: 1_000,
   residentRuntimes: 64,
   sessionReferenceBytesPerUser: 1024 * 1024,
   sessionReferencesPerUser: 1_000,
@@ -83,6 +84,7 @@ export interface HostedRuntimeLimits {
   readonly identityBindings: number;
   readonly queuedMutationsGlobal: number;
   readonly queuedMutationsPerUser: number;
+  readonly retainedRunsPerUser: number;
   readonly residentRuntimes: number;
   readonly sessionReferenceBytesPerUser: number;
   readonly sessionReferencesPerUser: number;
@@ -161,6 +163,8 @@ export interface HostedRunDispatch<T> {
   readonly agentId?: string;
   readonly clientRequestId?: string;
   readonly onAdmitted?: () => void;
+  /** Runs synchronously after owned run-state settles and before this user's lane is released. */
+  readonly onTerminal?: (error: unknown | null) => void;
   readonly execute: (
     context: HostedRunExecutionContext,
   ) => Promise<HostedRunExecutionResult<T>>;
@@ -311,6 +315,7 @@ interface RunQueueEntry extends QueueEntryBase {
   readonly kind: 'run';
   readonly ownedRun: ReturnType<ReturnType<typeof createChatRunService>['create']>;
   readonly execute: HostedRunDispatch<unknown>['execute'];
+  readonly onTerminal?: HostedRunDispatch<unknown>['onTerminal'];
   readonly resolve: (value: unknown) => void;
 }
 
@@ -361,7 +366,7 @@ interface RuntimeState {
   resolveReady: () => void;
   runService: ReturnType<typeof createChatRunService> | null;
   sessionReferenceBytes: number;
-  snapshotActive: boolean;
+  laneOperationActive: boolean;
   storage: HostedRuntimeStorage | null;
   strongLeases: number;
 }
@@ -497,7 +502,7 @@ export function createHostedRuntimeRegistry(
         runService: null,
         sessionReferenceBytes: 0,
         sessions: new Map(),
-        snapshotActive: false,
+        laneOperationActive: false,
         snapshotStore,
         storage: null,
         strongLeases: 0,
@@ -740,7 +745,11 @@ export function createHostedRuntimeRegistry(
           'hosted process mutation queue is full',
         );
       }
-      const ownedRun = runServiceFor(runtime).createWithId(operation.runId, {
+      const runService = runServiceFor(runtime);
+      if (runService.list().length >= limits.retainedRunsPerUser) {
+        throw new HostedRuntimeError('HOSTED_OVERLOADED', 'hosted retained run capacity is exhausted');
+      }
+      const ownedRun = runService.createWithId(operation.runId, {
         conversationId: operation.conversationId,
         ...(operation.projectId === undefined ? {} : { projectId: operation.projectId }),
         ...(operation.assistantMessageId === undefined
@@ -757,6 +766,7 @@ export function createHostedRuntimeRegistry(
           admissionTimer: null,
           execute: operation.execute as HostedRunDispatch<unknown>['execute'],
           kind: 'run',
+          ...(operation.onTerminal === undefined ? {} : { onTerminal: operation.onTerminal }),
           ownedRun,
           reject,
           resolve: resolve as (value: unknown) => void,
@@ -764,7 +774,7 @@ export function createHostedRuntimeRegistry(
         runtime.queue.push(entry);
         queuedMutations += 1;
         entry.admissionTimer = unrefTimer(setTimeout(() => {
-          const code = runtime.active == null && !runtime.snapshotActive
+          const code = runtime.active == null && !runtime.laneOperationActive
             ? 'HOSTED_CAPACITY_EXHAUSTED'
             : 'HOSTED_OVERLOADED';
           removeQueued(runtime, entry, new HostedRuntimeError(
@@ -832,7 +842,7 @@ export function createHostedRuntimeRegistry(
         queuedMutations += 1;
         entry.admissionTimer = unrefTimer(setTimeout(() => {
           removeQueued(runtime, entry, new HostedRuntimeError(
-            runtime.active == null && !runtime.snapshotActive
+            runtime.active == null && !runtime.laneOperationActive
               ? 'HOSTED_CAPACITY_EXHAUSTED'
               : 'HOSTED_OVERLOADED',
             'hosted credential mutation admission timed out',
@@ -886,7 +896,7 @@ export function createHostedRuntimeRegistry(
         queuedMutations += 1;
         entry.admissionTimer = unrefTimer(setTimeout(() => {
           removeQueued(runtime, entry, new HostedRuntimeError(
-            runtime.active == null && !runtime.snapshotActive
+            runtime.active == null && !runtime.laneOperationActive
               ? 'HOSTED_CAPACITY_EXHAUSTED'
               : 'HOSTED_OVERLOADED',
             'hosted mutation admission timed out',
@@ -940,7 +950,7 @@ export function createHostedRuntimeRegistry(
         queuedMutations += 1;
         entry.admissionTimer = unrefTimer(setTimeout(() => {
           removeQueued(runtime, entry, new HostedRuntimeError(
-            runtime.active == null && !runtime.snapshotActive
+            runtime.active == null && !runtime.laneOperationActive
               ? 'HOSTED_CAPACITY_EXHAUSTED'
               : 'HOSTED_OVERLOADED',
             'hosted snapshot publication admission timed out',
@@ -980,7 +990,7 @@ export function createHostedRuntimeRegistry(
       shuttingDown
       || runtime.lifecycle !== 'active'
       || runtime.active != null
-      || runtime.snapshotActive
+      || runtime.laneOperationActive
       || runtime.queue.length === 0
     ) return;
     const next = runtime.queue[0];
@@ -999,13 +1009,13 @@ export function createHostedRuntimeRegistry(
       return;
     }
     if (entry.kind === 'snapshot') {
-      runtime.snapshotActive = true;
+      runtime.laneOperationActive = true;
       void runtime.snapshotStore.publish({
         quiesce: entry.quiesce,
         storage: storageFor(runtime),
       }).then(
         (publication) => {
-          runtime.snapshotActive = false;
+          runtime.laneOperationActive = false;
           releaseStrong(runtime);
           entry.resolve({
             bytes: publication.bytes,
@@ -1018,7 +1028,7 @@ export function createHostedRuntimeRegistry(
           tryFinishShutdown();
         },
         (cause) => {
-          runtime.snapshotActive = false;
+          runtime.laneOperationActive = false;
           const error = new HostedRuntimeError(
             cause instanceof HostedSnapshotError
               ? cause.code
@@ -1035,18 +1045,15 @@ export function createHostedRuntimeRegistry(
       return;
     }
     if (entry.kind === 'mutation') {
-      try {
-        const value = entry.execute();
+      runtime.laneOperationActive = true;
+      void Promise.resolve().then(entry.execute).then(entry.resolve, entry.reject).finally(() => {
+        runtime.laneOperationActive = false;
         releaseStrong(runtime);
-        entry.resolve(value);
-      } catch (error) {
-        releaseStrong(runtime);
-        entry.reject(error);
-      }
-      pump(runtime);
-      pumpAll();
-      scheduleIdleEviction(runtime);
-      tryFinishShutdown();
+        pump(runtime);
+        pumpAll();
+        scheduleIdleEviction(runtime);
+        tryFinishShutdown();
+      });
       return;
     }
     const abort = new AbortController();
@@ -1140,6 +1147,7 @@ export function createHostedRuntimeRegistry(
       error = finalizationError;
       poisonRuntime(runtime, finalizationError);
     }
+    notifyRunTerminal(active.entry, error);
     releaseStrong(runtime);
     if (error == null && result != null) {
       active.entry.resolve(result.value);
@@ -1183,6 +1191,14 @@ export function createHostedRuntimeRegistry(
     }
   }
 
+  function notifyRunTerminal(entry: RunQueueEntry, error: unknown): void {
+    try {
+      entry.onTerminal?.(error ?? null);
+    } catch {
+      // A server-owned event sink cannot reopen a run after owned state settled.
+    }
+  }
+
   function pumpAll(): void {
     if (activeChildren >= limits.activeChildren) return;
     for (const runtime of runtimes.values()) {
@@ -1206,6 +1222,7 @@ export function createHostedRuntimeRegistry(
       ? settleOwnedRun(runtime, entry, error)
       : null;
     if (finalizationError != null) poisonRuntime(runtime, finalizationError);
+    if (entry.kind === 'run') notifyRunTerminal(entry, finalizationError ?? error);
     releaseStrong(runtime);
     entry.reject(finalizationError ?? error);
     pump(runtime);
@@ -1241,7 +1258,7 @@ export function createHostedRuntimeRegistry(
       || runtime.lifecycle !== 'active'
       || runtime.strongLeases !== 0
       || runtime.active != null
-      || runtime.snapshotActive
+      || runtime.laneOperationActive
       || runtime.queue.length !== 0
       || runtimes.get(runtime.binding.userKey) !== runtime
     ) return;
@@ -1254,7 +1271,7 @@ export function createHostedRuntimeRegistry(
         && runtime.lifecycle === 'active'
         && runtime.strongLeases === 0
         && runtime.active == null
-        && !runtime.snapshotActive
+        && !runtime.laneOperationActive
         && runtime.queue.length === 0
       ) {
         try {
@@ -1317,7 +1334,7 @@ export function createHostedRuntimeRegistry(
       runtime.lifecycle !== 'poisoned'
       || runtime.strongLeases !== 0
       || runtime.active != null
-      || runtime.snapshotActive
+      || runtime.laneOperationActive
       || runtime.queue.length !== 0
     ) return;
     try {
@@ -1372,7 +1389,7 @@ export function createHostedRuntimeRegistry(
       if (
         runtime.strongLeases !== 0
         || runtime.active != null
-        || runtime.snapshotActive
+        || runtime.laneOperationActive
         || runtime.lifecycle === 'initializing'
         || runtime.queue.length !== 0
       ) return;
@@ -1565,6 +1582,32 @@ export function createHostedRuntimeRegistry(
             agentId: intent.agentId,
             clientRequestId: intent.clientRequestId,
             onAdmitted: admittedResolve,
+            onTerminal(error) {
+              try {
+                operation.onEvent('run.lifecycle', {
+                  kind: 'run.lifecycle',
+                  runId: operation.runId,
+                  status: error == null
+                    ? 'completed'
+                    : error instanceof HostedRuntimeError
+                      && error.code === 'HOSTED_RUN_CANCELED'
+                      ? 'cancelled'
+                      : 'failed',
+                  ...(error == null
+                    ? {}
+                    : {
+                        errorCode: error instanceof HostedRuntimeError
+                          ? error.code
+                          : 'INTERNAL_ERROR',
+                      }),
+                  exitCode: terminalResult?.exitCode ?? (error == null ? 0 : null),
+                  signal: terminalResult?.signal ?? null,
+                  ts: Date.now(),
+                });
+              } catch {
+                // The run registry already owns the terminal state.
+              }
+            },
             execute: async ({ credential, sessionReference, signal }) => {
               validateHostedRunIntentOwnership(state.runtime, intent);
               if (credential == null) {
@@ -1627,41 +1670,7 @@ export function createHostedRuntimeRegistry(
               };
             },
           });
-          void completion.then(
-            () => {
-              try {
-                operation.onEvent('run.lifecycle', {
-                  kind: 'run.lifecycle',
-                  runId: operation.runId,
-                  status: 'completed',
-                  exitCode: terminalResult?.exitCode ?? 0,
-                  signal: terminalResult?.signal ?? null,
-                  ts: Date.now(),
-                });
-              } catch {
-                // The turn already settled; journal exhaustion cannot reopen it.
-              }
-            },
-            (error: unknown) => {
-              admittedReject(error);
-              try {
-                operation.onEvent('run.lifecycle', {
-                  kind: 'run.lifecycle',
-                  runId: operation.runId,
-                  status: error instanceof HostedRuntimeError
-                    && error.code === 'HOSTED_RUN_CANCELED'
-                    ? 'cancelled'
-                    : 'failed',
-                  errorCode: error instanceof HostedRuntimeError ? error.code : 'INTERNAL_ERROR',
-                  exitCode: terminalResult?.exitCode ?? null,
-                  signal: terminalResult?.signal ?? null,
-                  ts: Date.now(),
-                });
-              } catch {
-                // The run registry already owns the terminal error.
-              }
-            },
-          );
+          void completion.catch(admittedReject);
           await admitted;
           return {
             runId: operation.runId,

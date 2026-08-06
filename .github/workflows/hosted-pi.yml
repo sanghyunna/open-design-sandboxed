@@ -22,6 +22,12 @@ jobs:
             displayName: Linux
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact candidate checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node -e "const {execFileSync}=require('node:child_process'); const actual=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(); console.log(actual); if(actual!==process.env.EXPECTED_SHA) process.exit(1)"
       - uses: pnpm/action-setup@v4
         with:
           version: 10.33.2
@@ -54,6 +60,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact candidate checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node -e "const {execFileSync}=require('node:child_process'); const actual=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(); console.log(actual); if(actual!==process.env.EXPECTED_SHA) process.exit(1)"
       - uses: cachix/install-nix-action@v31
       - uses: pnpm/action-setup@v4
         with:

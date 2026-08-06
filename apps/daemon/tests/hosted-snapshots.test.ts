@@ -556,6 +556,9 @@ describe('hosted snapshots', () => {
     await expect(publishEmpty(exactRoot, exactStore)).resolves.toMatchObject({ bytes: first.bytes });
     expect(treeBytes(path.join(exactRoot, 'snapshots', identity.storageKey)))
       .toBe(retainedBoundary);
+    await expect(publishEmpty(exactRoot, exactStore)).rejects.toMatchObject({
+      code: 'HOSTED_QUOTA_EXCEEDED',
+    });
 
     const underRoot = tempRoot();
     const underStore = createHostedSnapshotStore({
@@ -587,6 +590,88 @@ describe('hosted snapshots', () => {
       code: 'HOSTED_QUOTA_EXCEEDED',
     });
     expect(versionRoots(retainedUnderRoot)).toEqual(['00000000000000000001']);
+
+    const failedPruneBoundary = retainedBoundary + first.bytes;
+    const maintenanceRoot = tempRoot();
+    const maintenanceLimits = {
+      bytesPerVersion: first.bytes,
+      retainedBytesGlobal: failedPruneBoundary,
+      retainedBytesPerUser: failedPruneBoundary,
+    };
+    const maintenanceStore = createHostedSnapshotStore({
+      identity,
+      limits: maintenanceLimits,
+      runtimeRoot: maintenanceRoot,
+    });
+    await publishEmpty(maintenanceRoot, maintenanceStore);
+    await publishEmpty(maintenanceRoot, maintenanceStore);
+    const blockerName = '99999999999999999999';
+    const persistentFailureStore = createHostedSnapshotStore({
+      failpoint(stage) {
+        if (stage === 'after-latest-write') {
+          writeFileSync(path.join(
+            maintenanceRoot,
+            'snapshots',
+            identity.storageKey,
+            'versions',
+            blockerName,
+          ), '');
+        }
+      },
+      identity,
+      limits: maintenanceLimits,
+      runtimeRoot: maintenanceRoot,
+    });
+    await expect(publishEmpty(maintenanceRoot, persistentFailureStore))
+      .resolves.toMatchObject({ bytes: first.bytes });
+    expect(treeBytes(path.join(maintenanceRoot, 'snapshots', identity.storageKey)))
+      .toBe(failedPruneBoundary);
+    rmSync(path.join(
+      maintenanceRoot,
+      'snapshots',
+      identity.storageKey,
+      'versions',
+      blockerName,
+    ));
+    expect(versionRoots(maintenanceRoot)).toEqual([
+      '00000000000000000001',
+      '00000000000000000002',
+      '00000000000000000003',
+    ]);
+
+    const noHeadroomRoot = tempRoot();
+    const noHeadroomLimits = {
+      ...maintenanceLimits,
+      retainedBytesGlobal: failedPruneBoundary - 1,
+      retainedBytesPerUser: failedPruneBoundary - 1,
+    };
+    const noHeadroomStore = createHostedSnapshotStore({
+      identity,
+      limits: noHeadroomLimits,
+      runtimeRoot: noHeadroomRoot,
+    });
+    await publishEmpty(noHeadroomRoot, noHeadroomStore);
+    await publishEmpty(noHeadroomRoot, noHeadroomStore);
+    await expect(publishEmpty(noHeadroomRoot, createHostedSnapshotStore({
+      failpoint(stage) {
+        if (stage === 'after-latest-write') {
+          writeFileSync(path.join(
+            noHeadroomRoot,
+            'snapshots',
+            identity.storageKey,
+            'versions',
+            blockerName,
+          ), '');
+        }
+      },
+      identity,
+      limits: noHeadroomLimits,
+      runtimeRoot: noHeadroomRoot,
+    }))).rejects.toMatchObject({ code: 'HOSTED_QUOTA_EXCEEDED' });
+    expect(versionRoots(noHeadroomRoot)).toEqual([
+      '00000000000000000001',
+      '00000000000000000002',
+    ]);
   });
 
   it.runIf(process.platform === 'win32')(
@@ -782,6 +867,81 @@ describe('hosted snapshots', () => {
     restored?.storage.close();
   });
 
+  it('keeps the event loop responsive while relocating a large restored session', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(storage.database, {
+      createdAt: 1,
+      id: 'large-session-project',
+      name: 'Large session project',
+      updatedAt: 1,
+    });
+    insertConversation(storage.database, {
+      createdAt: 1,
+      id: 'large-session-conversation',
+      projectId: 'large-session-project',
+      updatedAt: 1,
+    });
+    const projectRoot = path.join(storage.roots.projectsRoot, 'large-session-project');
+    mkdirSync(projectRoot);
+    const sessionFile = path.join(storage.roots.sessionsRoot, 'large.jsonl');
+    writeFileSync(
+      sessionFile,
+      `${JSON.stringify({ cwd: projectRoot, type: 'session' })}\n${JSON.stringify({
+        payload: 'x'.repeat(4 * 1024 * 1024),
+        type: 'message',
+      })}\n`,
+    );
+    upsertAgentSession(storage.database, {
+      agentId: 'pi',
+      conversationId: 'large-session-conversation',
+      sessionId: sessionFile,
+    });
+    const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    await snapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+
+    const originalOpenSync = fs.openSync.bind(fs);
+    const synchronousSessionDescriptors = new Set<number>();
+    const openSyncSpy = vi.spyOn(fs, 'openSync').mockImplementation((file, flags, mode) => {
+      const descriptor = mode === undefined
+        ? originalOpenSync(file, flags)
+        : originalOpenSync(file, flags, mode);
+      if (String(file).endsWith('.jsonl')) synchronousSessionDescriptors.add(descriptor);
+      return descriptor;
+    });
+    const readSyncSpy = vi.spyOn(fs, 'readSync');
+    let heartbeatCount = 0;
+    let maximumLagMs = 0;
+    let previousHeartbeat = performance.now();
+    const heartbeat = setInterval(() => {
+      const now = performance.now();
+      maximumLagMs = Math.max(maximumLagMs, now - previousHeartbeat);
+      previousHeartbeat = now;
+      heartbeatCount += 1;
+    }, 10);
+
+    let restored: Awaited<ReturnType<typeof snapshots.restore>> = null;
+    let synchronousSessionReads = 0;
+    try {
+      restored = await snapshots.restore();
+    } finally {
+      clearInterval(heartbeat);
+      synchronousSessionReads = readSyncSpy.mock.calls.filter(([descriptor]) =>
+        synchronousSessionDescriptors.has(descriptor)).length;
+      openSyncSpy.mockRestore();
+      readSyncSpy.mockRestore();
+    }
+    try {
+      expect(restored).not.toBeNull();
+      expect(synchronousSessionReads).toBe(0);
+      expect(heartbeatCount).toBeGreaterThan(0);
+      expect(maximumLagMs).toBeLessThan(1_000);
+    } finally {
+      restored?.storage.close();
+    }
+  });
+
   it('aggregates restored-storage close failure without skipping staging cleanup', async () => {
     const runtimeRoot = tempRoot();
     const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
@@ -910,6 +1070,36 @@ describe('hosted snapshots', () => {
     const restored = await baselineStore.restore();
     expect(restored && getProject(restored.storage.database, 'state')?.name).toBe('candidate');
     restored?.storage.close();
+  });
+
+  it('returns committed success when latest-hint maintenance repeatedly fails', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(storage.database, {
+      createdAt: 1,
+      id: 'state',
+      name: 'committed',
+      updatedAt: 1,
+    });
+    const snapshotRoot = path.join(runtimeRoot, 'snapshots', identity.storageKey);
+    const store = createHostedSnapshotStore({
+      failpoint(stage) {
+        if (stage !== 'after-version-rename') return;
+        rmSync(path.join(snapshotRoot, 'latest'), { force: true });
+        mkdirSync(path.join(snapshotRoot, 'latest'));
+      },
+      identity,
+      runtimeRoot,
+    });
+
+    await expect(store.publish({ quiesce: async () => {}, storage }))
+      .resolves.toMatchObject({ sequence: '00000000000000000001' });
+    expect(readdirSync(snapshotRoot).some((name) => name.startsWith('.latest-'))).toBe(false);
+    rmSync(path.join(snapshotRoot, 'latest'), { recursive: true, force: true });
+    const restored = await store.restore();
+    expect(restored && getProject(restored.storage.database, 'state')?.name).toBe('committed');
+    restored?.storage.close();
+    storage.close();
   });
 });
 

@@ -51,7 +51,7 @@ export type HostedPiRuntimeRequest = {
   projectId: string;
   projectRoot: string;
   cwd: string;
-  generation?: number;
+  generation: number;
   designSystemId?: string | null;
   /** Server-owned credential captured by the hosted runtime lane. */
   credential?: HostedProviderCredential;

@@ -237,10 +237,13 @@ export function createHostedSnapshotStore(
           runtimeRoot,
           databaseOpener(databaseFile) {
             installStagedPayload(stagedPayload, path.dirname(databaseFile));
-            relocateRestoredSessionsBeforeOpen(databaseFile, path.dirname(databaseFile));
             return openRestoredDatabase(databaseFile);
           },
         });
+        await relocateRestoredSessions(storage.database, storage.roots.liveRoot);
+        verifyDatabase(storage.database);
+        storage.database.pragma('wal_checkpoint(TRUNCATE)');
+        await syncFileAsync(storage.roots.databaseFile);
         await removeRestoreStaging(stagedPayload, runtimeRoot);
         return { sequence, storage };
       } catch (error) {
@@ -459,12 +462,10 @@ async function publishSnapshot(options: {
         try {
           writeLatestHint(options.snapshotRoot, sequence);
           await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
-        } catch (repairError) {
-          throw new HostedSnapshotError(
-            'HOSTED_RUNTIME_UNAVAILABLE',
-            'hosted snapshot committed but maintenance repair failed',
-            new AggregateError([maintenanceError, repairError]),
-          );
+        } catch {
+          // The rename above is the commit point. Restore scans completed
+          // versions directly, so maintenance is retried by the next
+          // publish/restore without making committed work appear to fail.
         }
       }
       return publication;
@@ -727,7 +728,7 @@ async function copyTreeExact(
     const before = await fsp.lstat(sourcePath);
     if (
       before.isSymbolicLink()
-      || !samePath(await fsp.realpath(sourcePath), path.resolve(sourcePath))
+      || !await isExactRealChild(source, entry.name)
     ) {
       throw new Error('hosted snapshot source contains a link or reparse point');
     }
@@ -979,21 +980,6 @@ interface SessionHeaderRead {
   readonly size: number;
 }
 
-function readSessionFile(file: string): SessionHeaderRead {
-  const info = fs.lstatSync(file);
-  if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > MAX_SESSION_FILE_BYTES) {
-    throw new Error('hosted snapshot session file is invalid');
-  }
-  const descriptor = fs.openSync(file, 'r');
-  try {
-    const prefix = Buffer.alloc(Math.min(info.size, MAX_SESSION_HEADER_BYTES + 1));
-    const bytesRead = fs.readSync(descriptor, prefix, 0, prefix.length, 0);
-    return parseSessionHeader(prefix.subarray(0, bytesRead), info.size);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
 async function readSessionFileAsync(file: string): Promise<SessionHeaderRead> {
   const info = await fsp.lstat(file);
   if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > MAX_SESSION_FILE_BYTES) {
@@ -1144,55 +1130,6 @@ async function writeAllAsync(
   }
 }
 
-function rewriteSessionHeader(
-  file: string,
-  session: SessionHeaderRead,
-  header: SessionHeaderRead['header'],
-): void {
-  const temporary = `${file}.${randomUUID()}.tmp`;
-  try {
-    const source = fs.openSync(file, 'r');
-    try {
-      const target = fs.openSync(temporary, 'wx', 0o600);
-      try {
-        fs.writeFileSync(
-          target,
-          `${JSON.stringify(header)}${session.headerTerminated ? '\n' : ''}`,
-          'utf8',
-        );
-        const buffer = Buffer.alloc(64 * 1024);
-        let position = session.bodyOffset;
-        while (position < session.size) {
-          const bytesRead = fs.readSync(
-            source,
-            buffer,
-            0,
-            Math.min(buffer.length, session.size - position),
-            position,
-          );
-          if (bytesRead < 1) throw new Error('hosted snapshot session body ended early');
-          let offset = 0;
-          while (offset < bytesRead) {
-            const bytesWritten = fs.writeSync(target, buffer, offset, bytesRead - offset);
-            if (bytesWritten < 1) throw new Error('hosted snapshot session write ended early');
-            offset += bytesWritten;
-          }
-          position += bytesRead;
-        }
-        fs.fsyncSync(target);
-      } finally {
-        fs.closeSync(target);
-      }
-    } finally {
-      fs.closeSync(source);
-    }
-    fs.renameSync(temporary, file);
-  } catch (error) {
-    fs.rmSync(temporary, { force: true });
-    throw error;
-  }
-}
-
 function logicalLivePath(input: string, liveRoot: string): string {
   const absolute = path.isAbsolute(input) ? path.resolve(input) : path.resolve(liveRoot, fromPosix(input));
   const relative = path.relative(liveRoot, absolute);
@@ -1249,7 +1186,7 @@ async function inventoryTreeExact(
       const info = await fsp.lstat(absolute);
       if (
         info.isSymbolicLink()
-        || !samePath(await fsp.realpath(absolute), path.resolve(absolute))
+        || !await isExactRealChild(current.directory, entry.name)
       ) {
         throw new Error('hosted snapshot contains a link or reparse point');
       }
@@ -1603,24 +1540,10 @@ function installStagedPayload(stagedPayload: string, generationRoot: string): vo
   fs.renameSync(containedFile(staging, 'app.sqlite'), path.join(generation, 'app.sqlite'));
 }
 
-function relocateRestoredSessionsBeforeOpen(
-  databaseFile: string,
-  generationRoot: string,
-): void {
-  const database = new Database(databaseFile, { fileMustExist: true });
-  try {
-    relocateRestoredSessions(database, generationRoot);
-    verifyDatabase(database);
-  } finally {
-    database.close();
-  }
-  syncFile(databaseFile);
-}
-
-function relocateRestoredSessions(
+async function relocateRestoredSessions(
   database: Database.Database,
   generationRoot: string,
-): void {
+): Promise<void> {
   const rows = database.prepare(
       `SELECT s.conversation_id AS conversationId, s.agent_id AS agentId,
               s.session_id AS sessionId, c.project_id AS projectId
@@ -1635,7 +1558,7 @@ function relocateRestoredSessions(
   const relocated = new Map<string, string>();
   const updates: Array<{ conversationId: string; agentId: string; sessionId: string }> = [];
   for (const row of rows) {
-    relocateSessionLineage(
+    await relocateSessionLineage(
       row.sessionId,
       generationRoot,
       `projects/${row.projectId}`,
@@ -1664,14 +1587,14 @@ function relocateRestoredSessions(
   transaction();
 }
 
-function relocateSessionLineage(
+async function relocateSessionLineage(
   logicalPath: string,
   generationRoot: string,
   expectedCwd: string,
   relocated: Map<string, string>,
   active: Set<string>,
   depth: number,
-): void {
+): Promise<void> {
   const relocatedCwd = relocated.get(logicalPath);
   if (relocatedCwd != null) {
     if (relocatedCwd !== expectedCwd) {
@@ -1684,7 +1607,7 @@ function relocateSessionLineage(
   }
   active.add(logicalPath);
   const file = containedFile(generationRoot, logicalPath);
-  const session = readSessionFile(file);
+  const session = await readSessionFileAsync(file);
   const { header } = session;
   if (!isCanonicalRelativePath(header.cwd) || header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd is invalid');
@@ -1693,7 +1616,7 @@ function relocateSessionLineage(
   if (typeof header.parentSession === 'string') {
     const parent = header.parentSession;
     if (!isCanonicalRelativePath(parent)) throw new Error('hosted snapshot session parent is invalid');
-    relocateSessionLineage(
+    await relocateSessionLineage(
       parent,
       generationRoot,
       expectedCwd,
@@ -1703,7 +1626,7 @@ function relocateSessionLineage(
     );
     header.parentSession = containedFile(generationRoot, parent);
   }
-  rewriteSessionHeader(file, session, header);
+  await rewriteSessionHeaderAsync(file, session, header);
   active.delete(logicalPath);
   relocated.set(logicalPath, expectedCwd);
 }
@@ -1806,11 +1729,10 @@ async function preflightRetention(options: {
   if (stableUserOverhead < 0) {
     throw new Error('hosted snapshot retained byte accounting is invalid');
   }
-  const newestPreviousBytes = retainedVersionBytes[0]?.bytes ?? 0;
   const projectedUserBytes = stableUserOverhead
     + stagingBytes
     + options.completionBytes
-    + newestPreviousBytes
+    + allVersionBytes
     + latestBytes;
   if (projectedUserBytes > options.limits.retainedBytesPerUser) {
     snapshotQuota('hosted snapshot retained user byte quota exceeded');
@@ -1986,8 +1908,13 @@ function listVersionSequences(versionsRoot: string): string[] {
 
 function writeLatestHint(snapshotRoot: string, sequence: string): void {
   const temporary = path.join(snapshotRoot, `.latest-${randomUUID()}.tmp`);
-  writeDurable(temporary, `${sequence}\n`, 'wx');
-  fs.renameSync(temporary, path.join(snapshotRoot, 'latest'));
+  try {
+    writeDurable(temporary, `${sequence}\n`, 'wx');
+    fs.renameSync(temporary, path.join(snapshotRoot, 'latest'));
+  } catch (error) {
+    fs.rmSync(temporary, { force: true });
+    throw error;
+  }
 }
 
 function containedFile(root: string, relative: string): string {
@@ -2119,7 +2046,7 @@ async function directoryBytesAsync(
       const info = await fsp.lstat(target);
       if (
         info.isSymbolicLink()
-        || !samePath(await fsp.realpath(target), path.resolve(target))
+        || !await isExactRealChild(directory, entry.name)
       ) {
         throw new Error('hosted snapshot quota path contains a link or reparse point');
       }
@@ -2137,19 +2064,18 @@ async function directoryBytesAsync(
   return total;
 }
 
+async function isExactRealChild(parent: string, name: string): Promise<boolean> {
+  const [realParent, realChild] = await Promise.all([
+    fsp.realpath(parent),
+    fsp.realpath(path.join(parent, name)),
+  ]);
+  return samePath(realChild, path.join(realParent, name));
+}
+
 function writeDurable(file: string, contents: string, flag: 'w' | 'wx' = 'w'): void {
   const descriptor = fs.openSync(file, flag, 0o600);
   try {
     fs.writeFileSync(descriptor, contents, 'utf8');
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
-  }
-}
-
-function syncFile(file: string): void {
-  const descriptor = fs.openSync(file, 'r+');
-  try {
     fs.fsyncSync(descriptor);
   } finally {
     fs.closeSync(descriptor);

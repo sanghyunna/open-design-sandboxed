@@ -44,6 +44,7 @@ import {
 import {
   createHostedEventBudget,
   createHostedEventJournal,
+  type HostedEventLimits,
 } from './hosted-event-journal.js';
 import {
   createHostedMetadataAdapter,
@@ -72,7 +73,10 @@ import { sendApiError, statusForError } from './http/response.js';
 import { resolveProjectRoot } from './project-root.js';
 import { listSkills } from './skills.js';
 import { listDesignSystems } from './design-systems.js';
-import { hasHostedClientOwnershipMetadata } from './hosted-request-boundary.js';
+import {
+  hasCanonicalHostedRawPath,
+  hasHostedClientOwnershipMetadata,
+} from './hosted-request-boundary.js';
 import { ProjectCheckpointError } from './project-checkpoints.js';
 import { createHostedBodyCapacity } from './hosted-body-capacity.js';
 
@@ -145,6 +149,8 @@ export interface HostedTestComposition {
     dependencies: Pick<HostedPiTurnDependencies, 'designSystemTool'>,
   ) => Promise<HostedPiTurnResult>;
   readonly bodyReadTimeoutMs?: number;
+  readonly eventBudgetLimits?: Partial<HostedEventLimits>;
+  readonly shutdownRegistry?: (shutdown: () => Promise<void>) => Promise<void>;
 }
 
 export interface StartHostedServerOptions {
@@ -313,7 +319,7 @@ export async function startHostedServer(
       }
     },
   });
-  const eventBudget = createHostedEventBudget();
+  const eventBudget = createHostedEventBudget(testComposition?.eventBudgetLimits);
   const eventJournals = new Map<string, {
     generation: number;
     journal: ReturnType<typeof createHostedEventJournal>;
@@ -370,7 +376,7 @@ export async function startHostedServer(
   app.set('case sensitive routing', true);
   app.set('strict routing', true);
   app.use((request, response, next) => {
-    if (request.method === 'HEAD') {
+    if (request.method === 'HEAD' || !hasCanonicalHostedRawPath(request)) {
       apiFailure(response, 404, 'HOSTED_ROUTE_NOT_ALLOWED', 'hosted route is not allowed');
       return;
     }
@@ -793,17 +799,25 @@ export async function startHostedServer(
             reasoning: operation.intent.reasoning,
             runId,
           });
-          for (const event of events.publicEvents) {
-            journal.publish({ kind: 'run', runId }, event.event, event.data);
+          try {
+            for (const event of events.publicEvents) {
+              journal.publish({ kind: 'run', runId }, event.event, event.data);
+            }
+            if (events.internalEvent != null) {
+              journal.publish(
+                { kind: 'run-ui', runId },
+                events.internalEvent.event,
+                events.internalEvent.data,
+              );
+            }
+          } catch {
+            // Journal pressure cannot reopen or fail owned run state. Closing
+            // forces attached clients to refetch the authoritative status.
+            journal.invalidate({ kind: 'run', runId });
+            journal.invalidate({ kind: 'run-ui', runId });
+          } finally {
+            if (events.terminal) journal.close({ kind: 'run', runId });
           }
-          if (events.internalEvent != null) {
-            journal.publish(
-              { kind: 'run-ui', runId },
-              events.internalEvent.event,
-              events.internalEvent.data,
-            );
-          }
-          if (events.terminal) journal.close({ kind: 'run', runId });
         },
       });
     },
@@ -1012,17 +1026,21 @@ export async function startHostedServer(
         body: request.body,
       });
       if ('conversation' in result) {
-        journalForLease(state.lease).publish(
-          { kind: 'project', projectId },
-          'conversation-created',
-          {
-            type: 'conversation-created',
-            projectId,
-            conversationId: result.conversation.id,
-            title: result.conversation.title,
-            createdAt: result.conversation.createdAt,
-          },
-        );
+        const journal = journalForLease(state.lease);
+        const channel = { kind: 'project' as const, projectId };
+        try {
+          journal.publish(channel, 'conversation-created', {
+              type: 'conversation-created',
+              projectId,
+              conversationId: result.conversation.id,
+              title: result.conversation.title,
+              createdAt: result.conversation.createdAt,
+            });
+        } catch {
+          // Metadata is already committed. End attached streams so clients
+          // refetch rather than turning the successful mutation into a retry.
+          journal.invalidate(channel);
+        }
       }
       response.status(201).json(result);
     },
@@ -1552,8 +1570,14 @@ export async function startHostedServer(
         designSystemTool.dispose();
         for (const entry of eventJournals.values()) entry.journal.dispose();
         eventJournals.clear();
-        await registry.shutdown();
-        await closeServer(server);
+        const results = await Promise.allSettled([
+          testComposition?.shutdownRegistry?.(() => registry.shutdown()) ?? registry.shutdown(),
+          closeServer(server),
+        ]);
+        const errors = results.flatMap((result) => result.status === 'rejected' ? [result.reason] : []);
+        if (errors.length > 0) {
+          throw errors.length === 1 ? errors[0] : new AggregateError(errors, 'hosted shutdown failed');
+        }
       })();
       return shutdownPromise;
     },
@@ -2107,6 +2131,7 @@ function closeServer(server: Server): Promise<void> {
   if (!server.listening) return Promise.resolve();
   return new Promise((resolve, reject) => {
     server.close((error) => error == null ? resolve() : reject(error));
+    server.closeAllConnections();
   });
 }
 

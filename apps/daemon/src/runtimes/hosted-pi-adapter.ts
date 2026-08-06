@@ -33,8 +33,6 @@ function safeDesignSystemSelection(request: HostedPiRuntimeRequest): string | nu
   if (
     typeof designSystemId !== 'string'
     || !/^(?!\.+$)[A-Za-z0-9._-]{1,128}$/u.test(designSystemId)
-    || !Number.isSafeInteger(request.generation)
-    || request.generation! < 1
   ) throw new Error('hosted Pi design-system selection is invalid');
   return designSystemId;
 }
@@ -63,6 +61,9 @@ export function createHostedPiRuntimeAdapter(
   const sessionRoot = path.resolve(options.sessionRoot ?? path.join(runtimeRoot, 'sessions'));
   return async (request) => {
     const runId = safeRunId(request.runId);
+    if (!Number.isSafeInteger(request.generation) || request.generation < 1) {
+      throw new Error('hosted Pi generation is invalid');
+    }
     const designSystemId = safeDesignSystemSelection(request);
     if (designSystemId !== null && !options.designSystemTool) {
       throw new Error('hosted Pi design-system tool is unavailable');
@@ -70,6 +71,7 @@ export function createHostedPiRuntimeAdapter(
     const broker: HostedPiBroker = await createHostedPiBroker({
       runtimeRoot,
       binding: {
+        generation: request.generation,
         userKey: request.userKey,
         runId,
         projectId: request.projectId,
@@ -83,7 +85,7 @@ export function createHostedPiRuntimeAdapter(
           userKey: request.userKey,
           runId,
           projectId: request.projectId,
-          generation: request.generation!,
+          generation: request.generation,
           designSystemId,
           carrierToken: broker.token,
         });
