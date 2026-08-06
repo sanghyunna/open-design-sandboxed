@@ -58,11 +58,13 @@ type PiRpcSessionOptions = {
   };
 };
 
-type PiRpcSession = {
+export type PiRpcSession = {
   readonly ownsAbortLifecycle: true;
   hasFatalError(): boolean;
   abort(): void;
   getLastSessionPath(): string | null;
+  /** Resolves only after the owned session is captured and the child has exited. */
+  waitForQuiescence(): Promise<void>;
 };
 
 type PiRpcContext = {
@@ -615,7 +617,7 @@ function resolveExitFallbackSession(
  * @param {string} [opts.uploadRoot] - root directory that image paths must remain inside after symlink resolution
  * @param {function} opts.send   - SSE send function
  * @param {{path: string, root: string}} [opts.resumeSession] - owner-bound session to resume
- * @returns {{ ownsAbortLifecycle: true, hasFatalError(): boolean, abort(): void, getLastSessionPath(): string | null }}
+ * @returns {PiRpcSession}
  */
 export function attachPiRpcSession({
   child,
@@ -664,6 +666,14 @@ export function attachPiRpcSession({
   let childClosed = false;
   let shutdownTimer: ReturnType<typeof setTimeout> | null = null;
   let forceKillTimer: ReturnType<typeof setTimeout> | null = null;
+  let resolveQuiescence!: () => void;
+  let rejectQuiescence!: (error: Error) => void;
+  const quiescence = new Promise<void>((resolve, reject) => {
+    resolveQuiescence = resolve;
+    rejectQuiescence = reject;
+  });
+  // Existing local callers do not await the hosted snapshot barrier.
+  void quiescence.catch(() => undefined);
 
   function sendCommand(writable: Writable, type: string, params: PiRpcParams = {}): number | null {
     if (!stdinOpen) return null;
@@ -946,6 +956,11 @@ export function attachPiRpcSession({
       });
     }
     terminal = true;
+    if (!fatal && capturedSessionPath) {
+      resolveQuiescence();
+    } else {
+      rejectQuiescence(new Error('Pi child closed without a safely captured session'));
+    }
   });
 
   if (resumeSession) {
@@ -971,6 +986,9 @@ export function attachPiRpcSession({
     },
     getLastSessionPath() {
       return capturedSessionPath;
+    },
+    waitForQuiescence() {
+      return quiescence;
     },
     abort() {
       if (terminal || aborted || childClosed) return;

@@ -1472,6 +1472,40 @@ test('attachPiRpcSession captures get_state only after agent_end and agent_settl
   }
 });
 
+test('attachPiRpcSession exposes quiescence only after validated state and child close', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    const quiescence = session.waitForQuiescence();
+    let published = false;
+    void quiescence.then(() => { published = true; });
+    readCommands(child);
+
+    feedStdoutLines(child, [{ type: 'agent_end' }, { type: 'agent_settled' }]);
+    const [getState] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: fixture.sessionPath },
+    }]);
+    await Promise.resolve();
+    assert.equal(published, false, 'snapshot publication must still wait for child close');
+
+    child.emit('close', 0, null);
+    await assert.doesNotReject(quiescence);
+    assert.equal(published, true);
+    assert.equal(session.getLastSessionPath(), fixture.sessionPath);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test('attachPiRpcSession treats child exit without settled get_state as fatal', async () => {
   const fixture = await createPiSessionFixture();
   try {
@@ -1702,7 +1736,6 @@ test('attachPiRpcSession captures a complete session from the bounded cancel exi
       JSON.stringify({ type: 'message', role: 'assistant', content: 'partial-safe-state' }),
       '',
     ].join('\n'));
-
     child.emit('close', null, 'SIGTERM');
 
     assert.equal(session.hasFatalError(), false);

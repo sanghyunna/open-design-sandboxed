@@ -33,8 +33,8 @@ jobs:
         run: node -e "if (process.arch !== 'x64') process.exit(1)"
       - name: Install build dependencies
         run: pnpm install --frozen-lockfile
-      - name: Run PR04 provider boundary suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr04
+      - name: Run PR06 snapshot boundary suite
+        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr06
       - name: Stage hosted artifact
         run: pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
       - name: Execute staged artifact smoke suite

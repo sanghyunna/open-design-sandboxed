@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApiError } from '@open-design/contracts';
+import { insertProject } from '../src/db.js';
 import {
   createHostedRuntimeRegistry,
   deriveHostedStorageKey,
@@ -20,6 +21,7 @@ import {
   type HostedRuntimeRegistryOptions,
 } from '../src/hosted-runtime-registry.js';
 import { createHostedRuntimeStorage } from '../src/hosted-runtime-storage.js';
+import { createHostedSnapshotStore } from '../src/hosted-snapshots.js';
 import { statusForError } from '../src/http/response.js';
 import { createChatRunService } from '../src/runs.js';
 
@@ -70,6 +72,7 @@ describe('HostedRuntimeRegistry', () => {
     try {
       const a = registry.acquire({ userKey: 'a' });
       const b = registry.acquire({ userKey: 'b' });
+      await Promise.all([waitForReady(registry, a), waitForReady(registry, b)]);
       const aGeneration = generationRoot(runtimeRoot, a.storageKey);
       const bGeneration = generationRoot(runtimeRoot, b.storageKey);
 
@@ -161,6 +164,258 @@ describe('HostedRuntimeRegistry', () => {
     }
   });
 
+  it('restores the newest valid snapshot before admitting work to a fresh generation', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-restore-'));
+    const identity = {
+      storageKey: deriveHostedStorageKey('a'),
+      userKey: 'a',
+    };
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProjectForTest(storage, 'persisted', 'Persisted');
+    const seedSnapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    await seedSnapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+
+    const restoreStarted = deferred();
+    const releaseRestore = deferred();
+    const registry = createRegistry({
+      runtimeRoot,
+      createSnapshotStore(options) {
+        const snapshots = createHostedSnapshotStore(options);
+        return {
+          publish: snapshots.publish,
+          async restore() {
+            restoreStarted.resolve();
+            await releaseRestore.promise;
+            return snapshots.restore();
+          },
+        };
+      },
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    let admitted = false;
+    const read = dispatchHostedRuntimeInternalOperation(registry, lease, {
+      kind: 'project:get',
+      projectId: 'persisted',
+    }).then((value) => {
+      admitted = true;
+      return value;
+    });
+    try {
+      await restoreStarted.promise;
+      await Promise.resolve();
+      expect(admitted).toBe(false);
+      releaseRestore.resolve();
+      await expect(read).resolves.toEqual({ id: 'persisted', name: 'Persisted' });
+    } finally {
+      releaseRestore.resolve();
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('serializes snapshot publication in the existing per-user mutation lane', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-lane-'));
+    const registry = createRegistry({ runtimeRoot });
+    const lease = registry.acquire({ userKey: 'a' });
+    const runStarted = deferred();
+    const releaseRun = deferred();
+    const quiesceStarted = deferred();
+    const releaseSnapshot = deferred();
+    const run = registry.dispatch(lease, {
+      conversationId: 'conversation-a',
+      runId: 'active-before-snapshot',
+      execute: async () => {
+        runStarted.resolve();
+        await releaseRun.promise;
+        return { value: 'done' };
+      },
+    });
+    try {
+      await runStarted.promise;
+      const publication = dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'snapshot:publish',
+        quiesce: async () => {
+          quiesceStarted.resolve();
+          await releaseSnapshot.promise;
+        },
+      });
+      let quiescing = false;
+      void quiesceStarted.promise.then(() => { quiescing = true; });
+      await Promise.resolve();
+      expect(quiescing).toBe(false);
+
+      releaseRun.resolve();
+      await quiesceStarted.promise;
+      const now = Date.now();
+      let writeFinished = false;
+      const write = dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'after-snapshot', name: 'After', createdAt: now, updatedAt: now },
+        runId: 'write-after-snapshot',
+      }).then((value) => {
+        writeFinished = true;
+        return value;
+      });
+      await Promise.resolve();
+      expect(writeFinished).toBe(false);
+
+      releaseSnapshot.resolve();
+      await expect(Promise.all([run, publication, write])).resolves.toEqual([
+        'done',
+        expect.objectContaining({ sequence: '00000000000000000001' }),
+        { id: 'after-snapshot', name: 'After' },
+      ]);
+    } finally {
+      releaseRun.resolve();
+      releaseSnapshot.resolve();
+      lease.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('poisons only a failed publisher and restores its last valid snapshot', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-publish-fail-'));
+    let failA = false;
+    const registry = createRegistry({
+      runtimeRoot,
+      createSnapshotStore(options) {
+        const snapshots = createHostedSnapshotStore(options);
+        return {
+          restore: snapshots.restore,
+          publish: async (input) => {
+            if (failA && options.identity.userKey === 'a') {
+              throw new Error('simulated snapshot publication failure');
+            }
+            return snapshots.publish(input);
+          },
+        };
+      },
+    });
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    try {
+      const now = Date.now();
+      await dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'baseline', name: 'Baseline', createdAt: now, updatedAt: now },
+        runId: 'baseline-a',
+      });
+      await dispatchHostedRuntimeInternalOperation(registry, b, {
+        kind: 'project:insert',
+        conversationId: 'conversation-b',
+        project: { id: 'b-project', name: 'B', createdAt: now, updatedAt: now },
+        runId: 'baseline-b',
+      });
+      await dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'snapshot:publish',
+        quiesce: async () => {},
+      });
+      await dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'unsnapshotted', name: 'Lost', createdAt: now, updatedAt: now },
+        runId: 'unsnapshotted-a',
+      });
+
+      failA = true;
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'snapshot:publish',
+        quiesce: async () => {},
+      })).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      await expect(dispatchHostedRuntimeInternalOperation(registry, b, {
+        kind: 'project:get',
+        projectId: 'b-project',
+      })).resolves.toEqual({ id: 'b-project', name: 'B' });
+
+      const failedGeneration = a.generation;
+      a.release();
+      failA = false;
+      const restoredA = registry.acquire({ userKey: 'a' });
+      expect(restoredA.generation).toBeGreaterThan(failedGeneration);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, restoredA, {
+        kind: 'project:get',
+        projectId: 'baseline',
+      })).resolves.toEqual({ id: 'baseline', name: 'Baseline' });
+      await expect(dispatchHostedRuntimeInternalOperation(registry, restoredA, {
+        kind: 'project:get',
+        projectId: 'unsnapshotted',
+      })).resolves.toBeNull();
+      restoredA.release();
+    } finally {
+      a.release();
+      b.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('settles failed initialization even when partial storage cleanup throws', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-init-close-'));
+    let first = true;
+    let failCleanup = true;
+    const registry = createRegistry({
+      runtimeRoot,
+      createRunService(options) {
+        if (first) {
+          first = false;
+          throw new Error('simulated run service initialization failure');
+        }
+        return createChatRunService(options);
+      },
+      createSnapshotStore(options) {
+        const snapshots = createHostedSnapshotStore(options);
+        return {
+          publish: snapshots.publish,
+          async restore() {
+            if (!first) return snapshots.restore();
+            const storage = createHostedRuntimeStorage({
+              identity: options.identity,
+              runtimeRoot: options.runtimeRoot,
+            });
+            return {
+              sequence: '00000000000000000001',
+              storage: {
+                ...storage,
+                close() {
+                  if (failCleanup) {
+                    failCleanup = false;
+                    throw new Error('simulated initialization cleanup failure');
+                  }
+                  storage.close();
+                },
+              },
+            };
+          },
+        };
+      },
+    });
+    const failed = registry.acquire({ userKey: 'a' });
+    try {
+      await expect(waitForReady(registry, failed)).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      const failedGeneration = generationRoot(runtimeRoot, failed.storageKey);
+      failed.release();
+      expect(existsSync(failedGeneration)).toBe(true);
+      const recovered = registry.acquire({ userKey: 'a' });
+      expect(recovered.generation).toBeGreaterThan(failed.generation);
+      await expect(waitForReady(registry, recovered)).resolves.toBeNull();
+      expect(existsSync(failedGeneration)).toBe(false);
+      recovered.release();
+    } finally {
+      failed.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
   it('keeps an accepted owned operation alive after its caller lease releases', async () => {
     const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-accepted-'));
     const registry = createRegistry({ runtimeRoot });
@@ -208,10 +463,11 @@ describe('HostedRuntimeRegistry', () => {
         project: { id: 'still-live', name: 'A', createdAt: now, updatedAt: now },
         runId: 'write-a',
       });
-      expectHostedThrow(
-        () => registry.acquire({ userKey: 'b' }),
-        'HOSTED_RUNTIME_UNAVAILABLE',
+      const failed = registry.acquire({ userKey: 'b' });
+      await expect(waitForReady(registry, failed)).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
       );
+      failed.release();
       expect(readdirSync(storageRoot)).toEqual(['.identity.json']);
       await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
         kind: 'project:get',
@@ -224,7 +480,8 @@ describe('HostedRuntimeRegistry', () => {
         userKey: 'b',
       })}\n`);
       const recovered = registry.acquire({ userKey: 'b' });
-      expect(recovered.generation).toBe(1);
+      expect(recovered.generation).toBeGreaterThan(failed.generation);
+      await waitForReady(registry, recovered);
       recovered.release();
       a.release();
       await registry.shutdown();
@@ -258,6 +515,7 @@ describe('HostedRuntimeRegistry', () => {
     });
     const a = registry.acquire({ userKey: 'a' });
     const b = registry.acquire({ userKey: 'b' });
+    await Promise.all([waitForReady(registry, a), waitForReady(registry, b)]);
     const aGeneration = generationRoot(runtimeRoot, a.storageKey);
     const bGeneration = generationRoot(runtimeRoot, b.storageKey);
     const firstBGeneration = b.generation;
@@ -280,6 +538,7 @@ describe('HostedRuntimeRegistry', () => {
       })).resolves.toEqual({ id: 'sentinel', name: 'A' });
       const bRecreated = registry.acquire({ userKey: 'b' });
       expect(bRecreated.generation).toBeGreaterThan(firstBGeneration);
+      await waitForReady(registry, bRecreated);
       expect(existsSync(bGeneration)).toBe(false);
       expect(generationRoot(runtimeRoot, b.storageKey)).not.toBe(bGeneration);
       expect(existsSync(aGeneration)).toBe(true);
@@ -298,6 +557,7 @@ describe('HostedRuntimeRegistry', () => {
     const registry = createRegistry({ runtimeRoot });
     const a = registry.acquire({ userKey: 'a' });
     const b = registry.acquire({ userKey: 'b' });
+    await Promise.all([waitForReady(registry, a), waitForReady(registry, b)]);
     const aGeneration = generationRoot(runtimeRoot, a.storageKey);
     const bGeneration = generationRoot(runtimeRoot, b.storageKey);
     const bStarted = deferred();
@@ -416,6 +676,7 @@ describe('HostedRuntimeRegistry', () => {
     const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-shutdown-'));
     const registry = createRegistry({ runtimeRoot });
     const lease = registry.acquire({ userKey: 'a' });
+    await waitForReady(registry, lease);
     const generation = generationRoot(runtimeRoot, lease.storageKey);
     try {
       let finished = false;
@@ -877,6 +1138,25 @@ function generationRoot(runtimeRoot: string, storageKey: string): string {
   const generations = readdirSync(storageRoot).filter((name) => name.startsWith('generation-'));
   expect(generations).toHaveLength(1);
   return join(storageRoot, generations[0]!);
+}
+
+function waitForReady(
+  registry: ReturnType<typeof createHostedRuntimeRegistry>,
+  lease: Parameters<typeof dispatchHostedRuntimeInternalOperation>[1],
+): Promise<unknown> {
+  return dispatchHostedRuntimeInternalOperation(registry, lease, {
+    kind: 'project:get',
+    projectId: '__readiness__',
+  });
+}
+
+function insertProjectForTest(
+  storage: ReturnType<typeof createHostedRuntimeStorage>,
+  id: string,
+  name: string,
+): void {
+  const now = Date.now();
+  insertProject(storage.database, { id, name, createdAt: now, updatedAt: now });
 }
 
 function filesBelow(root: string): string[] {
