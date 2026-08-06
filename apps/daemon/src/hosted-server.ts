@@ -49,8 +49,8 @@ import {
   HostedDesignSystemToolAdapterError,
 } from './hosted-design-system-tool-adapter.js';
 import {
-  createHostedEventBudget,
-  createHostedEventJournal,
+  type HostedDurableEventMilestone,
+  type HostedEventChannel,
   type HostedEventLimits,
 } from './hosted-event-journal.js';
 import {
@@ -60,7 +60,7 @@ import {
   type HostedMetadataReadOperation,
 } from './hosted-metadata-adapter.js';
 import {
-  createHostedSseAdapter,
+  HOSTED_LAST_EVENT_ID_MAX_BYTES,
   type HostedSseOpenResult,
 } from './hosted-sse-adapter.js';
 import {
@@ -253,6 +253,9 @@ export async function startHostedServer(
     designSystemCatalogueIds,
     projectCatalogueIds,
     skillCatalogueIds,
+    ...(testComposition?.eventBudgetLimits === undefined
+      ? {}
+      : { eventBudgetLimits: testComposition.eventBudgetLimits }),
     onGenerationRetired: (binding) => retireGenerationResources(binding),
     ...(testComposition?.createEntityId === undefined
       ? {}
@@ -329,57 +332,70 @@ export async function startHostedServer(
       }
     },
   });
-  const eventBudget = createHostedEventBudget(testComposition?.eventBudgetLimits);
-  const eventJournals = new Map<string, {
-    generation: number;
-    journal: ReturnType<typeof createHostedEventJournal>;
-    userKey: string;
-  }>();
   retireGenerationResources = ({ generation, userKey }) => {
     designSystemTool.revokeGeneration({ generation, userKey });
     contentRoutes?.revokeGeneration({ generation, userKey });
-    for (const [storageKey, current] of eventJournals) {
-      if (current.generation !== generation || current.userKey !== userKey) continue;
-      current.journal.dispose();
-      eventJournals.delete(storageKey);
+  };
+  const openEventStream = async (
+    state: HostedRequestState,
+    channel: HostedEventChannel,
+    lastEventId: string | string[] | undefined,
+    response: Response,
+  ): Promise<HostedSseOpenResult> => {
+    const after = parseLastEventId(lastEventId);
+    if (after.kind === 'bad-request') return after.result;
+    const lease = registry.acquire({ userKey: state.identity.userKey }, 'weak');
+    if (
+      lease.storageKey !== state.lease.storageKey
+      || lease.generation !== state.lease.generation
+    ) {
+      lease.release();
+      return { code: 'HOSTED_RUNTIME_UNAVAILABLE', kind: 'unavailable' };
     }
+    setSseHeaders(response);
+    let attached: Awaited<ReturnType<typeof dispatchHostedRuntimeInternalOperation>>;
+    try {
+      attached = await dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'journal:attach',
+        after: after.value,
+        channel,
+        response,
+      });
+    } catch (error) {
+      clearSseHeaders(response);
+      lease.release();
+      throw error;
+    }
+    const result = attached as HostedSseOpenResult;
+    if (result.kind !== 'attached') {
+      lease.release();
+      if (result.kind !== 'resync') clearSseHeaders(response);
+      return result;
+    }
+    if (response.destroyed || response.writableEnded) {
+      result.close();
+      lease.release();
+      return result;
+    }
+    let released = false;
+    const release = (): void => {
+      if (released) return;
+      released = true;
+      response.off('close', release);
+      response.off('finish', release);
+      lease.release();
+    };
+    response.on('close', release);
+    response.on('finish', release);
+    try {
+      response.flushHeaders();
+    } catch (error) {
+      result.close();
+      release();
+      throw error;
+    }
+    return result;
   };
-  const journalForLease = (lease: HostedRuntimeLease) => {
-    const current = eventJournals.get(lease.storageKey);
-    if (current?.generation === lease.generation) return current.journal;
-    current?.journal.dispose();
-    const journal = createHostedEventJournal({
-      budget: eventBudget,
-      generation: String(lease.generation),
-      ownerKey: lease.storageKey,
-    });
-    eventJournals.set(lease.storageKey, {
-      generation: lease.generation,
-      journal,
-      userKey: lease.userKey,
-    });
-    return journal;
-  };
-  const sse = createHostedSseAdapter({
-    acquireWeak(binding) {
-      const current = eventJournals.get(binding.ownerKey);
-      if (current == null || current.generation !== binding.generation) return null;
-      const lease = registry.acquire({ userKey: current.userKey }, 'weak');
-      if (
-        lease.storageKey !== binding.ownerKey
-        || lease.generation !== binding.generation
-      ) {
-        lease.release();
-        return null;
-      }
-      return {
-        generation: lease.generation,
-        journal: current.journal,
-        ownerKey: lease.storageKey,
-        release: () => lease.release(),
-      };
-    },
-  });
   const csrf = new Map<string, CsrfState>();
   const bodyCapacity = createHostedBodyCapacity();
   const app = express();
@@ -585,12 +601,12 @@ export async function startHostedServer(
     }
     return result as Record<string, unknown>;
   };
-  const runEvents = (state: HostedRequestState, runId: string): unknown[] => {
-    const replay = journalForLease(state.lease).replay({
+  const runEvents = async (state: HostedRequestState, runId: string): Promise<unknown[]> => {
+    const replay = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+      kind: 'journal:replay',
       channel: { kind: 'run-ui', runId },
-      ownerKey: state.lease.storageKey,
     });
-    return replay.kind === 'events' ? replay.events.map(({ data }) => data) : [];
+    return isEventReplay(replay) ? replay.events.map(({ data }) => data) : [];
   };
   const dispatchRun = (
     state: HostedRequestState,
@@ -611,12 +627,12 @@ export async function startHostedServer(
           return requireRun(state, operation.runId);
         case 'run.agui':
           await requireRun(state, operation.runId);
-          return { events: runEvents(state, operation.runId) };
+          return { events: await runEvents(state, operation.runId) };
         case 'run.genui.list': {
           const run = await requireRun(state, operation.runId);
           return {
             runId: operation.runId,
-            surfaces: hostedGenUiSurfaces(run, runEvents(state, operation.runId)),
+            surfaces: hostedGenUiSurfaces(run, await runEvents(state, operation.runId)),
           };
         }
         case 'project.genui.list': {
@@ -629,20 +645,21 @@ export async function startHostedServer(
             projectId: operation.projectId,
           }) as { runs?: unknown };
           const runs = Array.isArray(listed.runs) ? listed.runs : [];
+          const surfaces = await Promise.all(runs.map(async (run) => {
+            if (run == null || typeof run !== 'object' || Array.isArray(run)) return [];
+            const record = run as Record<string, unknown>;
+            return typeof record.id === 'string'
+              ? hostedGenUiSurfaces(record, await runEvents(state, record.id))
+              : [];
+          }));
           return {
             projectId: operation.projectId,
-            surfaces: runs.flatMap((run) => {
-              if (run == null || typeof run !== 'object' || Array.isArray(run)) return [];
-              const record = run as Record<string, unknown>;
-              return typeof record.id === 'string'
-                ? hostedGenUiSurfaces(record, runEvents(state, record.id))
-                : [];
-            }),
+            surfaces: surfaces.flat(),
           };
         }
         case 'run.genui.surface': {
           const run = await requireRun(state, operation.runId);
-          const surface = hostedGenUiSurfaces(run, runEvents(state, operation.runId))
+          const surface = hostedGenUiSurfaces(run, await runEvents(state, operation.runId))
             .find(({ surfaceId }) => surfaceId === operation.surfaceId);
           if (surface == null) {
             throw new HostedRuntimeError('NOT_FOUND', 'hosted GenUI surface was not found');
@@ -683,12 +700,15 @@ export async function startHostedServer(
           });
         }
         case 'run.genui.respond': {
-          const run = await requireRun(state, operation.runId);
-          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
-            kind: 'run:mutate',
+          const mutation = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'journal:mutate',
             scope: { kind: 'run', runId: operation.runId },
-            execute: () => {
-              const surfaces = hostedGenUiSurfaces(run, runEvents(state, operation.runId));
+            execute: async () => {
+              const run = await requireRun(state, operation.runId);
+              const surfaces = hostedGenUiSurfaces(
+                run,
+                await runEvents(state, operation.runId),
+              );
               const current = surfaces.find(({ surfaceId, status }) => (
                 surfaceId === operation.surfaceId && status === 'pending'
               ));
@@ -703,20 +723,24 @@ export async function startHostedServer(
                 respondedBy: 'user',
                 respondedAt: at,
               } as const;
-              journalForLease(state.lease).publish(
-                { kind: 'run-ui', runId: operation.runId },
-                'genui-responded',
-                { kind: 'ui.surface_responded', runId: operation.runId, ts: at,
-                  surfaceId: operation.surfaceId, value: operation.body.value,
-                  respondedBy: 'user' },
-              );
-              return { ok: true, surface: next };
+              return {
+                events: [{
+                  channel: { kind: 'run-ui' as const, runId: operation.runId },
+                  event: 'genui-responded',
+                  data: { kind: 'ui.surface_responded', runId: operation.runId, ts: at,
+                    surfaceId: operation.surfaceId, value: operation.body.value,
+                    respondedBy: 'user' },
+                  milestone: 'status-transition' as const,
+                }],
+                value: { surface: next },
+              };
             },
-          });
+          }) as { surface: HostedGenUiSurface };
+          return { ok: true, surface: mutation.surface };
         }
         case 'project.genui.revoke': {
-          return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
-            kind: 'run:mutate',
+          const mutation = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'journal:mutate',
             scope: { kind: 'project', projectId: operation.projectId },
             execute: async () => {
               const listed = await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
@@ -724,30 +748,34 @@ export async function startHostedServer(
                 projectId: operation.projectId,
               }) as { runs?: unknown };
               const runs = Array.isArray(listed.runs) ? listed.runs : [];
-              const matches = runs.flatMap((run) => {
+              const candidates = await Promise.all(runs.map(async (run) => {
                 if (run == null || typeof run !== 'object' || Array.isArray(run)) return [];
                 const record = run as Record<string, unknown>;
                 if (typeof record.id !== 'string') return [];
-                return hostedGenUiSurfaces(record, runEvents(state, record.id))
+                return hostedGenUiSurfaces(record, await runEvents(state, record.id))
                   .filter(({ surfaceId, status }) => (
                     surfaceId === operation.surfaceId && status === 'pending'
                   ))
                   .map(() => record.id as string);
-              });
+              }));
+              const matches = candidates.flat();
               if (matches.length === 0) {
                 throw new HostedRuntimeError('NOT_FOUND', 'hosted GenUI surface was not found');
               }
               const at = Date.now();
-              for (const runId of matches) {
-                journalForLease(state.lease).publish(
-                  { kind: 'run-ui', runId },
-                  'genui-invalidated',
-                  { kind: 'ui.surface_invalidated', runId, ts: at, surfaceId: operation.surfaceId },
-                );
-              }
-              return { ok: true, invalidated: matches.length };
+              return {
+                events: matches.map((runId) => ({
+                  channel: { kind: 'run-ui' as const, runId },
+                  event: 'genui-invalidated',
+                  data: { kind: 'ui.surface_invalidated', runId, ts: at,
+                    surfaceId: operation.surfaceId },
+                  milestone: 'status-transition' as const,
+                })),
+                value: { invalidated: matches.length },
+              };
             },
-          });
+          }) as { invalidated: number };
+          return { ok: true, invalidated: mutation.invalidated };
         }
         case 'run.create':
         case 'chat.create':
@@ -794,15 +822,15 @@ export async function startHostedServer(
         );
       }
       const runId = createRunId(state.identity.userKey);
-      const journal = journalForLease(state.lease);
       return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
         kind: 'run:start',
         runId,
+        routeKind: operation.kind === 'chat.create' ? 'chat' : 'runs',
         intent: operation.intent,
         model: fixedModel,
         modelCatalogue: [fixedModel],
         thinkingCatalogue: HOSTED_THINKING_CATALOGUE,
-        onEvent(channel, payload) {
+        mapEvent(channel, payload) {
           const events = hostedRunEvents(channel, payload, {
             agentId: operation.intent.agentId,
             model: fixedModel,
@@ -810,25 +838,18 @@ export async function startHostedServer(
             reasoning: operation.intent.reasoning,
             runId,
           });
-          try {
-            for (const event of events.publicEvents) {
-              journal.publish({ kind: 'run', runId }, event.event, event.data);
-            }
-            if (events.internalEvent != null) {
-              journal.publish(
-                { kind: 'run-ui', runId },
-                events.internalEvent.event,
-                events.internalEvent.data,
-              );
-            }
-          } catch {
-            // Journal pressure cannot reopen or fail owned run state. Closing
-            // forces attached clients to refetch the authoritative status.
-            journal.invalidate({ kind: 'run', runId });
-            journal.invalidate({ kind: 'run-ui', runId });
-          } finally {
-            if (events.terminal) journal.close({ kind: 'run', runId });
-          }
+          return [
+            ...events.publicEvents.map((event) => ({
+              channel: { kind: 'run' as const, runId },
+              ...event,
+            })),
+            ...(events.internalEvent == null
+              ? []
+              : [{
+                  channel: { kind: 'run-ui' as const, runId },
+                  ...events.internalEvent,
+                }]),
+          ];
         },
       });
     },
@@ -1037,20 +1058,25 @@ export async function startHostedServer(
         body: request.body,
       });
       if ('conversation' in result) {
-        const journal = journalForLease(state.lease);
         const channel = { kind: 'project' as const, projectId };
         try {
-          journal.publish(channel, 'conversation-created', {
+          await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'journal:publish',
+            channel,
+            event: 'conversation-created',
+            data: {
               type: 'conversation-created',
               projectId,
               conversationId: result.conversation.id,
               title: result.conversation.title,
               createdAt: result.conversation.createdAt,
-            });
+            },
+          });
         } catch {
-          // Metadata is already committed. End attached streams so clients
-          // refetch rather than turning the successful mutation into a retry.
-          journal.invalidate(channel);
+          await dispatchHostedRuntimeInternalOperation(registry, state.lease, {
+            kind: 'journal:invalidate',
+            channel,
+          }).catch(() => {});
         }
       }
       response.status(201).json(result);
@@ -1239,15 +1265,13 @@ export async function startHostedServer(
         kind: 'project.get',
         projectId,
       });
-      journalForLease(state.lease);
       const lastEventId = request.headers['last-event-id'];
-      const result = sse.openProjectStream({
-        generation: state.lease.generation,
-        ...(lastEventId === undefined ? {} : { lastEventId }),
-        ownerKey: state.lease.storageKey,
-        projectId,
+      const result = await openEventStream(
+        state,
+        { kind: 'project', projectId },
+        lastEventId,
         response,
-      });
+      );
       state.lease.release();
       handleSseOpenResult(response, result);
     },
@@ -1308,13 +1332,12 @@ export async function startHostedServer(
         || typeof (result as { runId?: unknown }).runId !== 'string'
       ) throw new HostedRuntimeError('INTERNAL_ERROR', 'hosted chat admission failed');
       const runId = (result as { runId: string }).runId;
-      journalForLease(state.lease);
-      const opened = sse.openRunStream({
-        generation: state.lease.generation,
-        ownerKey: state.lease.storageKey,
-        runId,
+      const opened = await openEventStream(
+        state,
+        { kind: 'run', runId },
+        undefined,
         response,
-      });
+      );
       state.lease.release();
       handleSseOpenResult(response, opened);
     },
@@ -1340,15 +1363,13 @@ export async function startHostedServer(
       const state = requestState(response);
       const runId = routeParam(request, 'id');
       await requireRun(state, runId);
-      journalForLease(state.lease);
       const lastEventId = request.headers['last-event-id'];
-      const result = sse.openRunStream({
-        generation: state.lease.generation,
-        ...(lastEventId === undefined ? {} : { lastEventId }),
-        ownerKey: state.lease.storageKey,
-        runId,
+      const result = await openEventStream(
+        state,
+        { kind: 'run', runId },
+        lastEventId,
         response,
-      });
+      );
       state.lease.release();
       handleSseOpenResult(response, result);
     },
@@ -1628,8 +1649,6 @@ export async function startHostedServer(
         csrf.clear();
         designSystemTool.dispose();
         contentRoutes?.dispose();
-        for (const entry of eventJournals.values()) entry.journal.dispose();
-        eventJournals.clear();
         const results = await Promise.allSettled([
           testComposition?.shutdownRegistry?.(() => registry.shutdown()) ?? registry.shutdown(),
           closeServer(server),
@@ -1673,6 +1692,47 @@ function exactQuery(allowed: readonly string[]): RequestHandler {
     }
     next();
   };
+}
+
+function parseLastEventId(value: string | string[] | undefined):
+  | { readonly kind: 'ok'; readonly value: string | null }
+  | { readonly kind: 'bad-request'; readonly result: HostedSseOpenResult } {
+  if (value === undefined) return { kind: 'ok', value: null };
+  if (
+    typeof value !== 'string'
+    || value.length === 0
+    || Buffer.byteLength(value, 'utf8') > HOSTED_LAST_EVENT_ID_MAX_BYTES
+    || !/^[A-Za-z0-9._-]+$/u.test(value)
+  ) {
+    return {
+      kind: 'bad-request',
+      result: { code: 'BAD_REQUEST', kind: 'bad-request', message: 'Last-Event-ID is invalid' },
+    };
+  }
+  return { kind: 'ok', value };
+}
+
+function setSseHeaders(response: Response): void {
+  response.setHeader('Content-Type', 'text/event-stream');
+  response.setHeader('Cache-Control', 'no-cache, no-transform');
+  response.setHeader('Connection', 'keep-alive');
+  response.setHeader('X-Accel-Buffering', 'no');
+}
+
+function clearSseHeaders(response: Response): void {
+  for (const name of ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering']) {
+    response.removeHeader(name);
+  }
+}
+
+function isEventReplay(input: unknown): input is {
+  readonly kind: 'events';
+  readonly events: ReadonlyArray<{ readonly data: unknown }>;
+} {
+  return input != null
+    && typeof input === 'object'
+    && (input as { kind?: unknown }).kind === 'events'
+    && Array.isArray((input as { events?: unknown }).events);
 }
 
 function handleSseOpenResult(response: Response, result: HostedSseOpenResult): void {
@@ -1747,9 +1807,16 @@ function hostedRunEvents(
     readonly runId: string;
   },
 ): {
-  internalEvent: { event: string; data: Record<string, unknown> } | null;
-  publicEvents: Array<{ event: string; data: Record<string, unknown> }>;
-  terminal: boolean;
+  internalEvent: {
+    event: string;
+    data: Record<string, unknown>;
+    milestone: HostedDurableEventMilestone | null;
+  } | null;
+  publicEvents: Array<{
+    event: string;
+    data: Record<string, unknown>;
+    milestone: HostedDurableEventMilestone | null;
+  }>;
 } {
   const ts = Number.isSafeInteger(payload.ts) ? payload.ts : Date.now();
   const runId = context.runId;
@@ -1758,10 +1825,15 @@ function hostedRunEvents(
     const internalEvent = {
       event: 'run.lifecycle',
       data: { ...payload, runId, status, ts },
+      milestone: (status === 'created'
+        ? 'run-created'
+        : status === 'completed' || status === 'failed' || status === 'cancelled'
+          ? 'terminal'
+          : 'status-transition') as HostedDurableEventMilestone,
     };
-    if (status === 'started') {
+    if (status === 'created') {
       return {
-        internalEvent,
+        internalEvent: null,
         publicEvents: [{
           event: 'start',
           data: {
@@ -1771,8 +1843,8 @@ function hostedRunEvents(
             reasoning: context.reasoning,
             runId,
           },
+          milestone: 'run-created',
         }],
-        terminal: false,
       };
     }
     if (status === 'completed' || status === 'failed' || status === 'cancelled') {
@@ -1794,6 +1866,7 @@ function hostedRunEvents(
                   message: 'hosted run failed',
                   error: createApiError(errorCode, 'hosted run failed'),
                 },
+                milestone: 'terminal' as const,
               }]
             : []),
           {
@@ -1803,21 +1876,21 @@ function hostedRunEvents(
               signal: typeof payload.signal === 'string' ? payload.signal : null,
               status: endStatus,
             },
+            milestone: 'terminal' as const,
           },
         ],
-        terminal: true,
       };
     }
-    return { internalEvent, publicEvents: [], terminal: false };
+    return { internalEvent, publicEvents: [] };
   }
   if (typeof payload.kind === 'string') {
     return {
       internalEvent: {
         event: /^[A-Za-z0-9_.-]{1,64}$/u.test(channel) ? channel : 'agent',
         data: { ...payload, runId, ts },
+        milestone: payload.kind.startsWith('ui.') ? 'status-transition' : null,
       },
       publicEvents: [],
-      terminal: false,
     };
   }
   const text = typeof payload.delta === 'string'
@@ -1829,15 +1902,21 @@ function hostedRunEvents(
         : null;
   if (text != null) {
     return {
-      internalEvent: { event: 'agent.message', data: { kind: 'agent.message', runId, text, ts } },
-      publicEvents: [{ event: 'agent', data: { type: 'text_delta', delta: text } }],
-      terminal: false,
+      internalEvent: {
+        event: 'agent.message',
+        data: { kind: 'agent.message', runId, text, ts },
+        milestone: null,
+      },
+      publicEvents: [{
+        event: 'agent',
+        data: { type: 'text_delta', delta: text },
+        milestone: null,
+      }],
     };
   }
   return {
     internalEvent: null,
     publicEvents: [],
-    terminal: false,
   };
 }
 

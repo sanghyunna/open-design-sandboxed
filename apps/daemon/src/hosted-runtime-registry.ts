@@ -31,9 +31,11 @@ import {
   createHostedEventBudget,
   createHostedEventJournal,
   HOSTED_EVENT_LIMITS,
+  type HostedDurableEventInput,
   type HostedDurableEventMilestone,
   type HostedEventChannel,
   type HostedEventJournalSnapshotV1,
+  type HostedPreparedDurableEventBatch,
 } from './hosted-event-journal.js';
 import {
   createHostedArtifactAdapter,
@@ -246,6 +248,13 @@ export interface HostedRunControl {
   readonly runId: string;
 }
 
+export interface HostedRunJournalEventSpec {
+  readonly channel: HostedEventChannel;
+  readonly data: unknown;
+  readonly event: string;
+  readonly milestone: HostedDurableEventMilestone | null;
+}
+
 export interface HostedRuntimeRegistry {
   acquire(
     identity: HostedRuntimeIdentity,
@@ -305,7 +314,10 @@ export type HostedRuntimeInternalOperation =
       readonly model: string;
       readonly modelCatalogue: readonly string[];
       readonly thinkingCatalogue: readonly string[];
-      readonly onEvent: (channel: string, payload: Record<string, unknown>) => void;
+      readonly mapEvent: (
+        channel: string,
+        payload: Record<string, unknown>,
+      ) => readonly HostedRunJournalEventSpec[];
     }
   | {
       readonly kind: 'metadata:read';
@@ -332,11 +344,14 @@ export type HostedRuntimeInternalOperation =
   | { readonly kind: 'artifact:lint'; readonly request: unknown }
   | { readonly kind: 'artifact:download'; readonly artifactId: string }
   | {
-      readonly kind: 'journal:prepare';
-      readonly channel: HostedEventChannel;
-      readonly event: string;
-      readonly data: unknown;
-      readonly milestone: HostedDurableEventMilestone;
+      readonly kind: 'journal:mutate';
+      readonly scope:
+        | { readonly kind: 'run'; readonly runId: string }
+        | { readonly kind: 'project'; readonly projectId: string };
+      readonly execute: () => Promise<{
+        readonly events: readonly HostedDurableEventInput[];
+        readonly value: unknown;
+      }>;
     }
   | {
       readonly kind: 'journal:publish';
@@ -433,8 +448,10 @@ interface RunQueueEntry extends QueueEntryBase {
   readonly kind: 'run';
   readonly ownedRun: ReturnType<ReturnType<typeof createChatRunService>['create']>;
   readonly execute: HostedRunDispatch<unknown>['execute'];
+  readonly journal: RunJournalPlan | null;
   readonly onTerminal?: HostedRunDispatch<unknown>['onTerminal'];
   readonly resolve: (value: unknown) => void;
+  terminalError: HostedRuntimeError | null;
 }
 
 interface CredentialQueueEntry extends QueueEntryBase {
@@ -465,8 +482,18 @@ type QueueEntry = RunQueueEntry | CredentialQueueEntry | MutationQueueEntry | Sn
 interface ActiveRun {
   readonly entry: RunQueueEntry;
   readonly abort: AbortController;
+  readonly countsAsChild: boolean;
+  eventTail: Promise<void>;
   timeout: ReturnType<typeof setTimeout> | null;
   terminalError: HostedRuntimeError | null;
+}
+
+interface RunJournalPlan {
+  readonly mapEvent: (
+    channel: string,
+    payload: Record<string, unknown>,
+  ) => readonly HostedRunJournalEventSpec[];
+  terminalValue: HostedPiTurnResult['value'] | null;
 }
 
 interface RuntimeState {
@@ -522,6 +549,7 @@ export function createHostedRuntimeRegistry(
   const contentQuota = createHostedContentQuota();
   const downloadStreams = createHostedDownloadStreams();
   const eventBudget = createHostedEventBudget(options.eventBudgetLimits);
+  const eventGenerationNonce = randomUUID();
   const createEntityId = options.createEntityId ?? (() => randomUUID());
   const projectCatalogueIds = options.projectCatalogueIds ?? new Set<string>();
   const skillCatalogueIds = options.skillCatalogueIds ?? new Set<string>();
@@ -690,8 +718,11 @@ export function createHostedRuntimeRegistry(
       const journalRestore = readEventJournalSnapshot(storage);
       eventJournal = createHostedEventJournal({
         budget: eventBudget,
-        generation: String(runtime.generation),
+        generation: `${eventGenerationNonce}-${runtime.generation}`,
         ownerKey: runtime.binding.storageKey,
+        ...(options.eventBudgetLimits === undefined
+          ? {}
+          : { limits: options.eventBudgetLimits }),
         ...(journalRestore === undefined ? {} : { restore: journalRestore }),
       });
       const activeStorage = storage;
@@ -928,6 +959,14 @@ export function createHostedRuntimeRegistry(
     lease: HostedRuntimeLease,
     operation: HostedRunDispatch<T>,
   ): Promise<T> {
+    return dispatchRun(lease, operation, null);
+  }
+
+  function dispatchRun<T>(
+    lease: HostedRuntimeLease,
+    operation: HostedRunDispatch<T>,
+    journal: RunJournalPlan | null,
+  ): Promise<T> {
     let runtime: RuntimeState;
     try {
       if (shuttingDown) runtimeUnavailable('hosted runtime registry is shutting down');
@@ -939,12 +978,13 @@ export function createHostedRuntimeRegistry(
     } catch (error) {
       return Promise.reject(error);
     }
-    return enqueueRunAfterReady(runtime, operation);
+    return enqueueRunAfterReady(runtime, operation, journal);
   }
 
   async function enqueueRunAfterReady<T>(
     runtime: RuntimeState,
     operation: HostedRunDispatch<T>,
+    journal: RunJournalPlan | null,
   ): Promise<T> {
     try {
       if (runtime.lifecycle === 'initializing') await waitForRuntime(runtime);
@@ -987,11 +1027,13 @@ export function createHostedRuntimeRegistry(
         const entry: RunQueueEntry = {
           admissionTimer: null,
           execute: operation.execute as HostedRunDispatch<unknown>['execute'],
+          journal,
           kind: 'run',
           ...(operation.onTerminal === undefined ? {} : { onTerminal: operation.onTerminal }),
           ownedRun,
           reject,
           resolve: resolve as (value: unknown) => void,
+          terminalError: null,
         };
         runtime.queue.push(entry);
         queuedMutations += 1;
@@ -999,7 +1041,7 @@ export function createHostedRuntimeRegistry(
           const code = runtime.active == null && !runtime.laneOperationActive
             ? 'HOSTED_CAPACITY_EXHAUSTED'
             : 'HOSTED_OVERLOADED';
-          removeQueued(runtime, entry, new HostedRuntimeError(
+          terminateQueuedRun(runtime, entry, new HostedRuntimeError(
             code,
             'hosted run admission timed out',
           ));
@@ -1212,14 +1254,18 @@ export function createHostedRuntimeRegistry(
 
   function pump(runtime: RuntimeState): void {
     if (
-      shuttingDown
+      (shuttingDown && !isQueuedJournaledTerminal(runtime.queue[0]))
       || runtime.lifecycle !== 'active'
       || runtime.active != null
       || runtime.laneOperationActive
       || runtime.queue.length === 0
     ) return;
     const next = runtime.queue[0];
-    if (next?.kind === 'run' && activeChildren >= limits.activeChildren) return;
+    if (
+      next?.kind === 'run'
+      && next.terminalError == null
+      && activeChildren >= limits.activeChildren
+    ) return;
     const entry = runtime.queue.shift();
     if (entry == null) return;
     queuedMutations -= 1;
@@ -1289,19 +1335,18 @@ export function createHostedRuntimeRegistry(
     const abort = new AbortController();
     const active: ActiveRun = {
       abort,
+      countsAsChild: entry.terminalError == null,
       entry,
-      terminalError: null,
+      eventTail: Promise.resolve(),
+      terminalError: entry.terminalError,
       timeout: null,
     };
     runtime.active = active;
-    activeChildren += 1;
-    entry.ownedRun.status = 'running';
-    entry.ownedRun.updatedAt = Date.now();
-    runServiceFor(runtime).emit(entry.ownedRun, 'start', {
-      conversationId: entry.ownedRun.conversationId,
-      runId: entry.ownedRun.id,
-      status: 'running',
-    });
+    if (active.countsAsChild) activeChildren += 1;
+    if (active.terminalError != null) {
+      void finishRun(runtime, active, null, active.terminalError);
+      return;
+    }
     active.timeout = unrefTimer(setTimeout(() => {
       if (runtime.active !== active || active.terminalError != null) return;
       active.terminalError = new HostedRuntimeError(
@@ -1310,17 +1355,216 @@ export function createHostedRuntimeRegistry(
       );
       abort.abort(active.terminalError);
     }, runTimeoutMs));
-    const sessionReference = runtime.sessions.get(entry.ownedRun.conversationId) ?? null;
-    void Promise.resolve()
-      .then(() => entry.execute({
+    if (entry.journal == null) {
+      markRunRunning(runtime, entry);
+      void executeActiveRun(runtime, active);
+    } else {
+      void startJournaledRun(runtime, active);
+    }
+  }
+
+  function markRunRunning(runtime: RuntimeState, entry: RunQueueEntry): void {
+    entry.ownedRun.status = 'running';
+    entry.ownedRun.updatedAt = Date.now();
+    runServiceFor(runtime).emit(entry.ownedRun, 'start', {
+      conversationId: entry.ownedRun.conversationId,
+      runId: entry.ownedRun.id,
+      status: 'running',
+    });
+  }
+
+  async function startJournaledRun(runtime: RuntimeState, active: ActiveRun): Promise<void> {
+    const journal = active.entry.journal!;
+    try {
+      const events = requiredRunEvents(
+        active.entry.ownedRun.id,
+        journal,
+        'status-transition',
+        'started',
+      );
+      const prepared = await persistDurableEvents(runtime, events, () => {
+        const clientRequestId = active.entry.ownedRun.clientRequestId;
+        if (typeof clientRequestId !== 'string' || clientRequestId.length === 0) {
+          runtimeUnavailable('hosted journaled run receipt is unavailable');
+        }
+        if (runReceiptsFor(runtime).updateStatus(clientRequestId, 'running') == null) {
+          runtimeUnavailable('hosted journaled run receipt is unavailable');
+        }
+      });
+      commitDurableEvents(runtime, prepared, 'hosted running event publication failed');
+      markRunRunning(runtime, active.entry);
+      active.abort.signal.throwIfAborted();
+      await executeActiveRun(runtime, active);
+    } catch (error) {
+      await finishRun(runtime, active, null, error);
+    }
+  }
+
+  async function executeActiveRun(runtime: RuntimeState, active: ActiveRun): Promise<void> {
+    const sessionReference = runtime.sessions.get(active.entry.ownedRun.conversationId) ?? null;
+    let result: HostedRunExecutionResult<unknown>;
+    try {
+      result = await active.entry.execute({
         credential: runtime.credential,
         sessionReference,
-        signal: abort.signal,
-      }))
-      .then(
-        (result) => { void finishRun(runtime, active, result, null); },
-        (error: unknown) => { void finishRun(runtime, active, null, error); },
-      );
+        signal: active.abort.signal,
+      });
+    } catch (error) {
+      await finishRun(runtime, active, null, error);
+      return;
+    }
+    await finishRun(runtime, active, result, null);
+  }
+
+  async function persistDurableEvents(
+    runtime: RuntimeState,
+    events: readonly HostedRunJournalEventSpec[],
+    mutation: () => unknown,
+  ): Promise<HostedPreparedDurableEventBatch> {
+    const journal = eventJournalFor(runtime);
+    const batch = journal.prepareDurableBatch(events.map((event) => ({
+      channel: event.channel,
+      data: event.data,
+      event: event.event,
+      milestone: event.milestone!,
+    })));
+    let mutationStarted = false;
+    try {
+      await durabilityFor(runtime).mutate(async () => {
+        mutationStarted = true;
+        await mutation();
+        writeEventJournalSnapshot(storageFor(runtime), batch.snapshot);
+      });
+      return batch;
+    } catch (error) {
+      batch.rollback();
+      if (mutationStarted && !(error instanceof HostedDurabilityError)) {
+        poisonRuntime(runtime, new HostedRuntimeError(
+          'HOSTED_RUNTIME_UNAVAILABLE',
+          'hosted durable event mutation failed',
+        ));
+      }
+      throw error;
+    }
+  }
+
+  function commitDurableEvents(
+    runtime: RuntimeState,
+    batch: HostedPreparedDurableEventBatch,
+    message: string,
+  ): void {
+    try {
+      batch.commit();
+    } catch {
+      batch.rollback();
+      const error = new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', message);
+      poisonRuntime(runtime, error);
+      throw error;
+    }
+  }
+
+  function requiredRunEvents(
+    runId: string,
+    journal: RunJournalPlan,
+    milestone: Exclude<HostedDurableEventMilestone, 'resync'>,
+    status: 'created' | 'started' | 'completed' | 'failed' | 'cancelled',
+    error?: unknown,
+  ): readonly HostedRunJournalEventSpec[] {
+    const payload: Record<string, unknown> = {
+      kind: 'run.lifecycle',
+      runId,
+      status,
+      ts: Date.now(),
+    };
+    if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+      payload.exitCode = journal.terminalValue?.exitCode ?? (status === 'completed' ? 0 : null);
+      payload.signal = journal.terminalValue?.signal ?? null;
+      if (error != null) {
+        payload.errorCode = error instanceof HostedRuntimeError ? error.code : 'INTERNAL_ERROR';
+      }
+    }
+    const events = validateRunEvents(runId, journal.mapEvent('run.lifecycle', payload));
+    if (
+      events.length === 0
+      || events.some((event) => event.milestone == null)
+      || !events.some((event) => (
+        event.milestone === milestone
+        && (milestone === 'status-transition' || event.channel.kind === 'run')
+      ))
+    ) {
+      runtimeUnavailable(`hosted ${status} event mapping is not durable`);
+    }
+    return events;
+  }
+
+  function validateRunEvents(
+    runId: string,
+    input: readonly HostedRunJournalEventSpec[],
+  ): readonly HostedRunJournalEventSpec[] {
+    if (!Array.isArray(input)) runtimeUnavailable('hosted run event mapping is invalid');
+    for (const event of input) {
+      if (
+        event == null
+        || typeof event !== 'object'
+        || (event.channel.kind !== 'run' && event.channel.kind !== 'run-ui')
+        || event.channel.runId !== runId
+      ) {
+        runtimeUnavailable('hosted run event mapping escaped its run authority');
+      }
+    }
+    return input;
+  }
+
+  function queueRunEvents(
+    runtime: RuntimeState,
+    journal: RunJournalPlan,
+    channel: string,
+    payload: Record<string, unknown>,
+  ): void {
+    const active = runtime.active;
+    if (active == null || active.entry.journal !== journal) return;
+    let events: readonly HostedRunJournalEventSpec[];
+    try {
+      events = validateRunEvents(active.entry.ownedRun.id, journal.mapEvent(channel, payload));
+    } catch (error) {
+      events = [];
+      active.eventTail = active.eventTail.then(() => Promise.reject(error));
+    }
+    if (events.length > 0) {
+      active.eventTail = active.eventTail.then(() => publishRunEvents(runtime, events));
+    }
+    void active.eventTail.catch((cause: unknown) => {
+      if (runtime.active !== active) return;
+      const error = cause instanceof HostedDurabilityError
+        ? durabilityError(cause)
+        : cause instanceof HostedRuntimeError
+          ? cause
+          : new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted run event failed');
+      active.terminalError ??= error;
+      active.abort.abort(active.terminalError);
+    });
+  }
+
+  async function publishRunEvents(
+    runtime: RuntimeState,
+    events: readonly HostedRunJournalEventSpec[],
+  ): Promise<void> {
+    const journal = eventJournalFor(runtime);
+    for (let index = 0; index < events.length;) {
+      const event = events[index]!;
+      if (event.milestone == null) {
+        journal.publish(event.channel, event.event, event.data);
+        index += 1;
+        continue;
+      }
+      const durable: HostedRunJournalEventSpec[] = [];
+      while (events[index]?.milestone != null) {
+        durable.push(events[index]!);
+        index += 1;
+      }
+      const batch = await persistDurableEvents(runtime, durable, () => {});
+      commitDurableEvents(runtime, batch, 'hosted run event publication failed');
+    }
   }
 
   async function finishRun(
@@ -1336,55 +1580,36 @@ export function createHostedRuntimeRegistry(
     const hasDurableTerminalState = (
       error == null && result?.sessionReference !== undefined
     ) || (typeof clientRequestId === 'string' && clientRequestId.length > 0);
+    let terminalBatch: HostedPreparedDurableEventBatch | null = null;
     try {
-      if (hasDurableTerminalState) await durabilityFor(runtime).mutate(() => {
-        if (error == null && result != null && result.sessionReference !== undefined) {
-        const sessionReference = result.sessionReference;
-        const conversationId = active.entry.ownedRun.conversationId;
-        const previous = runtime.sessions.get(conversationId);
-        const previousBytes = previous == null ? 0 : Buffer.byteLength(previous, 'utf8');
-        if (sessionReference == null) {
-          clearAgentSession(storageFor(runtime).database, conversationId, 'pi');
-          runtime.sessions.delete(conversationId);
-          runtime.sessionReferenceBytes -= previousBytes;
-        } else {
-          validateSessionReference(sessionReference);
-          const nextBytes = Buffer.byteLength(sessionReference, 'utf8');
-          if (
-            runtime.sessionReferenceBytes - previousBytes + nextBytes
-            > limits.sessionReferenceBytesPerUser
-          ) {
-            throw new HostedRuntimeError(
-              'HOSTED_QUOTA_EXCEEDED',
-              'hosted user session reference bytes exceeded',
-            );
-          }
-          const database = storageFor(runtime).database;
-          if (getConversation(database, conversationId) != null) {
-            upsertAgentSession(database, {
-              agentId: 'pi',
-              conversationId,
-              sessionId: sessionReference,
-            });
-          }
-          runtime.sessions.set(conversationId, sessionReference);
-          runtime.sessionReferenceBytes = runtime.sessionReferenceBytes - previousBytes + nextBytes;
+      if (active.entry.journal != null) {
+        try {
+          await active.eventTail;
+        } catch (eventError) {
+          error = active.terminalError ?? eventError;
         }
-        }
-        if (typeof clientRequestId === 'string' && clientRequestId.length > 0) {
-          runReceiptsFor(runtime).updateStatus(
-            clientRequestId,
-            error == null
-              ? 'succeeded'
-              : error instanceof HostedRuntimeError
-                && error.code === 'HOSTED_RUN_CANCELED'
-                ? 'canceled'
-                : 'failed',
-          );
-        }
-      });
+        const events = requiredRunEvents(
+          active.entry.ownedRun.id,
+          active.entry.journal,
+          'terminal',
+          error == null
+            ? 'completed'
+            : error instanceof HostedRuntimeError && error.code === 'HOSTED_RUN_CANCELED'
+              ? 'cancelled'
+              : 'failed',
+          error,
+        );
+        terminalBatch = await persistDurableEvents(
+          runtime,
+          events,
+          () => applyTerminalState(runtime, active, result, error),
+        );
+      } else if (hasDurableTerminalState) await durabilityFor(runtime).mutate(
+        () => applyTerminalState(runtime, active, result, error),
+      );
     } catch (terminalError) {
-      const poison = !(terminalError instanceof HostedRuntimeError);
+      const poison = active.entry.journal != null
+        || !(terminalError instanceof HostedRuntimeError);
       const terminalFailure = terminalError instanceof HostedDurabilityError
         ? durabilityError(terminalError)
         : terminalError instanceof HostedRuntimeError
@@ -1398,11 +1623,25 @@ export function createHostedRuntimeRegistry(
     }
     if (error != null) runtime.credential = null;
     runtime.active = null;
-    activeChildren -= 1;
+    if (active.countsAsChild) activeChildren -= 1;
     const finalizationError = settleOwnedRun(runtime, active.entry, error);
     if (finalizationError != null) {
+      terminalBatch?.rollback();
+      terminalBatch = null;
       error = finalizationError;
       poisonRuntime(runtime, finalizationError);
+    }
+    if (terminalBatch != null) {
+      try {
+        terminalBatch.commit();
+      } catch {
+        const publicationError = new HostedRuntimeError(
+          'HOSTED_RUNTIME_UNAVAILABLE',
+          'hosted terminal event publication failed',
+        );
+        error = publicationError;
+        poisonRuntime(runtime, publicationError);
+      }
     }
     notifyRunTerminal(active.entry, error);
     releaseStrong(runtime);
@@ -1415,6 +1654,59 @@ export function createHostedRuntimeRegistry(
     pumpAll();
     scheduleIdleEviction(runtime);
     tryFinishShutdown();
+  }
+
+  function applyTerminalState(
+    runtime: RuntimeState,
+    active: ActiveRun,
+    result: HostedRunExecutionResult<unknown> | null,
+    error: unknown,
+  ): void {
+    const clientRequestId = active.entry.ownedRun.clientRequestId;
+    if (error == null && result != null && result.sessionReference !== undefined) {
+      const sessionReference = result.sessionReference;
+      const conversationId = active.entry.ownedRun.conversationId;
+      const previous = runtime.sessions.get(conversationId);
+      const previousBytes = previous == null ? 0 : Buffer.byteLength(previous, 'utf8');
+      if (sessionReference == null) {
+        clearAgentSession(storageFor(runtime).database, conversationId, 'pi');
+        runtime.sessions.delete(conversationId);
+        runtime.sessionReferenceBytes -= previousBytes;
+      } else {
+        validateSessionReference(sessionReference);
+        const nextBytes = Buffer.byteLength(sessionReference, 'utf8');
+        if (
+          runtime.sessionReferenceBytes - previousBytes + nextBytes
+          > limits.sessionReferenceBytesPerUser
+        ) {
+          throw new HostedRuntimeError(
+            'HOSTED_QUOTA_EXCEEDED',
+            'hosted user session reference bytes exceeded',
+          );
+        }
+        const database = storageFor(runtime).database;
+        if (getConversation(database, conversationId) != null) {
+          upsertAgentSession(database, {
+            agentId: 'pi',
+            conversationId,
+            sessionId: sessionReference,
+          });
+        }
+        runtime.sessions.set(conversationId, sessionReference);
+        runtime.sessionReferenceBytes = runtime.sessionReferenceBytes - previousBytes + nextBytes;
+      }
+    }
+    if (typeof clientRequestId === 'string' && clientRequestId.length > 0) {
+      if (runReceiptsFor(runtime).updateStatus(
+        clientRequestId,
+        error == null
+          ? 'succeeded'
+          : error instanceof HostedRuntimeError
+            && error.code === 'HOSTED_RUN_CANCELED'
+            ? 'canceled'
+            : 'failed',
+      ) == null) runtimeUnavailable('hosted journaled run receipt is unavailable');
+    }
   }
 
   function settleOwnedRun(
@@ -1468,6 +1760,7 @@ export function createHostedRuntimeRegistry(
     runtime: RuntimeState,
     entry: QueueEntry,
     error: HostedRuntimeError,
+    settleRun = true,
   ): boolean {
     const index = runtime.queue.indexOf(entry);
     if (index < 0) return false;
@@ -1475,13 +1768,31 @@ export function createHostedRuntimeRegistry(
     queuedMutations -= 1;
     clearTimer(entry.admissionTimer);
     entry.admissionTimer = null;
-    const finalizationError = entry.kind === 'run'
+    const finalizationError = entry.kind === 'run' && settleRun
       ? settleOwnedRun(runtime, entry, error)
       : null;
     if (finalizationError != null) poisonRuntime(runtime, finalizationError);
-    if (entry.kind === 'run') notifyRunTerminal(entry, finalizationError ?? error);
+    if (entry.kind === 'run' && settleRun) notifyRunTerminal(entry, finalizationError ?? error);
     releaseStrong(runtime);
     entry.reject(finalizationError ?? error);
+    pump(runtime);
+    return true;
+  }
+
+  function isQueuedJournaledTerminal(entry: QueueEntry | undefined): entry is RunQueueEntry {
+    return entry?.kind === 'run' && entry.journal != null && entry.terminalError != null;
+  }
+
+  function terminateQueuedRun(
+    runtime: RuntimeState,
+    entry: RunQueueEntry,
+    error: HostedRuntimeError,
+  ): boolean {
+    if (entry.journal == null) return removeQueued(runtime, entry, error);
+    if (!runtime.queue.includes(entry)) return false;
+    entry.terminalError ??= error;
+    clearTimer(entry.admissionTimer);
+    entry.admissionTimer = null;
     pump(runtime);
     return true;
   }
@@ -1506,7 +1817,7 @@ export function createHostedRuntimeRegistry(
       (entry): entry is RunQueueEntry =>
         entry.kind === 'run' && entry.ownedRun.id === control.runId,
     );
-    return queued == null ? false : removeQueued(runtime, queued, error);
+    return queued == null ? false : terminateQueuedRun(runtime, queued, error);
   }
 
   function scheduleIdleEviction(runtime: RuntimeState): void {
@@ -1652,7 +1963,9 @@ export function createHostedRuntimeRegistry(
     runtime.lifecycle = 'poisoned';
     clearIdleTimer(runtime);
     runtime.credential = null;
-    for (const entry of [...runtime.queue]) removeQueued(runtime, entry, error);
+    for (const entry of [...runtime.queue]) {
+      removeQueued(runtime, entry, error, entry.kind !== 'run' || entry.journal == null);
+    }
     if (runtime.active != null) {
       runtime.active.terminalError ??= error;
       runtime.active.abort.abort(runtime.active.terminalError);
@@ -1697,11 +2010,15 @@ export function createHostedRuntimeRegistry(
     for (const runtime of runtimes.values()) {
       clearIdleTimer(runtime);
       runtime.credential = null;
-      for (const entry of [...runtime.queue]) removeQueued(runtime, entry, canceled);
+      for (const entry of [...runtime.queue]) {
+        if (entry.kind === 'run') terminateQueuedRun(runtime, entry, canceled);
+        else removeQueued(runtime, entry, canceled);
+      }
       if (runtime.active != null) {
         runtime.active.terminalError ??= canceled;
         runtime.active.abort.abort(runtime.active.terminalError);
       }
+      pump(runtime);
     }
     tryFinishShutdown();
     shutdownPromise = new Promise<void>((resolve, reject) => {
@@ -1847,7 +2164,15 @@ export function createHostedRuntimeRegistry(
           await waitForRuntime(state.runtime);
           const intent = operation.intent;
           validateHostedRunIntentOwnership(state.runtime, intent);
+          const journalPlan: RunJournalPlan = {
+            mapEvent: operation.mapEvent,
+            terminalValue: null,
+          };
           let accepted: ReturnType<HostedRunReceiptStore['accept']>;
+          const createdBatch: { value: HostedPreparedDurableEventBatch | null } = {
+            value: null,
+          };
+          let createdMutationStarted = false;
           try {
             accepted = await enqueueMutation(state.runtime, async () => {
               const receipts = runReceiptsFor(state.runtime);
@@ -1865,6 +2190,21 @@ export function createHostedRuntimeRegistry(
                     'hosted retained run capacity is exhausted',
                   );
                 }
+                const createdEvents = requiredRunEvents(
+                  operation.runId,
+                  journalPlan,
+                  'run-created',
+                  'created',
+                );
+                createdBatch.value = eventJournalFor(state.runtime).prepareDurableBatch(
+                  createdEvents.map((event) => ({
+                    channel: event.channel,
+                    data: event.data,
+                    event: event.event,
+                    milestone: event.milestone!,
+                  })),
+                );
+                createdMutationStarted = true;
                 await checkpointServiceFor(state.runtime).captureCheckpoint({
                   conversationId: intent.conversationId,
                   kind: 'before_run',
@@ -1873,7 +2213,7 @@ export function createHostedRuntimeRegistry(
                   runId: operation.runId,
                 });
               }
-              return receipts.accept({
+              const result = receipts.accept({
                 intent,
                 result: {
                   assistantMessageId: intent.assistantMessageId,
@@ -1882,8 +2222,29 @@ export function createHostedRuntimeRegistry(
                 },
                 routeKind: operation.routeKind ?? 'runs',
               });
+              if (!result.existing && createdBatch.value != null) {
+                writeEventJournalSnapshot(
+                  storageFor(state.runtime),
+                  createdBatch.value.snapshot,
+                );
+              }
+              return result;
             }) as ReturnType<HostedRunReceiptStore['accept']>;
+            if (createdBatch.value != null) {
+              commitDurableEvents(
+                state.runtime,
+                createdBatch.value,
+                'hosted run-created event publication failed',
+              );
+            }
           } catch (error) {
+            createdBatch.value?.rollback();
+            if (createdMutationStarted && state.runtime.lifecycle === 'active') {
+              poisonRuntime(state.runtime, new HostedRuntimeError(
+                'HOSTED_RUNTIME_UNAVAILABLE',
+                'hosted run acceptance could not be made durable',
+              ));
+            }
             if (error instanceof HostedRunReceiptError) {
               throw new HostedRuntimeError(error.code, error.message);
             }
@@ -1896,8 +2257,7 @@ export function createHostedRuntimeRegistry(
             admittedResolve = resolve;
             admittedReject = reject;
           });
-          let terminalResult: HostedPiTurnResult['value'] | null = null;
-          const completion = dispatch(lease, {
+          const completion = dispatchRun(lease, {
             runId: operation.runId,
             conversationId: intent.conversationId,
             projectId: intent.projectId,
@@ -1905,32 +2265,6 @@ export function createHostedRuntimeRegistry(
             agentId: intent.agentId,
             clientRequestId: intent.clientRequestId,
             onAdmitted: admittedResolve,
-            onTerminal(error) {
-              try {
-                operation.onEvent('run.lifecycle', {
-                  kind: 'run.lifecycle',
-                  runId: operation.runId,
-                  status: error == null
-                    ? 'completed'
-                    : error instanceof HostedRuntimeError
-                      && error.code === 'HOSTED_RUN_CANCELED'
-                      ? 'cancelled'
-                      : 'failed',
-                  ...(error == null
-                    ? {}
-                    : {
-                        errorCode: error instanceof HostedRuntimeError
-                          ? error.code
-                          : 'INTERNAL_ERROR',
-                      }),
-                  exitCode: terminalResult?.exitCode ?? (error == null ? 0 : null),
-                  signal: terminalResult?.signal ?? null,
-                  ts: Date.now(),
-                });
-              } catch {
-                // The run registry already owns the terminal state.
-              }
-            },
             execute: async ({ credential, sessionReference, signal }) => {
               validateHostedRunIntentOwnership(state.runtime, intent);
               if (credential == null) {
@@ -1939,21 +2273,12 @@ export function createHostedRuntimeRegistry(
                   'hosted provider credential is not configured',
                 );
               }
-              await durabilityFor(state.runtime).mutate(() => {
-                runReceiptsFor(state.runtime).updateStatus(intent.clientRequestId, 'running');
-              });
               signal.throwIfAborted();
               const storage = storageFor(state.runtime);
               const projectRoot = exactOwnedProjectRoot(
                 storage.roots.projectsRoot,
                 intent.projectId,
               );
-              operation.onEvent('run.lifecycle', {
-                kind: 'run.lifecycle',
-                runId: operation.runId,
-                status: 'started',
-                ts: Date.now(),
-              });
               const result = await startTurn({
                 capabilities: {
                   generation: state.runtime.generation,
@@ -1975,9 +2300,14 @@ export function createHostedRuntimeRegistry(
                 sessionReference,
                 imagePaths: [],
                 signal,
-                send: operation.onEvent,
+                send: (channel, payload) => queueRunEvents(
+                  state.runtime,
+                  journalPlan,
+                  channel,
+                  payload,
+                ),
               });
-              terminalResult = result.value;
+              journalPlan.terminalValue = result.value;
               if (result.value.status === 'canceled') {
                 throw new HostedRuntimeError('HOSTED_RUN_CANCELED', 'hosted run was canceled');
               }
@@ -1996,7 +2326,7 @@ export function createHostedRuntimeRegistry(
                 },
               };
             },
-          });
+          }, journalPlan);
           void completion.catch(admittedReject);
           await admitted;
           return {
@@ -2073,28 +2403,29 @@ export function createHostedRuntimeRegistry(
           await waitForRuntime(state.runtime);
           return artifactAdapterFor(state.runtime).openDownload(operation.artifactId);
         }
-        case 'journal:prepare': {
-          await waitForRuntime(state.runtime);
-          const journal = eventJournalFor(state.runtime);
-          const pending: { value: ReturnType<typeof journal.prepareDurable> | null } = {
+        case 'journal:mutate': {
+          const pending: { value: HostedPreparedDurableEventBatch | null } = {
             value: null,
           };
           try {
-            const record = await enqueueMutation(state.runtime, () => {
-              pending.value = journal.prepareDurable(
-                operation.channel,
-                operation.event,
-                operation.data,
-                operation.milestone,
-              );
+            const value = await enqueueMutation(state.runtime, async () => {
+              validateJournalMutationScope(state.runtime, operation.scope);
+              const result = await operation.execute();
+              validateJournalMutationEvents(state.runtime, operation.scope, result.events);
+              pending.value = eventJournalFor(state.runtime).prepareDurableBatch(result.events);
               writeEventJournalSnapshot(
                 storageFor(state.runtime),
                 pending.value.snapshot,
               );
-              return pending.value.record;
+              return result.value;
             });
-            pending.value?.commit();
-            return record;
+            if (pending.value == null) runtimeUnavailable('hosted journal mutation was not prepared');
+            commitDurableEvents(
+              state.runtime,
+              pending.value,
+              'hosted journal mutation publication failed',
+            );
+            return value;
           } catch (error) {
             pending.value?.rollback();
             throw error;
@@ -2604,6 +2935,45 @@ export function createHostedRuntimeRegistry(
     return project;
   }
 
+  function validateJournalMutationScope(
+    runtime: RuntimeState,
+    scope:
+      | { readonly kind: 'run'; readonly runId: string }
+      | { readonly kind: 'project'; readonly projectId: string },
+  ): void {
+    if (scope.kind === 'project') {
+      requireOwnedProject(runtime, scope.projectId);
+      return;
+    }
+    validateInternalId(scope.runId, 'run');
+    if (runServiceFor(runtime).get(scope.runId) == null) {
+      throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
+    }
+  }
+
+  function validateJournalMutationEvents(
+    runtime: RuntimeState,
+    scope:
+      | { readonly kind: 'run'; readonly runId: string }
+      | { readonly kind: 'project'; readonly projectId: string },
+    events: readonly HostedDurableEventInput[],
+  ): void {
+    if (!Array.isArray(events) || events.length === 0) {
+      runtimeUnavailable('hosted journal mutation events are invalid');
+    }
+    for (const event of events) {
+      const channel = event?.channel;
+      const owned = scope.kind === 'run'
+        ? (channel?.kind === 'run' || channel?.kind === 'run-ui')
+          && channel.runId === scope.runId
+        : channel?.kind === 'project'
+          ? channel.projectId === scope.projectId
+          : (channel?.kind === 'run' || channel?.kind === 'run-ui')
+            && runServiceFor(runtime).get(channel.runId)?.projectId === scope.projectId;
+      if (!owned) runtimeUnavailable('hosted journal mutation escaped its authority');
+    }
+  }
+
   function requireOwnedConversation(
     runtime: RuntimeState,
     projectId: string,
@@ -3045,7 +3415,7 @@ function hydrateRunReceipts(
 function readEventJournalSnapshot(
   storage: HostedRuntimeStorage,
 ): HostedEventJournalSnapshotV1 | undefined {
-  const file = path.join(storage.roots.liveRoot, EVENT_JOURNAL_SNAPSHOT);
+  const file = path.join(storage.roots.runsRoot, EVENT_JOURNAL_SNAPSHOT);
   const info = fs.lstatSync(file, { throwIfNoEntry: false });
   if (info == null) return undefined;
   const maxBytes = HOSTED_EVENT_LIMITS.maxBytes
@@ -3071,7 +3441,7 @@ function writeEventJournalSnapshot(
   snapshot: HostedEventJournalSnapshotV1,
 ): void {
   fs.writeFileSync(
-    path.join(storage.roots.liveRoot, EVENT_JOURNAL_SNAPSHOT),
+    path.join(storage.roots.runsRoot, EVENT_JOURNAL_SNAPSHOT),
     `${JSON.stringify(snapshot)}\n`,
     { encoding: 'utf8', mode: 0o600 },
   );

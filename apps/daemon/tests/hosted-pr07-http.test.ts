@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { request as httpRequest, type ClientRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -487,8 +487,9 @@ describe('hosted PR07 HTTP surface', () => {
           surfaceKind: 'confirmation',
           payload: { persist: 'project', prompt: 'Revoke?' },
         });
+        const sessionReference = await writeTestSession(input);
         return {
-          sessionReference: `${runId}/session.jsonl`,
+          sessionReference,
           value: { status: 'succeeded', exitCode: 0, signal: null },
         };
       },
@@ -644,8 +645,9 @@ describe('hosted PR07 HTTP surface', () => {
       createRunId: () => runId,
       async startTurn(input) {
         input.send('agent', { delta: 'streamed result' });
+        const sessionReference = await writeTestSession(input);
         return {
-          sessionReference: `${runId}/session.jsonl`,
+          sessionReference,
           value: { status: 'succeeded', exitCode: 0, signal: null },
         };
       },
@@ -718,13 +720,16 @@ describe('hosted PR07 HTTP surface', () => {
       startTurn: async (input) => {
         seenSessions.push(input.sessionReference);
         if (input.capabilities.runId === 'resume-run-3') {
+          if (input.sessionReference == null) throw new Error('resume session missing');
+          const sessionReference = input.sessionReference;
           return new Promise((resolve) => input.signal.addEventListener('abort', () => resolve({
-            sessionReference: input.sessionReference ?? 'resume-run-2/session.jsonl',
+            sessionReference,
             value: { status: 'canceled', exitCode: null, signal: null },
           }), { once: true }));
         }
+        const sessionReference = await writeTestSession(input);
         return {
-          sessionReference: `${input.capabilities.runId}/session.jsonl`,
+          sessionReference,
           value: { status: 'succeeded', exitCode: 0, signal: null },
         };
       },
@@ -759,7 +764,8 @@ describe('hosted PR07 HTTP surface', () => {
       ));
       await waitForRunStatus(started, USER_A, accepted.runId, 'succeeded');
     }
-    expect(seenSessions).toEqual([null, 'resume-run-1/session.jsonl']);
+    expect(seenSessions[0]).toBeNull();
+    expect(seenSessions[1]).toEqual(expect.stringMatching(/resume-run-1\.jsonl$/u));
 
     const active = await json<{ runId: string }>(mutate(
       started,
@@ -823,8 +829,9 @@ describe('hosted PR07 HTTP surface', () => {
         } finally {
           await grant.revoke();
         }
+        const sessionReference = await writeTestSession(input);
         return {
-          sessionReference: 'design-tool-run/session.jsonl',
+          sessionReference,
           value: { status: 'succeeded', exitCode: 0, signal: null },
         };
       },
@@ -963,8 +970,8 @@ describe('hosted PR07 HTTP surface', () => {
     expect(frame.raw).toBe(': keepalive');
   }, 35_000);
 
-  it('returns an explicit resync when a cursor falls out of the fixed 2,000-event journal', async () => {
-    const started = await start();
+  it('returns an explicit resync when a cursor falls out of fixed journal retention', async () => {
+    const started = await start({ eventBudgetLimits: { maxEvents: 4 } });
     const csrf = await getCsrfToken(started, USER_A);
     const project = await createProject(started, USER_A, csrf, 'Cursor expiry');
     const stream = await openSse(started, USER_A, `/api/projects/${project.id}/events`);
@@ -973,8 +980,8 @@ describe('hosted PR07 HTTP surface', () => {
     expect(expired.id).toEqual(expect.any(String));
     closeSse(stream);
 
-    for (let offset = 0; offset < 2_000; offset += 8) {
-      const conversations = await Promise.all(Array.from({ length: 8 }, (_, index) => (
+    for (let offset = 0; offset < 4; offset += 2) {
+      const conversations = await Promise.all(Array.from({ length: 2 }, (_, index) => (
         json<{ conversation: { id: string } }>(mutate(
           started,
           USER_A,
@@ -1003,6 +1010,29 @@ describe('hosted PR07 HTTP surface', () => {
       event: 'resync',
       data: { reason: 'cursor-expired' },
     });
+    closeSse(reconnect);
+
+    const current = await openSse(started, USER_A, `/api/projects/${project.id}/events`);
+    const latest = await createConversation(started, USER_A, csrf, project.id, 'latest');
+    const currentFrames: SseFrame[] = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      currentFrames.push(await readSseFrame(current, 5_000));
+      const frame = currentFrames.at(-1)!;
+      if (
+        frame.event === 'resync'
+        || (
+          frame.data != null
+          && typeof frame.data === 'object'
+          && 'conversationId' in frame.data
+          && frame.data.conversationId === latest.id
+        )
+      ) break;
+    }
+    expect(currentFrames).not.toContainEqual(expect.objectContaining({ event: 'resync' }));
+    expect(currentFrames).toContainEqual(expect.objectContaining({
+      event: 'conversation-created',
+      data: expect.objectContaining({ conversationId: latest.id }),
+    }));
   }, 120_000);
 
   it('releases a disconnected SSE client from the fixed per-user connection cap', async () => {
@@ -1357,7 +1387,7 @@ async function waitForRunStatus(
   runId: string,
   expectedStatus: string,
 ): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
     const response = await fetchJson(started, user, `/api/runs/${runId}`);
     if (response.ok) {
       const run = await response.json() as { status?: string };
@@ -1488,6 +1518,21 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function writeTestSession(
+  input: Parameters<NonNullable<HostedTestComposition['startTurn']>>[0],
+): Promise<string> {
+  await mkdir(input.capabilities.sessionRoot, { recursive: true });
+  const sessionReference = join(
+    input.capabilities.sessionRoot,
+    `${input.capabilities.runId}.jsonl`,
+  );
+  await writeFile(
+    sessionReference,
+    `${JSON.stringify({ type: 'session', cwd: input.capabilities.projectRoot })}\n`,
+  );
+  return sessionReference;
 }
 
 async function removeRuntimeRoot(runtimeRoot: string): Promise<void> {

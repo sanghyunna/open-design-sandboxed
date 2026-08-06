@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -151,6 +152,29 @@ describe('hosted PR09 durable acknowledgements', () => {
       operation: { kind: 'project.get', projectId: 'project-1' },
     })).resolves.toMatchObject({ project: { name: 'Baseline' } });
   });
+
+  it('releases a stream attachment when header flushing fails synchronously', async () => {
+    const { intent, started } = await runnableServer({
+      eventBudgetLimits: { maxConnections: 1 },
+    });
+    const originalFlushHeaders = ServerResponse.prototype.flushHeaders;
+    ServerResponse.prototype.flushHeaders = function flushHeaders(): void {
+      throw new Error('simulated synchronous header flush failure');
+    };
+    try {
+      await fetch(`${started.url}/api/projects/${String(intent.projectId)}/events`, {
+        headers: { ...auth(), accept: 'text/event-stream' },
+      }).then((response) => response.body?.cancel()).catch(() => {});
+    } finally {
+      ServerResponse.prototype.flushHeaders = originalFlushHeaders;
+    }
+
+    const healthy = await fetch(`${started.url}/api/projects/${String(intent.projectId)}/events`, {
+      headers: { ...auth(), accept: 'text/event-stream' },
+    });
+    expect(healthy.status).toBe(200);
+    await healthy.body?.cancel();
+  });
 });
 
 describe('hosted PR09 durable run receipts', () => {
@@ -195,6 +219,21 @@ describe('hosted PR09 durable run receipts', () => {
     expect(JSON.parse(text)).toMatchObject({ error: { code: 'RETRY_KEY_REUSED' } });
   });
 
+  it('binds the retry digest to the /runs or /chat admission contract', async () => {
+    const { csrf, intent, started } = await runnableServer({
+      createRunId: () => 'route-bound-run',
+      startTurn: succeededTurn,
+    });
+    const accepted = await mutate(started, csrf, 'POST', '/api/runs', intent);
+    expect(accepted.status, await accepted.text()).toBe(202);
+    await waitForRunStatus(started, 'route-bound-run', 'succeeded');
+
+    const copiedToChat = await mutate(started, csrf, 'POST', '/api/chat', intent);
+    const text = await copiedToChat.text();
+    expect(copiedToChat.status, text).toBe(409);
+    expect(JSON.parse(text)).toMatchObject({ error: { code: 'RETRY_KEY_REUSED' } });
+  });
+
   it.each([
     ['succeeded', false],
     ['canceled', true],
@@ -230,6 +269,108 @@ describe('hosted PR09 durable run receipts', () => {
     const restoredText = await restored.text();
     expect(restored.status, restoredText).toBe(200);
     expect(JSON.parse(restoredText)).toMatchObject({ id: runId, status });
+  });
+
+  it('replays durable run boundaries after a fresh server generation', async () => {
+    const runtimeRoot = newRuntimeRoot();
+    const runId = 'replayed-run';
+    const original = await start(runtimeRoot, {
+      createRunId: () => runId,
+      startTurn: succeededTurn,
+    });
+    const { csrf, intent } = await seedRunnable(original, 'replayed-run-request');
+    const accepted = await mutate(original, csrf, 'POST', '/api/runs', intent);
+    expect(accepted.status, await accepted.text()).toBe(202);
+    await waitForRunStatus(original, runId, 'succeeded');
+    await stop(original);
+
+    const restarted = await start(runtimeRoot);
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 2_000);
+    try {
+      const replay = await fetch(`${restarted.url}/api/runs/${runId}/events`, {
+        headers: { ...auth(), accept: 'text/event-stream' },
+        signal: abort.signal,
+      });
+      const replayText = await replay.text();
+      expect(replay.status, replayText).toBe(200);
+      expect(replayText.match(/^event: (start|end)$/gmu)).toEqual([
+        'event: start',
+        'event: end',
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
+  it('restores a failed receipt and replays its durable error boundary', async () => {
+    const runtimeRoot = newRuntimeRoot();
+    const runId = 'failed-replayed-run';
+    const original = await start(runtimeRoot, {
+      createRunId: () => runId,
+      async startTurn() {
+        throw new HostedRuntimeError('INTERNAL_ERROR', 'simulated provider failure');
+      },
+    });
+    const { csrf, intent } = await seedRunnable(original, 'failed-replayed-request');
+    const accepted = await mutate(original, csrf, 'POST', '/api/runs', intent);
+    expect(accepted.status, await accepted.text()).toBe(202);
+    await waitForRunStatus(original, runId, 'failed');
+    await stop(original);
+
+    const restarted = await start(runtimeRoot);
+    const restored = await fetch(`${restarted.url}/api/runs/${runId}`, { headers: auth() });
+    const restoredText = await restored.text();
+    expect(restored.status, restoredText).toBe(200);
+    expect(JSON.parse(restoredText)).toMatchObject({ id: runId, status: 'failed' });
+
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 2_000);
+    try {
+      const replay = await fetch(`${restarted.url}/api/runs/${runId}/events`, {
+        headers: { ...auth(), accept: 'text/event-stream' },
+        signal: abort.signal,
+      });
+      const replayText = await replay.text();
+      expect(replay.status, replayText).toBe(200);
+      expect(replayText.match(/^event: (start|error|end)$/gmu)).toEqual([
+        'event: start',
+        'event: error',
+        'event: end',
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
+  it('accepts only one concurrent response to a pending GenUI surface', async () => {
+    const runId = 'concurrent-genui-run';
+    const surfaceId = 'approval';
+    const { csrf, intent, started } = await runnableServer({
+      createRunId: () => runId,
+      async startTurn(input) {
+        input.send('genui', {
+          kind: 'ui.surface_requested',
+          surfaceId,
+          surfaceKind: 'confirmation',
+          payload: { prompt: 'Approve?' },
+        });
+        return succeededTurn(input);
+      },
+    });
+    const accepted = await mutate(started, csrf, 'POST', '/api/runs', intent);
+    expect(accepted.status, await accepted.text()).toBe(202);
+    await waitForRunStatus(started, runId, 'succeeded');
+
+    const responses = await Promise.all([
+      mutate(started, csrf, 'POST', `/api/runs/${runId}/genui/${surfaceId}/respond`, {
+        value: 'first',
+      }),
+      mutate(started, csrf, 'POST', `/api/runs/${runId}/genui/${surfaceId}/respond`, {
+        value: 'second',
+      }),
+    ]);
+    expect(responses.map(({ status }) => status).sort()).toEqual([200, 404]);
   });
 
   it('restores accepted nonterminal work as interrupted and never replays provider effects', async () => {
@@ -298,7 +439,10 @@ async function seedProject(
 }
 
 async function runnableServer(
-  composition: Pick<HostedTestComposition, 'createRunId' | 'startTurn'>,
+  composition: Pick<
+    HostedTestComposition,
+    'createRunId' | 'eventBudgetLimits' | 'startTurn'
+  >,
 ): Promise<{
   csrf: string;
   intent: Record<string, unknown>;
