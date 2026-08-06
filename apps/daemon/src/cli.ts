@@ -5317,7 +5317,6 @@ Common options:
         console.error('Usage: od files write <projectId> <relpath> [< stdin]');
         process.exit(2);
       }
-      // Read stdin synchronously into a buffer.
       let body;
       try {
         body = readFileSync(0);
