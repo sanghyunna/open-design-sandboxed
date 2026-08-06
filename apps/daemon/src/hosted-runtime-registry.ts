@@ -1739,7 +1739,10 @@ export function createHostedRuntimeRegistry(
     operation: HostedRuntimeInternalOperation,
   ): Promise<unknown> {
     try {
-      const state = stateForLease(lease, 'strong');
+      const state = stateForLease(
+        lease,
+        operation.kind === 'journal:attach' ? undefined : 'strong',
+      );
       switch (operation.kind) {
         case 'project:insert': {
           validateInternalId(operation.project.id, 'project');

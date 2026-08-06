@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { PassThrough } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApiError } from '@open-design/contracts';
 import { insertConversation, insertProject, upsertAgentSession } from '../src/db.js';
@@ -1520,6 +1521,31 @@ describe('HostedRuntimeRegistry', () => {
     weak.release();
     recreated.release();
     await registry.shutdown();
+  });
+
+  it('allows a weak lease to own an attached event stream', async () => {
+    const registry = createRegistry();
+    const strong = registry.acquire({ userKey: 'a' });
+    await waitForReady(registry, strong);
+    const weak = registry.acquire({ userKey: 'a' }, 'weak');
+    strong.release();
+    try {
+      const attached = await dispatchHostedRuntimeInternalOperation(registry, weak, {
+        kind: 'journal:attach',
+        channel: { kind: 'owner' },
+        response: new PassThrough(),
+      });
+      expect(attached).toMatchObject({ kind: 'attached' });
+      if (
+        attached != null
+        && typeof attached === 'object'
+        && 'close' in attached
+        && typeof attached.close === 'function'
+      ) attached.close();
+    } finally {
+      weak.release();
+      await registry.shutdown();
+    }
   });
 
   it('shutdown cancels work, rejects queued turns, and waits for strong leases', async () => {
