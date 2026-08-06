@@ -204,7 +204,9 @@ export function createHostedSnapshotStore(
         await pruneRetainedVersions(runtimeRoot, options.identity, limits);
         sequences = listVersionSequences(versionsRoot);
         const newest = sequences.at(-1);
-        if (newest != null) writeLatestHint(snapshotRoot, newest);
+        if (newest != null) {
+          try { writeLatestHint(snapshotRoot, newest); } catch { /* non-authoritative hint */ }
+        }
       });
     }
     for (const sequence of sequences.reverse()) {
@@ -452,17 +454,13 @@ async function publishSnapshot(options: {
       let maintenanceError: unknown;
       try {
         await fire(options.failpoint, 'after-version-rename');
-        writeLatestHint(options.snapshotRoot, sequence);
-        await fire(options.failpoint, 'after-latest-write');
-        await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
-        await fire(options.failpoint, 'after-retention-prune');
+        await repairPublishedSnapshot(options, sequence, true);
       } catch (error) {
         maintenanceError = error;
       }
       if (maintenanceError != null) {
         try {
-          writeLatestHint(options.snapshotRoot, sequence);
-          await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
+          await repairPublishedSnapshot(options, sequence, false);
         } catch {
           // The rename above is the commit point. Restore scans completed
           // versions directly, so maintenance is retried by the next
@@ -479,6 +477,38 @@ async function publishSnapshot(options: {
   } finally {
     activePublicationStaging.delete(stagingRoot);
   }
+}
+
+async function repairPublishedSnapshot(
+  options: {
+    readonly failpoint?: (name: HostedSnapshotFailpoint) => void | Promise<void>;
+    readonly identity: HostedStorageIdentity;
+    readonly limits: HostedSnapshotLimits;
+    readonly runtimeRoot: string;
+    readonly snapshotRoot: string;
+  },
+  sequence: string,
+  fireFailpoints: boolean,
+): Promise<void> {
+  const failures: unknown[] = [];
+  try {
+    writeLatestHint(options.snapshotRoot, sequence);
+  } catch (error) {
+    failures.push(error);
+  }
+  if (fireFailpoints) {
+    try { await fire(options.failpoint, 'after-latest-write'); } catch (error) { failures.push(error); }
+  }
+  try {
+    await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
+  } catch (error) {
+    failures.push(error);
+  }
+  if (fireFailpoints) {
+    try { await fire(options.failpoint, 'after-retention-prune'); } catch (error) { failures.push(error); }
+  }
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) throw new AggregateError(failures, 'hosted snapshot maintenance failed');
 }
 
 async function withPublicationLock<T>(key: string, operation: () => Promise<T>): Promise<T> {
@@ -1837,7 +1867,7 @@ function existingRegularFileBytes(file: string): number {
     || info.isSymbolicLink()
     || !samePath(fs.realpathSync(file), path.resolve(file))
   ) {
-    throw new Error('hosted snapshot latest hint is invalid');
+    return 0;
   }
   return info.size;
 }

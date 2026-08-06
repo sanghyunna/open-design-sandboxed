@@ -1053,8 +1053,15 @@ describe('hosted snapshots', () => {
 
     await expect(store.publish({ quiesce: async () => {}, storage }))
       .resolves.toMatchObject({ sequence: '00000000000000000001' });
+    await expect(store.publish({ quiesce: async () => {}, storage }))
+      .resolves.toMatchObject({ sequence: '00000000000000000002' });
+    await expect(store.publish({ quiesce: async () => {}, storage }))
+      .resolves.toMatchObject({ sequence: '00000000000000000003' });
     expect(readdirSync(snapshotRoot).some((name) => name.startsWith('.latest-'))).toBe(false);
-    rmSync(path.join(snapshotRoot, 'latest'), { recursive: true, force: true });
+    expect(versionRoots(runtimeRoot)).toEqual([
+      '00000000000000000002',
+      '00000000000000000003',
+    ]);
     const restored = await store.restore();
     expect(restored && getProject(restored.storage.database, 'state')?.name).toBe('committed');
     restored?.storage.close();
