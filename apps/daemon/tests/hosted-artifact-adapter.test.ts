@@ -86,6 +86,45 @@ describe('hosted artifact adapter', () => {
     }
   });
 
+  it('rebuilds admission accounting across restart and leaves no partial artifact on rejection', async () => {
+    const limits = { aggregateBytesPerUser: 1_024, artifactsPerUser: 2 };
+    const { adapter, artifactsRoot } = await fixture('restart', limits);
+    const first = adapter.save({ html: '<h1>first</h1>' });
+    adapter.dispose();
+
+    const restarted = createHostedArtifactAdapter({ artifactsRoot, admissionLimits: limits });
+    try {
+      expect(await streamText(restarted.openDownload(first.artifactId).stream)).toBe('<h1>first</h1>');
+      restarted.save({ html: '<h1>second</h1>' });
+      const before = await readdir(artifactsRoot);
+      expect(() => restarted.save({ html: '<h1>rejected</h1>' }))
+        .toThrowError(expect.objectContaining({ code: 'HOSTED_QUOTA_EXCEEDED' }));
+      expect(await readdir(artifactsRoot)).toEqual(before);
+    } finally {
+      restarted.dispose();
+    }
+  });
+
+  it('enforces aggregate bytes from existing artifacts and scavenges incomplete saves', async () => {
+    const limits = { aggregateBytesPerUser: 10, artifactsPerUser: 10 };
+    const { adapter, artifactsRoot } = await fixture('aggregate', limits);
+    adapter.save({ html: '123456' });
+    adapter.dispose();
+    const partialId = `oda_${'x'.repeat(43)}`;
+    await mkdir(path.join(artifactsRoot, partialId));
+
+    const restarted = createHostedArtifactAdapter({ artifactsRoot, admissionLimits: limits });
+    try {
+      expect(await readdir(artifactsRoot)).not.toContain(partialId);
+      const before = await readdir(artifactsRoot);
+      expect(() => restarted.save({ html: '12345' }))
+        .toThrowError(expect.objectContaining({ code: 'HOSTED_QUOTA_EXCEEDED' }));
+      expect(await readdir(artifactsRoot)).toEqual(before);
+    } finally {
+      restarted.dispose();
+    }
+  });
+
   it('keeps copied artifact IDs inside their per-user adapter root', async () => {
     const a = await fixture('user-a');
     const b = await fixture('user-b');
@@ -150,7 +189,10 @@ describe('hosted artifact adapter', () => {
   });
 });
 
-async function fixture(name = 'artifacts'): Promise<{
+async function fixture(
+  name = 'artifacts',
+  admissionLimits?: Parameters<typeof createHostedArtifactAdapter>[0]['admissionLimits'],
+): Promise<{
   adapter: ReturnType<typeof createHostedArtifactAdapter>;
   artifactsRoot: string;
 }> {
@@ -159,7 +201,10 @@ async function fixture(name = 'artifacts'): Promise<{
   const artifactsRoot = path.join(root, 'artifacts');
   await mkdir(artifactsRoot);
   return {
-    adapter: createHostedArtifactAdapter({ artifactsRoot }),
+    adapter: createHostedArtifactAdapter({
+      artifactsRoot,
+      ...(admissionLimits === undefined ? {} : { admissionLimits }),
+    }),
     artifactsRoot: fs.realpathSync(artifactsRoot),
   };
 }

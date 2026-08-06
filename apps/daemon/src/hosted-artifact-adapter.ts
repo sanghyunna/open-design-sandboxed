@@ -9,6 +9,8 @@ import {
 } from './lint-artifact.js';
 
 export const HOSTED_ARTIFACT_LIMITS = Object.freeze({
+  aggregateBytesPerUser: 256 * 1024 * 1024,
+  artifactsPerUser: 4_096,
   htmlBytes: 3 * 1024 * 1024,
   outputBytes: 100 * 1024 * 1024,
 });
@@ -68,11 +70,21 @@ type FileIdentity = {
   readonly size: number;
 };
 
+type AdmissionLimits = Pick<
+  typeof HOSTED_ARTIFACT_LIMITS,
+  'aggregateBytesPerUser' | 'artifactsPerUser'
+>;
+
 export function createHostedArtifactAdapter(options: {
+  /** Server-owned test seam; callers may only reduce the fixed production bounds. */
+  readonly admissionLimits?: Partial<AdmissionLimits>;
   readonly artifactsRoot: string;
 }): HostedArtifactAdapter {
+  const admissionLimits = validateAdmissionLimits(options.admissionLimits);
   const artifactsRoot = exactDirectory(options.artifactsRoot);
-  const artifacts = new Map<string, StoredArtifact>();
+  const loaded = loadStoredArtifacts(artifactsRoot, admissionLimits);
+  const artifacts = loaded.artifacts;
+  let aggregateBytes = loaded.aggregateBytes;
   let disposed = false;
 
   const save = (request: unknown): HostedArtifactSaveResponse => {
@@ -81,6 +93,15 @@ export function createHostedArtifactAdapter(options: {
     const htmlBytes = Buffer.byteLength(html, 'utf8');
     const lint = lintArtifact(html);
     const currentRoot = exactDirectory(artifactsRoot);
+    if (
+      artifacts.size >= admissionLimits.artifactsPerUser
+      || aggregateBytes + htmlBytes > admissionLimits.aggregateBytesPerUser
+    ) {
+      throw new HostedArtifactAdapterError(
+        'HOSTED_QUOTA_EXCEEDED',
+        'hosted artifact storage quota is exceeded',
+      );
+    }
 
     for (let attempt = 0; attempt < 8; attempt += 1) {
       const artifactId = `oda_${randomBytes(32).toString('base64url')}`;
@@ -106,13 +127,18 @@ export function createHostedArtifactAdapter(options: {
           file,
           identity: fileIdentity(info),
         });
+        aggregateBytes += info.size;
         return Object.freeze({
           artifactId,
           url: `/api/artifacts/${artifactId}/download`,
           lint: Object.freeze(lint),
         });
       } catch (error) {
-        removeExactArtifactDirectory(directory, currentRoot);
+        try {
+          removeExactArtifactDirectory(directory, currentRoot);
+        } catch {
+          throw internalError('hosted artifact cleanup failed');
+        }
         if (error instanceof HostedArtifactAdapterError) throw error;
         throw internalError('hosted artifact could not be saved');
       }
@@ -186,6 +212,7 @@ export function createHostedArtifactAdapter(options: {
     if (disposed) return;
     disposed = true;
     artifacts.clear();
+    aggregateBytes = 0;
   };
 
   const requireOpen = (): void => {
@@ -279,6 +306,79 @@ function exactRegularFile(input: string, parent: string): fs.Stats {
   return info;
 }
 
+function loadStoredArtifacts(
+  artifactsRoot: string,
+  limits: AdmissionLimits,
+): { artifacts: Map<string, StoredArtifact>; aggregateBytes: number } {
+  const artifacts = new Map<string, StoredArtifact>();
+  let aggregateBytes = 0;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(artifactsRoot, { withFileTypes: true });
+  } catch {
+    throw internalError('hosted artifact root could not be read');
+  }
+
+  for (const entry of entries) {
+    if (!ARTIFACT_ID_PATTERN.test(entry.name) || !entry.isDirectory() || entry.isSymbolicLink()) {
+      throw internalError('hosted artifact root contains an invalid entry');
+    }
+    const directory = exactDirectory(path.join(artifactsRoot, entry.name), artifactsRoot);
+    let children: fs.Dirent[];
+    try {
+      children = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      throw internalError('hosted artifact directory could not be read');
+    }
+    if (
+      children.length !== 1
+      || children[0]?.name !== 'index.html'
+      || !children[0].isFile()
+      || children[0].isSymbolicLink()
+    ) {
+      removeExactArtifactDirectory(directory, artifactsRoot);
+      continue;
+    }
+
+    const file = path.join(directory, 'index.html');
+    const info = exactRegularFile(file, directory);
+    if (info.size > HOSTED_ARTIFACT_LIMITS.outputBytes) {
+      throw new HostedArtifactAdapterError(
+        'HOSTED_QUOTA_EXCEEDED',
+        'hosted artifact output exceeds its byte limit',
+      );
+    }
+    aggregateBytes += info.size;
+    if (
+      artifacts.size >= limits.artifactsPerUser
+      || !Number.isSafeInteger(aggregateBytes)
+      || aggregateBytes > limits.aggregateBytesPerUser
+    ) {
+      throw new HostedArtifactAdapterError(
+        'HOSTED_QUOTA_EXCEEDED',
+        'hosted artifact storage quota is exceeded',
+      );
+    }
+    artifacts.set(entry.name, {
+      directory,
+      file,
+      identity: fileIdentity(info),
+    });
+  }
+  return { artifacts, aggregateBytes };
+}
+
+function validateAdmissionLimits(overrides: Partial<AdmissionLimits> | undefined): AdmissionLimits {
+  const limits = { ...HOSTED_ARTIFACT_LIMITS, ...overrides };
+  for (const key of ['aggregateBytesPerUser', 'artifactsPerUser'] as const) {
+    const value = limits[key];
+    if (!Number.isSafeInteger(value) || value < 1 || value > HOSTED_ARTIFACT_LIMITS[key]) {
+      throw new TypeError(`hosted artifact ${key} limit is invalid`);
+    }
+  }
+  return limits;
+}
+
 function directChild(parent: string, candidate: string): boolean {
   const relative = path.relative(path.resolve(parent), path.resolve(candidate));
   return relative.length > 0
@@ -313,12 +413,9 @@ function sameIdentity(expected: FileIdentity, actual: fs.Stats): boolean {
 }
 
 function removeExactArtifactDirectory(directory: string, root: string): void {
-  try {
-    const exact = exactDirectory(directory, root);
-    fs.rmSync(exact, { recursive: true, force: true });
-  } catch {
-    // Fail closed: never follow or recursively remove a path that failed containment.
-  }
+  const exact = exactDirectory(directory, root);
+  fs.rmSync(exact, { recursive: true, force: true });
+  if (fs.existsSync(directory)) throw internalError('hosted artifact directory could not be removed');
 }
 
 function badRequest(message: string): HostedArtifactAdapterError {
