@@ -64,14 +64,15 @@ describe('provider-only hosted server', () => {
       expect(response.status, path).toBe(200);
     }
 
-    await expectError(
-      fetch(`${started.url}/api/hosted/session`),
-      503,
-      'HOSTED_AUTH_UNAVAILABLE',
-    );
+    for (const path of ['/api/hosted/session', '/api/projects']) {
+      await expectError(
+        fetch(`${started.url}${path}`),
+        503,
+        'HOSTED_AUTH_UNAVAILABLE',
+      );
+    }
 
     for (const path of [
-      '/api/projects',
       '/api/app-config',
       '/api/projects/project-a/terminals',
       '/api/provider/models',
