@@ -274,7 +274,7 @@ describe('hosted snapshot adversarial boundaries', () => {
     await expect(store.restore()).rejects.toThrow('injected restore staging cleanup failure');
     const liveRoot = path.join(runtimeRoot, 'live', identityA.storageKey);
     const generations = readdirSync(liveRoot).filter((name) => name.startsWith('generation-'));
-    expect(closedLiveDatabases.length).toBeGreaterThanOrEqual(2);
+    expect(closedLiveDatabases.length).toBe(1);
     expect(generations).toEqual([]);
   });
 

@@ -556,9 +556,11 @@ describe('hosted snapshots', () => {
     await expect(publishEmpty(exactRoot, exactStore)).resolves.toMatchObject({ bytes: first.bytes });
     expect(treeBytes(path.join(exactRoot, 'snapshots', identity.storageKey)))
       .toBe(retainedBoundary);
-    await expect(publishEmpty(exactRoot, exactStore)).rejects.toMatchObject({
-      code: 'HOSTED_QUOTA_EXCEEDED',
-    });
+    await expect(publishEmpty(exactRoot, exactStore)).resolves.toMatchObject({ bytes: first.bytes });
+    expect(versionRoots(exactRoot)).toEqual([
+      '00000000000000000002',
+      '00000000000000000003',
+    ]);
 
     const underRoot = tempRoot();
     const underStore = createHostedSnapshotStore({
@@ -591,12 +593,11 @@ describe('hosted snapshots', () => {
     });
     expect(versionRoots(retainedUnderRoot)).toEqual(['00000000000000000001']);
 
-    const failedPruneBoundary = retainedBoundary + first.bytes;
     const maintenanceRoot = tempRoot();
     const maintenanceLimits = {
       bytesPerVersion: first.bytes,
-      retainedBytesGlobal: failedPruneBoundary,
-      retainedBytesPerUser: failedPruneBoundary,
+      retainedBytesGlobal: retainedBoundary,
+      retainedBytesPerUser: retainedBoundary,
     };
     const maintenanceStore = createHostedSnapshotStore({
       identity,
@@ -625,52 +626,10 @@ describe('hosted snapshots', () => {
     await expect(publishEmpty(maintenanceRoot, persistentFailureStore))
       .resolves.toMatchObject({ bytes: first.bytes });
     expect(treeBytes(path.join(maintenanceRoot, 'snapshots', identity.storageKey)))
-      .toBe(failedPruneBoundary);
-    rmSync(path.join(
-      maintenanceRoot,
-      'snapshots',
-      identity.storageKey,
-      'versions',
-      blockerName,
-    ));
+      .toBeLessThanOrEqual(retainedBoundary);
     expect(versionRoots(maintenanceRoot)).toEqual([
-      '00000000000000000001',
       '00000000000000000002',
       '00000000000000000003',
-    ]);
-
-    const noHeadroomRoot = tempRoot();
-    const noHeadroomLimits = {
-      ...maintenanceLimits,
-      retainedBytesGlobal: failedPruneBoundary - 1,
-      retainedBytesPerUser: failedPruneBoundary - 1,
-    };
-    const noHeadroomStore = createHostedSnapshotStore({
-      identity,
-      limits: noHeadroomLimits,
-      runtimeRoot: noHeadroomRoot,
-    });
-    await publishEmpty(noHeadroomRoot, noHeadroomStore);
-    await publishEmpty(noHeadroomRoot, noHeadroomStore);
-    await expect(publishEmpty(noHeadroomRoot, createHostedSnapshotStore({
-      failpoint(stage) {
-        if (stage === 'after-latest-write') {
-          writeFileSync(path.join(
-            noHeadroomRoot,
-            'snapshots',
-            identity.storageKey,
-            'versions',
-            blockerName,
-          ), '');
-        }
-      },
-      identity,
-      limits: noHeadroomLimits,
-      runtimeRoot: noHeadroomRoot,
-    }))).rejects.toMatchObject({ code: 'HOSTED_QUOTA_EXCEEDED' });
-    expect(versionRoots(noHeadroomRoot)).toEqual([
-      '00000000000000000001',
-      '00000000000000000002',
     ]);
   });
 

@@ -197,6 +197,7 @@ export function createHostedSnapshotStore(
 
   async function restore(): Promise<HostedSnapshotRestore | null> {
     await publicationLocks.get(publicationLockKey);
+    await scavengeRetiredVersions(versionsRoot);
     let sequences = listVersionSequences(versionsRoot);
     if (sequences.length > 2) {
       await withPublicationLock(globalPublicationLockKey, async () => {
@@ -1700,6 +1701,7 @@ async function preflightRetention(options: {
   readonly identity: HostedStorageIdentity;
   readonly limits: HostedSnapshotLimits;
 }): Promise<void> {
+  await scavengeRetiredVersions(options.versionsRoot);
   await pruneUnreachableVersions(options.versionsRoot, options.identity, options.limits);
   const latestFile = path.join(options.snapshotRoot, 'latest');
   const latestBytes = Buffer.byteLength(`${options.sequence}\n`);
@@ -1729,10 +1731,11 @@ async function preflightRetention(options: {
   if (stableUserOverhead < 0) {
     throw new Error('hosted snapshot retained byte accounting is invalid');
   }
+  const newestPreviousBytes = retainedVersionBytes[0]?.bytes ?? 0;
   const projectedUserBytes = stableUserOverhead
     + stagingBytes
     + options.completionBytes
-    + allVersionBytes
+    + newestPreviousBytes
     + latestBytes;
   if (projectedUserBytes > options.limits.retainedBytesPerUser) {
     snapshotQuota('hosted snapshot retained user byte quota exceeded');
@@ -1894,9 +1897,50 @@ async function pruneUnreachableVersions(
       invalid.push(root);
     }
   }
-  for (const root of [...invalid, ...valid.slice(2).map((snapshot) => snapshot.root)]) {
-    await removeExactDirectory(root, versionsRoot);
+  for (const root of invalid) {
+    await removeInvalidSnapshotEntry(root, versionsRoot);
   }
+  for (const snapshot of valid.slice(2)) {
+    const retired = path.join(
+      versionsRoot,
+      `.retired-${path.basename(snapshot.root)}-${randomUUID()}`,
+    );
+    fs.renameSync(assertDirectory(snapshot.root, versionsRoot), retired);
+    try {
+      await removeExactDirectory(retired, versionsRoot);
+    } catch {
+      // The atomic rename already removed this version from restore authority.
+      // A later restore/publication must scavenge it before accepting more work.
+    }
+  }
+}
+
+async function scavengeRetiredVersions(versionsRoot: string): Promise<void> {
+  for (const entry of fs.readdirSync(assertDirectory(versionsRoot), { withFileTypes: true })) {
+    if (!entry.name.startsWith('.retired-')) continue;
+    const target = path.join(versionsRoot, entry.name);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new Error('hosted snapshot retired entry is invalid');
+    }
+    await removeExactDirectory(target, versionsRoot);
+  }
+}
+
+async function removeInvalidSnapshotEntry(target: string, parent: string): Promise<void> {
+  const relative = path.relative(path.resolve(parent), path.resolve(target));
+  if (!relative || path.isAbsolute(relative) || relative.includes(path.sep) || relative === '..') {
+    throw new Error('hosted snapshot invalid entry escapes its owner');
+  }
+  const info = fs.lstatSync(target);
+  if (info.isSymbolicLink()) {
+    throw new Error('hosted snapshot invalid entry is a link');
+  }
+  if (info.isDirectory()) {
+    await removeExactDirectory(target, parent);
+    return;
+  }
+  if (!info.isFile()) throw new Error('hosted snapshot invalid entry is unsupported');
+  await fsp.unlink(target);
 }
 
 function listVersionSequences(versionsRoot: string): string[] {
