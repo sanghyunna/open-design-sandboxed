@@ -118,9 +118,7 @@ describe('hosted durability coordinator', () => {
     vi.setSystemTime(0);
     const poison = vi.fn();
     let authorityAdvanced = false;
-    let publishedSignal: AbortSignal | null = null;
     const publish = vi.fn((signal: AbortSignal) => new Promise<never>((_resolve, reject) => {
-      publishedSignal = signal;
       const authorityTimer = setTimeout(() => {
         authorityAdvanced = true;
       }, 120_001);
@@ -141,7 +139,7 @@ describe('hosted durability coordinator', () => {
       code: 'HOSTED_SNAPSHOT_TIMEOUT',
     });
     await vi.advanceTimersByTimeAsync(120_000);
-    expect(publishedSignal?.aborted).toBe(true);
+    expect(publish.mock.calls[0]?.[0].aborted).toBe(true);
     expect(poison).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(49);
     expect(poison).not.toHaveBeenCalled();

@@ -70,10 +70,10 @@ type FileIdentity = {
   readonly size: number;
 };
 
-type AdmissionLimits = Pick<
-  typeof HOSTED_ARTIFACT_LIMITS,
-  'aggregateBytesPerUser' | 'artifactsPerUser'
->;
+interface AdmissionLimits {
+  readonly aggregateBytesPerUser: number;
+  readonly artifactsPerUser: number;
+}
 
 export function createHostedArtifactAdapter(options: {
   /** Server-owned test seam; callers may only reduce the fixed production bounds. */
