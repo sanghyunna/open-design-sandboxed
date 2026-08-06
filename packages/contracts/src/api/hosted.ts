@@ -36,6 +36,12 @@ import type {
   ProjectTabsState,
 } from './projects.js';
 import type {
+  ProjectExportManifestResponse,
+  ProjectFile,
+  ProjectFolder,
+  ProjectPreviewUrlResponse,
+} from './files.js';
+import type {
   AgentCatalogResponse,
   DesignSystemDetail,
   DesignSystemSummary,
@@ -231,6 +237,172 @@ export type HostedTabsResponse = Pick<
 export type HostedCheckpointsResponse = ProjectCheckpointsResponse;
 export type HostedCheckpointResponse = ProjectCheckpointResponse;
 export type HostedCheckpointDiffResponse = ProjectCheckpointDiffResponse;
+
+export interface HostedProjectFileWriteV1 {
+  readonly name: string;
+  readonly content: string;
+  readonly encoding?: 'utf8' | 'base64';
+  readonly overwrite?: boolean;
+  readonly expectedContentSha256?: string;
+}
+
+export interface HostedProjectFileRenameV1 {
+  readonly from: string;
+  readonly to: string;
+}
+
+export interface HostedProjectFolderV1 {
+  readonly path: string;
+}
+
+/** Metadata for one `files` part in a hosted multipart upload. */
+export interface HostedProjectUploadFileDescriptor {
+  readonly name: string;
+  readonly mime: string;
+  readonly size: number;
+}
+
+export interface HostedProjectUploadV1 {
+  readonly dir?: string;
+  readonly files: readonly HostedProjectUploadFileDescriptor[];
+}
+
+export interface HostedProjectUploadedFile extends HostedProjectUploadFileDescriptor {
+  readonly originalName: string;
+}
+
+export interface HostedProjectUploadResponse {
+  readonly files: readonly HostedProjectUploadedFile[];
+}
+
+export type HostedProjectFile = Readonly<
+  Pick<ProjectFile, 'name' | 'size' | 'mtime' | 'kind' | 'mime' | 'artifactKind'>
+> & {
+  readonly path: string;
+  readonly type: 'file';
+};
+
+export type HostedProjectFolder = Readonly<ProjectFolder>;
+
+export interface HostedProjectFilesQuery {
+  readonly since?: number;
+}
+
+export interface HostedProjectFilesResponse {
+  readonly files: readonly HostedProjectFile[];
+}
+
+export interface HostedProjectFileResponse {
+  readonly file: HostedProjectFile;
+}
+
+export type HostedProjectFileWriteResponse = HostedProjectFileResponse;
+
+export interface HostedProjectFileRenameResponse {
+  readonly file: HostedProjectFile;
+  readonly oldName: string;
+  readonly newName: string;
+}
+
+export interface HostedProjectFoldersResponse {
+  readonly folders: readonly HostedProjectFolder[];
+}
+
+export interface HostedProjectFolderResponse {
+  readonly folder: HostedProjectFolder;
+}
+
+export type HostedProjectFolderCreateResponse = HostedProjectFolderResponse;
+
+export type HostedProjectFileDeleteResponse = OkResponse;
+export type HostedProjectFolderDeleteResponse = OkResponse;
+
+export interface HostedProjectSearchQuery {
+  readonly q: string;
+  readonly pattern?: string;
+  readonly max?: number;
+}
+
+export interface HostedProjectSearchMatch {
+  readonly file: string;
+  readonly line: number;
+  readonly snippet: string;
+}
+
+export interface HostedProjectSearchResponse {
+  readonly query: string;
+  readonly matches: readonly HostedProjectSearchMatch[];
+}
+
+export interface HostedProjectFilePreviewV1 {
+  readonly path: string;
+}
+
+export type HostedProjectFilePreviewKind = Extract<
+  ProjectFile['kind'],
+  'pdf' | 'document' | 'presentation' | 'spreadsheet'
+>;
+
+export interface HostedProjectFilePreviewSection {
+  readonly title: string;
+  readonly lines: readonly string[];
+}
+
+export interface HostedProjectFilePreviewResponse {
+  readonly kind: HostedProjectFilePreviewKind;
+  readonly title: string;
+  readonly sections: readonly HostedProjectFilePreviewSection[];
+}
+
+export interface HostedProjectPreviewUrlV1 {
+  readonly file: string;
+}
+
+export type HostedProjectPreviewUrlResponse = Readonly<ProjectPreviewUrlResponse>;
+
+export interface HostedArtifactSaveV1 {
+  readonly identifier?: string;
+  readonly title?: string;
+  readonly html: string;
+}
+
+export interface HostedArtifactLintV1 {
+  readonly html: string;
+}
+
+export type HostedArtifactLintSeverity = 'P0' | 'P1' | 'P2';
+
+export interface HostedArtifactLintFinding {
+  readonly severity: HostedArtifactLintSeverity;
+  readonly id: string;
+  readonly message: string;
+  readonly fix: string;
+  readonly snippet?: string;
+}
+
+export interface HostedArtifactSaveResponse {
+  readonly artifactId: string;
+  readonly url: string;
+  readonly lint: readonly HostedArtifactLintFinding[];
+}
+
+export interface HostedArtifactLintResponse {
+  readonly findings: readonly HostedArtifactLintFinding[];
+  readonly agentMessage: string;
+}
+
+export interface HostedArtifactDownloadMetadata {
+  readonly artifactId: string;
+  readonly contentType: 'text/html; charset=utf-8';
+  readonly fileName: 'artifact.html';
+  readonly size: number;
+}
+
+export interface HostedProjectArchiveQuery {
+  readonly root?: string;
+}
+
+export type HostedProjectExportManifestResponse = ProjectExportManifestResponse;
 
 export const HOSTED_RUN_STATUSES = [
   'queued',
