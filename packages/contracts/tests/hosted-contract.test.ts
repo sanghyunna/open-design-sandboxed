@@ -34,6 +34,7 @@ describe('hosted PR07 contracts', () => {
       'succeeded',
       'failed',
       'canceled',
+      'interrupted',
     ]);
     expect(HOSTED_GEN_UI_SURFACE_KINDS).toEqual([
       'form',

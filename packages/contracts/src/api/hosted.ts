@@ -410,7 +410,8 @@ export const HOSTED_RUN_STATUSES = [
   'succeeded',
   'failed',
   'canceled',
-] as const satisfies readonly ChatRunStatus[];
+  'interrupted',
+] as const;
 
 export type HostedRunStatus = (typeof HOSTED_RUN_STATUSES)[number];
 
@@ -454,12 +455,12 @@ export type HostedRunStatusResponse = Pick<
   | 'conversationId'
   | 'assistantMessageId'
   | 'agentId'
-  | 'status'
   | 'createdAt'
   | 'updatedAt'
   | 'exitCode'
   | 'resumable'
 > & {
+  readonly status: HostedRunStatus;
   readonly errorCode?: ApiErrorCode | null;
 };
 
