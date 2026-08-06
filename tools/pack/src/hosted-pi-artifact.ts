@@ -784,7 +784,13 @@ async function runRpcSmoke(stage: string): Promise<void> {
   });
   const broker = await brokerModule.createHostedPiBroker({
     runtimeRoot,
-    binding: { userKey: 'artifact-user', runId: 'artifact-run', projectId: 'artifact-project', projectRoot: project },
+    binding: {
+      generation: 1,
+      userKey: 'artifact-user',
+      runId: 'artifact-run',
+      projectId: 'artifact-project',
+      projectRoot: project,
+    },
   });
   const secondProject = path.join(smokeRoot, 'second-project');
   const secondRuntimeRoot = path.join(smokeRoot, 'second-runtime');
@@ -793,7 +799,13 @@ async function runRpcSmoke(stage: string): Promise<void> {
   writeFileSync(path.join(secondProject, 'fixture.txt'), 'second fixture');
   const secondBroker = await brokerModule.createHostedPiBroker({
     runtimeRoot: secondRuntimeRoot,
-    binding: { userKey: 'second-user', runId: 'second-run', projectId: 'second-project', projectRoot: secondProject },
+    binding: {
+      generation: 1,
+      userKey: 'second-user',
+      runId: 'second-run',
+      projectId: 'second-project',
+      projectRoot: secondProject,
+    },
   });
   const invocation = runtime.createHostedPiInvocation({
     cwd: project,
