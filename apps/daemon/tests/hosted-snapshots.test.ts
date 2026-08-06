@@ -583,6 +583,23 @@ describe('hosted snapshots', () => {
     expect(versionRoots(retainedUnderRoot)).toEqual(['00000000000000000001']);
   });
 
+  it.runIf(process.platform === 'win32')(
+    'accepts ordinary Windows casing aliases without accepting reparse points',
+    async () => {
+      const runtimeRoot = tempRoot();
+      const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+      const snapshots = createHostedSnapshotStore({
+        identity,
+        runtimeRoot: runtimeRoot.toUpperCase(),
+      });
+      try {
+        await expect(snapshots.publish({ quiesce: async () => {}, storage })).resolves.toBeDefined();
+      } finally {
+        storage.close();
+      }
+    },
+  );
+
   it('rejects oversized capture before copying the offending file and yields the event loop', async () => {
     const runtimeRoot = tempRoot();
     const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
