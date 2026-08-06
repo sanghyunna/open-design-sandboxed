@@ -7,7 +7,85 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createChatRunService } from '../src/runs.js';
 
+describe('chat run service creation', () => {
+  it('generates distinct run ids by default', () => {
+    const runs = createRuns();
+
+    expect(runs.create().id).not.toBe(runs.create().id);
+  });
+
+  it('uses an explicit internal run id', () => {
+    const runs = createRuns();
+
+    expect(runs.createWithId('canonical-run-1').id).toBe('canonical-run-1');
+  });
+
+  it('rejects a duplicate explicit run id without replacing the first run', () => {
+    const runs = createRuns();
+    const first = runs.createWithId('canonical-run-1');
+
+    expect(() => runs.createWithId('canonical-run-1')).toThrow(/already exists/i);
+    expect(runs.get('canonical-run-1')).toBe(first);
+  });
+
+  it('does not accept an explicit id through ordinary request metadata', () => {
+    const runs = createRuns();
+
+    const run = runs.create({ id: 'request-controlled' });
+
+    expect(run.id).not.toBe('request-controlled');
+    expect(runs.get('request-controlled')).toBeNull();
+  });
+});
+
 describe('chat run service shutdown', () => {
+  it('disposes only its owned timers, streams, clients, and waiters', async () => {
+    vi.useFakeTimers();
+    try {
+      const clientA = { send: vi.fn(() => true), end: vi.fn(), cleanup: vi.fn() };
+      const clientB = { send: vi.fn(() => true), end: vi.fn(), cleanup: vi.fn() };
+      const runsA = createRunsWithClient(clientA);
+      const runsB = createRunsWithClient(clientB);
+
+      const terminalA = runsA.create();
+      runsA.finish(terminalA, 'succeeded', 0, null);
+
+      const activeA = runsA.create();
+      const activeB = runsB.create();
+      const logStreamA = { end: vi.fn() };
+      (activeA as any).eventsLogStream = logStreamA;
+      runsA.emit(activeA, 'agent', { type: 'text_delta', delta: 'discard me' });
+      runsB.emit(activeB, 'agent', { type: 'text_delta', delta: 'keep me' });
+      runsA.stream(activeA, { get: () => null, query: {} } as never, { on: vi.fn() } as never);
+      runsB.stream(activeB, { get: () => null, query: {} } as never, { on: vi.fn() } as never);
+      const waiterA = runsA.wait(activeA);
+
+      expect(vi.getTimerCount()).toBe(3);
+      runsA.dispose();
+
+      expect(runsA.get(terminalA.id)).toBeNull();
+      expect(runsA.get(activeA.id)).toBeNull();
+      expect(activeA.pendingDelta).toBeNull();
+      expect(logStreamA.end).toHaveBeenCalledTimes(1);
+      expect(clientA.end).toHaveBeenCalledTimes(1);
+      await expect(waiterA).resolves.toMatchObject({ status: 'canceled' });
+      expect(vi.getTimerCount()).toBe(1);
+
+      expect(runsB.get(activeB.id)).toBe(activeB);
+      expect(activeB.status).toBe('queued');
+      expect(clientB.end).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(32);
+      expect(activeB.events).toContainEqual(expect.objectContaining({
+        event: 'agent',
+        data: { type: 'text_delta', delta: 'keep me' },
+      }));
+
+      runsB.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('retains structured error details on failed run status bodies', async () => {
     const runs = createRuns();
     const run = runs.create({ projectId: 'project-1', conversationId: 'conv-1' });
@@ -232,6 +310,33 @@ describe('chat run service shutdown', () => {
       vi.useRealTimers();
     }
   });
+
+  it('cancels an ACP fallback signal when its run service is disposed', async () => {
+    vi.useFakeTimers();
+    const previousGrace = process.env.PI_ABORT_GRACE_MS;
+    process.env.PI_ABORT_GRACE_MS = '10';
+    try {
+      const runs = createRuns();
+      const child = new FakeChildProcess({ closeOn: 'SIGTERM' });
+      const run = runs.create();
+      run.status = 'running';
+      (run as any).child = child;
+      (run as any).acpSession = { abort: vi.fn() };
+
+      runs.cancel(run);
+      expect(vi.getTimerCount()).toBe(1);
+
+      runs.dispose();
+      expect(vi.getTimerCount()).toBe(0);
+
+      await vi.advanceTimersByTimeAsync(20);
+      expect(child.signals).toEqual([]);
+    } finally {
+      if (previousGrace === undefined) delete process.env.PI_ABORT_GRACE_MS;
+      else process.env.PI_ABORT_GRACE_MS = previousGrace;
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('chat run service stream replay', () => {
@@ -312,6 +417,19 @@ function createRuns() {
       end: vi.fn(),
       cleanup: vi.fn(),
     }),
+    createSseErrorPayload: (code: string, message: string) => ({ error: { code, message } }),
+    shutdownGraceMs: 10,
+    ttlMs: 60_000,
+  });
+}
+
+function createRunsWithClient(client: {
+  send: ReturnType<typeof vi.fn>;
+  end: ReturnType<typeof vi.fn>;
+  cleanup: ReturnType<typeof vi.fn>;
+}) {
+  return createChatRunService({
+    createSseResponse: () => client,
     createSseErrorPayload: (code: string, message: string) => ({ error: { code, message } }),
     shutdownGraceMs: 10,
     ttlMs: 60_000,
@@ -432,6 +550,49 @@ describe('run event log persistence', () => {
 
     const body = runs.statusBody(run);
     expect(body.eventsLogPath).toBe(path.join(tmpDir, run.id, 'events.jsonl'));
+  });
+
+  it('rejects path-bearing or Windows-aliased explicit ids before creating a log path', () => {
+    const runs = createRunsWithLog(tmpDir);
+
+    for (const id of [
+      '../../escape',
+      '..\\..\\escape',
+      '.',
+      '..',
+      'C:\\escape',
+      'con',
+      'nul',
+      'run-a.',
+    ]) {
+      expect(() => runs.createWithId(id)).toThrow(/run id is invalid/i);
+    }
+    expect(fs.readdirSync(tmpDir)).toEqual([]);
+  });
+
+  it('requires canonical lowercase explicit ids on case-insensitive filesystems', () => {
+    const runs = createRunsWithLog(tmpDir);
+
+    expect(() => runs.createWithId('Run-A')).toThrow(/run id is invalid/i);
+    const run = runs.createWithId('run-a');
+    runs.emit(run, 'start', { status: 'running' });
+    runs.finish(run, 'succeeded', 0, null);
+
+    expect(fs.readdirSync(tmpDir)).toEqual(['run-a']);
+  });
+
+  it('does not let ordinary request metadata select or reuse a run log', () => {
+    const runs = createRunsWithLog(tmpDir);
+    const first = runs.create({ id: 'request-controlled' });
+    const second = runs.create({ id: 'request-controlled' });
+
+    for (const run of [first, second]) {
+      runs.emit(run, 'start', { status: 'running' });
+      runs.finish(run, 'succeeded', 0, null);
+    }
+
+    expect(first.id).not.toBe(second.id);
+    expect(fs.readdirSync(tmpDir).sort()).toEqual([first.id, second.id].sort());
   });
 
   it('reports eventsLogPath: null when runsLogDir is not configured (back-compat)', () => {

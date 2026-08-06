@@ -9,6 +9,15 @@ import {
 
 export const TERMINAL_RUN_STATUSES = new Set(['succeeded', 'failed', 'canceled']);
 
+export interface ChatRunServiceOptions {
+  createSseResponse: (...args: any[]) => any;
+  createSseErrorPayload: (...args: any[]) => any;
+  maxEvents?: number;
+  ttlMs?: number;
+  shutdownGraceMs?: number;
+  runsLogDir?: string | null;
+}
+
 function readString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
@@ -35,12 +44,12 @@ export function createChatRunService({
   // external coding agent can `tail` the file in its own shell during
   // a long OD generation, instead of polling blindly and giving up.
   runsLogDir = null,
-}) {
+}: ChatRunServiceOptions) {
   const runs = new Map();
 
-  const create = (meta = {}) => {
+  const createRun = (id, meta = {}) => {
     const now = Date.now();
-    const id = randomUUID();
+    if (runs.has(id)) throw new Error(`Run already exists: ${id}`);
     const run = {
       id,
       projectId: typeof meta.projectId === 'string' && meta.projectId ? meta.projectId : null,
@@ -81,17 +90,33 @@ export function createChatRunService({
       eventsLogPath: runsLogDir ? path.join(runsLogDir, id, 'events.jsonl') : null,
       eventsLogStream: null,
       pendingDelta: null,
+      cleanupTimer: null,
+      abortFallbackTimer: null,
     };
     runs.set(run.id, run);
     return run;
   };
 
+  const create = (meta = {}) => createRun(randomUUID(), meta);
+
+  const createWithId = (id, meta = {}) => {
+    if (
+      typeof id !== 'string'
+      || !/^(?!(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$)[a-z0-9][a-z0-9_-]{0,127}$/u.test(id)
+    ) {
+      throw new Error('Run id is invalid');
+    }
+    return createRun(id, meta);
+  };
+
   const get = (id) => runs.get(id) ?? null;
 
   const scheduleCleanup = (run) => {
-    setTimeout(() => {
+    run.cleanupTimer = setTimeout(() => {
+      run.cleanupTimer = null;
       if (TERMINAL_RUN_STATUSES.has(run.status)) runs.delete(run.id);
-    }, ttlMs).unref?.();
+    }, ttlMs);
+    run.cleanupTimer.unref?.();
   };
 
   // Lazily open the per-run event log on first emit. The directory may
@@ -201,6 +226,8 @@ export function createChatRunService({
 
   const finish = (run, status, code: number | null = null, signal: string | null = null) => {
     if (TERMINAL_RUN_STATUSES.has(run.status)) return;
+    if (run.abortFallbackTimer) clearTimeout(run.abortFallbackTimer);
+    run.abortFallbackTimer = null;
     run.status = status;
     run.exitCode = code;
     run.signal = signal;
@@ -321,11 +348,17 @@ export function createChatRunService({
       // process-signal fallback.
       if (run.acpSession?.abort) {
         run.acpSession.abort();
-        if (run.acpSession.ownsAbortLifecycle !== true) {
+        if (
+          run.acpSession.ownsAbortLifecycle !== true
+          && !TERMINAL_RUN_STATUSES.has(run.status)
+        ) {
           const graceMs = Number(process.env.PI_ABORT_GRACE_MS) || 3000;
-          setTimeout(() => {
+          if (run.abortFallbackTimer) clearTimeout(run.abortFallbackTimer);
+          run.abortFallbackTimer = setTimeout(() => {
+            run.abortFallbackTimer = null;
             if (run.child && !run.child.killed) run.child.kill('SIGTERM');
-          }, graceMs).unref();
+          }, graceMs);
+          run.abortFallbackTimer.unref?.();
         }
       } else if (run.child && !run.child.killed) {
         run.child.kill('SIGTERM');
@@ -367,6 +400,33 @@ export function createChatRunService({
     return new Promise((resolve) => run.waiters.add(resolve));
   };
 
+  const disposeRun = (run) => {
+    if (run.cleanupTimer) clearTimeout(run.cleanupTimer);
+    run.cleanupTimer = null;
+    if (run.abortFallbackTimer) clearTimeout(run.abortFallbackTimer);
+    run.abortFallbackTimer = null;
+    if (run.pendingDelta?.timer) clearTimeout(run.pendingDelta.timer);
+    run.pendingDelta = null;
+    if (!TERMINAL_RUN_STATUSES.has(run.status)) {
+      run.status = 'canceled';
+      run.cancelRequested = true;
+      run.updatedAt = Date.now();
+    }
+    for (const sse of run.clients) {
+      try { sse.end(); } catch { /* best-effort detach */ }
+    }
+    run.clients.clear();
+    for (const waiter of run.waiters) waiter(statusBody(run));
+    run.waiters.clear();
+    try { run.eventsLogStream?.end(); } catch { /* ignore */ }
+    run.eventsLogStream = null;
+    runs.delete(run.id);
+  };
+
+  const dispose = () => {
+    for (const run of runs.values()) disposeRun(run);
+  };
+
   // Drop a run from the in-memory registry without emitting any terminal
   // event. Used by callers that prepared a run optimistically (created the
   // record before some external precondition was checked) and need to undo
@@ -376,22 +436,15 @@ export function createChatRunService({
   const drop = (run) => {
     if (!run) return;
     if (TERMINAL_RUN_STATUSES.has(run.status)) return;
-    runs.delete(run.id);
-    for (const sse of run.clients) {
-      try { sse.end(); } catch { /* best-effort detach */ }
-    }
-    run.clients.clear();
     // Resolve any pending waiters with a synthetic "canceled" status so
     // they unblock instead of hanging forever — the run is being dropped
     // because nothing will ever start.
-    run.status = 'canceled';
-    run.updatedAt = Date.now();
-    for (const waiter of run.waiters) waiter(statusBody(run));
-    run.waiters.clear();
+    disposeRun(run);
   };
 
   return {
     create,
+    createWithId,
     start,
     get,
     list,
@@ -404,6 +457,7 @@ export function createChatRunService({
     finish,
     fail,
     drop,
+    dispose,
     statusBody,
     isTerminal(status) {
       return TERMINAL_RUN_STATUSES.has(status);

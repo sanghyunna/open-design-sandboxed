@@ -1,6 +1,20 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import type { ApiErrorCode, HostedProviderId } from '@open-design/contracts';
+import {
+  createApiError,
+  type ApiErrorCode,
+  type HostedProviderId,
+} from '@open-design/contracts';
+import {
+  createHostedRuntimeStorage,
+  type HostedRuntimeStorage,
+} from './hosted-runtime-storage.js';
+import { getProject, insertProject } from './db.js';
+import {
+  createProjectCheckpointService,
+  type ProjectCheckpointService,
+} from './project-checkpoints.js';
+import { createChatRunService } from './runs.js';
 
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
@@ -64,6 +78,10 @@ export interface HostedRuntimeRegistryOptions {
   readonly shutdownTimeoutMs?: number;
   /** Test seam for proving reverse-binding collision rejection. */
   readonly deriveStorageKey?: (userKey: string) => string;
+  /** System-boundary seam for proving generation-local cleanup failures. */
+  readonly createStorage?: typeof createHostedRuntimeStorage;
+  /** Resource seam for proving owned run-state finalization failures. */
+  readonly createRunService?: typeof createChatRunService;
 }
 
 export type HostedLeaseStrength = 'strong' | 'weak';
@@ -129,6 +147,69 @@ export interface HostedRuntimeRegistry {
   shutdown(): Promise<void>;
 }
 
+export type HostedRuntimeInternalOperation =
+  | {
+      readonly kind: 'project:insert';
+      readonly runId: string;
+      readonly conversationId: string;
+      readonly project: {
+        readonly id: string;
+        readonly name: string;
+        readonly createdAt: number;
+        readonly updatedAt: number;
+      };
+    }
+  | { readonly kind: 'project:get'; readonly projectId: string }
+  | {
+      readonly kind: 'checkpoint:count';
+      readonly projectId: string;
+      readonly conversationId?: string | null;
+    }
+  | { readonly kind: 'run:get'; readonly runId: string };
+
+export interface HostedRuntimeGenerationControl {
+  readonly userKey: string;
+  readonly generation: number;
+}
+
+type InternalOperationDispatcher = (
+  lease: HostedRuntimeLease,
+  operation: HostedRuntimeInternalOperation,
+) => Promise<unknown>;
+
+const internalOperationsByRegistry = new WeakMap<
+  HostedRuntimeRegistry,
+  InternalOperationDispatcher
+>();
+const poisonByRegistry = new WeakMap<
+  HostedRuntimeRegistry,
+  (control: HostedRuntimeGenerationControl) => boolean
+>();
+
+/** Internal adapter seam for PR07; it never exposes owned handles or paths. */
+export function dispatchHostedRuntimeInternalOperation(
+  registry: HostedRuntimeRegistry,
+  lease: HostedRuntimeLease,
+  operation: HostedRuntimeInternalOperation,
+): Promise<unknown> {
+  const dispatch = internalOperationsByRegistry.get(registry);
+  if (dispatch == null) {
+    return Promise.reject(new HostedRuntimeError(
+      'HOSTED_RUNTIME_UNAVAILABLE',
+      'hosted runtime registry is unavailable',
+    ));
+  }
+  return dispatch(lease, operation);
+}
+
+/** Generation-bound transition used by snapshot publication failure handling. */
+export function poisonHostedRuntimeGeneration(
+  registry: HostedRuntimeRegistry,
+  control: HostedRuntimeGenerationControl,
+): boolean {
+  return poisonByRegistry.get(registry)?.(control) ?? false;
+}
+
 interface IdentityBinding {
   readonly userKey: string;
   readonly storageKey: string;
@@ -150,8 +231,7 @@ interface QueueEntryBase {
 
 interface RunQueueEntry extends QueueEntryBase {
   readonly kind: 'run';
-  readonly runId: string;
-  readonly conversationId: string;
+  readonly ownedRun: ReturnType<ReturnType<typeof createChatRunService>['create']>;
   readonly execute: HostedRunDispatch<unknown>['execute'];
   readonly resolve: (value: unknown) => void;
 }
@@ -173,13 +253,16 @@ interface ActiveRun {
 
 interface RuntimeState {
   readonly binding: IdentityBinding;
+  readonly checkpointService: ProjectCheckpointService;
   readonly generation: number;
-  readonly root: string;
+  readonly runService: ReturnType<typeof createChatRunService>;
   readonly sessions: Map<string, string>;
+  readonly storage: HostedRuntimeStorage;
   readonly queue: QueueEntry[];
   active: ActiveRun | null;
   credential: HostedProviderCredential | null;
   idleTimer: ReturnType<typeof setTimeout> | null;
+  lifecycle: 'active' | 'cleaning' | 'poisoned' | 'closed';
   sessionReferenceBytes: number;
   strongLeases: number;
 }
@@ -204,6 +287,8 @@ export function createHostedRuntimeRegistry(
   const runTimeoutMs = duration(options.runTimeoutMs, DEFAULT_RUN_TIMEOUT_MS);
   const shutdownTimeoutMs = duration(options.shutdownTimeoutMs, DEFAULT_SHUTDOWN_TIMEOUT_MS);
   const deriveStorageKey = options.deriveStorageKey ?? deriveHostedStorageKey;
+  const createStorage = options.createStorage ?? createHostedRuntimeStorage;
+  const createRunService = options.createRunService ?? createChatRunService;
   const bindingsByUser = new Map<string, IdentityBinding>();
   const bindingsByStorage = new Map<string, IdentityBinding>();
   const runtimes = new Map<string, RuntimeState>();
@@ -264,31 +349,84 @@ export function createHostedRuntimeRegistry(
     }
     const binding = bindingFor(identity);
     const existing = runtimes.get(binding.userKey);
-    if (existing != null) return existing;
+    if (existing != null) {
+      if (existing.lifecycle === 'active') return existing;
+      if (existing.lifecycle === 'poisoned') retirePoisoned(existing);
+      if (runtimes.get(binding.userKey) === existing) {
+        runtimeUnavailable('hosted runtime generation is unavailable');
+      }
+    }
     if (runtimes.size >= limits.residentRuntimes) {
       throw new HostedRuntimeError(
         'HOSTED_CAPACITY_EXHAUSTED',
         'hosted runtime capacity is exhausted',
       );
     }
-    const runtime: RuntimeState = {
-      active: null,
-      binding,
-      credential: null,
-      generation: ++binding.nextGeneration,
-      idleTimer: null,
-      queue: [],
-      root: path.join(runtimeRoot, binding.storageKey),
-      sessionReferenceBytes: 0,
-      sessions: new Map(),
-      strongLeases: 0,
-    };
-    runtimes.set(binding.userKey, runtime);
-    scheduleIdleEviction(runtime);
-    return runtime;
+    let storage: HostedRuntimeStorage | null = null;
+    let runService: ReturnType<typeof createChatRunService> | null = null;
+    try {
+      storage = createStorage({
+        identity: {
+          storageKey: binding.storageKey,
+          userKey: binding.userKey,
+        },
+        runtimeRoot,
+      });
+      const generation = binding.nextGeneration + 1;
+      runService = createRunService({
+        createSseErrorPayload: (code, message, init = {}) => ({
+          error: createApiError(code, message, init),
+          message,
+        }),
+        createSseResponse: () => {
+          throw new HostedRuntimeError(
+            'HOSTED_RUNTIME_UNAVAILABLE',
+            'hosted run streaming is not active',
+          );
+        },
+        runsLogDir: storage.roots.runsRoot,
+      });
+      const checkpointService = createProjectCheckpointService({
+        dataDir: storage.roots.liveRoot,
+        db: storage.database,
+        projectsRoot: storage.roots.projectsRoot,
+      });
+      const runtime: RuntimeState = {
+        active: null,
+        binding,
+        checkpointService,
+        credential: null,
+        generation,
+        idleTimer: null,
+        lifecycle: 'active',
+        queue: [],
+        runService,
+        sessionReferenceBytes: 0,
+        sessions: new Map(),
+        storage,
+        strongLeases: 0,
+      };
+      binding.nextGeneration = generation;
+      runtimes.set(binding.userKey, runtime);
+      scheduleIdleEviction(runtime);
+      return runtime;
+    } catch {
+      try {
+        runService?.dispose();
+      } finally {
+        storage?.close();
+      }
+      throw new HostedRuntimeError(
+        'HOSTED_RUNTIME_UNAVAILABLE',
+        'hosted runtime initialization failed',
+      );
+    }
   }
 
   function acquireStrong(runtime: RuntimeState): void {
+    if (runtime.lifecycle !== 'active') {
+      runtimeUnavailable('hosted runtime generation is unavailable');
+    }
     if (runtime.strongLeases >= limits.strongLeasesPerUser) {
       throw new HostedRuntimeError('HOSTED_OVERLOADED', 'hosted user lease limit exceeded');
     }
@@ -306,7 +444,11 @@ export function createHostedRuntimeRegistry(
   function releaseStrong(runtime: RuntimeState): void {
     runtime.strongLeases -= 1;
     strongLeases -= 1;
-    scheduleIdleEviction(runtime);
+    if (runtime.lifecycle === 'poisoned') {
+      retirePoisoned(runtime);
+    } else {
+      scheduleIdleEviction(runtime);
+    }
     tryFinishShutdown();
   }
 
@@ -383,16 +525,24 @@ export function createHostedRuntimeRegistry(
         );
       }
       acquireStrong(runtime);
+      let ownedRun: ReturnType<ReturnType<typeof createChatRunService>['create']>;
+      try {
+        ownedRun = runtime.runService.createWithId(operation.runId, {
+          conversationId: operation.conversationId,
+        });
+      } catch (error) {
+        releaseStrong(runtime);
+        throw error;
+      }
 
       return new Promise<T>((resolve, reject) => {
         const entry: RunQueueEntry = {
           admissionTimer: null,
-          conversationId: operation.conversationId,
           execute: operation.execute as HostedRunDispatch<unknown>['execute'],
           kind: 'run',
+          ownedRun,
           reject,
           resolve: resolve as (value: unknown) => void,
-          runId: operation.runId,
         };
         runtime.queue.push(entry);
         queuedMutations += 1;
@@ -470,6 +620,7 @@ export function createHostedRuntimeRegistry(
       || (strength != null && state.strength !== strength)
       || runtimes.get(lease.userKey) !== state.runtime
       || state.runtime.generation !== lease.generation
+      || state.runtime.lifecycle !== 'active'
     ) {
       runtimeUnavailable('hosted runtime lease is not active');
     }
@@ -477,7 +628,12 @@ export function createHostedRuntimeRegistry(
   }
 
   function pump(runtime: RuntimeState): void {
-    if (shuttingDown || runtime.active != null || runtime.queue.length === 0) return;
+    if (
+      shuttingDown
+      || runtime.lifecycle !== 'active'
+      || runtime.active != null
+      || runtime.queue.length === 0
+    ) return;
     const next = runtime.queue[0];
     if (next?.kind === 'run' && activeChildren >= limits.activeChildren) return;
     const entry = runtime.queue.shift();
@@ -502,6 +658,13 @@ export function createHostedRuntimeRegistry(
     };
     runtime.active = active;
     activeChildren += 1;
+    entry.ownedRun.status = 'running';
+    entry.ownedRun.updatedAt = Date.now();
+    runtime.runService.emit(entry.ownedRun, 'start', {
+      conversationId: entry.ownedRun.conversationId,
+      runId: entry.ownedRun.id,
+      status: 'running',
+    });
     active.timeout = unrefTimer(setTimeout(() => {
       if (runtime.active !== active || active.terminalError != null) return;
       active.terminalError = new HostedRuntimeError(
@@ -510,7 +673,7 @@ export function createHostedRuntimeRegistry(
       );
       abort.abort(active.terminalError);
     }, runTimeoutMs));
-    const sessionReference = runtime.sessions.get(entry.conversationId) ?? null;
+    const sessionReference = runtime.sessions.get(entry.ownedRun.conversationId) ?? null;
     void Promise.resolve()
       .then(() => entry.execute({
         credential: runtime.credential,
@@ -535,10 +698,11 @@ export function createHostedRuntimeRegistry(
     if (error == null && result != null && result.sessionReference !== undefined) {
       try {
         const sessionReference = result.sessionReference;
-        const previous = runtime.sessions.get(active.entry.conversationId);
+        const conversationId = active.entry.ownedRun.conversationId;
+        const previous = runtime.sessions.get(conversationId);
         const previousBytes = previous == null ? 0 : Buffer.byteLength(previous, 'utf8');
         if (sessionReference == null) {
-          runtime.sessions.delete(active.entry.conversationId);
+          runtime.sessions.delete(conversationId);
           runtime.sessionReferenceBytes -= previousBytes;
         } else {
           validateSessionReference(sessionReference);
@@ -552,7 +716,7 @@ export function createHostedRuntimeRegistry(
               'hosted user session reference bytes exceeded',
             );
           }
-          runtime.sessions.set(active.entry.conversationId, sessionReference);
+          runtime.sessions.set(conversationId, sessionReference);
           runtime.sessionReferenceBytes = runtime.sessionReferenceBytes - previousBytes + nextBytes;
         }
       } catch (sessionError) {
@@ -562,6 +726,11 @@ export function createHostedRuntimeRegistry(
     if (error != null) runtime.credential = null;
     runtime.active = null;
     activeChildren -= 1;
+    const finalizationError = settleOwnedRun(runtime, active.entry, error);
+    if (finalizationError != null) {
+      error = finalizationError;
+      poisonRuntime(runtime, finalizationError);
+    }
     releaseStrong(runtime);
     if (error == null && result != null) {
       active.entry.resolve(result.value);
@@ -572,6 +741,36 @@ export function createHostedRuntimeRegistry(
     pumpAll();
     scheduleIdleEviction(runtime);
     tryFinishShutdown();
+  }
+
+  function settleOwnedRun(
+    runtime: RuntimeState,
+    entry: RunQueueEntry,
+    error: unknown,
+  ): HostedRuntimeError | null {
+    try {
+      if (runtime.runService.isTerminal(entry.ownedRun.status)) return null;
+      if (error == null) {
+        runtime.runService.finish(entry.ownedRun, 'succeeded', 0, null);
+        return null;
+      }
+      if (
+        error instanceof HostedRuntimeError
+        && error.code === 'HOSTED_RUN_CANCELED'
+      ) {
+        runtime.runService.finish(entry.ownedRun, 'canceled', null, 'SIGTERM');
+        return null;
+      }
+      const code = error instanceof HostedRuntimeError ? error.code : 'INTERNAL_ERROR';
+      const message = error instanceof Error ? error.message : String(error);
+      runtime.runService.fail(entry.ownedRun, code, message);
+      return null;
+    } catch {
+      return new HostedRuntimeError(
+        'HOSTED_RUNTIME_UNAVAILABLE',
+        'hosted run state finalization failed',
+      );
+    }
   }
 
   function pumpAll(): void {
@@ -593,26 +792,35 @@ export function createHostedRuntimeRegistry(
     queuedMutations -= 1;
     clearTimer(entry.admissionTimer);
     entry.admissionTimer = null;
+    const finalizationError = entry.kind === 'run'
+      ? settleOwnedRun(runtime, entry, error)
+      : null;
+    if (finalizationError != null) poisonRuntime(runtime, finalizationError);
     releaseStrong(runtime);
-    entry.reject(error);
+    entry.reject(finalizationError ?? error);
     pump(runtime);
     return true;
   }
 
   function cancel(control: HostedRunControl, reason = 'canceled'): boolean {
     const runtime = runtimes.get(control.userKey);
-    if (runtime == null || runtime.generation !== control.generation) return false;
+    if (
+      runtime == null
+      || runtime.generation !== control.generation
+      || runtime.lifecycle !== 'active'
+    ) return false;
     const error = new HostedRuntimeError(
       'HOSTED_RUN_CANCELED',
       `hosted run was canceled (${reason})`,
     );
-    if (runtime.active?.entry.runId === control.runId) {
+    if (runtime.active?.entry.ownedRun.id === control.runId) {
       runtime.active.terminalError ??= error;
       runtime.active.abort.abort(runtime.active.terminalError);
       return true;
     }
     const queued = runtime.queue.find(
-      (entry): entry is RunQueueEntry => entry.kind === 'run' && entry.runId === control.runId,
+      (entry): entry is RunQueueEntry =>
+        entry.kind === 'run' && entry.ownedRun.id === control.runId,
     );
     return queued == null ? false : removeQueued(runtime, queued, error);
   }
@@ -620,6 +828,7 @@ export function createHostedRuntimeRegistry(
   function scheduleIdleEviction(runtime: RuntimeState): void {
     if (
       shuttingDown
+      || runtime.lifecycle !== 'active'
       || runtime.strongLeases !== 0
       || runtime.active != null
       || runtime.queue.length !== 0
@@ -631,22 +840,103 @@ export function createHostedRuntimeRegistry(
       if (
         runtimes.get(runtime.binding.userKey) === runtime
         && runtime.generation === generation
+        && runtime.lifecycle === 'active'
         && runtime.strongLeases === 0
         && runtime.active == null
         && runtime.queue.length === 0
       ) {
-        evict(runtime);
+        try {
+          retire(runtime);
+        } catch {
+          // A failed user's cleanup stays published as poisoned. Timer failures
+          // never escape into the daemon event loop or affect another runtime.
+        }
       }
     }, idleEvictionMs));
   }
 
-  function evict(runtime: RuntimeState): void {
-    if (runtimes.get(runtime.binding.userKey) !== runtime) return;
+  function retire(runtime: RuntimeState): void {
+    if (
+      runtimes.get(runtime.binding.userKey) !== runtime
+      || runtime.lifecycle === 'closed'
+      || runtime.lifecycle === 'cleaning'
+    ) return;
     clearIdleTimer(runtime);
+    const generation = runtime.generation;
+    runtime.lifecycle = 'cleaning';
     runtime.sessions.clear();
     runtime.sessionReferenceBytes = 0;
     runtime.credential = null;
-    runtimes.delete(runtime.binding.userKey);
+    const errors: unknown[] = [];
+    try {
+      runtime.runService.dispose();
+    } catch (error) {
+      errors.push(error);
+    }
+    try {
+      runtime.storage.close();
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length > 0) {
+      runtime.lifecycle = 'poisoned';
+      throw errors.length === 1
+        ? errors[0]
+        : new AggregateError(errors, 'hosted runtime cleanup failed');
+    }
+    runtime.lifecycle = 'closed';
+    const published = runtimes.get(runtime.binding.userKey);
+    if (published === runtime && published.generation === generation) {
+      runtimes.delete(runtime.binding.userKey);
+    }
+  }
+
+  function retirePoisoned(runtime: RuntimeState): void {
+    if (
+      runtime.lifecycle !== 'poisoned'
+      || runtime.strongLeases !== 0
+      || runtime.active != null
+      || runtime.queue.length !== 0
+    ) return;
+    try {
+      retire(runtime);
+    } catch {
+      // The failed generation remains poisoned and resident for a later retry.
+    }
+  }
+
+  function poison(control: HostedRuntimeGenerationControl): boolean {
+    const runtime = runtimes.get(control.userKey);
+    if (
+      runtime == null
+      || runtime.generation !== control.generation
+      || runtime.lifecycle !== 'active'
+    ) return false;
+    const error = new HostedRuntimeError(
+      'HOSTED_RUNTIME_UNAVAILABLE',
+      'hosted runtime generation was poisoned',
+    );
+    return poisonRuntime(runtime, error);
+  }
+
+  function poisonRuntime(
+    runtime: RuntimeState,
+    error: HostedRuntimeError,
+  ): boolean {
+    if (
+      runtimes.get(runtime.binding.userKey) !== runtime
+      || runtime.lifecycle !== 'active'
+    ) return false;
+    runtime.lifecycle = 'poisoned';
+    clearIdleTimer(runtime);
+    runtime.credential = null;
+    for (const entry of [...runtime.queue]) removeQueued(runtime, entry, error);
+    if (runtime.active != null) {
+      runtime.active.terminalError ??= error;
+      runtime.active.abort.abort(runtime.active.terminalError);
+    }
+    retirePoisoned(runtime);
+    return true;
   }
 
   function clearIdleTimer(runtime: RuntimeState): void {
@@ -663,7 +953,13 @@ export function createHostedRuntimeRegistry(
         || runtime.queue.length !== 0
       ) return;
     }
-    for (const runtime of [...runtimes.values()]) evict(runtime);
+    for (const runtime of [...runtimes.values()]) {
+      try {
+        retire(runtime);
+      } catch {
+        return;
+      }
+    }
     resolveShutdown();
   }
 
@@ -699,22 +995,87 @@ export function createHostedRuntimeRegistry(
 
   function conversationIsReserved(runtime: RuntimeState, conversationId: string): boolean {
     return runtime.sessions.has(conversationId)
-      || runtime.active?.entry.conversationId === conversationId
+      || runtime.active?.entry.ownedRun.conversationId === conversationId
       || runtime.queue.some(
-        (entry) => entry.kind === 'run' && entry.conversationId === conversationId,
+        (entry) => entry.kind === 'run' && entry.ownedRun.conversationId === conversationId,
       );
   }
 
   function reservedConversationCount(runtime: RuntimeState): number {
     const conversations = new Set(runtime.sessions.keys());
-    if (runtime.active != null) conversations.add(runtime.active.entry.conversationId);
+    if (runtime.active != null) conversations.add(runtime.active.entry.ownedRun.conversationId);
     for (const entry of runtime.queue) {
-      if (entry.kind === 'run') conversations.add(entry.conversationId);
+      if (entry.kind === 'run') conversations.add(entry.ownedRun.conversationId);
     }
     return conversations.size;
   }
 
-  return { acquire, cancel, credentialStatus, dispatch, replaceCredential, shutdown };
+  function dispatchInternalOperation(
+    lease: HostedRuntimeLease,
+    operation: HostedRuntimeInternalOperation,
+  ): Promise<unknown> {
+    try {
+      const state = stateForLease(lease, 'strong');
+      switch (operation.kind) {
+        case 'project:insert': {
+          validateInternalId(operation.project.id, 'project');
+          return dispatch(lease, {
+            conversationId: operation.conversationId,
+            runId: operation.runId,
+            execute: async () => {
+              const project = insertProject(
+                state.runtime.storage.database,
+                operation.project,
+              );
+              return {
+                value: project == null ? null : { id: project.id, name: project.name },
+              };
+            },
+          });
+        }
+        case 'project:get': {
+          validateInternalId(operation.projectId, 'project');
+          const project = getProject(state.runtime.storage.database, operation.projectId);
+          return Promise.resolve(
+            project == null ? null : { id: project.id, name: project.name },
+          );
+        }
+        case 'checkpoint:count': {
+          validateInternalId(operation.projectId, 'project');
+          const checkpoints = state.runtime.checkpointService.listCheckpoints(
+            operation.projectId,
+            operation.conversationId,
+          );
+          return Promise.resolve(checkpoints.length);
+        }
+        case 'run:get': {
+          validateInternalId(operation.runId, 'run');
+          const run = state.runtime.runService.get(operation.runId);
+          if (run == null) return Promise.resolve(null);
+          const status = state.runtime.runService.statusBody(run);
+          return Promise.resolve({
+            conversationId: status.conversationId,
+            runId: status.id,
+            status: status.status,
+          });
+        }
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  const registry: HostedRuntimeRegistry = {
+    acquire,
+    cancel,
+    credentialStatus,
+    dispatch,
+    replaceCredential,
+    shutdown,
+  };
+  internalOperationsByRegistry.set(registry, dispatchInternalOperation);
+  poisonByRegistry.set(registry, poison);
+  return registry;
 }
 
 export function validateHostedProviderCredential(

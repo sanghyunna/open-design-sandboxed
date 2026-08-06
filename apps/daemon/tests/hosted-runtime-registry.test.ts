@@ -1,13 +1,27 @@
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApiError } from '@open-design/contracts';
 import {
   createHostedRuntimeRegistry,
+  deriveHostedStorageKey,
+  dispatchHostedRuntimeInternalOperation,
   HostedRuntimeError,
+  poisonHostedRuntimeGeneration,
   type HostedRuntimeRegistryOptions,
 } from '../src/hosted-runtime-registry.js';
+import { createHostedRuntimeStorage } from '../src/hosted-runtime-storage.js';
 import { statusForError } from '../src/http/response.js';
+import { createChatRunService } from '../src/runs.js';
 
 function deferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -49,6 +63,374 @@ afterEach(() => {
 });
 
 describe('HostedRuntimeRegistry', () => {
+  it('owns isolated runtime generations and evicts only a released user', async () => {
+    vi.useFakeTimers();
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-storage-'));
+    const registry = createRegistry({ idleEvictionMs: 25, runtimeRoot });
+    try {
+      const a = registry.acquire({ userKey: 'a' });
+      const b = registry.acquire({ userKey: 'b' });
+      const aGeneration = generationRoot(runtimeRoot, a.storageKey);
+      const bGeneration = generationRoot(runtimeRoot, b.storageKey);
+
+      for (const root of [aGeneration, bGeneration]) {
+        expect(existsSync(join(root, 'app.sqlite'))).toBe(true);
+        for (const directory of [
+          'projects',
+          'artifacts',
+          'uploads',
+          'checkpoints',
+          'sessions',
+          'runs',
+          'broker',
+        ]) expect(existsSync(join(root, directory))).toBe(true);
+      }
+      const credentialSentinel = 'hosted-registry-provider-secret';
+      await registry.replaceCredential(a, {
+        provider: 'anthropic',
+        key: credentialSentinel,
+      });
+      for (const file of filesBelow(aGeneration)) {
+        expect(readFileSync(file).includes(Buffer.from(credentialSentinel))).toBe(false);
+      }
+
+      b.release();
+      await vi.advanceTimersByTimeAsync(25);
+      expect(existsSync(bGeneration)).toBe(false);
+      expect(existsSync(aGeneration)).toBe(true);
+
+      a.release();
+      await vi.advanceTimersByTimeAsync(25);
+      expect(existsSync(aGeneration)).toBe(false);
+      await registry.shutdown();
+    } finally {
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('dispatches database, checkpoint, and run state through each owned runtime', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-db-'));
+    const registry = createRegistry({ runtimeRoot });
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    try {
+      const now = Date.now();
+      await Promise.all([
+        dispatchHostedRuntimeInternalOperation(registry, a, {
+          kind: 'project:insert',
+          conversationId: 'conversation-a',
+          project: { id: 'same-project', name: 'A', createdAt: now, updatedAt: now },
+          runId: 'write-a',
+        }),
+        dispatchHostedRuntimeInternalOperation(registry, b, {
+          kind: 'project:insert',
+          conversationId: 'conversation-b',
+          project: { id: 'same-project', name: 'B', createdAt: now, updatedAt: now },
+          runId: 'write-b',
+        }),
+      ]);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:get',
+        projectId: 'same-project',
+      })).resolves.toEqual({ id: 'same-project', name: 'A' });
+      await expect(dispatchHostedRuntimeInternalOperation(registry, b, {
+        kind: 'project:get',
+        projectId: 'same-project',
+      })).resolves.toEqual({ id: 'same-project', name: 'B' });
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'checkpoint:count',
+        projectId: 'same-project',
+      })).resolves.toBe(0);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'run:get',
+        runId: 'write-a',
+      })).resolves.toEqual({
+        conversationId: 'conversation-a',
+        runId: 'write-a',
+        status: 'succeeded',
+      });
+      await expect(dispatchHostedRuntimeInternalOperation(registry, b, {
+        kind: 'run:get',
+        runId: 'write-a',
+      })).resolves.toBeNull();
+    } finally {
+      a.release();
+      b.release();
+      await registry.shutdown();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps an accepted owned operation alive after its caller lease releases', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-accepted-'));
+    const registry = createRegistry({ runtimeRoot });
+    const lease = registry.acquire({ userKey: 'a' });
+    const now = Date.now();
+    const accepted = dispatchHostedRuntimeInternalOperation(registry, lease, {
+      kind: 'project:insert',
+      conversationId: 'conversation-a',
+      project: { id: 'accepted', name: 'A', createdAt: now, updatedAt: now },
+      runId: 'accepted-run',
+    });
+    lease.release();
+    try {
+      await expect(accepted).resolves.toEqual({ id: 'accepted', name: 'A' });
+      const reader = registry.acquire({ userKey: 'a' });
+      await expect(dispatchHostedRuntimeInternalOperation(registry, reader, {
+        kind: 'project:get',
+        projectId: 'accepted',
+      })).resolves.toEqual({ id: 'accepted', name: 'A' });
+      reader.release();
+      await registry.shutdown();
+    } finally {
+      lease.release();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('does not publish a resident generation when storage initialization fails', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-failed-'));
+    const storageKey = deriveHostedStorageKey('b');
+    const storageRoot = join(runtimeRoot, 'live', storageKey);
+    mkdirSync(storageRoot, { recursive: true });
+    writeFileSync(join(storageRoot, '.identity.json'), `${JSON.stringify({
+      derivationVersion: 1,
+      storageKey,
+      userKey: 'wrong-user',
+    })}\n`);
+    const registry = createRegistry({ runtimeRoot });
+    const a = registry.acquire({ userKey: 'a' });
+    try {
+      const now = Date.now();
+      await dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'still-live', name: 'A', createdAt: now, updatedAt: now },
+        runId: 'write-a',
+      });
+      expectHostedThrow(
+        () => registry.acquire({ userKey: 'b' }),
+        'HOSTED_RUNTIME_UNAVAILABLE',
+      );
+      expect(readdirSync(storageRoot)).toEqual(['.identity.json']);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:get',
+        projectId: 'still-live',
+      })).resolves.toEqual({ id: 'still-live', name: 'A' });
+
+      writeFileSync(join(storageRoot, '.identity.json'), `${JSON.stringify({
+        derivationVersion: 1,
+        storageKey,
+        userKey: 'b',
+      })}\n`);
+      const recovered = registry.acquire({ userKey: 'b' });
+      expect(recovered.generation).toBe(1);
+      recovered.release();
+      a.release();
+      await registry.shutdown();
+    } finally {
+      a.release();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('contains an idle cleanup failure and only replaces the failed generation after cleanup', async () => {
+    vi.useFakeTimers();
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-close-failure-'));
+    let failFirstBClose = true;
+    const registry = createRegistry({
+      idleEvictionMs: 25,
+      runtimeRoot,
+      createStorage(options) {
+        const storage = createHostedRuntimeStorage(options);
+        if (options.identity.userKey !== 'b') return storage;
+        return {
+          ...storage,
+          close() {
+            if (failFirstBClose) {
+              failFirstBClose = false;
+              throw new Error('simulated B close failure');
+            }
+            storage.close();
+          },
+        };
+      },
+    });
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    const aGeneration = generationRoot(runtimeRoot, a.storageKey);
+    const bGeneration = generationRoot(runtimeRoot, b.storageKey);
+    const firstBGeneration = b.generation;
+    try {
+      const now = Date.now();
+      await dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:insert',
+        conversationId: 'conversation-a',
+        project: { id: 'sentinel', name: 'A', createdAt: now, updatedAt: now },
+        runId: 'write-a',
+      });
+      b.release();
+      await vi.advanceTimersByTimeAsync(25);
+
+      expect(existsSync(aGeneration)).toBe(true);
+      expect(existsSync(bGeneration)).toBe(true);
+      await expect(dispatchHostedRuntimeInternalOperation(registry, a, {
+        kind: 'project:get',
+        projectId: 'sentinel',
+      })).resolves.toEqual({ id: 'sentinel', name: 'A' });
+      const bRecreated = registry.acquire({ userKey: 'b' });
+      expect(bRecreated.generation).toBeGreaterThan(firstBGeneration);
+      expect(existsSync(bGeneration)).toBe(false);
+      expect(generationRoot(runtimeRoot, b.storageKey)).not.toBe(bGeneration);
+      expect(existsSync(aGeneration)).toBe(true);
+      bRecreated.release();
+      a.release();
+      await registry.shutdown();
+    } finally {
+      a.release();
+      b.release();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('poisons only the addressed generation, drains it, and recreates it fresh', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-poison-'));
+    const registry = createRegistry({ runtimeRoot });
+    const a = registry.acquire({ userKey: 'a' });
+    const b = registry.acquire({ userKey: 'b' });
+    const aGeneration = generationRoot(runtimeRoot, a.storageKey);
+    const bGeneration = generationRoot(runtimeRoot, b.storageKey);
+    const bStarted = deferred();
+    const activeB = registry.dispatch(b, {
+      conversationId: 'conversation-b',
+      runId: 'active-b',
+      execute: ({ signal }) => new Promise<{ value: string }>((resolve) => {
+        bStarted.resolve();
+        signal.addEventListener('abort', () => resolve({ value: 'ignored' }), { once: true });
+      }),
+    });
+    await bStarted.promise;
+    const queuedB = registry.dispatch(b, {
+      conversationId: 'conversation-b',
+      runId: 'queued-b',
+      execute: async () => ({ value: 'never' }),
+    });
+    try {
+      expect(poisonHostedRuntimeGeneration(registry, {
+        generation: b.generation,
+        userKey: b.userKey,
+      })).toBe(true);
+      await expect(activeB).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      await expect(queuedB).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      await expect(registry.dispatch(b, {
+        conversationId: 'conversation-b',
+        runId: 'after-poison',
+        execute: async () => ({ value: 'never' }),
+      })).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      await expect(registry.dispatch(a, {
+        conversationId: 'conversation-a',
+        runId: 'a-still-live',
+        execute: async () => ({ value: 'A' }),
+      })).resolves.toBe('A');
+      expect(poisonHostedRuntimeGeneration(registry, {
+        generation: b.generation + 1,
+        userKey: b.userKey,
+      })).toBe(false);
+
+      const poisonedGeneration = b.generation;
+      b.release();
+      const recreatedB = registry.acquire({ userKey: 'b' });
+      expect(recreatedB.generation).toBeGreaterThan(poisonedGeneration);
+      expect(existsSync(aGeneration)).toBe(true);
+      expect(existsSync(bGeneration)).toBe(false);
+      recreatedB.release();
+      a.release();
+      await registry.shutdown();
+    } finally {
+      a.release();
+      b.release();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('never acknowledges success when owned run finalization fails', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-run-failure-'));
+    let failTerminalization = true;
+    const registry = createRegistry({
+      runtimeRoot,
+      createRunService(options) {
+        const service = createChatRunService(options);
+        return {
+          ...service,
+          finish(...args: Parameters<typeof service.finish>) {
+            if (failTerminalization) {
+              failTerminalization = false;
+              throw new Error('simulated run finalization failure');
+            }
+            return service.finish(...args);
+          },
+        };
+      },
+    });
+    const lease = registry.acquire({ userKey: 'a' });
+    const poisonedGeneration = lease.generation;
+    try {
+      await expect(registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'run-a',
+        execute: async () => ({ value: 'must-not-acknowledge' }),
+      })).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+      await expect(registry.dispatch(lease, {
+        conversationId: 'conversation-a',
+        runId: 'blocked',
+        execute: async () => ({ value: 'never' }),
+      })).rejects.toSatisfy(
+        (error: unknown) => expectHostedCode(error, 'HOSTED_RUNTIME_UNAVAILABLE'),
+      );
+
+      lease.release();
+      const recreated = registry.acquire({ userKey: 'a' });
+      expect(recreated.generation).toBeGreaterThan(poisonedGeneration);
+      await expect(registry.dispatch(recreated, {
+        conversationId: 'conversation-a',
+        runId: 'recovered',
+        execute: async () => ({ value: 'recovered' }),
+      })).resolves.toBe('recovered');
+      recreated.release();
+      await registry.shutdown();
+    } finally {
+      lease.release();
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps storage live during shutdown until the last strong lease releases', async () => {
+    const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-shutdown-'));
+    const registry = createRegistry({ runtimeRoot });
+    const lease = registry.acquire({ userKey: 'a' });
+    const generation = generationRoot(runtimeRoot, lease.storageKey);
+    try {
+      let finished = false;
+      const shutdown = registry.shutdown().then(() => { finished = true; });
+      await Promise.resolve();
+      expect(finished).toBe(false);
+      expect(existsSync(generation)).toBe(true);
+      lease.release();
+      await shutdown;
+      expect(existsSync(generation)).toBe(false);
+    } finally {
+      rmSync(runtimeRoot, { recursive: true, force: true });
+    }
+  });
+
   it('serializes one user FIFO while different users overlap', async () => {
     const registry = createRegistry();
     const a = registry.acquire({ userKey: 'a' });
@@ -489,3 +871,17 @@ describe('HostedRuntimeRegistry', () => {
     );
   });
 });
+
+function generationRoot(runtimeRoot: string, storageKey: string): string {
+  const storageRoot = join(runtimeRoot, 'live', storageKey);
+  const generations = readdirSync(storageRoot).filter((name) => name.startsWith('generation-'));
+  expect(generations).toHaveLength(1);
+  return join(storageRoot, generations[0]!);
+}
+
+function filesBelow(root: string): string[] {
+  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const file = join(root, entry.name);
+    return entry.isDirectory() ? filesBelow(file) : [file];
+  });
+}
