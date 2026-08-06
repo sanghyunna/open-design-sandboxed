@@ -166,10 +166,14 @@ describe('hosted runtime content ownership', () => {
     }
   });
 
-  it('keeps saved artifacts generation-local across lint and download lifecycle', async () => {
-    vi.useFakeTimers();
+  it('restores saved artifacts across the lint, download, and eviction lifecycle', async () => {
     const runtimeRoot = runtimeFixture();
-    const registry = createHostedRuntimeRegistry({ idleEvictionMs: 25, runtimeRoot });
+    const retired = deferred();
+    const registry = createHostedRuntimeRegistry({
+      idleEvictionMs: 25,
+      runtimeRoot,
+      onGenerationRetired: () => retired.resolve(),
+    });
     const lease = registry.acquire({ userKey: 'user-a' });
     let download: HostedArtifactDownload | null = null;
     try {
@@ -193,15 +197,21 @@ describe('hosted runtime content ownership', () => {
 
       const generation = lease.generation;
       lease.release();
-      await vi.advanceTimersByTimeAsync(25);
+      await retired.promise;
 
       const recreated = registry.acquire({ userKey: 'user-a' });
-      expect(recreated.generation).toBeGreaterThan(generation);
-      await expect(dispatch(registry, recreated, {
-        kind: 'artifact:download',
-        artifactId: saved.artifactId,
-      })).rejects.toMatchObject({ code: 'NOT_FOUND' });
-      recreated.release();
+      try {
+        expect(recreated.generation).toBeGreaterThan(generation);
+        download = await dispatch(registry, recreated, {
+          kind: 'artifact:download',
+          artifactId: saved.artifactId,
+        }) as HostedArtifactDownload;
+        await expect(streamText(download.stream))
+          .resolves.toBe('<!doctype html><h1>Private artifact</h1>');
+        download = null;
+      } finally {
+        recreated.release();
+      }
     } finally {
       download?.stream.destroy();
       lease.release();
