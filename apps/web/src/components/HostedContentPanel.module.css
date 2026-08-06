@@ -184,7 +184,7 @@
   min-height: 22rem;
   border: 1px solid var(--border-subtle);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--white);
 }
 
 .error {
