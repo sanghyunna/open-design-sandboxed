@@ -35,8 +35,9 @@ const PAYLOAD_DIRECTORIES = [
 const MAX_SESSION_HEADER_BYTES = 64 * 1024;
 const MAX_SESSION_FILE_BYTES = 64 * 1024 * 1024;
 const MAX_SESSION_PARENT_DEPTH = 32;
-const RESTORE_OWNER_MARKER = '.restore-owner.json';
+const MAX_GLOBAL_QUOTA_WALK_ENTRIES = 1_000_000;
 const publicationLocks = new Map<string, Promise<void>>();
+const activePublicationStaging = new Set<string>();
 const activeRestoreStaging = new Set<string>();
 
 export type HostedSnapshotFailpoint =
@@ -51,6 +52,7 @@ export type HostedSnapshotFailpoint =
   | 'after-retention-prune';
 
 export type HostedSnapshotErrorCode =
+  | 'HOSTED_CAPACITY_EXHAUSTED'
   | 'HOSTED_QUOTA_EXCEEDED'
   | 'HOSTED_RUNTIME_UNAVAILABLE';
 
@@ -195,7 +197,15 @@ export function createHostedSnapshotStore(
 
   async function restore(): Promise<HostedSnapshotRestore | null> {
     await publicationLocks.get(publicationLockKey);
-    const sequences = listVersionSequences(versionsRoot);
+    let sequences = listVersionSequences(versionsRoot);
+    if (sequences.length > 2) {
+      await withPublicationLock(globalPublicationLockKey, async () => {
+        await pruneRetainedVersions(runtimeRoot, options.identity, limits);
+        sequences = listVersionSequences(versionsRoot);
+        const newest = sequences.at(-1);
+        if (newest != null) writeLatestHint(snapshotRoot, newest);
+      });
+    }
     for (const sequence of sequences.reverse()) {
       const versionRoot = path.join(versionsRoot, sequence);
       let snapshot: ValidSnapshot;
@@ -234,20 +244,25 @@ export function createHostedSnapshotStore(
         await removeRestoreStaging(stagedPayload, runtimeRoot);
         return { sequence, storage };
       } catch (error) {
-        storage?.close();
+        const failures: unknown[] = [error];
+        if (storage != null) {
+          try {
+            storage.close();
+          } catch (closeError) {
+            failures.push(closeError);
+          }
+        }
         try {
           await removeRestoreStaging(stagedPayload, runtimeRoot);
         } catch (cleanupError) {
-          throw new HostedSnapshotError(
-            'HOSTED_RUNTIME_UNAVAILABLE',
-            'hosted snapshot restoration cleanup failed',
-            new AggregateError([error, cleanupError]),
-          );
+          failures.push(cleanupError);
         }
         throw new HostedSnapshotError(
           'HOSTED_RUNTIME_UNAVAILABLE',
-          error instanceof Error ? error.message : 'hosted snapshot restoration failed',
-          error,
+          failures.length === 1 && error instanceof Error
+            ? error.message
+            : 'hosted snapshot restoration cleanup failed',
+          failures.length === 1 ? error : new AggregateError(failures),
         );
       }
     }
@@ -275,6 +290,10 @@ function snapshotQuota(message: string): never {
   throw new HostedSnapshotError('HOSTED_QUOTA_EXCEEDED', message);
 }
 
+function snapshotCapacity(message: string): never {
+  throw new HostedSnapshotError('HOSTED_CAPACITY_EXHAUSTED', message);
+}
+
 async function publishSnapshot(options: {
   readonly runtimeRoot: string;
   readonly snapshotRoot: string;
@@ -297,6 +316,7 @@ async function publishSnapshot(options: {
   const stagingRoot = fs.mkdtempSync(
     path.join(options.snapshotRoot, `.staging-${sequence}-`),
   );
+  activePublicationStaging.add(stagingRoot);
   const payloadRoot = path.join(stagingRoot, 'payload');
   fs.mkdirSync(payloadRoot);
   const captureBudget = createCaptureBudget(options.limits);
@@ -425,15 +445,27 @@ async function publishSnapshot(options: {
         sequence,
         versionRoot,
       };
+      let maintenanceError: unknown;
       try {
         await fire(options.failpoint, 'after-version-rename');
         writeLatestHint(options.snapshotRoot, sequence);
         await fire(options.failpoint, 'after-latest-write');
         await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
         await fire(options.failpoint, 'after-retention-prune');
-      } catch {
-        // Rename is the authority commit point. Hints and pruning are repairable
-        // maintenance and can never turn a committed publication into failure.
+      } catch (error) {
+        maintenanceError = error;
+      }
+      if (maintenanceError != null) {
+        try {
+          writeLatestHint(options.snapshotRoot, sequence);
+          await pruneRetainedVersions(options.runtimeRoot, options.identity, options.limits);
+        } catch (repairError) {
+          throw new HostedSnapshotError(
+            'HOSTED_RUNTIME_UNAVAILABLE',
+            'hosted snapshot committed but maintenance repair failed',
+            new AggregateError([maintenanceError, repairError]),
+          );
+        }
       }
       return publication;
     });
@@ -442,6 +474,8 @@ async function publishSnapshot(options: {
       await removeExactDirectory(stagingRoot, options.snapshotRoot);
     }
     throw error;
+  } finally {
+    activePublicationStaging.delete(stagingRoot);
   }
 }
 
@@ -495,20 +529,7 @@ function scavengeRestoreStaging(
       throw new Error('hosted snapshot restore staging path is invalid');
     }
     const ownedMatch = /^\.restore-(od1_[0-9a-f]{64})-/u.exec(entry.name);
-    if (ownedMatch != null) {
-      if (ownedMatch[1] !== identity.storageKey) continue;
-      let marker: Record<string, unknown>;
-      try {
-        marker = readStrictJson(path.join(candidate, RESTORE_OWNER_MARKER), 4 * 1024);
-        assertExactKeys(marker, ['storageKey', 'userKey']);
-      } catch {
-        continue;
-      }
-      if (
-        marker.storageKey !== identity.storageKey
-        || marker.userKey !== identity.userKey
-      ) continue;
-    }
+    if (ownedMatch != null && ownedMatch[1] !== identity.storageKey) continue;
     const exact = assertDirectory(candidate, runtimeRoot);
     fs.rmSync(exact, { force: true, recursive: true });
   }
@@ -921,7 +942,8 @@ async function normalizeSessionLineage(
   if (active.has(logicalPath)) throw new Error('hosted snapshot session chain contains a cycle');
   active.add(logicalPath);
   const file = containedFile(payloadRoot, logicalPath);
-  const { header, lines, trailingNewline } = await readSessionFileAsync(file);
+  const session = await readSessionFileAsync(file);
+  const { header } = session;
   header.cwd = logicalLivePath(header.cwd, liveRoot);
   if (header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd does not match its owning project');
@@ -945,78 +967,230 @@ async function normalizeSessionLineage(
       depth + 1,
     );
   }
-  lines[0] = JSON.stringify(header);
-  await writeDurableAsync(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
+  await rewriteSessionHeaderAsync(file, session, header);
   active.delete(logicalPath);
   normalized.set(logicalPath, expectedCwd);
 }
 
-function readSessionFile(file: string): {
-  header: Record<string, unknown> & { cwd: string; parentSession?: string };
-  lines: string[];
-  trailingNewline: boolean;
-} {
+interface SessionHeaderRead {
+  readonly bodyOffset: number;
+  readonly header: Record<string, unknown> & { cwd: string; parentSession?: string };
+  readonly headerTerminated: boolean;
+  readonly size: number;
+}
+
+function readSessionFile(file: string): SessionHeaderRead {
   const info = fs.lstatSync(file);
   if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > MAX_SESSION_FILE_BYTES) {
     throw new Error('hosted snapshot session file is invalid');
   }
-  const text = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(file));
-  return parseSessionText(text);
+  const descriptor = fs.openSync(file, 'r');
+  try {
+    const prefix = Buffer.alloc(Math.min(info.size, MAX_SESSION_HEADER_BYTES + 1));
+    const bytesRead = fs.readSync(descriptor, prefix, 0, prefix.length, 0);
+    return parseSessionHeader(prefix.subarray(0, bytesRead), info.size);
+  } finally {
+    fs.closeSync(descriptor);
+  }
 }
 
-async function readSessionFileAsync(file: string): Promise<{
-  header: Record<string, unknown> & { cwd: string; parentSession?: string };
-  lines: string[];
-  trailingNewline: boolean;
-}> {
+async function readSessionFileAsync(file: string): Promise<SessionHeaderRead> {
   const info = await fsp.lstat(file);
   if (!info.isFile() || info.isSymbolicLink() || info.size < 1 || info.size > MAX_SESSION_FILE_BYTES) {
     throw new Error('hosted snapshot session file is invalid');
   }
-  let text: string;
+  const handle = await fsp.open(file, 'r');
   try {
-    text = new TextDecoder('utf-8', { fatal: true }).decode(await fsp.readFile(file));
-  } catch {
+    const prefix = Buffer.alloc(Math.min(info.size, MAX_SESSION_HEADER_BYTES + 1));
+    const { bytesRead } = await handle.read(prefix, 0, prefix.length, 0);
+    const session = parseSessionHeader(prefix.subarray(0, bytesRead), info.size);
+    await validateSessionBody(handle, session.bodyOffset, session.size);
+    return session;
+  } catch (error) {
+    if (isTransientSnapshotValidationError(error)) throw error;
     throw new Error('hosted snapshot session JSONL is invalid');
+  } finally {
+    await handle.close();
   }
-  return parseSessionText(text);
 }
 
-function parseSessionText(text: string): {
-  header: Record<string, unknown> & { cwd: string; parentSession?: string };
-  lines: string[];
-  trailingNewline: boolean;
-} {
-  const trailingNewline = text.endsWith('\n');
-  const lines = (trailingNewline ? text.slice(0, -1) : text).split('\n');
-  if (lines.length === 0 || lines.some((line) => line.length === 0)) {
-    throw new Error('hosted snapshot session JSONL is invalid');
-  }
-  if (Buffer.byteLength(lines[0]!, 'utf8') > MAX_SESSION_HEADER_BYTES) {
+function parseSessionHeader(prefix: Buffer, size: number): SessionHeaderRead {
+  const newline = prefix.indexOf(0x0A);
+  const headerTerminated = newline >= 0;
+  const headerBytes = headerTerminated ? prefix.subarray(0, newline) : prefix;
+  if ((!headerTerminated && size > prefix.length) || headerBytes.length > MAX_SESSION_HEADER_BYTES) {
     throw new Error('hosted snapshot session header is too large');
   }
-  let records: unknown[];
+  let header: unknown;
   try {
-    records = lines.map((line) => JSON.parse(line.replace(/\r$/u, '')) as unknown);
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(headerBytes).replace(/\r$/u, '');
+    header = JSON.parse(text) as unknown;
   } catch {
     throw new Error('hosted snapshot session JSONL is invalid');
   }
-  if (records.some((record) => record == null || typeof record !== 'object' || Array.isArray(record))) {
-    throw new Error('hosted snapshot session JSONL is invalid');
-  }
-  const header = records[0] as Record<string, unknown>;
+  const record = header as Record<string, unknown>;
   if (
-    header.type !== 'session'
-    || typeof header.cwd !== 'string'
-    || (header.parentSession !== undefined && typeof header.parentSession !== 'string')
+    header == null
+    || typeof header !== 'object'
+    || Array.isArray(header)
+    || record.type !== 'session'
+    || typeof record.cwd !== 'string'
+    || (record.parentSession !== undefined && typeof record.parentSession !== 'string')
   ) {
     throw new Error('hosted snapshot session header is invalid');
   }
   return {
-    header: header as Record<string, unknown> & { cwd: string; parentSession?: string },
-    lines,
-    trailingNewline,
+    bodyOffset: headerTerminated ? newline + 1 : size,
+    header: record as SessionHeaderRead['header'],
+    headerTerminated,
+    size,
   };
+}
+
+async function validateSessionBody(
+  handle: Awaited<ReturnType<typeof fsp.open>>,
+  bodyOffset: number,
+  size: number,
+): Promise<void> {
+  if (bodyOffset >= size) return;
+  const buffer = Buffer.alloc(64 * 1024);
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let pending = '';
+  let position = bodyOffset;
+  while (position < size) {
+    const { bytesRead } = await handle.read(
+      buffer,
+      0,
+      Math.min(buffer.length, size - position),
+      position,
+    );
+    if (bytesRead < 1) throw new Error('hosted snapshot session body ended early');
+    position += bytesRead;
+    pending += decoder.decode(buffer.subarray(0, bytesRead), { stream: position < size });
+    let newline = pending.indexOf('\n');
+    while (newline >= 0) {
+      validateSessionRecord(pending.slice(0, newline));
+      pending = pending.slice(newline + 1);
+      newline = pending.indexOf('\n');
+    }
+  }
+  if (pending.length > 0) validateSessionRecord(pending);
+}
+
+function validateSessionRecord(line: string): void {
+  if (!line) throw new Error('hosted snapshot session JSONL is invalid');
+  let record: unknown;
+  try {
+    record = JSON.parse(line.replace(/\r$/u, '')) as unknown;
+  } catch {
+    throw new Error('hosted snapshot session JSONL is invalid');
+  }
+  if (record == null || typeof record !== 'object' || Array.isArray(record)) {
+    throw new Error('hosted snapshot session JSONL is invalid');
+  }
+}
+
+async function rewriteSessionHeaderAsync(
+  file: string,
+  session: SessionHeaderRead,
+  header: SessionHeaderRead['header'],
+): Promise<void> {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    const source = await fsp.open(file, 'r');
+    try {
+      const target = await fsp.open(temporary, 'wx', 0o600);
+      try {
+        await target.writeFile(
+          `${JSON.stringify(header)}${session.headerTerminated ? '\n' : ''}`,
+          'utf8',
+        );
+        const buffer = Buffer.alloc(64 * 1024);
+        let position = session.bodyOffset;
+        while (position < session.size) {
+          const { bytesRead } = await source.read(
+            buffer,
+            0,
+            Math.min(buffer.length, session.size - position),
+            position,
+          );
+          if (bytesRead < 1) throw new Error('hosted snapshot session body ended early');
+          await writeAllAsync(target, buffer.subarray(0, bytesRead));
+          position += bytesRead;
+        }
+        await target.sync();
+      } finally {
+        await target.close();
+      }
+    } finally {
+      await source.close();
+    }
+    await fsp.rename(temporary, file);
+  } catch (error) {
+    await fsp.rm(temporary, { force: true });
+    throw error;
+  }
+}
+
+async function writeAllAsync(
+  handle: Awaited<ReturnType<typeof fsp.open>>,
+  buffer: Buffer,
+): Promise<void> {
+  let offset = 0;
+  while (offset < buffer.length) {
+    const { bytesWritten } = await handle.write(buffer, offset, buffer.length - offset);
+    if (bytesWritten < 1) throw new Error('hosted snapshot session write ended early');
+    offset += bytesWritten;
+  }
+}
+
+function rewriteSessionHeader(
+  file: string,
+  session: SessionHeaderRead,
+  header: SessionHeaderRead['header'],
+): void {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    const source = fs.openSync(file, 'r');
+    try {
+      const target = fs.openSync(temporary, 'wx', 0o600);
+      try {
+        fs.writeFileSync(
+          target,
+          `${JSON.stringify(header)}${session.headerTerminated ? '\n' : ''}`,
+          'utf8',
+        );
+        const buffer = Buffer.alloc(64 * 1024);
+        let position = session.bodyOffset;
+        while (position < session.size) {
+          const bytesRead = fs.readSync(
+            source,
+            buffer,
+            0,
+            Math.min(buffer.length, session.size - position),
+            position,
+          );
+          if (bytesRead < 1) throw new Error('hosted snapshot session body ended early');
+          let offset = 0;
+          while (offset < bytesRead) {
+            const bytesWritten = fs.writeSync(target, buffer, offset, bytesRead - offset);
+            if (bytesWritten < 1) throw new Error('hosted snapshot session write ended early');
+            offset += bytesWritten;
+          }
+          position += bytesRead;
+        }
+        fs.fsyncSync(target);
+      } finally {
+        fs.closeSync(target);
+      }
+    } finally {
+      fs.closeSync(source);
+    }
+    fs.renameSync(temporary, file);
+  } catch (error) {
+    fs.rmSync(temporary, { force: true });
+    throw error;
+  }
 }
 
 function logicalLivePath(input: string, liveRoot: string): string {
@@ -1106,6 +1280,7 @@ async function validateSnapshot(
   limits: HostedSnapshotLimits,
 ): Promise<ValidSnapshot> {
   const root = assertDirectory(versionRoot);
+  await validateVersionRootShape(root);
   const completionText = readStrictText(path.join(root, '.complete.json'), 16 * 1024);
   const manifestText = readStrictText(path.join(root, 'manifest.json'), 64 * 1024);
   const checksumsText = readStrictText(
@@ -1118,6 +1293,7 @@ async function validateSnapshot(
     checksumsText,
     sequence,
     Math.max(0, limits.filesPerVersion - IMMUTABLE_METADATA_FILE_COUNT),
+    limits.filesPerVersion,
   );
   if (
     completion.manifestSha256 !== sha256(manifestText)
@@ -1128,6 +1304,25 @@ async function validateSnapshot(
   }
   if (manifest.fileCount !== checksums.files.length) {
     throw new Error('hosted snapshot file count does not match');
+  }
+  const metadataBytes = Buffer.byteLength(completionText)
+    + Buffer.byteLength(manifestText)
+    + Buffer.byteLength(checksumsText);
+  if (
+    metadataBytes > limits.bytesPerVersion
+    || manifest.totalBytes > limits.bytesPerVersion - metadataBytes
+  ) {
+    throw new Error('hosted snapshot declared byte count exceeds its fixed limit');
+  }
+  let expectedBytes = 0;
+  for (const expected of checksums.files) {
+    if (expected.size > manifest.totalBytes - expectedBytes) {
+      throw new Error('hosted snapshot expected byte count exceeds its manifest');
+    }
+    expectedBytes += expected.size;
+  }
+  if (expectedBytes !== manifest.totalBytes) {
+    throw new Error('hosted snapshot expected byte count does not match');
   }
   const payloadRoot = assertDirectory(path.join(root, 'payload'), root);
   const inventory = await inventoryTreeExact(payloadRoot, limits);
@@ -1149,15 +1344,25 @@ async function validateSnapshot(
   for (const expected of checksums.files) {
     const file = containedFile(payloadRoot, expected.path);
     const info = fs.lstatSync(file);
+    if (
+      info.size !== expected.size
+      || info.size > manifest.totalBytes - totalBytes
+    ) {
+      throw new Error('hosted snapshot payload checksum does not match');
+    }
     totalBytes += info.size;
-    if (info.size !== expected.size || await hashFile(file) !== expected.sha256) {
+    if (await hashFile(file) !== expected.sha256) {
       throw new Error('hosted snapshot payload checksum does not match');
     }
   }
   if (totalBytes !== manifest.totalBytes) {
     throw new Error('hosted snapshot payload byte count does not match');
   }
-  const bytesOnDisk = await directoryBytesAsync(root, limits.bytesPerVersion);
+  const bytesOnDisk = await directoryBytesAsync(
+    root,
+    limits.bytesPerVersion,
+    versionEntryLimit(limits),
+  );
   const databaseFile = containedFile(payloadRoot, 'app.sqlite');
   await withDatabaseCopy(databaseFile, async (copy) => {
     await validateSnapshotSessions(copy, payloadRoot);
@@ -1175,6 +1380,29 @@ async function validateSnapshot(
     root,
     sequence,
   };
+}
+
+async function validateVersionRootShape(root: string): Promise<void> {
+  const expected = new Set([
+    '.complete.json',
+    'checksums.json',
+    'manifest.json',
+    'payload',
+  ]);
+  const handle = await fsp.opendir(root);
+  let entries = 0;
+  for await (const entry of handle) {
+    entries += 1;
+    if (entries > 4 || !expected.delete(entry.name)) {
+      throw new Error('hosted snapshot version root contains an unexpected entry');
+    }
+    if (entry.name === 'payload' ? !entry.isDirectory() : !entry.isFile()) {
+      throw new Error('hosted snapshot version root entry has an invalid shape');
+    }
+  }
+  if (expected.size !== 0) {
+    throw new Error('hosted snapshot version root is incomplete');
+  }
 }
 
 function parseCompletion(text: string, sequence: string): SnapshotCompletion {
@@ -1225,6 +1453,7 @@ function parseChecksums(
   text: string,
   sequence: string,
   fileLimit: number,
+  directoryLimit: number,
 ): SnapshotChecksums {
   const value = parseJsonText(text);
   assertExactKeys(value, ['directories', 'files', 'schema', 'sequence', 'version']);
@@ -1233,7 +1462,7 @@ function parseChecksums(
     || value.version !== SNAPSHOT_VERSION
     || value.sequence !== sequence
     || !Array.isArray(value.directories)
-    || value.directories.length > fileLimit
+    || value.directories.length > directoryLimit
     || !Array.isArray(value.files)
     || value.files.length > fileLimit
   ) throw new Error('hosted snapshot checksum manifest is invalid');
@@ -1344,11 +1573,6 @@ async function stageSnapshotPayload(
   );
   activeRestoreStaging.add(stagingRoot);
   try {
-    writeDurable(
-      path.join(stagingRoot, RESTORE_OWNER_MARKER),
-      `${JSON.stringify({ storageKey: identity.storageKey, userKey: identity.userKey })}\n`,
-      'wx',
-    );
     await copyTreeExact(payloadRoot, stagingRoot, createCaptureBudget(limits), '');
     return stagingRoot;
   } catch (error) {
@@ -1460,7 +1684,8 @@ function relocateSessionLineage(
   }
   active.add(logicalPath);
   const file = containedFile(generationRoot, logicalPath);
-  const { header, lines, trailingNewline } = readSessionFile(file);
+  const session = readSessionFile(file);
+  const { header } = session;
   if (!isCanonicalRelativePath(header.cwd) || header.cwd !== expectedCwd) {
     throw new Error('hosted snapshot session cwd is invalid');
   }
@@ -1478,8 +1703,7 @@ function relocateSessionLineage(
     );
     header.parentSession = containedFile(generationRoot, parent);
   }
-  lines[0] = JSON.stringify(header);
-  writeDurable(file, `${lines.join('\n')}${trailingNewline ? '\n' : ''}`);
+  rewriteSessionHeader(file, session, header);
   active.delete(logicalPath);
   relocated.set(logicalPath, expectedCwd);
 }
@@ -1560,11 +1784,16 @@ async function preflightRetention(options: {
   const stagingBytes = await directoryBytesAsync(
     assertDirectory(options.stagingRoot, options.snapshotRoot),
     options.limits.bytesPerVersion,
+    versionEntryLimit(options.limits),
   );
-  const retainedVersionBytes = await existingVersionBytes(options.versionsRoot);
+  const retainedVersionBytes = await existingVersionBytes(
+    options.versionsRoot,
+    options.limits,
+  );
   const currentUserBytes = await directoryBytesAsync(
     options.snapshotRoot,
     Number.MAX_SAFE_INTEGER,
+    userSnapshotEntryLimit(options.limits),
   );
   const allVersionBytes = retainedVersionBytes.reduce(
     (sum, version) => sum + version.bytes,
@@ -1588,16 +1817,20 @@ async function preflightRetention(options: {
   }
 
   const snapshotsRoot = assertDirectory(path.join(options.runtimeRoot, 'snapshots'), options.runtimeRoot);
+  await scavengeGlobalPublicationStaging(snapshotsRoot);
   await pruneGlobalReachableVersions(snapshotsRoot, options.limits);
   const currentGlobalBytes = await directoryBytesAsync(
     snapshotsRoot,
     Number.MAX_SAFE_INTEGER,
+    MAX_GLOBAL_QUOTA_WALK_ENTRIES,
+    'capacity',
   );
   const currentUserBytesAfterGlobalPrune = await directoryBytesAsync(
     options.snapshotRoot,
     Number.MAX_SAFE_INTEGER,
+    userSnapshotEntryLimit(options.limits),
   );
-  const transientStagingBytes = await globalStagingBytes(snapshotsRoot);
+  const transientStagingBytes = await globalStagingBytes(snapshotsRoot, options.limits);
   const otherTransientStagingBytes = transientStagingBytes - stagingBytes;
   if (otherTransientStagingBytes < 0) {
     throw new Error('hosted snapshot global staging byte accounting is invalid');
@@ -1607,11 +1840,32 @@ async function preflightRetention(options: {
     - otherTransientStagingBytes
     + projectedUserBytes;
   if (projectedGlobalBytes > options.limits.retainedBytesGlobal) {
-    snapshotQuota('hosted snapshot retained global byte quota exceeded');
+    snapshotCapacity('hosted snapshot retained global byte capacity exhausted');
   }
 }
 
-async function globalStagingBytes(snapshotsRoot: string): Promise<number> {
+async function scavengeGlobalPublicationStaging(snapshotsRoot: string): Promise<void> {
+  for (const userEntry of await fsp.readdir(snapshotsRoot, { withFileTypes: true })) {
+    if (!userEntry.isDirectory() || !/^od1_[0-9a-f]{64}$/u.test(userEntry.name)) continue;
+    const userRoot = assertDirectory(path.join(snapshotsRoot, userEntry.name), snapshotsRoot);
+    for (const entry of await fsp.readdir(userRoot, { withFileTypes: true })) {
+      if (!/^\.staging-\d{20}-/u.test(entry.name)) continue;
+      const stagingRoot = path.join(userRoot, entry.name);
+      if ([...activePublicationStaging].some((active) => samePath(active, stagingRoot))) {
+        continue;
+      }
+      if (!entry.isDirectory() || entry.isSymbolicLink()) {
+        throw new Error('hosted snapshot publication staging path is invalid');
+      }
+      await removeExactDirectory(stagingRoot, userRoot);
+    }
+  }
+}
+
+async function globalStagingBytes(
+  snapshotsRoot: string,
+  limits: HostedSnapshotLimits,
+): Promise<number> {
   let total = 0;
   for (const userEntry of await fsp.readdir(snapshotsRoot, { withFileTypes: true })) {
     if (!userEntry.isDirectory() || !/^od1_[0-9a-f]{64}$/u.test(userEntry.name)) continue;
@@ -1622,7 +1876,11 @@ async function globalStagingBytes(snapshotsRoot: string): Promise<number> {
       if (!entry.isDirectory() || entry.isSymbolicLink()) {
         throw new Error('hosted snapshot global staging path is invalid');
       }
-      total += await directoryBytesAsync(stagingRoot, Number.MAX_SAFE_INTEGER);
+      total += await directoryBytesAsync(
+        stagingRoot,
+        Number.MAX_SAFE_INTEGER,
+        versionEntryLimit(limits),
+      );
     }
   }
   return total;
@@ -1630,6 +1888,7 @@ async function globalStagingBytes(snapshotsRoot: string): Promise<number> {
 
 async function existingVersionBytes(
   versionsRoot: string,
+  limits: HostedSnapshotLimits,
 ): Promise<ReadonlyArray<{ readonly bytes: number; readonly sequence: string }>> {
   const versions: Array<{ bytes: number; sequence: string }> = [];
   for (const sequence of listVersionSequences(versionsRoot).reverse()) {
@@ -1637,6 +1896,7 @@ async function existingVersionBytes(
       bytes: await directoryBytesAsync(
         path.join(versionsRoot, sequence),
         Number.MAX_SAFE_INTEGER,
+        versionEntryLimit(limits),
       ),
       sequence,
     });
@@ -1766,7 +2026,21 @@ function fromPosix(relative: string): string {
 }
 
 function samePath(left: string, right: string): boolean {
-  return path.relative(path.resolve(left), path.resolve(right)) === '';
+  if (process.platform !== 'win32') return path.resolve(left) === path.resolve(right);
+  return comparableWindowsPath(left) === comparableWindowsPath(right);
+}
+
+function comparableWindowsPath(input: string): string {
+  return path.win32.normalize(withoutWindowsNamespace(input)).toLowerCase();
+}
+
+function withoutWindowsNamespace(input: string): string {
+  if (process.platform !== 'win32') return input;
+  return input.startsWith('\\\\?\\UNC\\')
+    ? `\\\\${input.slice(8)}`
+    : input.startsWith('\\\\?\\')
+      ? input.slice(4)
+      : input;
 }
 
 function assertDirectory(input: string, parent?: string): string {
@@ -1789,9 +2063,12 @@ function assertDirectory(input: string, parent?: string): string {
 }
 
 function prepareBaseDirectory(input: string): string {
-  if (!path.isAbsolute(input)) throw new Error('hosted snapshot runtime root must be absolute');
+  const ordinaryInput = withoutWindowsNamespace(input);
+  if (!path.isAbsolute(ordinaryInput)) {
+    throw new Error('hosted snapshot runtime root must be absolute');
+  }
   const missing: string[] = [];
-  let current = path.resolve(input);
+  let current = path.resolve(ordinaryInput);
   while (!fs.existsSync(current)) {
     const parent = path.dirname(current);
     if (parent === current) throw new Error('hosted snapshot runtime root is unavailable');
@@ -1809,26 +2086,54 @@ async function removeExactDirectory(target: string, parent: string): Promise<voi
   await fsp.rm(exact, { recursive: true, force: true });
 }
 
-async function directoryBytesAsync(root: string, maximum: number): Promise<number> {
+function versionEntryLimit(limits: HostedSnapshotLimits): number {
+  return limits.filesPerVersion * 2 + 8;
+}
+
+function userSnapshotEntryLimit(limits: HostedSnapshotLimits): number {
+  return limits.filesPerVersion * 6 + 64;
+}
+
+async function directoryBytesAsync(
+  root: string,
+  maximum: number,
+  maximumEntries: number,
+  exhaustion: 'capacity' | 'quota' = 'quota',
+): Promise<number> {
   if (!fs.existsSync(root)) return 0;
   let total = 0;
-  async function visit(target: string): Promise<void> {
-    const info = await fsp.lstat(target);
-    if (
-      info.isSymbolicLink()
-      || !samePath(await fsp.realpath(target), path.resolve(target))
-    ) {
-      throw new Error('hosted snapshot quota path contains a link or reparse point');
+  let entries = 0;
+  const pending = [assertDirectory(root)];
+  while (pending.length > 0) {
+    const directory = pending.pop()!;
+    const handle = await fsp.opendir(directory);
+    for await (const entry of handle) {
+      entries += 1;
+      if (entries > maximumEntries) {
+        if (exhaustion === 'capacity') {
+          snapshotCapacity('hosted snapshot global entry capacity exhausted');
+        }
+        snapshotQuota('hosted snapshot retained entry quota exceeded');
+      }
+      const target = path.join(directory, entry.name);
+      const info = await fsp.lstat(target);
+      if (
+        info.isSymbolicLink()
+        || !samePath(await fsp.realpath(target), path.resolve(target))
+      ) {
+        throw new Error('hosted snapshot quota path contains a link or reparse point');
+      }
+      if (info.isFile()) {
+        total += info.size;
+        if (total > maximum) snapshotQuota('hosted snapshot retained byte quota exceeded');
+        continue;
+      }
+      if (!info.isDirectory()) {
+        throw new Error('hosted snapshot quota path contains a special file');
+      }
+      pending.push(target);
     }
-    if (info.isFile()) {
-      total += info.size;
-      if (total > maximum) snapshotQuota('hosted snapshot retained byte quota exceeded');
-      return;
-    }
-    if (!info.isDirectory()) throw new Error('hosted snapshot quota path contains a special file');
-    for (const name of await fsp.readdir(target)) await visit(path.join(target, name));
   }
-  await visit(root);
   return total;
 }
 
@@ -1848,16 +2153,6 @@ function syncFile(file: string): void {
     fs.fsyncSync(descriptor);
   } finally {
     fs.closeSync(descriptor);
-  }
-}
-
-async function writeDurableAsync(file: string, contents: string): Promise<void> {
-  const handle = await fsp.open(file, 'w', 0o600);
-  try {
-    await handle.writeFile(contents, 'utf8');
-    await handle.sync();
-  } finally {
-    await handle.close();
   }
 }
 

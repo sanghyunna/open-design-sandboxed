@@ -8,7 +8,7 @@
     "pnpm typecheck"
   ],
   "pr06": [
-    "pnpm --filter @open-design/daemon test tests/pi-rpc.test.ts tests/runs.test.ts tests/hosted-pi-runtime.test.ts tests/hosted-pi-server.test.ts tests/hosted-runtime-storage.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-snapshots.test.ts tests/hosted-snapshots-failpoints.test.ts tests/hosted-pi-snapshot-quiescence.test.ts",
+    "pnpm --filter @open-design/daemon test tests/pi-rpc.test.ts tests/runs.test.ts tests/hosted-pi-runtime.test.ts tests/hosted-pi-server.test.ts tests/hosted-runtime-storage.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-snapshots.test.ts tests/hosted-snapshots-adversarial.test.ts tests/hosted-snapshots-failpoints.test.ts tests/hosted-pi-snapshot-quiescence.test.ts",
     "pnpm --filter @open-design/tools-pack test tests/workspace-build.test.ts",
     "pnpm guard",
     "pnpm typecheck"

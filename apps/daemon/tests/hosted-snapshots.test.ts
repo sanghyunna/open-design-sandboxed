@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
 import {
   cpSync,
   existsSync,
@@ -14,6 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
+import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -30,6 +32,10 @@ const roots: string[] = [];
 const identity = {
   storageKey: 'od1_fc95297aa4f56781f0decb7d4bf59b1447f09b3611039b80188b1c6beb03ee6a',
   userKey: 'user-a',
+} as const;
+const otherIdentity = {
+  storageKey: 'od1_eb1c58aa404f0ada5e83d6c2bc60990da8e2e16b09a28c5a7fcb39e3231eabb9',
+  userKey: 'user-b',
 } as const;
 
 afterEach(() => {
@@ -590,7 +596,7 @@ describe('hosted snapshots', () => {
       const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
       const snapshots = createHostedSnapshotStore({
         identity,
-        runtimeRoot: runtimeRoot.toUpperCase(),
+        runtimeRoot: `\\\\?\\${runtimeRoot.toUpperCase()}`,
       });
       try {
         await expect(snapshots.publish({ quiesce: async () => {}, storage })).resolves.toBeDefined();
@@ -599,6 +605,216 @@ describe('hosted snapshots', () => {
       }
     },
   );
+
+  it('rejects an over-budget manifest before hashing any payload file', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    writeFileSync(
+      path.join(storage.roots.projectsRoot, 'oversized.bin'),
+      Buffer.alloc(2 * 1024 * 1024),
+    );
+    const publicationStore = createHostedSnapshotStore({ identity, runtimeRoot });
+    await publicationStore.publish({ quiesce: async () => {}, storage });
+    storage.close();
+
+    const readStream = vi.spyOn(fs, 'createReadStream');
+    const constrainedStore = createHostedSnapshotStore({
+      identity,
+      limits: { bytesPerVersion: 1024 * 1024 },
+      runtimeRoot,
+    });
+    try {
+      await expect(constrainedStore.restore()).rejects.toMatchObject({
+        code: 'HOSTED_RUNTIME_UNAVAILABLE',
+      });
+      expect(readStream).not.toHaveBeenCalled();
+    } finally {
+      readStream.mockRestore();
+    }
+  });
+
+  it('scavenges restore staging that crashed before its ownership marker was written', () => {
+    const runtimeRoot = tempRoot();
+    createHostedSnapshotStore({ identity, runtimeRoot });
+    const owned = path.join(runtimeRoot, `.restore-${identity.storageKey}-before-marker`);
+    const foreign = path.join(runtimeRoot, `.restore-${otherIdentity.storageKey}-before-marker`);
+    mkdirSync(owned);
+    mkdirSync(foreign);
+
+    createHostedSnapshotStore({ identity, runtimeRoot });
+    expect(existsSync(owned)).toBe(false);
+    expect(existsSync(foreign)).toBe(true);
+  });
+
+  it('distinguishes global retained capacity from per-user snapshot quota', async () => {
+    const measuredRoot = tempRoot();
+    createHostedSnapshotStore({ identity: otherIdentity, runtimeRoot: measuredRoot });
+    const measuredStore = createHostedSnapshotStore({ identity, runtimeRoot: measuredRoot });
+    const measuredStorage = createHostedRuntimeStorage({ identity, runtimeRoot: measuredRoot });
+    await measuredStore.publish({ quiesce: async () => {}, storage: measuredStorage });
+    measuredStorage.close();
+    const globalBoundary = treeBytes(path.join(measuredRoot, 'snapshots'));
+
+    const runtimeRoot = tempRoot();
+    const limits = {
+      retainedBytesGlobal: globalBoundary,
+      retainedBytesPerUser: globalBoundary,
+    };
+    const storeA = createHostedSnapshotStore({ identity, limits, runtimeRoot });
+    const storeB = createHostedSnapshotStore({
+      identity: otherIdentity,
+      limits,
+      runtimeRoot,
+    });
+    const storageA = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const storageB = createHostedRuntimeStorage({ identity: otherIdentity, runtimeRoot });
+    try {
+      await expect(storeA.publish({ quiesce: async () => {}, storage: storageA }))
+        .resolves.toBeDefined();
+      await expect(storeB.publish({ quiesce: async () => {}, storage: storageB }))
+        .rejects.toMatchObject({ code: 'HOSTED_CAPACITY_EXHAUSTED' });
+    } finally {
+      storageA.close();
+      storageB.close();
+    }
+  });
+
+  it('rejects extra version-root entries before hashing payload data', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    const publication = await snapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+    writeFileSync(path.join(publication.versionRoot, 'unexpected.zero'), '');
+    const readStream = vi.spyOn(fs, 'createReadStream');
+    try {
+      await expect(snapshots.restore()).rejects.toMatchObject({
+        code: 'HOSTED_RUNTIME_UNAVAILABLE',
+      });
+      expect(readStream).not.toHaveBeenCalled();
+    } finally {
+      readStream.mockRestore();
+    }
+  });
+
+  it('bounds zero-byte quota walks and scavenges crash-stale global staging', async () => {
+    const runtimeRoot = tempRoot();
+    const storeA = createHostedSnapshotStore({
+      identity,
+      limits: { filesPerVersion: 12 },
+      runtimeRoot,
+    });
+    createHostedSnapshotStore({
+      identity: otherIdentity,
+      limits: { filesPerVersion: 12 },
+      runtimeRoot,
+    });
+    const foreignRoot = path.join(runtimeRoot, 'snapshots', otherIdentity.storageKey);
+    const stale = path.join(foreignRoot, '.staging-00000000000000000001-crashed');
+    mkdirSync(stale);
+    writeFileSync(path.join(stale, 'partial.zero'), '');
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    try {
+      await expect(storeA.publish({ quiesce: async () => {}, storage })).resolves.toBeDefined();
+    } finally {
+      storage.close();
+    }
+    expect(existsSync(stale)).toBe(false);
+
+    for (let index = 0; index < 256; index += 1) {
+      writeFileSync(path.join(
+        runtimeRoot,
+        'snapshots',
+        identity.storageKey,
+        `unexpected-${index}.zero`,
+      ), '');
+    }
+    const nextStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    try {
+      await expect(storeA.publish({ quiesce: async () => {}, storage: nextStorage }))
+        .rejects.toMatchObject({ code: 'HOSTED_QUOTA_EXCEEDED' });
+    } finally {
+      nextStorage.close();
+    }
+  });
+
+  it('streams session bodies while normalizing and relocating only their headers', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(storage.database, {
+      createdAt: 1,
+      id: 'stream-project',
+      name: 'Stream project',
+      updatedAt: 1,
+    });
+    insertConversation(storage.database, {
+      createdAt: 1,
+      id: 'stream-conversation',
+      projectId: 'stream-project',
+      updatedAt: 1,
+    });
+    const projectRoot = path.join(storage.roots.projectsRoot, 'stream-project');
+    mkdirSync(projectRoot);
+    const sessionFile = path.join(storage.roots.sessionsRoot, 'stream.jsonl');
+    const body = JSON.stringify({ payload: 'x'.repeat(2 * 1024 * 1024), type: 'message' });
+    writeFileSync(
+      sessionFile,
+      `${JSON.stringify({ cwd: projectRoot, type: 'session' })}\n${body}\n`,
+    );
+    upsertAgentSession(storage.database, {
+      agentId: 'pi',
+      conversationId: 'stream-conversation',
+      sessionId: sessionFile,
+    });
+    const readFile = vi.spyOn(fsp, 'readFile');
+    const readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
+    const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    const publication = await snapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+    const restored = await snapshots.restore();
+    expect(restored?.sequence).toBe(publication.sequence);
+    expect(readFile.mock.calls.some(([file]) => String(file).endsWith('.jsonl'))).toBe(false);
+    expect(readFileSyncSpy.mock.calls.some(([file]) => String(file).endsWith('.jsonl'))).toBe(false);
+    readFile.mockRestore();
+    readFileSyncSpy.mockRestore();
+    const relocated = getAgentSession(restored!.storage.database, 'stream-conversation', 'pi')!;
+    expect(readFileSync(relocated, 'utf8').endsWith(`${body}\n`)).toBe(true);
+    restored?.storage.close();
+  });
+
+  it('aggregates restored-storage close failure without skipping staging cleanup', async () => {
+    const runtimeRoot = tempRoot();
+    const storage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });
+    await snapshots.publish({ quiesce: async () => {}, storage });
+    storage.close();
+    const originalRm = fsp.rm.bind(fsp);
+    const originalClose = Database.prototype.close;
+    let cleanupFailed = false;
+    vi.spyOn(fsp, 'rm').mockImplementation(async (target, options) => {
+      await originalRm(target, options);
+      if (!cleanupFailed && path.basename(String(target)).startsWith('.restore-')) {
+        cleanupFailed = true;
+        throw new Error('injected restore cleanup failure');
+      }
+    });
+    vi.spyOn(Database.prototype, 'close').mockImplementation(function (this: Database.Database) {
+      const result = originalClose.call(this);
+      if (this.name.includes(`${path.sep}live${path.sep}`)) {
+        throw new Error('injected restored storage close failure');
+      }
+      return result;
+    });
+
+    try {
+      await expect(snapshots.restore()).rejects.toMatchObject({
+        code: 'HOSTED_RUNTIME_UNAVAILABLE',
+      });
+      expect(readdirSync(runtimeRoot).some((name) => name.startsWith('.restore-'))).toBe(false);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
 
   it('rejects oversized capture before copying the offending file and yields the event loop', async () => {
     const runtimeRoot = tempRoot();
@@ -651,12 +867,22 @@ describe('hosted snapshots', () => {
     await baselineStore.publish({ quiesce: async () => {}, storage: baselineStorage });
     baselineStorage.close();
 
-    const candidateStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
-    insertProject(candidateStorage.database, {
+    const previousStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(previousStorage.database, {
       createdAt: 2,
       id: 'state',
-      name: 'candidate',
+      name: 'previous',
       updatedAt: 2,
+    });
+    await baselineStore.publish({ quiesce: async () => {}, storage: previousStorage });
+    previousStorage.close();
+
+    const candidateStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
+    insertProject(candidateStorage.database, {
+      createdAt: 3,
+      id: 'state',
+      name: 'candidate',
+      updatedAt: 3,
     });
     const candidateStore = createHostedSnapshotStore({
       failpoint(stage) {
@@ -670,7 +896,17 @@ describe('hosted snapshots', () => {
       storage: candidateStorage,
     });
     candidateStorage.close();
-    expect(publication.sequence).toBe('00000000000000000002');
+    expect(publication.sequence).toBe('00000000000000000003');
+    expect(versionRoots(runtimeRoot)).toEqual([
+      '00000000000000000002',
+      '00000000000000000003',
+    ]);
+    expect(readFileSync(path.join(
+      runtimeRoot,
+      'snapshots',
+      identity.storageKey,
+      'latest',
+    ), 'utf8')).toBe('00000000000000000003\n');
     const restored = await baselineStore.restore();
     expect(restored && getProject(restored.storage.database, 'state')?.name).toBe('candidate');
     restored?.storage.close();
