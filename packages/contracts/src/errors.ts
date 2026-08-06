@@ -97,6 +97,7 @@ export const API_ERROR_CODES = [
   'HOSTED_PROVIDER_MISSING',
   'HOSTED_PROVIDER_TEST_FAILED',
   'HOSTED_PROVIDER_TEST_TIMED_OUT',
+  'CURSOR_EXPIRED',
   // Legacy artifact validation, storage, preview, and refresh failures.
   'LIVE_ARTIFACT_NOT_FOUND',
   'LIVE_ARTIFACT_INVALID',
