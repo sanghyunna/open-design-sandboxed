@@ -16,6 +16,28 @@ import {
   type HostedSnapshotStore,
 } from './hosted-snapshots.js';
 import {
+  createHostedArtifactAdapter,
+  type HostedArtifactAdapter,
+} from './hosted-artifact-adapter.js';
+import {
+  createHostedContentAdapter,
+  type HostedContentMutationOperation,
+  type HostedContentReadOperation,
+} from './hosted-content-adapter.js';
+import {
+  createHostedContentQuota,
+  type HostedContentQuotaOperation,
+} from './hosted-content-quota.js';
+import {
+  createHostedDownloadStreams,
+  type HostedArchiveDownload,
+} from './hosted-download-stream.js';
+import {
+  beginHostedUploadIntake,
+  type HostedMultipartFileDescriptor,
+  type HostedUploadedFile,
+} from './hosted-upload-adapter.js';
+import {
   clearAgentSession,
   deleteConversation,
   deleteProject,
@@ -52,6 +74,18 @@ import {
   type ProjectCheckpointService,
 } from './project-checkpoints.js';
 import { createChatRunService } from './runs.js';
+import {
+  createProjectFolder,
+  deleteProjectFile,
+  deleteProjectFolder,
+  listFiles,
+  listProjectFolders,
+  readProjectFile,
+  renameProjectFile,
+  searchProjectFiles,
+  writeProjectFile,
+  ProjectFileContentConflictError,
+} from './projects.js';
 
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
@@ -260,7 +294,27 @@ export type HostedRuntimeInternalOperation =
   | {
       readonly kind: 'snapshot:publish';
       readonly quiesce: () => Promise<void>;
-    };
+    }
+  | { readonly kind: 'content:dispatch'; readonly request: unknown }
+  | {
+      readonly kind: 'archive:open';
+      readonly projectId: string;
+      readonly relativeRoot?: string;
+      readonly signal?: AbortSignal;
+    }
+  | { readonly kind: 'upload:begin'; readonly projectId: string }
+  | { readonly kind: 'artifact:save'; readonly request: unknown }
+  | { readonly kind: 'artifact:lint'; readonly request: unknown }
+  | { readonly kind: 'artifact:download'; readonly artifactId: string };
+
+export interface HostedRuntimeUploadIntake {
+  readonly stagingRoot: string;
+  cleanup(): Promise<void>;
+  finalize(input: {
+    readonly fields: Readonly<Record<string, unknown>>;
+    readonly files: readonly HostedMultipartFileDescriptor[];
+  }): Promise<{ readonly files: readonly HostedUploadedFile[] }>;
+}
 
 export interface HostedRuntimeGenerationControl {
   readonly userKey: string;
@@ -371,6 +425,7 @@ interface RuntimeState {
   readonly snapshotStore: HostedSnapshotStore;
   readonly queue: QueueEntry[];
   active: ActiveRun | null;
+  artifactAdapter: HostedArtifactAdapter | null;
   checkpointService: ProjectCheckpointService | null;
   credential: HostedProviderCredential | null;
   idleTimer: ReturnType<typeof setTimeout> | null;
@@ -407,6 +462,8 @@ export function createHostedRuntimeRegistry(
   const createStorage = options.createStorage ?? createHostedRuntimeStorage;
   const createRunService = options.createRunService ?? createChatRunService;
   const createSnapshotStore = options.createSnapshotStore ?? createHostedSnapshotStore;
+  const contentQuota = createHostedContentQuota();
+  const downloadStreams = createHostedDownloadStreams();
   const createEntityId = options.createEntityId ?? (() => randomUUID());
   const projectCatalogueIds = options.projectCatalogueIds ?? new Set<string>();
   const skillCatalogueIds = options.skillCatalogueIds ?? new Set<string>();
@@ -502,6 +559,7 @@ export function createHostedRuntimeRegistry(
       const ready = new Promise<void>((resolve) => { resolveReady = resolve; });
       const runtime: RuntimeState = {
         active: null,
+        artifactAdapter: null,
         binding,
         checkpointService: null,
         credential: null,
@@ -538,6 +596,7 @@ export function createHostedRuntimeRegistry(
   ): Promise<void> {
     let storage: HostedRuntimeStorage | null = null;
     let runService: ReturnType<typeof createChatRunService> | null = null;
+    let artifactAdapter: HostedArtifactAdapter | null = null;
     try {
       const restored = await runtime.snapshotStore.restore();
       storage = restored?.storage ?? createStorage({ identity, runtimeRoot });
@@ -559,21 +618,27 @@ export function createHostedRuntimeRegistry(
         db: storage.database,
         projectsRoot: storage.roots.projectsRoot,
       });
+      artifactAdapter = createHostedArtifactAdapter({
+        artifactsRoot: storage.roots.artifactsRoot,
+      });
       hydrateSessionReferences(runtime, storage, limits);
       if (
         runtimes.get(runtime.binding.userKey) !== runtime
         || runtime.lifecycle !== 'initializing'
       ) {
-        closeInitializationResources(runService, storage);
+        closeInitializationResources(runService, storage, artifactAdapter);
         return;
       }
       runtime.checkpointService = checkpointService;
+      runtime.artifactAdapter = artifactAdapter;
       runtime.runService = runService;
       runtime.storage = storage;
       runtime.lifecycle = 'active';
       storage = null;
       runService = null;
+      artifactAdapter = null;
     } catch {
+      runtime.artifactAdapter = artifactAdapter;
       runtime.runService = runService;
       runtime.storage = storage;
       runtime.initializationError = new HostedRuntimeError(
@@ -596,7 +661,13 @@ export function createHostedRuntimeRegistry(
   function closeInitializationResources(
     runService: ReturnType<typeof createChatRunService> | null,
     storage: HostedRuntimeStorage | null,
+    artifactAdapter?: HostedArtifactAdapter | null,
   ): void {
+    try {
+      artifactAdapter?.dispose();
+    } catch {
+      // Initialization remains failed even when a partial resource cannot close.
+    }
     try {
       runService?.dispose();
     } catch {
@@ -640,6 +711,13 @@ export function createHostedRuntimeRegistry(
       runtimeUnavailable('hosted checkpoint service is unavailable');
     }
     return runtime.checkpointService;
+  }
+
+  function artifactAdapterFor(runtime: RuntimeState): HostedArtifactAdapter {
+    if (runtime.artifactAdapter == null) {
+      runtimeUnavailable('hosted artifact adapter is unavailable');
+    }
+    return runtime.artifactAdapter;
   }
 
   function acquireStrong(runtime: RuntimeState): void {
@@ -1312,6 +1390,11 @@ export function createHostedRuntimeRegistry(
     runtime.credential = null;
     const errors: unknown[] = [];
     try {
+      runtime.artifactAdapter?.dispose();
+    } catch (error) {
+      errors.push(error);
+    }
+    try {
       runtime.runService?.dispose();
     } catch (error) {
       errors.push(error);
@@ -1704,10 +1787,223 @@ export function createHostedRuntimeRegistry(
         case 'snapshot:publish': {
           return publishSnapshot(state.runtime, operation.quiesce);
         }
+        case 'content:dispatch': {
+          await waitForRuntime(state.runtime);
+          return executeContentDispatch(state.runtime, operation.request);
+        }
+        case 'archive:open': {
+          validateInternalId(operation.projectId, 'project');
+          await waitForRuntime(state.runtime);
+          requireOwnedProject(state.runtime, operation.projectId);
+          const storage = storageFor(state.runtime);
+          return downloadStreams.openArchive({
+            archiveName: operation.projectId,
+            rootPath: exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId),
+            userKey: state.runtime.binding.userKey,
+            ...(operation.relativeRoot === undefined
+              ? {}
+              : { relativeRoot: operation.relativeRoot }),
+            ...(operation.signal === undefined ? {} : { signal: operation.signal }),
+          });
+        }
+        case 'upload:begin': {
+          validateInternalId(operation.projectId, 'project');
+          await waitForRuntime(state.runtime);
+          requireOwnedProject(state.runtime, operation.projectId);
+          return createUploadIntake(state.runtime, operation.projectId);
+        }
+        case 'artifact:save': {
+          return enqueueMutation(
+            state.runtime,
+            () => artifactAdapterFor(state.runtime).save(operation.request),
+          );
+        }
+        case 'artifact:lint': {
+          await waitForRuntime(state.runtime);
+          return artifactAdapterFor(state.runtime).lint(operation.request);
+        }
+        case 'artifact:download': {
+          await waitForRuntime(state.runtime);
+          return artifactAdapterFor(state.runtime).openDownload(operation.artifactId);
+        }
       }
     } catch (error) {
       return Promise.reject(error);
     }
+  }
+
+  async function executeContentDispatch(
+    runtime: RuntimeState,
+    request: unknown,
+  ): Promise<unknown> {
+    const authority = {
+      generation: runtime.generation,
+      userKey: runtime.binding.userKey,
+    };
+    return createHostedContentAdapter({
+      read: (_authority, operation) => executeContentRead(runtime, operation),
+      mutateInLane: (_authority, operation) => enqueueMutation(
+        runtime,
+        () => executeContentMutation(runtime, operation),
+      ),
+    }).dispatch(authority, request);
+  }
+
+  async function executeContentRead(
+    runtime: RuntimeState,
+    operation: HostedContentReadOperation,
+  ): Promise<unknown> {
+    requireOwnedProject(runtime, operation.projectId);
+    const projectsRoot = storageFor(runtime).roots.projectsRoot;
+    exactOwnedProjectRoot(projectsRoot, operation.projectId);
+    try {
+      switch (operation.kind) {
+        case 'files.list':
+          return listFiles(projectsRoot, operation.projectId, {
+            ...(operation.since === undefined ? {} : { since: operation.since }),
+          });
+        case 'file.read':
+          return readProjectFile(projectsRoot, operation.projectId, operation.path);
+        case 'files.search':
+          return searchProjectFiles(projectsRoot, operation.projectId, operation.q, {
+            max: operation.max,
+            ...(operation.pattern === undefined ? {} : { pattern: operation.pattern }),
+          });
+        case 'folders.list':
+          return listProjectFolders(projectsRoot, operation.projectId);
+      }
+    } catch (error) {
+      throw projectContentError(error);
+    }
+  }
+
+  async function executeContentMutation(
+    runtime: RuntimeState,
+    operation: HostedContentMutationOperation,
+  ): Promise<unknown> {
+    requireOwnedProject(runtime, operation.projectId);
+    const storage = storageFor(runtime);
+    const projectRoot = exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
+    return contentQuota.runMutation({
+      allWorkspaceRoots: activeProjectRoots(),
+      operation: contentQuotaOperation(operation),
+      workspaceRoot: projectRoot,
+    }, async () => {
+      try {
+        switch (operation.kind) {
+          case 'file.write':
+            return {
+              file: await writeProjectFile(
+                storage.roots.projectsRoot,
+                operation.projectId,
+                operation.body.name,
+                operation.body.content,
+                {
+                  expectedContentSha256: operation.body.expectedContentSha256,
+                  overwrite: operation.body.overwrite,
+                },
+              ),
+            };
+          case 'file.rename':
+            return renameProjectFile(
+              storage.roots.projectsRoot,
+              operation.projectId,
+              operation.body.from,
+              operation.body.to,
+            );
+          case 'file.delete':
+            await deleteProjectFile(
+              storage.roots.projectsRoot,
+              operation.projectId,
+              operation.path,
+            );
+            return { ok: true };
+          case 'folder.create':
+            return {
+              folder: await createProjectFolder(
+                storage.roots.projectsRoot,
+                operation.projectId,
+                operation.body.path,
+              ),
+            };
+          case 'folder.delete':
+            await deleteProjectFolder(
+              storage.roots.projectsRoot,
+              operation.projectId,
+              operation.body.path,
+            );
+            return { ok: true };
+        }
+      } catch (error) {
+        throw projectContentError(error);
+      }
+    });
+  }
+
+  function contentQuotaOperation(
+    operation: HostedContentMutationOperation,
+  ): HostedContentQuotaOperation {
+    switch (operation.kind) {
+      case 'file.write':
+        return {
+          bytes: operation.body.content.length,
+          kind: 'write',
+          path: operation.body.name,
+        };
+      case 'file.rename':
+        return { from: operation.body.from, kind: 'rename', to: operation.body.to };
+      case 'file.delete':
+        return { kind: 'delete', path: operation.path };
+      case 'folder.create':
+      case 'folder.delete':
+        return { kind: operation.kind, path: operation.body.path };
+    }
+  }
+
+  function activeProjectRoots(): string[] {
+    const roots: string[] = [];
+    for (const runtime of runtimes.values()) {
+      if (runtime.lifecycle !== 'active' || runtime.storage == null) continue;
+      for (const project of listProjects(runtime.storage.database)) {
+        roots.push(exactOwnedProjectRoot(runtime.storage.roots.projectsRoot, project.id));
+      }
+    }
+    return roots;
+  }
+
+  async function createUploadIntake(
+    runtime: RuntimeState,
+    projectId: string,
+  ): Promise<HostedRuntimeUploadIntake> {
+    const storage = storageFor(runtime);
+    const intake = await beginHostedUploadIntake({ uploadsRoot: storage.roots.uploadsRoot });
+    return Object.freeze({
+      stagingRoot: intake.stagingRoot,
+      cleanup: () => intake.cleanup(),
+      finalize: ({ fields, files }: {
+        readonly fields: Readonly<Record<string, unknown>>;
+        readonly files: readonly HostedMultipartFileDescriptor[];
+      }) => intake.finalize({
+        commitInLane: async (commit) => {
+          const bytes = files.reduce((total: number, file: HostedMultipartFileDescriptor) => (
+            total + file.size
+          ), 0);
+          const result = await enqueueMutation(runtime, () => {
+            requireOwnedProject(runtime, projectId);
+            const projectRoot = exactOwnedProjectRoot(storage.roots.projectsRoot, projectId);
+            return contentQuota.runMutation({
+              allWorkspaceRoots: activeProjectRoots(),
+              operation: { bytes, files: files.length, kind: 'growth' },
+              workspaceRoot: projectRoot,
+            }, commit);
+          });
+          return result as Awaited<ReturnType<typeof commit>>;
+        },
+        destinationRoot: exactOwnedProjectRoot(storage.roots.projectsRoot, projectId),
+        fields,
+        files,
+      }),
+    });
   }
 
   function executeMetadataRead(
@@ -2255,6 +2551,27 @@ function createOwnedProjectRoot(projectsRoot: string, projectId: string): void {
     try { fs.rmSync(target, { recursive: true, force: true }); } catch { /* preserve primary failure */ }
     throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
   }
+}
+
+function projectContentError(error: unknown): Error {
+  if (error instanceof HostedRuntimeError) return error;
+  if (error instanceof ProjectFileContentConflictError) {
+    return new HostedRuntimeError('CONFLICT', error.message);
+  }
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  if (code === 'ENOENT' || code === 'ENOTDIR') {
+    return new HostedRuntimeError('FILE_NOT_FOUND', 'hosted project content was not found');
+  }
+  if (code === 'EEXIST') {
+    return new HostedRuntimeError('CONFLICT', 'hosted project content already exists');
+  }
+  if (code === 'EINVAL' || code === 'EISDIR') {
+    return new HostedRuntimeError('BAD_REQUEST', 'hosted project content request is invalid');
+  }
+  return new HostedRuntimeError(
+    'HOSTED_RUNTIME_UNAVAILABLE',
+    'hosted project content operation failed',
+  );
 }
 
 function exactOwnedProjectRoot(projectsRoot: string, projectId: string): string {

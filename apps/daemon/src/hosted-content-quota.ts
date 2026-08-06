@@ -21,6 +21,7 @@ export interface HostedContentUsage {
 
 export type HostedContentQuotaOperation =
   | { readonly kind: 'write'; readonly path: string; readonly bytes: number }
+  | { readonly kind: 'growth'; readonly bytes: number; readonly files: number }
   | { readonly kind: 'rename'; readonly from: string; readonly to: string }
   | { readonly kind: 'delete'; readonly path: string }
   | { readonly kind: 'folder.create' | 'folder.delete'; readonly path: string };
@@ -127,6 +128,20 @@ function projectMutation(
   current: WorkspaceScan,
   operation: HostedContentQuotaOperation,
 ): HostedContentUsage {
+  if (operation.kind === 'growth') {
+    if (
+      !Number.isSafeInteger(operation.bytes)
+      || operation.bytes < 0
+      || !Number.isSafeInteger(operation.files)
+      || operation.files < 0
+    ) {
+      throw new HostedContentQuotaError('BAD_REQUEST', 'workspace growth is invalid');
+    }
+    return {
+      bytes: current.bytes + operation.bytes,
+      files: current.files + operation.files,
+    };
+  }
   if (operation.kind === 'write') {
     const relative = canonicalRelativePath(operation.path);
     if (!Number.isSafeInteger(operation.bytes) || operation.bytes < 0) {
