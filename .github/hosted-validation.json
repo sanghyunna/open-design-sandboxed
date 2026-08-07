@@ -46,7 +46,7 @@
     "pnpm --filter @open-design/daemon test tests/hosted-pr09-durability.test.ts tests/hosted-run-journal-order.test.ts tests/hosted-durability.test.ts tests/hosted-run-receipts.test.ts tests/hosted-event-journal-durability.test.ts tests/hosted-snapshots-abort.test.ts tests/hosted-runtime-registry.test.ts tests/hosted-server.test.ts",
     "pnpm --filter @open-design/contracts test tests/hosted-contract.test.ts",
     "pnpm --filter @open-design/e2e test specs/hosted/main.spec.ts",
-    "pnpm --filter @open-design/e2e exec playwright test -c playwright.hosted.config.ts ui/hosted-acceptance.test.ts",
+    "pnpm --filter @open-design/e2e exec playwright test -c lib/playwright-hosted.config.ts ui/hosted-acceptance.test.ts",
     "pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-pr10",
     "pnpm --filter @open-design/tools-pack hosted:pi:check -- --out .tmp/hosted-pi-artifact-pr10",
     "pnpm guard",
