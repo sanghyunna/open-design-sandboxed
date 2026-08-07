@@ -269,7 +269,7 @@ export function resolveHostedSidecarRoute(
 }
 
 export function isHostedNextDevUpgrade(requestUrl: string | undefined): boolean {
-  return requestUrl?.split("?", 1)[0] === "/_next/webpack-hmr";
+  return requestUrl?.split('?', 1)[0] === '/_next/webpack-hmr';
 }
 
 function isHostedAssertionHeader(name: string): boolean {
@@ -890,7 +890,7 @@ async function startRegularNextSidecar(
   const httpServer = createHttpServer(createDaemonProxyHandler(daemonOrigin, handleRequest, hostedPublicOrigin));
   if (hostedPublicOrigin != null) {
     const handleUpgrade = app.getUpgradeHandler();
-    httpServer.on("upgrade", (request, socket, head) => {
+    httpServer.on('upgrade', (request, socket, head) => {
       if (!dev || !isHostedNextDevUpgrade(request.url)) {
         socket.destroy();
         return;
