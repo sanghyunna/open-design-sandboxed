@@ -19,6 +19,8 @@ import {
   dispatchHostedRuntimeInternalOperation,
   HostedRuntimeError,
   poisonHostedRuntimeGeneration,
+  readHostedRuntimeRegistryCapacity,
+  type HostedRuntimeMeasurement,
   type HostedRuntimeRegistryOptions,
 } from '../src/hosted-runtime-registry.js';
 import { createHostedRuntimeStorage } from '../src/hosted-runtime-storage.js';
@@ -77,6 +79,59 @@ afterEach(() => {
 });
 
 describe('HostedRuntimeRegistry', () => {
+  it('reports current capacity and snapshot measurements without retaining them', async () => {
+    const measurements: HostedRuntimeMeasurement[] = [];
+    const registry = createRegistry({ onMeasurement: (measurement) => measurements.push(measurement) });
+    expect(readHostedRuntimeRegistryCapacity(registry)).toEqual({
+      activeChildren: 0,
+      activeRuns: 0,
+      eventBudget: { bufferedBytes: 0, bytes: 0, connections: 0, events: 0 },
+      laneOperations: 0,
+      openDatabases: 0,
+      queuedMutations: 0,
+      residentRuntimes: 0,
+      strongLeases: 0,
+      weakLeases: 0,
+    });
+
+    const lease = registry.acquire({ userKey: 'a' });
+    try {
+      await waitForReady(registry, lease);
+      expect(readHostedRuntimeRegistryCapacity(registry)).toMatchObject({
+        openDatabases: 1,
+        residentRuntimes: 1,
+        strongLeases: 1,
+      });
+      await dispatchHostedRuntimeInternalOperation(registry, lease, {
+        kind: 'snapshot:publish',
+        quiesce: async () => {},
+      });
+      const measurement = measurements.find(({ kind }) => kind === 'snapshot');
+      expect(measurement).toEqual(expect.objectContaining({
+        bytes: expect.any(Number),
+        durationMs: expect.any(Number),
+        fileCount: expect.any(Number),
+        kind: 'snapshot',
+        ok: true,
+        userKey: 'a',
+      }));
+      expect(measurement?.durationMs).toBeGreaterThanOrEqual(0);
+    } finally {
+      lease.release();
+      await registry.shutdown();
+    }
+    expect(readHostedRuntimeRegistryCapacity(registry)).toMatchObject({
+      activeChildren: 0,
+      activeRuns: 0,
+      laneOperations: 0,
+      openDatabases: 0,
+      queuedMutations: 0,
+      residentRuntimes: 0,
+      strongLeases: 0,
+      weakLeases: 0,
+    });
+  });
+
   it('owns isolated runtime generations and evicts only a released user', async () => {
     vi.useFakeTimers();
     const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-runtime-registry-storage-'));

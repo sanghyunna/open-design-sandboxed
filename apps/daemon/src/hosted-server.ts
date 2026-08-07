@@ -28,9 +28,16 @@ import {
   createHostedRuntimeRegistry,
   dispatchHostedRuntimeInternalOperation,
   HostedRuntimeError,
+  readHostedRuntimeRegistryCapacity,
   type HostedProviderCredential,
+  type HostedRuntimeCapacitySnapshot,
   type HostedRuntimeLease,
+  type HostedRuntimeMeasurement,
   type HostedRuntimeRegistry,
+} from './hosted-runtime-registry.js';
+export type {
+  HostedRuntimeCapacitySnapshot,
+  HostedRuntimeMeasurement,
 } from './hosted-runtime-registry.js';
 import { HostedArtifactAdapterError } from './hosted-artifact-adapter.js';
 import { HostedContentAdapterError } from './hosted-content-adapter.js';
@@ -160,6 +167,8 @@ export interface HostedTestComposition {
   readonly bodyReadTimeoutMs?: number;
   readonly eventBudgetLimits?: Partial<HostedEventLimits>;
   readonly idleEvictionMs?: number;
+  readonly registerRuntimeProbe?: (read: () => HostedRuntimeCapacitySnapshot) => void;
+  readonly onRuntimeMeasurement?: (measurement: HostedRuntimeMeasurement) => void;
   readonly shutdownRegistry?: (shutdown: () => Promise<void>) => Promise<void>;
 }
 
@@ -260,6 +269,9 @@ export async function startHostedServer(
     ...(testComposition?.idleEvictionMs === undefined
       ? {}
       : { idleEvictionMs: testComposition.idleEvictionMs }),
+    ...(testComposition?.onRuntimeMeasurement === undefined
+      ? {}
+      : { onMeasurement: testComposition.onRuntimeMeasurement }),
     onGenerationRetired: (binding) => retireGenerationResources(binding),
     ...(testComposition?.createEntityId === undefined
       ? {}
@@ -295,6 +307,7 @@ export async function startHostedServer(
         : testComposition.startTurn(input, dependencies);
     },
   });
+  testComposition?.registerRuntimeProbe?.(() => readHostedRuntimeRegistryCapacity(registry));
   const designSystemTool = createHostedDesignSystemToolAdapter({
     catalogue: hostedDesignSystems.designSystems.map(({ id }) => {
       const files = catalogueSnapshot.designSystemFiles?.[id];

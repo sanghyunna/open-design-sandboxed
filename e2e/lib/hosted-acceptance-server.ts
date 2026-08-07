@@ -1,13 +1,18 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { createConnection } from 'node:net';
+import { cpus, totalmem } from 'node:os';
 import path from 'node:path';
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 
 import {
   startHostedServer,
   type HostedResolvedIdentity,
+  type HostedRuntimeCapacitySnapshot,
+  type HostedRuntimeMeasurement,
 } from '@open-design/daemon/hosted-server';
 import { startHostedPiTurn } from '@open-design/daemon/hosted-pi-turn';
+import type { HostedMeasurement } from './hosted.ts';
 
 type FixtureConfig = {
   idleEvictionMs: number;
@@ -18,7 +23,11 @@ type FixtureConfig = {
   runtimeRoot: string;
 };
 
-const identities = Object.freeze({
+const capacityIdentities = [
+  'u01', 'u02', 'u03', 'u04', 'u05', 'u06', 'u07', 'u08',
+  'u09', 'u10', 'u11', 'u12', 'u13', 'u14', 'u15',
+] as const;
+const identities: Readonly<Record<string, HostedResolvedIdentity>> = Object.freeze({
   a: Object.freeze({
     displayName: 'Hosted A',
     sessionKey: 'hosted-acceptance-session-a',
@@ -29,7 +38,12 @@ const identities = Object.freeze({
     sessionKey: 'hosted-acceptance-session-b',
     userKey: 'hosted-acceptance-user-b',
   }),
-} satisfies Record<string, HostedResolvedIdentity>);
+  ...Object.fromEntries(capacityIdentities.map((identity) => [identity, Object.freeze({
+    displayName: `Hosted ${identity.toUpperCase()}`,
+    sessionKey: `hosted-capacity-session-${identity}`,
+    userKey: `hosted-capacity-user-${identity}`,
+  })])),
+});
 
 type BrokerBinding = { socketPath: string; token: string };
 const brokerBindings = new Map<string, BrokerBinding>();
@@ -42,6 +56,12 @@ if (process.env.NODE_ENV !== 'test') fail();
 try {
   const config = readConfig(process.argv[2]);
   const counters = new Map<string, number>();
+  const eventLoopDelay = monitorEventLoopDelay({ resolution: 10 });
+  const operationMeasurements: HostedRuntimeMeasurement[] = [];
+  let childCurrent = 0;
+  let childPeak = 0;
+  let runtimeProbe: (() => HostedRuntimeCapacitySnapshot) | null = null;
+  eventLoopDelay.enable();
   const hosted = await startHostedServer({
     host: '127.0.0.1',
     port: config.port,
@@ -56,6 +76,9 @@ try {
       },
       eventBudgetLimits: { heartbeatMs: 100 },
       idleEvictionMs: config.idleEvictionMs,
+      onRuntimeMeasurement(measurement) {
+        operationMeasurements.push(Object.freeze({ ...measurement }));
+      },
       providerBaseUrls: {
         anthropic: config.providerBaseUrl,
         'vercel-ai-gateway': config.providerBaseUrl,
@@ -67,7 +90,10 @@ try {
           return null;
         }
         const identity = bearer ?? cookie;
-        return identity === undefined ? null : identities[identity];
+        return identity === undefined ? null : identities[identity] ?? null;
+      },
+      registerRuntimeProbe(read) {
+        runtimeProbe = read;
       },
       startTurn(input, dependencies) {
         let grantIsolation = Promise.resolve();
@@ -82,15 +108,25 @@ try {
               JSON.stringify({ providers: { anthropic: { baseUrl: config.providerBaseUrl } } }),
             );
             const child = spawn(command, [...args], options);
+            childCurrent += 1;
+            childPeak = Math.max(childPeak, childCurrent);
+            let childSettled = false;
+            const settleChild = (): void => {
+              if (childSettled) return;
+              childSettled = true;
+              childCurrent -= 1;
+            };
             child.once('spawn', () => {
               process.stderr.write(`${JSON.stringify({ type: 'pi-child', event: 'spawn' })}\n`);
             });
             child.once('close', (exitCode, signal) => {
+              settleChild();
               process.stderr.write(`${JSON.stringify({
                 type: 'pi-child', event: 'close', exitCode, signal,
               })}\n`);
             });
             child.once('error', (error) => {
+              settleChild();
               process.stderr.write(`${JSON.stringify({
                 type: 'pi-child', event: 'error', code: (error as NodeJS.ErrnoException).code ?? null,
               })}\n`);
@@ -134,13 +170,32 @@ try {
   let stopping: Promise<void> | null = null;
   const stop = (exitCode: number): Promise<void> => {
     stopping ??= hosted.shutdown().then(() => {
+      eventLoopDelay.disable();
       process.exitCode = exitCode;
       if (process.connected) process.disconnect();
     });
     return stopping;
   };
   process.on('message', (message: unknown) => {
-    if (isShutdownMessage(message)) void stop(0).catch(fail);
+    if (isShutdownMessage(message)) {
+      void stop(0).catch(fail);
+    } else if (isMeasureMessage(message)) {
+      try {
+        if (runtimeProbe == null) throw new Error('hosted runtime probe is unavailable');
+        process.send?.({
+          type: 'measurement',
+          id: message.id,
+          value: readMeasurement(runtimeProbe(), operationMeasurements, eventLoopDelay, {
+            current: childCurrent,
+            peak: childPeak,
+          }),
+        });
+      } catch {
+        process.send?.({
+          type: 'measurement-error', id: message.id, message: 'hosted fixture measurement failed',
+        });
+      }
+    }
   });
   process.once('disconnect', () => { void stop(0).catch(fail); });
   process.once('SIGINT', () => { void stop(0).catch(fail); });
@@ -209,13 +264,13 @@ function isExactOrigin(value: unknown, loopbackOnly: boolean): value is string {
   }
 }
 
-function bearerIdentity(header: string | undefined): keyof typeof identities | null | undefined {
+function bearerIdentity(header: string | undefined): string | null | undefined {
   if (header === undefined) return undefined;
-  const match = /^Bearer ([ab])$/u.exec(header);
-  return match?.[1] as keyof typeof identities | undefined ?? null;
+  const match = /^Bearer (a|b|u(?:0[1-9]|1[0-5]))$/u.exec(header);
+  return match != null && isFixtureIdentity(match[1]) ? match[1] : null;
 }
 
-function cookieIdentity(header: string | undefined): keyof typeof identities | null | undefined {
+function cookieIdentity(header: string | undefined): string | null | undefined {
   if (header === undefined) return undefined;
   const values = header.split(';').map((part) => part.trim()).flatMap((part) => {
     const index = part.indexOf('=');
@@ -225,9 +280,13 @@ function cookieIdentity(header: string | undefined): keyof typeof identities | n
   });
   return values.length === 0
     ? undefined
-    : values.length === 1 && (values[0] === 'a' || values[0] === 'b')
+    : values.length === 1 && isFixtureIdentity(values[0])
       ? values[0]
       : null;
+}
+
+function isFixtureIdentity(value: string | undefined): value is string {
+  return value !== undefined && Object.hasOwn(identities, value);
 }
 
 function nextId(
@@ -250,6 +309,64 @@ function isShutdownMessage(value: unknown): boolean {
     && !Array.isArray(value)
     && Object.keys(value).length === 1
     && (value as { type?: unknown }).type === 'shutdown';
+}
+
+function isMeasureMessage(value: unknown): value is { id: number; type: 'measure' } {
+  return value != null
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && Object.keys(value).sort().join(',') === 'id,type'
+    && (value as { type?: unknown }).type === 'measure'
+    && Number.isSafeInteger((value as { id?: unknown }).id)
+    && ((value as { id: number }).id > 0);
+}
+
+function readMeasurement(
+  registry: HostedRuntimeCapacitySnapshot,
+  operations: readonly HostedRuntimeMeasurement[],
+  eventLoopDelay: ReturnType<typeof monitorEventLoopDelay>,
+  children: { current: number; peak: number },
+): HostedMeasurement {
+  const cpu = process.cpuUsage();
+  const memory = process.memoryUsage();
+  const resources = process.getActiveResourcesInfo();
+  const byType: Record<string, number> = {};
+  for (const resource of resources) byType[resource] = (byType[resource] ?? 0) + 1;
+  const processors = cpus();
+  return {
+    atMs: Date.now(),
+    host: {
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      cpuCount: processors.length,
+      cpuModel: processors[0]?.model ?? 'unknown',
+      totalMemoryBytes: totalmem(),
+    },
+    process: {
+      cpuUserMicros: cpu.user,
+      cpuSystemMicros: cpu.system,
+      rssBytes: memory.rss,
+      heapUsedBytes: memory.heapUsed,
+      heapTotalBytes: memory.heapTotal,
+      eventLoopUtilization: performance.eventLoopUtilization().utilization,
+      eventLoopLagMs: {
+        mean: finiteMilliseconds(eventLoopDelay.mean),
+        max: finiteMilliseconds(eventLoopDelay.max),
+        p99: finiteMilliseconds(eventLoopDelay.percentile(99)),
+      },
+      activeResources: { total: resources.length, byType },
+      childCurrent: children.current,
+      childPeak: children.peak,
+    },
+    registry,
+    operations: [...operations],
+  };
+}
+
+function finiteMilliseconds(nanoseconds: number): number {
+  const value = nanoseconds / 1_000_000;
+  return Number.isFinite(value) ? value : 0;
 }
 
 function captureBrokerBinding(

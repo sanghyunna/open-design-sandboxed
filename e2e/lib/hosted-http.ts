@@ -94,8 +94,10 @@ export async function waitForRun(
   client: HostedHttpClient,
   runId: string,
   expected: string,
+  timeoutMs = 30_000,
 ): Promise<HostedRunStatus> {
-  for (let attempt = 0; attempt < 300; attempt += 1) {
+  const attempts = Math.ceil(timeoutMs / 100);
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     const run = await client.json<HostedRunStatus>(`/api/runs/${runId}`);
     if (run.status === expected) return run;
     if (['succeeded', 'failed', 'canceled', 'interrupted'].includes(run.status)) {

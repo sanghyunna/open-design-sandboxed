@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import {
   createApiError,
   type ApiErrorCode,
@@ -194,6 +195,34 @@ export interface HostedRuntimeRegistryOptions {
   readonly onGenerationRetired?: (binding: HostedRuntimeGenerationControl) => void;
   /** Process-wide event capacity; every resident user journal shares this budget. */
   readonly eventBudgetLimits?: Parameters<typeof createHostedEventBudget>[0];
+  /** Test-only operation timing sink; measurements are never retained by the registry. */
+  readonly onMeasurement?: (measurement: HostedRuntimeMeasurement) => void;
+}
+
+export interface HostedRuntimeCapacitySnapshot {
+  readonly residentRuntimes: number;
+  readonly activeChildren: number;
+  readonly queuedMutations: number;
+  readonly strongLeases: number;
+  readonly weakLeases: number;
+  readonly activeRuns: number;
+  readonly laneOperations: number;
+  readonly openDatabases: number;
+  readonly eventBudget: {
+    readonly bufferedBytes: number;
+    readonly bytes: number;
+    readonly connections: number;
+    readonly events: number;
+  };
+}
+
+export interface HostedRuntimeMeasurement {
+  readonly kind: 'checkpoint' | 'snapshot';
+  readonly userKey: string;
+  readonly durationMs: number;
+  readonly ok: boolean;
+  readonly bytes?: number;
+  readonly fileCount?: number;
 }
 
 export type HostedLeaseStrength = 'strong' | 'weak';
@@ -396,6 +425,10 @@ const internalOperationsByRegistry = new WeakMap<
   HostedRuntimeRegistry,
   InternalOperationDispatcher
 >();
+const capacityReadersByRegistry = new WeakMap<
+  HostedRuntimeRegistry,
+  () => HostedRuntimeCapacitySnapshot
+>();
 const poisonByRegistry = new WeakMap<
   HostedRuntimeRegistry,
   (control: HostedRuntimeGenerationControl) => boolean
@@ -423,6 +456,14 @@ export function poisonHostedRuntimeGeneration(
   control: HostedRuntimeGenerationControl,
 ): boolean {
   return poisonByRegistry.get(registry)?.(control) ?? false;
+}
+
+export function readHostedRuntimeRegistryCapacity(
+  registry: HostedRuntimeRegistry,
+): HostedRuntimeCapacitySnapshot {
+  const read = capacityReadersByRegistry.get(registry);
+  if (read == null) throw new Error('hosted runtime registry capacity probe is unavailable');
+  return read();
 }
 
 interface IdentityBinding {
@@ -570,6 +611,69 @@ export function createHostedRuntimeRegistry(
   let shutdownPromise: Promise<void> | null = null;
   let resolveShutdown!: () => void;
   const shutdownDrained = new Promise<void>((resolve) => { resolveShutdown = resolve; });
+
+  function observe(measurement: HostedRuntimeMeasurement): void {
+    try {
+      options.onMeasurement?.(measurement);
+    } catch {
+      // Test diagnostics cannot affect hosted runtime behavior.
+    }
+  }
+
+  async function publishMeasured(
+    runtime: RuntimeState,
+    input: Parameters<HostedSnapshotStore['publish']>[0],
+  ) {
+    if (options.onMeasurement == null) return runtime.snapshotStore.publish(input);
+    const startedAt = performance.now();
+    try {
+      const publication = await runtime.snapshotStore.publish(input);
+      observe({
+        bytes: publication.bytes,
+        durationMs: performance.now() - startedAt,
+        fileCount: publication.fileCount,
+        kind: 'snapshot',
+        ok: true,
+        userKey: runtime.binding.userKey,
+      });
+      return publication;
+    } catch (error) {
+      observe({
+        durationMs: performance.now() - startedAt,
+        kind: 'snapshot',
+        ok: false,
+        userKey: runtime.binding.userKey,
+      });
+      throw error;
+    }
+  }
+
+  async function captureCheckpointMeasured(
+    runtime: RuntimeState,
+    input: Parameters<ProjectCheckpointService['captureCheckpoint']>[0],
+  ) {
+    const checkpointService = checkpointServiceFor(runtime);
+    if (options.onMeasurement == null) return checkpointService.captureCheckpoint(input);
+    const startedAt = performance.now();
+    try {
+      const checkpoint = await checkpointService.captureCheckpoint(input);
+      observe({
+        durationMs: performance.now() - startedAt,
+        kind: 'checkpoint',
+        ok: true,
+        userKey: runtime.binding.userKey,
+      });
+      return checkpoint;
+    } catch (error) {
+      observe({
+        durationMs: performance.now() - startedAt,
+        kind: 'checkpoint',
+        ok: false,
+        userKey: runtime.binding.userKey,
+      });
+      throw error;
+    }
+  }
 
   function bindingFor(identity: HostedRuntimeIdentity): IdentityBinding {
     validateUserKey(identity.userKey);
@@ -729,7 +833,7 @@ export function createHostedRuntimeRegistry(
       const durability = createHostedDurabilityCoordinator({
         publish: async (signal) => {
           if (signal.aborted) throw signal.reason;
-          return runtime.snapshotStore.publish({
+          return publishMeasured(runtime, {
             quiesce: async () => {},
             signal,
             storage: activeStorage,
@@ -1281,7 +1385,7 @@ export function createHostedRuntimeRegistry(
     }
     if (entry.kind === 'snapshot') {
       runtime.laneOperationActive = true;
-      void runtime.snapshotStore.publish({
+      void publishMeasured(runtime, {
         quiesce: entry.quiesce,
         storage: storageFor(runtime),
       }).then(
@@ -2205,7 +2309,7 @@ export function createHostedRuntimeRegistry(
                   })),
                 );
                 createdMutationStarted = true;
-                await checkpointServiceFor(state.runtime).captureCheckpoint({
+                await captureCheckpointMeasured(state.runtime, {
                   conversationId: intent.conversationId,
                   kind: 'before_run',
                   messageId: intent.assistantMessageId,
@@ -3101,6 +3205,27 @@ export function createHostedRuntimeRegistry(
     shutdown,
   };
   internalOperationsByRegistry.set(registry, dispatchInternalOperation);
+  capacityReadersByRegistry.set(registry, () => {
+    let activeRuns = 0;
+    let laneOperations = 0;
+    let openDatabases = 0;
+    for (const runtime of runtimes.values()) {
+      if (runtime.active != null) activeRuns += 1;
+      if (runtime.laneOperationActive) laneOperations += 1;
+      if (runtime.storage?.database.open === true) openDatabases += 1;
+    }
+    return {
+      activeChildren,
+      activeRuns,
+      eventBudget: eventBudget.snapshot(),
+      laneOperations,
+      openDatabases,
+      queuedMutations,
+      residentRuntimes: runtimes.size,
+      strongLeases,
+      weakLeases,
+    };
+  });
   poisonByRegistry.set(registry, poison);
   return registry;
 }

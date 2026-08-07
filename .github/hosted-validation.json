@@ -45,5 +45,11 @@
     "pnpm --filter @open-design/tools-pack hosted:pi:check -- --out .tmp/hosted-pi-artifact-pr10",
     "pnpm guard",
     "pnpm typecheck"
+  ],
+  "pr11": [
+    "@pr10",
+    "pnpm --filter @open-design/e2e test --no-file-parallelism tests/hosted/capacity.test.ts",
+    "pnpm guard",
+    "pnpm typecheck"
   ]
 }

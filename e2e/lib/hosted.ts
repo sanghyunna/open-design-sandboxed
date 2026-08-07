@@ -2,10 +2,15 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
-import { tmpdir } from 'node:os';
+import { arch, platform, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+
+import type {
+  HostedRuntimeCapacitySnapshot,
+  HostedRuntimeMeasurement,
+} from '@open-design/daemon/hosted-server';
 
 import type { SmokeSuite } from './smoke-suite.ts';
 import {
@@ -19,8 +24,49 @@ import {
   type ToolsDevRuntime,
 } from './tools-dev.ts';
 
-export type HostedIdentity = 'a' | 'b';
+export const HOSTED_CAPACITY_IDENTITIES = [
+  'u01', 'u02', 'u03', 'u04', 'u05', 'u06', 'u07', 'u08',
+  'u09', 'u10', 'u11', 'u12', 'u13', 'u14', 'u15',
+] as const;
+
+export type HostedCapacityIdentity = (typeof HOSTED_CAPACITY_IDENTITIES)[number];
+export type HostedIdentity = 'a' | 'b' | HostedCapacityIdentity;
 export type HostedRestartKind = 'graceful' | 'crash';
+
+export type { HostedRuntimeCapacitySnapshot, HostedRuntimeMeasurement };
+
+export type HostedMeasurement = {
+  readonly atMs: number;
+  readonly host: {
+    readonly platform: ReturnType<typeof platform>;
+    readonly arch: ReturnType<typeof arch>;
+    readonly nodeVersion: string;
+    readonly cpuCount: number;
+    readonly cpuModel: string;
+    readonly totalMemoryBytes: number;
+  };
+  readonly process: {
+    readonly cpuUserMicros: number;
+    readonly cpuSystemMicros: number;
+    readonly rssBytes: number;
+    readonly heapUsedBytes: number;
+    readonly heapTotalBytes: number;
+    readonly eventLoopUtilization: number;
+    readonly eventLoopLagMs: {
+      readonly mean: number;
+      readonly max: number;
+      readonly p99: number;
+    };
+    readonly activeResources: {
+      readonly total: number;
+      readonly byType: Readonly<Record<string, number>>;
+    };
+    readonly childCurrent: number;
+    readonly childPeak: number;
+  };
+  readonly registry: HostedRuntimeCapacitySnapshot;
+  readonly operations: readonly HostedRuntimeMeasurement[];
+};
 
 export type HostedSuiteOptions = {
   readonly idleEvictionMs?: number;
@@ -35,13 +81,15 @@ export type HostedHttpClient = {
 export type HostedProviderRequestSummary = {
   readonly count: number;
   readonly maxConcurrentMarkedRequests: number;
-  readonly maxConcurrentMarkedRequestsByCredential: Readonly<Record<HostedIdentity, number>>;
+  readonly maxConcurrentMarkedRequestsByCredential: Readonly<Partial<Record<HostedIdentity, number>>>;
   readonly requests: ReadonlyArray<{
+    readonly capacityInputMarker: HostedIdentity | 'mixed' | null;
+    readonly capacityPhase: 'tool-use' | 'final' | null;
     readonly credential: HostedIdentity | 'unknown';
     readonly method: string;
     readonly model: string | null;
     readonly path: string;
-    readonly promptMarker: HostedIdentity | 'mixed' | 'unknown';
+    readonly promptMarker: HostedIdentity | 'capacity' | 'mixed' | 'unknown';
     readonly stream: boolean | null;
     readonly turnMarker: string | null;
   }>;
@@ -52,6 +100,7 @@ export type HostedSuiteContext = {
   readonly webUrl: string;
   readonly runtimeRoot: string;
   identity(identity: HostedIdentity): HostedHttpClient;
+  measure(): Promise<HostedMeasurement>;
   restart(kind: HostedRestartKind, beforeStart?: () => Promise<void>): Promise<void>;
   readonly provider: {
     credential(identity: HostedIdentity): string;
@@ -67,10 +116,7 @@ type ProviderFixture = {
 };
 
 const READY_TIMEOUT_MS = 30_000;
-const PROVIDER_CREDENTIALS = Object.freeze({
-  a: 'hosted-e2e-provider-a',
-  b: 'hosted-e2e-provider-b',
-});
+const HOSTED_IDENTITIES = ['a', 'b', ...HOSTED_CAPACITY_IDENTITIES] as const;
 
 export async function runHostedSuite(
   suite: SmokeSuite,
@@ -83,6 +129,7 @@ export async function runHostedSuite(
   let initialDaemonPid: number | null = null;
   let initialWebPid: number | null = null;
   let childGeneration = 0;
+  let measurementRequestId = 0;
   let success = false;
   let caughtError: unknown = null;
   let diagnostics: unknown = null;
@@ -194,8 +241,14 @@ export async function runHostedSuite(
       webUrl,
       runtimeRoot,
       identity,
+      measure: async () => {
+        const target = child;
+        if (target == null) throw new Error('hosted fixture is not running');
+        measurementRequestId += 1;
+        return await requestMeasurement(target, measurementRequestId);
+      },
       provider: {
-        credential: (value) => PROVIDER_CREDENTIALS[value],
+        credential: providerCredential,
         requestSummary: () => provider!.requestSummary(),
       },
       restart: async (kind, beforeStart) => {
@@ -307,8 +360,8 @@ async function startProviderFixture(): Promise<ProviderFixture> {
   const requests: ProviderRequest[] = [];
   let activeMarkedRequests = 0;
   let maxConcurrentMarkedRequests = 0;
-  const activeByCredential: Record<HostedIdentity, number> = { a: 0, b: 0 };
-  const maxByCredential: Record<HostedIdentity, number> = { a: 0, b: 0 };
+  const activeByCredential: Partial<Record<HostedIdentity, number>> = { a: 0, b: 0 };
+  const maxByCredential: Partial<Record<HostedIdentity, number>> = { a: 0, b: 0 };
   const server = createServer(async (request, response) => {
     let trackedCredential: HostedIdentity | null = null;
     try {
@@ -317,7 +370,12 @@ async function startProviderFixture(): Promise<ProviderFixture> {
       const credential = classifyCredential(request);
       const promptMarker = classifyPromptMarker(body);
       const turnMarker = classifyTurnMarker(body);
+      const capacityPhase = body.includes('[capacity-v1]')
+        ? body.includes('"type":"tool_result"') ? 'final' : 'tool-use'
+        : null;
       requests.push(Object.freeze({
+        capacityInputMarker: classifyCapacityInputMarker(body),
+        capacityPhase,
         credential,
         method: request.method ?? 'GET',
         model: parsed.model,
@@ -329,11 +387,11 @@ async function startProviderFixture(): Promise<ProviderFixture> {
       if (parsed.stream === true && credential !== 'unknown' && promptMarker !== 'unknown') {
         trackedCredential = credential;
         activeMarkedRequests += 1;
-        activeByCredential[credential] += 1;
+        activeByCredential[credential] = (activeByCredential[credential] ?? 0) + 1;
         maxConcurrentMarkedRequests = Math.max(maxConcurrentMarkedRequests, activeMarkedRequests);
         maxByCredential[credential] = Math.max(
-          maxByCredential[credential],
-          activeByCredential[credential],
+          maxByCredential[credential] ?? 0,
+          activeByCredential[credential] ?? 0,
         );
       }
       if (new URL(request.url ?? '/', 'http://fixture').pathname !== '/v1/messages') {
@@ -346,6 +404,14 @@ async function startProviderFixture(): Promise<ProviderFixture> {
           'cache-control': 'no-cache',
           'content-type': 'text/event-stream',
         });
+        if (capacityPhase === 'tool-use') {
+          writeCapacityToolUse(response, parsed.model);
+          return;
+        }
+        if (capacityPhase === 'final') {
+          await writeCapacityFinal(response, parsed.model);
+          return;
+        }
         const message = {
           id: 'msg_hosted_fixture',
           type: 'message',
@@ -398,7 +464,7 @@ async function startProviderFixture(): Promise<ProviderFixture> {
     } finally {
       if (trackedCredential != null) {
         activeMarkedRequests -= 1;
-        activeByCredential[trackedCredential] -= 1;
+        activeByCredential[trackedCredential] = (activeByCredential[trackedCredential] ?? 1) - 1;
       }
     }
   });
@@ -423,11 +489,79 @@ function classifyCredential(request: IncomingMessage): HostedIdentity | 'unknown
     ?? (typeof authorization === 'string' && authorization.startsWith('Bearer ')
       ? authorization.slice('Bearer '.length)
       : undefined);
-  return value === PROVIDER_CREDENTIALS.a
-    ? 'a'
-    : value === PROVIDER_CREDENTIALS.b
-      ? 'b'
-      : 'unknown';
+  const match = typeof value === 'string' ? /^hosted-e2e-provider-(a|b|u(?:0[1-9]|1[0-5]))$/u.exec(value) : null;
+  return match != null && isHostedIdentity(match[1]) ? match[1] : 'unknown';
+}
+
+function providerCredential(identity: HostedIdentity): string {
+  return `hosted-e2e-provider-${identity}`;
+}
+
+function isHostedIdentity(value: string | undefined): value is HostedIdentity {
+  return value !== undefined && (HOSTED_IDENTITIES as readonly string[]).includes(value);
+}
+
+function writeCapacityToolUse(
+  response: import('node:http').ServerResponse,
+  model: string | null,
+): void {
+  writeSse(response, 'message_start', {
+    type: 'message_start',
+    message: {
+      id: 'msg_hosted_capacity_tool', type: 'message', role: 'assistant', content: [],
+      model: model ?? 'claude-sonnet-4-5', stop_reason: null, stop_sequence: null,
+      usage: { input_tokens: 1, output_tokens: 0 },
+    },
+  });
+  writeSse(response, 'content_block_start', {
+    type: 'content_block_start', index: 0,
+    content_block: { type: 'tool_use', id: 'toolu_hosted_capacity', name: 'od_hosted_broker', input: {} },
+  });
+  writeSse(response, 'content_block_delta', {
+    type: 'content_block_delta', index: 0,
+    delta: {
+      type: 'input_json_delta',
+      partial_json: '{"operation":"project:file:read","path":"input.txt"}',
+    },
+  });
+  writeSse(response, 'content_block_stop', { type: 'content_block_stop', index: 0 });
+  writeSse(response, 'message_delta', {
+    type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null },
+    usage: { output_tokens: 1 },
+  });
+  writeSse(response, 'message_stop', { type: 'message_stop' });
+  response.end();
+}
+
+async function writeCapacityFinal(
+  response: import('node:http').ServerResponse,
+  model: string | null,
+): Promise<void> {
+  writeSse(response, 'message_start', {
+    type: 'message_start',
+    message: {
+      id: 'msg_hosted_capacity_final', type: 'message', role: 'assistant', content: [],
+      model: model ?? 'claude-sonnet-4-5', stop_reason: null, stop_sequence: null,
+      usage: { input_tokens: 1, output_tokens: 0 },
+    },
+  });
+  writeSse(response, 'content_block_start', {
+    type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' },
+  });
+  for (const text of ['Capacity ', 'read complete.']) {
+    await delay(20);
+    if (response.destroyed) return;
+    writeSse(response, 'content_block_delta', {
+      type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text },
+    });
+  }
+  writeSse(response, 'content_block_stop', { type: 'content_block_stop', index: 0 });
+  writeSse(response, 'message_delta', {
+    type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null },
+    usage: { output_tokens: 4 },
+  });
+  writeSse(response, 'message_stop', { type: 'message_stop' });
+  response.end();
 }
 
 function parseProviderBody(body: string): { model: string | null; stream: boolean | null } {
@@ -442,10 +576,27 @@ function parseProviderBody(body: string): { model: string | null; stream: boolea
   }
 }
 
-function classifyPromptMarker(body: string): HostedIdentity | 'mixed' | 'unknown' {
+function classifyPromptMarker(body: string): HostedIdentity | 'capacity' | 'mixed' | 'unknown' {
   const hasA = body.includes('[tenant-a-marker]');
   const hasB = body.includes('[tenant-b-marker]');
-  return hasA && hasB ? 'mixed' : hasA ? 'a' : hasB ? 'b' : 'unknown';
+  return hasA && hasB
+    ? 'mixed'
+    : hasA
+      ? 'a'
+      : hasB
+        ? 'b'
+        : body.includes('[capacity-v1]')
+          ? 'capacity'
+          : 'unknown';
+}
+
+function classifyCapacityInputMarker(body: string): HostedIdentity | 'mixed' | null {
+  const markers = new Set(
+    [...body.matchAll(/\[capacity-input:(a|b|u(?:0[1-9]|1[0-5]))\]/gu)]
+      .map((match) => match[1])
+      .filter(isHostedIdentity),
+  );
+  return markers.size === 0 ? null : markers.size === 1 ? [...markers][0]! : 'mixed';
 }
 
 function classifyTurnMarker(body: string): string | null {
@@ -527,6 +678,52 @@ function waitForChildReady(
     child.on('message', onMessage);
     child.once('exit', onExit);
   });
+}
+
+function requestMeasurement(child: ChildProcess, id: number): Promise<HostedMeasurement> {
+  if (!child.connected) return Promise.reject(new Error('hosted fixture IPC is disconnected'));
+  return new Promise((resolveMeasurement, rejectMeasurement) => {
+    const timer = setTimeout(
+      () => finish(new Error('hosted fixture measurement timed out')),
+      10_000,
+    );
+    timer.unref();
+    const onMessage = (message: unknown): void => {
+      if (message == null || typeof message !== 'object' || Array.isArray(message)) return;
+      const record = message as Record<string, unknown>;
+      if (record.id !== id) return;
+      if (record.type === 'measurement' && isMeasurementValue(record.value)) {
+        finish(undefined, record.value);
+      } else if (record.type === 'measurement-error') {
+        finish(new Error(typeof record.message === 'string'
+          ? record.message
+          : 'hosted fixture measurement failed'));
+      }
+    };
+    const onExit = (): void => finish(new Error('hosted fixture exited during measurement'));
+    const finish = (error?: Error, value?: HostedMeasurement): void => {
+      clearTimeout(timer);
+      child.off('message', onMessage);
+      child.off('exit', onExit);
+      if (error != null) rejectMeasurement(error);
+      else resolveMeasurement(value!);
+    };
+    child.on('message', onMessage);
+    child.once('exit', onExit);
+    child.send({ type: 'measure', id }, (error) => {
+      if (error != null) finish(error);
+    });
+  });
+}
+
+function isMeasurementValue(value: unknown): value is HostedMeasurement {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return Number.isFinite(record.atMs)
+    && record.host != null && typeof record.host === 'object'
+    && record.process != null && typeof record.process === 'object'
+    && record.registry != null && typeof record.registry === 'object'
+    && Array.isArray(record.operations);
 }
 
 async function assertReady(origin: string): Promise<void> {

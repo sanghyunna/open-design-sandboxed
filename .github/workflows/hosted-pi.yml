@@ -44,12 +44,12 @@ jobs:
       - name: Install Chromium system dependencies
         if: runner.os == 'Linux'
         run: pnpm --filter @open-design/e2e exec playwright install-deps chromium
-      - name: Run PR10 complete hosted acceptance suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr10
+      - name: Run PR11 complete hosted acceptance and capacity suite
+        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr11
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: hosted-pi-${{ matrix.os }}
+          name: hosted-pi-pr11-${{ matrix.os }}
           path: .tmp/hosted-pi-artifact-pr10
           if-no-files-found: error
           include-hidden-files: true
@@ -57,7 +57,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hosted-acceptance-diagnostics-${{ matrix.os }}
+          name: hosted-pr11-diagnostics-${{ matrix.os }}
           path: |
             .tmp/e2e
             .tmp/h
