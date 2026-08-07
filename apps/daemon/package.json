@@ -17,6 +17,10 @@
     "./sidecar": {
       "types": "./dist/sidecar/index.d.ts",
       "default": "./dist/sidecar/index.js"
+    },
+    "./testing/hosted-acceptance-server": {
+      "types": "./dist/testing/hosted-acceptance-server.d.ts",
+      "default": "./dist/testing/hosted-acceptance-server.js"
     }
   },
   "files": [

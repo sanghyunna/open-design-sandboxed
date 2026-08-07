@@ -371,6 +371,9 @@ importers:
       '@open-design/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
+      '@open-design/daemon':
+        specifier: workspace:*
+        version: link:../apps/daemon
       '@playwright/test':
         specifier: 1.60.0
         version: 1.60.0

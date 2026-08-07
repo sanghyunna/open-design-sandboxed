@@ -39,25 +39,32 @@ jobs:
         run: node -e "if (process.arch !== 'x64') process.exit(1)"
       - name: Install build dependencies
         run: pnpm install --frozen-lockfile
-      - name: Run complete prior hosted suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr04
-      - name: Run PR06 snapshot boundary suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr06
-      - name: Run PR07 hosted traffic boundary suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr07
-      - name: Run PR08 protected content boundary suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr08
-      - name: Run PR09 durable acknowledgement boundary suite
-        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr09
-      - name: Stage hosted artifact
-        run: pnpm --filter @open-design/tools-pack hosted:pi:build -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
-      - name: Execute staged artifact smoke suite
-        run: pnpm --filter @open-design/tools-pack hosted:pi:check -- --out .tmp/hosted-pi-artifact-${{ matrix.os }}
+      - name: Install Chromium
+        run: pnpm --filter @open-design/e2e exec playwright install chromium
+      - name: Install Chromium system dependencies
+        if: runner.os == 'Linux'
+        run: pnpm --filter @open-design/e2e exec playwright install-deps chromium
+      - name: Run PR10 complete hosted acceptance suite
+        run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr10
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: hosted-pi-${{ matrix.os }}
-          path: .tmp/hosted-pi-artifact-${{ matrix.os }}
+          path: .tmp/hosted-pi-artifact-pr10
           if-no-files-found: error
+          include-hidden-files: true
+      - name: Upload hosted acceptance diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-acceptance-diagnostics-${{ matrix.os }}
+          path: |
+            .tmp/e2e
+            .tmp/h
+            ${{ runner.temp }}/od-h
+            e2e/ui/reports
+          if-no-files-found: warn
+          include-hidden-files: true
 
   nix-packaging:
     name: Hosted / Nix dependency hash and flake check

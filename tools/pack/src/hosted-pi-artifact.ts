@@ -621,7 +621,7 @@ async function runSemanticResumeSmoke(options: {
     try {
       await waitForChildClose(child, 20_000);
     } catch (error) {
-      throw new Error(`${error instanceof Error ? error.message : String(error)}${stderr.trim() ? `\nPi stderr:\n${stderr.trim()}` : ''}`);
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\nPi stdout types: ${rawLines.map((line) => String(line.type ?? '?')).join(', ')}${stderr.trim() ? `\nPi stderr:\n${stderr.trim()}` : ''}`);
     } finally {
       if (turnOptions.forceExitFallback) {
         if (previousGrace === undefined) delete process.env.PI_GRACEFUL_SHUTDOWN_MS;
