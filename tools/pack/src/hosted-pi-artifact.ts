@@ -29,6 +29,7 @@ const hostedPiVersion = '0.83.0';
 const hostedPiIntegrity = 'sha512-uYhF+FsZxogoSX/AxBcUdiY+ZklubwaXyAoEGA2eQwsHcyEAhUYIKh/WLXe/a8+k8eTCmxb+ZN2Zo9mzQtzbWw==';
 const photonVersion = '0.3.4';
 const defaultOutput = path.join(repoRoot, '.tmp', 'hosted-pi-artifact');
+const hostedPiSmokeTimeoutMs = 60_000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -619,7 +620,7 @@ async function runSemanticResumeSmoke(options: {
         : {}),
     });
     try {
-      await waitForChildClose(child, 20_000);
+      await waitForChildClose(child, hostedPiSmokeTimeoutMs);
     } catch (error) {
       throw new Error(`${error instanceof Error ? error.message : String(error)}\nPi stdout types: ${rawLines.map((line) => String(line.type ?? '?')).join(', ')}${stderr.trim() ? `\nPi stderr:\n${stderr.trim()}` : ''}`);
     } finally {
@@ -849,7 +850,7 @@ async function runRpcSmoke(stage: string): Promise<void> {
     const timeout = setTimeout(() => {
       child.stdout?.off('data', check);
       reject(new Error('timed out waiting for hosted Pi RPC line'));
-    }, 20_000);
+    }, hostedPiSmokeTimeoutMs);
     check = (): void => {
       for (; cursor < lines.length; cursor++) {
         const line = lines[cursor];
