@@ -14,7 +14,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createServer as createTcpServer, type AddressInfo, type Server as TcpServer } from "node:net";
 import { dirname, isAbsolute, join } from "node:path";
-import type { Duplex } from "node:stream";
+import type { Duplex } from 'node:stream';
 import { fileURLToPath } from "node:url";
 
 import {
@@ -881,7 +881,7 @@ async function startRegularNextSidecar(
   webRoot: string,
   hostedPublicOrigin: URL | null,
 ): Promise<WebSidecarHandle> {
-  const dev = process.env.OD_WEB_PROD !== "1" && runtime.mode === "dev";
+  const dev = process.env.OD_WEB_PROD !== '1' && runtime.mode === 'dev';
   const app = createNextApp({ dev, dir: webRoot });
   await prepareNextApp(app, webRoot);
 

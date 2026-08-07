@@ -4,6 +4,7 @@ import { rm } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 import type { SmokeSuite } from './smoke-suite.ts';
@@ -548,10 +549,6 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<void> {
     };
     child.once('exit', onExit);
   });
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 }
 
 async function killProcessTree(child: ChildProcess): Promise<void> {
