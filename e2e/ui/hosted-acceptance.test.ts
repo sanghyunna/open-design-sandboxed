@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { HostedProjectResponse, HostedSessionResponse } from '@open-design/contracts';
 
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 import { T } from '@/timeouts';
 
 test('[P0] hosted composition accepts a credential and edits owned project content', async ({ page }) => {

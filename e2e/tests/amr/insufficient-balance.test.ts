@@ -8,7 +8,7 @@ import { writeFakeVelaBin } from '@/amr';
 import { createAmrProject, putAmrAppConfig } from '@/vitest/amr';
 import { listMessages } from '@/vitest/messages';
 import { readRunEvents, startRun, waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 describe('AMR insufficient balance run failures', () => {
   test('fails the run with a recharge-facing AMR error when fake vela reports insufficient balance', { timeout: 180_000 }, async () => {

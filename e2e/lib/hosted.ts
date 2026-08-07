@@ -21,6 +21,10 @@ import {
 export type HostedIdentity = 'a' | 'b';
 export type HostedRestartKind = 'graceful' | 'crash';
 
+export type HostedSuiteOptions = {
+  readonly idleEvictionMs?: number;
+};
+
 export type HostedHttpClient = {
   readonly headers: Readonly<{ authorization: string }>;
   request(path: string, init?: RequestInit): Promise<Response>;
@@ -38,6 +42,7 @@ export type HostedProviderRequestSummary = {
     readonly path: string;
     readonly promptMarker: HostedIdentity | 'mixed' | 'unknown';
     readonly stream: boolean | null;
+    readonly turnMarker: string | null;
   }>;
 };
 
@@ -46,7 +51,7 @@ export type HostedSuiteContext = {
   readonly webUrl: string;
   readonly runtimeRoot: string;
   identity(identity: HostedIdentity): HostedHttpClient;
-  restart(kind: HostedRestartKind): Promise<void>;
+  restart(kind: HostedRestartKind, beforeStart?: () => Promise<void>): Promise<void>;
   readonly provider: {
     credential(identity: HostedIdentity): string;
     requestSummary(): HostedProviderRequestSummary;
@@ -69,6 +74,7 @@ const PROVIDER_CREDENTIALS = Object.freeze({
 export async function runHostedSuite(
   suite: SmokeSuite,
   run: (context: HostedSuiteContext) => Promise<void>,
+  options: HostedSuiteOptions = {},
 ): Promise<string> {
   let runtime = await allocateToolsDevRuntime();
   let provider: ProviderFixture | null = null;
@@ -90,9 +96,7 @@ export async function runHostedSuite(
   };
   // Keep the fixed hosted storage suffixes below Windows' legacy path ceiling.
   const runtimeRoot = join(process.env.RUNNER_TEMP ?? tmpdir(), 'od-h', suiteHash);
-  const fixturePath = fileURLToPath(import.meta.resolve(
-    '@open-design/daemon/testing/hosted-acceptance-server',
-  ));
+  const fixturePath = fileURLToPath(new URL('./hosted-acceptance-server.ts', import.meta.url));
   let webUrl = '';
   let daemonUrl = '';
   let configPath = '';
@@ -122,6 +126,7 @@ export async function runHostedSuite(
     childGeneration += 1;
     const generation = childGeneration;
     configPath = await suite.writeScratchJson('hosted/config.json', {
+      idleEvictionMs: options.idleEvictionMs ?? 300_000,
       launchId: generation,
       port: runtime.daemonPort,
       providerBaseUrl: provider!.origin,
@@ -132,6 +137,7 @@ export async function runHostedSuite(
       cwd: workspaceRoot,
       detached: process.platform !== 'win32',
       env: { ...process.env, NODE_ENV: 'test' },
+      execArgv: ['--import', 'tsx'],
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     });
     child = started;
@@ -191,8 +197,9 @@ export async function runHostedSuite(
         credential: (value) => PROVIDER_CREDENTIALS[value],
         requestSummary: () => provider!.requestSummary(),
       },
-      restart: async (kind) => {
+      restart: async (kind, beforeStart) => {
         await stopChild(kind);
+        await beforeStart?.();
         await startChild();
       },
     };
@@ -308,6 +315,7 @@ async function startProviderFixture(): Promise<ProviderFixture> {
       const parsed = parseProviderBody(body);
       const credential = classifyCredential(request);
       const promptMarker = classifyPromptMarker(body);
+      const turnMarker = classifyTurnMarker(body);
       requests.push(Object.freeze({
         credential,
         method: request.method ?? 'GET',
@@ -315,6 +323,7 @@ async function startProviderFixture(): Promise<ProviderFixture> {
         path: new URL(request.url ?? '/', 'http://fixture').pathname,
         promptMarker,
         stream: parsed.stream,
+        turnMarker,
       }));
       if (parsed.stream === true && credential !== 'unknown' && promptMarker !== 'unknown') {
         trackedCredential = credential;
@@ -350,7 +359,13 @@ async function startProviderFixture(): Promise<ProviderFixture> {
         writeSse(response, 'content_block_start', {
           type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' },
         });
-        await delay(body.includes('[hold-for-cancel]') ? 5_000 : 400);
+        await delay(
+          body.includes('[hold-for-cancel]')
+            ? 5_000
+            : body.includes('[hold-for-queue]')
+              ? 2_000
+              : 400,
+        );
         if (response.destroyed) return;
         writeSse(response, 'content_block_delta', {
           type: 'content_block_delta', index: 0,
@@ -430,6 +445,17 @@ function classifyPromptMarker(body: string): HostedIdentity | 'mixed' | 'unknown
   const hasA = body.includes('[tenant-a-marker]');
   const hasB = body.includes('[tenant-b-marker]');
   return hasA && hasB ? 'mixed' : hasA ? 'a' : hasB ? 'b' : 'unknown';
+}
+
+function classifyTurnMarker(body: string): string | null {
+  try {
+    const value = JSON.parse(body) as { messages?: unknown };
+    if (!Array.isArray(value.messages)) return null;
+    const current = JSON.stringify(value.messages.at(-1));
+    return /\[order:([ab]\d+)\]/u.exec(current)?.[1] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function readRequestBody(request: IncomingMessage): Promise<string> {

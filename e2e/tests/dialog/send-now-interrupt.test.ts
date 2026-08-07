@@ -19,7 +19,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { createFakeAgentRuntimes } from '@/fake-agents';
 import { requestJson } from '@/vitest/http';
 import { waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 const HELD_PROMPT = 'Hold the daemon run open until canceled for the send-now smoke';
 const QUEUED_PROMPT = 'Create a deterministic smoke artifact';

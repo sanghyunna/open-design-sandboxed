@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { createReport } from '@/vitest/report';
+import { createReport } from '@/report';
 
 const roots: string[] = [];
 

@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { assertRelativeReportPath, createReport, type E2eReport } from './report.ts';
-import type { HostedSuiteContext } from './hosted.ts';
+import type { HostedSuiteContext, HostedSuiteOptions } from './hosted.ts';
 import type {
   ToolsDevCheckResult,
   ToolsDevLogResult,
@@ -33,7 +33,10 @@ export type SmokeSuiteFinalizeInput = {
 };
 
 export type SmokeSuiteWith = {
-  hosted: (run: (context: HostedSuiteContext) => Promise<void>) => Promise<string>;
+  hosted: (
+    run: (context: HostedSuiteContext) => Promise<void>,
+    options?: HostedSuiteOptions,
+  ) => Promise<string>;
   toolsDev: (
     run: (context: ToolsDevSuiteContext) => Promise<void>,
     options?: ToolsDevSuiteOptions,
@@ -59,7 +62,7 @@ export type ToolsDevSuiteOptions = {
   skipFatalLogCheck?: boolean;
 };
 
-const e2eRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const e2eRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = dirname(e2eRoot);
 
 export function e2eWorkspaceRoot(): string {
@@ -96,7 +99,7 @@ export async function createSmokeSuite(name: string): Promise<SmokeSuite> {
     scratchDir,
     toolsDevRoot,
     with: {
-      hosted: (run) => runHostedSuite(suite, run),
+      hosted: (run, options) => runHostedSuite(suite, run, options),
       toolsDev: (run, options) => runToolsDevSuite(suite, run, options),
     },
     writeScratchJson: (name, value) => writeJson(scratchDir, name, value),
@@ -128,9 +131,10 @@ export async function createSmokeSuite(name: string): Promise<SmokeSuite> {
 async function runHostedSuite(
   suite: SmokeSuite,
   run: (context: HostedSuiteContext) => Promise<void>,
+  options?: HostedSuiteOptions,
 ): Promise<string> {
   const hosted = await import('./hosted.ts');
-  return await hosted.runHostedSuite(suite, run);
+  return await hosted.runHostedSuite(suite, run, options);
 }
 
 async function runToolsDevSuite(

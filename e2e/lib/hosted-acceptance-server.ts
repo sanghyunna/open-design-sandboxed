@@ -1,14 +1,16 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createConnection } from 'node:net';
 import path from 'node:path';
 
 import {
   startHostedServer,
   type HostedResolvedIdentity,
-} from '../hosted-server.js';
-import { startHostedPiTurn } from '../runtimes/hosted-pi-turn.js';
+} from '@open-design/daemon/hosted-server';
+import { startHostedPiTurn } from '@open-design/daemon/hosted-pi-turn';
 
 type FixtureConfig = {
+  idleEvictionMs: number;
   launchId: number;
   port: number;
   providerBaseUrl: string;
@@ -29,6 +31,12 @@ const identities = Object.freeze({
   }),
 } satisfies Record<string, HostedResolvedIdentity>);
 
+type BrokerBinding = { socketPath: string; token: string };
+const brokerBindings = new Map<string, BrokerBinding>();
+let grantProbe = deferred();
+let grantProbeStarted = false;
+let grantProbeVerified = false;
+
 if (process.env.NODE_ENV !== 'test') fail();
 
 try {
@@ -47,6 +55,7 @@ try {
         return nextId(counters, config.launchId, userKey, 'run');
       },
       eventBudgetLimits: { heartbeatMs: 100 },
+      idleEvictionMs: config.idleEvictionMs,
       providerBaseUrls: {
         anthropic: config.providerBaseUrl,
         'vercel-ai-gateway': config.providerBaseUrl,
@@ -61,9 +70,13 @@ try {
         return identity === undefined ? null : identities[identity];
       },
       startTurn(input, dependencies) {
+        let grantIsolation = Promise.resolve();
         return startHostedPiTurn(input, {
           ...dependencies,
           spawnChild(command, args, options) {
+            if (input.prompt.includes('[probe-grant-isolation]')) {
+              grantIsolation = captureBrokerBinding(input.capabilities.userKey, options.env);
+            }
             fs.writeFileSync(
               path.join(options.env!.PI_CODING_AGENT_DIR!, 'models.json'),
               JSON.stringify({ providers: { anthropic: { baseUrl: config.providerBaseUrl } } }),
@@ -94,7 +107,8 @@ try {
             });
             return child;
           },
-        }).then((result) => {
+        }).then(async (result) => {
+          await grantIsolation;
           if (result.value.status === 'failed') {
             process.stderr.write(`${JSON.stringify({
               type: 'turn-terminal',
@@ -153,7 +167,7 @@ function readConfig(candidate: string | undefined): FixtureConfig {
   const record = value as Record<string, unknown>;
   if (
     Object.keys(record).sort().join(',')
-      !== 'launchId,port,providerBaseUrl,publicOrigin,runtimeRoot'
+      !== 'idleEvictionMs,launchId,port,providerBaseUrl,publicOrigin,runtimeRoot'
   ) {
     fail();
   }
@@ -163,12 +177,15 @@ function readConfig(candidate: string | undefined): FixtureConfig {
     || !Number.isSafeInteger(record.port)
     || (record.port as number) < 1
     || (record.port as number) > 65_535
+    || !Number.isSafeInteger(record.idleEvictionMs)
+    || (record.idleEvictionMs as number) < 1
     || typeof record.runtimeRoot !== 'string'
     || !path.isAbsolute(record.runtimeRoot)
     || !isExactOrigin(record.publicOrigin, false)
     || !isExactOrigin(record.providerBaseUrl, true)
   ) fail();
   return {
+    idleEvictionMs: record.idleEvictionMs as number,
     launchId: record.launchId as number,
     port: record.port as number,
     providerBaseUrl: record.providerBaseUrl as string,
@@ -222,7 +239,9 @@ function nextId(
   const key = `${userKey}\0${kind}`;
   const value = (values.get(key) ?? 0) + 1;
   values.set(key, value);
-  return `${kind}-${launchId}-${value}`;
+  return kind === 'run'
+    ? `${kind}-${launchId}-${userKey}-${value}`
+    : `${kind}-${launchId}-${value}`;
 }
 
 function isShutdownMessage(value: unknown): boolean {
@@ -231,6 +250,81 @@ function isShutdownMessage(value: unknown): boolean {
     && !Array.isArray(value)
     && Object.keys(value).length === 1
     && (value as { type?: unknown }).type === 'shutdown';
+}
+
+function captureBrokerBinding(
+  userKey: string,
+  env: NodeJS.ProcessEnv | undefined,
+): Promise<void> {
+  if (grantProbeVerified) return Promise.resolve();
+  const socketPath = env?.OD_HOSTED_PI_BROKER_SOCKET;
+  const token = env?.OD_HOSTED_PI_BROKER_TOKEN;
+  if (typeof socketPath !== 'string' || typeof token !== 'string') {
+    return Promise.reject(new Error('hosted broker grant was not injected'));
+  }
+  brokerBindings.set(userKey, { socketPath, token });
+  if (brokerBindings.size >= 2 && !grantProbeStarted) {
+    grantProbeStarted = true;
+    const [first, second] = [...brokerBindings.values()];
+    void Promise.all([
+      requestBroker(first!.socketPath, second!.token),
+      requestBroker(second!.socketPath, first!.token),
+    ]).then((responses) => {
+      if (responses.some((response) => response.code !== 'BROKER_TOKEN_INVALID')) {
+        throw new Error('cross-user hosted broker grant was accepted');
+      }
+      grantProbeVerified = true;
+      grantProbe.resolve();
+    }).catch(grantProbe.reject);
+  }
+  return grantProbe.promise;
+}
+
+function requestBroker(socketPath: string, token: string): Promise<{ code?: unknown }> {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection(socketPath);
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error('hosted broker grant probe timed out'));
+    }, 5_000);
+    timer.unref();
+    let buffer = '';
+    const settle = (action: () => void): void => {
+      clearTimeout(timer);
+      socket.destroy();
+      action();
+    };
+    socket.setEncoding('utf8');
+    socket.once('connect', () => {
+      socket.write(`${JSON.stringify({ token, operation: 'project:file:list', path: '' })}\n`);
+    });
+    socket.once('error', (error) => settle(() => reject(error)));
+    socket.on('data', (chunk: string) => {
+      buffer += chunk;
+      const newline = buffer.indexOf('\n');
+      if (newline < 0) return;
+      try {
+        const response = JSON.parse(buffer.slice(0, newline)) as { code?: unknown };
+        settle(() => resolve(response));
+      } catch (error) {
+        settle(() => reject(error));
+      }
+    });
+  });
+}
+
+function deferred(): {
+  promise: Promise<void>;
+  reject: (error: unknown) => void;
+  resolve: () => void;
+} {
+  let reject!: (error: unknown) => void;
+  let resolve!: () => void;
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
 }
 
 function samePath(left: string, right: string): boolean {

@@ -8,7 +8,7 @@ import { writeFakeVelaBin } from '@/amr';
 import { createAmrProject, putAmrAppConfig } from '@/vitest/amr';
 import { listMessages } from '@/vitest/messages';
 import { readRunEvents, startRun, waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 describe('AMR auth error convergence', () => {
   test('marks the run and assistant message as failed when fake vela returns an auth error during prompt', { timeout: 180_000 }, async () => {

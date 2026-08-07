@@ -13,8 +13,9 @@ For the current coverage posture, recent hardening work, grouped-run status, and
 - `lib/fake-agents.ts`: shared fake local agent CLI harness used by UI and pure-inspect daemon specs.
 - `lib/timeouts.ts`: CI-scaled timeout constants (`T.short`, `T.medium`, `T.long`, `T.xlong`). Import as `{ T }` from `@/timeouts`. Use these instead of hardcoded millisecond values in UI tests.
 - `lib/playwright/mock-factory.ts`: shared Playwright mock helpers. `applyStandardMocks(page)` seeds localStorage and intercepts `/api/agents` and `/api/app-config` with standard daemon/mock-agent fixtures. Use in `beforeEach` for tests that do not need a custom agent or protocol setup.
-- `lib/vitest/`: Vitest-specific atomic helpers only. Helpers describe actions such as namespace lifecycle, mock servers, HTTP calls, tools-dev commands, inspect, logs, and reports; they should not hide core business scenario decisions.
-- `lib/vitest/report.ts`: the report boundary. Specs save curated output through `report.save(<relpath>, <blob>)` or `report.json(<relpath>, value)`; external consumers should use only the final report path, not its internal file layout.
+- `lib/vitest/`: Vitest-specific atomic helpers only. Helpers describe actions such as mock servers and HTTP calls; they should not hide core business scenario decisions.
+- `lib/report.ts`: the runner-neutral report boundary. Specs save curated output through `report.save(<relpath>, <blob>)` or `report.json(<relpath>, value)`; external consumers should use only the final report path, not its internal file layout.
+- `lib/smoke-suite.ts`, `lib/tools-dev.ts`, and `lib/hosted.ts`: runner-neutral lifecycle composition shared by Vitest and Playwright.
 - `createSmokeSuite(...).with.*`: suite-owned lifecycle composition. Prefer this shape for namespace-bound resources such as `suite.with.toolsDev(...)` so specs keep business workflow code in the foreground.
 - `lib/playwright/`: Playwright-specific fixtures, resource accessors, route helpers, and UI actions.
 - `scripts/playwright.ts`: Playwright auxiliary subcommands such as artifact cleanup; it must not wrap `playwright test`.

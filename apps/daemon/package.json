@@ -14,13 +14,17 @@
       "default": "./dist/cli.js"
     },
     "./package.json": "./package.json",
+    "./hosted-server": {
+      "types": "./dist/hosted-server.d.ts",
+      "default": "./dist/hosted-server.js"
+    },
+    "./hosted-pi-turn": {
+      "types": "./dist/runtimes/hosted-pi-turn.d.ts",
+      "default": "./dist/runtimes/hosted-pi-turn.js"
+    },
     "./sidecar": {
       "types": "./dist/sidecar/index.d.ts",
       "default": "./dist/sidecar/index.js"
-    },
-    "./testing/hosted-acceptance-server": {
-      "types": "./dist/testing/hosted-acceptance-server.d.ts",
-      "default": "./dist/testing/hosted-acceptance-server.js"
     }
   },
   "files": [

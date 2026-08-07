@@ -36,7 +36,7 @@ import { describe, expect, test } from 'vitest';
 import { requestJson } from '@/vitest/http';
 import { listMessages } from '@/vitest/messages';
 import { startRun, waitForRunStatus } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 type ProjectResponse = {
   conversationId: string;
