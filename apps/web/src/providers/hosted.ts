@@ -100,7 +100,7 @@ export class HostedProviderClient {
   private session: HostedSessionResponse | null = null;
   private sessionRequest: Promise<HostedSessionResponse> | null = null;
 
-  constructor(private readonly fetcher: typeof fetch = fetch) {}
+  constructor(private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
 
   status(): Promise<HostedProviderStatusResponse> {
     return this.request('GET', '/api/hosted/provider');

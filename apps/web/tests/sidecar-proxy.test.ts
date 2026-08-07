@@ -9,6 +9,7 @@ import {
   createStandaloneBackendEnv,
   createStandaloneParentMonitorImport,
   createStandaloneServerArgs,
+  isHostedNextDevUpgrade,
   normalizeDaemonProxyOriginHeader,
   resolveDaemonProxyTarget,
   resolveHostedPublicOrigin,
@@ -27,6 +28,12 @@ describe('hosted public sidecar boundary', () => {
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/frames/example')).toEqual({ kind: 'deny' });
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/apiary')).toEqual({ kind: 'next' });
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/settings')).toEqual({ kind: 'next' });
+  });
+
+  it('allows only the Next development HMR upgrade', () => {
+    expect(isHostedNextDevUpgrade('/_next/webpack-hmr?id=dev')).toBe(true);
+    expect(isHostedNextDevUpgrade('/_next/webpack-hmr-evil')).toBe(false);
+    expect(isHostedNextDevUpgrade('/api/runs/1/stream')).toBe(false);
   });
 
   it('requires an exact HTTP public origin', () => {

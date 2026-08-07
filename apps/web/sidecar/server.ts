@@ -14,6 +14,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createServer as createTcpServer, type AddressInfo, type Server as TcpServer } from "node:net";
 import { dirname, isAbsolute, join } from "node:path";
+import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -51,6 +52,7 @@ const require = createRequire(import.meta.url);
 type NextApp = {
   close?: () => Promise<void>;
   getRequestHandler(): (request: IncomingMessage, response: ServerResponse) => Promise<void>;
+  getUpgradeHandler(): (request: IncomingMessage, socket: Duplex, head: Buffer) => Promise<void>;
   prepare(): Promise<void>;
 };
 
@@ -264,6 +266,10 @@ export function resolveHostedSidecarRoute(
     return { kind: "deny" };
   }
   return { kind: "next" };
+}
+
+export function isHostedNextDevUpgrade(requestUrl: string | undefined): boolean {
+  return requestUrl?.split("?", 1)[0] === "/_next/webpack-hmr";
 }
 
 function isHostedAssertionHeader(name: string): boolean {
@@ -875,13 +881,23 @@ async function startRegularNextSidecar(
   webRoot: string,
   hostedPublicOrigin: URL | null,
 ): Promise<WebSidecarHandle> {
-  const app = createNextApp({ dev: process.env.OD_WEB_PROD !== "1" && runtime.mode === "dev", dir: webRoot });
+  const dev = process.env.OD_WEB_PROD !== "1" && runtime.mode === "dev";
+  const app = createNextApp({ dev, dir: webRoot });
   await prepareNextApp(app, webRoot);
 
   const daemonOrigin = resolveDaemonOrigin();
   const handleRequest = app.getRequestHandler();
   const httpServer = createHttpServer(createDaemonProxyHandler(daemonOrigin, handleRequest, hostedPublicOrigin));
-  if (hostedPublicOrigin != null) httpServer.on("upgrade", (_request, socket) => socket.destroy());
+  if (hostedPublicOrigin != null) {
+    const handleUpgrade = app.getUpgradeHandler();
+    httpServer.on("upgrade", (request, socket, head) => {
+      if (!dev || !isHostedNextDevUpgrade(request.url)) {
+        socket.destroy();
+        return;
+      }
+      void handleUpgrade(request, socket, head).catch(() => socket.destroy());
+    });
+  }
 
   return await createWebSidecarHandle(runtime, httpServer, async () => {
     await app.close?.();

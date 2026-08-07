@@ -16,6 +16,24 @@ function json(value: unknown, status = 200): Response {
 }
 
 describe('HostedProviderClient', () => {
+  it('does not rebind the browser fetch receiver', async () => {
+    const responses = [json(session), json({ provider: null, configured: false })];
+    const fetcher = vi.fn(function (this: unknown) {
+      expect(this).toBe(globalThis);
+      return Promise.resolve(responses.shift()!);
+    });
+    vi.stubGlobal('fetch', fetcher);
+
+    try {
+      await expect(new HostedProviderClient().status()).resolves.toEqual({
+        provider: null,
+        configured: false,
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('bootstraps a memory-only session before reading provider status', async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(session))
