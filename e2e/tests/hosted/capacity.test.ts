@@ -172,6 +172,7 @@ async function runCapacityRepetition(repetition: number): Promise<{
       }
       expect(providerRequests).toHaveLength(admittedUsers * 2);
 
+      const completedMeasurement = await context.measure();
       const idle = await waitForIdle(context.measure);
       const operations = idle.operations.slice(before.operations.length);
       expect(operations.some((measurement) => measurement.kind === 'checkpoint')).toBe(true);
@@ -184,7 +185,7 @@ async function runCapacityRepetition(repetition: number): Promise<{
       }
       levels.push({
         admittedUsers,
-        measurements: { active, before, idle },
+        measurements: { active, before, completed: completedMeasurement, idle },
         operations,
         provider: {
           requests: providerRequests.length,
