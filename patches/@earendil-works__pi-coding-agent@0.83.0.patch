@@ -1,13 +1,23 @@
 diff --git a/dist/modes/rpc/rpc-mode.js b/dist/modes/rpc/rpc-mode.js
 --- a/dist/modes/rpc/rpc-mode.js
 +++ b/dist/modes/rpc/rpc-mode.js
-@@ -576,6 +576,9 @@ export async function runRpcMode(runtimeHost) {
+@@ -576,7 +576,7 @@ export async function runRpcMode(runtimeHost) {
      let detachInput = () => { };
      async function shutdown(exitCode = 0, signal) {
          if (shuttingDown) {
-+            if (signal !== "SIGTERM") {
-+                await flushRawStdout();
-+            }
-             process.exit(exitCode);
+-            process.exit(exitCode);
++            return;
          }
          shuttingDown = true;
+         for (const cleanup of signalCleanupHandlers) {
+@@ -590,6 +590,10 @@ export async function runRpcMode(runtimeHost) {
+         if (signal !== "SIGTERM") {
+             await flushRawStdout();
+         }
++        // Node 24 can assert while synchronously closing fetch handles on Windows.
++        if (process.platform === "win32") {
++            await new Promise((resolve) => setTimeout(resolve, 100));
++        }
+         process.exit(exitCode);
+     }
+     async function checkShutdownRequested() {
