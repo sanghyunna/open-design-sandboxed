@@ -7,12 +7,14 @@ import {
   constants,
   fstatSync,
   lstatSync,
+  mkdtempSync,
   mkdirSync,
   openSync,
   opendirSync,
   readFileSync,
   realpathSync,
   renameSync,
+  rmdirSync,
   rmSync,
   statSync,
   unlinkSync,
@@ -20,6 +22,7 @@ import {
   type Dirent,
   type Stats,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { hostedPiBrokerExtensionPath } from './hosted-pi-runtime.js';
 
@@ -465,10 +468,13 @@ export async function createHostedPiBroker(options: {
   const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
   const directorySnapshot: DirectorySnapshot = new Map();
   captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget, '', directorySnapshot, { entries: 0 });
-  const socketPath = process.platform === 'win32'
-    ? `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`
-    : path.join(runtimeRoot, `hosted-pi-${randomBytes(12).toString('hex')}.sock`);
-  if (process.platform !== 'win32' && existsSync(socketPath)) rmSync(socketPath, { force: true });
+  const socketRoot = process.platform === 'win32'
+    ? null
+    : realpathSync(mkdtempSync(path.join(tmpdir(), 'odpi-')));
+  if (socketRoot) chmodSync(socketRoot, 0o700);
+  const socketPath = socketRoot
+    ? path.join(socketRoot, 'broker.sock')
+    : `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`;
 
   let closed = false;
   let operationTail: Promise<void> = Promise.resolve();
@@ -568,8 +574,16 @@ export async function createHostedPiBroker(options: {
     });
   });
 
-  await listen(server, socketPath);
-  if (process.platform !== 'win32') chmodSync(socketPath, 0o600);
+  try {
+    await listen(server, socketPath);
+    if (socketRoot) chmodSync(socketPath, 0o600);
+  } catch (error) {
+    if (socketRoot) {
+      try { unlinkSync(socketPath); } catch { /* listen never created it */ }
+      try { rmdirSync(socketRoot); } catch { /* preserve listen failure */ }
+    }
+    throw error;
+  }
 
   return {
     grant,
@@ -581,8 +595,9 @@ export async function createHostedPiBroker(options: {
       if (closed) return;
       closed = true;
       await new Promise<void>((resolve) => server.close(() => resolve()));
-      if (process.platform !== 'win32') {
+      if (socketRoot) {
         try { unlinkSync(socketPath); } catch { /* already removed */ }
+        try { rmdirSync(socketRoot); } catch { /* already removed */ }
       }
     },
   };
