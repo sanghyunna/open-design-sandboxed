@@ -23,7 +23,6 @@ import {
   type Stats,
 } from 'node:fs';
 import path from 'node:path';
-import { SIDECAR_DEFAULTS } from '@open-design/sidecar-proto';
 import { hostedPiBrokerExtensionPath } from './hosted-pi-runtime.js';
 
 export const HOSTED_PI_BROKER_TOOL_NAME = 'od_hosted_broker';
@@ -192,17 +191,17 @@ function projectRootStillBound(root: string, expected?: RootIdentity): boolean {
   }
 }
 
-function safeRuntimeRoot(input: string): string {
-  if (!path.isAbsolute(input)) throw new Error('hosted Pi broker runtime root must be absolute');
+function safeRuntimeRoot(input: string, label = 'runtime root'): string {
+  if (!path.isAbsolute(input)) throw new Error(`hosted Pi broker ${label} must be absolute`);
   if (existsSync(input) && lstatSync(input).isSymbolicLink()) {
-    throw new Error('hosted Pi broker runtime root must not be a symlink or junction');
+    throw new Error(`hosted Pi broker ${label} must not be a symlink or junction`);
   }
   mkdirSync(input, { recursive: true });
   const resolved = realpathSync(input);
   if (comparable(resolved) !== comparable(path.resolve(input))) {
-    throw new Error('hosted Pi broker runtime root must not resolve through a symlink or junction');
+    throw new Error(`hosted Pi broker ${label} must not resolve through a symlink or junction`);
   }
-  if (systemPath(resolved)) throw new Error('hosted Pi broker runtime root is a system path');
+  if (systemPath(resolved)) throw new Error(`hosted Pi broker ${label} is a system path`);
   return resolved;
 }
 
@@ -434,6 +433,7 @@ async function listen(server: Server, socketPath: string): Promise<void> {
 export async function createHostedPiBroker(options: {
   binding: HostedPiBinding;
   runtimeRoot: string;
+  socketBase?: string;
 }): Promise<HostedPiBroker> {
   const binding = options.binding;
   if (!Number.isSafeInteger(binding.generation) || binding.generation < 1) {
@@ -468,12 +468,15 @@ export async function createHostedPiBroker(options: {
   const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
   const directorySnapshot: DirectorySnapshot = new Map();
   captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget, '', directorySnapshot, { entries: 0 });
-  if (process.platform !== 'win32') {
-    mkdirSync(SIDECAR_DEFAULTS.ipcBase, { mode: 0o700, recursive: true });
-  }
-  const socketRoot = process.platform === 'win32'
+  const socketBase = process.platform === 'win32'
     ? null
-    : realpathSync(mkdtempSync(path.join(SIDECAR_DEFAULTS.ipcBase, 'pi-')));
+    : safeRuntimeRoot(options.socketBase ?? runtimeRoot, 'socket base');
+  if (socketBase && inside(projectRoot, socketBase)) {
+    throw new Error('hosted Pi broker socket base must stay outside the project root');
+  }
+  const socketRoot = socketBase === null
+    ? null
+    : realpathSync(mkdtempSync(path.join(socketBase, 'pi-')));
   if (socketRoot) chmodSync(socketRoot, 0o700);
   const socketPath = socketRoot
     ? path.join(socketRoot, 'broker.sock')

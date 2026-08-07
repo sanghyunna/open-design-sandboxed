@@ -17,6 +17,7 @@ export type HostedPiRuntimeAdapterOptions = {
   runtimeRoot: string;
   packageRoot?: string;
   sessionRoot?: string;
+  socketBase?: string;
   designSystemTool?: HostedPiDesignSystemTool;
 };
 
@@ -59,6 +60,7 @@ export function createHostedPiRuntimeAdapter(
 ): HostedPiRuntimeAdapter {
   const runtimeRoot = path.resolve(options.runtimeRoot);
   const sessionRoot = path.resolve(options.sessionRoot ?? path.join(runtimeRoot, 'sessions'));
+  const socketBase = path.resolve(options.socketBase ?? '/tmp/open-design/ipc');
   return async (request) => {
     const runId = safeRunId(request.runId);
     if (!Number.isSafeInteger(request.generation) || request.generation < 1) {
@@ -70,6 +72,7 @@ export function createHostedPiRuntimeAdapter(
     }
     const broker: HostedPiBroker = await createHostedPiBroker({
       runtimeRoot,
+      socketBase,
       binding: {
         generation: request.generation,
         userKey: request.userKey,

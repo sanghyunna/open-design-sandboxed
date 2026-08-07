@@ -244,11 +244,13 @@ describe('hosted Pi broker', () => {
     if (process.platform === 'win32') return;
     const f = fixture();
     const runtimeRoot = join(f.root, 'r'.repeat(120));
+    const socketBase = join(f.root, 'sockets');
     mkdirSync(runtimeRoot);
-    const broker = await createHostedPiBroker({ binding: f.binding, runtimeRoot });
+    const broker = await createHostedPiBroker({ binding: f.binding, runtimeRoot, socketBase });
     const socketRoot = join(broker.socketPath, '..');
     try {
       assert.equal(broker.socketPath.startsWith(runtimeRoot), false);
+      assert.equal(broker.socketPath.startsWith(socketBase), true);
       const response = await socketRequest(broker.socketPath, {
         token: broker.token,
         operation: 'project:file:read',
