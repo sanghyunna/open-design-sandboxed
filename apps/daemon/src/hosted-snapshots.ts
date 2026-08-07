@@ -955,10 +955,7 @@ async function copyReachableSessions(
     ).all() as Array<{ projectId: string; sessionId: string }>;
     const copied = new Map<string, string>();
     for (const row of rows) {
-      const logical = logicalLivePath(row.sessionId, liveRoot);
-      if (!logical.startsWith('sessions/')) {
-        throw new Error('hosted snapshot session reference is outside the session root');
-      }
+      const logical = logicalSessionPath(row.sessionId, liveRoot);
       await copyReachableSessionLineage(
         logical,
         liveRoot,
@@ -1079,10 +1076,7 @@ async function normalizeStagedSessions(
     );
     const updates: Array<{ logical: string; conversationId: string; agentId: string }> = [];
     for (const row of rows) {
-      const logical = logicalLivePath(row.sessionId, liveRoot);
-      if (!logical.startsWith('sessions/')) {
-        throw new Error('hosted snapshot session reference is outside the session root');
-      }
+      const logical = logicalSessionPath(row.sessionId, liveRoot);
       await normalizeSessionLineage(
         logical,
         liveRoot,
@@ -1325,6 +1319,17 @@ function logicalLivePath(input: string, liveRoot: string): string {
     throw new Error('hosted snapshot path escapes the live generation');
   }
   return relative.split(path.sep).join('/');
+}
+
+function logicalSessionPath(input: string, liveRoot: string): string {
+  const logical = logicalLivePath(
+    path.isAbsolute(input) || input.startsWith('sessions/') ? input : `sessions/${input}`,
+    liveRoot,
+  );
+  if (!logical.startsWith('sessions/')) {
+    throw new Error('hosted snapshot session reference is outside the session root');
+  }
+  return logical;
 }
 
 async function checksumPayload(

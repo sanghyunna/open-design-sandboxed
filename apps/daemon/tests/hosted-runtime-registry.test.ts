@@ -261,7 +261,7 @@ describe('HostedRuntimeRegistry', () => {
         conversationId: 'conversation-a',
         runId: 'resumed-run',
         execute: async ({ sessionReference }) => ({ value: sessionReference }),
-      })).resolves.toMatch(/session\.jsonl$/u);
+      })).resolves.toBe('session.jsonl');
     } finally {
       lease.release();
       await registry.shutdown();

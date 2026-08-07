@@ -97,7 +97,7 @@ describe('hosted snapshots', () => {
     upsertAgentSession(storage.database, {
       agentId: 'pi',
       conversationId: 'conversation-a',
-      sessionId: child,
+      sessionId: 'child.jsonl',
     });
     let quiesced = false;
     const snapshots = createHostedSnapshotStore({ identity, runtimeRoot });

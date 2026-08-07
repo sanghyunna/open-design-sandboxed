@@ -3363,6 +3363,19 @@ function validateSessionReference(value: string): void {
   }
 }
 
+function hydrateSessionReference(value: string, sessionRoot: string): string {
+  validateSessionReference(value);
+  if (!path.isAbsolute(value)) return value;
+  const relative = path.relative(sessionRoot, value);
+  if (
+    !relative
+    || path.isAbsolute(relative)
+    || relative === '..'
+    || relative.startsWith(`..${path.sep}`)
+  ) runtimeUnavailable('hosted session reference is invalid');
+  return relative.split(path.sep).join('/');
+}
+
 function hydrateSessionReferences(
   runtime: RuntimeState,
   storage: HostedRuntimeStorage,
@@ -3386,12 +3399,15 @@ function hydrateSessionReferences(
       runtimeUnavailable('hosted session reference is invalid');
     }
     validateInternalId(row.conversationId, 'conversation');
-    validateSessionReference(row.sessionReference);
-    runtime.sessionReferenceBytes += Buffer.byteLength(row.sessionReference, 'utf8');
+    const sessionReference = hydrateSessionReference(
+      row.sessionReference,
+      storage.roots.sessionsRoot,
+    );
+    runtime.sessionReferenceBytes += Buffer.byteLength(sessionReference, 'utf8');
     if (runtime.sessionReferenceBytes > limits.sessionReferenceBytesPerUser) {
       runtimeUnavailable('hosted session reference quota is invalid');
     }
-    runtime.sessions.set(row.conversationId, row.sessionReference);
+    runtime.sessions.set(row.conversationId, sessionReference);
   }
 }
 
