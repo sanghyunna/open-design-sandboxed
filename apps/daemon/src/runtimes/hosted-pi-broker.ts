@@ -22,8 +22,8 @@ import {
   type Dirent,
   type Stats,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { SIDECAR_DEFAULTS } from '@open-design/sidecar-proto';
 import { hostedPiBrokerExtensionPath } from './hosted-pi-runtime.js';
 
 export const HOSTED_PI_BROKER_TOOL_NAME = 'od_hosted_broker';
@@ -468,9 +468,12 @@ export async function createHostedPiBroker(options: {
   const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
   const directorySnapshot: DirectorySnapshot = new Map();
   captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget, '', directorySnapshot, { entries: 0 });
+  if (process.platform !== 'win32') {
+    mkdirSync(SIDECAR_DEFAULTS.ipcBase, { mode: 0o700, recursive: true });
+  }
   const socketRoot = process.platform === 'win32'
     ? null
-    : realpathSync(mkdtempSync(path.join(tmpdir(), 'odpi-')));
+    : realpathSync(mkdtempSync(path.join(SIDECAR_DEFAULTS.ipcBase, 'pi-')));
   if (socketRoot) chmodSync(socketRoot, 0o700);
   const socketPath = socketRoot
     ? path.join(socketRoot, 'broker.sock')
