@@ -4,7 +4,6 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import {
   createApiError,
-  type ApiErrorCode,
   type HostedProviderId,
 } from '@open-design/contracts';
 import {
@@ -43,48 +42,42 @@ import {
   type HostedArtifactAdapter,
 } from './hosted-artifact-adapter.js';
 import {
-  createHostedContentAdapter,
-  type HostedContentMutationOperation,
-  type HostedContentReadOperation,
-} from './hosted-content-adapter.js';
-import {
   createHostedContentQuota,
-  type HostedContentQuotaOperation,
 } from './hosted-content-quota.js';
 import {
   createHostedDownloadStreams,
-  type HostedArchiveDownload,
 } from './hosted-download-stream.js';
 import {
-  beginHostedUploadIntake,
-  type HostedMultipartFileDescriptor,
-  type HostedUploadedFile,
-} from './hosted-upload-adapter.js';
-import {
   clearAgentSession,
-  deleteConversation,
-  deleteProject,
   getConversation,
   getProject,
-  insertConversation,
   insertProject,
-  listConversations,
   listMessages,
-  listPreviewComments,
   listProjects,
-  listTabs,
-  setTabs,
-  updateConversation,
-  updateProject,
   upsertAgentSession,
-  upsertMessage,
-  upsertPreviewComment,
 } from './db.js';
 import {
   HOSTED_METADATA_RESOURCE_LIMITS,
   type HostedMetadataMutationOperation,
   type HostedMetadataReadOperation,
 } from './hosted-metadata-adapter.js';
+import {
+  exactOwnedProjectRoot,
+  executeHostedRuntimeContentOperation,
+  type HostedRuntimeContentContext,
+  type HostedRuntimeContentOperation,
+} from './hosted-runtime-content-app.js';
+import { HostedRuntimeError } from './hosted-runtime-error.js';
+import {
+  executeHostedRuntimeJournalOperation,
+  type HostedRuntimeJournalContext,
+  type HostedRuntimeJournalOperation,
+} from './hosted-runtime-journal-app.js';
+import {
+  executeHostedMetadataMutation,
+  executeHostedMetadataRead,
+  type HostedRuntimeMetadataContext,
+} from './hosted-runtime-metadata-app.js';
 import type {
   NormalizedHostedRunIntentV1,
 } from './hosted-run-adapter.js';
@@ -97,19 +90,6 @@ import {
   type ProjectCheckpointService,
 } from './project-checkpoints.js';
 import { createChatRunService } from './runs.js';
-import {
-  createProjectFolder,
-  deleteProjectFile,
-  deleteProjectFolder,
-  listFiles,
-  listProjectFolders,
-  readProjectFile,
-  renameProjectFile,
-  searchProjectFiles,
-  writeProjectFile,
-  ProjectFileContentConflictError,
-} from './projects.js';
-import { buildProjectExportManifestResponse } from './import-export-routes.js';
 
 const DEFAULT_LIMITS = Object.freeze({
   activeChildren: 32,
@@ -131,15 +111,7 @@ const DEFAULT_LIMITS = Object.freeze({
   weakLeasesPerUser: 4,
 });
 
-export class HostedRuntimeError extends Error {
-  readonly code: ApiErrorCode;
-
-  constructor(code: ApiErrorCode, message: string) {
-    super(message);
-    this.name = 'HostedRuntimeError';
-    this.code = code;
-  }
-}
+export { HostedRuntimeError } from './hosted-runtime-error.js';
 
 export interface HostedRuntimeIdentity {
   readonly userKey: string;
@@ -360,56 +332,10 @@ export type HostedRuntimeInternalOperation =
       readonly kind: 'snapshot:publish';
       readonly quiesce: () => Promise<void>;
     }
-  | { readonly kind: 'content:dispatch'; readonly request: unknown }
-  | {
-      readonly kind: 'archive:open';
-      readonly projectId: string;
-      readonly relativeRoot?: string;
-      readonly signal?: AbortSignal;
-    }
-  | { readonly kind: 'upload:begin'; readonly projectId: string }
-  | { readonly kind: 'export:manifest'; readonly projectId: string }
-  | { readonly kind: 'artifact:save'; readonly request: unknown }
-  | { readonly kind: 'artifact:lint'; readonly request: unknown }
-  | { readonly kind: 'artifact:download'; readonly artifactId: string }
-  | {
-      readonly kind: 'journal:mutate';
-      readonly scope:
-        | { readonly kind: 'run'; readonly runId: string }
-        | { readonly kind: 'project'; readonly projectId: string };
-      readonly execute: () => Promise<{
-        readonly events: readonly HostedDurableEventInput[];
-        readonly value: unknown;
-      }>;
-    }
-  | {
-      readonly kind: 'journal:publish';
-      readonly channel: HostedEventChannel;
-      readonly event: string;
-      readonly data: unknown;
-    }
-  | {
-      readonly kind: 'journal:replay';
-      readonly channel: HostedEventChannel;
-      readonly after?: string | null;
-    }
-  | {
-      readonly kind: 'journal:attach';
-      readonly channel: HostedEventChannel;
-      readonly after?: string | null;
-      readonly response: Parameters<ReturnType<typeof createHostedEventJournal>['attach']>[0]['response'];
-    }
-  | { readonly kind: 'journal:close'; readonly channel: HostedEventChannel }
-  | { readonly kind: 'journal:invalidate'; readonly channel: HostedEventChannel };
+  | HostedRuntimeContentOperation
+  | HostedRuntimeJournalOperation;
 
-export interface HostedRuntimeUploadIntake {
-  readonly stagingRoot: string;
-  cleanup(): Promise<void>;
-  finalize(input: {
-    readonly fields: Readonly<Record<string, unknown>>;
-    readonly files: readonly HostedMultipartFileDescriptor[];
-  }): Promise<{ readonly files: readonly HostedUploadedFile[] }>;
-}
+export type { HostedRuntimeUploadIntake } from './hosted-runtime-content-app.js';
 
 export interface HostedRuntimeGenerationControl {
   readonly userKey: string;
@@ -2441,266 +2367,47 @@ export function createHostedRuntimeRegistry(
         }
         case 'metadata:read': {
           await waitForRuntime(state.runtime);
-          return executeMetadataRead(state.runtime, operation.operation);
+          return executeHostedMetadataRead(
+            metadataContext(state.runtime),
+            operation.operation,
+          );
         }
         case 'metadata:mutate': {
           return enqueueMutation(
             state.runtime,
-            () => executeMetadataMutation(state.runtime, operation.operation),
+            () => executeHostedMetadataMutation(
+              metadataContext(state.runtime),
+              operation.operation,
+            ),
           );
         }
         case 'snapshot:publish': {
           return publishSnapshot(state.runtime, operation.quiesce);
         }
-        case 'content:dispatch': {
-          await waitForRuntime(state.runtime);
-          return executeContentDispatch(state.runtime, operation.request);
-        }
-        case 'archive:open': {
-          validateInternalId(operation.projectId, 'project');
-          await waitForRuntime(state.runtime);
-          requireOwnedProject(state.runtime, operation.projectId);
-          const storage = storageFor(state.runtime);
-          return downloadStreams.openArchive({
-            archiveName: operation.projectId,
-            rootPath: exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId),
-            userKey: state.runtime.binding.userKey,
-            ...(operation.relativeRoot === undefined
-              ? {}
-              : { relativeRoot: operation.relativeRoot }),
-            ...(operation.signal === undefined ? {} : { signal: operation.signal }),
-          });
-        }
-        case 'upload:begin': {
-          validateInternalId(operation.projectId, 'project');
-          await waitForRuntime(state.runtime);
-          requireOwnedProject(state.runtime, operation.projectId);
-          return createUploadIntake(state.runtime, operation.projectId);
-        }
-        case 'export:manifest': {
-          validateInternalId(operation.projectId, 'project');
-          await waitForRuntime(state.runtime);
-          const project = requireOwnedProject(state.runtime, operation.projectId);
-          const storage = storageFor(state.runtime);
-          exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
-          try {
-            return buildProjectExportManifestResponse({
-              files: await listFiles(storage.roots.projectsRoot, operation.projectId),
-              project,
-              projectId: operation.projectId,
-            });
-          } catch (error) {
-            throw projectContentError(error);
-          }
-        }
-        case 'artifact:save': {
-          return enqueueMutation(
-            state.runtime,
-            () => artifactAdapterFor(state.runtime).save(operation.request),
+        case 'content:dispatch':
+        case 'archive:open':
+        case 'upload:begin':
+        case 'export:manifest':
+        case 'artifact:save':
+        case 'artifact:lint':
+        case 'artifact:download':
+          return executeHostedRuntimeContentOperation(
+            contentContext(state.runtime),
+            operation,
           );
-        }
-        case 'artifact:lint': {
-          await waitForRuntime(state.runtime);
-          return artifactAdapterFor(state.runtime).lint(operation.request);
-        }
-        case 'artifact:download': {
-          await waitForRuntime(state.runtime);
-          return artifactAdapterFor(state.runtime).openDownload(operation.artifactId);
-        }
-        case 'journal:mutate': {
-          const pending: { value: HostedPreparedDurableEventBatch | null } = {
-            value: null,
-          };
-          try {
-            const value = await enqueueMutation(state.runtime, async () => {
-              validateJournalMutationScope(state.runtime, operation.scope);
-              const result = await operation.execute();
-              validateJournalMutationEvents(state.runtime, operation.scope, result.events);
-              pending.value = eventJournalFor(state.runtime).prepareDurableBatch(result.events);
-              writeEventJournalSnapshot(
-                storageFor(state.runtime),
-                pending.value.snapshot,
-              );
-              return result.value;
-            });
-            if (pending.value == null) runtimeUnavailable('hosted journal mutation was not prepared');
-            commitDurableEvents(
-              state.runtime,
-              pending.value,
-              'hosted journal mutation publication failed',
-            );
-            return value;
-          } catch (error) {
-            pending.value?.rollback();
-            throw error;
-          }
-        }
-        case 'journal:publish': {
-          await waitForRuntime(state.runtime);
-          return eventJournalFor(state.runtime).publish(
-            operation.channel,
-            operation.event,
-            operation.data,
+        case 'journal:mutate':
+        case 'journal:publish':
+        case 'journal:replay':
+        case 'journal:attach':
+        case 'journal:close':
+        case 'journal:invalidate':
+          return executeHostedRuntimeJournalOperation(
+            journalContext(state.runtime),
+            operation,
           );
-        }
-        case 'journal:replay': {
-          await waitForRuntime(state.runtime);
-          return eventJournalFor(state.runtime).replay({
-            ...(operation.after === undefined ? {} : { after: operation.after }),
-            channel: operation.channel,
-            ownerKey: state.runtime.binding.storageKey,
-          });
-        }
-        case 'journal:attach': {
-          await waitForRuntime(state.runtime);
-          return eventJournalFor(state.runtime).attach({
-            ...(operation.after === undefined ? {} : { after: operation.after }),
-            channel: operation.channel,
-            ownerKey: state.runtime.binding.storageKey,
-            response: operation.response,
-          });
-        }
-        case 'journal:close': {
-          await waitForRuntime(state.runtime);
-          eventJournalFor(state.runtime).close(operation.channel);
-          return { ok: true };
-        }
-        case 'journal:invalidate': {
-          await waitForRuntime(state.runtime);
-          eventJournalFor(state.runtime).invalidate(operation.channel);
-          return { ok: true };
-        }
       }
     } catch (error) {
       return Promise.reject(error);
-    }
-  }
-
-  async function executeContentDispatch(
-    runtime: RuntimeState,
-    request: unknown,
-  ): Promise<unknown> {
-    const authority = {
-      generation: runtime.generation,
-      userKey: runtime.binding.userKey,
-    };
-    return createHostedContentAdapter({
-      read: (_authority, operation) => executeContentRead(runtime, operation),
-      mutateInLane: (_authority, operation) => enqueueMutation(
-        runtime,
-        () => executeContentMutation(runtime, operation),
-      ),
-    }).dispatch(authority, request);
-  }
-
-  async function executeContentRead(
-    runtime: RuntimeState,
-    operation: HostedContentReadOperation,
-  ): Promise<unknown> {
-    requireOwnedProject(runtime, operation.projectId);
-    const projectsRoot = storageFor(runtime).roots.projectsRoot;
-    exactOwnedProjectRoot(projectsRoot, operation.projectId);
-    try {
-      switch (operation.kind) {
-        case 'files.list':
-          return await listFiles(projectsRoot, operation.projectId, {
-            ...(operation.since === undefined ? {} : { since: operation.since }),
-          });
-        case 'file.read':
-          return await readProjectFile(projectsRoot, operation.projectId, operation.path);
-        case 'files.search':
-          return await searchProjectFiles(projectsRoot, operation.projectId, operation.q, {
-            max: operation.max,
-            ...(operation.pattern === undefined ? {} : { pattern: operation.pattern }),
-          });
-        case 'folders.list':
-          return await listProjectFolders(projectsRoot, operation.projectId);
-      }
-    } catch (error) {
-      throw projectContentError(error);
-    }
-  }
-
-  async function executeContentMutation(
-    runtime: RuntimeState,
-    operation: HostedContentMutationOperation,
-  ): Promise<unknown> {
-    requireOwnedProject(runtime, operation.projectId);
-    const storage = storageFor(runtime);
-    const projectRoot = exactOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
-    return contentQuota.runMutation({
-      allWorkspaceRoots: activeProjectRoots(),
-      operation: contentQuotaOperation(operation),
-      workspaceRoot: projectRoot,
-    }, async () => {
-      try {
-        switch (operation.kind) {
-          case 'file.write':
-            return {
-              file: await writeProjectFile(
-                storage.roots.projectsRoot,
-                operation.projectId,
-                operation.body.name,
-                operation.body.content,
-                {
-                  expectedContentSha256: operation.body.expectedContentSha256,
-                  overwrite: operation.body.overwrite,
-                },
-              ),
-            };
-          case 'file.rename':
-            return await renameProjectFile(
-              storage.roots.projectsRoot,
-              operation.projectId,
-              operation.body.from,
-              operation.body.to,
-            );
-          case 'file.delete':
-            await deleteProjectFile(
-              storage.roots.projectsRoot,
-              operation.projectId,
-              operation.path,
-            );
-            return { ok: true };
-          case 'folder.create':
-            return {
-              folder: await createProjectFolder(
-                storage.roots.projectsRoot,
-                operation.projectId,
-                operation.body.path,
-              ),
-            };
-          case 'folder.delete':
-            await deleteProjectFolder(
-              storage.roots.projectsRoot,
-              operation.projectId,
-              operation.body.path,
-            );
-            return { ok: true };
-        }
-      } catch (error) {
-        throw projectContentError(error);
-      }
-    });
-  }
-
-  function contentQuotaOperation(
-    operation: HostedContentMutationOperation,
-  ): HostedContentQuotaOperation {
-    switch (operation.kind) {
-      case 'file.write':
-        return {
-          bytes: operation.body.content.length,
-          kind: 'write',
-          path: operation.body.name,
-        };
-      case 'file.rename':
-        return { from: operation.body.from, kind: 'rename', to: operation.body.to };
-      case 'file.delete':
-        return { kind: 'delete', path: operation.path };
-      case 'folder.create':
-      case 'folder.delete':
-        return { kind: operation.kind, path: operation.body.path };
     }
   }
 
@@ -2715,320 +2422,65 @@ export function createHostedRuntimeRegistry(
     return roots;
   }
 
-  async function createUploadIntake(
-    runtime: RuntimeState,
-    projectId: string,
-  ): Promise<HostedRuntimeUploadIntake> {
-    const storage = storageFor(runtime);
-    const intake = await beginHostedUploadIntake({ uploadsRoot: storage.roots.uploadsRoot });
-    return Object.freeze({
-      stagingRoot: intake.stagingRoot,
-      cleanup: () => intake.cleanup(),
-      finalize: ({ fields, files }: {
-        readonly fields: Readonly<Record<string, unknown>>;
-        readonly files: readonly HostedMultipartFileDescriptor[];
-      }) => intake.finalize({
-        commitInLane: async (commit) => {
-          const bytes = files.reduce((total: number, file: HostedMultipartFileDescriptor) => (
-            total + file.size
-          ), 0);
-          const result = await enqueueMutation(runtime, () => {
-            requireOwnedProject(runtime, projectId);
-            const projectRoot = exactOwnedProjectRoot(storage.roots.projectsRoot, projectId);
-            return contentQuota.runMutation({
-              allWorkspaceRoots: activeProjectRoots(),
-              operation: { bytes, files: files.length, kind: 'growth' },
-              workspaceRoot: projectRoot,
-            }, commit);
-          });
-          return result as Awaited<ReturnType<typeof commit>>;
-        },
-        destinationRoot: exactOwnedProjectRoot(storage.roots.projectsRoot, projectId),
-        fields,
-        files,
-      }),
-    });
+  function contentContext(runtime: RuntimeState): HostedRuntimeContentContext {
+    return {
+      activeProjectRoots,
+      artifactAdapter: () => artifactAdapterFor(runtime),
+      contentQuota,
+      downloadStreams,
+      enqueueMutation: <T>(execute: () => T | Promise<T>) => (
+        enqueueMutation(runtime, execute) as Promise<T>
+      ),
+      generation: runtime.generation,
+      projectsRoot: () => storageFor(runtime).roots.projectsRoot,
+      ready: () => waitForRuntime(runtime),
+      requireProject: (projectId) => requireOwnedProject(runtime, projectId),
+      uploadsRoot: () => storageFor(runtime).roots.uploadsRoot,
+      userKey: runtime.binding.userKey,
+      validateProjectId: (projectId) => validateInternalId(projectId, 'project'),
+    };
   }
 
-  function executeMetadataRead(
-    runtime: RuntimeState,
-    operation: HostedMetadataReadOperation,
-  ): unknown {
+  function metadataContext(runtime: RuntimeState): HostedRuntimeMetadataContext {
     const storage = storageFor(runtime);
-    const db = storage.database;
-    switch (operation.kind) {
-      case 'projects.list':
-        admitMetadataCount(db, 'projects', limits.metadataProjectsPerUser);
-        return { projects: listProjects(db) };
-      case 'project.get':
-        return { project: requireOwnedProject(runtime, operation.projectId) };
-      case 'conversations.list':
-        requireOwnedProject(runtime, operation.projectId);
-        admitMetadataCount(db, 'conversations', limits.metadataConversationsPerUser);
-        return { conversations: listConversations(db, operation.projectId) };
-      case 'messages.list':
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        admitMetadataCount(db, 'messages', limits.metadataMessagesPerUser);
-        return {
-          messages: listMessages(db, operation.conversationId).map(hostedMessageRow),
-        };
-      case 'comments.list':
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        admitMetadataCount(db, 'comments', limits.metadataCommentsPerUser);
-        return {
-          comments: listPreviewComments(
-            db,
-            operation.projectId,
-            operation.conversationId,
-          ),
-        };
-      case 'tabs.get':
-        requireOwnedProject(runtime, operation.projectId);
-        admitMetadataCount(db, 'tabs', limits.metadataTabsPerUser);
-        return listTabs(db, operation.projectId);
-      case 'checkpoints.list':
-        requireOwnedProject(runtime, operation.projectId);
-        if (operation.conversationId !== undefined) {
-          requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        }
-        return {
-          checkpoints: checkpointServiceFor(runtime).listCheckpoints(
-            operation.projectId,
-            operation.conversationId,
-          ),
-        };
-      case 'checkpoint.get':
-        requireOwnedProject(runtime, operation.projectId);
-        return {
-          checkpoint: checkpointServiceFor(runtime).getCheckpoint(
-            operation.projectId,
-            operation.checkpointId,
-          ),
-        };
-      case 'checkpoint.diff':
-        requireOwnedProject(runtime, operation.projectId);
-        return checkpointServiceFor(runtime).diffCheckpoint(
-          operation.projectId,
-          operation.checkpointId,
-        );
-    }
+    return {
+      checkpointService: checkpointServiceFor(runtime),
+      database: storage.database,
+      forgetSession: (conversationId) => forgetSession(runtime, conversationId),
+      limits: {
+        comments: limits.metadataCommentsPerUser,
+        conversations: limits.metadataConversationsPerUser,
+        messages: limits.metadataMessagesPerUser,
+        projects: limits.metadataProjectsPerUser,
+        tabs: limits.metadataTabsPerUser,
+      },
+      nextEntityId: (kind) => nextEntityId(runtime, kind),
+      projectCatalogueIds,
+      projectsRoot: storage.roots.projectsRoot,
+      requireConversation: (projectId, conversationId) => (
+        requireOwnedConversation(runtime, projectId, conversationId)
+      ),
+      requireProject: (projectId) => requireOwnedProject(runtime, projectId),
+      runConversationId: (runId) => runServiceFor(runtime).get(runId)?.conversationId ?? null,
+    };
   }
 
-  function executeMetadataMutation(
-    runtime: RuntimeState,
-    operation: HostedMetadataMutationOperation,
-  ): unknown {
-    const storage = storageFor(runtime);
-    const db = storage.database;
-    switch (operation.kind) {
-      case 'project.create': {
-        const catalogueId = operation.body.catalogueId;
-        if (catalogueId !== undefined && !projectCatalogueIds.has(catalogueId)) {
-          throw new HostedRuntimeError('BAD_REQUEST', 'hosted project catalogue selection is invalid');
-        }
-        admitMetadataCount(db, 'projects', limits.metadataProjectsPerUser, 1);
-        const id = nextEntityId(runtime, 'project');
-        const now = Date.now();
-        createOwnedProjectRoot(storage.roots.projectsRoot, id);
-        try {
-          const project = insertProject(db, {
-            id,
-            name: operation.body.title,
-            createdAt: now,
-            updatedAt: now,
-            metadata: {
-              kind: operation.body.kind ?? 'prototype',
-              ...(catalogueId === undefined ? {} : { catalogueId }),
-            },
-          });
-          return { project };
-        } catch (error) {
-          removeOwnedProjectRoot(storage.roots.projectsRoot, id);
-          throw error;
-        }
-      }
-      case 'project.patch': {
-        requireOwnedProject(runtime, operation.projectId);
-        const project = updateProject(db, operation.projectId, {
-          ...(operation.body.title === undefined ? {} : { name: operation.body.title }),
-        });
-        return { project };
-      }
-      case 'project.delete': {
-        requireOwnedProject(runtime, operation.projectId);
-        const conversations = listConversations(db, operation.projectId);
-        deleteProject(db, operation.projectId);
-        for (const conversation of conversations) forgetSession(runtime, conversation.id);
-        removeOwnedProjectRoot(storage.roots.projectsRoot, operation.projectId);
-        return { ok: true };
-      }
-      case 'conversation.create': {
-        requireOwnedProject(runtime, operation.projectId);
-        const source = operation.body.seedFromConversationId === undefined
-          ? null
-          : requireOwnedConversation(
-              runtime,
-              operation.projectId,
-              operation.body.seedFromConversationId,
-            );
-        if (operation.body.forkAfterMessageId !== undefined && source == null) {
-          throw new HostedRuntimeError(
-            'CONVERSATION_NOT_FOUND',
-            'hosted fork source conversation was not found',
-          );
-        }
-        admitMetadataCount(
-          db,
-          'conversations',
-          limits.metadataConversationsPerUser,
-          1,
-        );
-        if (source != null) {
-          admitMetadataCount(db, 'messages', limits.metadataMessagesPerUser);
-        }
-        let seedMessages = source == null ? [] : listMessages(db, source.id);
-        if (operation.body.forkAfterMessageId !== undefined) {
-          const index = seedMessages.findIndex(
-            (message) => message.id === operation.body.forkAfterMessageId,
-          );
-          if (index < 0) {
-            throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted fork message was not found');
-          }
-          seedMessages = seedMessages.slice(0, index + 1);
-        }
-        admitMetadataCount(
-          db,
-          'messages',
-          limits.metadataMessagesPerUser,
-          seedMessages.length,
-        );
-        const id = nextEntityId(runtime, 'conversation');
-        const now = Date.now();
-        const conversation = insertConversation(db, {
-          id,
-          projectId: operation.projectId,
-          title: operation.body.title ?? null,
-          sessionMode: operation.body.sessionMode ?? source?.sessionMode ?? 'design',
-          createdAt: now,
-          updatedAt: now,
-        });
-        for (const message of seedMessages) {
-          upsertMessage(db, id, cloneHostedMessage(runtime, message));
-        }
-        return { conversation };
-      }
-      case 'conversation.patch': {
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        return {
-          conversation: updateConversation(db, operation.conversationId, operation.body),
-        };
-      }
-      case 'conversation.delete':
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        deleteConversation(db, operation.conversationId);
-        forgetSession(runtime, operation.conversationId);
-        return { ok: true };
-      case 'message.upsert': {
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        const exists = assertMessageIdentifierAvailable(
-          db,
-          operation.conversationId,
-          operation.messageId,
-        );
-        if (operation.body.agentId !== undefined && operation.body.agentId !== 'pi') {
-          throw new HostedRuntimeError('BAD_REQUEST', 'hosted agent is outside the fixed catalogue');
-        }
-        if (operation.body.runId !== undefined) {
-          const run = runServiceFor(runtime).get(operation.body.runId);
-          if (run == null || run.conversationId !== operation.conversationId) {
-            throw new HostedRuntimeError('NOT_FOUND', 'hosted run was not found');
-          }
-        }
-        assertOwnedCommentIds(runtime, operation.conversationId, operation.body.commentIds);
-        assertUnavailableContentIds(operation.body.attachmentIds, 'attachment');
-        assertUnavailableContentIds(operation.body.producedFileIds, 'produced file');
-        admitMetadataCount(
-          db,
-          'messages',
-          limits.metadataMessagesPerUser,
-          exists ? 0 : 1,
-        );
-        const hostedState = {
-          ...(operation.body.resumable === undefined
-            ? {}
-            : { resumable: operation.body.resumable }),
-          ...(operation.body.telemetryFinalized === undefined
-            ? {}
-            : { telemetryFinalized: operation.body.telemetryFinalized }),
-        };
-        const message = upsertMessage(db, operation.conversationId, {
-          id: operation.messageId,
-          role: operation.body.role,
-          content: operation.body.content,
-          agentId: operation.body.agentId,
-          events: operation.body.events,
-          runId: operation.body.runId,
-          runStatus: operation.body.runStatus,
-          lastRunEventId: operation.body.lastRunEventId,
-          startedAt: operation.body.startedAt,
-          endedAt: operation.body.endedAt,
-          sessionMode: operation.body.sessionMode,
-          attachments: operation.body.attachmentIds,
-          commentAttachments: operation.body.commentIds,
-          producedFiles: operation.body.producedFileIds,
-          ...(Object.keys(hostedState).length === 0
-            ? {}
-            : { runContext: { hosted: hostedState } }),
-        });
-        updateProject(db, operation.projectId, {});
-        return { message: hostedMessageRow(message) };
-      }
-      case 'comment.create': {
-        requireOwnedConversation(runtime, operation.projectId, operation.conversationId);
-        for (const attachment of operation.body.attachments ?? []) {
-          if (!ownedRelativeFile(storage.roots.projectsRoot, operation.projectId, attachment.path)) {
-            throw new HostedRuntimeError('FILE_NOT_FOUND', 'hosted comment attachment was not found');
-          }
-        }
-        admitMetadataCount(
-          db,
-          'comments',
-          limits.metadataCommentsPerUser,
-          previewCommentExists(
-            db,
-            operation.projectId,
-            operation.conversationId,
-            operation.body,
-          ) ? 0 : 1,
-        );
-        return {
-          comment: upsertPreviewComment(
-            db,
-            operation.projectId,
-            operation.conversationId,
-            operation.body,
-          ),
-        };
-      }
-      case 'tabs.put': {
-        requireOwnedProject(runtime, operation.projectId);
-        const current = listTabs(db, operation.projectId);
-        const currentCount = hostedTabCount(current);
-        const nextCount = (operation.body.tabs?.length ?? 0)
-          + (operation.body.browserTabs?.length ?? 0);
-        admitMetadataCount(
-          db,
-          'tabs',
-          limits.metadataTabsPerUser,
-          nextCount - currentCount,
-        );
-        return setTabs(db, operation.projectId, {
-          tabs: operation.body.tabs ?? [],
-          active: operation.body.active ?? null,
-          browserTabs: operation.body.browserTabs ?? [],
-        });
-      }
-    }
+  function journalContext(runtime: RuntimeState): HostedRuntimeJournalContext {
+    return {
+      commitDurableEvents: (batch, message) => commitDurableEvents(runtime, batch, message),
+      enqueueMutation: <T>(execute: () => T | Promise<T>) => (
+        enqueueMutation(runtime, execute) as Promise<T>
+      ),
+      eventJournal: () => eventJournalFor(runtime),
+      ownerKey: runtime.binding.storageKey,
+      ready: () => waitForRuntime(runtime),
+      runtimeUnavailable,
+      validateMutationEvents: (scope, events) => (
+        validateJournalMutationEvents(runtime, scope, events)
+      ),
+      validateMutationScope: (scope) => validateJournalMutationScope(runtime, scope),
+      writeSnapshot: (snapshot) => writeEventJournalSnapshot(storageFor(runtime), snapshot),
+    };
   }
 
   function requireOwnedProject(runtime: RuntimeState, projectId: string) {
@@ -3100,55 +2552,11 @@ export function createHostedRuntimeRegistry(
     return id;
   }
 
-  function cloneHostedMessage(runtime: RuntimeState, message: Record<string, unknown>) {
-    return {
-      id: nextEntityId(runtime, 'message'),
-      role: message.role,
-      content: message.content,
-      agentId: message.agentId,
-      agentName: message.agentName,
-      events: message.events,
-      attachments: message.attachments,
-      commentAttachments: message.commentAttachments,
-      producedFiles: message.producedFiles,
-      sessionMode: message.sessionMode,
-    };
-  }
-
   function forgetSession(runtime: RuntimeState, conversationId: string): void {
     const reference = runtime.sessions.get(conversationId);
     if (reference == null) return;
     runtime.sessions.delete(conversationId);
     runtime.sessionReferenceBytes -= Buffer.byteLength(reference, 'utf8');
-  }
-
-  function assertOwnedCommentIds(
-    runtime: RuntimeState,
-    conversationId: string,
-    commentIds: readonly string[] | undefined,
-  ): void {
-    if (commentIds === undefined || commentIds.length === 0) return;
-    const conversation = getConversation(storageFor(runtime).database, conversationId);
-    if (conversation == null) {
-      throw new HostedRuntimeError('CONVERSATION_NOT_FOUND', 'hosted conversation was not found');
-    }
-    const owned = new Set(listPreviewComments(
-      storageFor(runtime).database,
-      conversation.projectId,
-      conversationId,
-    ).map((comment) => comment.id));
-    if (commentIds.some((id) => !owned.has(id))) {
-      throw new HostedRuntimeError('NOT_FOUND', 'hosted comment was not found');
-    }
-  }
-
-  function assertUnavailableContentIds(
-    ids: readonly string[] | undefined,
-    label: string,
-  ): void {
-    if (ids !== undefined && ids.length > 0) {
-      throw new HostedRuntimeError('FILE_NOT_FOUND', `hosted ${label} was not found`);
-    }
   }
 
   function validateHostedRunIntentOwnership(
@@ -3228,213 +2636,6 @@ export function createHostedRuntimeRegistry(
   });
   poisonByRegistry.set(registry, poison);
   return registry;
-}
-
-type MetadataResource = 'comments' | 'conversations' | 'messages' | 'projects' | 'tabs';
-
-const METADATA_COUNT_SQL: Readonly<Record<Exclude<MetadataResource, 'tabs'>, string>> =
-  Object.freeze({
-    comments: 'SELECT COUNT(*) AS count FROM preview_comments',
-    conversations: 'SELECT COUNT(*) AS count FROM conversations',
-    messages: 'SELECT COUNT(*) AS count FROM messages',
-    projects: 'SELECT COUNT(*) AS count FROM projects',
-  });
-
-function admitMetadataCount(
-  db: HostedRuntimeStorage['database'],
-  resource: MetadataResource,
-  maximum: number,
-  change = 0,
-): void {
-  const row = db.prepare(resource === 'tabs'
-    ? `SELECT
-         (SELECT COUNT(*) FROM tabs)
-         + (SELECT COALESCE(SUM(
-             CASE
-               WHEN json_valid(state_json)
-                AND json_type(state_json, '$.browserTabs') = 'array'
-                 THEN json_array_length(state_json, '$.browserTabs')
-               ELSE 0
-             END
-           ), 0) FROM tabs_state) AS count`
-    : METADATA_COUNT_SQL[resource]).get() as { count?: unknown } | undefined;
-  const count = Number(row?.count);
-  if (!Number.isSafeInteger(count) || count < 0) {
-    runtimeUnavailable('hosted metadata cardinality is invalid');
-  }
-  if (count + change > maximum) {
-    throw new HostedRuntimeError(
-      'HOSTED_QUOTA_EXCEEDED',
-      `hosted ${resource} quota is exceeded`,
-    );
-  }
-}
-
-function hostedTabCount(state: ReturnType<typeof listTabs>): number {
-  return state.tabs.length
-    + ('browserTabs' in state && Array.isArray(state.browserTabs) ? state.browserTabs.length : 0);
-}
-
-function previewCommentExists(
-  db: HostedRuntimeStorage['database'],
-  projectId: string,
-  conversationId: string,
-  body: Extract<HostedMetadataMutationOperation, { kind: 'comment.create' }>['body'],
-): boolean {
-  return db.prepare(
-    `SELECT 1
-       FROM preview_comments
-      WHERE project_id = ?
-        AND conversation_id = ?
-        AND file_path = ?
-        AND element_id = ?
-        AND slide_key = ?`,
-  ).get(
-    projectId,
-    conversationId,
-    body.target.filePath.trim(),
-    body.target.elementId.trim(),
-    body.target.slideIndex ?? -1,
-  ) != null;
-}
-
-function hostedMessageRow(message: Record<string, any> | null) {
-  if (message == null) return null;
-  const hosted = message.runContext?.hosted;
-  return {
-    id: message.id,
-    role: message.role,
-    content: message.content,
-    ...(message.agentId === undefined ? {} : { agentId: message.agentId }),
-    ...(message.agentName === undefined ? {} : { agentName: message.agentName }),
-    ...(message.events === undefined ? {} : { events: message.events }),
-    ...(message.runId === undefined ? {} : { runId: message.runId }),
-    ...(message.runStatus === undefined ? {} : { runStatus: message.runStatus }),
-    ...(hosted?.resumable === undefined ? {} : { resumable: hosted.resumable }),
-    ...(message.lastRunEventId === undefined
-      ? {}
-      : { lastRunEventId: message.lastRunEventId }),
-    ...(message.startedAt === undefined ? {} : { startedAt: Number(message.startedAt) }),
-    ...(message.endedAt === undefined ? {} : { endedAt: Number(message.endedAt) }),
-    ...(message.sessionMode === undefined ? {} : { sessionMode: message.sessionMode }),
-    ...(message.attachments === undefined ? {} : { attachmentIds: message.attachments }),
-    ...(message.commentAttachments === undefined
-      ? {}
-      : { commentIds: message.commentAttachments }),
-    ...(message.producedFiles === undefined
-      ? {}
-      : { producedFileIds: message.producedFiles }),
-    ...(message.createdAt === undefined ? {} : { createdAt: Number(message.createdAt) }),
-    ...(hosted?.telemetryFinalized === undefined
-      ? {}
-      : { telemetryFinalized: hosted.telemetryFinalized }),
-  };
-}
-
-function assertMessageIdentifierAvailable(
-  db: HostedRuntimeStorage['database'],
-  conversationId: string,
-  messageId: string,
-): boolean {
-  const existing = db.prepare(
-    'SELECT conversation_id AS conversationId FROM messages WHERE id = ?',
-  ).get(messageId) as { conversationId?: unknown } | undefined;
-  if (existing != null && existing.conversationId !== conversationId) {
-    throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
-  }
-  return existing != null;
-}
-
-function createOwnedProjectRoot(projectsRoot: string, projectId: string): void {
-  const root = fs.realpathSync(projectsRoot);
-  const target = path.join(root, projectId);
-  fs.mkdirSync(target);
-  const stat = fs.lstatSync(target);
-  const resolved = fs.realpathSync(target);
-  if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFsPath(path.dirname(resolved), root)) {
-    try { fs.rmSync(target, { recursive: true, force: true }); } catch { /* preserve primary failure */ }
-    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
-  }
-}
-
-function projectContentError(error: unknown): Error {
-  if (error instanceof HostedRuntimeError) return error;
-  if (error instanceof ProjectFileContentConflictError) {
-    return new HostedRuntimeError('CONFLICT', error.message);
-  }
-  const code = (error as NodeJS.ErrnoException | null)?.code;
-  if (code === 'ENOENT' || code === 'ENOTDIR') {
-    return new HostedRuntimeError('FILE_NOT_FOUND', 'hosted project content was not found');
-  }
-  if (code === 'EEXIST') {
-    return new HostedRuntimeError('CONFLICT', 'hosted project content already exists');
-  }
-  if (code === 'EINVAL' || code === 'EISDIR') {
-    return new HostedRuntimeError('BAD_REQUEST', 'hosted project content request is invalid');
-  }
-  return new HostedRuntimeError(
-    'HOSTED_RUNTIME_UNAVAILABLE',
-    'hosted project content operation failed',
-  );
-}
-
-function exactOwnedProjectRoot(projectsRoot: string, projectId: string): string {
-  const root = fs.realpathSync(projectsRoot);
-  const target = path.join(root, projectId);
-  const stat = fs.lstatSync(target);
-  const resolved = fs.realpathSync(target);
-  if (
-    !stat.isDirectory()
-    || stat.isSymbolicLink()
-    || !sameFsPath(path.dirname(resolved), root)
-  ) {
-    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
-  }
-  return resolved;
-}
-
-function removeOwnedProjectRoot(projectsRoot: string, projectId: string): void {
-  const root = fs.realpathSync(projectsRoot);
-  const target = path.join(root, projectId);
-  if (!fs.existsSync(target)) return;
-  const stat = fs.lstatSync(target);
-  const resolved = fs.realpathSync(target);
-  if (!stat.isDirectory() || stat.isSymbolicLink() || !sameFsPath(path.dirname(resolved), root)) {
-    throw new HostedRuntimeError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted project root is invalid');
-  }
-  fs.rmSync(resolved, { recursive: true, force: false });
-}
-
-function ownedRelativeFile(
-  projectsRoot: string,
-  projectId: string,
-  relativePath: string,
-): boolean {
-  try {
-    const projectRoot = fs.realpathSync(path.join(projectsRoot, projectId));
-    let current = projectRoot;
-    for (const segment of relativePath.split('/')) {
-      current = path.join(current, segment);
-      const stat = fs.lstatSync(current);
-      if (stat.isSymbolicLink()) return false;
-    }
-    const stat = fs.statSync(current);
-    const resolved = fs.realpathSync(current);
-    const relative = path.relative(projectRoot, resolved);
-    return stat.isFile()
-      && relative !== ''
-      && !path.isAbsolute(relative)
-      && relative !== '..'
-      && !relative.startsWith(`..${path.sep}`);
-  } catch {
-    return false;
-  }
-}
-
-function sameFsPath(left: string, right: string): boolean {
-  const a = path.resolve(left);
-  const b = path.resolve(right);
-  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
 
 export function validateHostedProviderCredential(
