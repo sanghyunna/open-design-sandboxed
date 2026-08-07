@@ -208,7 +208,7 @@ describe('hosted Pi runtime', () => {
       if (process.platform === 'win32') {
         assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /OpenDesign\.HostedPi\./);
       } else {
-        assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /hosted-pi-/);
+        assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /\/odpi-[^/]+\/broker\.sock$/);
       }
       assert.equal(handle.invocation.sessionDir, join(sessionRoot, request.runId));
       assert.ok(handle.invocation.args.includes('--extension'));
