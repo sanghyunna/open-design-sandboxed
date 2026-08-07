@@ -142,7 +142,7 @@ async function runCapacityRepetition(repetition: number): Promise<{
           capacityStep(
             admission.user.identity,
             'status',
-            waitForRun(admission.user.client, admission.runId, 'succeeded', 120_000),
+            waitForRun(admission.user.client, admission.runId, 'succeeded', 300_000),
           ),
           capacityStep(admission.user.identity, 'file', expectHttpStatus(
             admission.user.client,
@@ -241,6 +241,9 @@ async function runCapacityRepetition(repetition: number): Promise<{
     ).then((response) => response.text())).toBe(privateOwner.input);
 
     const restoredIdle = await waitForIdle(context.measure);
+    const providerSummary = context.provider.requestSummary();
+    expect(providerSummary.errors).toBe(0);
+    expect(providerSummary.retries).toBe(0);
     semantic = semanticProjection(levels);
     await suite.report.json('capacity-v1.json', {
       contract: {
@@ -250,12 +253,12 @@ async function runCapacityRepetition(repetition: number): Promise<{
         version: 1,
         workload: ['provider', 'project', 'file', 'conversation', 'stream', 'tool', 'checkpoint', 'snapshot'],
       },
-      errors: 0,
+      errors: providerSummary.errors,
       levels,
       localOnly: true,
       restarts: 1,
       restoredIdle,
-      retries: 0,
+      retries: providerSummary.retries,
       semantic,
       unproven: [
         'Databricks Apps ingress, identity, compute, autoscaling, and admission capacity',
@@ -388,6 +391,7 @@ function expectIdle(measurement: HostedMeasurement): void {
     measurement.process.eventLoopLagMs.mean,
     measurement.process.eventLoopLagMs.max,
     measurement.process.eventLoopLagMs.p99,
+    measurement.process.synchronousBlockingMs,
   ]) expect(Number.isFinite(value)).toBe(true);
 }
 

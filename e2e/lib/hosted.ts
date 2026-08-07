@@ -57,6 +57,7 @@ export type HostedMeasurement = {
       readonly max: number;
       readonly p99: number;
     };
+    readonly synchronousBlockingMs: number;
     readonly activeResources: {
       readonly total: number;
       readonly byType: Readonly<Record<string, number>>;
@@ -80,6 +81,7 @@ export type HostedHttpClient = {
 
 export type HostedProviderRequestSummary = {
   readonly count: number;
+  readonly errors: number;
   readonly maxConcurrentMarkedRequests: number;
   readonly maxConcurrentMarkedRequestsByCredential: Readonly<Partial<Record<HostedIdentity, number>>>;
   readonly requests: ReadonlyArray<{
@@ -93,6 +95,7 @@ export type HostedProviderRequestSummary = {
     readonly stream: boolean | null;
     readonly turnMarker: string | null;
   }>;
+  readonly retries: number;
 };
 
 export type HostedSuiteContext = {
@@ -289,9 +292,11 @@ export async function runHostedSuite(
     }
     const providerSummary = provider?.requestSummary() ?? {
       count: 0,
+      errors: 0,
       maxConcurrentMarkedRequests: 0,
       maxConcurrentMarkedRequestsByCredential: { a: 0, b: 0 },
       requests: [],
+      retries: 0,
     };
     await suite.report.json('hosted/provider-summary.json', providerSummary);
     if (!success || cleanupError != null) {
@@ -358,8 +363,11 @@ function createIdentityClient(
 
 async function startProviderFixture(): Promise<ProviderFixture> {
   const requests: ProviderRequest[] = [];
+  const seenCapacityRequests = new Set<string>();
   let activeMarkedRequests = 0;
+  let errors = 0;
   let maxConcurrentMarkedRequests = 0;
+  let retries = 0;
   const activeByCredential: Partial<Record<HostedIdentity, number>> = { a: 0, b: 0 };
   const maxByCredential: Partial<Record<HostedIdentity, number>> = { a: 0, b: 0 };
   const server = createServer(async (request, response) => {
@@ -373,6 +381,11 @@ async function startProviderFixture(): Promise<ProviderFixture> {
       const capacityPhase = body.includes('[capacity-v1]')
         ? body.includes('"type":"tool_result"') ? 'final' : 'tool-use'
         : null;
+      if (capacityPhase != null && credential !== 'unknown') {
+        const attempt = `${credential}\0${capacityPhase}`;
+        if (seenCapacityRequests.has(attempt)) retries += 1;
+        else seenCapacityRequests.add(attempt);
+      }
       requests.push(Object.freeze({
         capacityInputMarker: classifyCapacityInputMarker(body),
         capacityPhase,
@@ -395,6 +408,7 @@ async function startProviderFixture(): Promise<ProviderFixture> {
         );
       }
       if (new URL(request.url ?? '/', 'http://fixture').pathname !== '/v1/messages') {
+        errors += 1;
         response.writeHead(404, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: { message: 'not found' } }));
         return;
@@ -459,6 +473,7 @@ async function startProviderFixture(): Promise<ProviderFixture> {
         usage: { input_tokens: 1, output_tokens: 1 },
       }));
     } catch (error) {
+      errors += 1;
       response.writeHead(400, { 'content-type': 'application/json' });
       response.end(JSON.stringify({ error: { message: 'invalid fixture request' } }));
     } finally {
@@ -475,9 +490,11 @@ async function startProviderFixture(): Promise<ProviderFixture> {
     origin: `http://127.0.0.1:${address.port}`,
     requestSummary: () => Object.freeze({
       count: requests.length,
+      errors,
       maxConcurrentMarkedRequests,
       maxConcurrentMarkedRequestsByCredential: { ...maxByCredential },
       requests: [...requests],
+      retries,
     }),
     close: () => closeServer(server),
   };

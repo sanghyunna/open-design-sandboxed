@@ -12,7 +12,7 @@ import {
   type HostedRuntimeMeasurement,
 } from '@open-design/daemon/hosted-server';
 import { startHostedPiTurn } from '@open-design/daemon/hosted-pi-turn';
-import type { HostedMeasurement } from './hosted.ts';
+import { HOSTED_CAPACITY_IDENTITIES, type HostedMeasurement } from './hosted.ts';
 
 type FixtureConfig = {
   idleEvictionMs: number;
@@ -23,10 +23,8 @@ type FixtureConfig = {
   runtimeRoot: string;
 };
 
-const capacityIdentities = [
-  'u01', 'u02', 'u03', 'u04', 'u05', 'u06', 'u07', 'u08',
-  'u09', 'u10', 'u11', 'u12', 'u13', 'u14', 'u15',
-] as const;
+const EVENT_LOOP_RESOLUTION_MS = 10;
+
 const identities: Readonly<Record<string, HostedResolvedIdentity>> = Object.freeze({
   a: Object.freeze({
     displayName: 'Hosted A',
@@ -38,7 +36,7 @@ const identities: Readonly<Record<string, HostedResolvedIdentity>> = Object.free
     sessionKey: 'hosted-acceptance-session-b',
     userKey: 'hosted-acceptance-user-b',
   }),
-  ...Object.fromEntries(capacityIdentities.map((identity) => [identity, Object.freeze({
+  ...Object.fromEntries(HOSTED_CAPACITY_IDENTITIES.map((identity) => [identity, Object.freeze({
     displayName: `Hosted ${identity.toUpperCase()}`,
     sessionKey: `hosted-capacity-session-${identity}`,
     userKey: `hosted-capacity-user-${identity}`,
@@ -56,7 +54,7 @@ if (process.env.NODE_ENV !== 'test') fail();
 try {
   const config = readConfig(process.argv[2]);
   const counters = new Map<string, number>();
-  const eventLoopDelay = monitorEventLoopDelay({ resolution: 10 });
+  const eventLoopDelay = monitorEventLoopDelay({ resolution: EVENT_LOOP_RESOLUTION_MS });
   const operationMeasurements: HostedRuntimeMeasurement[] = [];
   let childCurrent = 0;
   let childPeak = 0;
@@ -330,6 +328,12 @@ function readMeasurement(
   const cpu = process.cpuUsage();
   const memory = process.memoryUsage();
   const resources = process.getActiveResourcesInfo();
+  const eventLoopLagMs = {
+    mean: finiteMilliseconds(eventLoopDelay.mean),
+    max: finiteMilliseconds(eventLoopDelay.max),
+    p99: finiteMilliseconds(eventLoopDelay.percentile(99)),
+  };
+  eventLoopDelay.reset();
   const byType: Record<string, number> = {};
   for (const resource of resources) byType[resource] = (byType[resource] ?? 0) + 1;
   const processors = cpus();
@@ -350,11 +354,8 @@ function readMeasurement(
       heapUsedBytes: memory.heapUsed,
       heapTotalBytes: memory.heapTotal,
       eventLoopUtilization: performance.eventLoopUtilization().utilization,
-      eventLoopLagMs: {
-        mean: finiteMilliseconds(eventLoopDelay.mean),
-        max: finiteMilliseconds(eventLoopDelay.max),
-        p99: finiteMilliseconds(eventLoopDelay.percentile(99)),
-      },
+      eventLoopLagMs,
+      synchronousBlockingMs: Math.max(0, eventLoopLagMs.max - EVENT_LOOP_RESOLUTION_MS),
       activeResources: { total: resources.length, byType },
       childCurrent: children.current,
       childPeak: children.peak,
