@@ -40,6 +40,9 @@
     "pnpm": ">=10.33.2 <11"
   },
   "pnpm": {
+    "patchedDependencies": {
+      "@earendil-works/pi-coding-agent@0.83.0": "patches/@earendil-works__pi-coding-agent@0.83.0.patch"
+    },
     "overrides": {
       "brace-expansion": "5.0.9",
       "devalue": "5.8.1",

@@ -1,0 +1,20 @@
+diff --git a/dist/modes/rpc/rpc-mode.js b/dist/modes/rpc/rpc-mode.js
+--- a/dist/modes/rpc/rpc-mode.js
++++ b/dist/modes/rpc/rpc-mode.js
+@@ -576,7 +576,7 @@ export async function runRpcMode(runtimeHost) {
+     let detachInput = () => { };
+     async function shutdown(exitCode = 0, signal) {
+         if (shuttingDown) {
+-            process.exit(exitCode);
++            return;
+         }
+         shuttingDown = true;
+         for (const cleanup of signalCleanupHandlers) {
+@@ -590,6 +590,6 @@ export async function runRpcMode(runtimeHost) {
+         if (signal !== "SIGTERM") {
+             await flushRawStdout();
+         }
+-        process.exit(exitCode);
++        process.exitCode = exitCode;
+     }
+     async function checkShutdownRequested() {
