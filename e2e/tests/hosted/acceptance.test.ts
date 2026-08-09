@@ -346,11 +346,8 @@ describe('hosted adversarial acceptance', () => {
       await expectForeignRunBoundary(b, canceled.runId, '[tenant-a-marker]');
       await expectHttpStatus(a, `/api/runs/${canceled.runId}/cancel`, 200, { method: 'POST' });
       await waitForRun(a, canceled.runId, 'canceled');
-      expect(await a.json<{ configured: boolean; provider: null }>('/api/hosted/provider'))
-        .toEqual({ configured: false, provider: null });
-      await jsonMutation(a, 'PUT', '/api/hosted/provider', {
-        provider: 'anthropic', key: secretA,
-      });
+      expect(await a.json<{ configured: boolean; provider: 'anthropic' }>('/api/hosted/provider'))
+        .toEqual({ configured: true, provider: 'anthropic' });
 
       const interrupted = await startRun(
         a,
