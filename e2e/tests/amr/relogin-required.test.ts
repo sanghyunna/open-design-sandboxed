@@ -7,7 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { seedVelaLoginConfig, writeFakeVelaBin } from '@/amr';
 import { createAmrProject, putAmrAppConfig } from '@/vitest/amr';
 import { readRunEvents, startRun, waitForRunStatus, waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 describe('AMR relogin-required run failures', () => {
   test('fails a new /api/runs request when the local AMR login config is missing', { timeout: 180_000 }, async () => {

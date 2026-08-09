@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // @ts-nocheck
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { runDaemonCliStartup, startDaemonRuntime } from './daemon-startup.js';
 import { splitResearchSubcommand } from './research/cli-args.js';
 import { resolveDaemonUrl } from './daemon-url.js';
 import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-cli-help.js';
 import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
+import { runProviderCli } from './provider-cli.js';
 import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@open-design/sidecar-proto';
 import {
   AGENT_SLUGS,
@@ -137,12 +139,18 @@ const PROJECT_STRING_FLAGS = new Set([
   'daemon-url', 'name', 'skill', 'design-system', 'plugin', 'metadata-json',
   'pending-prompt', 'project', 'conversation', 'message', 'prompt',
   'prompt-file', 'path', 'dir', 'as',
+  'identity-token-file', 'since', 'query', 'pattern', 'max', 'root',
   'agent', 'model', 'snapshot-id', 'inputs', 'grant-caps',
   'title', 'against', 'seed-from', 'fork-after', 'mode',
 ]);
 const PROJECT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json', 'follow']);
+const HOSTED_ARTIFACT_STRING_FLAGS = new Set([
+  'daemon-url', 'identity-token-file', 'html-file', 'identifier', 'title',
+]);
+const HOSTED_ARTIFACT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 const CHAT_STRING_FLAGS = new Set([
   'daemon-url',
+  'identity-token-file',
   'project',
   'conversation',
   'checkpoint',
@@ -263,6 +271,7 @@ const SUBCOMMAND_MAP = {
   doctor: runDoctor,
   config: runConfig,
   agent: runAgent,
+  provider: runProvider,
 };
 
 const first = argv.find((a) => !a.startsWith('-'));
@@ -272,7 +281,7 @@ await (async () => {
     const rest = [...argv.slice(0, idx), ...argv.slice(idx + 1)];
     await SUBCOMMAND_MAP[first](rest);
     // Allow stdout/stderr to drain; hard process.exit(0) crashed libuv on Windows.
-    process.exitCode = 0;
+    process.exitCode ??= 0;
     return;
   }
 
@@ -314,6 +323,15 @@ function printRootHelp() {
 
   od artifacts create --name <path> --input <file> [--project <id-or-name>]
       Create a normal project artifact through the local daemon.
+  od artifacts <save|lint|download> [options]
+      Save, lint, or download an artifact through the protected hosted routes.
+
+  od files <list|read|write|rename|delete|search|upload|folders|preview|preview-url|archive|export-manifest>
+      Drive project content through the same protected routes as the web UI.
+
+  od provider <status|set|test|clear> [options]
+      Configure and verify an ephemeral hosted provider credential. Secrets are
+      read only from identity/key files or stdin; use --json for automation.
 
 
   od tools design-systems read --path <manifest-declared-path>
@@ -445,9 +463,17 @@ async function runResearchSearch(rawArgs) {
 }
 
 async function runArtifacts(args) {
+  if (args[0] === 'save' || args[0] === 'lint' || args[0] === 'download') {
+    return runHostedArtifacts(args);
+  }
   const { runArtifactsCli } = await import('./artifacts-cli.js');
   const { exitCode } = await runArtifactsCli(args);
   process.exit(exitCode);
+}
+
+async function runProvider(args) {
+  const { exitCode } = await runProviderCli(args);
+  process.exitCode = exitCode;
 }
 
 function printResearchHelp() {
@@ -4463,6 +4489,8 @@ async function runProject(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4481,9 +4509,10 @@ Common options:
   }
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'list': {
-      const resp = await fetch(`${base}/api/projects`);
+      const resp = await client.request('/api/projects');
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4501,47 +4530,55 @@ Common options:
         console.error('Usage: od project info <id>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}`);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       return;
     }
     case 'create': {
+      const unsupportedHostedFlag = client.hosted
+        ? ['skill', 'design-system', 'plugin', 'metadata-json', 'pending-prompt', 'inputs', 'grant-caps', 'mode']
+          .find((name) => flags[name] !== undefined)
+        : undefined;
+      if (unsupportedHostedFlag) {
+        console.error(`--${unsupportedHostedFlag} is not supported by hosted project creation`);
+        process.exit(2);
+      }
       const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
         : Math.random().toString(36).slice(2);
       const name = typeof flags.name === 'string' && flags.name.length > 0
         ? flags.name
         : 'Untitled project';
-      const body = {
+      const body = client.hosted ? { title: name } : {
         id,
         name,
         skillId:        flags.skill ?? null,
         designSystemId: flags['design-system'] ?? null,
       };
       const conversationMode = normalizeChatSessionModeFlag(flags.mode);
-      if (conversationMode) body.conversationMode = conversationMode;
-      if (flags['pending-prompt']) body.pendingPrompt = flags['pending-prompt'];
-      if (flags['metadata-json']) {
+      if (!client.hosted && conversationMode) body.conversationMode = conversationMode;
+      if (!client.hosted && flags['pending-prompt']) body.pendingPrompt = flags['pending-prompt'];
+      if (!client.hosted && flags['metadata-json']) {
         const mj = safeReadJsonFile(flags['metadata-json']);
         if (mj && typeof mj === 'object') body.metadata = mj;
       }
-      if (flags.plugin) body.pluginId = flags.plugin;
-      if (flags.inputs) {
+      if (!client.hosted && flags.plugin) body.pluginId = flags.plugin;
+      if (!client.hosted && flags.inputs) {
         try { body.pluginInputs = JSON.parse(flags.inputs); } catch (err) {
           console.error(`--inputs must be valid JSON: ${err.message}`);
           process.exit(2);
         }
       }
-      if (flags['grant-caps']) {
+      if (!client.hosted && flags['grant-caps']) {
         body.grantCaps = String(flags['grant-caps']).split(',').map((c) => c.trim()).filter(Boolean);
       }
-      const resp = await fetch(`${base}/api/projects`, {
+      const resp = await client.request('/api/projects', {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         if (resp.status === 409 && data?.error?.code === 'capabilities-required') {
@@ -4555,10 +4592,14 @@ Common options:
         process.exit(1);
       }
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
-      console.log(`[project] created ${data.project?.id ?? id} (conversation ${data.conversationId})`);
+      console.log(`[project] created ${data.project?.id ?? id}${data.conversationId ? ` (conversation ${data.conversationId})` : ''}`);
       return;
     }
     case 'import': {
+      if (client.hosted) {
+        console.error('od project import is local-only');
+        process.exit(2);
+      }
       const [baseDir] = positionalArgs(rest, PROJECT_STRING_FLAGS);
       const importBaseDir = typeof baseDir === 'string' ? baseDir.trim() : '';
       if (!importBaseDir) {
@@ -4588,6 +4629,10 @@ Common options:
       return;
     }
     case 'import-folder': {
+      if (client.hosted) {
+        console.error('od project import-folder is local-only');
+        process.exit(2);
+      }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
       const folderArg = flags.path ?? flags.dir ?? parts[0];
       if (!folderArg) {
@@ -4614,8 +4659,9 @@ Common options:
         console.error('Usage: od project delete <id>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      if (flags.json) return process.stdout.write(`${JSON.stringify(await resp.json())}\n`);
       console.log(`[project] deleted ${id}`);
       return;
     }
@@ -4640,6 +4686,8 @@ async function runRun(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4647,12 +4695,13 @@ Common options:
   const rest = args.slice(1);
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'list': {
       const url = flags.project
         ? `${base}/api/runs?projectId=${encodeURIComponent(flags.project)}`
         : `${base}/api/runs`;
-      const resp = await fetch(url);
+      const resp = await client.request(url.slice(base.length));
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4668,7 +4717,7 @@ Common options:
         console.error('Usage: od run info <runId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/runs/${encodeURIComponent(id)}`);
+      const resp = await client.request(`/api/runs/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp, 'run-not-found');
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4680,8 +4729,9 @@ Common options:
         console.error('Usage: od run cancel <runId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+      const resp = await client.request(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'run-not-found');
+      if (flags.json) return process.stdout.write(`${JSON.stringify(await resp.json())}\n`);
       console.log(`[run] cancelled ${id}`);
       return;
     }
@@ -4691,10 +4741,14 @@ Common options:
         console.error('Usage: od run watch <runId>');
         process.exit(2);
       }
-      await streamRunEvents(base, id);
+      await streamRunEvents(client, id);
       return;
     }
     case 'redesign': {
+      if (client.hosted) {
+        console.error('od run redesign is local-only; use od run start for hosted projects');
+        process.exit(2);
+      }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
       const promptFromArgs = parts.join(' ').trim();
       const defaultMessage =
@@ -4748,7 +4802,7 @@ Common options:
         }, null, 2) + '\n');
       }
       console.log(`[run] started ${data.runId}`);
-      if (flags.follow) await streamRunEvents(base, data.runId);
+      if (flags.follow) await streamRunEvents(client, data.runId);
       return;
     }
     case 'start': {
@@ -4756,9 +4810,74 @@ Common options:
         console.error('--project <projectId> is required');
         process.exit(2);
       }
+      const message = await readRunMessageFromFlags(flags);
+      if (client.hosted) {
+        const unsupportedHostedFlag = ['plugin', 'inputs', 'grant-caps', 'snapshot-id']
+          .find((name) => flags[name] !== undefined);
+        if (unsupportedHostedFlag) {
+          console.error(`--${unsupportedHostedFlag} is not supported by hosted runs`);
+          process.exit(2);
+        }
+        if (!flags.conversation) {
+          console.error('--conversation <id> is required for hosted runs');
+          process.exit(2);
+        }
+        if (!message) {
+          console.error('--message or --prompt-file is required for hosted runs');
+          process.exit(2);
+        }
+        const userMessageId = crypto.randomUUID();
+        const assistantMessageId = crypto.randomUUID();
+        const body = JSON.stringify({
+          projectId: flags.project,
+          conversationId: flags.conversation,
+          assistantMessageId,
+          agentId: flags.agent ?? 'pi',
+          message,
+          clientRequestId: crypto.randomUUID(),
+          ...(flags.skill ? { skillIds: [flags.skill] } : {}),
+          ...(flags['design-system'] ? { designSystemId: flags['design-system'] } : {}),
+          ...(flags.model ? { model: flags.model } : {}),
+        });
+        const messagesPath = `/api/projects/${encodeURIComponent(flags.project)}/conversations/${encodeURIComponent(flags.conversation)}/messages`;
+        const userMessage = await client.request(`${messagesPath}/${encodeURIComponent(userMessageId)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ role: 'user', content: message }),
+        }, true);
+        if (!userMessage.ok) return structuredHttpFailure(userMessage);
+        const placeholder = await client.request(`${messagesPath}/${encodeURIComponent(assistantMessageId)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ role: 'assistant', content: '' }),
+        }, true);
+        if (!placeholder.ok) return structuredHttpFailure(placeholder);
+        const sendRun = () => client.request('/api/runs', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body,
+        }, true);
+        let data;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const resp = await sendRun();
+            if (!resp.ok) return structuredHttpFailure(resp);
+            data = await resp.json();
+            if (typeof data?.runId !== 'string' || data.runId.length === 0) {
+              throw new Error('hosted run response did not include a run id');
+            }
+            break;
+          } catch (error) {
+            if (attempt === 1) throw error;
+          }
+        }
+        if (flags.json && !flags.follow) return process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+        if (!flags.json) console.log(`[run] started ${data.runId}`);
+        if (flags.follow) await streamRunEvents(client, data.runId);
+        return;
+      }
       const body = { projectId: flags.project };
       if (flags.conversation) body.conversationId = flags.conversation;
-      const message = await readRunMessageFromFlags(flags);
       if (message) body.message = message;
       if (flags.plugin) body.pluginId = flags.plugin;
       if (flags.skill) body.skillId = flags.skill;
@@ -4803,7 +4922,7 @@ Common options:
         return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       }
       console.log(`[run] started ${data.runId}`);
-      if (flags.follow) await streamRunEvents(base, data.runId);
+      if (flags.follow) await streamRunEvents(client, data.runId);
       return;
     }
     default:
@@ -4815,10 +4934,13 @@ Common options:
 // Stream the SSE events at /api/runs/:id/events as ND-JSON on stdout.
 // Each line is one event: { event, data } so a code agent can parse it
 // without needing an SSE library.
-async function streamRunEvents(base, runId) {
-  const resp = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/events`, {
+async function streamRunEvents(client, runId) {
+  const pathname = `/api/runs/${encodeURIComponent(runId)}/events`;
+  const resp = typeof client === 'string'
+    ? await fetch(`${client}${pathname}`, { headers: { accept: 'text/event-stream' } })
+    : await client.request(pathname, {
     headers: { accept: 'text/event-stream' },
-  });
+    });
   if (!resp.ok || !resp.body) {
     console.error(`run watch failed: ${resp.status}`);
     process.exit(1);
@@ -4970,6 +5092,227 @@ async function attachTerminal(base, projectId, terminalId) {
   }
 }
 
+function canonicalCliRelativePath(value, label = 'path') {
+  const candidate = String(value ?? '');
+  const bytes = Buffer.from(candidate, 'utf8');
+  if (
+    bytes.length < 1
+    || bytes.length > 1_024
+    || bytes.toString('utf8') !== candidate
+    || candidate.startsWith('/')
+    || candidate.includes('\\')
+    || /^[A-Za-z]:/u.test(candidate)
+    || /%(?:00|2e|2f|5c|25(?:00|2e|2f|5c))/iu.test(candidate)
+    || /[\u0000-\u001f\u007f]/u.test(candidate)
+    || candidate.split('/').some((part) => part === '' || part === '.' || part === '..')
+  ) {
+    console.error(`${label} must be a canonical relative path of at most 1,024 bytes`);
+    process.exit(2);
+  }
+  return candidate;
+}
+
+function encodeProjectRelpath(rel) {
+  return canonicalCliRelativePath(rel).split('/').map(encodeURIComponent).join('/');
+}
+
+function exactCliOrigin(value) {
+  let url;
+  try { url = new URL(value); } catch { url = null; }
+  if (
+    url == null
+    || (url.protocol !== 'http:' && url.protocol !== 'https:')
+    || url.username !== ''
+    || url.password !== ''
+    || url.origin !== value
+  ) {
+    console.error('--daemon-url must be an absolute HTTP(S) origin without a path');
+    process.exit(2);
+  }
+  return url.origin;
+}
+
+function hostedCliSecret(filePath, label) {
+  let bytes;
+  try { bytes = filePath === '-' ? readFileSync(0) : readFileSync(filePath); } catch {
+    console.error(`unable to read ${label}`);
+    process.exit(2);
+  }
+  if (bytes.length > 16 * 1_024 + 2) {
+    console.error(`${label} exceeds 16 KiB`);
+    process.exit(2);
+  }
+  let value;
+  try { value = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch {
+    console.error(`${label} must be UTF-8`);
+    process.exit(2);
+  }
+  if (value.endsWith('\r\n')) value = value.slice(0, -2);
+  else if (value.endsWith('\n')) value = value.slice(0, -1);
+  if (!value || /[\r\n\0]/u.test(value) || Buffer.byteLength(value, 'utf8') > 16 * 1_024) {
+    console.error(`${label} must be one line of at most 16 KiB`);
+    process.exit(2);
+  }
+  return value;
+}
+
+async function safeHostedCliFetch(baseOrigin, input, init) {
+  let url = input;
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    const response = await fetch(url, { ...init, redirect: 'manual' });
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get('location');
+    if (location == null) return response;
+    const target = new URL(location, url);
+    if (target.origin !== baseOrigin) {
+      console.error('hosted daemon attempted a cross-origin redirect');
+      process.exit(1);
+    }
+    url = target.href;
+  }
+  console.error('hosted daemon redirected too many times');
+  process.exit(1);
+}
+
+async function createContentCliClient(flags, { stdinInUse = false } = {}) {
+  const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const identityFile = flags['identity-token-file'] ?? process.env.OD_HOSTED_IDENTITY_TOKEN_FILE;
+  if (typeof identityFile !== 'string' || identityFile.length === 0) {
+    return {
+      hosted: false,
+      request: (pathname, init = {}) => fetch(`${base}${pathname}`, init),
+    };
+  }
+  if (identityFile === '-' && stdinInUse) {
+    console.error('stdin cannot supply both hosted identity and command content');
+    process.exit(2);
+  }
+  const baseOrigin = exactCliOrigin(base);
+  const identityToken = hostedCliSecret(identityFile, 'identity token');
+  const authorization = `Bearer ${identityToken}`;
+  let session = null;
+
+  const loadSession = async () => {
+    const response = await safeHostedCliFetch(
+      baseOrigin,
+      `${baseOrigin}/api/hosted/session`,
+      { method: 'GET', headers: { accept: 'application/json', authorization } },
+    );
+    if (!response.ok) return structuredHttpFailure(response);
+    const payload = await response.json().catch(() => null);
+    if (
+      payload == null
+      || typeof payload !== 'object'
+      || typeof payload.publicOrigin !== 'string'
+      || exactCliOrigin(payload.publicOrigin) !== baseOrigin
+      || typeof payload.csrfToken !== 'string'
+      || payload.csrfToken.length === 0
+    ) {
+      console.error('hosted daemon returned an invalid session');
+      process.exit(1);
+    }
+    session = payload;
+    return session;
+  };
+
+  const request = async (pathname, init = {}, mutation = false) => {
+    const send = async () => {
+      const headers = new Headers(init.headers);
+      headers.set('authorization', authorization);
+      if (!headers.has('accept')) headers.set('accept', 'application/json');
+      if (mutation) {
+        const current = session ?? await loadSession();
+        headers.set('origin', current.publicOrigin);
+        headers.set('X-Open-Design-CSRF', current.csrfToken);
+      }
+      return safeHostedCliFetch(baseOrigin, `${baseOrigin}${pathname}`, { ...init, headers });
+    };
+    let response = await send();
+    if (response.status === 401 || response.status === 419) {
+      session = null;
+      await loadSession();
+      response = await send();
+    }
+    return response;
+  };
+  return { hosted: true, request };
+}
+
+function printContentResult(flags, data, message) {
+  if (flags.json) process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+  else if (message) console.log(message);
+}
+
+async function responseJsonOrExit(response, fallbackCode) {
+  if (!response.ok) return structuredHttpFailure(response, fallbackCode);
+  return response.json();
+}
+
+async function runHostedArtifacts(args) {
+  const command = args[0];
+  const rest = args.slice(1);
+  if (rest.includes('--help') || rest.includes('-h')) {
+    console.log(`Usage:
+  od artifacts save --html-file <path|-> [--identifier <id>] [--title <title>] [--json]
+  od artifacts lint --html-file <path|-> [--json]
+  od artifacts download <artifactId>
+
+Common options:
+  --daemon-url <url>
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).`);
+    process.exit(0);
+  }
+  const flags = parseFlags(rest, {
+    string: HOSTED_ARTIFACT_STRING_FLAGS,
+    boolean: HOSTED_ARTIFACT_BOOLEAN_FLAGS,
+  });
+  const htmlFile = flags['html-file'];
+  const client = await createContentCliClient(flags, {
+    stdinInUse: (command === 'save' || command === 'lint') && htmlFile === '-',
+  });
+  if (command === 'download') {
+    const [artifactId] = positionalArgs(rest, HOSTED_ARTIFACT_STRING_FLAGS);
+    if (!artifactId || !/^oda_[A-Za-z0-9_-]{43}$/u.test(artifactId)) {
+      console.error('Usage: od artifacts download <artifactId>');
+      process.exit(2);
+    }
+    const response = await client.request(`/api/artifacts/${encodeURIComponent(artifactId)}/download`);
+    if (!response.ok) return structuredHttpFailure(response, 'daemon-not-running');
+    process.stdout.write(Buffer.from(await response.arrayBuffer()));
+    return;
+  }
+  if (typeof htmlFile !== 'string' || htmlFile.length === 0) {
+    console.error(`Usage: od artifacts ${command} --html-file <path|-> [--json]`);
+    process.exit(2);
+  }
+  let html;
+  try { html = (htmlFile === '-' ? readFileSync(0) : readFileSync(htmlFile)).toString('utf8'); } catch {
+    console.error('unable to read artifact HTML');
+    process.exit(2);
+  }
+  const body = command === 'save'
+    ? {
+        html,
+        ...(typeof flags.identifier === 'string' ? { identifier: flags.identifier } : {}),
+        ...(typeof flags.title === 'string' ? { title: flags.title } : {}),
+      }
+    : { html };
+  const response = await client.request(`/api/artifacts/${command}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }, true);
+  const data = await responseJsonOrExit(response);
+  printContentResult(
+    flags,
+    data,
+    command === 'save'
+      ? data.url ?? `[artifacts] saved ${data.artifactId}`
+      : data.agentMessage ?? JSON.stringify(data.findings ?? []),
+  );
+}
+
 async function runFiles(args) {
   if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
@@ -4979,134 +5322,243 @@ async function runFiles(args) {
                                                Write content from stdin.
   od files upload <projectId> <localpath> [--as <relpath>]
                                                Upload a local file.
-  od files delete <projectId> <name>           Delete a project file.
+  od files rename <projectId> <from> <to>       Rename a project file.
+  od files delete <projectId> <relpath>         Delete a project file.
+  od files search <projectId> --query <text> [--pattern <glob>] [--max <n>]
+  od files folders <list|create|delete> <projectId> [<relpath>]
+  od files preview <projectId> <relpath>        Mint a scoped file preview.
+  od files preview-url <projectId> <relpath>    Mint an opaque preview URL.
+  od files archive <projectId> [--root <relpath>]
+                                               Stream a bounded project archive.
+  od files export-manifest <projectId>          Print the hosted export manifest.
   od files diff   <projectId> <relpathA> [<relpathB> | --against -]
                                                Print a unified diff.
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
   const sub = args[0];
   const rest = args.slice(1);
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
-  const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const stdinInUse = sub === 'write'
+    || (sub === 'diff' && flags.against === '-');
+  const client = await createContentCliClient(flags, { stdinInUse });
+  const positional = positionalArgs(rest, PROJECT_STRING_FLAGS);
   switch (sub) {
     case 'list': {
-      const id = rest.find((a) => !a.startsWith('-'));
+      const [id] = positional;
       if (!id) {
         console.error('Usage: od files list <projectId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/files`);
-      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
-      const data = await resp.json();
+      const query = typeof flags.since === 'string' ? `?since=${encodeURIComponent(flags.since)}` : '';
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files${query}`);
+      const data = await responseJsonOrExit(resp, 'project-not-found');
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       const files = Array.isArray(data?.files) ? data.files : [];
       for (const f of files) console.log(`${f.size}\t${f.name ?? f.path}`);
       return;
     }
     case 'read': {
-      const positional = rest.filter((a) => !a.startsWith('-'));
       const [id, rel] = positional;
       if (!id || !rel) {
         console.error('Usage: od files read <projectId> <relpath>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/files/${rel.split('/').map(encodeURIComponent).join('/')}`);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files/${encodeProjectRelpath(rel)}`);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const buf = Buffer.from(await resp.arrayBuffer());
       process.stdout.write(buf);
       return;
     }
     case 'upload': {
-      const positional = rest.filter((a) => !a.startsWith('-')
-        && a !== flags.as);
       const [id, localPath] = positional;
       if (!id || !localPath) {
         console.error('Usage: od files upload <projectId> <localpath> [--as <relpath>]');
         process.exit(2);
       }
-      const fs = require('node:fs');
-      const path = require('node:path');
-      const buf = fs.readFileSync(localPath);
+      const buf = readFileSync(localPath);
       const desiredName = typeof flags.as === 'string' && flags.as.length > 0
-        ? flags.as
+        ? canonicalCliRelativePath(flags.as, '--as')
         : path.basename(localPath);
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/files`, {
-        method:  'POST',
-        headers: { 'content-type': 'application/json' },
-        body:    JSON.stringify({
-          name: desiredName,
-          content: buf.toString('base64'),
-          encoding: 'base64',
-        }),
-      });
-      if (!resp.ok) return structuredHttpFailure(resp);
-      const data = await resp.json();
+      let resp;
+      if (client.hosted) {
+        const form = new FormData();
+        const directory = path.posix.dirname(desiredName);
+        if (directory !== '.') form.append('dir', directory);
+        form.append('files', new Blob([buf]), path.posix.basename(desiredName));
+        resp = await client.request(
+          `/api/projects/${encodeURIComponent(id)}/upload`,
+          { method: 'POST', body: form },
+          true,
+        );
+      } else {
+        resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: desiredName, content: buf.toString('base64'), encoding: 'base64' }),
+        }, true);
+      }
+      const data = await responseJsonOrExit(resp);
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
-      console.log(`[files] uploaded ${data?.file?.name ?? desiredName}`);
+      console.log(`[files] uploaded ${data?.file?.name ?? data?.files?.[0]?.name ?? desiredName}`);
       return;
     }
     case 'write': {
-      const positional = rest.filter((a) => !a.startsWith('-'));
       const [id, rel] = positional;
       if (!id || !rel) {
         console.error('Usage: od files write <projectId> <relpath> [< stdin]');
         process.exit(2);
       }
-      // Read stdin synchronously into a buffer.
-      const fs = require('node:fs');
-      let chunks = [];
+      let body;
       try {
-        const stdin = fs.readFileSync(0);
-        chunks = [stdin];
+        body = readFileSync(0);
       } catch (err) {
         console.error(`stdin read failed: ${err.message ?? err}`);
         process.exit(1);
       }
-      const body = Buffer.concat(chunks);
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/files`, {
-        method:  'POST',
+      const name = canonicalCliRelativePath(rel);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files`, {
+        method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body:    JSON.stringify({
-          name: rel,
+        body: JSON.stringify({
+          name,
           content: body.toString('utf8'),
           encoding: 'utf8',
         }),
-      });
-      if (!resp.ok) return structuredHttpFailure(resp);
-      const data = await resp.json();
+      }, true);
+      const data = await responseJsonOrExit(resp);
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
-      console.log(`[files] wrote ${data?.file?.name ?? rel}`);
+      console.log(`[files] wrote ${data?.file?.name ?? name}`);
+      return;
+    }
+    case 'rename': {
+      const [id, from, to] = positional;
+      if (!id || !from || !to) {
+        console.error('Usage: od files rename <projectId> <from> <to>');
+        process.exit(2);
+      }
+      const body = {
+        from: canonicalCliRelativePath(from, 'from'),
+        to: canonicalCliRelativePath(to, 'to'),
+      };
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/files/rename`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      }, true);
+      const data = await responseJsonOrExit(resp);
+      printContentResult(flags, data, `[files] renamed ${body.from} to ${body.to}`);
       return;
     }
     case 'delete': {
-      const positional = rest.filter((a) => !a.startsWith('-'));
       const [id, name] = positional;
       if (!id || !name) {
         console.error('Usage: od files delete <projectId> <name>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, { method: 'DELETE' });
-      if (!resp.ok) return structuredHttpFailure(resp);
-      console.log(`[files] deleted ${name}`);
+      const canonical = canonicalCliRelativePath(name);
+      const resp = await client.request(
+        `/api/projects/${encodeURIComponent(id)}/files/${encodeProjectRelpath(canonical)}`,
+        { method: 'DELETE' },
+        true,
+      );
+      const data = await responseJsonOrExit(resp);
+      printContentResult(flags, data, `[files] deleted ${canonical}`);
+      return;
+    }
+    case 'search': {
+      const [id] = positional;
+      if (!id || typeof flags.query !== 'string' || flags.query.length === 0) {
+        console.error('Usage: od files search <projectId> --query <text> [--pattern <glob>] [--max <n>]');
+        process.exit(2);
+      }
+      const query = new URLSearchParams({ q: flags.query });
+      if (typeof flags.pattern === 'string') query.set('pattern', flags.pattern);
+      if (typeof flags.max === 'string') query.set('max', flags.max);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/search?${query}`);
+      const data = await responseJsonOrExit(resp, 'project-not-found');
+      printContentResult(flags, data, (data.matches ?? []).map((match) => (
+        `${match.file}:${match.line}\t${match.snippet}`
+      )).join('\n'));
+      return;
+    }
+    case 'folders': {
+      const [action, id, relative] = positional;
+      if (!['list', 'create', 'delete'].includes(action) || !id || (action !== 'list' && !relative)) {
+        console.error('Usage: od files folders <list|create|delete> <projectId> [<relpath>]');
+        process.exit(2);
+      }
+      const mutation = action !== 'list';
+      const body = mutation ? JSON.stringify({ path: canonicalCliRelativePath(relative) }) : undefined;
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/folders`, {
+        method: action === 'list' ? 'GET' : action === 'create' ? 'POST' : 'DELETE',
+        ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body }),
+      }, mutation);
+      const data = await responseJsonOrExit(resp, 'project-not-found');
+      printContentResult(flags, data, action === 'list'
+        ? (data.folders ?? []).map((folder) => folder.path ?? folder.name).join('\n')
+        : `[folders] ${action === 'create' ? 'created' : 'deleted'} ${relative}`);
+      return;
+    }
+    case 'preview':
+    case 'preview-url': {
+      const [id, relative] = positional;
+      if (!id || !relative) {
+        console.error(`Usage: od files ${sub} <projectId> <relpath>`);
+        process.exit(2);
+      }
+      const canonical = canonicalCliRelativePath(relative);
+      const pathname = sub === 'preview'
+        ? `/api/projects/${encodeURIComponent(id)}/files/preview`
+        : `/api/projects/${encodeURIComponent(id)}/preview-url`;
+      const body = sub === 'preview' ? { path: canonical } : { file: canonical };
+      const resp = await client.request(pathname, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      }, true);
+      const data = await responseJsonOrExit(resp, 'project-not-found');
+      printContentResult(flags, data, data.url ?? data.previewUrl ?? JSON.stringify(data));
+      return;
+    }
+    case 'archive': {
+      const [id] = positional;
+      if (!id) {
+        console.error('Usage: od files archive <projectId> [--root <relpath>]');
+        process.exit(2);
+      }
+      const suffix = typeof flags.root === 'string'
+        ? `?root=${encodeURIComponent(canonicalCliRelativePath(flags.root, '--root'))}`
+        : '';
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/archive${suffix}`);
+      if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      process.stdout.write(Buffer.from(await resp.arrayBuffer()));
+      return;
+    }
+    case 'export-manifest': {
+      const [id] = positional;
+      if (!id) {
+        console.error('Usage: od files export-manifest <projectId>');
+        process.exit(2);
+      }
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/export/manifest`);
+      const data = await responseJsonOrExit(resp, 'project-not-found');
+      process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
       return;
     }
     case 'diff': {
-      const positional = positionalArgs(rest, PROJECT_STRING_FLAGS);
       const [id, relA, relB] = positional;
       const against = typeof flags.against === 'string' ? flags.against : null;
       if (!id || !relA || (!relB && !against) || (relB && against)) {
         console.error('Usage: od files diff <projectId> <relpathA> [<relpathB> | --against -]');
         process.exit(2);
       }
-      const left = await fetchProjectFileText(base, id, relA);
+      const left = await fetchProjectFileText(client, id, relA);
       const rightLabel = against ?? relB;
       const right = against === '-'
         ? await readStdinUtf8()
-        : await fetchProjectFileText(base, id, rightLabel);
+        : await fetchProjectFileText(client, id, rightLabel);
       const diff = createUnifiedDiff(`a/${relA}`, `b/${rightLabel}`, left, right);
       if (flags.json) return process.stdout.write(JSON.stringify({ diff }, null, 2) + '\n');
       process.stdout.write(diff);
@@ -5118,13 +5570,9 @@ Common options:
   }
 }
 
-function encodeProjectRelpath(rel) {
-  return String(rel).split('/').map(encodeURIComponent).join('/');
-}
-
-async function fetchProjectFileText(base, id, rel) {
-  const resp = await fetch(
-    `${base}/api/projects/${encodeURIComponent(id)}/files/${encodeProjectRelpath(rel)}`,
+async function fetchProjectFileText(client, id, rel) {
+  const resp = await client.request(
+    `/api/projects/${encodeURIComponent(id)}/files/${encodeProjectRelpath(rel)}`,
   );
   if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
   const buf = Buffer.from(await resp.arrayBuffer());
@@ -5437,6 +5885,8 @@ async function runConversation(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5444,6 +5894,7 @@ Common options:
   const rest = args.slice(1);
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'new': {
       const [id] = positionalArgs(rest, PROJECT_STRING_FLAGS);
@@ -5465,11 +5916,11 @@ Common options:
         }
         body.forkAfterMessageId = flags['fork-after'];
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`, {
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`, {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -5483,7 +5934,7 @@ Common options:
         console.error('Usage: od conversation list <projectId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`);
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -5495,7 +5946,11 @@ Common options:
         console.error('Usage: od conversation info <conversationId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/conversations/${encodeURIComponent(id)}`);
+      if (client.hosted) {
+        console.error('hosted conversation info requires a project-scoped route; use conversation list');
+        process.exit(2);
+      }
+      const resp = await client.request(`/api/conversations/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -5669,6 +6124,8 @@ async function runChat(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5682,6 +6139,7 @@ Common options:
     process.exit(2);
   }
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'new': {
       // Accept --project for parity with the rest of the project-scoped CLI,
@@ -5707,11 +6165,11 @@ Common options:
         }
         body.forkAfterMessageId = flags['fork-after'];
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`, {
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`, {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -7983,5 +8441,3 @@ async function runAutomation(args) {
       process.exit(2);
   }
 }
-
-

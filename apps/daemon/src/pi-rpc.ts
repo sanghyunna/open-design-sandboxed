@@ -5,11 +5,12 @@
  *
  * Lifecycle:
  *   1. Daemon spawns `pi --mode rpc [--model ...]`
- *   2. This module sends `prompt` on stdin
- *   3. pi streams events on stdout (agent_start, message_update, …)
+ *   2. This module optionally switches an owned session, then sends `prompt`
+ *   3. pi streams events on stdout
  *   4. We translate them to: status, text_delta, thinking_delta,
  *      tool_use, tool_result, usage
- *   5. On `agent_end` we finish the SSE stream
+ *   5. After agent_end/agent_settled, get_state captures the session and
+ *      stdin closes; completion waits for child close
  *
  * Extension UI requests from pi are auto-resolved (the web UI has no
  * dialog surfaces), and fire-and-forget notifications are silently
@@ -51,13 +52,19 @@ type PiRpcSessionOptions = {
   send: SendAgentEvent;
   imagePaths?: string[];
   uploadRoot?: string;
-  parentSession?: string;
+  resumeSession?: {
+    path: string;
+    root: string;
+  };
 };
 
-type PiRpcSession = {
+export type PiRpcSession = {
+  readonly ownsAbortLifecycle: true;
   hasFatalError(): boolean;
   abort(): void;
   getLastSessionPath(): string | null;
+  /** Resolves only after the owned session is captured and the child has exited. */
+  waitForQuiescence(): Promise<void>;
 };
 
 type PiRpcContext = {
@@ -323,78 +330,279 @@ export function mapPiRpcEvent(
   return null;
 }
 
-type PiSessionFileSnapshot = Map<string, { mtimeMs: number; size: number }>;
+const MAX_SESSION_HEADER_BYTES = 64 * 1024;
+const MAX_SESSION_FILE_BYTES = 64 * 1024 * 1024;
+const MAX_SESSION_LINEAGE_BYTES = 64 * 1024 * 1024;
+const MAX_SESSION_DIRECTORY_ENTRIES = 4096;
+const MAX_SESSION_PARENT_DEPTH = 32;
+const DEFAULT_SHUTDOWN_MS = 5000;
+const FORCE_KILL_MS = 1000;
 
-function readPiSessionFiles(
-  cwd: string | undefined,
-  sessionDir?: string,
-): Array<{ path: string; mtimeMs: number; size: number }> {
-  if (typeof cwd !== 'string' || cwd.length === 0) return [];
-  const sessionsDir = sessionDir || path.join(cwd, '.pi', 'sessions');
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  const files: Array<{ path: string; mtimeMs: number; size: number }> = [];
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('.jsonl')) continue;
-    try {
-      const full = path.join(sessionsDir, entry.name);
-      const stat = fs.statSync(full);
-      files.push({ path: full, mtimeMs: stat.mtimeMs, size: stat.size });
-    } catch {
-      // Skip unreadable entries.
-    }
-  }
-  return files;
+type PiSessionHeader = {
+  cwd: string;
+  parentSession?: string;
+};
+
+type PiSessionFileMetadata = {
+  dev: number;
+  ino: number;
+  size: number;
+  mtimeMs: number;
+};
+
+function pathKey(value: string): string {
+  const resolved = path.resolve(value);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-function snapshotPiSessionFiles(cwd: string | undefined, sessionDir?: string): PiSessionFileSnapshot {
+function isPathInside(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === '' ||
+    (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
+  );
+}
+
+function assertSessionFile(stat: fs.Stats, sessionPath: string): void {
+  if (!stat.isFile() || stat.isSymbolicLink() || path.extname(sessionPath).toLowerCase() !== '.jsonl') {
+    throw new Error('session path must be a regular non-link JSONL file');
+  }
+}
+
+function sessionFileMetadata(stat: fs.Stats): PiSessionFileMetadata {
+  return { dev: stat.dev, ino: stat.ino, size: stat.size, mtimeMs: stat.mtimeMs };
+}
+
+function sameSessionFile(
+  left: PiSessionFileMetadata,
+  right: PiSessionFileMetadata,
+): boolean {
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.size === right.size &&
+    left.mtimeMs === right.mtimeMs
+  );
+}
+
+function parseSessionHeader(raw: string): PiSessionHeader {
+  const parsed: unknown = JSON.parse(raw);
+  if (!isRecord(parsed) || parsed.type !== 'session' || typeof parsed.cwd !== 'string') {
+    throw new Error('session header is invalid');
+  }
+  if (parsed.parentSession !== undefined && typeof parsed.parentSession !== 'string') {
+    throw new Error('session parent path is invalid');
+  }
+  return {
+    cwd: parsed.cwd,
+    ...(typeof parsed.parentSession === 'string' ? { parentSession: parsed.parentSession } : {}),
+  };
+}
+
+function readBoundedSessionHeader(sessionPath: string): {
+  header: PiSessionHeader;
+  metadata: PiSessionFileMetadata;
+} {
+  const stat = fs.lstatSync(sessionPath);
+  assertSessionFile(stat, sessionPath);
+
+  const fd = fs.openSync(sessionPath, 'r');
+  try {
+    const buffer = Buffer.alloc(Math.min(stat.size, MAX_SESSION_HEADER_BYTES + 1));
+    const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, 0);
+    const newline = buffer.subarray(0, bytesRead).indexOf(0x0a);
+    const headerEnd = newline >= 0 ? newline : bytesRead;
+    if (headerEnd === 0 || headerEnd > MAX_SESSION_HEADER_BYTES) {
+      throw new Error('session header is empty or exceeds the size limit');
+    }
+    return {
+      header: parseSessionHeader(buffer.toString('utf8', 0, headerEnd).replace(/\r$/u, '')),
+      metadata: sessionFileMetadata(stat),
+    };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function readStableSessionFile(
+  sessionPath: string,
+  expected: PiSessionFileMetadata,
+): PiSessionHeader {
+  const before = fs.lstatSync(sessionPath);
+  assertSessionFile(before, sessionPath);
+  if (!sameSessionFile(sessionFileMetadata(before), expected)) {
+    throw new Error('session file changed before full validation');
+  }
+  if (before.size === 0 || before.size > MAX_SESSION_FILE_BYTES) {
+    throw new Error('session file is empty or exceeds the size limit');
+  }
+
+  const contents = fs.readFileSync(sessionPath);
+  const after = fs.lstatSync(sessionPath);
+  assertSessionFile(after, sessionPath);
+  if (!sameSessionFile(sessionFileMetadata(before), sessionFileMetadata(after)) || contents.length !== before.size) {
+    throw new Error('session file changed during validation');
+  }
+
+  const text = new TextDecoder('utf-8', { fatal: true }).decode(contents);
+  const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n') : text.split('\n');
+  if (lines.length === 0 || lines.some((line) => line.length === 0)) {
+    throw new Error('session file contains an empty JSONL record');
+  }
+  if (Buffer.byteLength(lines[0]!, 'utf8') > MAX_SESSION_HEADER_BYTES) {
+    throw new Error('session header exceeds the size limit');
+  }
+  for (const line of lines) {
+    const parsed: unknown = JSON.parse(line.replace(/\r$/u, ''));
+    if (!isRecord(parsed)) throw new Error('session file contains a non-object JSONL record');
+  }
+  return parseSessionHeader(lines[0]!.replace(/\r$/u, ''));
+}
+
+type PiSessionFileSnapshot = Map<string, PiSessionFileMetadata>;
+
+function snapshotPiSessionFiles(rootPath: string): PiSessionFileSnapshot {
+  const canonicalRoot = fs.realpathSync(rootPath);
+  if (!fs.statSync(canonicalRoot).isDirectory()) throw new Error('session root is not a directory');
+  const entries = fs.readdirSync(canonicalRoot, { withFileTypes: true });
+  if (entries.length > MAX_SESSION_DIRECTORY_ENTRIES) {
+    throw new Error('session directory exceeds the entry limit');
+  }
   const snapshot: PiSessionFileSnapshot = new Map();
-  for (const file of readPiSessionFiles(cwd, sessionDir)) {
-    snapshot.set(file.path, { mtimeMs: file.mtimeMs, size: file.size });
+  for (const entry of entries) {
+    if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.jsonl') continue;
+    const filePath = path.join(canonicalRoot, entry.name);
+    const stat = fs.lstatSync(filePath);
+    assertSessionFile(stat, filePath);
+    if (pathKey(fs.realpathSync(filePath)) !== pathKey(filePath)) {
+      throw new Error('session path is not canonical');
+    }
+    snapshot.set(filePath, sessionFileMetadata(stat));
   }
   return snapshot;
 }
 
-/**
- * Resolve the session file written by this RPC run.
- *
- * pi stores all sessions for a cwd under one shared `.pi/sessions` directory.
- * Selecting the newest file globally is unsafe because another pi process can
- * write a newer session while this run is ending. Instead, compare the
- * directory against the snapshot taken before we sent `prompt` and accept only
- * the single file that was created or updated during this run. If multiple
- * files changed, return null rather than wiring the next turn to the wrong
- * history.
- */
-function resolveSessionPathChangedSince(
-  cwd: string | undefined,
-  before: PiSessionFileSnapshot,
-  sessionDir?: string,
-): string | null {
-  const changed = readPiSessionFiles(cwd, sessionDir).filter((file) => {
-    const previous = before.get(file.path);
-    return !previous || file.mtimeMs > previous.mtimeMs || file.size !== previous.size;
+/** Validate the complete lineage before allowing Pi to read or reuse a session file. */
+function validatePiSessionPath(
+  sessionPath: string,
+  rootPath: string,
+  cwd: string,
+  fullFile = false,
+): string {
+  const canonicalRoot = fs.realpathSync(rootPath);
+  if (!fs.statSync(canonicalRoot).isDirectory()) {
+    throw new Error('session root is not a directory');
+  }
+  const canonicalCwd = fs.realpathSync(cwd);
+  if (!fs.statSync(canonicalCwd).isDirectory()) {
+    throw new Error('session cwd is not a directory');
+  }
+
+  let current = path.resolve(sessionPath);
+  const seen = new Set<string>();
+  let firstSessionPath: string | null = null;
+  const lineage: Array<{
+    path: string;
+    header: PiSessionHeader;
+    metadata: PiSessionFileMetadata;
+  }> = [];
+  let lineageBytes = 0;
+
+  for (let depth = 0; depth < MAX_SESSION_PARENT_DEPTH; depth += 1) {
+    const canonicalPath = fs.realpathSync(current);
+    if (pathKey(canonicalPath) !== pathKey(current)) {
+      throw new Error('session path is not canonical');
+    }
+    if (!isPathInside(canonicalPath, canonicalRoot)) {
+      throw new Error('session path is outside its owner root');
+    }
+    const key = pathKey(canonicalPath);
+    if (seen.has(key)) {
+      throw new Error('session parent chain contains a cycle');
+    }
+    seen.add(key);
+    firstSessionPath ??= canonicalPath;
+
+    const { header, metadata } = readBoundedSessionHeader(canonicalPath);
+    lineage.push({ path: canonicalPath, header, metadata });
+    if (fullFile) {
+      if (metadata.size > MAX_SESSION_FILE_BYTES) {
+        throw new Error('session file exceeds the size limit');
+      }
+      lineageBytes += metadata.size;
+      if (lineageBytes > MAX_SESSION_LINEAGE_BYTES) {
+        throw new Error('session lineage exceeds the aggregate size limit');
+      }
+    }
+    let headerCwd: string;
+    try {
+      headerCwd = fs.realpathSync(header.cwd);
+    } catch {
+      throw new Error('session cwd does not exist');
+    }
+    if (pathKey(headerCwd) !== pathKey(canonicalCwd)) {
+      throw new Error('session cwd does not match the requested project');
+    }
+    if (!header.parentSession) {
+      if (fullFile) {
+        for (const entry of lineage) {
+          const stableHeader = readStableSessionFile(entry.path, entry.metadata);
+          if (
+            stableHeader.cwd !== entry.header.cwd ||
+            stableHeader.parentSession !== entry.header.parentSession
+          ) {
+            throw new Error('session header changed during lineage validation');
+          }
+        }
+      }
+      return firstSessionPath;
+    }
+    current = path.isAbsolute(header.parentSession)
+      ? header.parentSession
+      : path.resolve(path.dirname(canonicalPath), header.parentSession);
+  }
+
+  throw new Error('session parent chain exceeds the depth limit');
+}
+
+function resolveExitFallbackSession(
+  rootPath: string,
+  cwd: string,
+  before: PiSessionFileSnapshot | null,
+  expectedPath: string | null,
+  expectedMetadata: PiSessionFileMetadata | null,
+): string {
+  if (expectedPath) {
+    if (!expectedMetadata) throw new Error('resumed session metadata was not captured');
+    const current = fs.lstatSync(expectedPath);
+    assertSessionFile(current, expectedPath);
+    if (sameSessionFile(sessionFileMetadata(current), expectedMetadata)) {
+      throw new Error('resumed session was unchanged when the child exited');
+    }
+    return validatePiSessionPath(expectedPath, rootPath, cwd, true);
+  }
+  if (!before) throw new Error('session directory was unavailable before the prompt');
+  const after = snapshotPiSessionFiles(rootPath);
+  const changed = [...after].filter(([filePath, metadata]) => {
+    const previous = before.get(filePath);
+    return !previous || !sameSessionFile(previous, metadata);
   });
-  return changed.length === 1 ? changed[0]?.path ?? null : null;
+  if (changed.length !== 1) {
+    throw new Error('unexpected exit did not leave exactly one changed session file');
+  }
+  return validatePiSessionPath(changed[0]![0], rootPath, cwd, true);
 }
 
 /**
  * Attach a pi RPC session to a spawned child process.
  *
- * Emits `status: initializing` with the model name immediately so the UI
- * can show "pi · claude-sonnet-4-5" like every other adapter. Sends
- * `new_session` with `parentSession` when provided (for conversational
- * continuity across edit rounds), then sends the prompt via RPC and
- * streams events back.
+ * Resumed turns validate their complete owned session lineage and use Pi's
+ * semantic `switch_session` RPC before sending the latest prompt.
  *
  * The returned `abort()` method sends an RPC `abort` command so pi can
  * clean up gracefully (flush logs, finalize session files, etc.). The
- * caller (runs.cancel()) owns the SIGTERM fallback — abort() does not
- * kill the child process itself.
+ * adapter keeps parsing settle/state events and owns bounded SIGTERM/SIGKILL
+ * escalation.
  *
  * After the session completes, `getLastSessionPath()` returns the path
  * to the .jsonl session file pi wrote to disk, or null if none was found.
@@ -408,8 +616,8 @@ function resolveSessionPathChangedSince(
  * @param {string[]} [opts.imagePaths] - absolute paths to image files for multimodal input
  * @param {string} [opts.uploadRoot] - root directory that image paths must remain inside after symlink resolution
  * @param {function} opts.send   - SSE send function
- * @param {string} [opts.parentSession] - path to a prior .jsonl session file for conversational continuity
- * @returns {{ hasFatalError(): boolean, abort(): void, getLastSessionPath(): string | null }}
+ * @param {{path: string, root: string}} [opts.resumeSession] - owner-bound session to resume
+ * @returns {PiRpcSession}
  */
 export function attachPiRpcSession({
   child,
@@ -420,7 +628,7 @@ export function attachPiRpcSession({
   send,
   imagePaths,
   uploadRoot,
-  parentSession,
+  resumeSession,
 }: PiRpcSessionOptions): PiRpcSession {
   const stdin = child.stdin;
   const stdout = child.stdout;
@@ -432,14 +640,40 @@ export function attachPiRpcSession({
   }
 
   const runStartedAt = Date.now();
-  const sessionFilesBeforePrompt = snapshotPiSessionFiles(cwd, sessionDir);
-  let finished = false;
+  let terminal = false;
   let fatal = false;
+  let aborted = false;
+  let agentEnded = false;
+  let agentSettled = false;
   const sentFirstToken = { value: false };
   let capturedSessionPath: string | null = null;
+  let expectedResumePath: string | null = null;
+  let expectedResumeMetadata: PiSessionFileMetadata | null = null;
+  const sessionRoot =
+    resumeSession?.root ?? sessionDir ?? (cwd ? path.join(cwd, '.pi', 'sessions') : null);
+  let sessionFilesBeforePrompt: PiSessionFileSnapshot | null = null;
+  if (sessionRoot && !resumeSession) {
+    try {
+      sessionFilesBeforePrompt = snapshotPiSessionFiles(sessionRoot);
+    } catch {
+      // Normal settle/get_state remains authoritative. A missing snapshot only
+      // disables the exceptional child-exit recovery path.
+    }
+  }
 
   let nextRpcId = 1;
   let stdinOpen = true;
+  let childClosed = false;
+  let shutdownTimer: ReturnType<typeof setTimeout> | null = null;
+  let forceKillTimer: ReturnType<typeof setTimeout> | null = null;
+  let resolveQuiescence!: () => void;
+  let rejectQuiescence!: (error: Error) => void;
+  const quiescence = new Promise<void>((resolve, reject) => {
+    resolveQuiescence = resolve;
+    rejectQuiescence = reject;
+  });
+  // Existing local callers do not await the hosted snapshot barrier.
+  void quiescence.catch(() => undefined);
 
   function sendCommand(writable: Writable, type: string, params: PiRpcParams = {}): number | null {
     if (!stdinOpen) return null;
@@ -448,18 +682,66 @@ export function attachPiRpcSession({
     return id;
   }
 
-  // Track RPC ids so resume and prompt failures are attributed to the right
-  // request. A resumed turn must not send the trimmed prompt until pi confirms
-  // it loaded the parent session.
-  let parentSessionRpcId: number | null = null;
+  // A resumed turn must not send the latest-only prompt until Pi confirms the
+  // semantic session switch.
+  let resumeRpcId: number | null = null;
   let promptRpcId: number | null = null;
+  let stateRpcId: number | null = null;
+
+  const scheduleForceKill = (): void => {
+    if (forceKillTimer || childClosed) return;
+    forceKillTimer = setTimeout(() => {
+      if (!childClosed) {
+        try {
+          child.kill('SIGKILL');
+        } catch {
+          // The process may have exited between the close check and signal.
+        }
+      }
+    }, FORCE_KILL_MS);
+    forceKillTimer.unref?.();
+  };
+
+  const terminateChild = (): void => {
+    if (childClosed) return;
+    try {
+      child.kill('SIGTERM');
+    } catch {
+      // Force escalation below remains the final bounded attempt.
+    }
+    scheduleForceKill();
+  };
+
+  const scheduleKillFallback = (): void => {
+    if (shutdownTimer || childClosed) return;
+    const configured = Number(process.env.PI_GRACEFUL_SHUTDOWN_MS);
+    const shutdownMs = Number.isFinite(configured)
+      ? Math.max(100, Math.min(30_000, configured))
+      : DEFAULT_SHUTDOWN_MS;
+    shutdownTimer = setTimeout(() => {
+      terminateChild();
+    }, shutdownMs);
+    shutdownTimer.unref?.();
+  };
 
   const fail = (message: string, code?: string): void => {
-    if (finished) return;
-    finished = true;
+    if (terminal) return;
+    terminal = true;
     fatal = true;
     send('error', { message, ...(code ? { code } : {}) });
-    if (!child.killed) child.kill('SIGTERM');
+    terminateChild();
+  };
+
+  const closeStdin = (): void => {
+    if (!stdinOpen) return;
+    stdinOpen = false;
+    try {
+      stdin.end();
+    } catch (err: unknown) {
+      fail(`stdin close: ${errorMessage(err)}`, 'PI_SESSION_CLOSE_FAILED');
+      return;
+    }
+    scheduleKillFallback();
   };
 
   // Emit initial status with model name immediately — before pi even
@@ -470,7 +752,7 @@ export function attachPiRpcSession({
     model: typeof model === 'string' && model ? model : null,
   });
 
-  // ---- Outbound: send new_session (if parentSession provided) then prompt via RPC ----
+  // ---- Outbound RPC lifecycle ----
   stdin.on('error', (err: unknown) => {
     if (errorCode(err) !== 'EPIPE') {
       fail(`stdin: ${errorMessage(err)}`);
@@ -480,9 +762,6 @@ export function attachPiRpcSession({
     stdinOpen = false;
   });
 
-  // If a prior session file path is provided, send new_session with
-  // parentSession so pi loads the prior conversation history into the
-  // new session, enabling conversational continuity across edit rounds.
   // Build the images array for pi's prompt command. pi's RPC protocol
   // accepts `images` as an array of {type, data, mimeType} objects where
   // `data` is base64-encoded file contents. The daemon's safeImages guard
@@ -544,77 +823,91 @@ export function attachPiRpcSession({
     });
   };
 
-  // If a prior session file path is provided, send new_session with
-  // parentSession so pi loads the prior conversation history into the
-  // new session, enabling conversational continuity across edit rounds.
-  // Do not send the prompt until pi acknowledges this RPC: resumed prompts
-  // intentionally contain only the latest user turn, so continuing after a
-  // failed parent load would silently drop prior conversation context.
-  if (parentSession) {
-    parentSessionRpcId = sendCommand(stdin, 'new_session', { parentSession });
-  } else {
-    sendPromptCommand();
-  }
-
   // ---- Inbound: parse stdout events ----
   const parser = createJsonLineStream((raw: unknown) => {
     if (!isRecord(raw)) return;
-    // Once finished (agent_end or abort), stop processing — the run is
-    // over, so no more agent events should be emitted. We still drain
-    // stdout via parser.feed() so the pipe doesn't break; we just skip
-    // acting on the parsed objects.
-    if (finished) return;
+    // agent_end and abort are not terminal: settle/get_state responses still
+    // have to be parsed. Only fatal failure or child close stops parsing.
+    if (terminal) return;
 
     // Extension UI requests: auto-resolve to keep pi unblocked.
     if (raw.type === 'extension_ui_request') {
-      replyExtensionUi(stdin, raw);
+      if (!aborted) replyExtensionUi(stdin, raw);
       return;
     }
 
     // RPC responses (prompt accepted, set_model ack, etc.) — not
     // agent events. Log the prompt acceptance, ignore the rest.
     if (raw.type === 'response') {
-      if (raw.id === parentSessionRpcId) {
-        if (raw.success === false) {
+      if (raw.id === resumeRpcId) {
+        const data = getRecord(raw.data);
+        if (raw.command !== 'switch_session' || raw.success !== true || data?.cancelled === true) {
           fail(
-            `parent session rejected: ${String(raw.error ?? 'unknown')}`,
-            'PI_PARENT_SESSION_FAILED',
+            `resume session rejected: ${String(raw.error ?? 'unknown')}`,
+            'PI_RESUME_SESSION_FAILED',
           );
           return;
         }
-        sendPromptCommand();
+        if (!aborted) sendPromptCommand();
         return;
       }
       if (raw.id === promptRpcId && raw.success === false) {
         fail(`prompt rejected: ${String(raw.error ?? 'unknown')}`);
+        return;
+      }
+      if (raw.id === stateRpcId) {
+        const data = getRecord(raw.data);
+        if (
+          raw.command !== 'get_state' ||
+          raw.success !== true ||
+          typeof data?.sessionFile !== 'string' ||
+          !sessionRoot ||
+          !cwd
+        ) {
+          fail('Pi get_state did not return an owned session file', 'PI_SESSION_STATE_FAILED');
+          return;
+        }
+        try {
+          const validated = validatePiSessionPath(data.sessionFile, sessionRoot, cwd, true);
+          if (expectedResumePath && pathKey(validated) !== pathKey(expectedResumePath)) {
+            throw new Error('Pi switched to an unexpected session file');
+          }
+          capturedSessionPath = validated;
+        } catch (err: unknown) {
+          fail(`invalid Pi session state: ${errorMessage(err)}`, 'PI_SESSION_STATE_FAILED');
+          return;
+        }
+        closeStdin();
+      }
+      return;
+    }
+
+    if (raw.type === 'agent_settled') {
+      if (!agentEnded) {
+        fail('Pi emitted agent_settled before agent_end', 'PI_SESSION_STATE_FAILED');
+        return;
+      }
+      if (!agentSettled) {
+        agentSettled = true;
+        stateRpcId = sendCommand(stdin, 'get_state');
+        if (stateRpcId === null) {
+          fail('Pi stdin closed before session state capture', 'PI_SESSION_STATE_FAILED');
+        }
       }
       return;
     }
 
     // Agent events: delegate to the pure mapper.
-    const result = mapPiRpcEvent(raw, send, { runStartedAt, sentFirstToken });
+    const result = mapPiRpcEvent(
+      raw,
+      (channel, payload) => {
+        if (!aborted && !terminal) send(channel, payload);
+      },
+      { runStartedAt, sentFirstToken },
+    );
 
     if (result === 'agent_end') {
-      finished = true;
-      // Capture only the session file changed by this run. If another pi
-      // process wrote to the shared session directory concurrently, the
-      // resolver returns null instead of risking cross-conversation resume.
-      capturedSessionPath = resolveSessionPathChangedSince(cwd, sessionFilesBeforePrompt, sessionDir);
-      // pi's RPC process stays alive after agent_end (designed for
-      // multi-prompt sessions). The daemon's /api/chat is single-shot,
-      // so close stdin and let the process exit naturally, or kill it
-      // after a grace period.
-      try {
-        stdin.end();
-      } catch (err: unknown) {
-        fail(`stdin close: ${errorMessage(err)}`);
-      }
-      // Grace period before SIGTERM. Configurable via PI_GRACEFUL_SHUTDOWN_MS
-      // for resource-constrained machines where the event loop drains slowly.
-      const shutdownMs = Number(process.env.PI_GRACEFUL_SHUTDOWN_MS) || 5000;
-      setTimeout(() => {
-        if (!child.killed) child.kill('SIGTERM');
-      }, shutdownMs);
+      agentEnded = true;
     }
   });
 
@@ -625,24 +918,83 @@ export function attachPiRpcSession({
       fail(`parser: ${errorMessage(err)}`);
     }
   });
-  stdout.on('close', () => parser.flush());
+  stdout.on('close', () => {
+    try {
+      parser.flush();
+    } catch (err: unknown) {
+      fail(`parser: ${errorMessage(err)}`);
+    }
+  });
   child.on('error', (err: unknown) => fail(errorMessage(err)));
+  child.on('close', () => {
+    childClosed = true;
+    if (shutdownTimer) clearTimeout(shutdownTimer);
+    if (forceKillTimer) clearTimeout(forceKillTimer);
+    if (!terminal && !capturedSessionPath && sessionRoot && cwd) {
+      try {
+        capturedSessionPath = resolveExitFallbackSession(
+          sessionRoot,
+          cwd,
+          sessionFilesBeforePrompt,
+          expectedResumePath,
+          expectedResumeMetadata,
+        );
+      } catch (err: unknown) {
+        if (!aborted) {
+          fatal = true;
+          send('error', {
+            message: `Pi exited before settled session state was safely captured: ${errorMessage(err)}`,
+            code: 'PI_SESSION_STATE_FAILED',
+          });
+        }
+      }
+    } else if (!terminal && !capturedSessionPath && !aborted) {
+      fatal = true;
+      send('error', {
+        message: 'Pi exited before settled session state was captured',
+        code: 'PI_SESSION_STATE_FAILED',
+      });
+    }
+    terminal = true;
+    if (!fatal && capturedSessionPath) {
+      resolveQuiescence();
+    } else {
+      rejectQuiescence(new Error('Pi child closed without a safely captured session'));
+    }
+  });
+
+  if (resumeSession) {
+    if (!cwd) {
+      fail('resume session requires a cwd', 'PI_RESUME_SESSION_INVALID');
+    } else {
+      try {
+        expectedResumePath = validatePiSessionPath(resumeSession.path, resumeSession.root, cwd, true);
+        expectedResumeMetadata = sessionFileMetadata(fs.lstatSync(expectedResumePath));
+        resumeRpcId = sendCommand(stdin, 'switch_session', { sessionPath: expectedResumePath });
+      } catch (err: unknown) {
+        fail(`invalid resume session: ${errorMessage(err)}`, 'PI_RESUME_SESSION_INVALID');
+      }
+    }
+  } else {
+    sendPromptCommand();
+  }
 
   return {
+    ownsAbortLifecycle: true,
     hasFatalError() {
       return fatal;
     },
     getLastSessionPath() {
       return capturedSessionPath;
     },
+    waitForQuiescence() {
+      return quiescence;
+    },
     abort() {
-      // Send RPC abort so pi can clean up gracefully (flush logs,
-      // finalize session files, etc.). The termination guarantee
-      // (SIGTERM fallback) is owned by the caller (runs.cancel()),
-      // not by this method.
-      if (finished || child.killed) return;
-      finished = true;
+      if (terminal || aborted || childClosed) return;
+      aborted = true;
       sendCommand(stdin, 'abort');
+      scheduleKillFallback();
     },
   };
 }

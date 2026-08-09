@@ -181,6 +181,7 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'POST', path: '/api/projects/:id/export/pdf', reason: 'desktop-only native export' },
     { method: 'POST', path: '/api/projects/:id/archive/batch', reason: 'unbounded archive expansion' },
     { method: 'POST', path: '/api/upload', reason: 'global upload root before hosted limits' },
+    { method: 'POST', path: '/api/projects/:id/upload', reason: 'project upload before hosted storage limits' },
     { method: 'GET', path: '/api/projects/:id/terminals', reason: 'terminal/process capability' },
     { method: 'POST', path: '/api/projects/:id/terminals', reason: 'terminal/process capability' },
     { method: 'GET', path: '/api/projects/:id/terminals/:tid/stream', reason: 'terminal/process capability' },
@@ -204,7 +205,6 @@ export const HOSTED_ROUTE_CHARACTERIZATION: Readonly<{
     { method: 'DELETE', path: '/api/applied-plugins/*', reason: 'local plugin/package administration' },
     { method: 'POST', path: '/api/skills/install', reason: 'runtime package/resource installation' },
     { method: 'POST', path: '/api/design-systems/import/github', reason: 'unbounded external import' },
-    { method: 'POST', path: '/api/projects/:id/upload', reason: 'project upload before hosted storage limits' },
     { method: 'POST', path: '/api/projects/:id/working-dir', reason: 'local working-directory selection' },
     { method: 'GET', path: '/api/project-locations', reason: 'local project-location configuration' },
     { method: 'PUT', path: '/api/project-locations', reason: 'local project-location configuration' },
@@ -419,23 +419,50 @@ export function createHostedRequestBodyGuard(): RequestHandler {
 function requestPath(request: Request): string | null {
   const originalUrl = request.originalUrl || request.url || request.path;
   const rawPath = originalUrl.split('?', 1)[0] ?? '';
-  if (
-    !rawPath.startsWith('/') ||
-    rawPath.includes('\\') ||
-    rawPath.includes('//') ||
-    /%/u.test(rawPath)
-  ) {
-    return null;
-  }
-  const normalized = normalizePath(request.path || rawPath);
+  const normalized = normalizePath(rawPath);
   return normalized == null || containsPathOwnershipMetadata(normalized) ? null : normalized;
+}
+
+/** Validate the untouched request target before Express can decode or normalize route aliases. */
+export function hasCanonicalHostedRawPath(request: Request): boolean {
+  const originalUrl = request.originalUrl || request.url || request.path;
+  const rawPath = originalUrl.split('?', 1)[0] ?? '';
+  return normalizePath(rawPath) === rawPath || hasCanonicalHostedContentTail(rawPath);
+}
+
+function hasCanonicalHostedContentTail(rawPath: string): boolean {
+  if (
+    !rawPath.startsWith('/')
+    || rawPath.length > 2_048
+    || rawPath.includes('\\')
+    || rawPath.includes('//')
+    || /[\u0000-\u001f\u007f]/u.test(rawPath)
+    || rawPath.endsWith('/')
+  ) return false;
+  const match = /^\/api\/projects\/([A-Za-z0-9._-]{1,128})\/(?:files|preview\/odpv_[A-Za-z0-9_-]{43})\/(.+)$/u.exec(rawPath);
+  if (match == null) return false;
+  return match[2]!.split('/').every((segment) => {
+    if (segment === '' || !segment.includes('%')) return segment !== '.' && segment !== '..';
+    try {
+      const decoded = decodeURIComponent(segment);
+      return decoded !== '.'
+        && decoded !== '..'
+        && !decoded.includes('/')
+        && !decoded.includes('\\')
+        && !decoded.includes('%')
+        && !/[\u0000-\u001f\u007f]/u.test(decoded)
+        && encodeURIComponent(decoded) === segment;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function normalizePath(path: string): string | null {
   if (!path.startsWith('/') || path.includes('\\') || path.includes('//')) return null;
   if (path.length > 2048 || /[\u0000-\u001f\u007f%]/u.test(path)) return null;
   if (path.split('/').some((segment) => segment === '.' || segment === '..')) return null;
-  if (path.length > 1 && path.endsWith('/')) return path.slice(0, -1);
+  if (path.length > 1 && path.endsWith('/')) return null;
   return path;
 }
 
@@ -454,6 +481,14 @@ function hasClientOwnershipMetadata(request: Request): boolean {
   if (containsOwnershipField(request.query, 0, true)) return true;
   if (Object.keys(request.headers ?? {}).some(isOwnerHeaderName)) return true;
   return false;
+}
+
+export function hasHostedClientOwnershipMetadata(
+  request: Request,
+  includeBody = false,
+): boolean {
+  return hasClientOwnershipMetadata(request)
+    || (includeBody && containsOwnershipField(request.body));
 }
 
 function containsPathOwnershipMetadata(path: string): boolean {

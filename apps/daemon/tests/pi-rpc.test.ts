@@ -1,5 +1,6 @@
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { parsePiModels, mapPiRpcEvent, attachPiRpcSession } from '../src/pi-rpc.js';
 import { EventEmitter } from 'node:events';
@@ -119,6 +120,7 @@ type MockChildProcess = EventEmitter & {
   stdout: PassThrough;
   stderr: PassThrough;
   killed: boolean;
+  signals: Array<NodeJS.Signals | number | undefined>;
   kill: (signal?: NodeJS.Signals | number) => boolean;
 };
 
@@ -521,15 +523,19 @@ test('pi RPC: no duplicate usage when both message_end and turn_end carry usage'
 // so regressions in the actual function (wrong events, missing model
 // normalization, abort not writing to stdin, etc.) are caught.
 
-function createMockChild(): MockChildProcess {
+function createMockChild(options: { closeOn?: NodeJS.Signals | 'any' } = {}): MockChildProcess {
   const child = new EventEmitter() as MockChildProcess;
   child.stdin = new PassThrough();
   child.stdout = new PassThrough();
   child.stderr = new PassThrough();
   child.killed = false;
+  child.signals = [];
   child.kill = (signal?: NodeJS.Signals | number) => {
     child.killed = true;
-    child.emit('close', null, signal);
+    child.signals.push(signal);
+    if ((options.closeOn ?? 'any') === 'any' || options.closeOn === signal) {
+      child.emit('close', null, signal);
+    }
     return true;
   };
   return child;
@@ -1107,192 +1113,755 @@ test('attachPiRpcSession: no agent events emitted after abort()', () => {
   );
 });
 
-// ─── parentSession (conversational continuity) ─────────────────────────
+// ─── semantic resume and settled session capture ───────────────────
 
-test('attachPiRpcSession sends new_session before prompt when parentSession is provided', () => {
-  const events: TestSentEvent[] = [];
-  const send = (channel: string, payload: JsonRecord) => events.push({ channel, ...payload });
-  const child = createMockChild();
-  const session = attachPiRpcSession({
-    child: child as unknown as ChildProcess,
-    prompt: 'test',
-    send,
-    parentSession: '/path/to/prior-session.jsonl',
-  });
-  // Use only read() to read stdin (not on('data')). attachPiRpcSession writes
-  // synchronously to the PassThrough, so all data is buffered and available
-  // via read(). Mixing on('data') + read() in flowing mode duplicates lines.
-  const chunks: string[] = [];
-  let buffered = child.stdin.read();
-  while (buffered) {
-    chunks.push(buffered.toString());
-    buffered = child.stdin.read();
-  }
-  const lines = chunks.join('').trim().split('\n').filter(Boolean);
-  // First line should be new_session with parentSession, and prompt should
-  // wait until pi confirms it loaded the parent session.
-  assert.equal(lines.length, 1, 'should wait for new_session response before prompt');
-  const first = parseJsonRecord(lines[0] ?? '');
-  assert.equal(first.type, 'new_session', 'first cmd should be new_session');
-  assert.equal(first.parentSession, '/path/to/prior-session.jsonl', 'parentSession should match');
-  feedStdoutLines(child, [{ type: 'response', id: first.id, success: true }]);
-  const promptChunk = child.stdin.read();
-  const promptLines = promptChunk ? promptChunk.toString().trim().split('\n').filter(Boolean) : [];
-  assert.equal(promptLines.length, 1, 'should send prompt after new_session succeeds');
-  const second = parseJsonRecord(promptLines[0] ?? '');
-  assert.equal(second.type, 'prompt', 'second cmd should be prompt');
-  // new_session should have a smaller id than prompt.
-  assert.ok((first.id as number) < (second.id as number), 'new_session id should be less than prompt id');
-  // getLastSessionPath should return null initially (no real session dir).
-  assert.equal(session.getLastSessionPath(), null, 'no session path before agent_end');
-});
-
-test('attachPiRpcSession fails and does not send prompt when parentSession is rejected', () => {
-  const events: TestSentEvent[] = [];
-  const send = (channel: string, payload: JsonRecord) => events.push({ channel, ...payload });
-  const child = createMockChild();
-  attachPiRpcSession({
-    child: child as unknown as ChildProcess,
-    prompt: 'trimmed latest turn',
-    send,
-    parentSession: '/path/to/missing-session.jsonl',
-  });
-  const firstChunk = child.stdin.read();
-  const firstLines = firstChunk ? firstChunk.toString().trim().split('\n').filter(Boolean) : [];
-  assert.equal(firstLines.length, 1, 'should only send new_session initially');
-  const first = parseJsonRecord(firstLines[0] ?? '');
-  assert.equal(first.type, 'new_session');
-
-  feedStdoutLines(child, [{ type: 'response', id: first.id, success: false, error: 'missing session' }]);
-
-  const promptChunk = child.stdin.read();
-  assert.equal(promptChunk, null, 'must not send trimmed prompt after parent session failure');
-  assert.deepEqual(
-    events.find((event) => event.channel === 'error'),
-    {
-      channel: 'error',
-      message: 'parent session rejected: missing session',
-      code: 'PI_PARENT_SESSION_FAILED',
-    },
-  );
-});
-
-test('attachPiRpcSession does NOT send new_session when parentSession is omitted', () => {
-  const events: TestSentEvent[] = [];
-  const send = (channel: string, payload: JsonRecord) => events.push({ channel, ...payload });
-  const child = createMockChild();
-  child.stdout.end();
-  attachPiRpcSession({
-    child: child as unknown as ChildProcess,
-    prompt: 'test',
-    send,
-  });
-  // Use only read() to avoid streaming-mode duplication.
-  const chunks: string[] = [];
-  let buffered = child.stdin.read();
-  while (buffered) {
-    chunks.push(buffered.toString());
-    buffered = child.stdin.read();
-  }
-  const lines = chunks.join('').trim().split('\n').filter(Boolean);
-  const types = lines.map((l) => parseJsonRecord(l).type);
-  assert.ok(!types.includes('new_session'), 'should NOT send new_session');
-  assert.ok(types.includes('prompt'), 'should send prompt');
-});
-
-test('attachPiRpcSession getLastSessionPath returns only the session changed during this run', async () => {
-  const tmpDir = await import('node:os').then((m) => m.tmpdir());
-  const piDir = path.join(tmpDir, `.pi-test-${Date.now()}`);
-  // pi session capture scans <cwd>/.pi/sessions/, NOT <cwd>/sessions/.
-  const sessionsDir = path.join(piDir, '.pi', 'sessions');
+async function createPiSessionFixture(options: {
+  parentSession?: string;
+  cwd?: string;
+} = {}) {
   const fsp = await import('node:fs/promises');
-  await fsp.mkdir(sessionsDir, { recursive: true });
-  // Existing unrelated sessions, even with a newer mtime, must not be
-  // captured as this run's parent.
-  const unrelatedSessionFile = path.join(sessionsDir, '2026-06-01T00-00-00_unrelated.jsonl');
-  await fsp.writeFile(unrelatedSessionFile, '{"msg":"unrelated"}\n');
-  const future = new Date(Date.now() + 60_000);
-  await fsp.utimes(unrelatedSessionFile, future, future);
+  const os = await import('node:os');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'pi-rpc-session-'));
+  const cwd = options.cwd ?? path.join(root, 'project');
+  await fsp.mkdir(cwd, { recursive: true });
+  const sessionPath = path.join(root, 'session.jsonl');
+  await fsp.writeFile(sessionPath, `${JSON.stringify({
+    type: 'session',
+    version: 3,
+    id: 'fixture-session',
+    timestamp: '2026-08-06T00:00:00.000Z',
+    cwd,
+    ...(options.parentSession ? { parentSession: options.parentSession } : {}),
+  })}\n`);
+  return { root, cwd, sessionPath, cleanup: () => fsp.rm(root, { recursive: true, force: true }) };
+}
+
+function readCommands(child: MockChildProcess): JsonRecord[] {
+  const chunk = child.stdin.read();
+  return chunk
+    ? chunk.toString().trim().split('\n').filter(Boolean).map((line: string) => parseJsonRecord(line))
+    : [];
+}
+
+test('attachPiRpcSession semantically resumes with switch_session before prompt', async () => {
+  const fixture = await createPiSessionFixture();
   try {
-    const send = (_channel: string, _payload: JsonRecord) => {};
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'latest turn only',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+
+    const [resume] = readCommands(child);
+    assert.equal(resume?.type, 'switch_session');
+    assert.equal(resume?.sessionPath, fixture.sessionPath);
+    assert.ok(!readCommands(child).some((command) => command.type === 'prompt'));
+
+    feedStdoutLines(child, [{
+      type: 'response', id: resume?.id, command: 'switch_session', success: true,
+      data: { cancelled: false },
+    }]);
+    assert.equal(readCommands(child)[0]?.type, 'prompt');
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession does not prompt when Pi rejects switch_session', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const events: TestSentEvent[] = [];
     const child = createMockChild();
     const session = attachPiRpcSession({
       child: child as unknown as ChildProcess,
-      prompt: 'test',
-      cwd: piDir,
-      send,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: (channel, payload) => events.push({ channel, ...payload }),
     });
-    const sessionFile = path.join(sessionsDir, '2026-06-01T00-00-01_current.jsonl');
-    await fsp.writeFile(sessionFile, '{"msg":"current"}\n');
-    // Feed agent_end to trigger session path capture.
-    feedStdoutLines(child, [
-      { type: 'agent_start' },
-      { type: 'turn_start' },
-      {
-        type: 'message_update',
-        assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'Hello' },
-      },
-      { type: 'agent_end' },
+    const [resume] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: resume?.id, command: 'switch_session', success: false,
+      error: 'rejected',
+    }]);
+
+    assert.equal(readCommands(child).length, 0);
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(events.find((event) => event.channel === 'error')?.code, 'PI_RESUME_SESSION_FAILED');
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test.each([
+  ['missing', (fixture: Awaited<ReturnType<typeof createPiSessionFixture>>) => path.join(fixture.root, 'missing.jsonl')],
+  ['outside its owner root', (fixture: Awaited<ReturnType<typeof createPiSessionFixture>>) => fixture.sessionPath],
+  ['with a mismatched cwd', (fixture: Awaited<ReturnType<typeof createPiSessionFixture>>) => fixture.sessionPath],
+] as const)('attachPiRpcSession rejects a %s resume session before prompt', async (name, selectPath) => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const allowedRoot = name === 'outside its owner root'
+    ? await fsp.mkdtemp(path.join((await import('node:os')).tmpdir(), 'pi-rpc-other-root-'))
+    : fixture.root;
+  const expectedCwd = name === 'with a mismatched cwd' ? path.join(fixture.root, 'other-project') : fixture.cwd;
+  if (name === 'with a mismatched cwd') await fsp.mkdir(expectedCwd);
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: expectedCwd,
+      resumeSession: { path: selectPath(fixture), root: allowedRoot },
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+
+    assert.equal(readCommands(child).length, 0);
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(events.find((event) => event.channel === 'error')?.code, 'PI_RESUME_SESSION_INVALID');
+    assert.equal(child.killed, true);
+  } finally {
+    await fixture.cleanup();
+    if (allowedRoot !== fixture.root) await fsp.rm(allowedRoot, { recursive: true, force: true });
+  }
+});
+
+test('attachPiRpcSession rejects a resume parent chain cycle before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const header = JSON.parse((await fsp.readFile(fixture.sessionPath, 'utf8')).trim()) as JsonRecord;
+    await fsp.writeFile(fixture.sessionPath, `${JSON.stringify({ ...header, parentSession: fixture.sessionPath })}\n`);
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects a resume parent outside its owner root', async () => {
+  const fixture = await createPiSessionFixture();
+  const outside = await createPiSessionFixture({ cwd: fixture.cwd });
+  const fsp = await import('node:fs/promises');
+  try {
+    const header = JSON.parse((await fsp.readFile(fixture.sessionPath, 'utf8')).trim()) as JsonRecord;
+    await fsp.writeFile(fixture.sessionPath, `${JSON.stringify({
+      ...header,
+      parentSession: outside.sessionPath,
+    })}\n`);
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+    await outside.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects a symlinked resume file before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const linkPath = path.join(fixture.root, 'linked.jsonl');
+  try {
+    await fsp.symlink(fixture.sessionPath, linkPath);
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: linkPath, root: fixture.root },
+      send: () => {},
+    });
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession bounds resume header parsing before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    await fsp.writeFile(fixture.sessionPath, ' '.repeat(64 * 1024 + 1));
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects malformed JSONL after a valid resume header before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const header = (await fsp.readFile(fixture.sessionPath, 'utf8')).trim();
+    await fsp.writeFile(fixture.sessionPath, `${header}\n{not-json}\n`);
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects an oversized resume file before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const handle = await fsp.open(fixture.sessionPath, 'r+');
+    try {
+      await handle.truncate(64 * 1024 * 1024 + 1);
+    } finally {
+      await handle.close();
+    }
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession enforces the aggregate lineage budget before full-file reads', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const childPath = path.join(fixture.root, 'large-child.jsonl');
+  const parentPath = path.join(fixture.root, 'large-parent.jsonl');
+  const writeSparseSession = async (filePath: string, parentSession?: string) => {
+    const handle = await fsp.open(filePath, 'w');
+    try {
+      await handle.write(`${JSON.stringify({
+        type: 'session',
+        cwd: fixture.cwd,
+        ...(parentSession ? { parentSession } : {}),
+      })}\n`);
+      await handle.truncate(33 * 1024 * 1024);
+    } finally {
+      await handle.close();
+    }
+  };
+  try {
+    await writeSparseSession(parentPath);
+    await writeSparseSession(childPath, parentPath);
+    const readSpy = vi.spyOn(fs, 'readFileSync');
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: childPath, root: fixture.root },
+      send: () => {},
+    });
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+    assert.equal(readSpy.mock.calls.length, 0);
+  } finally {
+    vi.restoreAllMocks();
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession bounds resume parent depth before prompt', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const paths = Array.from({ length: 33 }, (_, index) => path.join(fixture.root, `session-${index}.jsonl`));
+    for (let index = paths.length - 1; index >= 0; index -= 1) {
+      await fsp.writeFile(paths[index]!, `${JSON.stringify({
+        type: 'session',
+        version: 3,
+        id: `session-${index}`,
+        timestamp: '2026-08-06T00:00:00.000Z',
+        cwd: fixture.cwd,
+        ...(paths[index + 1] ? { parentSession: paths[index + 1] } : {}),
+      })}\n`);
+    }
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'must not be sent',
+      cwd: fixture.cwd,
+      resumeSession: { path: paths[0]!, root: fixture.root },
+      send: () => {},
+    });
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(readCommands(child).length, 0);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession captures get_state only after agent_end and agent_settled', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    readCommands(child);
+
+    feedStdoutLines(child, [{ type: 'agent_end' }]);
+    assert.equal(child.stdin.writableEnded, false);
+    assert.equal(readCommands(child).length, 0);
+
+    feedStdoutLines(child, [{ type: 'agent_settled' }]);
+    const [getState] = readCommands(child);
+    assert.equal(getState?.type, 'get_state');
+    assert.equal(child.stdin.writableEnded, false);
+
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: fixture.sessionPath },
+    }]);
+    assert.equal(session.getLastSessionPath(), fixture.sessionPath);
+    assert.equal(child.stdin.writableEnded, true);
+
+    child.emit('close', 0, null);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession exposes quiescence only after validated state and child close', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    const quiescence = session.waitForQuiescence();
+    let published = false;
+    void quiescence.then(() => { published = true; });
+    readCommands(child);
+
+    feedStdoutLines(child, [{ type: 'agent_end' }, { type: 'agent_settled' }]);
+    const [getState] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: fixture.sessionPath },
+    }]);
+    await Promise.resolve();
+    assert.equal(published, false, 'snapshot publication must still wait for child close');
+
+    child.emit('close', 0, null);
+    await assert.doesNotReject(quiescence);
+    assert.equal(published, true);
+    assert.equal(session.getLastSessionPath(), fixture.sessionPath);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession treats child exit without settled get_state as fatal', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+    readCommands(child);
+    feedStdoutLines(child, [{ type: 'agent_end' }]);
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
+    assert.equal(events.find((event) => event.channel === 'error')?.code, 'PI_SESSION_STATE_FAILED');
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession safely captures the only complete session after an unexpected exit', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const createdPath = path.join(fixture.root, 'created-after-prompt.jsonl');
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    readCommands(child);
+    await fsp.writeFile(createdPath, [
+      JSON.stringify({
+        type: 'session',
+        version: 3,
+        id: 'created-after-prompt',
+        timestamp: '2026-08-06T00:00:00.000Z',
+        cwd: fixture.cwd,
+      }),
+      JSON.stringify({ type: 'message', role: 'user', content: 'complete' }),
+      '',
+    ].join('\n'));
+
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), false);
+    assert.equal(session.getLastSessionPath(), createdPath);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession does not capture an unchanged resumed session after an unexpected exit', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      resumeSession: { path: fixture.sessionPath, root: fixture.root },
+      send: () => {},
+    });
+    const [resume] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: resume?.id, command: 'switch_session', success: true,
+      data: { cancelled: false },
+    }]);
+    readCommands(child);
+
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects a corrupted full JSONL session after an unexpected exit', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+    readCommands(child);
+    await fsp.writeFile(path.join(fixture.root, 'corrupt.jsonl'), [
+      JSON.stringify({ type: 'session', cwd: fixture.cwd }),
+      '{not-json}',
+      '',
+    ].join('\n'));
+
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
+    assert.equal(events.find((event) => event.channel === 'error')?.code, 'PI_SESSION_STATE_FAILED');
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects ambiguous changed sessions after an unexpected exit', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const header = (id: string) => `${JSON.stringify({ type: 'session', id, cwd: fixture.cwd })}\n`;
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    readCommands(child);
+    await Promise.all([
+      fsp.writeFile(path.join(fixture.root, 'one.jsonl'), header('one')),
+      fsp.writeFile(path.join(fixture.root, 'two.jsonl'), header('two')),
     ]);
-    closeStdout(child);
-    // Wait a tick for the async capture to complete.
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const captured = session.getLastSessionPath();
-    assert.equal(captured, sessionFile, 'should capture only the session file changed after attach');
+
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
   } finally {
-    await fsp.rm(piDir, { recursive: true, force: true }).catch(() => {});
+    await fixture.cleanup();
   }
 });
 
-test('attachPiRpcSession getLastSessionPath returns null when multiple session files changed', async () => {
-  const tmpDir = await import('node:os').then((m) => m.tmpdir());
-  const piDir = path.join(tmpDir, `.pi-test-${Date.now()}-ambiguous`);
-  const sessionsDir = path.join(piDir, '.pi', 'sessions');
+test('attachPiRpcSession rejects an oversized fallback session before reading it', async () => {
+  const fixture = await createPiSessionFixture();
   const fsp = await import('node:fs/promises');
-  await fsp.mkdir(sessionsDir, { recursive: true });
+  const oversizedPath = path.join(fixture.root, 'oversized.jsonl');
   try {
-    const send = (_channel: string, _payload: JsonRecord) => {};
     const child = createMockChild();
     const session = attachPiRpcSession({
       child: child as unknown as ChildProcess,
-      prompt: 'test',
-      cwd: piDir,
-      send,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
     });
-    await fsp.writeFile(path.join(sessionsDir, 'current.jsonl'), '{"msg":"current"}\n');
-    await fsp.writeFile(path.join(sessionsDir, 'other.jsonl'), '{"msg":"other"}\n');
-    feedStdoutLines(child, [{ type: 'agent_end' }]);
-    closeStdout(child);
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    assert.equal(session.getLastSessionPath(), null, 'ambiguous session changes should not be captured');
+    readCommands(child);
+    const handle = await fsp.open(oversizedPath, 'w');
+    try {
+      await handle.write(`${JSON.stringify({ type: 'session', cwd: fixture.cwd })}\n`);
+      await handle.truncate(64 * 1024 * 1024 + 1);
+    } finally {
+      await handle.close();
+    }
+
+    child.emit('close', 1, null);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
   } finally {
-    await fsp.rm(piDir, { recursive: true, force: true }).catch(() => {});
+    await fixture.cleanup();
   }
 });
 
-test('attachPiRpcSession captures sessions from the hosted session directory', async () => {
-  const tmpDir = await import('node:os').then((m) => m.tmpdir());
-  const piDir = path.join(tmpDir, `.pi-test-${Date.now()}-hosted`);
-  const sessionDir = path.join(piDir, 'owned-sessions');
+test('attachPiRpcSession rejects a fallback session that changes while it is read', async () => {
+  const fixture = await createPiSessionFixture();
   const fsp = await import('node:fs/promises');
-  await fsp.mkdir(sessionDir, { recursive: true });
+  const createdPath = path.join(fixture.root, 'changing.jsonl');
+  const originalReadFileSync = fs.readFileSync.bind(fs);
   try {
-    const send = (_channel: string, _payload: JsonRecord) => {};
     const child = createMockChild();
     const session = attachPiRpcSession({
       child: child as unknown as ChildProcess,
-      prompt: 'test',
-      cwd: piDir,
-      sessionDir,
-      send,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
     });
-    const sessionFile = path.join(sessionDir, 'hosted.jsonl');
-    await fsp.writeFile(sessionFile, '{"msg":"hosted"}\n');
-    feedStdoutLines(child, [{ type: 'agent_end' }]);
-    closeStdout(child);
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    assert.equal(session.getLastSessionPath(), sessionFile);
+    readCommands(child);
+    await fsp.writeFile(createdPath, `${JSON.stringify({ type: 'session', cwd: fixture.cwd })}\n`);
+    const readSpy = vi.spyOn(fs, 'readFileSync').mockImplementation(((filePath: fs.PathOrFileDescriptor) => {
+      const contents = originalReadFileSync(filePath);
+      if (path.resolve(String(filePath)) === createdPath) fs.appendFileSync(createdPath, '{}\n');
+      return contents;
+    }) as typeof fs.readFileSync);
+
+    child.emit('close', 1, null);
+    readSpy.mockRestore();
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
   } finally {
-    await fsp.rm(piDir, { recursive: true, force: true }).catch(() => {});
+    vi.restoreAllMocks();
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession captures a complete session from the bounded cancel exit fallback', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  const createdPath = path.join(fixture.root, 'cancelled.jsonl');
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+    readCommands(child);
+    session.abort();
+    readCommands(child);
+    await fsp.writeFile(createdPath, [
+      JSON.stringify({ type: 'session', id: 'cancelled', cwd: fixture.cwd }),
+      JSON.stringify({ type: 'message', role: 'assistant', content: 'partial-safe-state' }),
+      '',
+    ].join('\n'));
+    child.emit('close', null, 'SIGTERM');
+
+    assert.equal(session.hasFatalError(), false);
+    assert.equal(session.getLastSessionPath(), createdPath);
+    assert.ok(!events.some((event) => event.channel === 'error'));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession abort escalates from SIGTERM to SIGKILL when Pi stays alive', async () => {
+  vi.useFakeTimers();
+  const previousGrace = process.env.PI_GRACEFUL_SHUTDOWN_MS;
+  process.env.PI_GRACEFUL_SHUTDOWN_MS = '100';
+  try {
+    const child = createMockChild({ closeOn: 'SIGKILL' });
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: process.cwd(),
+      send: () => {},
+    });
+    readCommands(child);
+
+    session.abort();
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    assert.deepEqual(child.signals, ['SIGTERM', 'SIGKILL']);
+  } finally {
+    if (previousGrace === undefined) delete process.env.PI_GRACEFUL_SHUTDOWN_MS;
+    else process.env.PI_GRACEFUL_SHUTDOWN_MS = previousGrace;
+    vi.useRealTimers();
+  }
+});
+
+test('attachPiRpcSession rejects get_state session files outside the owned root', async () => {
+  const fixture = await createPiSessionFixture();
+  const outside = await createPiSessionFixture({ cwd: fixture.cwd });
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+    readCommands(child);
+    feedStdoutLines(child, [{ type: 'agent_end' }, { type: 'agent_settled' }]);
+    const [getState] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: outside.sessionPath },
+    }]);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
+    assert.equal(events.find((event) => event.channel === 'error')?.code, 'PI_SESSION_STATE_FAILED');
+  } finally {
+    await fixture.cleanup();
+    await outside.cleanup();
+  }
+});
+
+test('attachPiRpcSession rejects malformed JSONL returned by get_state', async () => {
+  const fixture = await createPiSessionFixture();
+  const fsp = await import('node:fs/promises');
+  try {
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: () => {},
+    });
+    readCommands(child);
+    await fsp.appendFile(fixture.sessionPath, '{not-json}\n');
+    feedStdoutLines(child, [{ type: 'agent_end' }, { type: 'agent_settled' }]);
+    const [getState] = readCommands(child);
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: fixture.sessionPath },
+    }]);
+
+    assert.equal(session.hasFatalError(), true);
+    assert.equal(session.getLastSessionPath(), null);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('attachPiRpcSession keeps state parsing after abort while suppressing user events', async () => {
+  const fixture = await createPiSessionFixture();
+  try {
+    const events: TestSentEvent[] = [];
+    const child = createMockChild();
+    const session = attachPiRpcSession({
+      child: child as unknown as ChildProcess,
+      prompt: 'turn',
+      cwd: fixture.cwd,
+      sessionDir: fixture.root,
+      send: (channel, payload) => events.push({ channel, ...payload }),
+    });
+    readCommands(child);
+    session.abort();
+    assert.equal(readCommands(child)[0]?.type, 'abort');
+
+    feedStdoutLines(child, [
+      { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'hidden' } },
+      { type: 'agent_end' },
+      { type: 'agent_settled' },
+    ]);
+    const [getState] = readCommands(child);
+    assert.equal(getState?.type, 'get_state');
+    feedStdoutLines(child, [{
+      type: 'response', id: getState?.id, command: 'get_state', success: true,
+      data: { sessionFile: fixture.sessionPath },
+    }]);
+
+    assert.ok(!events.some((event) => event.delta === 'hidden'));
+    assert.equal(session.getLastSessionPath(), fixture.sessionPath);
+    assert.equal(child.stdin.writableEnded, true);
+    child.emit('close', 0, null);
+  } finally {
+    await fixture.cleanup();
   }
 });

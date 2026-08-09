@@ -5,14 +5,114 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  createHostedDaemonProxyHeaders,
   createStandaloneBackendEnv,
   createStandaloneParentMonitorImport,
   createStandaloneServerArgs,
+  isHostedNextDevUpgrade,
   normalizeDaemonProxyOriginHeader,
   resolveDaemonProxyTarget,
+  resolveHostedPublicOrigin,
+  resolveHostedSidecarRoute,
   resolveStandaloneBackendOrigin,
   resolveStandaloneServerEntry,
 } from '../sidecar/server';
+
+describe('hosted public sidecar boundary', () => {
+  it('routes only the api prefix to the daemon and terminates raw content routes', () => {
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api/projects?limit=10')).toEqual({
+      kind: 'daemon',
+      target: new URL('http://127.0.0.1:7456/api/projects?limit=10'),
+    });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/artifacts/file')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/frames/example')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/apiary')).toEqual({ kind: 'next' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/settings')).toEqual({ kind: 'next' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api%2Fhealth')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/%61pi/health')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/artifacts%2Ffile')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api/%2e%2e/settings')).toEqual({ kind: 'deny' });
+  });
+
+  it('allows only the Next development HMR upgrade', () => {
+    expect(isHostedNextDevUpgrade('/_next/webpack-hmr?id=dev')).toBe(true);
+    expect(isHostedNextDevUpgrade('/_next/webpack-hmr-evil')).toBe(false);
+    expect(isHostedNextDevUpgrade('/api/runs/1/stream')).toBe(false);
+  });
+
+  it('requires an exact HTTP public origin', () => {
+    expect(resolveHostedPublicOrigin('https://design.example:8443').href).toBe('https://design.example:8443/');
+    expect(() => resolveHostedPublicOrigin(undefined)).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('https://design.example/path')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+    expect(() => resolveHostedPublicOrigin('file:///tmp/design')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
+  });
+
+  it('forwards one bearer credential carrier and a strict request-header allowlist', () => {
+    expect(
+      createHostedDaemonProxyHeaders({
+        headers: {
+          authorization: 'Bearer adapter-token',
+          cookie: '__Host-od-hosted=adapter-cookie; unrelated=drop-me',
+          forwarded: 'for=attacker',
+          host: 'design.example:8443',
+          origin: 'https://exact-browser-origin.example',
+          'remote-user': 'attacker',
+          'x-auth-user': 'attacker',
+          'x-auth-request-user': 'attacker',
+          'cf-access-jwt-assertion': 'attacker',
+          'x-databricks-user': 'attacker',
+          'x-forwarded-for': 'attacker',
+          'x-forwarded-host': 'attacker',
+          'x-open-design-hosted-user': 'attacker',
+          'x-request-id': 'ordinary-header',
+        },
+        publicOrigin: new URL('https://design.example:8443'),
+        remoteAddress: '10.0.0.8',
+        targetHost: '127.0.0.1:7456',
+      }),
+    ).toEqual({
+      authorization: 'Bearer adapter-token',
+      host: '127.0.0.1:7456',
+      origin: 'https://exact-browser-origin.example',
+      'x-forwarded-for': '10.0.0.8',
+      'x-forwarded-host': 'design.example:8443',
+      'x-forwarded-port': '8443',
+      'x-forwarded-proto': 'https',
+    });
+  });
+
+  it('forwards only the hosted browser cookie when no bearer credential is present', () => {
+    expect(
+      createHostedDaemonProxyHeaders({
+        headers: {
+          cookie: 'theme=dark; __Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof; session=drop-me',
+          origin: 'https://design.example',
+        },
+        publicOrigin: new URL('https://design.example'),
+        remoteAddress: undefined,
+        targetHost: '127.0.0.1:7456',
+      }),
+    ).toEqual({
+      cookie: '__Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof',
+      host: '127.0.0.1:7456',
+      origin: 'https://design.example',
+      'x-forwarded-host': 'design.example',
+      'x-forwarded-port': '443',
+      'x-forwarded-proto': 'https',
+    });
+  });
+
+  it('drops malformed or ambiguous preview proof cookies', () => {
+    expect(createHostedDaemonProxyHeaders({
+      headers: {
+        cookie: '__Host-od-hosted=session; odpvb_short=drop; odpvb_abcdefghijklmnopqrstuv=one; odpvb_ABCDEFGHIJKLMNOPQRSTUV=two',
+      },
+      publicOrigin: new URL('https://design.example'),
+      remoteAddress: undefined,
+      targetHost: '127.0.0.1:7456',
+    }).cookie).toBe('__Host-od-hosted=session');
+  });
+});
 
 describe('resolveDaemonProxyTarget', () => {
   it('proxies allowlisted relative paths to the daemon origin', () => {

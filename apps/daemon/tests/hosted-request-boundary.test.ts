@@ -8,6 +8,7 @@ import {
   createHostedRequestBoundary,
   createHostedRequestBodyGuard,
   getHostedAuthContext,
+  hasCanonicalHostedRawPath,
   HOSTED_ROUTE_CHARACTERIZATION,
   isHostedRouteAllowed,
   type HostedIdentityResolver,
@@ -78,6 +79,23 @@ async function listen(
 }
 
 describe('hosted request boundary', () => {
+  it('accepts canonical escaped content segments without accepting encoded authority paths', () => {
+    const canonical = (originalUrl: string) => hasCanonicalHostedRawPath({
+      originalUrl,
+      url: originalUrl,
+      path: originalUrl,
+    } as Parameters<typeof hasCanonicalHostedRawPath>[0]);
+    const token = `odpv_${'a'.repeat(43)}`;
+    expect(canonical('/api/projects/project-a/files/pages/My%20Deck.html')).toBe(true);
+    expect(canonical(`/api/projects/project-a/preview/${token}/assets/%E2%9C%93.svg`)).toBe(true);
+    for (const path of [
+      '/api/projects/%70roject-a/files/index.html',
+      '/api/projects/project-a/files/%2Foutside',
+      '/api/projects/project-a/files/%2e%2e/secret',
+      '/api/projects/project-a/files/%252Foutside',
+      '/api/projects/project-a/files/bad%2fcase',
+    ]) expect(canonical(path)).toBe(false);
+  });
   it('keeps probes open but fails closed when no identity adapter exists', async () => {
     const app = express();
     app.use(createHostedRequestBoundary({}));

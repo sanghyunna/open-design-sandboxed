@@ -28,6 +28,8 @@ type ChatSessionMode = 'design' | 'chat';
 let dbInstance: SqliteDb | null = null;
 let dbFile: string | null = null;
 
+export const HOSTED_DATABASE_OPEN_TIMEOUT_MS = 30_000;
+
 function row(value: unknown): DbRow | null {
   return value && typeof value === 'object' ? value as DbRow : null;
 }
@@ -49,6 +51,46 @@ export function openDatabase(projectRoot: string, { dataDir }: { dataDir?: strin
   dbInstance = db;
   dbFile = file;
   return db;
+}
+
+/**
+ * Open one hosted runtime database without consulting or mutating the local
+ * daemon singleton. The owning runtime prepares and validates the parent root
+ * before calling this exact-path seam.
+ */
+export function openHostedDatabaseAtPath(file: string): SqliteDb {
+  if (!path.isAbsolute(file)) throw new Error('hosted database path must be absolute');
+  if (!fs.statSync(path.dirname(file)).isDirectory()) {
+    throw new Error('hosted database parent must be a directory');
+  }
+  if (fs.existsSync(file)) {
+    const info = fs.lstatSync(file);
+    if (!info.isFile() || info.isSymbolicLink()) {
+      throw new Error('hosted database path must be a regular file');
+    }
+  }
+
+  let db: SqliteDb | null = null;
+  const startedAt = performance.now();
+  try {
+    db = new Database(file, { timeout: HOSTED_DATABASE_OPEN_TIMEOUT_MS });
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    migrate(db);
+    if (performance.now() - startedAt > HOSTED_DATABASE_OPEN_TIMEOUT_MS) {
+      throw new Error('hosted database open or migration timed out');
+    }
+    return db;
+  } catch (error) {
+    if (db?.open) {
+      try {
+        db.close();
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], 'hosted database cleanup failed');
+      }
+    }
+    throw error;
+  }
 }
 
 export function closeDatabase() {

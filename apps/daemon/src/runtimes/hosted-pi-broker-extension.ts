@@ -2,12 +2,14 @@ import { createConnection } from 'node:net';
 
 // Keep this above the broker's worst-case JSON expansion of a 4 MiB file.
 const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+const MAX_DESIGN_SYSTEM_CONTENT_BYTES = 4 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 type BrokerParams = {
-  operation: 'project:file:list' | 'project:file:read' | 'project:file:write';
+  operation: 'project:file:list' | 'project:file:read' | 'project:file:write' | 'design-system:read';
   path?: string;
   content?: string;
+  designSystemId?: string;
 };
 
 type BrokerResponse = {
@@ -45,10 +47,11 @@ const parameters: Record<string, unknown> = {
   properties: {
     operation: {
       type: 'string',
-      enum: ['project:file:list', 'project:file:read', 'project:file:write'],
+      enum: ['project:file:list', 'project:file:read', 'project:file:write', 'design-system:read'],
     },
     path: { type: 'string' },
     content: { type: 'string' },
+    designSystemId: { type: 'string' },
   },
   required: ['operation'],
 };
@@ -107,16 +110,110 @@ function callBroker(params: BrokerParams, signal: AbortSignal | undefined): Prom
   });
 }
 
+function designSystemRequest(params: BrokerParams): { path: string; designSystemId?: string } {
+  const keys = Object.keys(params);
+  if (
+    params.operation !== 'design-system:read'
+    || keys.some((key) => !['operation', 'path', 'designSystemId'].includes(key))
+    || typeof params.path !== 'string'
+    || Buffer.byteLength(params.path, 'utf8') < 1
+    || Buffer.byteLength(params.path, 'utf8') > 1_024
+    || /[\u0000-\u001f\u007f]/u.test(params.path)
+    || params.path.startsWith('/')
+    || params.path.includes('\\')
+    || /^[A-Za-z]:/u.test(params.path)
+    || params.path.split('/').some((part) => part === '' || part === '.' || part === '..')
+    || (
+      params.designSystemId !== undefined
+      && !/^(?!\.+$)[A-Za-z0-9._-]{1,128}$/u.test(params.designSystemId)
+    )
+  ) throw new Error('hosted design-system read request is invalid');
+  return {
+    path: params.path,
+    ...(params.designSystemId === undefined ? {} : { designSystemId: params.designSystemId }),
+  };
+}
+
+function designSystemEnvironment(): { readUrl: string; toolToken: string; carrierToken: string } {
+  const readUrl = process.env.OD_HOSTED_DESIGN_SYSTEM_READ_URL;
+  const toolToken = process.env.OD_TOOL_TOKEN;
+  const carrierToken = process.env.OD_HOSTED_PI_BROKER_TOKEN;
+  if (
+    !readUrl
+    || !toolToken
+    || !/^odds_[A-Za-z0-9_-]{43}$/u.test(toolToken)
+    || !carrierToken
+    || !/^odpi_[A-Za-z0-9_-]{43}$/u.test(carrierToken)
+  ) {
+    throw new Error('hosted design-system read is unavailable');
+  }
+  let url: URL;
+  try { url = new URL(readUrl); } catch { throw new Error('hosted design-system read is unavailable'); }
+  if (
+    (url.protocol !== 'http:' && url.protocol !== 'https:')
+    || url.username !== ''
+    || url.password !== ''
+    || url.search !== ''
+    || url.hash !== ''
+    || url.pathname !== '/api/tools/design-systems/read'
+    || url.toString() !== readUrl
+  ) throw new Error('hosted design-system read is unavailable');
+  return { readUrl, toolToken, carrierToken };
+}
+
+async function callDesignSystem(
+  params: BrokerParams,
+  signal: AbortSignal | undefined,
+): Promise<BrokerResponse> {
+  const request = designSystemRequest(params);
+  const { readUrl, toolToken, carrierToken } = designSystemEnvironment();
+  let response: Response;
+  try {
+    response = await fetch(readUrl, {
+      method: 'POST',
+      redirect: 'error',
+      ...(signal ? { signal } : {}),
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${toolToken}`,
+        'Content-Type': 'application/json',
+        'X-Open-Design-Tool-Token': carrierToken,
+      },
+      body: JSON.stringify(request),
+    });
+  } catch {
+    throw new Error('hosted design-system read failed');
+  }
+  let body: string;
+  try { body = await response.text(); } catch { throw new Error('hosted design-system read failed'); }
+  if (Buffer.byteLength(body, 'utf8') > MAX_RESPONSE_BYTES) {
+    throw new Error('hosted design-system read failed');
+  }
+  if (!response.ok) return { ok: false, message: 'hosted design-system read was denied' };
+  try {
+    const parsed = JSON.parse(body) as { content?: unknown };
+    if (
+      typeof parsed.content !== 'string'
+      || Buffer.byteLength(parsed.content, 'utf8') > MAX_DESIGN_SYSTEM_CONTENT_BYTES
+    ) throw new Error('invalid content');
+    return { ok: true, operation: params.operation, content: parsed.content };
+  } catch {
+    throw new Error('hosted design-system read failed');
+  }
+}
+
 export default function hostedPiBrokerExtension(pi: ExtensionApi): void {
   pi.registerTool({
     name: 'od_hosted_broker',
-    label: 'Project files',
-    description: 'Use the daemon-owned project file broker for the current run.',
-    promptSnippet: 'daemon-owned project file broker',
+    label: 'Hosted files',
+    description: 'Use the daemon-owned project and design-system file capabilities for the current run.',
+    promptSnippet: 'daemon-owned hosted file capabilities',
     parameters,
     async execute(_toolCallId, params, signal) {
       try {
-        const response = await callBroker(params, signal);
+        const response = params.operation === 'design-system:read'
+          ? await callDesignSystem(params, signal)
+          : await callBroker(params, signal);
         return {
           content: [{ type: 'text', text: responseText(response) }],
           ...(response.ok ? {} : { isError: true }),
