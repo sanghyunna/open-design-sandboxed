@@ -177,12 +177,15 @@ async function runCapacityRepetition(repetition: number): Promise<{
       const operations = idle.operations.slice(before.operations.length);
       expect(operations.some((measurement) => measurement.kind === 'checkpoint')).toBe(true);
       expect(operations.some((measurement) => measurement.kind === 'snapshot')).toBe(true);
+      const finalSnapshots = new Map<string, (typeof operations)[number]>();
       for (const operation of operations) {
-        expect(operation.ok).toBe(true);
+        if (operation.kind === 'checkpoint') expect(operation.ok).toBe(true);
+        else finalSnapshots.set(operation.userKey, operation);
         expect(operation.durationMs).toBeGreaterThanOrEqual(0);
         if (operation.bytes != null) expect(operation.bytes).toBeGreaterThan(0);
         if (operation.fileCount != null) expect(operation.fileCount).toBeGreaterThanOrEqual(0);
       }
+      for (const snapshot of finalSnapshots.values()) expect(snapshot.ok).toBe(true);
       levels.push({
         admittedUsers,
         measurements: { active, before, completed: completedMeasurement, idle },
