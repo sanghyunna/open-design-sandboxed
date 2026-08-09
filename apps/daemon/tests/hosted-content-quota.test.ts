@@ -123,6 +123,37 @@ describe('hosted content quota', () => {
     expect(secondMutated).toBe(false);
   });
 
+  it('ignores a non-target workspace retired while its mutation waits', async () => {
+    const retired = fixture('retired');
+    const target = fixture('retirement-target');
+    const quota = createHostedContentQuota();
+    let releaseFirst!: () => void;
+    const firstHeld = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    let firstEntered!: () => void;
+    const firstStarted = new Promise<void>((resolve) => { firstEntered = resolve; });
+
+    const first = quota.runMutation({
+      allWorkspaceRoots: [retired, target],
+      operation: { kind: 'write', path: 'first.txt', bytes: 0 },
+      workspaceRoot: target,
+    }, async () => {
+      firstEntered();
+      await firstHeld;
+    });
+    await firstStarted;
+    const second = quota.runMutation({
+      allWorkspaceRoots: [retired, target],
+      operation: { kind: 'write', path: 'second.txt', bytes: 1 },
+      workspaceRoot: target,
+    }, () => writeFile(path.join(target, 'second.txt'), 'x'));
+    await rm(retired, { recursive: true });
+    releaseFirst();
+
+    await first;
+    await expect(second).resolves.toBeUndefined();
+    await expect(readFile(path.join(target, 'second.txt'), 'utf8')).resolves.toBe('x');
+  });
+
   it('preflights rename, delete, and folder operations with canonical relative paths', async () => {
     const root = fixture('operations');
     await mkdir(path.join(root, 'folder'), { recursive: true });

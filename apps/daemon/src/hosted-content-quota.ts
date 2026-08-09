@@ -90,7 +90,26 @@ export function createHostedContentQuota(
         const scans = new Map<string, WorkspaceScan>();
         let globalBytes = 0;
         for (const root of roots) {
-          const scan = await scanExact(root, limits);
+          let scan: WorkspaceScan;
+          try {
+            scan = await scanExact(root, limits);
+          } catch (error) {
+            if (
+              !samePath(root, targetRoot)
+              && error instanceof HostedContentQuotaError
+              && error.code === 'FILE_NOT_FOUND'
+            ) {
+              try {
+                await exactRoot(root);
+              } catch (rootError) {
+                if (
+                  rootError instanceof HostedContentQuotaError
+                  && rootError.code === 'FILE_NOT_FOUND'
+                ) continue;
+              }
+            }
+            throw error;
+          }
           scans.set(comparablePath(scan.rootPath), scan);
           globalBytes += scan.bytes;
           if (!Number.isSafeInteger(globalBytes) || globalBytes > limits.bytesGlobal) {
