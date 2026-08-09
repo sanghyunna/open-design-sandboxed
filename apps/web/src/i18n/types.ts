@@ -138,6 +138,30 @@ export interface Dict {
   'hosted.content.rename': string;
   'hosted.content.confirmDelete': string;
   'hosted.content.previewTitle': string;
+  'hosted.run.eyebrow': string;
+  'hosted.run.title': string;
+  'hosted.run.description': string;
+  'hosted.run.projectName': string;
+  'hosted.run.createProject': string;
+  'hosted.run.project': string;
+  'hosted.run.selectProject': string;
+  'hosted.run.conversationTitle': string;
+  'hosted.run.createConversation': string;
+  'hosted.run.conversation': string;
+  'hosted.run.selectConversation': string;
+  'hosted.run.prompt': string;
+  'hosted.run.start': string;
+  'hosted.run.retry': string;
+  'hosted.run.cancel': string;
+  'hosted.run.status.idle': string;
+  'hosted.run.status.starting': string;
+  'hosted.run.status.running': string;
+  'hosted.run.status.reconnecting': string;
+  'hosted.run.status.canceling': string;
+  'hosted.run.status.complete': string;
+  'hosted.run.status.canceled': string;
+  'hosted.run.status.error': string;
+  'hosted.run.output': string;
 
   // Settings dialog
   'settings.welcomeKicker': string;

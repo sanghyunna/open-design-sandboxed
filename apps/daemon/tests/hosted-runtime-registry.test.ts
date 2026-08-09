@@ -1482,6 +1482,7 @@ describe('HostedRuntimeRegistry', () => {
     vi.useFakeTimers();
     const registry = createRegistry({ runTimeoutMs: 50 });
     const lease = registry.acquire({ userKey: 'a' });
+    await registry.replaceCredential(lease, { provider: 'anthropic', key: 'secret' });
     const cancelStarted = deferred();
     const cancelRun = registry.dispatch(lease, {
       conversationId: 'c',
@@ -1500,6 +1501,7 @@ describe('HostedRuntimeRegistry', () => {
     await expect(cancelRun).rejects.toSatisfy(
       (error: unknown) => expectHostedCode(error, 'HOSTED_RUN_CANCELED'),
     );
+    expect(registry.credentialStatus(lease)).toEqual({ configured: true, provider: 'anthropic' });
     await expect(registry.dispatch(lease, {
       conversationId: 'c',
       runId: 'after-cancel',
@@ -1518,6 +1520,7 @@ describe('HostedRuntimeRegistry', () => {
     );
     await vi.advanceTimersByTimeAsync(50);
     await timeoutExpectation;
+    expect(registry.credentialStatus(lease)).toEqual({ configured: false, provider: null });
 
     await expect(registry.dispatch(lease, {
       conversationId: 'c',

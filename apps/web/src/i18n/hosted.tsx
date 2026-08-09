@@ -83,9 +83,37 @@ export const HOSTED_CONTENT_KEYS = [
   'hosted.content.previewTitle',
 ] as const satisfies readonly (keyof Dict)[];
 
+export const HOSTED_RUN_KEYS = [
+  'hosted.run.eyebrow',
+  'hosted.run.title',
+  'hosted.run.description',
+  'hosted.run.projectName',
+  'hosted.run.createProject',
+  'hosted.run.project',
+  'hosted.run.selectProject',
+  'hosted.run.conversationTitle',
+  'hosted.run.createConversation',
+  'hosted.run.conversation',
+  'hosted.run.selectConversation',
+  'hosted.run.prompt',
+  'hosted.run.start',
+  'hosted.run.retry',
+  'hosted.run.cancel',
+  'hosted.run.status.idle',
+  'hosted.run.status.starting',
+  'hosted.run.status.running',
+  'hosted.run.status.reconnecting',
+  'hosted.run.status.canceling',
+  'hosted.run.status.complete',
+  'hosted.run.status.canceled',
+  'hosted.run.status.error',
+  'hosted.run.output',
+] as const satisfies readonly (keyof Dict)[];
+
 export const HOSTED_MESSAGE_KEYS = [
   ...HOSTED_PROVIDER_KEYS,
   ...HOSTED_CONTENT_KEYS,
+  ...HOSTED_RUN_KEYS,
 ] as const;
 
 export type HostedMessageKey = (typeof HOSTED_MESSAGE_KEYS)[number];

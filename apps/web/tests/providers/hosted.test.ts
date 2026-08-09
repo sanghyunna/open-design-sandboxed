@@ -75,6 +75,34 @@ describe('HostedProviderClient', () => {
     });
   });
 
+  it('retries hosted run admission with the same client request id and body', async () => {
+    const refreshed = { ...session, csrfToken: 'csrf-two' };
+    const intent = {
+      projectId: 'project-a',
+      conversationId: 'conversation-a',
+      assistantMessageId: 'assistant-a',
+      agentId: 'pi',
+      message: 'Build it',
+      clientRequestId: 'request-a',
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(session))
+      .mockResolvedValueOnce(json({ code: 'CSRF_EXPIRED' }, 419))
+      .mockResolvedValueOnce(json(refreshed))
+      .mockResolvedValueOnce(json({
+        runId: 'run-a',
+        conversationId: 'conversation-a',
+        assistantMessageId: 'assistant-a',
+      }, 202));
+
+    await expect(new HostedProviderClient(fetcher).createRun(intent)).resolves.toMatchObject({
+      runId: 'run-a',
+    });
+
+    expect(fetcher.mock.calls[1]?.[1]?.body).toBe(JSON.stringify(intent));
+    expect(fetcher.mock.calls[3]?.[1]?.body).toBe(fetcher.mock.calls[1]?.[1]?.body);
+  });
+
   it('does not copy a rejected secret or response body into errors', async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(session))

@@ -493,6 +493,7 @@ export function registerHostedContentRoutes(
         {
           artifactId: routeParam(request, 'artifactId'),
           kind: 'artifact:download',
+          signal: abortSignalFor(request, response),
         },
       ) as {
         readonly contentType: string;
@@ -506,6 +507,7 @@ export function registerHostedContentRoutes(
         .set('Content-Length', String(download.size))
         .set('Content-Type', download.contentType)
         .set('X-Content-Type-Options', 'nosniff');
+      download.stream.once('error', () => response.destroy());
       response.once('close', () => download.stream.destroy());
       download.stream.pipe(response);
     },

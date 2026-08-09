@@ -38,7 +38,7 @@ import { HOSTED_PROJECT_KINDS, HOSTED_RUN_STATUSES } from '@open-design/contract
 import { isSafeId } from './projects.js';
 
 const MAX_TITLE_BYTES = 256;
-const MAX_MESSAGE_BYTES = 1024 * 1024;
+export const HOSTED_MESSAGE_MAX_BYTES = 1024 * 1024;
 const MAX_COMMENT_BYTES = 64 * 1024;
 const MAX_COMMENT_TEXT_BYTES = 4 * 1024;
 const MAX_RELATIVE_PATH_BYTES = 1024;
@@ -364,7 +364,7 @@ function messageUpsert(input: unknown): HostedMessageUpsertV1 {
     'telemetryFinalized',
   ]);
   if (value.role !== 'user' && value.role !== 'assistant') throw badRequest('message role is invalid');
-  const content = boundedString(value.content, 'content', 0, MAX_MESSAGE_BYTES);
+  const content = boundedString(value.content, 'content', 0, HOSTED_MESSAGE_MAX_BYTES);
   const agentId = optionalOpaqueId(value.agentId, 'agentId');
   const events = optionalPersistedEvents(value.events);
   const runId = optionalOpaqueId(value.runId, 'runId');

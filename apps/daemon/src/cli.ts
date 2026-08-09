@@ -150,6 +150,7 @@ const HOSTED_ARTIFACT_STRING_FLAGS = new Set([
 const HOSTED_ARTIFACT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 const CHAT_STRING_FLAGS = new Set([
   'daemon-url',
+  'identity-token-file',
   'project',
   'conversation',
   'checkpoint',
@@ -4488,6 +4489,8 @@ async function runProject(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4506,9 +4509,10 @@ Common options:
   }
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'list': {
-      const resp = await fetch(`${base}/api/projects`);
+      const resp = await client.request('/api/projects');
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4526,47 +4530,55 @@ Common options:
         console.error('Usage: od project info <id>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}`);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       return;
     }
     case 'create': {
+      const unsupportedHostedFlag = client.hosted
+        ? ['skill', 'design-system', 'plugin', 'metadata-json', 'pending-prompt', 'inputs', 'grant-caps', 'mode']
+          .find((name) => flags[name] !== undefined)
+        : undefined;
+      if (unsupportedHostedFlag) {
+        console.error(`--${unsupportedHostedFlag} is not supported by hosted project creation`);
+        process.exit(2);
+      }
       const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
         : Math.random().toString(36).slice(2);
       const name = typeof flags.name === 'string' && flags.name.length > 0
         ? flags.name
         : 'Untitled project';
-      const body = {
+      const body = client.hosted ? { title: name } : {
         id,
         name,
         skillId:        flags.skill ?? null,
         designSystemId: flags['design-system'] ?? null,
       };
       const conversationMode = normalizeChatSessionModeFlag(flags.mode);
-      if (conversationMode) body.conversationMode = conversationMode;
-      if (flags['pending-prompt']) body.pendingPrompt = flags['pending-prompt'];
-      if (flags['metadata-json']) {
+      if (!client.hosted && conversationMode) body.conversationMode = conversationMode;
+      if (!client.hosted && flags['pending-prompt']) body.pendingPrompt = flags['pending-prompt'];
+      if (!client.hosted && flags['metadata-json']) {
         const mj = safeReadJsonFile(flags['metadata-json']);
         if (mj && typeof mj === 'object') body.metadata = mj;
       }
-      if (flags.plugin) body.pluginId = flags.plugin;
-      if (flags.inputs) {
+      if (!client.hosted && flags.plugin) body.pluginId = flags.plugin;
+      if (!client.hosted && flags.inputs) {
         try { body.pluginInputs = JSON.parse(flags.inputs); } catch (err) {
           console.error(`--inputs must be valid JSON: ${err.message}`);
           process.exit(2);
         }
       }
-      if (flags['grant-caps']) {
+      if (!client.hosted && flags['grant-caps']) {
         body.grantCaps = String(flags['grant-caps']).split(',').map((c) => c.trim()).filter(Boolean);
       }
-      const resp = await fetch(`${base}/api/projects`, {
+      const resp = await client.request('/api/projects', {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         if (resp.status === 409 && data?.error?.code === 'capabilities-required') {
@@ -4580,10 +4592,14 @@ Common options:
         process.exit(1);
       }
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
-      console.log(`[project] created ${data.project?.id ?? id} (conversation ${data.conversationId})`);
+      console.log(`[project] created ${data.project?.id ?? id}${data.conversationId ? ` (conversation ${data.conversationId})` : ''}`);
       return;
     }
     case 'import': {
+      if (client.hosted) {
+        console.error('od project import is local-only');
+        process.exit(2);
+      }
       const [baseDir] = positionalArgs(rest, PROJECT_STRING_FLAGS);
       const importBaseDir = typeof baseDir === 'string' ? baseDir.trim() : '';
       if (!importBaseDir) {
@@ -4613,6 +4629,10 @@ Common options:
       return;
     }
     case 'import-folder': {
+      if (client.hosted) {
+        console.error('od project import-folder is local-only');
+        process.exit(2);
+      }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
       const folderArg = flags.path ?? flags.dir ?? parts[0];
       if (!folderArg) {
@@ -4639,8 +4659,9 @@ Common options:
         console.error('Usage: od project delete <id>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
+      if (flags.json) return process.stdout.write(`${JSON.stringify(await resp.json())}\n`);
       console.log(`[project] deleted ${id}`);
       return;
     }
@@ -4665,6 +4686,8 @@ async function runRun(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4672,12 +4695,13 @@ Common options:
   const rest = args.slice(1);
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'list': {
       const url = flags.project
         ? `${base}/api/runs?projectId=${encodeURIComponent(flags.project)}`
         : `${base}/api/runs`;
-      const resp = await fetch(url);
+      const resp = await client.request(url.slice(base.length));
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4693,7 +4717,7 @@ Common options:
         console.error('Usage: od run info <runId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/runs/${encodeURIComponent(id)}`);
+      const resp = await client.request(`/api/runs/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp, 'run-not-found');
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -4705,8 +4729,9 @@ Common options:
         console.error('Usage: od run cancel <runId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+      const resp = await client.request(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'run-not-found');
+      if (flags.json) return process.stdout.write(`${JSON.stringify(await resp.json())}\n`);
       console.log(`[run] cancelled ${id}`);
       return;
     }
@@ -4716,10 +4741,14 @@ Common options:
         console.error('Usage: od run watch <runId>');
         process.exit(2);
       }
-      await streamRunEvents(base, id);
+      await streamRunEvents(client, id);
       return;
     }
     case 'redesign': {
+      if (client.hosted) {
+        console.error('od run redesign is local-only; use od run start for hosted projects');
+        process.exit(2);
+      }
       const parts = collectCliPositionals(rest, PROJECT_STRING_FLAGS);
       const promptFromArgs = parts.join(' ').trim();
       const defaultMessage =
@@ -4773,7 +4802,7 @@ Common options:
         }, null, 2) + '\n');
       }
       console.log(`[run] started ${data.runId}`);
-      if (flags.follow) await streamRunEvents(base, data.runId);
+      if (flags.follow) await streamRunEvents(client, data.runId);
       return;
     }
     case 'start': {
@@ -4781,9 +4810,74 @@ Common options:
         console.error('--project <projectId> is required');
         process.exit(2);
       }
+      const message = await readRunMessageFromFlags(flags);
+      if (client.hosted) {
+        const unsupportedHostedFlag = ['plugin', 'inputs', 'grant-caps', 'snapshot-id']
+          .find((name) => flags[name] !== undefined);
+        if (unsupportedHostedFlag) {
+          console.error(`--${unsupportedHostedFlag} is not supported by hosted runs`);
+          process.exit(2);
+        }
+        if (!flags.conversation) {
+          console.error('--conversation <id> is required for hosted runs');
+          process.exit(2);
+        }
+        if (!message) {
+          console.error('--message or --prompt-file is required for hosted runs');
+          process.exit(2);
+        }
+        const userMessageId = crypto.randomUUID();
+        const assistantMessageId = crypto.randomUUID();
+        const body = JSON.stringify({
+          projectId: flags.project,
+          conversationId: flags.conversation,
+          assistantMessageId,
+          agentId: flags.agent ?? 'pi',
+          message,
+          clientRequestId: crypto.randomUUID(),
+          ...(flags.skill ? { skillIds: [flags.skill] } : {}),
+          ...(flags['design-system'] ? { designSystemId: flags['design-system'] } : {}),
+          ...(flags.model ? { model: flags.model } : {}),
+        });
+        const messagesPath = `/api/projects/${encodeURIComponent(flags.project)}/conversations/${encodeURIComponent(flags.conversation)}/messages`;
+        const userMessage = await client.request(`${messagesPath}/${encodeURIComponent(userMessageId)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ role: 'user', content: message }),
+        }, true);
+        if (!userMessage.ok) return structuredHttpFailure(userMessage);
+        const placeholder = await client.request(`${messagesPath}/${encodeURIComponent(assistantMessageId)}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ role: 'assistant', content: '' }),
+        }, true);
+        if (!placeholder.ok) return structuredHttpFailure(placeholder);
+        const sendRun = () => client.request('/api/runs', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body,
+        }, true);
+        let data;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const resp = await sendRun();
+            if (!resp.ok) return structuredHttpFailure(resp);
+            data = await resp.json();
+            if (typeof data?.runId !== 'string' || data.runId.length === 0) {
+              throw new Error('hosted run response did not include a run id');
+            }
+            break;
+          } catch (error) {
+            if (attempt === 1) throw error;
+          }
+        }
+        if (flags.json && !flags.follow) return process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+        if (!flags.json) console.log(`[run] started ${data.runId}`);
+        if (flags.follow) await streamRunEvents(client, data.runId);
+        return;
+      }
       const body = { projectId: flags.project };
       if (flags.conversation) body.conversationId = flags.conversation;
-      const message = await readRunMessageFromFlags(flags);
       if (message) body.message = message;
       if (flags.plugin) body.pluginId = flags.plugin;
       if (flags.skill) body.skillId = flags.skill;
@@ -4828,7 +4922,7 @@ Common options:
         return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
       }
       console.log(`[run] started ${data.runId}`);
-      if (flags.follow) await streamRunEvents(base, data.runId);
+      if (flags.follow) await streamRunEvents(client, data.runId);
       return;
     }
     default:
@@ -4840,10 +4934,13 @@ Common options:
 // Stream the SSE events at /api/runs/:id/events as ND-JSON on stdout.
 // Each line is one event: { event, data } so a code agent can parse it
 // without needing an SSE library.
-async function streamRunEvents(base, runId) {
-  const resp = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/events`, {
+async function streamRunEvents(client, runId) {
+  const pathname = `/api/runs/${encodeURIComponent(runId)}/events`;
+  const resp = typeof client === 'string'
+    ? await fetch(`${client}${pathname}`, { headers: { accept: 'text/event-stream' } })
+    : await client.request(pathname, {
     headers: { accept: 'text/event-stream' },
-  });
+    });
   if (!resp.ok || !resp.body) {
     console.error(`run watch failed: ${resp.status}`);
     process.exit(1);
@@ -5788,6 +5885,8 @@ async function runConversation(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5795,6 +5894,7 @@ Common options:
   const rest = args.slice(1);
   const flags = parseFlags(rest, { string: PROJECT_STRING_FLAGS, boolean: PROJECT_BOOLEAN_FLAGS });
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'new': {
       const [id] = positionalArgs(rest, PROJECT_STRING_FLAGS);
@@ -5816,11 +5916,11 @@ Common options:
         }
         body.forkAfterMessageId = flags['fork-after'];
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`, {
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`, {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -5834,7 +5934,7 @@ Common options:
         console.error('Usage: od conversation list <projectId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`);
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`);
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -5846,7 +5946,11 @@ Common options:
         console.error('Usage: od conversation info <conversationId>');
         process.exit(2);
       }
-      const resp = await fetch(`${base}/api/conversations/${encodeURIComponent(id)}`);
+      if (client.hosted) {
+        console.error('hosted conversation info requires a project-scoped route; use conversation list');
+        process.exit(2);
+      }
+      const resp = await client.request(`/api/conversations/${encodeURIComponent(id)}`);
       if (!resp.ok) return structuredHttpFailure(resp);
       const data = await resp.json();
       process.stdout.write(JSON.stringify(data, null, 2) + '\n');
@@ -6020,6 +6124,8 @@ async function runChat(args) {
 
 Common options:
   --daemon-url <url>   Open Design daemon HTTP base.
+  --identity-token-file <path|->
+                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6033,6 +6139,7 @@ Common options:
     process.exit(2);
   }
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
+  const client = await createContentCliClient(flags);
   switch (sub) {
     case 'new': {
       // Accept --project for parity with the rest of the project-scoped CLI,
@@ -6058,11 +6165,11 @@ Common options:
         }
         body.forkAfterMessageId = flags['fork-after'];
       }
-      const resp = await fetch(`${base}/api/projects/${encodeURIComponent(id)}/conversations`, {
+      const resp = await client.request(`/api/projects/${encodeURIComponent(id)}/conversations`, {
         method:  'POST',
         headers: { 'content-type': 'application/json' },
         body:    JSON.stringify(body),
-      });
+      }, true);
       if (!resp.ok) return structuredHttpFailure(resp, 'project-not-found');
       const data = await resp.json();
       if (flags.json) return process.stdout.write(JSON.stringify(data, null, 2) + '\n');

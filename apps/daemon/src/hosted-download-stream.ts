@@ -34,6 +34,12 @@ export interface HostedArchiveDownload {
 }
 
 export interface HostedDownloadStreams {
+  openFile(input: {
+    readonly bytes: number;
+    readonly signal?: AbortSignal;
+    readonly source: Readable;
+    readonly userKey: string;
+  }): Readable;
   openArchive(input: {
     readonly archiveName: string;
     readonly relativeRoot?: string;
@@ -65,13 +71,13 @@ export function createHostedDownloadStreams(): HostedDownloadStreams {
     if (bytes > HOSTED_DOWNLOAD_LIMITS.bytesPerUser) {
       throw new HostedDownloadError(
         'HOSTED_QUOTA_EXCEEDED',
-        'hosted archive exceeds the per-user byte limit',
+        'hosted download exceeds the per-user byte limit',
       );
     }
     if (users.has(userKey)) {
       throw new HostedDownloadError(
         'HOSTED_OVERLOADED',
-        'a hosted archive download is already active for this user',
+        'a hosted download is already active for this user',
       );
     }
     if (
@@ -80,7 +86,7 @@ export function createHostedDownloadStreams(): HostedDownloadStreams {
     ) {
       throw new HostedDownloadError(
         'HOSTED_CAPACITY_EXHAUSTED',
-        'hosted archive download capacity is exhausted',
+        'hosted download capacity is exhausted',
       );
     }
 
@@ -100,6 +106,28 @@ export function createHostedDownloadStreams(): HostedDownloadStreams {
   }
 
   return {
+    openFile(input): Readable {
+      validateUserKey(input.userKey);
+      if (!Number.isSafeInteger(input.bytes) || input.bytes < 0) {
+        input.source.destroy();
+        throw new HostedDownloadError('HOSTED_QUOTA_EXCEEDED', 'hosted download size is invalid');
+      }
+      if (input.signal?.aborted) {
+        input.source.destroy();
+        throw abortedError();
+      }
+      try {
+        return createBoundedFileStream({
+          deadline: Date.now() + HOSTED_DOWNLOAD_LIMITS.totalTimeoutMs,
+          reservation: reserve(input.userKey, input.bytes),
+          signal: input.signal,
+          source: input.source,
+        });
+      } catch (error) {
+        input.source.destroy();
+        throw error;
+      }
+    },
     async openArchive(input): Promise<HostedArchiveDownload> {
       validateUserKey(input.userKey);
       const startedAt = Date.now();
@@ -139,6 +167,59 @@ export function createHostedDownloadStreams(): HostedDownloadStreams {
       }
     },
   };
+}
+
+function createBoundedFileStream(input: {
+  deadline: number;
+  reservation: Reservation;
+  signal: AbortSignal | undefined;
+  source: Readable;
+}): Readable {
+  let idleTimer: NodeJS.Timeout | undefined;
+  let totalTimer: NodeJS.Timeout | undefined;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    if (idleTimer) clearTimeout(idleTimer);
+    if (totalTimer) clearTimeout(totalTimer);
+    input.signal?.removeEventListener('abort', onAbort);
+    input.reservation.release();
+  };
+  const output = new Transform({
+    transform(chunk, _encoding, callback) {
+      resetIdle();
+      callback(null, chunk);
+    },
+    destroy(error, callback) {
+      if (!input.source.destroyed) input.source.destroy(error ?? undefined);
+      release();
+      callback(error);
+    },
+  });
+  const stop = (error?: Error) => output.destroy(error);
+  const onAbort = () => stop(abortedError());
+  function resetIdle() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(
+      () => stop(new HostedDownloadError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted download became idle')),
+      HOSTED_DOWNLOAD_LIMITS.idleTimeoutMs,
+    );
+    idleTimer.unref();
+  }
+
+  input.source.once('error', (error) => stop(asError(error)));
+  output.once('end', release);
+  output.once('close', release);
+  input.source.pipe(output);
+  resetIdle();
+  totalTimer = setTimeout(
+    () => stop(new HostedDownloadError('HOSTED_RUNTIME_UNAVAILABLE', 'hosted download timed out')),
+    Math.max(1, input.deadline - Date.now()),
+  );
+  totalTimer.unref();
+  input.signal?.addEventListener('abort', onAbort, { once: true });
+  return output;
 }
 
 async function exactRoot(input: string): Promise<string> {

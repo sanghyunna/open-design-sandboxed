@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import JSZip from 'jszip';
@@ -391,6 +392,17 @@ describe('hosted PR08 HTTP content boundary', () => {
     await apiError(get(started, USER_B, artifactA.url), 404);
     await apiError(get(started, USER_A, artifactB.url), 404);
 
+    const abortArtifact = await json<ArtifactResponse>(mutate(
+      started,
+      USER_A,
+      csrfA,
+      'POST',
+      '/api/artifacts/save',
+      { title: 'abort', html: `<h1>abort</h1>${'x'.repeat(2 * 1024 * 1024)}` },
+    ));
+    await abortDownload(started, USER_A, abortArtifact.url);
+    expect((await get(started, USER_A, '/api/hosted/session')).status).toBe(200);
+
     for (const path of [
       `/api/projects/${projectA.id}/raw/index.html`,
       `/api/projects/${projectA.id}/export/index.html`,
@@ -474,6 +486,17 @@ async function getCsrf(started: StartedServer, user: string): Promise<string> {
 
 function get(started: StartedServer, user: string, path: string): Promise<Response> {
   return fetch(`${started.url}${path}`, { headers: auth(user) });
+}
+
+function abortDownload(started: StartedServer, user: string, path: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(`${started.url}${path}`, { headers: auth(user) }, (response) => {
+      response.once('close', resolve);
+      response.destroy();
+    });
+    request.once('error', reject);
+    request.end();
+  });
 }
 
 function mutate(

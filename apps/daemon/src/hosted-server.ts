@@ -135,7 +135,7 @@ export interface StartHostedServerOptions {
   /** Trusted immutable resource root; never populated from an HTTP request. */
   readonly resourceRoot?: string;
   readonly identityAdapter?: HostedIdentityAdapter;
-  /** Test identities and loopback fixtures are structurally absent from production startup. */
+  /** Test identities and loopback fixtures are accepted only under NODE_ENV=test. */
   readonly testComposition?: HostedTestComposition;
 }
 

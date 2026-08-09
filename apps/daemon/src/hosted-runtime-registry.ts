@@ -55,8 +55,10 @@ import {
   listMessages,
   listProjects,
   upsertAgentSession,
+  upsertMessage,
 } from './db.js';
 import {
+  HOSTED_MESSAGE_MAX_BYTES,
   HOSTED_METADATA_RESOURCE_LIMITS,
   type HostedMetadataMutationOperation,
   type HostedMetadataReadOperation,
@@ -460,6 +462,8 @@ interface RunJournalPlan {
     channel: string,
     payload: Record<string, unknown>,
   ) => readonly HostedRunJournalEventSpec[];
+  assistantBytes: number;
+  assistantText: string;
   terminalValue: HostedPiTurnResult['value'] | null;
 }
 
@@ -1449,7 +1453,7 @@ export function createHostedRuntimeRegistry(
   async function persistDurableEvents(
     runtime: RuntimeState,
     events: readonly HostedRunJournalEventSpec[],
-    mutation: () => unknown,
+    mutation: (batch: HostedPreparedDurableEventBatch) => unknown,
   ): Promise<HostedPreparedDurableEventBatch> {
     const journal = eventJournalFor(runtime);
     const batch = journal.prepareDurableBatch(events.map((event) => ({
@@ -1462,7 +1466,7 @@ export function createHostedRuntimeRegistry(
     try {
       await durabilityFor(runtime).mutate(async () => {
         mutationStarted = true;
-        await mutation();
+        await mutation(batch);
         writeEventJournalSnapshot(storageFor(runtime), batch.snapshot);
       });
       return batch;
@@ -1556,6 +1560,26 @@ export function createHostedRuntimeRegistry(
     let events: readonly HostedRunJournalEventSpec[];
     try {
       events = validateRunEvents(active.entry.ownedRun.id, journal.mapEvent(channel, payload));
+      for (const event of events) {
+        const data = event.data;
+        if (
+          event.event !== 'agent'
+          || data == null
+          || typeof data !== 'object'
+          || Array.isArray(data)
+          || (data as { type?: unknown }).type !== 'text_delta'
+          || typeof (data as { delta?: unknown }).delta !== 'string'
+        ) continue;
+        const delta = (data as { delta: string }).delta;
+        journal.assistantBytes += Buffer.byteLength(delta, 'utf8');
+        if (journal.assistantBytes > HOSTED_MESSAGE_MAX_BYTES) {
+          throw new HostedRuntimeError(
+            'HOSTED_QUOTA_EXCEEDED',
+            'hosted assistant message exceeds the content limit',
+          );
+        }
+        journal.assistantText += delta;
+      }
     } catch (error) {
       events = [];
       active.eventTail = active.eventTail.then(() => Promise.reject(error));
@@ -1629,13 +1653,22 @@ export function createHostedRuntimeRegistry(
               : 'failed',
           error,
         );
+        const terminalRunIndex = events.reduce((found, event, index) => (
+          event.channel.kind === 'run' && event.milestone === 'terminal' ? index : found
+        ), -1);
         terminalBatch = await persistDurableEvents(
           runtime,
           events,
-          () => applyTerminalState(runtime, active, result, error),
+          (batch) => applyTerminalState(
+            runtime,
+            active,
+            result,
+            error,
+            batch.records[terminalRunIndex]?.cursor ?? null,
+          ),
         );
       } else if (hasDurableTerminalState) await durabilityFor(runtime).mutate(
-        () => applyTerminalState(runtime, active, result, error),
+        () => applyTerminalState(runtime, active, result, error, null),
       );
     } catch (terminalError) {
       const poison = active.entry.journal != null
@@ -1651,7 +1684,10 @@ export function createHostedRuntimeRegistry(
       error = terminalFailure;
       if (poison) poisonRuntime(runtime, terminalFailure);
     }
-    if (error != null) runtime.credential = null;
+    if (
+      error != null
+      && !(error instanceof HostedRuntimeError && error.code === 'HOSTED_RUN_CANCELED')
+    ) runtime.credential = null;
     runtime.active = null;
     if (active.countsAsChild) activeChildren -= 1;
     const finalizationError = settleOwnedRun(runtime, active.entry, error);
@@ -1691,8 +1727,14 @@ export function createHostedRuntimeRegistry(
     active: ActiveRun,
     result: HostedRunExecutionResult<unknown> | null,
     error: unknown,
+    terminalCursor: string | null,
   ): void {
     const clientRequestId = active.entry.ownedRun.clientRequestId;
+    const runStatus = error == null
+      ? 'succeeded'
+      : error instanceof HostedRuntimeError && error.code === 'HOSTED_RUN_CANCELED'
+        ? 'canceled'
+        : 'failed';
     if (error == null && result != null && result.sessionReference !== undefined) {
       const sessionReference = result.sessionReference;
       const conversationId = active.entry.ownedRun.conversationId;
@@ -1726,15 +1768,26 @@ export function createHostedRuntimeRegistry(
         runtime.sessionReferenceBytes = runtime.sessionReferenceBytes - previousBytes + nextBytes;
       }
     }
+    const assistantMessageId = active.entry.ownedRun.assistantMessageId;
+    if (assistantMessageId != null) {
+      const conversationId = active.entry.ownedRun.conversationId;
+      const message = listMessages(storageFor(runtime).database, conversationId)
+        .find(({ id }) => id === assistantMessageId);
+      if (message?.role === 'assistant') {
+        upsertMessage(storageFor(runtime).database, conversationId, {
+          ...message,
+          content: active.entry.journal?.assistantText ?? message.content,
+          endedAt: Date.now(),
+          lastRunEventId: terminalCursor ?? message.lastRunEventId,
+          runId: active.entry.ownedRun.id,
+          runStatus,
+        });
+      }
+    }
     if (typeof clientRequestId === 'string' && clientRequestId.length > 0) {
       if (runReceiptsFor(runtime).updateStatus(
         clientRequestId,
-        error == null
-          ? 'succeeded'
-          : error instanceof HostedRuntimeError
-            && error.code === 'HOSTED_RUN_CANCELED'
-            ? 'canceled'
-            : 'failed',
+        runStatus,
       ) == null) runtimeUnavailable('hosted journaled run receipt is unavailable');
     }
   }
@@ -2195,6 +2248,8 @@ export function createHostedRuntimeRegistry(
           const intent = operation.intent;
           validateHostedRunIntentOwnership(state.runtime, intent);
           const journalPlan: RunJournalPlan = {
+            assistantBytes: 0,
+            assistantText: '',
             mapEvent: operation.mapEvent,
             terminalValue: null,
           };
@@ -2212,6 +2267,24 @@ export function createHostedRuntimeRegistry(
                   throw new HostedRuntimeError(
                     'HOSTED_PROVIDER_MISSING',
                     'hosted provider credential is not configured',
+                  );
+                }
+                if (
+                  intent.model !== null
+                  && !operation.modelCatalogue.includes(intent.model)
+                ) {
+                  throw new HostedRuntimeError(
+                    'BAD_REQUEST',
+                    'hosted model is outside the fixed catalogue',
+                  );
+                }
+                if (
+                  intent.reasoning !== null
+                  && !operation.thinkingCatalogue.includes(intent.reasoning)
+                ) {
+                  throw new HostedRuntimeError(
+                    'BAD_REQUEST',
+                    'hosted reasoning level is outside the fixed catalogue',
                   );
                 }
                 if (receipts.count() >= limits.retainedRunsPerUser) {

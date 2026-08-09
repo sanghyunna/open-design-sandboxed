@@ -200,6 +200,34 @@ describe('hosted PR09 durable run receipts', () => {
     expect(turns).toBe(1);
   });
 
+  it('returns the original run after a fresh generation loses its credential', async () => {
+    const runtimeRoot = newRuntimeRoot();
+    let turns = 0;
+    const original = await start(runtimeRoot, {
+      createRunId: () => 'restart-retry-run',
+      async startTurn(input) {
+        turns += 1;
+        return succeededTurn(input);
+      },
+    });
+    const { csrf, intent } = await seedRunnable(original, 'restart-retry-request');
+    const accepted = await mutate(original, csrf, 'POST', '/api/runs', intent);
+    expect(accepted.status, await accepted.text()).toBe(202);
+    await waitForRunStatus(original, 'restart-retry-run', 'succeeded');
+    await stop(original);
+
+    const restarted = await start(runtimeRoot);
+    const session = await json<{ csrfToken: string }>(await fetch(
+      `${restarted.url}/api/hosted/session`,
+      { headers: auth() },
+    ));
+    const retry = await mutate(restarted, session.csrfToken, 'POST', '/api/runs', intent);
+    const retryText = await retry.text();
+    expect(retry.status, retryText).toBe(202);
+    expect(JSON.parse(retryText)).toMatchObject({ runId: 'restart-retry-run' });
+    expect(turns).toBe(1);
+  });
+
   it('rejects reuse of a clientRequestId with a changed canonical digest', async () => {
     let nextRun = 0;
     const { csrf, intent, started } = await runnableServer({

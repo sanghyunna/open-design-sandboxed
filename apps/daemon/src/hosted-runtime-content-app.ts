@@ -44,7 +44,11 @@ export type HostedRuntimeContentOperation =
   | { readonly kind: 'export:manifest'; readonly projectId: string }
   | { readonly kind: 'artifact:save'; readonly request: unknown }
   | { readonly kind: 'artifact:lint'; readonly request: unknown }
-  | { readonly kind: 'artifact:download'; readonly artifactId: string };
+  | {
+      readonly kind: 'artifact:download';
+      readonly artifactId: string;
+      readonly signal?: AbortSignal;
+    };
 
 export interface HostedRuntimeUploadIntake {
   readonly stagingRoot: string;
@@ -115,9 +119,19 @@ export async function executeHostedRuntimeContentOperation(
     case 'artifact:lint':
       await context.ready();
       return context.artifactAdapter().lint(operation.request);
-    case 'artifact:download':
+    case 'artifact:download': {
       await context.ready();
-      return context.artifactAdapter().openDownload(operation.artifactId);
+      const download = context.artifactAdapter().openDownload(operation.artifactId);
+      return Object.freeze({
+        ...download,
+        stream: context.downloadStreams.openFile({
+          bytes: download.size,
+          ...(operation.signal === undefined ? {} : { signal: operation.signal }),
+          source: download.stream,
+          userKey: context.userKey,
+        }),
+      });
+    }
   }
 }
 

@@ -21,6 +21,17 @@ import type {
   HostedProviderStatusResponse,
   HostedProviderTestRequest,
   HostedProviderTestResponse,
+  HostedConversationCreateV1,
+  HostedConversationResponse,
+  HostedConversationsResponse,
+  HostedMessageResponse,
+  HostedMessageUpsertV1,
+  HostedProjectCreateV1,
+  HostedProjectResponse,
+  HostedProjectsResponse,
+  HostedRunCancelResponse,
+  HostedRunCreateResponse,
+  HostedRunCreateV1,
   HostedSessionResponse,
 } from '@open-design/contracts';
 import { HOSTED_CSRF_HEADER } from '@open-design/contracts';
@@ -116,6 +127,50 @@ export class HostedProviderClient {
 
   clear(): Promise<HostedProviderClearResponse> {
     return this.request('DELETE', '/api/hosted/provider');
+  }
+
+  listProjects(): Promise<HostedProjectsResponse> {
+    return this.request('GET', '/api/projects');
+  }
+
+  createProject(value: HostedProjectCreateV1): Promise<HostedProjectResponse> {
+    return this.request('POST', '/api/projects', value);
+  }
+
+  listConversations(projectId: string): Promise<HostedConversationsResponse> {
+    return this.request('GET', projectPath(projectId, 'conversations'));
+  }
+
+  createConversation(
+    projectId: string,
+    value: HostedConversationCreateV1 = {},
+  ): Promise<HostedConversationResponse> {
+    return this.request('POST', projectPath(projectId, 'conversations'), value);
+  }
+
+  upsertMessage(
+    projectId: string,
+    conversationId: string,
+    messageId: string,
+    value: HostedMessageUpsertV1,
+  ): Promise<HostedMessageResponse> {
+    return this.request(
+      'PUT',
+      `${projectPath(projectId, `conversations/${opaqueSegment(conversationId)}/messages`)}/${opaqueSegment(messageId)}`,
+      value,
+    );
+  }
+
+  createRun(value: HostedRunCreateV1): Promise<HostedRunCreateResponse> {
+    return this.request('POST', '/api/runs', value);
+  }
+
+  cancelRun(runId: string): Promise<HostedRunCancelResponse> {
+    return this.request('POST', `/api/runs/${opaqueSegment(runId)}/cancel`);
+  }
+
+  runEventsUrl(runId: string): string {
+    return `/api/runs/${opaqueSegment(runId)}/events`;
   }
 
   listProjectFiles(projectId: string, since?: number): Promise<HostedProjectFilesResponse> {

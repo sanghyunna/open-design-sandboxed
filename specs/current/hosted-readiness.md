@@ -5,8 +5,7 @@ Status: final evidence candidate `2c184451` passed exact required checks in
 for [PR #67](https://github.com/sanghyunna/open-design-sandboxed/pull/67). PR11
 is frozen at `8491375b`; its exact Windows, Linux, and Nix checks passed in
 [workflow run 31197265316](https://github.com/sanghyunna/open-design-sandboxed/actions/runs/31197265316).
-Latest `main` (`d19fd67e`) was integrated at `3ad87597`. No Databricks capacity
-claim is in scope.
+No Databricks capacity claim is in scope.
 
 This document is the executable review contract for the local hosted composition in
 issue #63. It does not describe Databricks Apps, Databricks identity, Unity Catalog,
@@ -58,12 +57,13 @@ name, while the reverse binding and marker make a collision fail closed.
   prefix to loopback `startHostedServer`; `/artifacts` and `/frames` terminate with
   `404` at that sidecar, and all other paths go to the hidden Next listener. Hosted
   catalogue/prompt adapters remove local `/frames` references before exposure.
-- The sidecar deletes inbound `Forwarded`, every `X-Forwarded-*`, `X-Real-IP`, and
-  unverified assertion headers (`Remote-User`, `X-Forwarded-User`, `X-Auth-User`,
-  `X-Databricks-*`, and `X-Open-Design-Hosted-*`). It preserves only the installed
-  adapter's declared credential carrier: the browser's Secure/HttpOnly/SameSite
-  `__Host-od-hosted` cookie or the CLI's `Authorization: Bearer` value; either is
-  cryptographically verified before it can yield a `userKey`. It then sets
+- The sidecar forwards a strict allowlist of non-authority request headers and at
+  most one supported credential carrier. A valid CLI `Authorization: Bearer` value
+  takes precedence; otherwise only the browser's Secure/HttpOnly/SameSite
+  `__Host-od-hosted` cookie is forwarded. The single path-scoped, cryptographic
+  `odpvb_*` preview proof may accompany it; every other cookie is removed. All
+  assertion-like and undeclared headers are dropped. The selected carrier is
+  cryptographically verified before it can yield a `userKey`. The sidecar then sets
   `X-Forwarded-Proto`, `X-Forwarded-Host`, and `X-Forwarded-Port` from the configured
   public-origin URL and `X-Forwarded-For` from the direct socket peer. It preserves
   the browser's `Origin` value, while the hosted dispatcher compares its canonical

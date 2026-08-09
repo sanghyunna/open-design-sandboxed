@@ -272,7 +272,7 @@ function cookieIdentity(header: string | undefined): string | null | undefined {
   if (header === undefined) return undefined;
   const values = header.split(';').map((part) => part.trim()).flatMap((part) => {
     const index = part.indexOf('=');
-    return index > 0 && part.slice(0, index) === 'od-e2e-identity'
+    return index > 0 && part.slice(0, index) === '__Host-od-hosted'
       ? [part.slice(index + 1)]
       : [];
   });

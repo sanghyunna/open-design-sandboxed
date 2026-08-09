@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { HostedProjectResponse, HostedSessionResponse } from '@open-design/contracts';
+import type { HostedMessagesResponse, HostedSessionResponse } from '@open-design/contracts';
 
 import { createSmokeSuite } from '@/smoke-suite';
 import { T } from '@/timeouts';
@@ -10,16 +10,12 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
 
   await suite.with.hosted(async (hosted) => {
     const user = hosted.identity('a');
-    const { project } = await user.json<HostedProjectResponse>('/api/projects', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: 'Hosted browser acceptance', kind: 'prototype' }),
-    });
-
     await page.context().addCookies([{
-      name: 'od-e2e-identity',
+      name: '__Host-od-hosted',
       value: 'a',
-      url: hosted.webUrl,
+      domain: new URL(hosted.webUrl).hostname,
+      path: '/',
+      secure: true,
     }]);
     const sessionResponse = page.waitForResponse(
       (response) => new URL(response.url()).pathname === '/api/hosted/session',
@@ -38,11 +34,43 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
 
     await expect(page.getByRole('heading', { name: 'Connect a model provider' }))
       .toBeVisible({ timeout: T.long });
-    await page.getByLabel('API key').fill('hosted-browser-secret');
+    await page.getByLabel('API key').fill(hosted.provider.credential('a'));
     await page.getByRole('button', { name: 'Save key' }).click();
-    await expect(page.getByRole('status')).toContainText('Key saved for this session.');
+    await expect(page.getByRole('status').filter({ hasText: 'Key saved for this session.' }))
+      .toBeVisible();
 
-    await page.getByLabel('Project ID').fill(project.id);
+    await page.getByLabel('Project name').fill('Hosted browser acceptance');
+    await page.getByRole('button', { name: 'Create project' }).click();
+    const projectSelect = page.getByRole('combobox', { name: 'Project', exact: true });
+    await expect(projectSelect).not.toHaveValue('');
+    const projectId = await projectSelect.inputValue();
+    expect(projectId).not.toBe('');
+    await page.getByLabel('Conversation title').fill('Hosted browser conversation');
+    await page.getByRole('button', { name: 'Create conversation' }).click();
+    const conversationSelect = page.getByRole('combobox', { name: 'Conversation', exact: true });
+    await expect(conversationSelect).not.toHaveValue('');
+    const conversationId = await conversationSelect.inputValue();
+    await page.getByLabel('Prompt').fill('[tenant-a-marker] Hosted browser UI turn');
+    await page.getByRole('button', { name: 'Start run' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Run completed.' }))
+      .toBeVisible({ timeout: T.xlong });
+    const { messages } = await user.json<HostedMessagesResponse>(
+      `/api/projects/${projectId}/conversations/${conversationId}/messages`,
+    );
+    expect(messages).toContainEqual(expect.objectContaining({
+      role: 'assistant',
+      content: 'Hosted acceptance complete.',
+      runStatus: 'succeeded',
+      lastRunEventId: expect.any(String),
+    }));
+
+    await page.getByLabel('Prompt').fill('[tenant-a-marker] [hold-for-cancel] Cancel this turn');
+    await page.getByRole('button', { name: 'Start run' }).click();
+    await page.getByRole('button', { name: 'Cancel run' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Run canceled.' }))
+      .toBeVisible({ timeout: T.long });
+
+    await page.getByLabel('Project ID').fill(projectId);
     await page.getByRole('button', { name: 'Open project' }).click();
     await expect(page.getByText('No files yet.')).toBeVisible();
 
@@ -93,7 +121,7 @@ try { top.location = '/api/hosted/provider'; } catch {}
     expect(await page.evaluate(async (path) => {
       const response = await fetch(path);
       return { status: response.status, body: await response.text() };
-    }, `/api/projects/${project.id}/files/index.html`)).toEqual({
+    }, `/api/projects/${projectId}/files/index.html`)).toEqual({
       status: 200,
       body: maliciousHtml,
     });

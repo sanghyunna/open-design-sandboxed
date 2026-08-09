@@ -46,6 +46,25 @@ const STANDALONE_PARENT_PID_ENV = "OD_STANDALONE_PARENT_PID";
 const STANDALONE_STARTUP_TIMEOUT_ENV = "OD_STANDALONE_STARTUP_TIMEOUT_MS";
 const WEB_COMPOSITION_ENV = 'OD_WEB_COMPOSITION';
 const HOSTED_PUBLIC_ORIGIN_ENV = 'OD_HOSTED_PUBLIC_ORIGIN';
+const HOSTED_BROWSER_COOKIE = '__Host-od-hosted';
+const HOSTED_PREVIEW_COOKIE = /^odpvb_[A-Za-z0-9_-]{22}$/u;
+const HOSTED_PROXY_HEADER_ALLOWLIST = new Set([
+  'accept',
+  'accept-encoding',
+  'accept-language',
+  'cache-control',
+  'content-length',
+  'content-type',
+  'if-match',
+  'if-none-match',
+  'last-event-id',
+  'origin',
+  'pragma',
+  'range',
+  'referer',
+  'user-agent',
+  'x-open-design-csrf',
+]);
 const SHUTDOWN_TIMEOUT_MS = 3000;
 const require = createRequire(import.meta.url);
 
@@ -257,6 +276,7 @@ export function resolveHostedSidecarRoute(
   daemonOrigin: string | null,
   requestUrl: string | undefined,
 ): HostedSidecarRoute {
+  if (hasHostedEncodedPathEscape(requestUrl)) return { kind: 'deny' };
   const parsed = resolveHttpProxyTarget(daemonOrigin ?? 'http://127.0.0.1', requestUrl);
   if (parsed == null) return { kind: 'deny' };
   if (hasPathPrefix(parsed.pathname, '/api')) {
@@ -268,21 +288,30 @@ export function resolveHostedSidecarRoute(
   return { kind: 'next' };
 }
 
-export function isHostedNextDevUpgrade(requestUrl: string | undefined): boolean {
-  return requestUrl?.split('?', 1)[0] === '/_next/webpack-hmr';
+function hasHostedEncodedPathEscape(requestUrl: string | undefined): boolean {
+  if (requestUrl == null) return true;
+  const absolute = /^[a-z][a-z0-9+.-]*:\/\/[^/]*(\/[^?#]*)?/iu.exec(requestUrl);
+  const rawPath = (absolute?.[1] ?? requestUrl).split(/[?#]/u, 1)[0] ?? '';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(rawPath);
+  } catch {
+    return true;
+  }
+  if (
+    /%(?:2f|5c|25(?:2f|5c))/iu.test(rawPath)
+    || /[\\\u0000-\u001f\u007f]/u.test(decoded)
+    || decoded.split('/').some((segment) => segment === '.' || segment === '..')
+  ) return true;
+
+  const protectedPrefixes = ['/api', '/artifacts', '/frames'];
+  return protectedPrefixes.some(
+    (prefix) => hasPathPrefix(decoded, prefix) && !hasPathPrefix(rawPath, prefix),
+  );
 }
 
-function isHostedAssertionHeader(name: string): boolean {
-  const lowerName = name.toLowerCase();
-  return (
-    lowerName === 'forwarded' ||
-    lowerName.startsWith('x-forwarded-') ||
-    lowerName === 'x-real-ip' ||
-    lowerName === 'remote-user' ||
-    lowerName === 'x-auth-user' ||
-    lowerName.startsWith('x-databricks-') ||
-    lowerName.startsWith('x-open-design-hosted-')
-  );
+export function isHostedNextDevUpgrade(requestUrl: string | undefined): boolean {
+  return requestUrl?.split('?', 1)[0] === '/_next/webpack-hmr';
 }
 
 export function createHostedDaemonProxyHeaders(options: {
@@ -293,7 +322,14 @@ export function createHostedDaemonProxyHeaders(options: {
 }): OutgoingHttpHeaders {
   const headers: OutgoingHttpHeaders = {};
   for (const [name, value] of Object.entries(options.headers)) {
-    if (!isHostedAssertionHeader(name)) headers[name] = value;
+    if (HOSTED_PROXY_HEADER_ALLOWLIST.has(name.toLowerCase())) headers[name] = value;
+  }
+  const authorization = options.headers.authorization;
+  if (typeof authorization === 'string' && /^Bearer [^\s]+$/u.test(authorization)) {
+    headers.authorization = authorization;
+  } else {
+    const cookie = hostedBrowserCookies(options.headers.cookie);
+    if (cookie != null) headers.cookie = cookie;
   }
 
   headers.host = options.targetHost;
@@ -304,6 +340,20 @@ export function createHostedDaemonProxyHeaders(options: {
     headers['x-forwarded-for'] = options.remoteAddress;
   }
   return headers;
+}
+
+function hostedBrowserCookies(value: string | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const cookies = value
+    .split(';')
+    .map((part) => part.trim())
+    .map((part) => ({ name: part.split('=', 1)[0] ?? '', value: part }));
+  const session = cookies.filter(({ name }) => name === HOSTED_BROWSER_COOKIE);
+  const preview = cookies.filter(({ name }) => HOSTED_PREVIEW_COOKIE.test(name));
+  return [
+    ...(session.length === 1 ? [session[0]!.value] : []),
+    ...(preview.length === 1 ? [preview[0]!.value] : []),
+  ].join('; ') || null;
 }
 
 export function resolveDaemonProxyTarget(

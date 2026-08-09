@@ -22,6 +22,8 @@ const requests: RequestRecord[] = [];
 let baseOrigin = '';
 let csrfSequence = 0;
 let retryWrite = true;
+let retryRun = true;
+let dropRunResponse = true;
 let server: http.Server;
 let tempRoot: string;
 let identityFile: string;
@@ -96,6 +98,47 @@ beforeAll(async () => {
     }
     if (record.url === `/api/projects/${projectId}/export/manifest`) {
       return json(response, { projectId, files: [] });
+    }
+    if (record.url === '/api/projects' && record.method === 'POST') {
+      return json(response, {
+        project: { id: projectId, name: 'Hosted project', createdAt: 1, updatedAt: 1, status: 'active' },
+      }, 201);
+    }
+    if (record.url === `/api/projects/${projectId}/conversations` && record.method === 'POST') {
+      return json(response, {
+        conversation: {
+          id: 'conversation-1', projectId, title: 'Build', sessionMode: 'design', messageCount: 0,
+          createdAt: 1, updatedAt: 1, totalDurationMs: 0, latestRun: null,
+        },
+      }, 201);
+    }
+    if (/^\/api\/projects\/project-1\/conversations\/conversation-1\/messages\/[A-Za-z0-9_-]+$/u.test(record.url) && record.method === 'PUT') {
+      return json(response, { message: { id: record.url.split('/').at(-1), ...JSON.parse(record.body.toString('utf8')) } });
+    }
+    if (record.url === '/api/runs' && record.method === 'POST') {
+      if (retryRun) {
+        retryRun = false;
+        return json(response, { error: { code: 'HOSTED_CSRF_INVALID' } }, 419);
+      }
+      if (dropRunResponse) {
+        dropRunResponse = false;
+        response.writeHead(202, {
+          'content-length': '1024',
+          'content-type': 'application/json',
+        });
+        response.end('{"runId":"');
+        return;
+      }
+      const body = JSON.parse(record.body.toString('utf8')) as { conversationId: string; assistantMessageId: string };
+      return json(response, { runId: 'run-1', conversationId: body.conversationId, assistantMessageId: body.assistantMessageId }, 202);
+    }
+    if (record.url === '/api/runs/run-1/events') {
+      response.writeHead(200, { 'content-type': 'text/event-stream' });
+      response.end('id: 1\nevent: agent\ndata: {"type":"text_delta","delta":"Done"}\n\nid: 2\nevent: end\ndata: {"status":"succeeded","code":0}\n\n');
+      return;
+    }
+    if (record.url === '/api/runs/run-1/cancel' && record.method === 'POST') {
+      return json(response, { ok: true });
     }
     if (record.url === '/api/artifacts/save') {
       return json(response, { artifactId, url: `/api/artifacts/${artifactId}/download`, lint: [] });
@@ -272,6 +315,46 @@ describe('hosted PR08 content CLI', () => {
       encoding: 'base64',
     });
   });
+
+  it('uses hosted authority and stable ids for the core project and run workflow', async () => {
+    requests.length = 0;
+    retryRun = true;
+    dropRunResponse = true;
+    await runCli(['project', 'create', '--name', 'Hosted project', '--json']);
+    await runCli(['conversation', 'new', projectId, '--title', 'Build', '--json']);
+    const followed = await runCli([
+      'run', 'start', '--project', projectId, '--conversation', 'conversation-1',
+      '--message', 'Build it', '--follow', '--json',
+    ]);
+    await runCli(['run', 'cancel', 'run-1', '--json']);
+
+    expect(followed.stdout.trim().split('\n').map((line) => JSON.parse(line))).toEqual([
+      { event: 'agent', data: { type: 'text_delta', delta: 'Done' } },
+      { event: 'end', data: { status: 'succeeded', code: 0 } },
+    ]);
+    const core = contentRequests();
+    expectAuthorized(core);
+    expect(JSON.parse(core.find(({ url, method }) => url === '/api/projects' && method === 'POST')!.body.toString('utf8')))
+      .toEqual({ title: 'Hosted project' });
+    const runRequests = core.filter(({ url, method }) => url === '/api/runs' && method === 'POST');
+    expect(runRequests).toHaveLength(3);
+    expect(runRequests.every(({ body }) => body.equals(runRequests[0]!.body))).toBe(true);
+    const intent = JSON.parse(runRequests[0]!.body.toString('utf8')) as Record<string, unknown>;
+    expect(intent).toMatchObject({
+      projectId,
+      conversationId: 'conversation-1',
+      agentId: 'pi',
+      message: 'Build it',
+    });
+    expect(intent.clientRequestId).toMatch(/^[0-9a-f-]{36}$/u);
+    expect(intent.assistantMessageId).toMatch(/^[0-9a-f-]{36}$/u);
+    const messageWrites = core.filter(({ url, method }) => url.includes('/messages/') && method === 'PUT');
+    expect(messageWrites.map(({ body }) => JSON.parse(body.toString('utf8')))).toEqual([
+      { role: 'user', content: 'Build it' },
+      { role: 'assistant', content: '' },
+    ]);
+    expect(messageWrites[1]!.url).toContain(`/messages/${intent.assistantMessageId}`);
+  }, 30_000);
 });
 
 function json(response: http.ServerResponse, body: unknown, status = 200): void {

@@ -28,6 +28,7 @@ afterEach(async () => {
 describe('hosted run journal ordering', () => {
   it('snapshots each authoritative run transition before provider effects or SSE', async () => {
     const order: string[] = [];
+    let terminalCursor: string | null = null;
     const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-run-journal-order-'));
     roots.push(runtimeRoot);
     const registry = createHostedRuntimeRegistry({
@@ -57,6 +58,21 @@ describe('hosted run journal ordering', () => {
                 join(input.storage.roots.runsRoot, '.hosted-event-journal.json'),
                 'utf8',
               )) as { events: Array<{ event: string }> };
+              if (receipt.status === 'succeeded') {
+                const message = input.storage.database.prepare(
+                  `SELECT content, run_status AS runStatus,
+                          last_run_event_id AS lastRunEventId
+                     FROM messages WHERE id = ?`,
+                ).get('message-1') as {
+                  content?: string;
+                  lastRunEventId?: string | null;
+                  runStatus?: string | null;
+                } | undefined;
+                terminalCursor = message?.lastRunEventId ?? null;
+                order.push(
+                  `terminal-message:${message?.content}:${message?.runStatus}:${Boolean(message?.lastRunEventId)}`,
+                );
+              }
               order.push(`snapshot:${receipt.status}:${journal.events.at(-1)?.event}`);
             }
             return publication;
@@ -68,6 +84,7 @@ describe('hosted run journal ordering', () => {
         input.send('progress', { delta: 'one' });
         input.send('ui.surface', { kind: 'ui.surface_created', surfaceId: 'surface-1' });
         input.send('progress', { delta: 'two' });
+        input.send('assistant', { delta: 'answer' });
         const sessionReference = join(input.capabilities.sessionRoot, 'run-1.jsonl');
         writeFileSync(sessionReference, `${JSON.stringify({
           type: 'session',
@@ -117,6 +134,13 @@ describe('hosted run journal ordering', () => {
       runId: 'run-1',
     });
 
+    expect(terminalCursor).not.toBeNull();
+    await expect(dispatchHostedRuntimeInternalOperation(registry, lease, {
+      kind: 'journal:replay',
+      channel: { kind: 'run', runId: 'run-1' },
+      after: terminalCursor,
+    })).resolves.toEqual({ kind: 'events', events: [] });
+
     expect(before(order, 'snapshot:queued:run.created', 'admission:ack')).toBe(true);
     expect(before(order, 'snapshot:running:run.started', 'provider:start')).toBe(true);
     expect(inOrder(order, [
@@ -124,7 +148,8 @@ describe('hosted run journal ordering', () => {
       'snapshot:running:ui.surface',
       'sse:ui.surface',
       'sse:run.progress',
-      'snapshot:succeeded:run.finished',
+      'terminal-message:answer:succeeded:true',
+      'snapshot:succeeded:run.lifecycle',
       'memory:terminal',
       'sse:run.finished',
     ]), JSON.stringify(order)).toBe(true);
@@ -374,10 +399,16 @@ function mapRunEvent(channel: string, payload: Record<string, unknown>) {
     return [event('run', 'run.started', payload, 'status-transition')];
   }
   if (channel === 'run.lifecycle') {
-    return [event('run', 'run.finished', payload, 'terminal')];
+    return [
+      event('run', 'run.finished', payload, 'terminal'),
+      event('run-ui', 'run.lifecycle', payload, 'terminal'),
+    ];
   }
   if (channel === 'ui.surface') {
     return [event('run-ui', 'ui.surface', payload, 'status-transition')];
+  }
+  if (channel === 'assistant') {
+    return [event('run', 'agent', { type: 'text_delta', delta: payload.delta }, null)];
   }
   return [event('run', 'run.progress', payload, null)];
 }

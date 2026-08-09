@@ -349,25 +349,7 @@ export function registerHostedRunRoutes(
         throw new HostedRuntimeError('MESSAGE_NOT_FOUND', 'hosted message was not found');
       }
       const credential = registry.credentialStatus(state.lease);
-      if (!credential.configured || credential.provider == null) {
-        throw new HostedRuntimeError(
-          'HOSTED_PROVIDER_MISSING',
-          'hosted provider credential is not configured',
-        );
-      }
-      const fixedModel = hostedProviderModel(credential.provider);
-      if (operation.intent.model !== null && operation.intent.model !== fixedModel) {
-        throw new HostedRuntimeError('BAD_REQUEST', 'hosted model is outside the fixed catalogue');
-      }
-      if (
-        operation.intent.reasoning !== null
-        && !HOSTED_THINKING_CATALOGUE.includes(operation.intent.reasoning)
-      ) {
-        throw new HostedRuntimeError(
-          'BAD_REQUEST',
-          'hosted reasoning level is outside the fixed catalogue',
-        );
-      }
+      const fixedModel = credential.provider == null ? '' : hostedProviderModel(credential.provider);
       const runId = createRunId(state.identity.userKey);
       return dispatchHostedRuntimeInternalOperation(registry, state.lease, {
         kind: 'run:start',
@@ -375,7 +357,7 @@ export function registerHostedRunRoutes(
         routeKind: operation.kind === 'chat.create' ? 'chat' : 'runs',
         intent: operation.intent,
         model: fixedModel,
-        modelCatalogue: [fixedModel],
+        modelCatalogue: fixedModel === '' ? [] : [fixedModel],
         thinkingCatalogue: HOSTED_THINKING_CATALOGUE,
         mapEvent(channel, payload) {
           const events = hostedRunEvents(channel, payload, {

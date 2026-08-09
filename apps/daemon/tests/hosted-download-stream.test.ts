@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { mkdir, symlink, truncate, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Writable } from 'node:stream';
+import { Readable, Writable } from 'node:stream';
 import JSZip from 'jszip';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -130,6 +130,30 @@ describe('hosted archive download streaming', () => {
       userKey: 'user-a',
     });
     replacement.abort();
+  });
+
+  it('shares stream admission between archives and direct artifact downloads', async () => {
+    const downloads = createHostedDownloadStreams();
+    const artifact = downloads.openFile({
+      bytes: 8,
+      source: Readable.from('artifact'),
+      userKey: 'user-a',
+    });
+
+    expect(() => downloads.openFile({
+      bytes: 5,
+      source: Readable.from('other'),
+      userKey: 'user-a',
+    })).toThrow(expect.objectContaining({ code: 'HOSTED_OVERLOADED' }));
+
+    artifact.destroy();
+    await new Promise<void>((resolve) => artifact.once('close', resolve));
+    const replacement = downloads.openFile({
+      bytes: 5,
+      source: Readable.from('other'),
+      userKey: 'user-a',
+    });
+    replacement.destroy();
   });
 
   it('caps process-wide concurrent streams and releases them on response close', async () => {

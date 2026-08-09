@@ -28,6 +28,10 @@ describe('hosted public sidecar boundary', () => {
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/frames/example')).toEqual({ kind: 'deny' });
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/apiary')).toEqual({ kind: 'next' });
     expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/settings')).toEqual({ kind: 'next' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api%2Fhealth')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/%61pi/health')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/artifacts%2Ffile')).toEqual({ kind: 'deny' });
+    expect(resolveHostedSidecarRoute('http://127.0.0.1:7456', '/api/%2e%2e/settings')).toEqual({ kind: 'deny' });
   });
 
   it('allows only the Next development HMR upgrade', () => {
@@ -43,17 +47,19 @@ describe('hosted public sidecar boundary', () => {
     expect(() => resolveHostedPublicOrigin('file:///tmp/design')).toThrow('OD_HOSTED_PUBLIC_ORIGIN');
   });
 
-  it('preserves browser credentials and origin while replacing every identity assertion header', () => {
+  it('forwards one bearer credential carrier and a strict request-header allowlist', () => {
     expect(
       createHostedDaemonProxyHeaders({
         headers: {
           authorization: 'Bearer adapter-token',
-          cookie: 'session=adapter-cookie',
+          cookie: '__Host-od-hosted=adapter-cookie; unrelated=drop-me',
           forwarded: 'for=attacker',
           host: 'design.example:8443',
           origin: 'https://exact-browser-origin.example',
           'remote-user': 'attacker',
           'x-auth-user': 'attacker',
+          'x-auth-request-user': 'attacker',
+          'cf-access-jwt-assertion': 'attacker',
           'x-databricks-user': 'attacker',
           'x-forwarded-for': 'attacker',
           'x-forwarded-host': 'attacker',
@@ -66,15 +72,45 @@ describe('hosted public sidecar boundary', () => {
       }),
     ).toEqual({
       authorization: 'Bearer adapter-token',
-      cookie: 'session=adapter-cookie',
       host: '127.0.0.1:7456',
       origin: 'https://exact-browser-origin.example',
       'x-forwarded-for': '10.0.0.8',
       'x-forwarded-host': 'design.example:8443',
       'x-forwarded-port': '8443',
       'x-forwarded-proto': 'https',
-      'x-request-id': 'ordinary-header',
     });
+  });
+
+  it('forwards only the hosted browser cookie when no bearer credential is present', () => {
+    expect(
+      createHostedDaemonProxyHeaders({
+        headers: {
+          cookie: 'theme=dark; __Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof; session=drop-me',
+          origin: 'https://design.example',
+        },
+        publicOrigin: new URL('https://design.example'),
+        remoteAddress: undefined,
+        targetHost: '127.0.0.1:7456',
+      }),
+    ).toEqual({
+      cookie: '__Host-od-hosted=adapter-cookie; odpvb_abcdefghijklmnopqrstuv=preview-proof',
+      host: '127.0.0.1:7456',
+      origin: 'https://design.example',
+      'x-forwarded-host': 'design.example',
+      'x-forwarded-port': '443',
+      'x-forwarded-proto': 'https',
+    });
+  });
+
+  it('drops malformed or ambiguous preview proof cookies', () => {
+    expect(createHostedDaemonProxyHeaders({
+      headers: {
+        cookie: '__Host-od-hosted=session; odpvb_short=drop; odpvb_abcdefghijklmnopqrstuv=one; odpvb_ABCDEFGHIJKLMNOPQRSTUV=two',
+      },
+      publicOrigin: new URL('https://design.example'),
+      remoteAddress: undefined,
+      targetHost: '127.0.0.1:7456',
+    }).cookie).toBe('__Host-od-hosted=session');
   });
 });
 
