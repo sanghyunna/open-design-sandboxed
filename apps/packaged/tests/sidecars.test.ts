@@ -330,6 +330,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: '1.2.3',
       daemonCliEntry: null,
+      daemonPort: 7456,
       legacyDataDir: null,
       requireDesktopAuth: true,
     });
@@ -337,6 +338,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
     expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
     expect(env.OD_APP_VERSION).toBe('1.2.3');
+    expect(env[SIDECAR_ENV.DAEMON_PORT]).toBe('7456');
     expect(env.OD_LEGACY_DATA_DIR).toBeUndefined();
   });
 
@@ -344,6 +346,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
+      daemonPort: 7456,
       desktopApprovalToken: 'packaged-approval-token',
       requireDesktopAuth: true,
     });
@@ -355,6 +358,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
+      daemonPort: 7456,
       legacyDataDir: null,
       requireDesktopAuth: false,
     });
@@ -372,6 +376,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const withLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
+      daemonPort: 7456,
       legacyDataDir: '/old/.od',
       requireDesktopAuth: false,
     });
@@ -380,6 +385,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const withEmptyLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
+      daemonPort: 7456,
       legacyDataDir: '',
       requireDesktopAuth: true,
     });
@@ -392,6 +398,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: '/path/to/cli/dist/index.js',
+      daemonPort: 7456,
       legacyDataDir: null,
       requireDesktopAuth: true,
     });
@@ -403,6 +410,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       appVersion: null,
       amrProfile: 'test',
       daemonCliEntry: null,
+      daemonPort: 7456,
       legacyDataDir: null,
       requireDesktopAuth: true,
     });
