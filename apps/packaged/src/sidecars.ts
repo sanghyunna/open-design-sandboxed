@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { access, appendFile, mkdir, open, type FileHandle } from "node:fs/promises";
+import { access, appendFile, mkdir, open, readFile, type FileHandle } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { delimiter, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -16,6 +16,7 @@ import {
   type WebStatusSnapshot,
 } from "@open-design/sidecar-proto";
 import {
+  allocatePort,
   createSidecarLaunchEnv,
   requestJsonIpc,
   resolveAppIpcPath,
@@ -262,11 +263,6 @@ export async function waitForStatus<T>(
   }
 }
 
-function extractPort(url: string): string {
-  const parsed = new URL(url);
-  return parsed.port || (parsed.protocol === "https:" ? "443" : "80");
-}
-
 // Hardcoded POSIX system bins the packaged daemon must always be able to
 // reach even when the inherited PATH from launchd / a desktop launcher is
 // stripped down to nothing. The user-toolchain portion of the search list
@@ -324,6 +320,7 @@ export type PackagedDaemonSpawnEnvOptions = {
   appVersion: string | null;
   amrProfile?: string | null;
   daemonCliEntry: string | null;
+  daemonPort: number;
   desktopApprovalToken?: string | null;
   /**
    * PR #974 round-5 (lefarcen P2): only pin the daemon's import-folder
@@ -350,7 +347,7 @@ export function buildPackagedDaemonSpawnEnv(
   options: PackagedDaemonSpawnEnvOptions,
 ): NodeJS.ProcessEnv {
   return {
-    [SIDECAR_ENV.DAEMON_PORT]: "0",
+    [SIDECAR_ENV.DAEMON_PORT]: String(options.daemonPort),
     ...(options.desktopApprovalToken
       ? { [SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]: options.desktopApprovalToken }
       : {}),
@@ -435,10 +432,15 @@ async function spawnSidecarChild(options: {
     },
   );
 
-  await new Promise<void>((resolveSpawn, rejectSpawn) => {
-    child.once("error", rejectSpawn);
-    child.once("spawn", resolveSpawn);
-  });
+  try {
+    await new Promise<void>((resolveSpawn, rejectSpawn) => {
+      child.once("error", rejectSpawn);
+      child.once("spawn", resolveSpawn);
+    });
+  } catch (error) {
+    await logHandle.close().catch(() => undefined);
+    throw error;
+  }
 
   return { app: options.app, child, ipcPath, logHandle, logPath };
 }
@@ -461,6 +463,11 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
 
   await appendLifecycleLog(`[open-design packaged] exited app=${child.app} pid=${child.child.pid ?? "unknown"} code=${child.child.exitCode ?? "unknown"} signal=${child.child.signalCode ?? "none"}`);
   await child.logHandle.close().catch(() => undefined);
+}
+
+async function daemonLogHasPortConflict(paths: PackagedNamespacePaths): Promise<boolean> {
+  const contents = await readFile(logPathFor(paths, APP_KEYS.DAEMON), "utf8").catch(() => "");
+  return contents.includes("EADDRINUSE");
 }
 
 // @dsp func-cf1f0266
@@ -509,86 +516,109 @@ export async function startPackagedSidecars(
     logStartupPhase("namespace-runtime-dirs-ensured");
   }
 
-  const children: ManagedSidecarChild[] = [];
+  const reservedDaemonPorts = new Set<number>();
+  for (let attempt = 0; ; attempt += 1) {
+    const children: ManagedSidecarChild[] = [];
 
-  try {
-    const daemon = await spawnSidecarChild({
-      app: APP_KEYS.DAEMON,
-      entryPath: options.daemonSidecarEntry ?? resolveSidecarEntry("@open-design/daemon", "sidecar"),
-      env: buildPackagedDaemonSpawnEnv(paths, {
-        appVersion: options.appVersion,
-        amrProfile: options.amrProfile,
-        daemonCliEntry: options.daemonCliEntry,
-        desktopApprovalToken: options.desktopApprovalToken,
-        legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
-        requireDesktopAuth: options.requireDesktopAuth,
-      }),
-      nodeCommand: options.nodeCommand,
-      paths,
-      runtime,
-    });
-    logStartupPhase("daemon-child-spawned");
-    children.push(daemon);
-    const daemonStatus = await waitForStatus<DaemonStatusSnapshot>(
-      daemon.ipcPath,
-      (status) => status.url != null,
-      resolveDaemonStatusTimeoutMs(),
-      // Race the IPC polling against the daemon child's exit. Without
-      // this, a daemon that throws at startup (LegacyMigrationError on
-      // invalid OD_LEGACY_DATA_DIR, existing target payload, symlink,
-      // marker write failure) leaves the packaged app waiting the full
-      // 30-minute migration budget for a process that already died.
-      { child: daemon.child, logPath: logPathFor(paths, APP_KEYS.DAEMON) },
-    );
-    logStartupPhase("daemon-status-ready");
-    if (daemonStatus.url == null) throw new Error("daemon did not report a URL");
+    try {
+      const daemonPort = (await allocatePort({
+        host: "127.0.0.1",
+        label: "packaged daemon",
+        reserved: reservedDaemonPorts,
+      })).port;
+      const daemon = await spawnSidecarChild({
+        app: APP_KEYS.DAEMON,
+        entryPath: options.daemonSidecarEntry ?? resolveSidecarEntry("@open-design/daemon", "sidecar"),
+        env: buildPackagedDaemonSpawnEnv(paths, {
+          appVersion: options.appVersion,
+          amrProfile: options.amrProfile,
+          daemonCliEntry: options.daemonCliEntry,
+          daemonPort,
+          desktopApprovalToken: options.desktopApprovalToken,
+          legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
+          requireDesktopAuth: options.requireDesktopAuth,
+        }),
+        nodeCommand: options.nodeCommand,
+        paths,
+        runtime,
+      });
+      logStartupPhase("daemon-child-spawned");
+      children.push(daemon);
 
-    const web = await spawnSidecarChild({
-      app: APP_KEYS.WEB,
-      entryPath: options.webSidecarEntry ?? resolveSidecarEntry("@open-design/web", "sidecar"),
-      env: {
-        [SIDECAR_ENV.DAEMON_PORT]: extractPort(daemonStatus.url),
-        [SIDECAR_ENV.WEB_PORT]: "0",
-        ...(options.webStandaloneRoot == null ? {} : { OD_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
-        OD_WEB_OUTPUT_MODE: options.webOutputMode,
-        PORT: "0",
-      },
-      nodeCommand: options.nodeCommand,
-      paths,
-      runtime,
-    });
-    logStartupPhase("web-child-spawned");
-    children.push(web);
-    const webStatus = await waitForStatus<WebStatusSnapshot>(
-      web.ipcPath,
-      (status) => status.url != null,
-      resolveWebStatusTimeoutMs(),
-      // Race the IPC polling against the web child's exit, mirroring the
-      // daemon wait. The default 180s budget is deliberately longer than
-      // the web sidecar's 120s internal readiness window, so without the
-      // exit race a web child that crashes at startup would hang the
-      // launcher at the splash for the full 180s. The watch surfaces the
-      // crash immediately and points at the web log for the failure.
-      { child: web.child, logPath: logPathFor(paths, APP_KEYS.WEB), label: "web" },
-    );
-    logStartupPhase("web-status-ready");
-    if (webStatus.url == null) throw new Error("web did not report a URL");
+      const web = await spawnSidecarChild({
+        app: APP_KEYS.WEB,
+        entryPath: options.webSidecarEntry ?? resolveSidecarEntry("@open-design/web", "sidecar"),
+        env: {
+          [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort),
+          [SIDECAR_ENV.WEB_PORT]: "0",
+          ...(options.webStandaloneRoot == null ? {} : { OD_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
+          OD_WEB_OUTPUT_MODE: options.webOutputMode,
+          PORT: "0",
+        },
+        nodeCommand: options.nodeCommand,
+        paths,
+        runtime,
+      });
+      logStartupPhase("web-child-spawned");
+      children.push(web);
 
-    return {
-      daemon: daemonStatus,
-      web: webStatus,
-      async close() {
-        for (const child of [...children].reverse()) {
-          await closeManagedChild(child).catch((error: unknown) => {
-            console.error(`failed to close packaged ${child.app} sidecar`, error);
-          });
-        }
-      },
-    };
-  } catch (error) {
-    for (const child of [...children].reverse()) {
-      await closeManagedChild(child).catch(() => undefined);
+      const [daemonStatus, webStatus] = await Promise.all([
+        waitForStatus<DaemonStatusSnapshot>(
+          daemon.ipcPath,
+          (status) => status.url != null,
+          resolveDaemonStatusTimeoutMs(),
+          // Race the IPC polling against the daemon child's exit. Without
+          // this, a daemon that throws at startup (LegacyMigrationError on
+          // invalid OD_LEGACY_DATA_DIR, existing target payload, symlink,
+          // marker write failure) leaves the packaged app waiting the full
+          // 30-minute migration budget for a process that already died.
+          { child: daemon.child, logPath: logPathFor(paths, APP_KEYS.DAEMON) },
+        ).then((status) => {
+          logStartupPhase("daemon-status-ready");
+          return status;
+        }),
+        waitForStatus<WebStatusSnapshot>(
+          web.ipcPath,
+          (status) => status.url != null,
+          resolveWebStatusTimeoutMs(),
+          // Race the IPC polling against the web child's exit, mirroring the
+          // daemon wait. The default 180s budget is deliberately longer than
+          // the web sidecar's 120s internal readiness window, so without the
+          // exit race a web child that crashes at startup would hang the
+          // launcher at the splash for the full 180s. The watch surfaces the
+          // crash immediately and points at the web log for the failure.
+          { child: web.child, logPath: logPathFor(paths, APP_KEYS.WEB), label: "web" },
+        ).then((status) => {
+          logStartupPhase("web-status-ready");
+          return status;
+        }),
+      ]);
+      if (daemonStatus.url == null) throw new Error("daemon did not report a URL");
+      if (webStatus.url == null) throw new Error("web did not report a URL");
+
+      return {
+        daemon: daemonStatus,
+        web: webStatus,
+        async close() {
+          for (const child of [...children].reverse()) {
+            await closeManagedChild(child).catch((error: unknown) => {
+              console.error(`failed to close packaged ${child.app} sidecar`, error);
+            });
+          }
+        },
+      };
+    } catch (error) {
+      for (const child of [...children].reverse()) {
+        await closeManagedChild(child).catch(() => undefined);
+      }
+      if (
+        attempt === 0 &&
+        children.some((child) => child.app === APP_KEYS.DAEMON) &&
+        await daemonLogHasPortConflict(paths)
+      ) {
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
 }
