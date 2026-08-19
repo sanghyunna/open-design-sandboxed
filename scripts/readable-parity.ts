@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
+import { listSkills } from "../apps/daemon/src/skills.ts";
 import { parseDesignSystemProjectManifest } from "../design-systems/_schema/manifest.schema.ts";
 import { parseFrontmatter } from "../packages/plugin-runtime/src/parsers/frontmatter.ts";
 import { parseManifest } from "../packages/plugin-runtime/src/parsers/manifest.ts";
@@ -263,9 +264,9 @@ async function filesBelow(root: string, fileName?: string): Promise<string[]> {
   return lexicalSort(files);
 }
 
-async function collectSkillDirectory(root: string, family: string): Promise<string[]> {
+async function collectRuntimeSkillDirectory(root: string, family: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
-  const ids: string[] = [];
+  const parentIds: string[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const skillPath = path.join(root, entry.name, "SKILL.md");
@@ -276,10 +277,16 @@ async function collectSkillDirectory(root: string, family: string): Promise<stri
       if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
       throw error;
     }
-    ids.push(parseSkillId(raw, `${family}/${entry.name}/SKILL.md`));
+    parentIds.push(parseSkillId(raw, `${family}/${entry.name}/SKILL.md`));
   }
-  if (new Set(ids).size !== ids.length) throw new Error(`${family}: capability ids must be unique`);
-  return lexicalSort(ids);
+  if (new Set(parentIds).size !== parentIds.length) throw new Error(`${family}: parent capability ids must be unique`);
+
+  const runtimeIds = (await listSkills(root)).map((skill) => skill.id);
+  if (new Set(runtimeIds).size !== runtimeIds.length) throw new Error(`${family}: runtime capability ids must be unique`);
+  const runtimeSet = new Set(runtimeIds);
+  const missingParents = lexicalSort(parentIds.filter((id) => !runtimeSet.has(id)));
+  if (missingParents.length > 0) throw new Error(`${family}: runtime omitted validated parents: ${missingParents.join(", ")}`);
+  return lexicalSort(runtimeIds);
 }
 
 async function collectDesignSystems(root: string): Promise<string[]> {
@@ -350,8 +357,8 @@ export async function collectReadableParityInventory(root = repoRoot): Promise<R
     mcpTools: extractMcpTools(mcpSource, "apps/daemon/src/mcp.ts"),
     httpCapabilities: normalizedHttp,
     bundledPlugins: lexicalSort(bundledPlugins),
-    skills: await collectSkillDirectory(path.join(root, "skills"), "skills"),
-    templates: await collectSkillDirectory(path.join(root, "design-templates"), "design-templates"),
+    skills: await collectRuntimeSkillDirectory(path.join(root, "skills"), "skills"),
+    templates: await collectRuntimeSkillDirectory(path.join(root, "design-templates"), "design-templates"),
     designSystems: await collectDesignSystems(path.join(root, "design-systems")),
     editingControlFamilies: await collectEditingControls(root),
     standaloneHtmlExport,

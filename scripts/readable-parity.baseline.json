@@ -791,6 +791,7 @@
   "templates": [
     "blog-post",
     "clinical-case-report",
+    "clinical-case-report:example-stemi",
     "contact-widget",
     "critique",
     "dashboard",
@@ -871,6 +872,10 @@
     "pm-spec",
     "pricing-page",
     "replit-deck",
+    "replit-deck:example-atlas",
+    "replit-deck:example-bluehouse",
+    "replit-deck:example-helix",
+    "replit-deck:example-holm",
     "saas-landing",
     "simple-deck",
     "social-carousel",

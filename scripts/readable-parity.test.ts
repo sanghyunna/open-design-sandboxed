@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import { test } from "node:test";
+
+import { listSkills } from "../apps/daemon/src/skills.ts";
 
 import {
   collectReadableParity,
@@ -15,8 +18,10 @@ import {
   type ReadableParityInventory,
 } from "./readable-parity.ts";
 
+const collectedParity = collectReadableParity();
+
 test("collector matches the checked-in capability baseline", async () => {
-  const { actual, expected } = await collectReadableParity();
+  const { actual, expected } = await collectedParity;
   assert.doesNotThrow(() => compareReadableParity(expected, actual));
 });
 
@@ -77,7 +82,7 @@ test("structured validators reject malformed capability declarations", () => {
 });
 
 test("live inventory exposes representative machine capabilities from every family", async () => {
-  const { actual } = await collectReadableParity();
+  const { actual } = await collectedParity;
   for (const [family, capability] of [
     ["cliSubcommands", "export"],
     ["mcpTools", "create_artifact"],
@@ -93,8 +98,16 @@ test("live inventory exposes representative machine capabilities from every fami
   }
 });
 
+test("template inventory exactly matches the daemon runtime registry", async () => {
+  const { actual } = await collectedParity;
+  const runtimeIds = (await listSkills(path.resolve("design-templates")))
+    .map((template) => template.id)
+    .sort((left, right) => left < right ? -1 : left > right ? 1 : 0);
+  assert.deepEqual(actual.templates, runtimeIds);
+});
+
 test("rejects missing capability", async (t) => {
-  const { actual } = await collectReadableParity();
+  const { actual } = await collectedParity;
   const omissions: Array<[Exclude<keyof ReadableParityInventory, "schemaVersion">, string]> = [
     ["cliSubcommands", "export"],
     ["bundledPlugins", "build-test"],

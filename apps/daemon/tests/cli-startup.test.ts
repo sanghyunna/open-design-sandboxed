@@ -2,9 +2,11 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { execFile, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
+
+import { spawnWaitingForOutputLine } from './child-readiness.js';
 
 const execFileAsync = promisify(execFile);
 const daemonRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -40,11 +42,21 @@ describe('CLI startup boundaries', () => {
     expect(output).not.toContain('DIAGNOSTICS_STRING_FLAGS');
   });
 
+  it('captures an immediately emitted readiness line through the launch seam', async () => {
+    const launched = spawnWaitingForOutputLine(
+      process.execPath,
+      ['-e', "process.stdout.write('[od] listening on http://127.0.0.1:1 (headless)\\n')"],
+      {},
+      /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u,
+    );
+    await expect(launched.line).resolves.toContain('http://127.0.0.1:1');
+  });
+
   it('keeps od daemon start alive until SIGTERM and reports the actual listening port', async () => {
     const root = await mkdtemp(join(tmpdir(), 'od-cli-daemon-start-'));
     const dataDir = join(root, 'data');
     await mkdir(dataDir);
-    const child = spawn(
+    const launched = spawnWaitingForOutputLine(
       process.execPath,
       [
         cliEntry,
@@ -62,10 +74,12 @@ describe('CLI startup boundaries', () => {
           OD_DATA_DIR: dataDir,
         },
       },
+      /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u,
     );
+    const { child } = launched;
 
     try {
-      const line = await waitForStdoutLine(child, /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u);
+      const line = await launched.line;
       const match = line.match(/(http:\/\/[^\s]+)/u);
       const daemonUrl = match?.[1];
       expect(daemonUrl).toBeTruthy();
@@ -89,46 +103,6 @@ describe('CLI startup boundaries', () => {
 
 });
 
-function waitForStdoutLine(
-  child: ChildProcessWithoutNullStreams,
-  pattern: RegExp,
-  timeoutMs = 15_000,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let output = '';
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error(`timed out waiting for stdout ${pattern}; output:\n${output}`));
-    }, timeoutMs);
-    const onData = (chunk: Buffer) => {
-      output += chunk.toString('utf8');
-      const line = output.split(/\r?\n/u).find((candidate) => pattern.test(candidate));
-      if (line) {
-        cleanup();
-        resolve(line);
-      }
-    };
-    const onError = (error: Error) => {
-      cleanup();
-      reject(error);
-    };
-    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
-      cleanup();
-      reject(new Error(`child exited before stdout matched ${pattern}: code=${code} signal=${signal}; output:\n${output}`));
-    };
-    const cleanup = () => {
-      clearTimeout(timer);
-      child.stdout.off('data', onData);
-      child.stderr.off('data', onData);
-      child.off('error', onError);
-      child.off('exit', onExit);
-    };
-    child.stdout.on('data', onData);
-    child.stderr.on('data', onData);
-    child.on('error', onError);
-    child.on('exit', onExit);
-  });
-}
 
 async function terminateChild(child: ChildProcessWithoutNullStreams): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) return;
