@@ -180,6 +180,20 @@ function assertExactFields(value: Record<string, unknown>, expected: string[], l
   }
 }
 
+function parseCanonicalRepositoryPath(value: unknown, label: string): string {
+  const errorMessage = `Invalid readable identity baseline: ${label} must be a canonical repository path.`;
+  if (typeof value !== "string") throw new Error(errorMessage);
+  const invalid = (): never => {
+    throw new Error(errorMessage);
+  };
+  if (value.length === 0 || value.includes("\0") || value.includes("\\")) invalid();
+  if (path.posix.isAbsolute(value) || /^[A-Za-z]:/.test(value)) invalid();
+  if (value.endsWith("/") || path.posix.normalize(value) !== value) invalid();
+  const segments = value.split("/");
+  if (segments.some((segment) => segment.length === 0 || segment === "." || segment === "..")) invalid();
+  return value;
+}
+
 function validateBaselineEntries(entries: unknown): IdentityBaselineEntry[] {
   if (!Array.isArray(entries)) throw new Error("Invalid readable identity baseline: entries must be an array.");
   const validated: IdentityBaselineEntry[] = [];
@@ -203,9 +217,7 @@ function validateBaselineEntries(entries: unknown): IdentityBaselineEntry[] {
     if (typeof candidate.fingerprint !== "string" || !/^[0-9a-f]{64}$/.test(candidate.fingerprint)) {
       throw new Error(`Invalid readable identity baseline: entries[${index}].fingerprint must be lowercase SHA-256.`);
     }
-    if (typeof candidate.path !== "string" || candidate.path.length === 0 || normalizePath(candidate.path) !== candidate.path || candidate.path.includes("\0")) {
-      throw new Error(`Invalid readable identity baseline: entries[${index}].path must be a canonical repository path.`);
-    }
+    parseCanonicalRepositoryPath(candidate.path, `entries[${index}].path`);
     const identityClass = candidate.class as IdentityClass;
     const rule = classificationRules[identityClass];
     if (candidate.ruleId !== rule.ruleId || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(String(candidate.ruleId))) {

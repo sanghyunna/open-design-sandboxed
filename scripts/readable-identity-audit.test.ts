@@ -145,6 +145,39 @@ describe("readable identity audit", () => {
     }
   });
 
+  test("rejects noncanonical repository-relative baseline paths", () => {
+    const invalidPaths = [
+      "",
+      "/apps/a.ts",
+      "C:/apps/a.ts",
+      "c:/apps/a.ts",
+      "//server/share/a.ts",
+      ["", "", "server", "share", "a.ts"].join(String.fromCharCode(92)),
+      ["apps", "a.ts"].join(String.fromCharCode(92)),
+      "apps/\0a.ts",
+      "./apps/a.ts",
+      "a//b.ts",
+      "a/./b.ts",
+      "a/../b.ts",
+      "../apps/a.ts",
+      "a/.",
+      "a/..",
+      "apps/",
+    ];
+
+    for (const path of invalidPaths) {
+      assert.throws(
+        () => validateIdentityBaseline(baseline([validEntry({ path })])),
+        /canonical repository path/,
+        JSON.stringify(path),
+      );
+    }
+
+    for (const path of ["apps/a.ts", "LICENSE", ".github/workflows/guard.yml", "specs/change/closed/a.md"]) {
+      assert.doesNotThrow(() => validateIdentityBaseline(baseline([validEntry({ path })])), path);
+    }
+  });
+
   test("produces byte-stable reports for identical exact-ledger inputs", () => {
     const sources = [{ path: "CHANGELOG.md", source: "Open Design\n" }];
     const options = { baseline: ledgerEntries(sources), scope: "all" as const, sources };
