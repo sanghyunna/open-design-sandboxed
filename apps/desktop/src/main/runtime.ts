@@ -21,6 +21,7 @@ import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesig
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
 import type { PrintReadyPdfOptions } from "./pdf-export.js";
+import { remainingSplashHoldMs, shouldFinishSplashPolling } from "./splash-reveal.js";
 import type { DesktopUpdater } from "./updater.js";
 
 const execFileAsync = promisify(execFile);
@@ -855,7 +856,7 @@ export function createSplashWindow(): SplashWindowHandle {
     height: 450,
     resizable: false,
     show: true,
-    title: "Open Design",
+    title: "Readable Studio",
     width: 640,
     webPreferences: {
       contextIsolation: true,
@@ -1847,28 +1848,59 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     if (splash != null && !splash.isDestroyed()) splash.close();
   };
 
-  // Hold the splash until BOTH (a) the web bundle reports it has mounted — it
-  // sets `data-od-app-mounted="1"` on first paint of the real UI — so we never
-  // reveal the web's own dark "Loading Open Design…" shell, and (b) the splash
-  // has been up at least MIN_SPLASH_MS so the brand clip plays through. A hard
-  // ceiling guarantees the user is never stranded on the splash if the mount
-  // signal never arrives.
+  // Hold the splash until BOTH (a) the web bundle reports it has mounted and
+  // (b) the video reports ended/error through its persistent document marker.
+  // The marker matters because the minimum-hold clock starts when the window is
+  // created, before file loading and the first decoded video frame. A hard
+  // ceiling guarantees the user is never stranded if either signal never
+  // arrives; MIN_SPLASH_MS remains the visual floor on every exit path.
   const revealWhenReady = async (): Promise<void> => {
     if (revealing || revealed) return;
     revealing = true;
     const deadline = Date.now() + WEB_MOUNT_REVEAL_TIMEOUT_MS;
-    while (!stopped && !window.isDestroyed() && Date.now() < deadline) {
-      const mounted = await window.webContents
-        .executeJavaScript(`document.documentElement.getAttribute("data-od-app-mounted") === "1"`, true)
-        .catch(() => false);
-      if (mounted === true) {
-        // Reveal is additionally floored by MIN_SPLASH_MS; this timestamp is the perf-relevant signal.
-        console.info("web app mounted", { elapsedMs: Date.now() - splashStartedAt, uptimeMs: Math.round(process.uptime() * 1000) });
+    while (!stopped && !window.isDestroyed()) {
+      const deadlineReached = Date.now() >= deadline;
+      const [mounted, splashFinished] = deadlineReached
+        ? [false, false]
+        : await Promise.all([
+            window.webContents
+              .executeJavaScript(
+                `document.documentElement.getAttribute("data-od-app-mounted") === "1"`,
+                true,
+              )
+              .catch(() => false),
+            splash != null &&
+            !splash.isDestroyed() &&
+            !splash.webContents.isDestroyed()
+              ? splash.webContents
+                  .executeJavaScript(
+                    `document.documentElement.getAttribute("data-od-splash-finished") === "1"`,
+                    true,
+                  )
+                  .catch(() => false)
+              : Promise.resolve(false),
+          ]);
+      if (
+        shouldFinishSplashPolling({
+          appMounted: mounted === true,
+          deadlineReached,
+          splashFinished: splashFinished === true,
+        })
+      ) {
+        const timing = {
+          elapsedMs: Date.now() - splashStartedAt,
+          uptimeMs: Math.round(process.uptime() * 1000),
+        };
+        if (deadlineReached) {
+          console.warn("splash reveal deadline reached", timing);
+        } else {
+          console.info("web app and splash ready", timing);
+        }
         break;
       }
       await delay(WEB_MOUNT_POLL_MS);
     }
-    const remaining = MIN_SPLASH_MS - (Date.now() - splashStartedAt);
+    const remaining = remainingSplashHoldMs(splashStartedAt, Date.now(), MIN_SPLASH_MS);
     if (remaining > 0) await delay(remaining);
     revealMainWindow();
   };

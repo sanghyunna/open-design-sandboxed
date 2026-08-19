@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const desktopPackageRoot = join(repoRoot, "apps", "desktop");
+const desktopRuntimePath = join(desktopPackageRoot, "src", "main", "runtime.ts");
+const splashHtmlPath = join(desktopPackageRoot, "assets", "splash.html");
 const packagedSourcePath = join(repoRoot, "apps", "packaged", "src", "index.ts");
 
 function readDesktopPackageJson(): {
@@ -56,5 +58,25 @@ describe("desktop package runtime shape", () => {
       expect(source).toContain('join(config.workspaceRoot, "apps", "desktop", "assets")');
       expect(source).toContain('join(paths.assembledAppRoot, "assets")');
     }
+  });
+
+  it("waits for the rendered splash media to finish before revealing the app", () => {
+    const finishedMarker = "data-od-splash-finished";
+    const runtimeSource = readFileSync(desktopRuntimePath, "utf8");
+    const splashHtml = readFileSync(splashHtmlPath, "utf8");
+
+    expect(splashHtml).toContain(finishedMarker);
+    expect(runtimeSource).toContain(finishedMarker);
+  });
+
+  it("fills the fixed splash window without letterboxing", () => {
+    const splashHtml = readFileSync(splashHtmlPath, "utf8");
+    const videoStyle = /video\s*\{(?<css>[^}]*)\}/s.exec(splashHtml)?.groups?.css;
+
+    expect(videoStyle).toContain("height: 100%");
+    expect(videoStyle).toContain("object-fit: cover");
+    expect(videoStyle).toContain("width: 100%");
+    expect(videoStyle).not.toContain("max-height");
+    expect(videoStyle).not.toContain("max-width");
   });
 });

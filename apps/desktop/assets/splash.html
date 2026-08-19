@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Open Design</title>
+    <title>Readable Studio</title>
     <style>
       html,
       body {
@@ -18,10 +18,10 @@
       }
       video {
         background: #f2f4f5;
-        height: auto;
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
+        display: block;
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
       }
     </style>
   </head>
@@ -42,8 +42,13 @@
           var attempt = video.play();
           if (attempt && typeof attempt.catch === "function") attempt.catch(function () {});
         };
+        var markFinished = function () {
+          document.documentElement.setAttribute("data-od-splash-finished", "1");
+        };
         video.addEventListener("loadedmetadata", function () { video.currentTime = 0; });
         video.addEventListener("loadeddata", play);
+        video.addEventListener("ended", markFinished);
+        video.addEventListener("error", markFinished);
         play();
       })();
     </script>
