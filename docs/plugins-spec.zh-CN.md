@@ -18,7 +18,7 @@
 2. **用户或 agent 选择一个工作流。** 选择入口可以是 marketplace、首页输入框、已有 project chat、CLI，或者 CI。
 3. **OD apply 插件，但插件不是 UI 进程。** Apply 返回 hydrated brief、类型化 context chips、assets 和 capability requirements；它不会启动隐藏的插件 runtime。
 4. **agent 驱动生成。** daemon 创建或更新 project，启动 run，通过 SSE / CLI ND-JSON streaming events 输出过程，并记录 artifacts。
-5. **UI 是协作表面。** Web/desktop UI 可以展示表单、预览、direction picker、critique panel 和 live artifacts，但同一个流程必须可以通过 `od` headless 完成。
+5. **UI 是协作表面。** Web/desktop UI 可以展示表单、预览、direction picker、critique panel 和 live artifacts，但同一个流程必须可以通过 `readable` headless 完成。
 
 ### Figma 时代与 agent 时代的边界
 
@@ -62,7 +62,7 @@ sequenceDiagram
 | Marketplace 详情页 | 用户在插件页点击「Use」 | `Make a 12-slide investor deck for a Series A SaaS startup targeting enterprise design teams.` | Deck skill、slide craft rules、示例 assets、必填 inputs、preview samples。 |
 | 首页 inline input | 用户输入 brief 后选择推荐插件 | `Create a landing page for a new AI browser extension, use a dark neon visual direction.` | Landing-page skill、推荐 design system、prompt rewrite、starter assets。 |
 | Project chat follow-up | 用户已经在生成好的 project 里 | `Turn this landing page into a launch announcement deck.` | 现有 project context、选中的 artifact refs、deck conversion skill、保留 brand tokens。 |
-| Headless CLI / code agent | Claude Code、Cursor、Codex、CI 或脚本调用 `od` | `od run create --plugin make-a-deck --input audience=investors --input topic='AI design ops'` | 不打开 desktop，也得到同一套 manifest resolution、context chips 和 run events。 |
+| Headless CLI / code agent | Claude Code、Cursor、Codex、CI 或脚本调用 `readable` | `readable run create --plugin make-a-deck --input audience=investors --input topic='AI design ops'` | 不打开 desktop，也得到同一套 manifest resolution、context chips 和 run events。 |
 | 自托管 marketplace | 团队运行私有目录 | `Create an internal QBR deck using the Acme design system and sales metrics CSV.` | 私有 plugin index、可信内部 design system、asset attachments、受限数据策略。 |
 
 关键产品变化是：**插件不是本地 UI addon，而是可复用的 agent workflow。** UI 组件可以和这些 workflow 协作，但消费与处理主体已经变成 agent run。
@@ -143,9 +143,9 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 
 不同目录的收录格式不同，但它们都索引 `SKILL.md` 形态的文件夹。只要保持 `SKILL.md` 作为 canonical，`open-design.json` 作为严格 sidecar，一个 repo 就可以不做目标目录专用改写而进入所有生态目录。
 
-同一愿景的第二条轴线：**CLI 是 Open Design 面向 agent 的 canonical API。** 代码 agent（Claude Code、Cursor、Codex、OpenClaw、Hermes、企业内部 orchestrator）通过 shell 调用 `od …` 驱动 OD，而不是直接请求 `/api/*`。CLI 用稳定的子命令 contract 包装所有 server 能力：project 创建、conversation/run 生命周期、plugin apply、project 文件系统操作、design library introspection、daemon control。HTTP server 是 desktop UI 与 CLI 自身的实现细节；agent 如果直接访问 HTTP，就绕过了 contract。
+同一愿景的第二条轴线：**CLI 是 Open Design 面向 agent 的 canonical API。** 代码 agent（Claude Code、Cursor、Codex、OpenClaw、Hermes、企业内部 orchestrator）通过 shell 调用 `readable …` 驱动 OD，而不是直接请求 `/api/*`。CLI 用稳定的子命令 contract 包装所有 server 能力：project 创建、conversation/run 生命周期、plugin apply、project 文件系统操作、design library introspection、daemon control。HTTP server 是 desktop UI 与 CLI 自身的实现细节；agent 如果直接访问 HTTP，就绕过了 contract。
 
-第三条轴线来自第二条：**OD 可以完全 headless 运行；UI 是效率层，而不是运行时依赖。** 用户只有 Claude Code（或 Cursor、Codex、Gemini CLI）和已安装的 `od`，也能浏览 marketplace、安装插件、创建 project、拉起任务、消费产物，全流程不需要启动 desktop app。OD desktop UI 的价值类似 Cursor IDE 相对于 `cursor-agent` CLI：更快发现、实时 artifact preview、chat/canvas 并排、marketplace 浏览、direction-picker GUI、critique-theater 面板。这些都是同一批 primitives 之上的体验增强。每个 UI 功能都必须先能表达为 CLI 子命令或 streaming event；UI 消费这些 primitives 并添加呈现层。这个解耦由架构规则强制（§11.7）。
+第三条轴线来自第二条：**OD 可以完全 headless 运行；UI 是效率层，而不是运行时依赖。** 用户只有 Claude Code（或 Cursor、Codex、Gemini CLI）和已安装的 `readable`，也能浏览 marketplace、安装插件、创建 project、拉起任务、消费产物，全流程不需要启动 desktop app。OD desktop UI 的价值类似 Cursor IDE 相对于 `cursor-agent` CLI：更快发现、实时 artifact preview、chat/canvas 并排、marketplace 浏览、direction-picker GUI、critique-theater 面板。这些都是同一批 primitives 之上的体验增强。每个 UI 功能都必须先能表达为 CLI 子命令或 streaming event；UI 消费这些 primitives 并添加呈现层。这个解耦由架构规则强制（§11.7）。
 
 第四条轴线保持产品 **local-first 且支持 headless**。Daemon、CLI 与 web runtime 共享同一套产品 contract，而 hosted/container deployment packaging 不属于本 workspace（§15）。
 
@@ -186,7 +186,7 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 
 结论：**`SKILL.md` 是最低共同分母**。任何推荐用于分发的插件都应该包含 `SKILL.md`，这样它可以进入所有主流目录；再添加 `open-design.json` 来获得 OD 的产品表面。
 
-仅包含 `open-design.json` 的文件夹在 v1 中不是可运行插件，而是 **metadata-only preset**：OD 可以读取它来展示市场卡片、聚合远端引用或作为未来 install stub，但它不能触发 agent run，也不能进入跨 agent catalog。`od plugin doctor` 必须把这种形态标记为 `metadata-only`，并提示作者补充 `SKILL.md` 或 `.claude-plugin/plugin.json` 才能发布为 runnable plugin。
+仅包含 `open-design.json` 的文件夹在 v1 中不是可运行插件，而是 **metadata-only preset**：OD 可以读取它来展示市场卡片、聚合远端引用或作为未来 install stub，但它不能触发 agent run，也不能进入跨 agent catalog。`readable plugin doctor` 必须把这种形态标记为 `metadata-only`，并提示作者补充 `SKILL.md` 或 `.claude-plugin/plugin.json` 才能发布为 runnable plugin。
 
 ## 4. 插件文件夹形态
 
@@ -402,7 +402,7 @@ export type ContextItem =
 | `od.inputs` | `od.inputs` | `string` → `string`，`integer` → `number`，`enum` → `select`，`values` → `options`；`min` / `max` 保留为 future metadata，v1 UI 可以忽略但不得丢失 |
 | `od.parameters` | adapter metadata | v1 plugin apply 不渲染 live sliders；字段保留给 Phase 4，不进入 `ApplyResult.inputs` |
 | `od.outputs` | `projectMetadata` hints | 用于 artifact bookkeeping 和 preview default，不作为用户可编辑 input |
-| `od.capabilities_required` | `od.capabilities` | 只映射能表达的能力；未知 capability 保留为 `compatWarnings[]`，`od plugin doctor` 必须提示 |
+| `od.capabilities_required` | `od.capabilities` | 只映射能表达的能力；未知 capability 保留为 `compatWarnings[]`，`readable plugin doctor` 必须提示 |
 
 如果 `open-design.json` 与 `SKILL.md` frontmatter 同时存在，`open-design.json` 优先，但 loader 必须保留 adapter 产生的 warnings。这样作者可以渐进迁移：先让旧 skill 原样可用，再逐步增加 OD marketplace 信息。
 
@@ -427,7 +427,7 @@ export type ContextItem =
 
 Marketplace 顶层 `version` 是 catalog snapshot 版本；每个 `plugins[]` entry 也声明被列入的插件版本。Installer 抓取后仍会校验目标文件夹自己的 `open-design.json`，但 registry search、审计日志和 marketplace refresh events 可以在安装前就理解 catalog 与插件版本。
 
-可以同时存在多个 marketplaces。用户通过 `od marketplace add <url>` 注册额外 index（Vercel 的、OpenClaw 的 clawhub、企业私有 catalog）。默认情况下，用户添加的 marketplace 只是 discovery source，它里面的插件仍然以 `restricted` 安装；只有官方内置 marketplace 或用户显式执行 `od marketplace add <url> --trust` / `od marketplace trust <id>` 后，来自该 marketplace 的插件才可以默认继承 `trusted`。
+可以同时存在多个 marketplaces。用户通过 `readable marketplace add <url>` 注册额外 index（Vercel 的、OpenClaw 的 clawhub、企业私有 catalog）。默认情况下，用户添加的 marketplace 只是 discovery source，它里面的插件仍然以 `restricted` 安装；只有官方内置 marketplace 或用户显式执行 `readable marketplace add <url> --trust` / `readable marketplace trust <id>` 后，来自该 marketplace 的插件才可以默认继承 `trusted`。
 
 ## 7. 发现与安装
 
@@ -437,23 +437,23 @@ Marketplace 顶层 `version` 是 catalog snapshot 版本；每个 `plugins[]` en
 | --- | --- | --- | --- |
 | 1 | `<projectCwd>/.open-design/plugins/<id>/` | plugin bundle | 新增，与用户代码一起提交；必须显式安装到 project |
 | 2 | `<projectCwd>/.claude/skills/<id>/` | legacy `SKILL.md` | 沿用 [`skills-protocol.md`](skills-protocol.md) 的 project-private skill 兼容路径 |
-| 3 | `<daemonDataDir>/plugins/<id>/` | plugin bundle | 新增，由 `od plugin install` 写入 daemon data root |
+| 3 | `<daemonDataDir>/plugins/<id>/` | plugin bundle | 新增，由 `readable plugin install` 写入 daemon data root |
 | 4 | `~/.open-design/skills/<id>/` | legacy `SKILL.md` | OD canonical skill install path；可 symlink 到其它 agent |
 | 5 | `~/.claude/skills/<id>/` | legacy `SKILL.md` | 外部 Claude Code / skills 工具写入的兼容路径，只读扫描 |
 | 6 | repo root `skills/`, `design-systems/`, `craft/` | bundled resources | 现有一方资源，不变 |
 
-冲突解决：按 normalized `name` / plugin id；数字越小优先级越高。legacy `SKILL.md` location 被 adapter 合成为 plugin record，但不会被复制到 `<daemonDataDir>/plugins/`，除非用户显式执行 `od plugin install`。这样现有 Claude skills 继续零配置可用，新 plugin bundle 也有清晰的安装根。
+冲突解决：按 normalized `name` / plugin id；数字越小优先级越高。legacy `SKILL.md` location 被 adapter 合成为 plugin record，但不会被复制到 `<daemonDataDir>/plugins/`，除非用户显式执行 `readable plugin install`。这样现有 Claude skills 继续零配置可用，新 plugin bundle 也有清晰的安装根。
 
 ### 7.2 安装源
 
 ```
-od plugin install ./folder
-od plugin install github:owner/repo
-od plugin install github:owner/repo@v1.2.0
-od plugin install github:owner/repo/path/to/subfolder
-od plugin install https://example.com/plugin.tar.gz
-od plugin install make-a-deck                   # via configured marketplaces
-od marketplace add https://.../open-design-marketplace.json
+readable plugin install ./folder
+readable plugin install github:owner/repo
+readable plugin install github:owner/repo@v1.2.0
+readable plugin install github:owner/repo/path/to/subfolder
+readable plugin install https://example.com/plugin.tar.gz
+readable plugin install make-a-deck                   # via configured marketplaces
+readable marketplace add https://.../open-design-marketplace.json
 ```
 
 GitHub install 使用 `https://codeload.github.com/owner/repo/tar.gz/<ref>`，不需要 git binary，同时包含 path-traversal guard 和可配置 size cap。
@@ -585,7 +585,7 @@ export interface InputFieldSpec {
 
 `appliedPlugin` 不是装饰字段；它是「插件 → run」之间的**契约**。仅传 `pluginId` 不够，因为：
 
-- 插件可能在两次 run 之间被 `od plugin update` 升级。
+- 插件可能在两次 run 之间被 `readable plugin update` 升级。
 - 同一 `pluginId` 在不同 marketplace 上可能解析到不同 git SHA。
 - `od.pipeline` / `od.context.*` 中的 ref 可能指向移动的 default branch。
 - `assets` staging 计划与 `capabilitiesGranted` 必须与生成 prompt 时的视图一致。
@@ -594,10 +594,10 @@ export interface InputFieldSpec {
 
 1. **Apply 时**：把 hydrated manifest 与 inputs 一起 hash 成 `manifestSourceDigest`，连同 `pluginSpecVersion`、`pluginVersion`、`pinnedRef`、`sourceMarketplaceId`、`resolvedContext`、`capabilitiesGranted`、`assetsStaged`、`mcpServers`（apply 时启用的 MCP server set）写入 `appliedPlugin`，返回给 caller。
 2. **Project create / run start 时**：把客户端提交的 `appliedPlugin`（或 daemon 在 server-side 重新解析得到的 snapshot）写入 SQLite `applied_plugin_snapshots` 表（§11.4），并在 `runs` / `conversations` 表中以 FK 指向。
-3. **Replay**：`od run replay <runId>` 与 `od plugin export <runId>` 必须从 snapshot 而非 live manifest 还原 prompt 与 assets，使老 run 在插件升级后仍可复现。
+3. **Replay**：`readable run replay <runId>` 与 `readable plugin export <runId>` 必须从 snapshot 而非 live manifest 还原 prompt 与 assets，使老 run 在插件升级后仍可复现。
 4. **Audit**：UI 的 ProjectView 顶端展示 snapshot id + version + digest；artifact provenance（§11.5 ArtifactManifest）通过 snapshot id 反查 plugin source。
 
-`AppliedPluginSnapshot` 只在 daemon side 写入；CLI / UI 客户端只读。Plugin 升级或 marketplace ref 漂移触发 `od plugin doctor` 把受影响的历史 snapshot 标为 `stale`，但**永不重写**：reproducibility 优先于 freshness。
+`AppliedPluginSnapshot` 只在 daemon side 写入；CLI / UI 客户端只读。Plugin 升级或 marketplace ref 漂移触发 `readable plugin doctor` 把受影响的历史 snapshot 标为 `stale`，但**永不重写**：reproducibility 优先于 freshness。
 
 ### 8.3 Inline `od.inputs` form
 
@@ -622,7 +622,7 @@ ChatComposer（每个 project 的 conversation 输入组件，[`apps/web/src/com
 1. **Apply 阶段不渲染任何 surface。** apply 仍然纯粹解析；UI 表面、CLI 表面在此时只是把 `genuiSurfaces` 转成「这个长程任务可能会问你这些问题」的告示卡。一旦 plugin 在 manifest 里声明了 `oauth-prompt`，详情页 capability checklist 上会增加一行「This plugin will ask you to authorize <provider>」，让用户在发送前知道 run 中可能弹出的 surface 类型。
 2. **Run 中 agent 通过 atom 触发 surface。** 每条 surface 的 `trigger.atom`（与可选 `trigger.stageId`）是一组 allowlist：daemon 拒绝任何来自未声明 atom 的 `genui_surface_request` 事件——这是「未声明的 UI 不会被动态产生」的强制点（doctor + runtime 双重检查）。
 3. **同 project 已存在的答复直接复用。** 当 surface 的 `persist` 是 `project` 或 `conversation`，daemon 在触发前先查 `genui_surfaces` 表（§11.4）；若已有 valid 状态（未过期、未失效），直接以 stored value 通过，不向用户广播请求。这正是「插件创建项目后多轮交互、多个会话也会用到」的具体落地。
-4. **不响应 surface ≠ 阻塞 run。** 每个 surface 必须声明 `timeout`（默认 5 分钟）与 `onTimeout`（`abort` / `default` / `skip`）；CLI 在 ND-JSON 流中以 `genui_surface_request` event 暴露同一份 surface 描述，使 headless 自动化可以 `od ui respond --surface-id …` 在另一个进程中作答，或在不需要时优雅 skip（详见 §10.3）。
+4. **不响应 surface ≠ 阻塞 run。** 每个 surface 必须声明 `timeout`（默认 5 分钟）与 `onTimeout`（`abort` / `default` / `skip`）；CLI 在 ND-JSON 流中以 `genui_surface_request` event 暴露同一份 surface 描述，使 headless 自动化可以 `readable ui respond --surface-id …` 在另一个进程中作答，或在不需要时优雅 skip（详见 §10.3）。
 
 `ApplyResult.genuiSurfaces` 与 `appliedPlugin.snapshotId` 一起构成 plugin 与 project 之间的 GenUI 契约：snapshot 不可变；surface answer 落进 `genui_surfaces` 后归 project 拥有，被同 project 后续 plugin（甚至换插件、换 conversation）按 `surface.id` 查找复用，前提是当前 plugin 也声明了相同 surface id 与兼容的 `schema`。
 
@@ -638,7 +638,7 @@ flowchart LR
   P1 & P2 & P3 & P4 --> R[run agent]
 ```
 
-`restricted` 插件永远不能进入 P3/P4，除非用户授权该能力——通过 `od plugin trust <id>` 或详情页上的「Grant capabilities」。默认 trusted 的来源只有两类：repo bundled first-party 插件，以及 OD 官方 marketplace。用户添加的第三方 marketplace 只提供 discovery；其中插件默认仍是 `restricted`，除非该 marketplace 本身被显式 trust，或某个插件按 id + version + capability 单独授权。
+`restricted` 插件永远不能进入 P3/P4，除非用户授权该能力——通过 `readable plugin trust <id>` 或详情页上的「Grant capabilities」。默认 trusted 的来源只有两类：repo bundled first-party 插件，以及 OD 官方 marketplace。用户添加的第三方 marketplace 只提供 discovery；其中插件默认仍是 `restricted`，除非该 marketplace 本身被显式 trust，或某个插件按 id + version + capability 单独授权。
 
 信任记录必须绑定 provenance，而不是只绑定名称：
 
@@ -658,8 +658,8 @@ UI 上的 capability gate 是 modal + checklist；headless 与第三方 code age
 1. **预先 trust**（推荐用于非交互式客户端）。
 
    ```bash
-   od plugin trust make-a-deck --caps fs:read,mcp,subprocess
-   od plugin trust make-a-deck --caps all          # 等价于 manifest 中声明的全部 capability
+   readable plugin trust make-a-deck --caps fs:read,mcp,subprocess
+   readable plugin trust make-a-deck --caps all          # 等价于 manifest 中声明的全部 capability
    ```
 
    写入 SQLite `installed_plugins.capabilities_granted`，对所有后续 apply / run 生效，直到 plugin 升级或 source marketplace 变化（见 §9 provenance 规则）触发重新确认。
@@ -667,8 +667,8 @@ UI 上的 capability gate 是 modal + checklist；headless 与第三方 code age
 2. **Per-call 临时 grant**。
 
    ```bash
-   od plugin apply make-a-deck   --project p_abc --grant-caps fs:read,mcp --json
-   od plugin run   make-a-deck   --project p_abc --grant-caps fs:read --follow
+   readable plugin apply make-a-deck   --project p_abc --grant-caps fs:read,mcp --json
+   readable plugin run   make-a-deck   --project p_abc --grant-caps fs:read --follow
    ```
 
    仅作用于当前 apply 调用产生的 `AppliedPluginSnapshot`，写入 `snapshot.capabilitiesGranted`，**不**回写到 `installed_plugins`。
@@ -686,7 +686,7 @@ UI 上的 capability gate 是 modal + checklist；headless 与第三方 code age
          "required": ["mcp", "subprocess"],
          "granted": ["prompt:inject", "fs:read"],
          "remediation": [
-           "od plugin trust make-a-deck --caps mcp,subprocess",
+           "readable plugin trust make-a-deck --caps mcp,subprocess",
            "or pass --grant-caps mcp,subprocess to this command"
          ]
        }
@@ -702,7 +702,7 @@ UI 上的 capability gate 是 modal + checklist；headless 与第三方 code age
 
 插件 preview 可能来自未信任 GitHub / archive，因此不能与 OD app 共用同一执行权限。`od.preview.entry` 的 HTML 预览必须满足以下约束：
 
-- preview iframe 使用 `sandbox="allow-scripts"` 起步；默认不允许 `allow-same-origin`、`allow-forms`、`allow-popups`、`allow-downloads`。如果某个 first-party preview 需要额外 flag，必须在 manifest 中声明并通过 `od plugin doctor` 标记为 elevated preview。
+- preview iframe 使用 `sandbox="allow-scripts"` 起步；默认不允许 `allow-same-origin`、`allow-forms`、`allow-popups`、`allow-downloads`。如果某个 first-party preview 需要额外 flag，必须在 manifest 中声明并通过 `readable plugin doctor` 标记为 elevated preview。
 - preview 通过 daemon 的只读 preview endpoint 服务，不能读取 `/api/*`、不能携带 `Authorization` header、不能访问 provider credentials、不能访问 project 文件系统。
 - preview 响应带独立 CSP：`default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'`。如需远程字体、图片或 analytics，v1 一律拒绝。
 - preview asset 路径必须经过 normalized relative path 检查：拒绝 absolute path、`..` traversal、symlink escape、hidden credential files、超过 size cap 的资源。
@@ -718,7 +718,7 @@ UI 上的 capability gate 是 modal + checklist；headless 与第三方 code age
 | `direction-picker` | 同上 | final 前的 3–5 个方向选择 | new-generation, tune-collab |
 | `todo-write` | 同上 | TodoWrite 驱动的计划 | all |
 | `file-read` / `file-write` / `file-edit` | code-agent native | 文件操作 | all |
-| `research-search` | `od research search`（[`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)） | Tavily web research | new-generation |
+| `research-search` | `readable research search`（[`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)） | Tavily web research | new-generation |
 | `critique-theater` | `system.ts` critique addendum | 5 维 panel critique；devloop 收敛信号 | all |
 | `code-import` *(planned)* | tbd: repo handle ingestion | clone / read 已有 repo，抽取设计相关结构 | code-migration |
 | `design-extract` *(planned)* | tbd | 从源代码 / Figma / 截图抽取 design tokens | code-migration, figma-migration |
@@ -750,7 +750,7 @@ export interface PipelineStage {
 
 - `stages[*].id` 在一个 pipeline 内唯一；同名 atom 可以出现在多个 stages（典型例子：critique 在 generate 之后，又在最终 handoff 之前再跑一次）。
 - 默认顺序就是数组顺序；v1 不支持 DAG 分叉（branching）——若插件需要分支，作者应拆分成多 plugin 串联。
-- `until` 是 daemon 解析的轻量 expression（仅支持比较运算与已知信号变量：`critique.score`、`iterations`、`user.confirmed`、`preview.ok`），不是任意 JS。`od plugin doctor` 会校验语法。
+- `until` 是 daemon 解析的轻量 expression（仅支持比较运算与已知信号变量：`critique.score`、`iterations`、`user.confirmed`、`preview.ok`），不是任意 JS。`readable plugin doctor` 会校验语法。
 - 当 `od.pipeline` 缺省时，daemon 按 `od.taskKind` 选择 reference pipeline（§1「四类产品场景」中各场景列出的典型序列）。
 
 Pipeline 是声明式的；agent 不直接读 pipeline JSON。daemon 把每个 stage 编译成 system prompt 中一个有锚点 ID 的 block，并在 stage 进入/退出时发出 `pipeline_stage_started` / `pipeline_stage_completed` SSE/ND-JSON event（与 `PersistedAgentEvent` discriminated union 对齐），UI 与 CLI 可以渲染进度条 / stage timeline / devloop iteration 计数。
@@ -762,11 +762,11 @@ Stage 的 `repeat: true` 标志将单步执行升级为**循环**：
 1. agent 完成 stage 一次。
 2. daemon 评估 stage 的 `until` 条件——读取最近一轮 critique-theater 输出、artifact preview 状态、用户回复，或一个内置 `iterations >= N` 计数器。
 3. 条件未满足 → 回到 stage 起点，把上一轮 artifact 作为 input 再跑一次；条件满足 → 进入下一 stage。
-4. 用户通过 `od run respond <runId> --json '{"action":"break-loop"}'` 或 UI 中的「Stop refining」按钮可以随时打断。
+4. 用户通过 `readable run respond <runId> --json '{"action":"break-loop"}'` 或 UI 中的「Stop refining」按钮可以随时打断。
 
 Devloop 的两条硬约束：
 
-- **必须有 `until`**：`repeat: true` 但缺 `until` 的 pipeline 在 `od plugin doctor` 中报错；daemon 拒绝执行。
+- **必须有 `until`**：`repeat: true` 但缺 `until` 的 pipeline 在 `readable plugin doctor` 中报错；daemon 拒绝执行。
 - **iterations 上限**：daemon 强制 `iterations <= 10`（可通过 `OD_MAX_DEVLOOP_ITERATIONS` 调整），防止 plugin bug 导致无限循环烧 provider quota。
 
 每一轮 devloop 都把当轮 artifact diff、critique 输出、消耗 tokens 写入 `runs.devloop_iterations`（§11.4 SQLite 扩展），用于审计与按 iteration 计费的未来商业模型。
@@ -775,7 +775,7 @@ Devloop 的两条硬约束：
 
 ### 10.3 Generative UI：AG-UI–inspired surfaces
 
-OD 接受 [CopilotKit / AG-UI 协议](https://github.com/CopilotKit/CopilotKit) 中有价值的部分：agent 可以在 run 中请求交互 UI。OD **不**允许 agent 在主产品表面自由发明 app UI 或视觉样式。v1 提供自己的 `GenUISurface*` discriminated union，跟现有 `PersistedAgentEvent`、SSE / ND-JSON 流共用通道；`@open-design/agui-adapter` 会把这些事件投影成 AG-UI canonical events 供外部 client 使用。
+OD 接受 [CopilotKit / AG-UI 协议](https://github.com/CopilotKit/CopilotKit) 中有价值的部分：agent 可以在 run 中请求交互 UI。OD **不**允许 agent 在主产品表面自由发明 app UI 或视觉样式。v1 提供自己的 `GenUISurface*` discriminated union，跟现有 `PersistedAgentEvent`、SSE / ND-JSON 流共用通道；`@readable-studio/agui-adapter` 会把这些事件投影成 AG-UI canonical events 供外部 client 使用。
 
 产品规则是：**agent / plugin 输出的是数据，OD 掌握 renderer。** 插件可以声明 `form`、`choice`、`confirmation`、`oauth-prompt` surface，带 schema 与 prompt data；web / desktop / CLI renderer 决定 layout、typography、controls、validation、accessibility 和 persistence UX。这让插件 UI 能覆盖未来场景，同时保持产品系统一致。任意视觉或代码输出属于生成的 artifact，或者必须走独立 custom-component sandbox 与 `genui:custom-component` capability gate；它不能替换核心协作 UI 的内置 renderer。
 
@@ -818,7 +818,7 @@ export interface GenUISurfaceSpec {
 | `mcp` | 复用 `POST /api/mcp/oauth/start` flow，token 落到 `<dataDir>/mcp-tokens.json` | 沿用 Settings → MCP servers 的 OAuth 视觉 | `genui_surfaces.value_json = { mcpServerId }`；token 不进 SQLite |
 | `plugin`（Phase 4） | plugin 提供任意 third-party OAuth metadata；daemon 走通用 PKCE adapter | TBD | TBD |
 
-`od plugin doctor` 在 install / apply 阶段强制：`oauth.route === 'mcp'` 时，`oauth.mcpServerId` 必须匹配 plugin 自带的某个 MCP server name。
+`readable plugin doctor` 在 install / apply 阶段强制：`oauth.route === 'mcp'` 时，`oauth.mcpServerId` 必须匹配 plugin 自带的某个 MCP server name。
 
 #### 10.3.2 运行时事件（与 SSE / ND-JSON `PersistedAgentEvent` 联合）
 
@@ -867,31 +867,31 @@ CREATE INDEX idx_genui_conv_surface ON genui_surfaces(conversation_id, surface_i
 2. `persist='conversation'`：用 `(conversation_id, surface_id)` 同样查；命中即复用。换会话则失效。
 3. `persist='run'`：仅本 run 内有效。
 4. **schema 漂移降级为 `invalidated`：** plugin 升级且 manifest 上 surface 的 schema 变了，旧 row 自动失效；新 surface 重新向用户问。
-5. **用户主动撤销：** UI / CLI 提供 `od ui revoke <surface-id>`，把 row 翻到 `invalidated`。常用于 OAuth token 退出。
+5. **用户主动撤销：** UI / CLI 提供 `readable ui revoke <surface-id>`，把 row 翻到 `invalidated`。常用于 OAuth token 退出。
 
 这条规则正面对接用户提出的需求："**同一个 project 用户授过权、做过确认，下一次（多轮 / 多会话）不要再问。**"
 
 #### 10.3.4 Headless / CLI 行为
 
-`od run watch` / `od run start --follow` 的 ND-JSON 流中包含 `genui_surface_request` event。第三方 code agent 有三种应对方式：
+`readable run watch` / `readable run start --follow` 的 ND-JSON 流中包含 `genui_surface_request` event。第三方 code agent 有三种应对方式：
 
 ```bash
 # Inspect pending surfaces on a run
-od ui list --run <runId> --json
+readable ui list --run <runId> --json
 
 # Read a single surface (kind / schema / prompt) for rendering or auto-fill
-od ui show <runId> <surface-id> --json
+readable ui show <runId> <surface-id> --json
 
 # Respond from any process; daemon writes to genui_surfaces, run continues
-od ui respond <runId> <surface-id> --value-json '{"audience":"VC"}'
-od ui respond <runId> <surface-id> --skip          # 触发 onTimeout='skip'
-od ui revoke  <projectId> <surface-id>             # 跨 conversation 撤销
+readable ui respond <runId> <surface-id> --value-json '{"audience":"VC"}'
+readable ui respond <runId> <surface-id> --skip          # 触发 onTimeout='skip'
+readable ui revoke  <projectId> <surface-id>             # 跨 conversation 撤销
 ```
 
 如果 CLI 调用方完全不响应，run 在 `surface.timeout` 后按 `onTimeout` 收敛，不会无限期挂起。Code agent 也可以为整个 plugin **预先回答**：
 
 ```bash
-od ui prefill <projectId> --plugin <pluginId> --json '{"figma-oauth":"<token>","direction-pick":"editorial"}'
+readable ui prefill <projectId> --plugin <pluginId> --json '{"figma-oauth":"<token>","direction-pick":"editorial"}'
 ```
 
 prefill 只把 row 写成 `resolved`，等待 plugin 触发时按 cache 读出（事件流上仍会发 `genui_surface_response { respondedBy: 'cache' }`，便于 audit）。
@@ -903,7 +903,7 @@ prefill 只把 row 写成 `resolved`，等待 plugin 触发时按 cache 读出�
 | Wire format | OD 自有 SSE / ND-JSON `PersistedAgentEvent` | 同时输出 AG-UI canonical events（包括 `agent.message`、`tool_call`、`state_update`、`ui.surface_requested`、`ui.surface_responded`） |
 | Surface kinds | 4 类内置 + plugin 在 manifest 中声明 | OD 内置 surface 仍是产品 source of truth；plugin React 组件路径必须经过 `genui:custom-component` gate 与 sandbox |
 | Shared state | `genui_surfaces` 表 + `genui_state_synced` 事件 | 把 OD 持久化状态映射到 AG-UI 的 `state` channel，供外部消费者使用 |
-| Frontend SDK 兼容 | OD desktop / web 自带 renderer | `@open-design/agui-adapter` 让 CopilotKit / 其他 AG-UI client 直接消费 OD run |
+| Frontend SDK 兼容 | OD desktop / web 自带 renderer | `@readable-studio/agui-adapter` 让 CopilotKit / 其他 AG-UI client 直接消费 OD run |
 
 Adapter 是互操作表面，不是内部 UI 的 source of truth。除非另有外部 embed / demo / client 明确需要，否则 OD 不应把 CopilotKit 加成主产品依赖。v1 plugin **不需要改**就可以在 AG-UI ecosystem 内被消费，因为 adapter 是 OD 自有事件的一层投影。
 
@@ -918,7 +918,7 @@ Adapter 是互操作表面，不是内部 UI 的 source of truth。除非另有�
 - `adapters/claude-plugin.ts`：读取 `.claude-plugin/plugin.json` → 合成 `PluginManifest`。
 - `merge.ts`：合并 sidecar + adapters，`open-design.json` 优先；foreign content 落到 `compat.*`。
 - `resolve.ts`：针对 registry 解析 `od.context.*` refs → `ResolvedContext`。
-- `validate.ts`：JSON Schema（同时驱动 runtime checks 和 `od plugin doctor`）。
+- `validate.ts`：JSON Schema（同时驱动 runtime checks 和 `readable plugin doctor`）。
 
 ### 11.2 新 contracts：`packages/contracts/src/plugins/`
 
@@ -932,7 +932,7 @@ Adapter 是互操作表面，不是内部 UI 的 source of truth。除非另有�
 | 新 `apps/daemon/src/plugins/registry.ts` | 三层扫描、冲突解决、hot-reload watcher。 |
 | 新 `apps/daemon/src/plugins/installer.ts` | github / https / local / marketplace install paths；tar/zip 解压；SQLite 写入。 |
 | 新 `apps/daemon/src/plugins/apply.ts` | 实现 `ApplyResult` 组装：解析 refs、返回 asset refs / MCP specs / capability requirements / `appliedPlugin` snapshot；不执行写入。实际 staging 与 `.mcp.json` 写入由 project create / run start 在 capability gate 之后执行。 |
-| 新 `apps/daemon/src/plugins/snapshots.ts` | §8.2.1 不可变 snapshot 写入与读取；`status='stale'` 标记由 `od plugin doctor` 触发；提供 replay helper 给 `POST /api/runs/:runId/replay`。 |
+| 新 `apps/daemon/src/plugins/snapshots.ts` | §8.2.1 不可变 snapshot 写入与读取；`status='stale'` 标记由 `readable plugin doctor` 触发；提供 replay helper 给 `POST /api/runs/:runId/replay`。 |
 | 新 `apps/daemon/src/plugins/pipeline.ts` | 解析 `od.pipeline`（含 `until` expression 求值器）、调度 stages、控制 §10.2 devloop（含 `OD_MAX_DEVLOOP_ITERATIONS` 上限与 break 信号）。 |
 | 新 `apps/daemon/src/genui/{registry,events,store}.ts` | §10.3 GenUI surface 注册（来自 `od.genui.surfaces[]`）、`genui_surface_*` event 发布、cross-conversation persisted state 读写、AG-UI–inspired event union 序列化。 |
 | [`apps/daemon/src/prompts/system.ts`](../apps/daemon/src/prompts/system.ts) `composeSystemPrompt()` | 组装 OD 基础 designer/discovery prompt、可选 design system/craft/skill blocks、snapshot 派生的 `renderPluginBlock(snapshot)`，以及来自 `renderActiveStageBlock(stageId, bodies)` 的 active-stage atom blocks。现有层级顺序保持有意设计；plugin-block renderer 已在 contracts 中，但 plugin-driven fallback mode 仍按 §11.8 拒绝。 |
@@ -1045,7 +1045,7 @@ CREATE INDEX idx_genui_conv_surface ON genui_surfaces(conversation_id, surface_i
 CREATE INDEX idx_genui_run          ON genui_surfaces(run_id);
 ```
 
-Migration 仅新增；未触碰现有 `projects` / `runs` / `conversations` 列语义。daemon 在 install / apply / run start / stage 完成时按上面 schema 写入。`od plugin doctor` 在插件升级后比较 `manifest_source_digest` 把过期 snapshot 的 `status` 翻到 `stale`，但**永不删除或重写** snapshot 行——历史 run 的可复现性优先于存储成本。
+Migration 仅新增；未触碰现有 `projects` / `runs` / `conversations` 列语义。daemon 在 install / apply / run start / stage 完成时按上面 schema 写入。`readable plugin doctor` 在插件升级后比较 `manifest_source_digest` 把过期 snapshot 的 `status` 翻到 `stale`，但**永不删除或重写** snapshot 行——历史 run 的可复现性优先于存储成本。
 
 ### 11.5 新 HTTP endpoints
 
@@ -1069,7 +1069,7 @@ Migration 仅新增；未触碰现有 `projects` / `runs` / `conversations` 列�
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/applied-plugins/:snapshotId` | 读取一份不可变 snapshot；用于 audit、replay、`od plugin export` |
+| GET | `/api/applied-plugins/:snapshotId` | 读取一份不可变 snapshot；用于 audit、replay、`readable plugin export` |
 | POST | `/api/runs/:runId/replay` | 基于 run 的 snapshot id 重跑长程任务 |
 | GET | `/api/runs/:runId/devloop-iterations` | 读取 §10.2 devloop iteration 历史 |
 | GET | `/api/runs/:runId/genui` | 列出本 run 当前 pending / resolved 的 §10.3 surfaces |
@@ -1078,7 +1078,7 @@ Migration 仅新增；未触碰现有 `projects` / `runs` / `conversations` 列�
 | POST | `/api/projects/:projectId/genui/:surfaceId/revoke` | 把 surface row 翻成 `invalidated`（OAuth logout 等场景）|
 | POST | `/api/projects/:projectId/genui/prefill` | 一次性预填多个 surfaces；body `{ pluginId, values }` |
 
-> **Transport equivalence（经验规则）。** 上面每个 endpoint 都同时暴露为 CLI subcommand，并在适合 MCP 语义的地方暴露为 MCP tool。代码 agent 应该使用 CLI；只有 desktop web app 和 `od …` 自己直接使用 HTTP。完整 CLI 表面见 §12。
+> **Transport equivalence（经验规则）。** 上面每个 endpoint 都同时暴露为 CLI subcommand，并在适合 MCP 语义的地方暴露为 MCP tool。代码 agent 应该使用 CLI；只有 desktop web app 和 `readable …` 自己直接使用 HTTP。完整 CLI 表面见 §12。
 
 #### 11.5.1 ArtifactManifest 扩展：plugin provenance
 
@@ -1131,7 +1131,7 @@ export interface ArtifactManifest {
 
 - run 完成时，daemon 把当前 `appliedPluginSnapshotId` + 冗余字段写入新生成的每个 artifact manifest。
 - 当 plugin 声明 output hints 时，daemon 写入 `artifactKind`、`renderKind` 与 `handoffKind`；否则根据 `od.mode`、`od.preview.type` 和实际产出文件推断最保守的值。未知 reader 即使暂时不用这些字段，也必须原样 preserve。
-- 每次 `od plugin export` / `od files upload --to <target>` / `od deploy ...` 追加一行 `exportTargets` / `deployTargets`，**不**修改 `sourcePluginSnapshotId`。
+- 每次 `readable plugin export` / `readable files upload --to <target>` / `readable deploy ...` 追加一行 `exportTargets` / `deployTargets`，**不**修改 `sourcePluginSnapshotId`。
 - 二次调优时（`tune-collab`）创建的 artifact 同时记录 `sourcePluginSnapshotId`（本轮 plugin）与 `parentArtifactId`（被调优的上一版），形成可回溯链。
 
 这条契约让「同一个 artifact 在不同协作面之间流转」成为 first-class 操作：cli 上看到 artifact 一定能查到原 plugin、原 inputs、原 design system；云端协作者一定能复现本地生成；后续代码迁移 / Figma 迁移产出的 artifact 之间通过 `parentArtifactId` 串成链。
@@ -1169,9 +1169,9 @@ OD 运行在三种 operating modes，它们共享**同一个** daemon、**同一
 
 | Mode | 运行内容 | 适用场景 | 入口 |
 | --- | --- | --- | --- |
-| **Headless** | 仅 daemon process；无 web bundle、无 electron | CI、server、container、Claude-Code-driven flows | `od daemon start --headless`（Phase 2 新 flag） |
-| **Web** | Daemon + local web UI（无 electron） | 纯浏览器部署、Linux 无 GUI dependencies | `od daemon start --serve-web`（Phase 2 新 flag） |
-| **Desktop** | Daemon + web bundle + electron shell | 完整产品体验（当前默认） | `od`（当前默认，不变） |
+| **Headless** | 仅 daemon process；无 web bundle、无 electron | CI、server、container、Claude-Code-driven flows | `readable daemon start --headless`（Phase 2 新 flag） |
+| **Web** | Daemon + local web UI（无 electron） | 纯浏览器部署、Linux 无 GUI dependencies | `readable daemon start --serve-web`（Phase 2 新 flag） |
+| **Desktop** | Daemon + web bundle + electron shell | 完整产品体验（当前默认） | `readable`（当前默认，不变） |
 
 此拆分由一条规则强制：
 
@@ -1179,21 +1179,21 @@ OD 运行在三种 operating modes，它们共享**同一个** daemon、**同一
 
 实践含义：
 
-- **Marketplace browsing**：UI 是 grid + filters + previews。CLI 是 `od plugin list/info`、`od marketplace search`、`od plugin info <id> --json`，返回 UI 渲染的同一份 manifest。
-- **Plugin apply**：UI 是点击卡片、chips 与 inputs 原地 hydrate。CLI 是 `od plugin apply <id> --json`，返回完全相同的 `ApplyResult`。
-- **Run streaming**：UI 是 chat bubbles、todo list、progress chrome。CLI 是 `od run start --follow`，从 UI 消费的同一 `PersistedAgentEvent` discriminated union 发出 ND-JSON events。
-- **Direction picker / question form**：UI 渲染为 inline cards。CLI 发出结构化事件到 stdout；agent 或 scripted wrapper 通过 stdin 或 `od run respond <runId> --json '{...}'` 选择选项。
-- **Live artifact preview**：UI 是 hot-reloading iframe。CLI 是 `od files watch <projectId> --path <relpath>`，stream change events；用户用自己的工具打开文件。
+- **Marketplace browsing**：UI 是 grid + filters + previews。CLI 是 `readable plugin list/info`、`readable marketplace search`、`readable plugin info <id> --json`，返回 UI 渲染的同一份 manifest。
+- **Plugin apply**：UI 是点击卡片、chips 与 inputs 原地 hydrate。CLI 是 `readable plugin apply <id> --json`，返回完全相同的 `ApplyResult`。
+- **Run streaming**：UI 是 chat bubbles、todo list、progress chrome。CLI 是 `readable run start --follow`，从 UI 消费的同一 `PersistedAgentEvent` discriminated union 发出 ND-JSON events。
+- **Direction picker / question form**：UI 渲染为 inline cards。CLI 发出结构化事件到 stdout；agent 或 scripted wrapper 通过 stdin 或 `readable run respond <runId> --json '{...}'` 选择选项。
+- **Live artifact preview**：UI 是 hot-reloading iframe。CLI 是 `readable files watch <projectId> --path <relpath>`，stream change events；用户用自己的工具打开文件。
 - **Critique theater**：UI 是 5-panel side-by-side。CLI 发出结构化 `critique` event，由 agent 或 wrapper 自行渲染。
 
 解锁的能力：
 
-- 用户只有 **Claude Code**（或任意 code agent）加 `npm i -g @open-design/cli`，再启动一个 headless daemon，就能完成 install plugin → create project → run → consume artifacts 全流程。不需要 OD desktop。
+- 用户只有 **Claude Code**（或任意 code agent）加 `npm i -g @readable-studio/cli`，再启动一个 headless daemon，就能完成 install plugin → create project → run → consume artifacts 全流程。不需要 OD desktop。
 - OD desktop UI 安装相同 daemon 与相同 CLI；它只是加了一个窗口。用户之后安装 desktop 时，会看到 headless 流程创建的同一批 projects、plugins、history。不存在「headless project format」与「desktop project format」之分。都是同一个 `.od/projects/<id>/`、同一个 SQLite db。
-- 非交互式自动化是一等客户端：它可以 `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`。无 display、无 electron、无 UI scripting。
-- 外部产品可以通过启动 headless daemon 并 shell out 嵌入 OD：`od` 是 public surface，internals 可以自由演进。
+- 非交互式自动化是一等客户端：它可以 `npm i -g @readable-studio/cli && readable daemon start --headless && readable plugin install … && readable run start --project … --follow`。无 display、无 electron、无 UI scripting。
+- 外部产品可以通过启动 headless daemon 并 shell out 嵌入 OD：`readable` 是 public surface，internals 可以自由演进。
 
-代价：少量 `od daemon` flags，以及一个新的 lifecycle subcommand（`od daemon start/stop/status`，带 `--headless` / `--serve-web`）。实现与 Phase 2 的 CLI parity slice 一起落地。
+代价：少量 `readable daemon` flags，以及一个新的 lifecycle subcommand（`readable daemon start/stop/status`，带 `--headless` / `--serve-web`）。实现与 Phase 2 的 CLI parity slice 一起落地。
 
 ### 11.8 Prompt composition：v1 plugin runs 走 daemon，避免分叉
 
@@ -1214,17 +1214,17 @@ OD 当前有**两份** `composeSystemPrompt()` 实现：
 
 ## 12. CLI 表面
 
-CLI（`od …`）是 **Open Design 面向 agent 的 canonical API**。Plugin verbs 只是其中一部分；CLI 的其它部分包装 daemon core capabilities：projects、conversations、runs、file operations、design library introspection、daemon control，因此任何 code agent 都能通过 shell calls 端到端驱动 OD。这是「通过 CLI 用自然语言创建 project + task」的路径：code agent 读取用户请求，然后发出一串 `od …` 调用，而不是直接说 HTTP。
+CLI（`readable …`）是 **Open Design 面向 agent 的 canonical API**。Plugin verbs 只是其中一部分；CLI 的其它部分包装 daemon core capabilities：projects、conversations、runs、file operations、design library introspection、daemon control，因此任何 code agent 都能通过 shell calls 端到端驱动 OD。这是「通过 CLI 用自然语言创建 project + task」的路径：code agent 读取用户请求，然后发出一串 `readable …` 调用，而不是直接说 HTTP。
 
 ### 12.1 一个逻辑 API 的三种 transports
 
 | Transport | Use case | Implementation |
 | --- | --- | --- |
 | HTTP (`/api/*`) | Desktop web app、internal tooling、CLI 自身使用 | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts) |
-| **CLI (`od …`)** | **Code agents shelling out、scripts、CI** | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) |
-| MCP stdio | MCP-aware agents（Claude Code、Cursor 等） | `od mcp` |
+| **CLI (`readable …`)** | **Code agents shelling out、scripts、CI** | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) |
+| MCP stdio | MCP-aware agents（Claude Code、Cursor 等） | `readable mcp` |
 
-当新能力发布时，CLI subcommand 是 primary contract。HTTP route 用于支撑 CLI；MCP server 把一组精选 CLI subcommands 暴露为 tools。版本策略：subcommand names、argument names、`--json` schemas 由 `packages/contracts` 管理并由 package-scoped tests 覆盖；breaking changes 跟随 `od` bin 的 major-version bump。
+当新能力发布时，CLI subcommand 是 primary contract。HTTP route 用于支撑 CLI；MCP server 把一组精选 CLI subcommands 暴露为 tools。版本策略：subcommand names、argument names、`--json` schemas 由 `packages/contracts` 管理并由 package-scoped tests 覆盖；breaking changes 跟随 `readable` bin 的 major-version bump。
 
 ### 12.2 Command groups
 
@@ -1233,17 +1233,17 @@ CLI（`od …`）是 **Open Design 面向 agent 的 canonical API**。Plugin ver
 #### Project lifecycle（新增）
 
 ```
-od project create [--name "<title>"] [--skill <id>] [--design-system <id>]
+readable project create [--name "<title>"] [--skill <id>] [--design-system <id>]
                   [--plugin <id>] [--input k=v ...] [--brief "<text>"]
                   [--metadata-json <path|->] [--json]
-od project list   [--json]
-od project info   <id> [--json]
-od project delete <id>
-od project import <path> [--name "<title>"] [--json]   # wraps existing /api/import/folder
-od project open   <id>                                 # opens browser at /projects/<id>
+readable project list   [--json]
+readable project info   <id> [--json]
+readable project delete <id>
+readable project import <path> [--name "<title>"] [--json]   # wraps existing /api/import/folder
+readable project open   <id>                                 # opens browser at /projects/<id>
 ```
 
-`od project create --json` 的结果：
+`readable project create --json` 的结果：
 
 ```json
 { "projectId": "p_abc", "conversationId": "c_xyz", "url": "http://127.0.0.1:17456/projects/p_abc" }
@@ -1252,23 +1252,23 @@ od project open   <id>                                 # opens browser at /proje
 #### Conversation lifecycle（新增）
 
 ```
-od conversation list <projectId> [--json]
-od conversation new  <projectId> [--name "<title>"] [--json]
-od conversation info <conversationId> [--json]
+readable conversation list <projectId> [--json]
+readable conversation new  <projectId> [--name "<title>"] [--json]
+readable conversation info <conversationId> [--json]
 ```
 
 #### Run / task lifecycle（新增）
 
 ```
-od run start --project <projectId> [--conversation <conversationId>]
+readable run start --project <projectId> [--conversation <conversationId>]
              [--message "<text>"] [--plugin <pluginId>] [--input k=v ...]
              [--agent claude|codex|gemini] [--model <id>] [--reasoning <level>]
              [--attachments <relpath,...>] [--follow] [--json]
 
-od run watch  <runId>                # ND-JSON SSE-equivalent events on stdout
-od run cancel <runId>
-od run list   [--project <id>] [--status running|done|failed] [--json]
-od run logs   <runId>                # historical tail; --since for incremental
+readable run watch  <runId>                # ND-JSON SSE-equivalent events on stdout
+readable run cancel <runId>
+readable run list   [--project <id>] [--status running|done|failed] [--json]
+readable run logs   <runId>                # historical tail; --since for incremental
 ```
 
 `run start` 上的 `--follow` 是 `start && watch` 的 shorthand。二者 stream 相同 event schema，定义在 `packages/contracts/src/api/chat.ts`（现有 `PersistedAgentEvent` discriminated union，每行一个 event）。
@@ -1278,92 +1278,92 @@ od run logs   <runId>                # historical tail; --since for incremental
 daemon 当前已经拥有 `.od/projects/<id>/` 下的 project filesystems（或者 imported folder 的 `metadata.baseDir`）。这些命令以 project 为 scope：agent 不需要知道 project 在磁盘哪里。
 
 ```
-od files list   <projectId> [--path <subdir>] [--json]
-od files read   <projectId> <relpath>                   # writes to stdout
-od files write  <projectId> <relpath> [< stdin]         # reads from stdin
-od files upload <projectId> <localpath> [--as <relpath>]
-od files delete <projectId> <relpath>
-od files diff   <projectId> <relpath>                   # vs. last committed version (when imported from git)
+readable files list   <projectId> [--path <subdir>] [--json]
+readable files read   <projectId> <relpath>                   # writes to stdout
+readable files write  <projectId> <relpath> [< stdin]         # reads from stdin
+readable files upload <projectId> <localpath> [--as <relpath>]
+readable files delete <projectId> <relpath>
+readable files diff   <projectId> <relpath>                   # vs. last committed version (when imported from git)
 ```
 
-当目标是 OD-managed projects 时，code agent 通常应该用 `od files read` / `od files write`，而不是 native file ops，因为 daemon 负责 artifact bookkeeping（[`packages/contracts/src/api/registry.ts`](../packages/contracts/src/api/registry.ts) 中的 `ArtifactManifest.sourceSkillId` 等）。
+当目标是 OD-managed projects 时，code agent 通常应该用 `readable files read` / `readable files write`，而不是 native file ops，因为 daemon 负责 artifact bookkeeping（[`packages/contracts/src/api/registry.ts`](../packages/contracts/src/api/registry.ts) 中的 `ArtifactManifest.sourceSkillId` 等）。
 
 #### Plugin verbs
 
 ```
-od plugin install   <source>                            # github: | https://… | ./folder | <name from marketplace>
-od plugin uninstall <id>
-od plugin list      [--kind skill|scenario|atom|bundle] [--trust trusted|restricted] [--json]
-od plugin info      <id> [--json]
-od plugin update    [<id>]
-od plugin trust     <id> [--caps fs:write,mcp,bash,hooks]   # 永久授权，写入 installed_plugins
-od plugin apply     <id> --project <projectId> [--input k=v ...] [--grant-caps fs:read,mcp ...] [--json]
+readable plugin install   <source>                            # github: | https://… | ./folder | <name from marketplace>
+readable plugin uninstall <id>
+readable plugin list      [--kind skill|scenario|atom|bundle] [--trust trusted|restricted] [--json]
+readable plugin info      <id> [--json]
+readable plugin update    [<id>]
+readable plugin trust     <id> [--caps fs:write,mcp,bash,hooks]   # 永久授权，写入 installed_plugins
+readable plugin apply     <id> --project <projectId> [--input k=v ...] [--grant-caps fs:read,mcp ...] [--json]
                                                             # returns ApplyResult; pure (no run)
                                                             # --grant-caps: 仅作用于本次 apply 产生的 snapshot
-od plugin run       <id> --project <projectId> [--input k=v ...] [--grant-caps ...] [--follow] [--json]
+readable plugin run       <id> --project <projectId> [--input k=v ...] [--grant-caps ...] [--follow] [--json]
                                                             # shorthand: apply + run start --follow
-od plugin replay    <runId> [--follow] [--json]             # 基于 run 的 applied_plugin_snapshot 重跑长程任务
+readable plugin replay    <runId> [--follow] [--json]             # 基于 run 的 applied_plugin_snapshot 重跑长程任务
 ```
 
 #### Generative UI verbs (§10.3)
 
 ```
-od ui list      [--run <runId> | --project <projectId>] [--status pending|resolved|timeout|invalidated] [--json]
-od ui show      <runId> <surface-id> [--json]                 # surface kind / schema / prompt
-od ui respond   <runId> <surface-id> --value-json '{...}'     # write answer, unblock the run
-od ui respond   <runId> <surface-id> --skip                   # trigger onTimeout='skip'
-od ui revoke    <projectId> <surface-id>                      # invalidate persisted answer (e.g. OAuth logout)
-od ui prefill   <projectId> --plugin <pluginId> --json '{ "<surface-id>": <value>, ... }'
+readable ui list      [--run <runId> | --project <projectId>] [--status pending|resolved|timeout|invalidated] [--json]
+readable ui show      <runId> <surface-id> [--json]                 # surface kind / schema / prompt
+readable ui respond   <runId> <surface-id> --value-json '{...}'     # write answer, unblock the run
+readable ui respond   <runId> <surface-id> --skip                   # trigger onTimeout='skip'
+readable ui revoke    <projectId> <surface-id>                      # invalidate persisted answer (e.g. OAuth logout)
+readable ui prefill   <projectId> --plugin <pluginId> --json '{ "<surface-id>": <value>, ... }'
                                                               # bulk pre-answer, used before the run starts
-od plugin export    <projectId> --as od|claude-plugin|agent-skill --out <dir>
-od plugin doctor    <id>
-od plugin scaffold
+readable plugin export    <projectId> --as od|claude-plugin|agent-skill --out <dir>
+readable plugin doctor    <id>
+readable plugin scaffold
 ```
 
 #### Marketplace verbs
 
 ```
-od marketplace add     <url> [--trust]
-od marketplace remove  <id>
-od marketplace trust   <id>
-od marketplace untrust <id>
-od marketplace list    [--json]
-od marketplace refresh [<id>]
-od marketplace search  "<query>" [--tag <tag>] [--json]   # search across configured catalogs
+readable marketplace add     <url> [--trust]
+readable marketplace remove  <id>
+readable marketplace trust   <id>
+readable marketplace untrust <id>
+readable marketplace list    [--json]
+readable marketplace refresh [<id>]
+readable marketplace search  "<query>" [--tag <tag>] [--json]   # search across configured catalogs
 ```
 
 #### Design library introspection（新增）
 
 ```
-od skills list             [--json] [--scenario <s>] [--mode <m>]
-od skills show             <id> [--json]
-od design-systems list     [--json]
-od design-systems show     <id> [--json]
-od craft list              [--json]
-od atoms list              [--json]                       # first-party atoms (§10)
+readable skills list             [--json] [--scenario <s>] [--mode <m>]
+readable skills show             <id> [--json]
+readable design-systems list     [--json]
+readable design-systems show     <id> [--json]
+readable craft list              [--json]
+readable atoms list              [--json]                       # first-party atoms (§10)
 ```
 
 #### Daemon control（新增）
 
 ```
-od daemon start  [--headless] [--serve-web] [--port <n>] [--host <h>]
+readable daemon start  [--headless] [--serve-web] [--port <n>] [--host <h>]
                                                            # explicit lifecycle (§11.7);
-                                                           # default `od` (no args) keeps current behavior
-od daemon stop   [--daemon-url <url>]
-od daemon status [--json]                                   # alias of `od status`
-od status        [--json]                                   # daemon up? port? installed plugins count
-od doctor                                                   # diagnostics: skills/DS/craft/plugins, providers, MCP
-od version       [--json]
-od config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
+                                                           # default `readable` (no args) keeps current behavior
+readable daemon stop   [--daemon-url <url>]
+readable daemon status [--json]                                   # alias of `readable status`
+readable status        [--json]                                   # daemon up? port? installed plugins count
+readable doctor                                                   # diagnostics: skills/DS/craft/plugins, providers, MCP
+readable version       [--json]
+readable config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
 ```
 
-`od daemon start --headless` 是 §11.7 中 headless mode 的入口（无 web bundle、无 electron）。`od daemon start --serve-web` 增加本地 web UI 但不启用 electron。二者都沿用现有 tools-dev port conventions（[`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)）。
+`readable daemon start --headless` 是 §11.7 中 headless mode 的入口（无 web bundle、无 electron）。`readable daemon start --serve-web` 增加本地 web UI 但不启用 electron。二者都沿用现有 tools-dev port conventions（[`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)）。
 
 #### 现有 agent-callable tools（不变）
 
 ```
-od research search ...
-od mcp                       # stdio MCP server
+readable research search ...
+readable mcp                       # stdio MCP server
 ```
 
 ### 12.3 输出约定
@@ -1381,16 +1381,16 @@ od mcp                       # stdio MCP server
 
 | Exit | Meaning | Recovery hint | Structured stderr `data` 字段（节选） |
 | --- | --- | --- | --- |
-| 64 | Daemon not running | `od status`，然后启动 daemon | `{ host, port }` |
-| 65 | Plugin not found / not installed | `od plugin list` 后 `od plugin install <source>` | `{ pluginId, candidateSources[] }` |
-| 66 | Plugin restricted, capability required | `od plugin trust <id> --caps …` 或重试时加 `--grant-caps …` | `{ pluginId, pluginVersion, required[], granted[], remediation[] }` |
+| 64 | Daemon not running | `readable status`，然后启动 daemon | `{ host, port }` |
+| 65 | Plugin not found / not installed | `readable plugin list` 后 `readable plugin install <source>` | `{ pluginId, candidateSources[] }` |
+| 66 | Plugin restricted, capability required | `readable plugin trust <id> --caps …` 或重试时加 `--grant-caps …` | `{ pluginId, pluginVersion, required[], granted[], remediation[] }` |
 | 67 | Required input missing on apply | 用每个缺失字段重新运行 `--input k=v` | `{ pluginId, missing[], schema }` |
-| 68 | Project not found | `od project list` | `{ projectId }` |
-| 69 | Run not found / already terminal | `od run list --project <id>` | `{ runId, status }` |
-| 70 | Provider not configured | 为 provider key 执行 `od config set ...` | `{ provider, requiredKeys[] }` |
+| 68 | Project not found | `readable project list` | `{ projectId }` |
+| 69 | Run not found / already terminal | `readable run list --project <id>` | `{ runId, status }` |
+| 70 | Provider not configured | 为 provider key 执行 `readable config set ...` | `{ provider, requiredKeys[] }` |
 | 71 | Plugin requires daemon mode | 启动 daemon 或切换到 desktop / headless | `{ pluginId, mode: 'api-fallback' }`（§11.8） |
-| 72 | Applied plugin snapshot stale | `od plugin replay <runId>` 或 `od plugin upgrade <id>` 后重新 apply | `{ snapshotId, pluginId, currentVersion, snapshotVersion }` |
-| 73 | GenUI surface awaiting response | `od ui show <runId> <surface-id>` 后用 `od ui respond` 作答；或在调用前 `od ui prefill` | `{ runId, surfaceId, kind, schema, prompt, persist, timeoutAt }`（§10.3） |
+| 72 | Applied plugin snapshot stale | `readable plugin replay <runId>` 或 `readable plugin upgrade <id>` 后重新 apply | `{ snapshotId, pluginId, currentVersion, snapshotVersion }` |
+| 73 | GenUI surface awaiting response | `readable ui show <runId> <surface-id>` 后用 `readable ui respond` 作答；或在调用前 `readable ui prefill` | `{ runId, surfaceId, kind, schema, prompt, persist, timeoutAt }`（§10.3） |
 
 当设置 `--json` 时，结构化错误输出是 stderr 上的 `{ "error": { "code": "<short-code>", "message": "<human>", "data": { ... } } }`。上面的 exit codes 保持稳定；human prose 可以演进。Exit 66 的 `data` shape 与 §9.1 中的 capability gate JSON 一致；agent 读到 66 后可以选择带 `--grant-caps` 重试，或回报给上游用户。
 
@@ -1400,34 +1400,34 @@ od mcp                       # stdio MCP server
 
 ```bash
 # 1. (Optional) Inspect what's available.
-od skills list --json
-od plugin list --json
+readable skills list --json
+readable plugin list --json
 
 # 2. Create a project bound to a skill or design system.
-PID=$(od project create --skill blog-post --design-system linear-clone --json | jq -r .projectId)
+PID=$(readable project create --skill blog-post --design-system linear-clone --json | jq -r .projectId)
 
 # 3. Apply a plugin to preview the brief and context (pure; no run yet).
-od plugin apply make-a-deck --project "$PID" --input topic="agentic design" --input audience=VC --json
+readable plugin apply make-a-deck --project "$PID" --input topic="agentic design" --input audience=VC --json
 
 # 4. Start the run, follow events live (ND-JSON on stdout).
-od run start --project "$PID" --plugin make-a-deck \
+readable run start --project "$PID" --plugin make-a-deck \
              --input topic="agentic design" --input audience=VC \
              --message "Make it concise; investor-ready." --follow \
   | jq -r 'select(.kind == "message_chunk") | .text' \
   | tee run.log
 
 # 5. Consume produced artifacts.
-od files list "$PID" --json
-od files read "$PID" index.html > out.html
+readable files list "$PID" --json
+readable files read "$PID" index.html > out.html
 ```
 
 这段 sequence 可以在本机或另一个 agent loop 内等同运行。无需直接处理 HTTP、端口发现或 auth token plumbing：CLI 把这些细节藏在稳定 subcommand contract 之后。
 
 ### 12.6 对现有 CLI 的含义
 
-上面每个 group 都是对 [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) 的增量。当前默认 `od`（启动 daemon + 打开 web UI）保持不变。现有 `od research`、`od mcp` 命令保持当前 contract。新增 groups 是对 `apps/daemon/src/server.ts` 中既有 desktop UI endpoints 的包装（project create/list、run start/watch、file upload/list/read），再加上 §11.5 的新插件/marketplace/atoms endpoints。
+上面每个 group 都是对 [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts) 的增量。当前默认 `readable`（启动 daemon + 打开 web UI）保持不变。现有 `readable research`、`readable mcp` 命令保持当前 contract。新增 groups 是对 `apps/daemon/src/server.ts` 中既有 desktop UI endpoints 的包装（project create/list、run start/watch、file upload/list/read），再加上 §11.5 的新插件/marketplace/atoms endpoints。
 
-> **Implementation rule:** 如果 code agent 能通过 desktop UI 做某件事，它就必须能通过 `od …` 用相同参数和等价输出完成。不能有 silent UI-only capabilities。
+> **Implementation rule:** 如果 code agent 能通过 desktop UI 做某件事，它就必须能通过 `readable …` 用相同参数和等价输出完成。不能有 silent UI-only capabilities。
 
 ## 13. 公网 Web 表面（open-design.ai/marketplace）
 
@@ -1471,9 +1471,9 @@ desktop app 注册 `od://` URL scheme；点击 `open-design.ai/marketplace` 上�
 
 ### 14.1 作者工具
 
-- `od plugin scaffold`：写入 starter folder，包含 `SKILL.md`（行业标准，带 `od:` frontmatter 以向后兼容）和 `open-design.json`（OD enrichment，`compat.agentSkills` 指向 SKILL.md）。
-- `od plugin doctor`：运行 JSON Schema、SKILL.md frontmatter parser，以及「它看起来是否能被 awesome-agent-skills / clawhub / skills.sh 收录？」lint，检查 README、license file、frontmatter 完整性。
-- `od plugin publish --to <catalog>`（Phase 4）：打开浏览器进入 catalog PR template，预填 row。
+- `readable plugin scaffold`：写入 starter folder，包含 `SKILL.md`（行业标准，带 `od:` frontmatter 以向后兼容）和 `open-design.json`（OD enrichment，`compat.agentSkills` 指向 SKILL.md）。
+- `readable plugin doctor`：运行 JSON Schema、SKILL.md frontmatter parser，以及「它看起来是否能被 awesome-agent-skills / clawhub / skills.sh 收录？」lint，检查 README、license file、frontmatter 完整性。
+- `readable plugin publish --to <catalog>`（Phase 4）：打开浏览器进入 catalog PR template，预填 row。
 
 ### 14.2 Cross-agent consumption
 
@@ -1485,22 +1485,22 @@ desktop app 注册 `od://` URL scheme；点击 `open-design.ai/marketplace` 上�
 
 插件作者只写一次 SKILL.md。三种模式都消费它。
 
-### 14.3 具体 headless pipeline（Claude Code + `od` CLI，无 OD UI）
+### 14.3 具体 headless pipeline（Claude Code + `readable` CLI，无 OD UI）
 
 这与 cursor-agent + scripts 对 Cursor 的意义相同：code agent 做思考，OD CLI 提供 project / plugin / artifact substrate。
 
 ```bash
-# One-time setup: install the OD CLI as an npm global (publishable as @open-design/cli).
-npm install -g @open-design/cli
+# One-time setup: install the OD CLI as an npm global (publishable as @readable-studio/cli).
+npm install -g @readable-studio/cli
 
 # Start the daemon in headless mode — no web bundle, no electron, no browser.
-od daemon start --headless --port 17456
+readable daemon start --headless --port 17456
 
 # Install the OD plugin you want to drive (or an upstream agent skill — both work).
-od plugin install github:open-design/plugins/make-a-deck
+readable plugin install github:open-design/plugins/make-a-deck
 
 # Create a project bound to the plugin. Inputs are templated into the brief.
-PID=$(od project create \
+PID=$(readable project create \
         --plugin make-a-deck \
         --input topic="agentic design" \
         --input audience=VC \
@@ -1508,22 +1508,22 @@ PID=$(od project create \
 
 # Drive the run with Claude Code (or any code agent). Two equivalent paths:
 
-# Path A — let `od` orchestrate Claude Code as the run's agent:
-od run start --project "$PID" --plugin make-a-deck \
+# Path A — let `readable` orchestrate Claude Code as the run's agent:
+readable run start --project "$PID" --plugin make-a-deck \
              --agent claude --follow
 
 # Path B — drive Claude Code directly inside the project cwd; OD only provides
 # context resolution and artifact bookkeeping. Useful when the user's existing
 # code-agent setup is opinionated.
-CWD=$(od project info "$PID" --json | jq -r .cwd)
+CWD=$(readable project info "$PID" --json | jq -r .cwd)
 cd "$CWD"
 # OD has already staged the merged SKILL.md / DESIGN.md / craft / atoms into
 # .od-skills/ inside the cwd, exactly as the desktop run would.
 claude code "Read .od-skills/ and produce the deliverables the active plugin describes."
 
 # Consume the produced artifacts.
-od files list "$PID" --json
-od files read "$PID" slides.html > slides.html
+readable files list "$PID" --json
+readable files read "$PID" slides.html > slides.html
 open slides.html      # or however the user wants to view the file
 ```
 
@@ -1533,13 +1533,13 @@ open slides.html      # or however the user wants to view the file
 - OD daemon 不需要渲染任何东西；它作为 project + plugin + artifact server 工作。
 - 同一个 project 之后在 OD desktop UI 中打开时，会显示 headless run 产生的完整 conversation history、files、artifacts，因为 storage layer 只有一套（[`spec.md`](spec.md) §4.6：`.od/projects/<id>/` + SQLite）。
 
-### 14.4 类比：Cursor vs `cursor-agent`，OD desktop vs `od` CLI
+### 14.4 类比：Cursor vs `cursor-agent`，OD desktop vs `readable` CLI
 
 心智模型：
 
 | Layer | Cursor | Open Design |
 | --- | --- | --- |
-| Headless agent CLI | `cursor-agent`（驱动 agent loop） | `od run start --agent claude --follow` + `od plugin run` |
+| Headless agent CLI | `cursor-agent`（驱动 agent loop） | `readable run start --agent claude --follow` + `readable plugin run` |
 | Local services / db | Cursor 的 background indexing / state | OD daemon、SQLite、`.od/projects/<id>/` |
 | GUI productivity layer | Cursor IDE | OD desktop / web UI（`apps/web` + `apps/desktop`） |
 | Plugin / skill format | `.cursor/rules/`、MCP servers | `SKILL.md` + `open-design.json` + atoms |
@@ -1566,7 +1566,7 @@ open slides.html      # or however the user wants to view the file
 - Pure-TS contracts：`packages/contracts/src/plugins/{manifest,context,apply,marketplace,installed}.ts`。
 - Migration note：现有 `skills/`、`design-systems/`、`craft/` 100% 向后兼容。SKILL.md frontmatter 不变。
 
-Validation：`pnpm guard`、`pnpm typecheck`、`pnpm --filter @open-design/contracts test`。
+Validation：`pnpm guard`、`pnpm typecheck`、`pnpm --filter @readable-studio/contracts test`。
 
 ### Phase 1 — Loader, installer, persistence + headless MVP CLI 闭环（5–7 天）
 
@@ -1578,16 +1578,16 @@ Phase 1 内容（合并原 Phase 1 + Phase 2C 的最小子集）：
 - `apps/daemon/src/plugins/{registry,installer,apply}.ts`；重构现有 skills/DS/craft loaders 以委托给它。
 - SQLite migration：`installed_plugins` 与 `plugin_marketplaces`。`applied_plugin_snapshots` schema 也在此 phase 落地（即使 §10 pipeline 完整支持要等 Phase 2A）。
 - Endpoints：`GET /api/plugins`、`GET /api/plugins/:id`、`POST /api/plugins/install`（folder + github tarball）、`POST /api/plugins/:id/uninstall`、`POST /api/plugins/:id/apply`、`GET /api/atoms`、`GET /api/applied-plugins/:snapshotId`。
-- **Plugin CLI verbs：** `od plugin install/list/info/uninstall/apply/doctor`。`od plugin apply --json` 是 Phase 2 inline rail 与外部 code agents 的必要能力，必须在此返回包含 `appliedPlugin: AppliedPluginSnapshot` 的 `ApplyResult`。
-- **Headless MVP CLI 闭环（新提前）：** `od project create/list/info`、`od run start/watch/cancel`（含 `--follow` 与 ND-JSON streaming）、`od files list/read`。这些包装 desktop UI 今天已经使用的 endpoints（`POST /api/projects`、`POST /api/runs`、`GET /api/runs/:id/events`、project list/read endpoints），不新增 HTTP surface，只新增 CLI surface。
+- **Plugin CLI verbs：** `readable plugin install/list/info/uninstall/apply/doctor`。`readable plugin apply --json` 是 Phase 2 inline rail 与外部 code agents 的必要能力，必须在此返回包含 `appliedPlugin: AppliedPluginSnapshot` 的 `ApplyResult`。
+- **Headless MVP CLI 闭环（新提前）：** `readable project create/list/info`、`readable run start/watch/cancel`（含 `--follow` 与 ND-JSON streaming）、`readable files list/read`。这些包装 desktop UI 今天已经使用的 endpoints（`POST /api/projects`、`POST /api/runs`、`GET /api/runs/:id/events`、project list/read endpoints），不新增 HTTP surface，只新增 CLI surface。
 - `<daemonDataDir>/plugins/<id>/` 写入路径，带 safe extraction（path-traversal guard、size cap、symlink rejection）。
 
 Validation：
 
-- `pnpm --filter @open-design/plugin-runtime test`（parser fixtures：pure SKILL.md、pure claude plugin、metadata-only open-design.json、三者组合、SKILL frontmatter mapping）。
-- `pnpm --filter @open-design/daemon test`。`pnpm guard`、`pnpm typecheck`。
-- **End-to-end headless smoke**（与 §12.5 walkthrough 等价）：`od plugin install ./fixtures/sample-plugin` → `od project create --plugin <id> --json` → `od run start --project <pid> --plugin <id> --follow` → `od files read <pid> <artifact>`。要求 produced artifact bytes 与同一插件在 Phase 2A UI 流程下产出**完全相同**。
-- **Apply 纯净性 smoke：** 仅 `od plugin apply <id>` 后取消 send，project cwd 无 staged assets、无 `.mcp.json`、`applied_plugin_snapshots` 行存在但未被任何 run/project 引用。
+- `pnpm --filter @readable-studio/plugin-runtime test`（parser fixtures：pure SKILL.md、pure claude plugin、metadata-only open-design.json、三者组合、SKILL frontmatter mapping）。
+- `pnpm --filter @readable-studio/daemon test`。`pnpm guard`、`pnpm typecheck`。
+- **End-to-end headless smoke**（与 §12.5 walkthrough 等价）：`readable plugin install ./fixtures/sample-plugin` → `readable project create --plugin <id> --json` → `readable run start --project <pid> --plugin <id> --follow` → `readable files read <pid> <artifact>`。要求 produced artifact bytes 与同一插件在 Phase 2A UI 流程下产出**完全相同**。
+- **Apply 纯净性 smoke：** 仅 `readable plugin apply <id>` 后取消 send，project cwd 无 staged assets、无 `.mcp.json`、`applied_plugin_snapshots` 行存在但未被任何 run/project 引用。
 
 ### Phase 2A — Inline UI + 完整 snapshot 持久化 + Daemon-only plugin runs（4–6 天）
 
@@ -1603,7 +1603,7 @@ Validation：
   - HTTP：`GET /api/runs/:runId/genui`、`GET /api/projects/:projectId/genui`、`POST /api/runs/:runId/genui/:surfaceId/respond`、`POST /api/projects/:projectId/genui/:surfaceId/revoke`、`POST /api/projects/:projectId/genui/prefill`。
   - SSE / ND-JSON 流加 `genui_surface_request`、`genui_surface_response`、`genui_surface_timeout`、`genui_state_synced` event。
   - Web：`GenUISurfaceRenderer` 嵌入 `ProjectView` chat stream；`GenUIInbox` drawer 列出 project 级 persisted surfaces；revoke 入口可用。
-  - CLI：`od ui list/show/respond/revoke/prefill`；`od run watch` ND-JSON 包含 `genui_*` event；exit code 73 接通。
+  - CLI：`readable ui list/show/respond/revoke/prefill`；`readable run watch` ND-JSON 包含 `genui_*` event；exit code 73 接通。
   - **Persistence 行为验证：** 同一 project 完成一次 `oauth-prompt` 后，第二个 conversation 触发同 surface id 时**不**广播 request，事件流上仍发 `genui_surface_response { respondedBy: 'cache' }`。
 Validation：e2e in `e2e/`：
 
@@ -1611,11 +1611,11 @@ Validation：e2e in `e2e/`：
 
 (b) apply 后取消发送，project cwd 无 staged assets，`.mcp.json` 不存在。
 
-(c) `od plugin replay <runId>` 即使在源 plugin 已被 `od plugin update` 升级后，仍能产生与原 run **完全一致**的 prompt（snapshot 不可变）。
+(c) `readable plugin replay <runId>` 即使在源 plugin 已被 `readable plugin update` 升级后，仍能产生与原 run **完全一致**的 prompt（snapshot 不可变）。
 
 (d) Web API-fallback mode（OD daemon 关闭、浏览器直连 provider）下，UI 中 inline rail 渲染 plugin 卡片但点击「Use」时弹出 daemon-required 提示；daemon 启动后再点击恢复正常。
 
-(e) Plugin 声明 `oauth-prompt` 与 `confirmation` 两种 surface：在 conversation A 完成后，conversation B 在同 project 内重新 apply 同插件，run 中 `oauth-prompt`（`persist=project`）走 cache；`confirmation`（`persist=run`）重新询问。`od ui revoke` 后下一次 run 又重新询问 `oauth-prompt`。
+(e) Plugin 声明 `oauth-prompt` 与 `confirmation` 两种 surface：在 conversation A 完成后，conversation B 在同 project 内重新 apply 同插件，run 中 `oauth-prompt`（`persist=project`）走 cache；`confirmation`（`persist=run`）重新询问。`readable ui revoke` 后下一次 run 又重新询问 `oauth-prompt`。
 
 ### Phase 2B — Marketplace deep UI + ChatComposer apply（4–6 天）
 
@@ -1630,46 +1630,46 @@ Validation：e2e in `e2e/`：install local plugin → marketplace → detail pre
 
 > 原 Phase 2C 中"最小 project + run + files CLI"已经提前到 Phase 1。此阶段只剩**进阶**操作。
 
-- `od project delete/import`、`od run list/logs --since`、`od files write/upload/delete/diff`、`od conversation list/new/info`。
+- `readable project delete/import`、`readable run list/logs --since`、`readable files write/upload/delete/diff`、`readable conversation list/new/info`。
 - 这些包装现有 endpoints，不引入新 HTTP surface。
 
-Validation：扩展 §12.5 的 walkthrough：`od project import` 一个本地文件夹 → `od plugin apply` → `od run replay <runId>` 在 import 出来的 project 上重跑。
+Validation：扩展 §12.5 的 walkthrough：`readable project import` 一个本地文件夹 → `readable plugin apply` → `readable run replay <runId>` 在 import 出来的 project 上重跑。
 
 ### Phase 3 — Federated marketplace + tiered trust（3–5 天）
 
-- `od marketplace add/remove/trust/untrust/list/refresh`；`od plugin install <name>` 通过 marketplaces 解析。
+- `readable marketplace add/remove/trust/untrust/list/refresh`；`readable plugin install <name>` 通过 marketplaces 解析。
 - `GET /api/marketplaces`、`POST /api/marketplaces`、`GET /api/marketplaces/:id/plugins`。
 - `PluginDetailView` 上的 Trust UI（capability checklist + "Grant" action）。
 - Apply pipeline 通过 `trust` + `capabilities_granted` gate。
 - Bundle plugins（一个 repo 内多个 skills + DS + craft）：installer fan out 到 namespaced ids 的 registry。
-- `od plugin doctor <id>` 执行完整 validation。
+- `readable plugin doctor <id>` 执行完整 validation。
 
 Validation：从本地 mock marketplace.json 安装 plugin、rotate ref、uninstall。Restricted plugin 在点击 "Grant" 前不能启动 MCP server。
 
 ### Phase 4 — Atoms, publish-back, full CLI parity（1–2 周，可拆）
 
 - 在 `docs/atoms.md` 中记录 atoms；通过 `GET /api/atoms` 暴露。
-- `od plugin export <projectId> --as od|claude-plugin|agent-skill`：从已有 project 生成 publish-ready folder。
-- `od plugin run <id> --input k=v --follow`：apply + run start + watch 的 shorthand wrapper。
-- `od plugin scaffold` interactive starter。
-- `od plugin publish --to anthropics-skills|awesome-agent-skills|clawhub` 打开 PR template。
-- **剩余 CLI parity：** `od conversation list/new/info`、`od skills/design-systems/craft/atoms list/show`、`od status/doctor/version`、`od config get/set/list`、`od marketplace search`。这些基本都是纯 CLI 工作，endpoints 已存在或很轻量。
+- `readable plugin export <projectId> --as od|claude-plugin|agent-skill`：从已有 project 生成 publish-ready folder。
+- `readable plugin run <id> --input k=v --follow`：apply + run start + watch 的 shorthand wrapper。
+- `readable plugin scaffold` interactive starter。
+- `readable plugin publish --to anthropics-skills|awesome-agent-skills|clawhub` 打开 PR template。
+- **剩余 CLI parity：** `readable conversation list/new/info`、`readable skills/design-systems/craft/atoms list/show`、`readable status/doctor/version`、`readable config get/set/list`、`readable marketplace search`。这些基本都是纯 CLI 工作，endpoints 已存在或很轻量。
 - 可选：把 atoms 提取到 `skills/_official/<atom>/SKILL.md`。只在 Phases 1–3 稳定后做。
 - **§10.3.5 AG-UI 完整对齐：**
-  - 新 package `@open-design/agui-adapter`：把 OD 的 `PersistedAgentEvent` + `GenUIEvent` 双向映射到 AG-UI canonical events（`agent.message`、`tool_call`、`state_update`、`ui.surface_requested`、`ui.surface_responded`）。
+  - 新 package `@readable-studio/agui-adapter`：把 OD 的 `PersistedAgentEvent` + `GenUIEvent` 双向映射到 AG-UI canonical events（`agent.message`、`tool_call`、`state_update`、`ui.surface_requested`、`ui.surface_responded`）。
   - daemon 增加可选 `/api/runs/:runId/agui` SSE 端点，输出 AG-UI canonical events，使 CopilotKit / 其他 AG-UI client 直接消费 OD run。
   - Plugin manifest 升级允许 `od.genui.surfaces[].component`：相对路径指向 plugin 内 React 组件（capability gate `genui:custom-component`），由 desktop / web renderer 在 sandbox 中加载。
   - Open-Ended (MCP-Apps / Open-JSON) 模式：让 plugin 通过 MCP server 推送任意 JSON UI tree，desktop / web 以受限 schema 渲染。
 
 Validation：  
 (a) install a published plugin → export from a real project that used it → diff produced manifest against original。  
-(b) 「UI vs CLI parity test」：挑 5 个 desktop-UI workflows，仅通过 `od …` 重放，byte-for-byte 比较 produced artifacts（对应 §12.6 implementation rule）。
+(b) 「UI vs CLI parity test」：挑 5 个 desktop-UI workflows，仅通过 `readable …` 重放，byte-for-byte 比较 produced artifacts（对应 §12.6 implementation rule）。
 
 ### Phase 5 — Runtime storage 与 non-loopback security
 
 - 保留 non-loopback daemon bind 的 API-token guard。
 - 在 `ProjectStorage` 与 `DaemonDb` seam 后继续以 local disk + SQLite 作为可达默认实现。
-- 执行 snapshot retention，并保留 `od plugin snapshots prune --before <ts>` escape hatch。
+- 执行 snapshot retention，并保留 `readable plugin snapshots prune --before <ts>` escape hatch。
 - Hosted/container deployment 资源与 publishing automation 保持在本产品 workspace 之外。
 
 验证使用本地 workflow 文档规定的 package-scoped storage、auth 与 retention tests。
@@ -1738,42 +1738,42 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 | `composeSystemPrompt()` 已经超过 200 行 | `## Active plugin` block 追加在现有位置；不重排 layers。 |
 | ExamplesTab 与 Marketplace overlap | Phase 2 保持 ExamplesTab；Phase 3 折叠为 Marketplace 的「Local skills」tab。 |
 | Atoms-as-plugins 范围大 | Entry slice 已落地：bundled atom SKILL.md bodies 与 `renderActiveStageBlock()` 已存在；OD 基础 designer/discovery prompt 仍留在 daemon code，等待 §23 剩余迁移完成。 |
-| Project-local plugins 被提交到用户 repo | 仅发现 `<projectCwd>/.open-design/plugins/`；通过 `od plugin install --project` opt-in。 |
+| Project-local plugins 被提交到用户 repo | 仅发现 `<projectCwd>/.open-design/plugins/`；通过 `readable plugin install --project` opt-in。 |
 | Trust model 让 community plugins 默认半功能 | 详情页提供清晰 capability checklist 与一键「Grant all」；restricted 行为显式，不静默。 |
-| 插件自带 MCP servers 可能无法启动 | `od plugin doctor` dry-launch declared MCP commands；在「Use」前暴露失败。 |
-| `applied_plugin_snapshots` 表无界增长 | 按 PB2（已决）：未被引用的 snapshot 默认 30 天后过期；被 run / conversation / project 引用的 snapshot 永久 pin（reproducibility 优先）；GC worker 与 `od plugin snapshots prune --before <ts>` 提供清理通道。 |
+| 插件自带 MCP servers 可能无法启动 | `readable plugin doctor` dry-launch declared MCP commands；在「Use」前暴露失败。 |
+| `applied_plugin_snapshots` 表无界增长 | 按 PB2（已决）：未被引用的 snapshot 默认 30 天后过期；被 run / conversation / project 引用的 snapshot 永久 pin（reproducibility 优先）；GC worker 与 `readable plugin snapshots prune --before <ts>` 提供清理通道。 |
 | daemon `composeSystemPrompt` 与 contracts `composeSystemPrompt` 漂移 | 按 PB1（已决）：plugin block renderer 从 Phase 2A 起位于 `packages/contracts/src/prompts/plugin-block.ts`；两份 composer import 同一个函数，不再需要 byte-for-byte fixture。 |
 | `od.pipeline` devloop 无限循环烧 quota | `until` 必填且 syntax 受限；`OD_MAX_DEVLOOP_ITERATIONS` 上限（默认 10）；UI 与 CLI 提供「Stop refining」打断。 |
 | `OD_HOST` / `OD_BIND_HOST` 命名漂移 | 使用现有 `OD_BIND_HOST`；不引入 `OD_HOST` 别名。 |
 | 没有 API-token guard 的 non-loopback bind 可能公开泄露 API | Daemon 在无 `OD_API_TOKEN` 时拒绝 non-loopback bind；`/api/*` enforce bearer-token middleware。 |
 | Sovereign-cloud customers（阿里云 / 腾讯云 / 华为云）需要 provider-specific secret + storage integrations | S3-compatible adapter 覆盖三者的 blob storage（Phase 5）；env-var secrets 各云都可用；cloud-specific KMS integrations post-v1。 |
-| 恶意 plugin 通过 GenUI surface 钓鱼用户敏感信息 | `od.genui.surfaces[]` schema 必须列入 manifest 并由 `od plugin doctor` 校验；运行时拒绝未声明 surface kind / surface id；`oauth-prompt` 与 `confirmation` 的 issuer / capability 信息显示「来自 plugin <id>，由 marketplace <id> 验证」；restricted 插件触发 `oauth-prompt` 前还需要 `network` capability 显式 grant（§9）。 |
-| AG-UI 协议生态可能演进，OD 自有 wire-format 与 AG-UI canonical 漂移 | OD-native `GenUIEvent` 仍是内部 source of truth；`@open-design/agui-adapter` 是外部投影层，因此 upstream 协议升级不绑死 daemon 或 web renderer release cadence。 |
-| `genui_surfaces` 表 跨 conversation 复用导致用户「忘记自己授过权」 | UI 的 `GenUIInbox`、CLI 的 `od ui list --project <id>` 必须列出所有 `persist=project` 的 resolved row 与 revoke 入口；hosted mode 提供 `OD_GENUI_PROJECT_TTL_DAYS` 让 operator 设置默认过期；revoke 操作写 audit 日志。 |
+| 恶意 plugin 通过 GenUI surface 钓鱼用户敏感信息 | `od.genui.surfaces[]` schema 必须列入 manifest 并由 `readable plugin doctor` 校验；运行时拒绝未声明 surface kind / surface id；`oauth-prompt` 与 `confirmation` 的 issuer / capability 信息显示「来自 plugin <id>，由 marketplace <id> 验证」；restricted 插件触发 `oauth-prompt` 前还需要 `network` capability 显式 grant（§9）。 |
+| AG-UI 协议生态可能演进，OD 自有 wire-format 与 AG-UI canonical 漂移 | OD-native `GenUIEvent` 仍是内部 source of truth；`@readable-studio/agui-adapter` 是外部投影层，因此 upstream 协议升级不绑死 daemon 或 web renderer release cadence。 |
+| `genui_surfaces` 表 跨 conversation 复用导致用户「忘记自己授过权」 | UI 的 `GenUIInbox`、CLI 的 `readable ui list --project <id>` 必须列出所有 `persist=project` 的 resolved row 与 revoke 入口；hosted mode 提供 `OD_GENUI_PROJECT_TTL_DAYS` 让 operator 设置默认过期；revoke 操作写 audit 日志。 |
 
 落代码前值得确认的开放问题：
 
 - **Default trust tier**：保持 tiered（当前），还是从 day 1 就切到 capability-scoped？
 - **Marketplace JSON shape**：是否偏离 anthropic 的 `marketplace.json` shape，还是保持 byte-compatible，从而复用现有 claude-plugin marketplaces？（默认：保持 byte-compatible。）
-- **`od plugin run` headless contract**：当前是否足够，还是也为非 CLI agents 暴露 HTTP POST endpoint？（默认：v1 只 CLI；Phase 4 如需要再补 HTTP。）
+- **`readable plugin run` headless contract**：当前是否足够，还是也为非 CLI agents 暴露 HTTP POST endpoint？（默认：v1 只 CLI；Phase 4 如需要再补 HTTP。）
 - **Multi-tenant auth（per-user OAuth、RBAC、project ownership、billing）** 明确不属于 v1。Daemon API-token model 是 single-tenant；multi-tenancy 需要单独 spec。
 - **Non-local client 的 trust propagation**：当前 spec 已锁定 arbitrary GitHub / URL / local 插件默认 `restricted`，第三方 marketplace 也默认不传递 trust。还需确认 operator 是否允许通过 `OD_TRUSTED_PLUGINS` 直接 trust 单个插件，还是必须先 trust 它所属 marketplace。
-- **Discovery-time hot reload**：daemon 是否 watch `<daemonDataDir>/plugins/`（开发体验好），还是只在 `od plugin install/update/uninstall` 后 reload（稳定性高）？（默认：watch，500ms debounce。）
-- **Versioning policy**：安装时 pin tag/SHA，还是默认跟踪 default branch 并提供 opt-in pin？（默认：安装时 pin resolved ref；`od plugin update` 重新 resolve。）
+- **Discovery-time hot reload**：daemon 是否 watch `<daemonDataDir>/plugins/`（开发体验好），还是只在 `readable plugin install/update/uninstall` 后 reload（稳定性高）？（默认：watch，500ms debounce。）
+- **Versioning policy**：安装时 pin tag/SHA，还是默认跟踪 default branch 并提供 opt-in pin？（默认：安装时 pin resolved ref；`readable plugin update` 重新 resolve。）
 - ~~**Plugin prompt block 提到 contracts 共享层的时机**~~：**已按 PB1 解决。** Phase 2A 已把 `renderPluginBlock(snapshot)` 放到 `packages/contracts/src/prompts/plugin-block.ts`；两份 composer import 同一函数；v1 fallback rejection 规则保留。
-- ~~**`AppliedPluginSnapshot` 留存策略**~~：**已按 PB2 解决。** 被 run / conversation / project 引用的 snapshot 永久 pin；未引用 snapshot 默认 30 天过期；`OD_SNAPSHOT_RETENTION_DAYS` 是 operator opt-in；`od plugin snapshots prune` 保留为强制清理出口。
+- ~~**`AppliedPluginSnapshot` 留存策略**~~：**已按 PB2 解决。** 被 run / conversation / project 引用的 snapshot 永久 pin；未引用 snapshot 默认 30 天过期；`OD_SNAPSHOT_RETENTION_DAYS` 是 operator opt-in；`readable plugin snapshots prune` 保留为强制清理出口。
 - **Devloop 计费颗粒度**：每次 stage 的 `iteration` 是否单独按 token 计费 / 单独 audit / 单独 cancellable？（默认：单独 audit + 可单独 cancel；计费颗粒度跟随 provider 实际消耗，不在 spec 层定义新颗粒。）
 - **`od.taskKind` 是否成为 marketplace 一等过滤维度**：现有 `kind` / `mode` / `scenario` 是否需要为新增的 `taskKind` 重排 UI filter？（默认：marketplace 顶部增加 `taskKind` tab；现有 filter 保留为二级。）
-- ~~**`od.genui.surfaces[].component` 是否进 v1**~~：**已作为 gated extension path 解决。** Manifest schema 接受该字段，`od plugin doctor` 校验 `genui:custom-component` 与 path traversal；内置 `form` / `choice` / `confirmation` / `oauth-prompt` renderer 仍是主产品默认。
-- **GenUI persisted state 与 `AppliedPluginSnapshot` 的耦合**：当 plugin 升级且 `surface.schema` 变了，旧 row 自动 `invalidated`；但是否要同时**强制重新 apply** plugin（生成新 `AppliedPluginSnapshot`），还是允许仅 surface 失效、其余 snapshot 不变？（默认：仅 surface 失效；`od plugin doctor` 提示 schema drift；replay 仍走旧 snapshot。）
-- ~~**AG-UI 协议引入时机**~~：**已解决。** `@open-design/agui-adapter` 与 `GET /api/runs/:runId/agui` 已作为可选互操作表面交付；OD-native GenUI 仍是内部 renderer，CopilotKit 不是主产品必需依赖。
+- ~~**`od.genui.surfaces[].component` 是否进 v1**~~：**已作为 gated extension path 解决。** Manifest schema 接受该字段，`readable plugin doctor` 校验 `genui:custom-component` 与 path traversal；内置 `form` / `choice` / `confirmation` / `oauth-prompt` renderer 仍是主产品默认。
+- **GenUI persisted state 与 `AppliedPluginSnapshot` 的耦合**：当 plugin 升级且 `surface.schema` 变了，旧 row 自动 `invalidated`；但是否要同时**强制重新 apply** plugin（生成新 `AppliedPluginSnapshot`），还是允许仅 surface 失效、其余 snapshot 不变？（默认：仅 surface 失效；`readable plugin doctor` 提示 schema drift；replay 仍走旧 snapshot。）
+- ~~**AG-UI 协议引入时机**~~：**已解决。** `@readable-studio/agui-adapter` 与 `GET /api/runs/:runId/agui` 已作为可选互操作表面交付；OD-native GenUI 仍是内部 renderer，CopilotKit 不是主产品必需依赖。
 
 ## 19. 为什么这是 Open Design 的重要一步
 
 - **继承供给。** `anthropics/skills`、`awesome-agent-skills`、`clawhub`、`skills.sh` 上的每个 public agent skill，只需一个可选 `open-design.json` 就能成为 OD 插件；反过来，每个 OD 插件也能不经修改发布到这些 catalog。
 - **边界干净。** 新代码落在两个 pure-TS packages（`packages/plugin-runtime`、`packages/contracts/src/plugins/*`）和一个 daemon module group（`apps/daemon/src/plugins/`）；无跨 app coupling，无 contracts package leaks，无 SKILL.md fork。遵守根 [`AGENTS.md`](../AGENTS.md) 的约束。
 - **可逆重构。** 现有 loaders（[`apps/daemon/src/skills.ts`](../apps/daemon/src/skills.ts) 等）与 `composeSystemPrompt()` 保持 public shape；Phase 1 是 drop-in delegate，Phase 2 只**追加** prompt block。
-- **CLI 从 day 1 存在。** 每个新 endpoint 都有对应 `od plugin …` subcommand，因此同一 surface 可被任何 code agent 访问，不依赖 desktop app。
+- **CLI 从 day 1 存在。** 每个新 endpoint 都有对应 `readable plugin …` subcommand，因此同一 surface 可被任何 code agent 访问，不依赖 desktop app。
 - **Marketplace-first 产品叙事。** 从 Phase 2 开始，home screen 变成「input + chip strip + deep marketplace」；这正是 brief 中描述的反转：主交互 = 输入框 + 插件社区。
 
 ## 20. Post-v1 可扩展性：artifact taxonomy、evaluators 与 production handoff
@@ -1913,7 +1913,7 @@ v1 显式**不解决**的部分（一次性写明，避免歧义）：
 - 所有依赖 atom 已 implemented：`discovery-question-form`、`direction-picker`、`todo-write`、`file-read` / `file-write`、`research-search`、`critique-theater`。见 §10 atom 表。
 - 默认 reference pipeline `discovery → plan → generate → critique` 与典型 `new-generation` 流程一致；plugin 不需要声明 `od.pipeline` 也能拿到一条工作 pipeline。
 - 四个 GenUI 内置 surface kind（`form` / `choice` / `confirmation` / `oauth-prompt`）都直接服务这个场景。
-- 基于文件的 preview 与 `od files` CLI primitives（§12）合在一起，让生成的 prototypes、reports、decks、templates 在 v1 都能检查和消费。
+- 基于文件的 preview 与 `readable files` CLI primitives（§12）合在一起，让生成的 prototypes、reports、decks、templates 在 v1 都能检查和消费。
 
 **唯一值得提前的优化：**
 
@@ -1930,8 +1930,8 @@ v1 显式**不解决**的部分（一次性写明，避免歧义）：
 
 **v1 契约（锁定，详见 §21.5）：**
 
-- "设计 → 生产代码" 在 v1 是一个**双产品接力**：OD 拥有 design substrate（SKILL.md / DESIGN.md / craft / 生成 artifact 都被 stage 进 project cwd，加上 `od files` 管理的 artifact 簿记）；用户原本的 code agent（Cursor / Claude Code / Codex / Gemini CLI）在用户的 repo cwd 内拥有真实 repo patch。
-- handoff 表面是 §14.3 的 headless pipeline，外加 `od files read` / `od files watch` 让 code agent 内联消费 artifacts。
+- "设计 → 生产代码" 在 v1 是一个**双产品接力**：OD 拥有 design substrate（SKILL.md / DESIGN.md / craft / 生成 artifact 都被 stage 进 project cwd，加上 `readable files` 管理的 artifact 簿记）；用户原本的 code agent（Cursor / Claude Code / Codex / Gemini CLI）在用户的 repo cwd 内拥有真实 repo patch。
+- handoff 表面是 §14.3 的 headless pipeline，外加 `readable files read` / `readable files watch` 让 code agent 内联消费 artifacts。
 
 **native v1 交付需要：**
 
@@ -1962,10 +1962,10 @@ Phase 6、7、8 故意排在 §16 既有 Phase 5 runtime-storage/security 工作
 
 契约锁定四点：
 
-1. **OD 把 design substrate stage 进 project cwd。** 按 §14.3，daemon 把 SKILL.md / DESIGN.md / craft 写入 `.od-skills/`，把生成 artifact 通过 `od files` 写入 project cwd。cwd 通过 `od project info <id> --json | jq -r .cwd` 可发现。
+1. **OD 把 design substrate stage 进 project cwd。** 按 §14.3，daemon 把 SKILL.md / DESIGN.md / craft 写入 `.od-skills/`，把生成 artifact 通过 `readable files` 写入 project cwd。cwd 通过 `readable project info <id> --json | jq -r .cwd` 可发现。
 2. **用户的 code agent 在该 cwd 或自己的 repo cwd 内操作。** OD 不在 IDE 里跑；它作为 daemon 与 IDE 并列。Cursor / Claude Code / Codex / Gemini CLI 是 patch-application 的表面。
-3. **簿记留在 OD。** `ArtifactManifest`（§11.5.1）记录 `sourcePluginSnapshotId`、`sourceTaskKind: 'tune-collab'`（Phase 7 落地后还有 `'code-migration'`）、`handoffKind: 'patch'`；`od files` 记录每一字节的 artifact。哪怕 patch 由 code agent 完成，OD 仍是 audit log 的拥有者。
-4. **重新进入 OD 是 single-step。** 用户随时可以通过 inline rail（§8）或 `od plugin apply ... --project <id>` 在同一个 project 上重新 apply 任意 plugin（或不同 plugin）。`parentArtifactId` 链（§11.5.1）跨越 OD ↔ code-agent 边界保留 lineage。
+3. **簿记留在 OD。** `ArtifactManifest`（§11.5.1）记录 `sourcePluginSnapshotId`、`sourceTaskKind: 'tune-collab'`（Phase 7 落地后还有 `'code-migration'`）、`handoffKind: 'patch'`；`readable files` 记录每一字节的 artifact。哪怕 patch 由 code agent 完成，OD 仍是 audit log 的拥有者。
+4. **重新进入 OD 是 single-step。** 用户随时可以通过 inline rail（§8）或 `readable plugin apply ... --project <id>` 在同一个 project 上重新 apply 任意 plugin（或不同 plugin）。`parentArtifactId` 链（§11.5.1）跨越 OD ↔ code-agent 边界保留 lineage。
 
 这就是用户层面问题"v1 阶段我能不能用这套 plugin 体系交付业务代码？"的回答：**可以，但交付方式是 OD substrate + 外部 code-agent 接力，不是 OD native 一键**。Phase 8（§21.4）才是 native 一键交付的路径。
 
@@ -1981,7 +1981,7 @@ Phase 6、7、8 故意排在 §16 既有 Phase 5 runtime-storage/security 工作
 
 本节正式区分这对概念：
 
-- **substrate**（底层基础）= v1 spec 给 plugin 作者的 primitive：manifest 字段、capability 词汇表、atom catalog、pipeline / devloop / GenUI / MCP / `od files` / `parentArtifactId` / `AppliedPluginSnapshot`（§5–§11.5.1）。
+- **substrate**（底层基础）= v1 spec 给 plugin 作者的 primitive：manifest 字段、capability 词汇表、atom catalog、pipeline / devloop / GenUI / MCP / `readable files` / `parentArtifactId` / `AppliedPluginSnapshot`（§5–§11.5.1）。
 - **implementation**（实现）= 哪些 atom 已经作为 daemon 内置项可以一行写进 `od.pipeline`（§10）。
 
 只有 substrate 与 implementation 都到位，场景才算 "v1 native"。当 substrate 到位、缺的 implementation 可以由 plugin 作者用 substrate 提供的逃生通道补上时，场景就属于 "v1 community-buildable"。场景 1、2、4 今天都是 community-buildable —— 缺口在 atom ergonomics，不在 capability gate。
@@ -1993,14 +1993,14 @@ plugin 作者实际会用到的填补一方缺失的方式：
 | plugin 作者的需求 | v1 提供的对应 primitive | spec 出处 |
 | --- | --- | --- |
 | 调一个 OD 没有的工具（Figma REST、AST 解析、SVG 转换…） | 在 `od.context.mcp[]` 里捆绑一个 MCP server | §5 / §5.3（`mcp` + `subprocess` + `network`） |
-| 在用户真实仓库上工作 | `od project import <path>` 把 repo 装进 OD 的 project model；之后 `od files` 与 agent 文件操作就地可用 | §12 / §11.7 / §14.3 |
+| 在用户真实仓库上工作 | `readable project import <path>` 把 repo 装进 OD 的 project model；之后 `readable files` 与 agent 文件操作就地可用 | §12 / §11.7 / §14.3 |
 | 跑任意 build / test / lint / 自定义脚本 | `bash` / `subprocess` capability | §5.3 |
 | 拉起一段第三方 OAuth | GenUI `oauth-prompt` surface，route=`mcp` | §10.3.1 |
 | 自定义 HITL 表单 / 选项 / 确认 | GenUI `form` / `choice` / `confirmation` surface 声明 | §10.3 |
 | 让答案跨对话 / 跨 run 不再追问 | `genui_surfaces` 表 + `persist: 'project' \| 'conversation' \| 'run'` | §10.3.3 |
 | 多阶段 + 迭代收敛 | `od.pipeline.stages[]` + `repeat: true` + `until` | §10.1 / §10.2 |
 | 承载 artifact 血缘 | `ArtifactManifest.parentArtifactId` + `sourcePluginSnapshotId` | §11.5.1 |
-| 半年后仍可重放 | `AppliedPluginSnapshot` 不可变 + `od plugin replay` | §8.2.1 / §12 |
+| 半年后仍可重放 | `AppliedPluginSnapshot` 不可变 + `readable plugin replay` | §8.2.1 / §12 |
 | 教 agent 一整套领域工作流 | `SKILL.md` body 注入 prompt + `od.context.assets[]` 携带例子 | §11.3 `composeSystemPrompt()` |
 
 总结成一条规则：**OD 一方 atom 缺位 → plugin 作者用 `MCP server + bash + SKILL.md` 三件套替代**。代价是 ergonomics（每个 plugin 各自重新发明命名和 prompt fragment），不是能力。
@@ -2048,7 +2048,7 @@ manifest 草图：
 
 #### 22.3.2 不依赖一方 `code-import` / `rewrite-plan` / `build-test` 的代码库刷新 plugin
 
-前置：用户先 `od project import /path/to/old-repo`，project cwd 就是真实仓库。
+前置：用户先 `readable project import /path/to/old-repo`，project cwd 就是真实仓库。
 
 manifest 声明 `bash` + `subprocess` + `fs:write`；SKILL.md 引导 agent：
 
@@ -2071,7 +2071,7 @@ plugin 作者在 v1 不应该试图把整段 handoff 都在 OD 内部完成。�
 
 - plugin 在 project cwd 里产出 `artifactKind: 'code-diff'` + `handoffKind: 'patch'` 的 artifact。
 - 最后一个 stage 触发一个 `confirmation` GenUI surface："准备 apply 吗？把 project cwd 在 Cursor / Claude Code / Codex 中打开，按附带的指令执行。"
-- `od files` 留下 audit；`parentArtifactId` 把 patch artifact 接到 design artifact 上。
+- `readable files` 留下 audit；`parentArtifactId` 把 patch artifact 接到 design artifact 上。
 
 这就是 §21.5 的契约；plugin 作者写 SKILL.md 引导 agent 产出 handoff 形态的 artifact，到 OD 内部跑 patch 这一步就此打住。
 
@@ -2125,7 +2125,7 @@ C 类是 v1 已交付的那一半；A 类的第一批也已经移动。截至本
 - 驱动 §1 产品 brief 里"一致性"的 active design system + craft 注入，已经是 plugin substrate 的读：一方 DESIGN.md 没有比第三方 DESIGN.md 多任何特权路径。
 - `plugins/_official/atoms/**` 下的一方 atom plugins 已经携带 atom SKILL.md body 与 manifest metadata；`packages/contracts/src/prompts/atom-block.ts` 可以从这些 bodies 渲染 active stage blocks。
 - `plugins/_official/scenarios/**` 下的 bundled scenario plugins 已经携带默认 pipeline 形态，其中包括用于 Home 自由输入 routing / task shaping 的 `od-default`。`packages/plugin-runtime/src/pipeline-fallback.ts` 会在 plugin 省略 `od.pipeline` 时，通过这些 bundled scenarios 解析 applied pipeline。
-- `@open-design/agui-adapter` 与 `/api/runs/:runId/agui` 提供外部 AG-UI event projection，同时不改变 OD 内部 GenUI renderer。
+- `@readable-studio/agui-adapter` 与 `/api/runs/:runId/agui` 提供外部 AG-UI event projection，同时不改变 OD 内部 GenUI renderer。
 
 这就是 §22 成立的原因：substrate 已经在 plugin artifacts、snapshots、GenUI declarations、pipeline declarations、bundled scenarios 与第一条 atom-body injection path 上自举。剩余硬编码部分更窄，也更偏产品入口：OD 基础 designer/discovery prompt、部分 stage-entry 选择逻辑、Home curated scenario rail，以及 §22.4 中列出的封闭 signal / surface 词汇表。
 
@@ -2169,7 +2169,7 @@ Bundled scenario plugins 与 pipeline fallback resolver 现在已经存在。剩
 | trust 等级 | 来源 | 安装时是否 capability prompt | 是否可被 marketplace upgrade 替换 | SQLite `source_kind` |
 | --- | --- | --- | --- | --- |
 | `bundled` | `<repo-root>/plugins/_official/**` | 否 —— daemon 内部 allowlist 直接授权 | 否 —— 仅随 daemon 升级一同替换 | `bundled` |
-| `trusted` | 一方 / 显式 trust 的 marketplace | 否 —— 安装即自动授权 | 是 —— `od plugin update` 可以拉新版本 | `marketplace` |
+| `trusted` | 一方 / 显式 trust 的 marketplace | 否 —— 安装即自动授权 | 是 —— `readable plugin update` 可以拉新版本 | `marketplace` |
 | `restricted` | 其他来源（GitHub URL、任意 marketplace、本地文件夹） | 是 —— 需 capability checklist | 是 | `github` / `url` / `local` / `marketplace` |
 
 `bundled` 等级让 patch 2 与 patch 3 安全：daemon 不会就自己一直拥有的 capability 来给自己提示，恶意 marketplace plugin 也无法靠重用 bundled atom 的 id 来冒充。
@@ -2180,7 +2180,7 @@ daemon 启动多一步：
 
 1. 走 `<repo-root>/plugins/_official/**`，把每个 plugin 注册到 `installed_plugins` 中：`source_kind='bundled'`、`trust='bundled'`、capabilities = 该 plugin 声明的 `od.capabilities`。
 2. bundled plugin **不**复制到 `<daemonDataDir>/plugins/`；它们直接从 repo path 加载并热重载，daemon 升级时与 daemon 代码同步替换。
-3. `od plugin uninstall` 拒绝 uninstall `bundled` plugin（会让 daemon 失能）；`od plugin update` 对 bundled 是 no-op。
+3. `readable plugin uninstall` 拒绝 uninstall `bundled` plugin（会让 daemon 失能）；`readable plugin update` 对 bundled 是 no-op。
 4. 用户可以安装一个 id 与 bundled 相同的 `trusted` 或 `restricted` plugin；正常 apply 时用户 copy 胜出，但 daemon 保留 bundled copy 作为 fallback，给那些 pin 了 bundled 版本的旧 `AppliedPluginSnapshot` replay 用。
 
 ### 23.4 自举之后的 kernel：纯 assembler

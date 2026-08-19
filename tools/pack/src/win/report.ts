@@ -155,7 +155,7 @@ export async function collectWinSizeReport(
   const copiedStandaloneNodeModulesRoot = join(copiedStandaloneRoot, "node_modules");
   const copiedStandaloneWebNodeModulesRoot = join(copiedStandaloneRoot, "apps", "web", "node_modules");
   const electronLocalesRoot = join(unpackedRoot, "locales");
-  const rootWebPackageRoot = join(appNodeModulesRoot, "@open-design", "web");
+  const rootWebPackageRoot = join(appNodeModulesRoot, "@readable-studio", "web");
   return {
     builder: {
       ...builder,

@@ -1,4 +1,4 @@
-import type { ArtifactKind, ProjectFileKind } from '@open-design/contracts';
+import type { ArtifactKind, ProjectFileKind } from '@readable-studio/contracts';
 import { isSafeId } from './projects.js';
 
 const MAX_RELATIVE_PATH_BYTES = 1_024;

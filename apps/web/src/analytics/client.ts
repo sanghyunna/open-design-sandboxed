@@ -6,7 +6,7 @@
 import type {
   AnalyticsClientType,
   AnalyticsConfigureGlobals,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 type AnalyticsClient = {
   capture?: (event: string, properties?: Record<string, unknown>) => void;

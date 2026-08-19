@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { JSDOM, VirtualConsole } from 'jsdom';
-import { DECK_SKELETON_HTML } from '@open-design/contracts';
+import { DECK_SKELETON_HTML } from '@readable-studio/contracts';
 import type { DOMWindow } from 'jsdom';
 
 const tasteEditorialExamplePath = fileURLToPath(

@@ -11,7 +11,7 @@ import {
   isolatedAgentEnv,
   startIsolatedToolBroker,
 } from '../src/isolated-agent-runtime.js';
-import { spawnIsolatedAgent } from '@open-design/platform';
+import { spawnIsolatedAgent } from '@readable-studio/platform';
 
 const roots: string[] = [];
 const nativeHelper = fileURLToPath(

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Input } from '@open-design/components';
+import { Button, Input } from '@readable-studio/components';
 import { useT } from '../i18n';
 import { Icon } from './Icon';
 import { readDefaultSketchToolColor } from './sketch-colors';

@@ -15,9 +15,9 @@ import type {
   McpServerConfig,
   InstalledPluginRecord,
   ProjectKind,
-} from '@open-design/contracts';
-import { DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID } from '@open-design/contracts';
-import { projectKindToTracking } from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts';
+import { DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID } from '@readable-studio/contracts';
+import { projectKindToTracking } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackCommunityGalleryClick,

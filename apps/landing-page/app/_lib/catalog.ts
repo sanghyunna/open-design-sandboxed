@@ -35,14 +35,14 @@ import {
 // ---------------------------------------------------------------------------
 // Preview imagery lookup
 //
-// Previews are produced offline by `pnpm --filter @open-design/landing-page
+// Previews are produced offline by `pnpm --filter @readable-studio/landing-page
 // previews` and saved under `public/previews/<bucket>/<slug>.png`. We read
 // the directory listing once at build time so each catalog record can carry
 // a `previewUrl` (or `null` when the underlying skill has no `example.html`).
 // ---------------------------------------------------------------------------
 
 const PREVIEWS_ROOT_CANDIDATES = [
-  // `pnpm --filter @open-design/landing-page build` may keep cwd at the
+  // `pnpm --filter @readable-studio/landing-page build` may keep cwd at the
   // workspace root, while direct package scripts run from the app root.
   path.resolve(process.cwd(), 'apps/landing-page/public/previews'),
   path.resolve(process.cwd(), 'public/previews'),

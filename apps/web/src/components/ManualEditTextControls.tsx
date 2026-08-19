@@ -4,7 +4,7 @@
 // (validation/preview/save match the floating panel). B/I/U are selection-level
 // rich text that drive the execCommand bridge via onRichFormat.
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { RemixIcon } from './RemixIcon';

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { HostedMessagesResponse, HostedSessionResponse } from '@open-design/contracts';
+import type { HostedMessagesResponse, HostedSessionResponse } from '@readable-studio/contracts';
 
 import { createSmokeSuite } from '@/smoke-suite';
 import { T } from '@/timeouts';

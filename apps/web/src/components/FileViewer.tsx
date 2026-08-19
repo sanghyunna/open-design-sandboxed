@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal, flushSync } from 'react-dom';
-import { Button, Input, Select, VisuallyHidden } from '@open-design/components';
+import { Button, Input, Select, VisuallyHidden } from '@readable-studio/components';
 import { APP_CHROME_FILE_ACTIONS_ID, APP_CHROME_FILE_ACTIONS_SELECTOR } from './AppChromeHeader';
 import {
   buildSocialSharePayload,
   OPEN_DESIGN_GITHUB_REPO_URL,
   type SocialShareRequest,
   type SocialShareResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   anonymizeArtifactId,
   artifactKindToTracking,
   type TrackingProjectKind,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import { trackIframeLoad } from '../observability/iframe-error';
 import {

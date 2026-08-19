@@ -15,7 +15,7 @@
 
 import { JSDOM } from 'jsdom';
 import { describe, expect, test } from 'vitest';
-import type { DesktopExportPdfInput } from '@open-design/sidecar-proto';
+import type { DesktopExportPdfInput } from '@readable-studio/sidecar-proto';
 
 import {
   buildPrintableDocument,

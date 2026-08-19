@@ -1,12 +1,12 @@
 'use client';
 
-import { Button, Input, Select, Textarea } from '@open-design/components';
+import { Button, Input, Select, Textarea } from '@readable-studio/components';
 import type {
   HostedConversation,
   HostedProject,
   HostedRunCreateV1,
   HostedRunStatus,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useHostedT } from '../i18n/hosted';
 import type { HostedProviderClient } from '../providers/hosted';

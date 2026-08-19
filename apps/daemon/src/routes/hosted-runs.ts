@@ -5,7 +5,7 @@ import {
   type ApiErrorCode,
   type HostedGenUiSurface,
   type HostedRunFeedbackRequest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { Express, RequestHandler, Response } from 'express';
 
 import {

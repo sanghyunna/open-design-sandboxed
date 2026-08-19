@@ -11,7 +11,7 @@ the repository's active product boundary; detailed work stays in
 - The shipped runtime is a local daemon, the Next.js web app, and the Electron
   desktop/packaged shells.
 - User-facing capabilities must be available through both the web UI and the
-  `od` CLI, backed by the same daemon HTTP contracts.
+  `readable` CLI, backed by the same daemon HTTP contracts.
 - Local development runs through `pnpm tools-dev`; local packaged validation
   runs through `pnpm tools-pack` and deterministic updater fixtures from
   `pnpm tools-serve`.

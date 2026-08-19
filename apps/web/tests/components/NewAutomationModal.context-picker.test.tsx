@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 import { NewAutomationModal } from '../../src/components/NewAutomationModal';
 import type { SkillSummary } from '../../src/types';

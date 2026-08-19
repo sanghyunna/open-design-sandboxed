@@ -44,7 +44,7 @@ The differentiation is not "yet another design generator." It is **an integratio
 - **Indie devs / designers** who already pay for one coding agent and don't want a second subscription or a second model router just to get design output.
 - **Design system maintainers** who want to codify their system as a `DESIGN.md` and have every skill respect it automatically.
 - **Skill authors** who want to publish a design skill (e.g. "SaaS marketing page with glassmorphism") and have it run inside any compatible agent without porting.
-- **Teams embedding local AI tooling** through the web UI or `od` CLI while keeping keys and runtime data on their own machines.
+- **Teams embedding local AI tooling** through the web UI or `readable` CLI while keeping keys and runtime data on their own machines.
 
 ## 4. User scenarios
 
@@ -75,7 +75,7 @@ The fifth is the cross-product loop described in [`automation-self-evolution.md`
 └────────────┬─────────────────────────────────┬───────────────────┘
              │ HTTP + SSE (/api/chat)          │ HTTPS (BYOK direct)
 ┌────────────▼──────────────────┐     ┌────────▼─────────────────┐
-│   Local Daemon (od daemon)   │     │   Anthropic Messages API │
+│   Local Daemon (readable daemon)   │     │   Anthropic Messages API │
 │   · agent detection           │     │   (fallback when no CLI) │
 │   · skill registry            │     └──────────────────────────┘
 │   · artifact store            │
@@ -96,8 +96,8 @@ Module responsibilities:
 - **Skill registry** — scans `~/.claude/skills/`, `./skills/`, and `./.claude/skills/`; merges and exposes a typed catalog.
 - **Artifact store** — project-scoped folder (default `./.od/`) holding generated files, version snapshots (git-friendly), and per-artifact metadata.
 - **Design-system resolver** — loads the active `DESIGN.md`, injects it as skill context.
-- **Automations** — templates that orchestrate memory updates, skill crystallization, design-system extraction, token compression, and review gates; source packets enter through the Automations page, `/api/automation-ingestions`, and `od automation source`, while evolution proposals are reviewable through `/api/automation-proposals` and `od automation proposal`.
-- **Memory / evolution store** — editable Markdown-backed memory tree exposed through Settings, `/api/memory/tree`, and `od memory tree`; accepted tree nodes feed future daemon and BYOK/API-mode agent prompts, and accepted proposals can write reviewed memory, skill, and design-system drafts into user-owned runtime roots.
+- **Automations** — templates that orchestrate memory updates, skill crystallization, design-system extraction, token compression, and review gates; source packets enter through the Automations page, `/api/automation-ingestions`, and `readable automation source`, while evolution proposals are reviewable through `/api/automation-proposals` and `readable automation proposal`.
+- **Memory / evolution store** — editable Markdown-backed memory tree exposed through Settings, `/api/memory/tree`, and `readable memory tree`; accepted tree nodes feed future daemon and BYOK/API-mode agent prompts, and accepted proposals can write reviewed memory, skill, and design-system drafts into user-owned runtime roots.
 - **Preview renderer** — sandboxed iframe with vendored React + Babel for JSX artifacts; plain iframe for HTML; PDF via the daemon's headless Chrome.
 - **Export pipeline** — HTML (inlined), PDF, PPTX, ZIP, Markdown.
 
@@ -137,9 +137,9 @@ In short: Claude Design is a product; OD is a **substrate**.
 ## 9. Success criteria for v1
 
 - One developer can `git clone && corepack enable && pnpm install && pnpm tools-dev run web`, point at their Claude Code install, and produce a prototype in under 5 minutes.
-- A third party can author a skill in a separate git repo, publish it, and have a user install it by running `od skill add <git-url>` without touching OD's source.
+- A third party can author a skill in a separate git repo, publish it, and have a user install it by running `readable skill add <git-url>` without touching OD's source.
 - A design system author can write a `DESIGN.md`, point OD at it, and have the style propagate across prototype / deck / template outputs.
-- The web UI and `od` CLI drive the same daemon contracts end-to-end.
+- The web UI and `readable` CLI drive the same daemon contracts end-to-end.
 - Swapping the underlying agent from Claude Code to Codex requires zero skill changes.
 
 ## 10. Open questions (to resolve before coding)

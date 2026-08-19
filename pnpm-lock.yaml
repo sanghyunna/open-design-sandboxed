@@ -27,19 +27,19 @@ importers:
 
   .:
     devDependencies:
-      '@open-design/components':
+      '@readable-studio/components':
         specifier: workspace:*
         version: link:packages/components
-      '@open-design/daemon':
+      '@readable-studio/daemon':
         specifier: workspace:*
         version: link:apps/daemon
-      '@open-design/tools-dev':
+      '@readable-studio/tools-dev':
         specifier: workspace:*
         version: link:tools/dev
-      '@open-design/tools-pack':
+      '@readable-studio/tools-pack':
         specifier: workspace:*
         version: link:tools/pack
-      '@open-design/tools-serve':
+      '@readable-studio/tools-serve':
         specifier: workspace:*
         version: link:tools/serve
       '@types/node':
@@ -60,28 +60,28 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@4.4.2)
-      '@open-design/agui-adapter':
+      '@readable-studio/agui-adapter':
         specifier: workspace:*
         version: link:../../packages/agui-adapter
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@open-design/diagnostics':
+      '@readable-studio/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/plugin-runtime':
+      '@readable-studio/plugin-runtime':
         specifier: workspace:*
         version: link:../../packages/plugin-runtime
-      '@open-design/registry-protocol':
+      '@readable-studio/registry-protocol':
         specifier: workspace:*
         version: link:../../packages/registry-protocol
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
       '@opentelemetry/api':
@@ -145,28 +145,28 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@open-design/diagnostics':
+      '@readable-studio/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
-      '@open-design/download':
+      '@readable-studio/download':
         specifier: workspace:*
         version: link:../../packages/download
-      '@open-design/host':
+      '@readable-studio/host':
         specifier: workspace:*
         version: link:../../packages/host
-      '@open-design/launcher-proto':
+      '@readable-studio/launcher-proto':
         specifier: workspace:*
         version: link:../../packages/launcher-proto
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
     devDependencies:
@@ -243,25 +243,25 @@ importers:
 
   apps/packaged:
     dependencies:
-      '@open-design/daemon':
+      '@readable-studio/daemon':
         specifier: workspace:*
         version: link:../daemon
-      '@open-design/desktop':
+      '@readable-studio/desktop':
         specifier: workspace:*
         version: link:../desktop
-      '@open-design/launcher-proto':
+      '@readable-studio/launcher-proto':
         specifier: workspace:*
         version: link:../../packages/launcher-proto
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
-      '@open-design/web':
+      '@readable-studio/web':
         specifier: workspace:*
         version: link:../web
     devDependencies:
@@ -292,22 +292,22 @@ importers:
       '@lexical/utils':
         specifier: 0.36.2
         version: 0.36.2
-      '@open-design/components':
+      '@readable-studio/components':
         specifier: workspace:*
         version: link:../../packages/components
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@open-design/host':
+      '@readable-studio/host':
         specifier: workspace:*
         version: link:../../packages/host
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
       '@xterm/addon-fit':
@@ -371,10 +371,10 @@ importers:
 
   e2e:
     devDependencies:
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
-      '@open-design/daemon':
+      '@readable-studio/daemon':
         specifier: workspace:*
         version: link:../apps/daemon
       '@playwright/test':
@@ -404,7 +404,7 @@ importers:
 
   packages/agui-adapter:
     dependencies:
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
@@ -476,7 +476,7 @@ importers:
 
   packages/download:
     dependencies:
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../platform
     devDependencies:
@@ -510,7 +510,7 @@ importers:
 
   packages/launcher-proto:
     dependencies:
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../sidecar-proto
     devDependencies:
@@ -563,7 +563,7 @@ importers:
 
   packages/plugin-runtime:
     dependencies:
-      '@open-design/contracts':
+      '@readable-studio/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -650,13 +650,13 @@ importers:
 
   tools/dev:
     dependencies:
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
       cac:
@@ -684,16 +684,16 @@ importers:
       '@electron/rebuild':
         specifier: 4.0.4
         version: 4.0.4
-      '@open-design/launcher-proto':
+      '@readable-studio/launcher-proto':
         specifier: workspace:*
         version: link:../../packages/launcher-proto
-      '@open-design/platform':
+      '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@open-design/sidecar':
+      '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar
-      '@open-design/sidecar-proto':
+      '@readable-studio/sidecar-proto':
         specifier: workspace:*
         version: link:../../packages/sidecar-proto
       cac:

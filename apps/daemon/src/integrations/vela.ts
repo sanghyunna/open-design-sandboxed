@@ -3,12 +3,12 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { createCommandInvocation } from '@open-design/platform';
+import { createCommandInvocation } from '@readable-studio/platform';
 import type {
   AmrEntryAttribution,
   TrackingAmrEntrySource,
   TrackingPageName,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 import { resolveAgentLaunch } from '../runtimes/launch.js';
 import { spawnEnvForAgent } from '../runtimes/env.js';

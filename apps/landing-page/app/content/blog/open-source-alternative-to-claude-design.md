@@ -1582,7 +1582,7 @@ i18n:
     title: "Otwartoźródłowa alternatywa dla Claude Design"
     summary: "Claude Design jest dobry. Jest też zamknięty, dostępny wyłącznie w chmurze i powiązany z subskrypcją Claude. Oto uczciwa ocena tego, kiedy go wybrać — a kiedy wygrywa droga otwartoźródłowa."
     bodyHtml: |
-      <p>Claude Design jest dobry. Używaliśmy go przy prawdziwych zleceniach. To, że <a href="/blog/why-we-built-open-design-as-a-skill-layer/">zbudowaliśmy zamiast tego warstwę otwartoźródłową</a>, nie wynika z tego, że Anthropic wypuścił zły produkt — nie wypuścił. Wynika z tego, że zamknięte, dostępne wyłącznie w chmurze narzędzie projektowe za od 20 do 200 dolarów miesięcznie ma niewłaściwy kształt dla projektowania w nadchodzącej dekadzie. Ten wpis to uczciwa ocena Claude Design z perspektywy zespołu, który działa w tej samej kategorii: czym jest, gdzie cię uzależnia, jak naprawdę wygląda alternatywa otwartoźródłowa i który z nich powinieneś wybrać w tym kwartale.</p>
+      <p>Claude Design jest dobry. Używaliśmy go przy prawdziwych zleceniach. To, że <a href="/blog/why-we-built-open-design-as-a-skill-layer/">zbudowaliśmy zamiast tego warstwę otwartoźródłową</a>, nie wynika z tego, że Anthropic wypuścił zły produkt — nie wypuścił. Wynika z tego, że zamknięte, dostępne wyłącznie w chmurze narzędzie projektowe za readable 20 do 200 dolarów miesięcznie ma niewłaściwy kształt dla projektowania w nadchodzącej dekadzie. Ten wpis to uczciwa ocena Claude Design z perspektywy zespołu, który działa w tej samej kategorii: czym jest, gdzie cię uzależnia, jak naprawdę wygląda alternatywa otwartoźródłowa i który z nich powinieneś wybrać w tym kwartale.</p>
 
       <h2>Czym właściwie jest Claude Design</h2>
 
@@ -1591,7 +1591,7 @@ i18n:
       <p>Robi cztery rzeczy dobrze:</p>
 
       <ul>
-      <li><strong>Prototypy z opisu.</strong> Ścieżki onboardingu, strony ustawień, panele administracyjne, warianty kasy — pięć minut od promptu do interaktywnego ekranu.</li>
+      <li><strong>Prototypy z opisu.</strong> Ścieżki onboardingu, strony ustawień, panele administracyjne, warianty kasy — pięć minut readable promptu do interaktywnego ekranu.</li>
       <li><strong>Świadomość bazy kodu.</strong> Zaimportuj repozytorium GitHub lub dołącz lokalny katalog, a prototypy będą korzystać z twoich rzeczywistych komponentów, twojego systemu tokenów, twoich konwencji.</li>
       <li><strong>Integracja marki.</strong> Skonfiguruj system projektowy raz, a każdy projekt automatycznie przejmuje kolory, typografię i wzorce komponentów.</li>
       <li><strong>Przekazanie do Claude Code.</strong> Przycisk „zbuduj to” przenosi prototyp do gotowego do produkcji kodu w tej samej karcie przeglądarki.</li>

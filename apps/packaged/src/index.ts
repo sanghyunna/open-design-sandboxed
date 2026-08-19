@@ -6,19 +6,19 @@ import {
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
-import { parseLauncherAfterQuitArgs } from "@open-design/launcher-proto";
+} from "@readable-studio/sidecar-proto";
+import { parseLauncherAfterQuitArgs } from "@readable-studio/launcher-proto";
 import {
   bootstrapSidecarRuntime,
   createSidecarLaunchEnv,
   resolveAppIpcPath,
-} from "@open-design/sidecar";
+} from "@readable-studio/sidecar";
 import {
   applyOsLocaleSwitch,
   consumeDesktopApprovalToken,
   createSplashWindow,
-} from "@open-design/desktop/main";
-import { addLoopbackNoProxyEnv, readProcessStamp } from "@open-design/platform";
+} from "@readable-studio/desktop/main";
+import { addLoopbackNoProxyEnv, readProcessStamp } from "@readable-studio/platform";
 import { join } from "node:path";
 import { app, dialog } from "electron";
 
@@ -181,7 +181,7 @@ async function main(): Promise<void> {
   });
   registerOdProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
 
-  const { runDesktopMain } = await import("@open-design/desktop/main");
+  const { runDesktopMain } = await import("@readable-studio/desktop/main");
   startupTiming.mark("desktop-main-handoff");
   await runDesktopMain(runtime, {
     desktopApprovalToken,

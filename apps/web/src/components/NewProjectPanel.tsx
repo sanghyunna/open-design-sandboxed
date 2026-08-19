@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { createTabToTracking } from '@open-design/contracts/analytics';
-import { isOpenDesignHostAvailable, pickHostWorkingDir } from '@open-design/host';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import { createTabToTracking } from '@readable-studio/contracts/analytics';
+import { isOpenDesignHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
+import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackDesignSystemApplyResult,
@@ -13,7 +13,7 @@ import type {
   TrackingDesignSystemApplyTargetKind,
   TrackingDesignSystemOrigin,
   TrackingDesignSystemStatusValue,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ProjectLocation } from '@open-design/contracts';
+import type { ProjectLocation } from '@readable-studio/contracts';
 import type { AppConfig } from '../types';
 import {
   fetchProjectLocations,

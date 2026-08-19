@@ -1,5 +1,5 @@
 {
-  "name": "@open-design/e2e",
+  "name": "@readable-studio/e2e",
   "version": "0.2.2",
   "private": true,
   "type": "module",
@@ -19,8 +19,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@open-design/contracts": "workspace:*",
-    "@open-design/daemon": "workspace:*",
+    "@readable-studio/contracts": "workspace:*",
+    "@readable-studio/daemon": "workspace:*",
     "@playwright/test": "1.60.0",
     "@types/node": "20.19.39",
     "@types/pngjs": "6.0.5",

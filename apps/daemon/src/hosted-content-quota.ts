@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@open-design/contracts';
+import type { ApiErrorCode } from '@readable-studio/contracts';
 import { lstat, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 

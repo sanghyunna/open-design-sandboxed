@@ -14,11 +14,11 @@
 import type {
   TrackingFileSizeBucket,
   TrackingFileType,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import {
   fileSizeBucketToTracking,
   fileTypeToTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 export interface UploadCohort {
   file_count: number;

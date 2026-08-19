@@ -16,7 +16,7 @@ import type {
   RollbackConflictPolicy,
   RollbackFileChangeCounts,
   RollbackMode,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { migrateCritique } from './critique/persistence.js';
 import { migratePlugins } from './plugins/persistence.js';
 

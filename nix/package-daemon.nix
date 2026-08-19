@@ -15,7 +15,7 @@
   gnumake,
   pkg-config,
 }:
-# Builds the @open-design/daemon workspace package — produces $out/bin/od.
+# Builds the @readable-studio/daemon workspace package — produces $out/bin/readable.
 #
 # Implementation note on dream2nix:
 #   The flake takes `dream2nix` as an input (per the project's Nix
@@ -154,17 +154,17 @@ in
       # the copied node_modules tree so Nix fixup does not fail on broken
       # links.
       rm -f \
-        $out/lib/open-design/node_modules/@open-design/components \
-        $out/lib/open-design/node_modules/@open-design/tools-dev \
-        $out/lib/open-design/node_modules/@open-design/tools-pack \
-        $out/lib/open-design/node_modules/@open-design/tools-serve \
+        $out/lib/open-design/node_modules/@readable-studio/components \
+        $out/lib/open-design/node_modules/@readable-studio/tools-dev \
+        $out/lib/open-design/node_modules/@readable-studio/tools-pack \
+        $out/lib/open-design/node_modules/@readable-studio/tools-serve \
         $out/lib/open-design/node_modules/.bin/tools-dev \
         $out/lib/open-design/node_modules/.bin/tools-pack \
         $out/lib/open-design/node_modules/.bin/tools-serve
 
       chmod +x $out/lib/open-design/apps/daemon/dist/cli.js
 
-      makeWrapper ${nodejs}/bin/node $out/bin/od \
+      makeWrapper ${nodejs}/bin/node $out/bin/readable \
         --add-flags $out/lib/open-design/apps/daemon/dist/cli.js \
         --set NODE_ENV production
       runHook postInstall
@@ -176,10 +176,10 @@ in
     };
 
     meta = with lib; {
-      description = "Open Design daemon — local agent orchestrator + API (`od` CLI)";
+      description = "Open Design daemon — local agent orchestrator + API (`readable` CLI)";
       homepage = "https://github.com/sanghyunna/open-design-sandboxed";
       license = licenses.asl20;
-      mainProgram = "od";
+      mainProgram = "readable";
       platforms = platforms.linux ++ platforms.darwin;
     };
   })

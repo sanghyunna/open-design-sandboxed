@@ -61,17 +61,17 @@ Here is the minimum path for a plugin that ports one Figma landing-page workflow
 6. **Validate and pack.** Run the plugin commands before opening a PR.
 
 The current CLI path uses a lowercase plugin id. Avoid slash-separated
-registry names at scaffold time; `od plugin scaffold` creates
+registry names at scaffold time; `readable plugin scaffold` creates
 `<out>/<id>/...`, so the follow-up commands point at that generated folder:
 
 ```bash
-od plugin scaffold --id figma-workflow --title "Figma workflow" --out ./plugins/community
-od plugin validate ./plugins/community/figma-workflow --no-daemon
-od plugin pack ./plugins/community/figma-workflow
+readable plugin scaffold --id figma-workflow --title "Figma workflow" --out ./plugins/community
+readable plugin validate ./plugins/community/figma-workflow --no-daemon
+readable plugin pack ./plugins/community/figma-workflow
 ```
 
 When the plugin is ready for registry review, authenticate through GitHub
-with `od plugin login` and `od plugin whoami --json`, then follow the
+with `readable plugin login` and `readable plugin whoami --json`, then follow the
 publishing docs for the current review path. Open Design does not store
 your GitHub credentials.
 

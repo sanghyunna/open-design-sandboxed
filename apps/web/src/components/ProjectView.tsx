@@ -54,18 +54,18 @@ import {
   type ComposeInput,
   type MemorySystemPromptResponse,
   type ResearchOptions,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   anonymizeArtifactId,
   artifactKindToTracking,
   projectKindToTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import type {
   TrackingArtifactKind,
   TrackingDesignSystemApplyTargetKind,
   TrackingDesignSystemOrigin,
   TrackingDesignSystemStatusValue,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackArtifactHeaderClick,
@@ -123,7 +123,7 @@ import {
   type SaveMessageOptions,
   waitGeneratedPluginShareTask,
 } from '../state/projects';
-import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, RollbackMode, WorkspaceContextItem } from '@open-design/contracts';
+import type { AppliedPluginSnapshot, ChatAnalyticsEntryFrom, ChatSessionMode, InstalledPluginRecord, RollbackMode, WorkspaceContextItem } from '@readable-studio/contracts';
 import type {
   AgentEvent,
   AgentInfo,

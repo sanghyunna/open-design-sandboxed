@@ -19,8 +19,8 @@ import {
   type PluginFolderCandidate,
 } from "./design-files/pluginFolders";
 import type { PluginFolderAgentAction } from "./design-files/pluginFolderActions";
-import { Button } from "@open-design/components";
-import type { AgentRollbackRequestEvent } from "@open-design/contracts";
+import { Button } from "@readable-studio/components";
+import type { AgentRollbackRequestEvent } from "@readable-studio/contracts";
 import { Icon } from "./Icon";
 import { NextStepActions } from "./NextStepActions";
 import type { DesignToolboxActionId } from "../runtime/design-toolbox";

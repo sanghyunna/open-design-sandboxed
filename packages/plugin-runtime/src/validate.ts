@@ -1,4 +1,4 @@
-import { PluginManifestSchema, type PluginManifest } from '@open-design/contracts';
+import { PluginManifestSchema, type PluginManifest } from '@readable-studio/contracts';
 
 export interface ValidateResult {
   ok: boolean;

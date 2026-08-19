@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from 'react-dom';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useI18n, useT } from '../i18n';
 import { localizePluginDescription, localizePluginTitle } from './plugins-home/localization';
 import type { Dict, Locale } from '../i18n/types';
@@ -27,11 +27,11 @@ import {
   trackDesignToolboxClick,
   trackFileUploadResult,
 } from '../analytics/events';
-import { sessionModeToTracking } from '@open-design/contracts/analytics';
+import { sessionModeToTracking } from '@readable-studio/contracts/analytics';
 import type {
   ComposerBarClickProps,
   DesignToolboxClickProps,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { deriveUploadCohort } from '../analytics/upload-tracking';
 import { projectRawUrl, uploadProjectFiles } from "../providers/registry";
 import { patchProject } from "../state/projects";
@@ -48,7 +48,7 @@ import type {
   ResearchOptions,
   RunContextSelection,
   WorkspaceContextItem,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { buildVisualAnnotationAttachment, commentTargetDisplayName } from '../comments';
 import { Icon, type IconName } from "./Icon";
 import { SessionModeToggle } from './SessionModeToggle';

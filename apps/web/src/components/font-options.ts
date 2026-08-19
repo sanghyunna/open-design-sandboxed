@@ -1,4 +1,4 @@
-import type { SystemFontFamily } from '@open-design/contracts';
+import type { SystemFontFamily } from '@readable-studio/contracts';
 
 export interface FontOption {
   value: string;

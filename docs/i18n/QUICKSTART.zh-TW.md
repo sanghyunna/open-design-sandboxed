@@ -68,8 +68,8 @@ pnpm tools-dev status          # 檢查受管理的 runtime 狀態
 pnpm tools-dev logs            # 查看 daemon / web / desktop 日誌
 pnpm tools-dev check           # 查看 status + 最近日誌 + 常見診斷
 pnpm tools-dev stop            # 停止受管理的 runtime
-pnpm --filter @open-design/daemon build  # 建置 apps/daemon/dist/cli.js，供 `od` 使用
-pnpm --filter @open-design/web build     # 在需要時建置 web package
+pnpm --filter @readable-studio/daemon build  # 建置 apps/daemon/dist/cli.js，供 `readable` 使用
+pnpm --filter @readable-studio/web build     # 在需要時建置 web package
 pnpm typecheck                 # 對整個 workspace 執行 typecheck
 ```
 
@@ -79,7 +79,7 @@ pnpm typecheck                 # 對整個 workspace 執行 typecheck
 
 ## 媒體生成 / agent dispatcher 問題排除
 
-Image、video、audio、HyperFrames 等 skill 在透過 daemon 啟動 agent 時，會注入環境變數以呼叫本地 `od` CLI：
+Image、video、audio、HyperFrames 等 skill 在透過 daemon 啟動 agent 時，會注入環境變數以呼叫本地 `readable` CLI：
 
 - `OD_BIN` —— `apps/daemon/dist/cli.js` 的絕對路徑。
 - `OD_DAEMON_URL` —— 目前執行的 daemon URL。
@@ -89,7 +89,7 @@ Image、video、audio、HyperFrames 等 skill 在透過 daemon 啟動 agent 時�
 若媒體生成發生錯誤 `OD_BIN: parameter not set`、提示找不到 `apps/daemon/dist/cli.js`、或出現 `failed to reach daemon at http://127.0.0.1:0`，請重新建置 daemon CLI 並重新啟動受管理的 runtime：
 
 ```bash
-pnpm --filter @open-design/daemon build
+pnpm --filter @readable-studio/daemon build
 pnpm tools-dev restart --daemon-port 7457 --web-port 5175
 ls -la apps/daemon/dist/cli.js
 curl -s http://127.0.0.1:7457/api/health
@@ -158,7 +158,7 @@ open-design/
 ├── apps/
 │   ├── daemon/                # Node/Express —— 啟動本地 agent + 提供 API
 │   │   └── src/
-│   │       ├── cli.ts             # `od` bin 入口
+│   │       ├── cli.ts             # `readable` bin 入口
 │   │       ├── server.ts          # /api/* + 靜態資源
 │   │       ├── agents.ts          # 掃描 PATH 中的 claude/codex/devin/gemini/opencode/cursor-agent/qwen/qoder/copilot
 │   │       ├── skills.ts          # SKILL.md loader（frontmatter 解析器）
@@ -209,7 +209,7 @@ open-design/
 │   ├── artifacts/              #   一次性 "Save to disk" 產物
 │   └── projects/<id>/          #   按專案劃分的工作目錄 + agent cwd
 ├── pnpm-workspace.yaml        # apps/* + packages/* + tools/* + e2e
-└── package.json               # 頂層品質腳本 + `od` bin
+└── package.json               # 頂層品質腳本 + `readable` bin
 ```
 
 ## 排障

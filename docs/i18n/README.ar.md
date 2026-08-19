@@ -109,27 +109,27 @@
 
 ## توافق المنصات
 
-> يُشحَن Open Design على هيئة **مهارات وواجهة CLI وخادم MCP** تستهلكها وكلاء البرمجة السائدة بشكل أصلي. بمجرد تثبيت OD، يربط أمر واحد `od mcp install <agent>` خادم MCP في إعدادات ذلك الوكيل، فتستدعي الأدوات نفسها من داخل أي وكيل.
+> يُشحَن Open Design على هيئة **مهارات وواجهة CLI وخادم MCP** تستهلكها وكلاء البرمجة السائدة بشكل أصلي. بمجرد تثبيت OD، يربط أمر واحد `readable mcp install <agent>` خادم MCP في إعدادات ذلك الوكيل، فتستدعي الأدوات نفسها من داخل أي وكيل.
 
 | وكيل البرمجة / المنصة &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | الحالة &nbsp;&nbsp; | تثبيت خادم MCP بأمر واحد &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 |---|:---:|---|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ مدعوم | `od mcp install claude` |
-| [Codex CLI](https://github.com/openai/codex) | ✅ مدعوم | `od mcp install codex` |
-| [Cursor](https://www.cursor.com/cli) | ✅ مدعوم | `od mcp install cursor` |
-| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ مدعوم | `od mcp install copilot` |
-| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ مدعوم | `od mcp install copilot` |
-| Gemini CLI | ✅ مدعوم | `od mcp install gemini` |
-| [OpenCode](https://opencode.ai/) | ✅ مدعوم | `od mcp install opencode` |
-| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ مدعوم | `od mcp install openclaw` |
-| [Antigravity](https://antigravity.google) | ✅ مدعوم | `od mcp install antigravity` |
-| [Cline](https://github.com/cline/cline) | ✅ مدعوم | `od mcp install cline` |
-| [Trae](https://www.trae.ai/) | ✅ مدعوم | `od mcp install trae` |
-| Kimi CLI | ✅ مدعوم | `od mcp install kimi` |
-| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ مدعوم | `od mcp install pi` |
-| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ مدعوم | `od mcp install vibe` |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ مدعوم | `od mcp install hermes` |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ مدعوم | `readable mcp install claude` |
+| [Codex CLI](https://github.com/openai/codex) | ✅ مدعوم | `readable mcp install codex` |
+| [Cursor](https://www.cursor.com/cli) | ✅ مدعوم | `readable mcp install cursor` |
+| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ مدعوم | `readable mcp install copilot` |
+| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ مدعوم | `readable mcp install copilot` |
+| Gemini CLI | ✅ مدعوم | `readable mcp install gemini` |
+| [OpenCode](https://opencode.ai/) | ✅ مدعوم | `readable mcp install opencode` |
+| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ مدعوم | `readable mcp install openclaw` |
+| [Antigravity](https://antigravity.google) | ✅ مدعوم | `readable mcp install antigravity` |
+| [Cline](https://github.com/cline/cline) | ✅ مدعوم | `readable mcp install cline` |
+| [Trae](https://www.trae.ai/) | ✅ مدعوم | `readable mcp install trae` |
+| Kimi CLI | ✅ مدعوم | `readable mcp install kimi` |
+| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ مدعوم | `readable mcp install pi` |
+| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ مدعوم | `readable mcp install vibe` |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ مدعوم | `readable mcp install hermes` |
 
-`od mcp install <agent> --print` لمعاينة تجريبية دون تنفيذ · `--uninstall` للإزالة · القائمة الكاملة عبر `od mcp install --help`.
+`readable mcp install <agent> --print` لمعاينة تجريبية دون تنفيذ · `--uninstall` للإزالة · القائمة الكاملة عبر `readable mcp install --help`.
 
 <p align="center">
   <img src="https://repo-assets.open-design.ai/resources/images/coding-agents.png" alt="The 21 coding-agent CLIs Open Design supports — Claude Code · Codex · OpenCode · Hermes · Antigravity · Gemini · Grok Build · Kimi · Cursor Agent · Qwen · Qoder · GitHub Copilot · Pi · Kiro · Kilo · Mistral Vibe · DeepSeek · Reasonix · Aider · Devin · Trae" width="100%" />
@@ -346,11 +346,11 @@ pnpm tools-dev run web
 curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 
 # Then the agent can:
-od search-files "primary button"      # search files across projects
-od get-file design-systems/linear-app/DESIGN.md
-od get-artifact <slug>                # latest rendered artifact
-od plugin run web-prototype --brief "..."
-od skill list --scenario marketing
+readable search-files "primary button"      # search files across projects
+readable get-file design-systems/linear-app/DESIGN.md
+readable get-artifact <slug>                # latest rendered artifact
+readable plugin run web-prototype --brief "..."
+readable skill list --scenario marketing
 ```
 
 **لماذا MCP؟** تصدير ملف مضغوط وإعادة إرفاقه في كل دورة يكسر الانسياب. يكشف MCP مصدر التصميم مباشرة — فيرى الوكيل دائمًا الملف الحي.
@@ -451,20 +451,20 @@ od skill list --scenario marketing
 
 ### استخدام الإضافات
 
-الإضافات على تكافؤ تام عبر **واجهة الويب** وواجهة **`od` CLI** — نقاط نهاية `/api/plugins` نفسها، اختر ما يناسبك.
+الإضافات على تكافؤ تام عبر **واجهة الويب** وواجهة **`readable` CLI** — نقاط نهاية `/api/plugins` نفسها، اختر ما يناسبك.
 
 **في تطبيق سطح المكتب / الويب:** افتح صفحة **الإضافة** لتصفّح السوق وانقر **تثبيت**؛ وداخل استوديو المشروع، تظهر الإضافات كأشرطة في أداة الإنشاء تنقر عليها لتطبيقها (مع المدخلات التي تصرّح بها).
 
 **على سطر الأوامر** (يعمل دون واجهة مستخدم — هذا هو المسار الذي تستخدمه الوكلاء الخارجية):
 
 ```bash
-od plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
-od plugin search "landing page"      # search by keyword
-od plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
-od plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
-od plugin apply od-default --input brief="a one-page pitch for our seed round"
-od plugin upgrade od-default         # upgrade
-od plugin uninstall od-default       # uninstall
+readable plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
+readable plugin search "landing page"      # search by keyword
+readable plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
+readable plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
+readable plugin apply od-default --input brief="a one-page pitch for our seed round"
+readable plugin upgrade od-default         # upgrade
+readable plugin uninstall od-default       # uninstall
 ```
 
 يدعم كل أمر `--json`، فتستطيع تمريره عبر `jq` / `xargs` إلى الأتمتة.
@@ -487,9 +487,9 @@ my-plugin/
 التهيئة والتحقق محليًا:
 
 ```bash
-od plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
-od plugin validate ./my-plugin                          # check manifest / file layout
-pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
+readable plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
+readable plugin validate ./my-plugin                          # check manifest / file layout
+pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 مجموعة الحقول الكاملة وعقد وقت التشغيل ← [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md)؛ تطوير إضافة بوكيل برمجة ← [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md)؛ قوالب دنيا جاهزة للصق ← [`plugins/spec/examples/`](../../plugins/spec/examples/).
@@ -497,7 +497,7 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 ### المساهمة بإضافة
 
 1. أسقِط مجلد الإضافة في [`plugins/community/`](../../plugins/community/) (الإضافات الخارجية)، أو — لشحنها مجمَّعة مع Open Design — في المستوى المطابق ضمن [`plugins/_official/`](../../plugins/_official/).
-2. اجتز التحقق: `od plugin validate` و`pnpm guard` و`pnpm --filter @open-design/plugin-runtime typecheck`.
+2. اجتز التحقق: `readable plugin validate` و`pnpm guard` و`pnpm --filter @readable-studio/plugin-runtime typecheck`.
 3. املأ الـ PR باستخدام القالب في [`plugins/spec/CONTRIBUTING.md`](../../plugins/spec/CONTRIBUTING.md) (المعرّف، الإصدار، المسار، الوضع، القدرات، أمثلة التشغيل؛ أرفِق لقطة شاشة / معاينة للإضافات البصرية).
 4. للنشر على سجل خارجي (skills.sh / ClawHub / GitHub مستقل) ← [`plugins/spec/PUBLISHING-REGISTRIES.md`](../../plugins/spec/PUBLISHING-REGISTRIES.md).
 
@@ -563,8 +563,8 @@ pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
 - [x] إصدارات Electron مجمَّعة — macOS (Apple Silicon + Intel) + Windows (x64) + Linux AppImage (مسار اختياري)
 - [ ] تعديلات جراحية في وضع التعليق — مشحونة جزئيًا؛ الترقيع المستهدف الموثوق قيد التنفيذ
 - [ ] تجربة استخدام لوحة تعديلات يصدرها الذكاء الاصطناعي — لم تُنفَّذ بعد
-- [ ] `npx od init` لتهيئة مشروع بملف `DESIGN.md`
-- [ ] SDK للإضافات + واجهة `od plugin {add,list,remove,test,publish}` CLI
+- [ ] `npx readable init` لتهيئة مشروع بملف `DESIGN.md`
+- [ ] SDK للإضافات + واجهة `readable plugin {add,list,remove,test,publish}` CLI
 - [ ] إضافات نقل Figma / Pencil ← React / Next / Vue (ألفا)
 - [ ] إضافة تحديث قاعدة شفرة موجودة (وجّهها نحو مستودع git + ملف `DESIGN.md`)
 
@@ -616,7 +616,7 @@ gh issue develop <number>   # create a branch and worktree
 
 # 3. Make the change, run the checks
 pnpm guard && pnpm typecheck
-pnpm --filter @open-design/<package> test
+pnpm --filter @readable-studio/<package> test
 
 # 4. Open the PR
 gh pr create --fill

@@ -12,9 +12,9 @@ import {
   SIDECAR_SOURCES,
   normalizeDesktopSidecarMessage,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
-import { bootstrapSidecarRuntime, createJsonIpcServer, resolveAppIpcPath } from "@open-design/sidecar";
-import { addLoopbackNoProxyEnv } from "@open-design/platform";
+} from "@readable-studio/sidecar-proto";
+import { bootstrapSidecarRuntime, createJsonIpcServer, resolveAppIpcPath } from "@readable-studio/sidecar";
+import { addLoopbackNoProxyEnv } from "@readable-studio/platform";
 
 import { PACKAGED_NAMESPACE_ENV, type PackagedConfig } from "./config.js";
 import { writePackagedDesktopIdentity, writePackagedWebIdentity } from "./identity.js";

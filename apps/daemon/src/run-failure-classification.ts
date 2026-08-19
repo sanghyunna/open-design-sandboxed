@@ -3,7 +3,7 @@ import type {
   TrackingRunFailureDetail,
   TrackingRunFailureStage,
   TrackingRunFailureUserAction,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 
 import { classifyAmrAccountFailure } from './integrations/vela-errors.js';
 import { classifyAgentServiceFailure } from './runtimes/auth.js';

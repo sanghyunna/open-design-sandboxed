@@ -8,7 +8,7 @@
 // `rollback_request` SSE event. The actual restore still requires explicit user
 // confirmation; the marker is only a request.
 
-import type { RollbackMode } from '@open-design/contracts';
+import type { RollbackMode } from '@readable-studio/contracts';
 
 export interface DetectedRollbackRequest {
   mode: RollbackMode;

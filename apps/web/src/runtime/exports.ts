@@ -21,12 +21,12 @@ import {
   captureHostPage,
   isOpenDesignHostAvailable,
   printHostPdf,
-} from '@open-design/host';
+} from '@readable-studio/host';
 import {
   STANDALONE_HTML_EXPORT_HEADERS,
   type StandaloneHtmlExportSummary,
   type StandaloneHtmlSource,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 const DESIGN_HANDOFF_FILENAME = 'DESIGN-HANDOFF.md';
 const DESIGN_MANIFEST_FILENAME = 'DESIGN-MANIFEST.json';

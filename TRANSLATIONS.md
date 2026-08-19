@@ -83,7 +83,7 @@ export const it: Dict = {
 
 Then register it in `apps/web/src/i18n/index.tsx` and `apps/web/src/i18n/types.ts` (see [detailed steps below](#adding-a-new-locale)).
 
-**Don't forget to update test fixtures:** Add your locale code to `EXPECTED_LOCALES` in `apps/web/tests/i18n/locales.test.ts` and add a `LOCALE_LABEL` assertion (e.g., `expect(LOCALE_LABEL.it).toBe('Italiano');`). Run `pnpm --filter @open-design/web test` to verify.
+**Don't forget to update test fixtures:** Add your locale code to `EXPECTED_LOCALES` in `apps/web/tests/i18n/locales.test.ts` and add a `LOCALE_LABEL` assertion (e.g., `expect(LOCALE_LABEL.it).toBe('Italiano');`). Run `pnpm --filter @readable-studio/web test` to verify.
 
 ### Step 5: Test and Submit
 
@@ -269,7 +269,7 @@ The `LOCALES` array in [`apps/web/src/i18n/types.ts`](apps/web/src/i18n/types.ts
    ```bash
    pnpm typecheck  # Confirms locale union and DICTS map agree
    pnpm i18n:check  # Enforces UI locale registration and README switcher consistency
-   pnpm --filter @open-design/web test  # Covers locale/content drift tests
+   pnpm --filter @readable-studio/web test  # Covers locale/content drift tests
    ```
 
 ### Translation Best Practices
@@ -373,7 +373,7 @@ runtime nouns that are clearer in English:
 | token | token |
 | iframe | iframe |
 | monorepo, workspace | monorepo, workspace |
-| `od`, `pnpm`, `pnpm tools-dev` | `od`, `pnpm`, `pnpm tools-dev` |
+| `readable`, `pnpm`, `pnpm tools-dev` | `readable`, `pnpm`, `pnpm tools-dev` |
 | `OD_DATA_DIR`, `OD_WEB_PORT`, `{provider}` | `OD_DATA_DIR`, `OD_WEB_PORT`, `{provider}` |
 | `.zip`, `.html`, `.md`, `.json` | `.zip`, `.html`, `.md`, `.json` |
 
@@ -579,7 +579,7 @@ pnpm typecheck
 pnpm i18n:check
 
 # Web package tests (if you added UI dictionary)
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/web test
 ```
 
 All checks must pass before submitting your PR.

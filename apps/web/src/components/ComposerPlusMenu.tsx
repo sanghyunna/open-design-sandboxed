@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom';
 import type {
   InstalledPluginRecord,
   McpServerConfig,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useI18n, useT } from '../i18n';
 import { ComposerPluginPreview } from './ComposerPluginPreview';
 import { localizePluginTitle } from './plugins-home/localization';

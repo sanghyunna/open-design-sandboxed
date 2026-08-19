@@ -4,7 +4,7 @@ import {
   createApiErrorResponse,
   type ApiErrorCode,
   type HostedAuthContext,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export interface HostedIdentityRequest {
   readonly method: string;

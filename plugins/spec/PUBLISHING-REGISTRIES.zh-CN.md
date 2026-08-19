@@ -47,7 +47,7 @@ npx skills add ./my-local-skills
 
 ```bash
 npx skills add owner/repo --skill my-plugin
-od plugin install https://github.com/owner/repo
+readable plugin install https://github.com/owner/repo
 ```
 
 - 公共来源稳定后添加 badge：
@@ -122,8 +122,8 @@ clawhub package publish <source> --family code-plugin
 ## Registry validation
 
 - `pnpm guard`:
-- `pnpm --filter @open-design/plugin-runtime typecheck`:
-- `od plugin validate ./path/to/plugin`:
+- `pnpm --filter @readable-studio/plugin-runtime typecheck`:
+- `readable plugin validate ./path/to/plugin`:
 - `npx skills add ... --list`:
 - `clawhub skill publish ./path --dry-run` or equivalent:
 ```

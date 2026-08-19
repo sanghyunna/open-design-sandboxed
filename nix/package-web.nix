@@ -11,7 +11,7 @@
   src,
   workspacePaths,
 }:
-# Builds the @open-design/web Next.js static export.
+# Builds the @readable-studio/web Next.js static export.
 #
 # Output layout: $out/ contains the contents of `apps/web/out/` (an
 # index.html plus _next/ and asset subdirectories). Drop $out into any
@@ -62,7 +62,7 @@ in
 
       # next.config.ts gates static-export emission on NODE_ENV=production
       # and writes to apps/web/out/.
-      pnpm --filter @open-design/web run build
+      pnpm --filter @readable-studio/web run build
       runHook postBuild
     '';
 

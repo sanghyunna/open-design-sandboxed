@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { Icon, type IconName } from './Icon';
 import { useT } from '../i18n';
 type Translate = ReturnType<typeof useT>;
 import { renderMarkdown } from '../runtime/markdown';
-import type { MemoryChangeEvent, MemoryEntry, MemoryEntrySummary, MemoryExtractionEvent, MemoryExtractionRecord, MemoryExtractionSkipReason, MemoryExtractionsResponse, MemoryListResponse, MemoryTreeListResponse, MemoryTreeNode, MemorySuggestion, MemoryType, } from '@open-design/contracts';
+import type { MemoryChangeEvent, MemoryEntry, MemoryEntrySummary, MemoryExtractionEvent, MemoryExtractionRecord, MemoryExtractionSkipReason, MemoryExtractionsResponse, MemoryListResponse, MemoryTreeListResponse, MemoryTreeNode, MemorySuggestion, MemoryType, } from '@readable-studio/contracts';
 const TYPES: MemoryType[] = ['user', 'feedback', 'project', 'reference'];
 interface DraftEntry {
     id?: string;

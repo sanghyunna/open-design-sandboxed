@@ -11,7 +11,7 @@ import {
   HOSTED_CSRF_HEADER,
   type ApiErrorCode,
   type HostedProviderId,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   createHostedRuntimeRegistry,
   dispatchHostedRuntimeInternalOperation,

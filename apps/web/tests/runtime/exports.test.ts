@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installMockOpenDesignHost } from '@open-design/host/testing';
+import { installMockOpenDesignHost } from '@readable-studio/host/testing';
 import {
   archiveFilenameFrom,
   archiveRootFromFilePath,

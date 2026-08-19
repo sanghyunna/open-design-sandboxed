@@ -13,8 +13,8 @@ import {
   deriveConfigureGlobals,
   projectKindToTracking,
   fidelityToTracking,
-} from '@open-design/contracts/analytics';
-import type { AmrModelsResponse, ChatSessionMode } from '@open-design/contracts';
+} from '@readable-studio/contracts/analytics';
+import type { AmrModelsResponse, ChatSessionMode } from '@readable-studio/contracts';
 import { EntryView } from './components/EntryView';
 import type { IntegrationTab } from './components/IntegrationsView';
 import type { CreateInput, ImportClaudeDesignOutcome } from './components/NewProjectPanel';
@@ -84,7 +84,7 @@ import type {
   PluginShareAction,
   PluginShareProjectOutcome,
 } from './state/projects';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
 import { useI18n } from './i18n';
 import type {
   AgentInfo,

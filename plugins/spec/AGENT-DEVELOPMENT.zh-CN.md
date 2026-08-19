@@ -59,15 +59,15 @@
 
 ```bash
 pnpm guard
-pnpm --filter @open-design/plugin-runtime typecheck
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 如果 daemon CLI 已构建：
 
 ```bash
-od plugin validate ./<plugin-id>
-od plugin install ./<plugin-id>
-od plugin apply <plugin-id> --input key=value
+readable plugin validate ./<plugin-id>
+readable plugin install ./<plugin-id>
+readable plugin apply <plugin-id> --input key=value
 ```
 
 ## PR 输出

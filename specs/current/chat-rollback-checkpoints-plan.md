@@ -27,7 +27,7 @@ parallel agents, and resumable upstream coding-agent sessions.
    from the checkpoint lineage.
 7. Rollback must invalidate future agent resume state so a resumed coding agent
    cannot re-import discarded chat context.
-8. Rollback must have both UI and `od` CLI surfaces, because repository policy
+8. Rollback must have both UI and `readable` CLI surfaces, because repository policy
    requires every user-facing capability to be reachable through both surfaces.
 
 ## Non-goals for the first implementation
@@ -159,9 +159,9 @@ if nearby files changed.
 
 | Evidence | Why it matters |
 | --- | --- |
-| `AGENTS.md:91` requires every user-facing capability to be reachable through both web UI and `od` CLI. | Rollback must ship UI and CLI together. |
+| `AGENTS.md:91` requires every user-facing capability to be reachable through both web UI and `readable` CLI. | Rollback must ship UI and CLI together. |
 | `AGENTS.md:94` requires both surfaces to call the same `/api/*` endpoints. | CLI must not manipulate SQLite or checkpoint files directly. |
-| `AGENTS.md:96` requires contract types, daemon endpoint, UI surface, and `od` subcommand for new capabilities. | The implementation must be a full vertical slice. |
+| `AGENTS.md:96` requires contract types, daemon endpoint, UI surface, and `readable` subcommand for new capabilities. | The implementation must be a full vertical slice. |
 | `apps/AGENTS.md:21` says existing daemon domain endpoints belong in matching route files, not `server.ts`, unless bootstrap-wide or without a clear owner. | Rollback endpoints should be in `project-routes.ts` or a project-checkpoint route module registered from there. |
 | `packages/AGENTS.md:7` says `packages/contracts` must remain pure TypeScript and free of Node, Express, SQLite, and browser APIs. | Checkpoint contract DTOs must be pure data only. |
 
@@ -878,9 +878,9 @@ Extend `apps/daemon/src/cli.ts` because `AGENTS.md` requires CLI parity.
 Recommended commands:
 
 ```text
-od chat checkpoints --project <projectId> --conversation <conversationId> [--json]
-od chat checkpoint diff --project <projectId> --checkpoint <checkpointId> [--json]
-od chat rollback --project <projectId> --conversation <conversationId> --message <messageId>
+readable chat checkpoints --project <projectId> --conversation <conversationId> [--json]
+readable chat checkpoint diff --project <projectId> --checkpoint <checkpointId> [--json]
+readable chat rollback --project <projectId> --conversation <conversationId> --message <messageId>
                  [--checkpoint <checkpointId>]
                  [--mode files-only|chat-only|files-and-chat]
                  [--conflict-policy fail|overwrite|keep-current]
@@ -1145,9 +1145,9 @@ Add focused tests under `apps/web/tests/`.
 Add CLI tests under `apps/daemon/tests/` if the current CLI test pattern lives
 there.
 
-1. `od chat checkpoints --json` prints API JSON.
-2. `od chat checkpoint diff --json` prints API JSON.
-3. `od chat rollback --mode files-and-chat --json` calls rollback endpoint.
+1. `readable chat checkpoints --json` prints API JSON.
+2. `readable chat checkpoint diff --json` prints API JSON.
+3. `readable chat rollback --mode files-and-chat --json` calls rollback endpoint.
 4. Non-json output includes restored checkpoint and safety checkpoint.
 5. HTTP conflict maps to a non-zero exit and structured JSON when `--json`.
 
@@ -1169,9 +1169,9 @@ High-value scenario:
 After implementation:
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 pnpm guard
 pnpm typecheck
 ```
@@ -1213,7 +1213,7 @@ Exit criteria:
 
 Exit criteria:
 
-- `pnpm --filter @open-design/contracts typecheck` passes.
+- `pnpm --filter @readable-studio/contracts typecheck` passes.
 
 ### Phase 2: daemon checkpoint service
 
@@ -1254,9 +1254,9 @@ Exit criteria:
 
 ### Phase 5: CLI parity
 
-1. Add `od chat checkpoints`.
-2. Add `od chat checkpoint diff`.
-3. Add `od chat rollback`.
+1. Add `readable chat checkpoints`.
+2. Add `readable chat checkpoint diff`.
+3. Add `readable chat rollback`.
 4. Add JSON and human output.
 
 Exit criteria:

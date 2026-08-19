@@ -73,7 +73,7 @@ import type {
   InstallDesignSystemResponse,
   UninstallResponse,
   UpdateDeployConfigRequest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export type {
   CloudflarePagesDeploySelection,
@@ -86,7 +86,7 @@ export type {
   PreviewCommentSelectionKind,
   PreviewVisualMarkKind,
   AgentRollbackRequestEvent,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export type ExecMode = 'daemon' | 'api';
 export type ApiProtocol = 'anthropic' | 'openai' | 'azure' | 'google' | 'ollama' | 'senseaudio' | 'aihubmix';

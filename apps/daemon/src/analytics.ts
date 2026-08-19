@@ -15,7 +15,7 @@ import {
   anonymizeArtifactId as anonymizeArtifactIdShared,
   type AnalyticsClientType,
   type AnalyticsConfigResponse,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { readTelemetryEnvironment } from './telemetry-environment.js';
 
 export interface AnalyticsContext {

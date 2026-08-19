@@ -10,7 +10,7 @@ import type {
   SocialShareResponse,
   SystemFontFamily,
   SystemFontsResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type {
   AgentInfo,
   AppVersionInfo,
@@ -53,7 +53,7 @@ import type { ArtifactManifest } from '../artifacts/types';
 import {
   isOpenDesignHostAvailable,
   openHostExternalUrl,
-} from '@open-design/host';
+} from '@readable-studio/host';
 
 export const DEFAULT_DEPLOY_PROVIDER_ID = 'vercel-self';
 export const CLOUDFLARE_PAGES_PROVIDER_ID = 'cloudflare-pages';

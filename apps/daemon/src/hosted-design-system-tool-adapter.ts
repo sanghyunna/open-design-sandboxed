@@ -3,7 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type {
   HostedDesignSystemReadResponse,
   HostedDesignSystemReadV1,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export const HOSTED_DESIGN_SYSTEM_READ_ENDPOINT = '/api/tools/design-systems/read' as const;
 export const HOSTED_DESIGN_SYSTEM_GRANT_MAX_TTL_MS = 31 * 60 * 1_000;

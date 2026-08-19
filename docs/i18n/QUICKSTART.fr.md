@@ -69,8 +69,8 @@ pnpm tools-dev status          # inspecte les runtimes gérés
 pnpm tools-dev logs            # affiche les logs daemon/web/desktop
 pnpm tools-dev check           # statut + logs récents + diagnostics courants
 pnpm tools-dev stop            # arrête les runtimes gérés
-pnpm --filter @open-design/daemon build  # build apps/daemon/dist/cli.js pour `od`
-pnpm --filter @open-design/web build     # build du paquet web si nécessaire
+pnpm --filter @readable-studio/daemon build  # build apps/daemon/dist/cli.js pour `readable`
+pnpm --filter @readable-studio/web build     # build du paquet web si nécessaire
 pnpm typecheck                 # typecheck du workspace
 ```
 
@@ -80,7 +80,7 @@ Pendant le développement local, `tools-dev` démarre d’abord le daemon, trans
 
 ## Checks de génération média / agent dispatcher
 
-Les Skills image, vidéo, audio et HyperFrames appellent la CLI locale `od` via des variables d’environnement injectées par le daemon lorsqu’il lance un agent :
+Les Skills image, vidéo, audio et HyperFrames appellent la CLI locale `readable` via des variables d’environnement injectées par le daemon lorsqu’il lance un agent :
 
 - `OD_BIN` — chemin absolu vers `apps/daemon/dist/cli.js`.
 - `OD_DAEMON_URL` — URL du daemon en cours d’exécution.
@@ -90,7 +90,7 @@ Les Skills image, vidéo, audio et HyperFrames appellent la CLI locale `od` via 
 Si la génération média échoue avec `OD_BIN: parameter not set`, `apps/daemon/dist/cli.js` manquant, ou `failed to reach daemon at http://127.0.0.1:0`, rebuildez la CLI daemon et redémarrez le runtime géré :
 
 ```bash
-pnpm --filter @open-design/daemon build
+pnpm --filter @readable-studio/daemon build
 pnpm tools-dev restart --daemon-port 7457 --web-port 5175
 ls -la apps/daemon/dist/cli.js
 curl -s http://127.0.0.1:7457/api/health
@@ -159,7 +159,7 @@ open-design/
 ├── apps/
 │   ├── daemon/                # Node/Express — spawn les agents locaux + sert les APIs
 │   │   └── src/
-│   │       ├── cli.ts             # entrée bin `od`
+│   │       ├── cli.ts             # entrée bin `readable`
 │   │       ├── server.ts          # /api/* + static serving
 │   │       ├── agents.ts          # scanner PATH + adapters CLI de coding agents
 │   │       ├── skills.ts          # loader SKILL.md (frontmatter parser)
@@ -210,7 +210,7 @@ open-design/
 │   ├── artifacts/              #   rendus ponctuels "Save to disk"
 │   └── projects/<id>/          #   dossier de travail par projet + cwd de l’agent
 ├── pnpm-workspace.yaml        # apps/* + packages/* + tools/* + e2e
-└── package.json               # scripts qualité root + bin `od`
+└── package.json               # scripts qualité root + bin `readable`
 ```
 
 ## Dépannage

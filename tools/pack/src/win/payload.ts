@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import {
   LAUNCHER_SCHEMA_VERSION,
   resolveLauncherVersionPaths,
-} from "@open-design/launcher-proto";
+} from "@readable-studio/launcher-proto";
 
 import { hashJson, hashPath, type ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";

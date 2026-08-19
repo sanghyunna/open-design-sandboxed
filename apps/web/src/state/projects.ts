@@ -31,7 +31,7 @@ import type {
   RollbackRequest,
   RollbackResponse,
   TerminalSession,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { randomUUID } from '../utils/uuid';
 import type {
   ChatMessage,
@@ -42,8 +42,8 @@ import type {
   ProjectTemplate,
 } from '../types';
 
-export type { PluginInstallOutcome } from '@open-design/contracts';
-export type { PluginShareAction } from '@open-design/contracts';
+export type { PluginInstallOutcome } from '@readable-studio/contracts';
+export type { PluginShareAction } from '@readable-studio/contracts';
 export type {
   ProjectCheckpointConflict,
   ProjectCheckpointDiffResponse,
@@ -52,7 +52,7 @@ export type {
   RollbackConflictPolicy,
   RollbackRequest,
   RollbackResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export class RollbackConflictError extends Error {
   readonly code: string;

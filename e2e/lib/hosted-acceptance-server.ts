@@ -10,8 +10,8 @@ import {
   type HostedResolvedIdentity,
   type HostedRuntimeCapacitySnapshot,
   type HostedRuntimeMeasurement,
-} from '@open-design/daemon/hosted-server';
-import { startHostedPiTurn } from '@open-design/daemon/hosted-pi-turn';
+} from '@readable-studio/daemon/hosted-server';
+import { startHostedPiTurn } from '@readable-studio/daemon/hosted-pi-turn';
 import { HOSTED_CAPACITY_IDENTITIES, type HostedMeasurement } from './hosted.ts';
 
 type FixtureConfig = {

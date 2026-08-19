@@ -6,7 +6,7 @@ import {
   type ApiErrorCode,
   type StandaloneHtmlExportRequest,
   type StandaloneHtmlSource,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { Express } from 'express';
 
 import { renderDesignSystemPreview } from '../design-system-preview.js';

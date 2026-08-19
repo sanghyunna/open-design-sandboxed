@@ -68,8 +68,8 @@ pnpm tools-dev status          # verwaltete Runtimes prüfen
 pnpm tools-dev logs            # daemon/web/desktop logs anzeigen
 pnpm tools-dev check           # status + aktuelle logs + gängige Diagnosen
 pnpm tools-dev stop            # verwaltete Runtimes stoppen
-pnpm --filter @open-design/daemon build  # apps/daemon/dist/cli.js für `od` bauen
-pnpm --filter @open-design/web build     # Web-Paket bei Bedarf bauen
+pnpm --filter @readable-studio/daemon build  # apps/daemon/dist/cli.js für `readable` bauen
+pnpm --filter @readable-studio/web build     # Web-Paket bei Bedarf bauen
 pnpm typecheck                 # Workspace-Typecheck
 ```
 
@@ -79,7 +79,7 @@ Während lokaler Entwicklung startet `tools-dev` zuerst den daemon, übergibt de
 
 ## Prüfungen für Mediengenerierung und Agent-Dispatcher
 
-Image-, Video-, Audio- und HyperFrames-Skills rufen die lokale `od` CLI über Umgebungsvariablen auf, die der daemon beim Start eines Agent injiziert:
+Image-, Video-, Audio- und HyperFrames-Skills rufen die lokale `readable` CLI über Umgebungsvariablen auf, die der daemon beim Start eines Agent injiziert:
 
 - `OD_BIN` — absoluter Pfad zu `apps/daemon/dist/cli.js`.
 - `OD_DAEMON_URL` — die laufende daemon-URL.
@@ -89,7 +89,7 @@ Image-, Video-, Audio- und HyperFrames-Skills rufen die lokale `od` CLI über Um
 Wenn Mediengenerierung mit `OD_BIN: parameter not set`, fehlendem `apps/daemon/dist/cli.js` oder `failed to reach daemon at http://127.0.0.1:0` fehlschlägt, bauen Sie die daemon-CLI neu und starten Sie die verwaltete Runtime neu:
 
 ```bash
-pnpm --filter @open-design/daemon build
+pnpm --filter @readable-studio/daemon build
 pnpm tools-dev restart --daemon-port 7457 --web-port 5175
 ls -la apps/daemon/dist/cli.js
 curl -s http://127.0.0.1:7457/api/health
@@ -158,7 +158,7 @@ open-design/
 ├── apps/
 │   ├── daemon/                # Node/Express — spawns local agents + serves APIs
 │   │   └── src/
-│   │       ├── cli.ts             # `od` bin entry
+│   │       ├── cli.ts             # `readable` bin entry
 │   │       ├── server.ts          # /api/* + static serving
 │   │       ├── agents.ts          # PATH scanner for claude/codex/gemini/opencode/cursor-agent/qwen/copilot
 │   │       ├── skills.ts          # SKILL.md loader (frontmatter parser)
@@ -209,7 +209,7 @@ open-design/
 │   ├── artifacts/              #   one-off "Save to disk" renders
 │   └── projects/<id>/          #   per-project working dir + agent cwd
 ├── pnpm-workspace.yaml        # apps/* + packages/* + tools/* + e2e
-└── package.json               # root quality scripts + `od` bin
+└── package.json               # root quality scripts + `readable` bin
 ```
 
 ## Fehlerbehebung

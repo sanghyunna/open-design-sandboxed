@@ -12,7 +12,7 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 - Linux AppImage build/install/start/stop/logs/uninstall/cleanup smoke commands.
 - Linux headless (no-Electron) install/start/stop via `--headless` flag on `install`, `start`, and `stop`.
 - Linux containerized builds via `electronuserland/builder` Docker image for distro-agnostic glibc compat.
-- Consuming sidecar/process/path primitives from `@open-design/sidecar-proto`, `@open-design/sidecar`, and `@open-design/platform`.
+- Consuming sidecar/process/path primitives from `@readable-studio/sidecar-proto`, `@readable-studio/sidecar`, and `@readable-studio/platform`.
 
 ## Does not own
 
@@ -88,14 +88,14 @@ This harness is appropriate for asserting IPC, popup rendering, progress, checks
 Run the narrow tests that match the surface you touched, then the repo checks:
 
 ```bash
-pnpm --filter @open-design/desktop test -- tests/main/updater.test.ts tests/main/updater-host-boundary.test.ts tests/main/preload-host-boundary.test.ts
-pnpm --filter @open-design/web test -- tests/components/UpdaterPopup.test.tsx tests/lib/updater.test.ts
-pnpm --filter @open-design/tools-serve test
-pnpm --filter @open-design/tools-pack test -- tests/win-identity.test.ts tests/win-app.test.ts tests/win-builder.test.ts
-pnpm --filter @open-design/desktop typecheck
-pnpm --filter @open-design/web typecheck
-pnpm --filter @open-design/tools-pack typecheck
-pnpm --filter @open-design/tools-serve typecheck
+pnpm --filter @readable-studio/desktop test -- tests/main/updater.test.ts tests/main/updater-host-boundary.test.ts tests/main/preload-host-boundary.test.ts
+pnpm --filter @readable-studio/web test -- tests/components/UpdaterPopup.test.tsx tests/lib/updater.test.ts
+pnpm --filter @readable-studio/tools-serve test
+pnpm --filter @readable-studio/tools-pack test -- tests/win-identity.test.ts tests/win-app.test.ts tests/win-builder.test.ts
+pnpm --filter @readable-studio/desktop typecheck
+pnpm --filter @readable-studio/web typecheck
+pnpm --filter @readable-studio/tools-pack typecheck
+pnpm --filter @readable-studio/tools-serve typecheck
 git diff --check
 pnpm guard
 pnpm typecheck

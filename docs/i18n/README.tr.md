@@ -107,27 +107,27 @@ Bir projenin Studio'su içinde, aynı tasarım sistemi birden çok artifact tür
 
 ## Platform Uyumluluğu
 
-> Open Design, ana akım kodlama ajanlarının yerel olarak tükettiği **beceriler, bir CLI ve bir MCP sunucusu** olarak sunulur. OD kurulduktan sonra, tek bir `od mcp install <agent>` komutu MCP sunucusunu o ajanın yapılandırmasına bağlar ve aynı araçları herhangi bir ajanın içinden çağırırsınız.
+> Open Design, ana akım kodlama ajanlarının yerel olarak tükettiği **beceriler, bir CLI ve bir MCP sunucusu** olarak sunulur. OD kurulduktan sonra, tek bir `readable mcp install <agent>` komutu MCP sunucusunu o ajanın yapılandırmasına bağlar ve aynı araçları herhangi bir ajanın içinden çağırırsınız.
 
 | Kodlama ajanı / platform &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Durum &nbsp;&nbsp; | Tek satırlık MCP sunucusu kurulumu &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 |---|:---:|---|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ Destekleniyor | `od mcp install claude` |
-| [Codex CLI](https://github.com/openai/codex) | ✅ Destekleniyor | `od mcp install codex` |
-| [Cursor](https://www.cursor.com/cli) | ✅ Destekleniyor | `od mcp install cursor` |
-| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ Destekleniyor | `od mcp install copilot` |
-| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ Destekleniyor | `od mcp install copilot` |
-| Gemini CLI | ✅ Destekleniyor | `od mcp install gemini` |
-| [OpenCode](https://opencode.ai/) | ✅ Destekleniyor | `od mcp install opencode` |
-| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ Destekleniyor | `od mcp install openclaw` |
-| [Antigravity](https://antigravity.google) | ✅ Destekleniyor | `od mcp install antigravity` |
-| [Cline](https://github.com/cline/cline) | ✅ Destekleniyor | `od mcp install cline` |
-| [Trae](https://www.trae.ai/) | ✅ Destekleniyor | `od mcp install trae` |
-| Kimi CLI | ✅ Destekleniyor | `od mcp install kimi` |
-| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ Destekleniyor | `od mcp install pi` |
-| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ Destekleniyor | `od mcp install vibe` |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ Destekleniyor | `od mcp install hermes` |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ Destekleniyor | `readable mcp install claude` |
+| [Codex CLI](https://github.com/openai/codex) | ✅ Destekleniyor | `readable mcp install codex` |
+| [Cursor](https://www.cursor.com/cli) | ✅ Destekleniyor | `readable mcp install cursor` |
+| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ Destekleniyor | `readable mcp install copilot` |
+| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ Destekleniyor | `readable mcp install copilot` |
+| Gemini CLI | ✅ Destekleniyor | `readable mcp install gemini` |
+| [OpenCode](https://opencode.ai/) | ✅ Destekleniyor | `readable mcp install opencode` |
+| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ Destekleniyor | `readable mcp install openclaw` |
+| [Antigravity](https://antigravity.google) | ✅ Destekleniyor | `readable mcp install antigravity` |
+| [Cline](https://github.com/cline/cline) | ✅ Destekleniyor | `readable mcp install cline` |
+| [Trae](https://www.trae.ai/) | ✅ Destekleniyor | `readable mcp install trae` |
+| Kimi CLI | ✅ Destekleniyor | `readable mcp install kimi` |
+| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ Destekleniyor | `readable mcp install pi` |
+| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ Destekleniyor | `readable mcp install vibe` |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ Destekleniyor | `readable mcp install hermes` |
 
-Kuru çalıştırma önizlemesi için `od mcp install <agent> --print` · kaldırmak için `--uninstall` · tam liste için `od mcp install --help`.
+Kuru çalıştırma önizlemesi için `readable mcp install <agent> --print` · kaldırmak için `--uninstall` · tam liste için `readable mcp install --help`.
 
 <p align="center">
   <img src="https://repo-assets.open-design.ai/resources/images/coding-agents.png" alt="The 21 coding-agent CLIs Open Design supports — Claude Code · Codex · OpenCode · Hermes · Antigravity · Gemini · Grok Build · Kimi · Cursor Agent · Qwen · Qoder · GitHub Copilot · Pi · Kiro · Kilo · Mistral Vibe · DeepSeek · Reasonix · Aider · Devin · Trae" width="100%" />
@@ -344,11 +344,11 @@ Open Design bir **stdio MCP sunucusu** ve ajan başına **kurulum betikleri** su
 curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 
 # Then the agent can:
-od search-files "primary button"      # search files across projects
-od get-file design-systems/linear-app/DESIGN.md
-od get-artifact <slug>                # latest rendered artifact
-od plugin run web-prototype --brief "..."
-od skill list --scenario marketing
+readable search-files "primary button"      # search files across projects
+readable get-file design-systems/linear-app/DESIGN.md
+readable get-artifact <slug>                # latest rendered artifact
+readable plugin run web-prototype --brief "..."
+readable skill list --scenario marketing
 ```
 
 **Neden MCP?** Her yinelemede bir zip dosyasını dışa aktarıp yeniden eklemek akışı bozar. MCP, tasarım kaynağını doğrudan ortaya çıkarır — ajan her zaman canlı dosyayı görür.
@@ -449,20 +449,20 @@ Ayrıca topluluk eklentileri için [`plugins/community/`](../../plugins/communit
 
 ### Eklentileri kullanma
 
-Eklentiler **web UI** ve **`od` CLI** arasında tam eşitliktedir — aynı `/api/plugins` uç noktaları, hangisi uygunsa onu seçin.
+Eklentiler **web UI** ve **`readable` CLI** arasında tam eşitliktedir — aynı `/api/plugins` uç noktaları, hangisi uygunsa onu seçin.
 
 **Masaüstü / web uygulamasında:** pazar yerine göz atmak için **Plugin** sayfasını açın ve **Install**'a tıklayın; bir projenin Studio'su içinde, eklentiler tıklayarak uyguladığınız composer çipleri olarak görünür (bildirdikleri girdilerle birlikte).
 
 **Komut satırında** (UI olmadan çalışır — bu, harici ajanların kullandığı yoldur):
 
 ```bash
-od plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
-od plugin search "landing page"      # search by keyword
-od plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
-od plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
-od plugin apply od-default --input brief="a one-page pitch for our seed round"
-od plugin upgrade od-default         # upgrade
-od plugin uninstall od-default       # uninstall
+readable plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
+readable plugin search "landing page"      # search by keyword
+readable plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
+readable plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
+readable plugin apply od-default --input brief="a one-page pitch for our seed round"
+readable plugin upgrade od-default         # upgrade
+readable plugin uninstall od-default       # uninstall
 ```
 
 Her komut `--json` destekler, böylece onu `jq` / `xargs` aracılığıyla otomasyona aktarabilirsiniz.
@@ -485,9 +485,9 @@ Temel `open-design.json` alanları: `specVersion` (şu anda `1.0.0`), `name` (ka
 Yerel olarak iskeletle + doğrula:
 
 ```bash
-od plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
-od plugin validate ./my-plugin                          # check manifest / file layout
-pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
+readable plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
+readable plugin validate ./my-plugin                          # check manifest / file layout
+pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 Tam alan kümesi ve çalışma zamanı sözleşmesi → [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md); bir kodlama ajanıyla eklenti geliştirme → [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md); kopyala-yapıştır minimal şablonlar → [`plugins/spec/examples/`](../../plugins/spec/examples/).
@@ -495,7 +495,7 @@ Tam alan kümesi ve çalışma zamanı sözleşmesi → [`plugins/spec/SPEC.md`]
 ### Bir eklentiye katkıda bulunma
 
 1. Eklenti klasörünü [`plugins/community/`](../../plugins/community/) içine (üçüncü taraf eklentiler) veya — onu Open Design ile birlikte paketlenmiş olarak sunmak için — [`plugins/_official/`](../../plugins/_official/) içindeki eşleşen katmana bırakın.
-2. Doğrulamayı geçin: `od plugin validate`, `pnpm guard`, `pnpm --filter @open-design/plugin-runtime typecheck`.
+2. Doğrulamayı geçin: `readable plugin validate`, `pnpm guard`, `pnpm --filter @readable-studio/plugin-runtime typecheck`.
 3. PR'ı [`plugins/spec/CONTRIBUTING.md`](../../plugins/spec/CONTRIBUTING.md) içindeki şablonu kullanarak doldurun (kimlik, sürüm, hat, mod, yetenekler, tetikleme örnekleri; görsel eklentiler için bir ekran görüntüsü / önizleme ekleyin).
 4. Harici bir kayda yayınlamak için (skills.sh / ClawHub / bağımsız GitHub) → [`plugins/spec/PUBLISHING-REGISTRIES.md`](../../plugins/spec/PUBLISHING-REGISTRIES.md).
 
@@ -561,8 +561,8 @@ Tam mimari → [`docs/architecture.md`](../../docs/architecture.md). Beceri prot
 - [x] Paketlenmiş Electron derlemeleri — macOS (Apple Silicon + Intel) + Windows (x64) + Linux AppImage (isteğe bağlı hat)
 - [ ] Yorum modu cerrahi düzenlemeler — kısmen sunuldu; güvenilir hedefli yamalama devam ediyor
 - [ ] AI tarafından yayılan ayar paneli UX'i — henüz uygulanmadı
-- [ ] `DESIGN.md` ile bir projeyi iskeletlemek için `npx od init`
-- [ ] Plugin SDK + `od plugin {add,list,remove,test,publish}` CLI
+- [ ] `DESIGN.md` ile bir projeyi iskeletlemek için `npx readable init`
+- [ ] Plugin SDK + `readable plugin {add,list,remove,test,publish}` CLI
 - [ ] Figma / Pencil → React / Next / Vue taşıma eklentileri (alpha)
 - [ ] Mevcut kod tabanını yenileme eklentisi (bir git deposu + `DESIGN.md` dosyasına yönlendirin)
 
@@ -614,7 +614,7 @@ gh issue develop <number>   # create a branch and worktree
 
 # 3. Make the change, run the checks
 pnpm guard && pnpm typecheck
-pnpm --filter @open-design/<package> test
+pnpm --filter @readable-studio/<package> test
 
 # 4. Open the PR
 gh pr create --fill

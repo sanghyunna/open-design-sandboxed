@@ -28,15 +28,15 @@ Follow the root `AGENTS.md` first. This file only records module-level boundarie
 ## Common package commands
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/host typecheck
-pnpm --filter @open-design/host test
-pnpm --filter @open-design/metatool typecheck
-pnpm --filter @open-design/metatool test
-pnpm --filter @open-design/sidecar-proto typecheck
-pnpm --filter @open-design/sidecar-proto test
-pnpm --filter @open-design/sidecar typecheck
-pnpm --filter @open-design/sidecar test
-pnpm --filter @open-design/platform typecheck
-pnpm --filter @open-design/platform test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/host typecheck
+pnpm --filter @readable-studio/host test
+pnpm --filter @readable-studio/metatool typecheck
+pnpm --filter @readable-studio/metatool test
+pnpm --filter @readable-studio/sidecar-proto typecheck
+pnpm --filter @readable-studio/sidecar-proto test
+pnpm --filter @readable-studio/sidecar typecheck
+pnpm --filter @readable-studio/sidecar test
+pnpm --filter @readable-studio/platform typecheck
+pnpm --filter @readable-studio/platform test
 ```

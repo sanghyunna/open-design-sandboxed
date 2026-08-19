@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { SIDECAR_CONTRACT } from '@open-design/sidecar-proto';
+import { SIDECAR_CONTRACT } from '@readable-studio/sidecar-proto';
 import {
   createHostedPiBroker,
   type HostedPiBroker,

@@ -23,14 +23,14 @@ import {
   parseManifest,
   validateSafe,
   type ManifestParseResult,
-} from '@open-design/plugin-runtime';
+} from '@readable-studio/plugin-runtime';
 import type {
   InstalledPluginRecord,
   MarketplaceTrust,
   PluginManifest,
   PluginSourceKind,
   TrustTier,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { defaultTrustForRecord, resolveCapabilitiesGranted } from './trust.js';
 import type Database from 'better-sqlite3';
 

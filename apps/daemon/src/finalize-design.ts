@@ -17,7 +17,7 @@
 // gateways still pass it explicitly.
 //
 // Inline `PersistedAgentEvent` shape is restated in this file (the daemon
-// tsconfig does not resolve the `@open-design/contracts/api/chat` subpath
+// tsconfig does not resolve the `@readable-studio/contracts/api/chat` subpath
 // export — verified during PR #493). Schema-mismatch tests in the test
 // file would catch any drift between this restated union and the contract.
 
@@ -30,7 +30,7 @@ import type {
   FinalizeAnthropicResponse,
   FinalizeArtifactRef,
   FinalizeProviderProtocol,
-} from '@open-design/contracts/api/finalize';
+} from '@readable-studio/contracts/api/finalize';
 import { getProject } from './db.js';
 import { readDesignSystem } from './design-systems.js';
 import {
@@ -45,7 +45,7 @@ import { googleGenerateContentUrl } from './google-models.js';
 
 // Re-export the request/response types so existing daemon-internal
 // imports (and the route handler) keep their referenced names. The
-// canonical definitions live in @open-design/contracts/api/finalize
+// canonical definitions live in @readable-studio/contracts/api/finalize
 // per @lefarcen's P2 review feedback on PR #832, with a real runtime
 // entrypoint per @mrcfps's review feedback on the same PR.
 export type {

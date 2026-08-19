@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { projectKindToTracking } from "@open-design/contracts/analytics";
+import { projectKindToTracking } from "@readable-studio/contracts/analytics";
 import { useAnalytics } from "../analytics/provider";
 import {
   trackPageView,

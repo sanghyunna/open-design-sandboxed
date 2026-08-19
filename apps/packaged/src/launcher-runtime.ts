@@ -15,7 +15,7 @@ import {
   validateLauncherRuntimeDescriptor,
   type LauncherAttemptDescriptor,
   type LauncherTargetSelection,
-} from "@open-design/launcher-proto";
+} from "@readable-studio/launcher-proto";
 
 import {
   resolveDefaultPackagedNodeCommandRelativePath,

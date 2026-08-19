@@ -2,7 +2,7 @@
 
 This flake exposes Open Design as a reproducible package, a `nix run` entry
 point, a dev shell, and Home Manager / NixOS modules. The architecture
-mirrors the runtime: the **daemon** (`od` CLI, Express API on `/api/*`)
+mirrors the runtime: the **daemon** (`readable` CLI, Express API on `/api/*`)
 and the **web frontend** (Next.js static SPA at `apps/web/out/`) are
 **separate packages** and **separate services** — you can run either or
 both.
@@ -11,7 +11,7 @@ both.
 
 | Output                                     | What it is                                                                             |
 | ------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `packages.<system>.daemon`                 | The `@open-design/daemon` package — produces `bin/od`. Default output.                 |
+| `packages.<system>.daemon`                 | The `@readable-studio/daemon` package — produces `bin/readable`. Default output.                 |
 | `packages.<system>.web`                    | The Next.js static export (`apps/web/out/`) ready to drop into any static file server. |
 | `apps.<system>.default`                    | `nix run github:sanghyunna/open-design-sandboxed` — boots the daemon.                               |
 | `devShells.<system>.default`               | Node 24 + Corepack-pinned pnpm 10.33 — reproduces `pnpm install` locally.              |

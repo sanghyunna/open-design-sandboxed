@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ChatMessage } from '../types';
-import type { RollbackMode } from '@open-design/contracts';
+import type { RollbackMode } from '@readable-studio/contracts';
 import {
   executeAgentRollback,
   fetchProjectCheckpointDiff,

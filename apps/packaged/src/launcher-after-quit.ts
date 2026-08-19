@@ -1,10 +1,10 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import { waitForProcessExit } from "@open-design/platform";
-import type { LauncherAfterQuitRequest } from "@open-design/launcher-proto";
-import { APP_KEYS, SIDECAR_CONTRACT, SIDECAR_MESSAGES, type DesktopStatusSnapshot } from "@open-design/sidecar-proto";
-import { requestJsonIpc, resolveAppIpcPath } from "@open-design/sidecar";
+import { waitForProcessExit } from "@readable-studio/platform";
+import type { LauncherAfterQuitRequest } from "@readable-studio/launcher-proto";
+import { APP_KEYS, SIDECAR_CONTRACT, SIDECAR_MESSAGES, type DesktopStatusSnapshot } from "@readable-studio/sidecar-proto";
+import { requestJsonIpc, resolveAppIpcPath } from "@readable-studio/sidecar";
 
 import type { PackagedNamespacePaths } from "./paths.js";
 

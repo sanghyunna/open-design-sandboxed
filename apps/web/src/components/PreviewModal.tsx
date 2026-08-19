@@ -10,7 +10,7 @@ import {
   openSandboxedPreviewInNewTab,
   requestPreviewSnapshot,
 } from '../runtime/exports';
-import type { StandaloneHtmlSource } from '@open-design/contracts';
+import type { StandaloneHtmlSource } from '@readable-studio/contracts';
 import { buildSrcdoc } from '../runtime/srcdoc';
 import { Icon } from './Icon';
 import { Toast } from './Toast';

@@ -18,7 +18,7 @@ import type {
   ArtifactExportTarget,
   ArtifactManifest,
   ArtifactProvenanceHandoffKind,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export interface RecordHandoffInput {
   manifest: ArtifactManifest;

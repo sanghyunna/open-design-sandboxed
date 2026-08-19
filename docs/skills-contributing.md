@@ -67,7 +67,7 @@ A skill is a **recipe for producing one kind of artifact**. Not a feature, not a
 - A duplicate of an existing skill with marginal differentiation. Before opening, search `skills/` and read the descriptions of the closest 2–3 — if you can't articulate the differentiator in one sentence, fold your work into the existing skill instead.
 - A skill whose only output is a screenshot or a video. The artifact has to be something the agent generates from a prompt, not a static asset shipped in `assets/`.
 
-**Third option: ship as an external skill bundle.** If your workflow is genuinely a recipe (not a daemon feature) but is too vendor-specific or audience-narrow to land in-tree, the skills protocol supports user-global skills via `~/.claude/skills/` (see [`skills-protocol.md` §3](skills-protocol.md#3-skill-discovery--precedence)). Publishing your bundle as a standalone repo lets users `git clone` or `od skill add` it without us taking on the maintenance surface. This is the right path for payment-provider workflows, regional marketplace integrations, in-house design systems, and similar — not a rejection, just a different distribution channel.
+**Third option: ship as an external skill bundle.** If your workflow is genuinely a recipe (not a daemon feature) but is too vendor-specific or audience-narrow to land in-tree, the skills protocol supports user-global skills via `~/.claude/skills/` (see [`skills-protocol.md` §3](skills-protocol.md#3-skill-discovery--precedence)). Publishing your bundle as a standalone repo lets users `git clone` or `readable skill add` it without us taking on the maintenance surface. This is the right path for payment-provider workflows, regional marketplace integrations, in-house design systems, and similar — not a rejection, just a different distribution channel.
 
 If you're not sure your idea fits, **open a discussion first** ([github.com/sanghyunna/open-design-sandboxed/discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)) — we'd rather spend 5 minutes redirecting than have you build the wrong thing for a week.
 
@@ -193,7 +193,7 @@ For a non-featured skill, the cheap path is to keep the source metadata complete
 
 - [ ] **Ensure `SKILL.md` has complete English display copy**: title/name, description, example prompt, and any picker metadata required by the skill schema. The localized runtime uses these fields as the fallback display path.
 - [ ] **Use optional localized display fields when useful**: `en_name` / `zh_name`, `en_description` / `zh_description`, and `od.example_prompt_i18n.<locale>`. Keep `description` and `od.example_prompt` in English because those are the fallback fields for every locale without localized copy.
-- [ ] **Run `pnpm --filter @open-design/web test` and `pnpm --filter @open-design/e2e test tests/localized-content.test.ts`** locally before pushing. These suites catch undisplayable discovered resources and verify localized fallback behavior.
+- [ ] **Run `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`** locally before pushing. These suites catch undisplayable discovered resources and verify localized fallback behavior.
 
 ### Featured skills (optional path)
 
@@ -236,7 +236,7 @@ they don't cover this case. If you can't, fold into the existing skill instead.
 - [ ] Verified export works (PPTX / PDF / etc.) if the mode supports it
 - [ ] Ran `pnpm typecheck`
 - [ ] Verified `SKILL.md` has complete English display copy for localized fallback — **required for every skill**
-- [ ] Ran `pnpm --filter @open-design/web test` and `pnpm --filter @open-design/e2e test tests/localized-content.test.ts`; localized-content coverage is green
+- [ ] Ran `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`; localized-content coverage is green
 
 ## Screenshot
 (Required if `od.featured` is set. Otherwise nice-to-have.)

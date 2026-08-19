@@ -6,8 +6,8 @@ import path from "node:path";
 import {
   SIDECAR_CONTRACT,
   SIDECAR_DEFAULTS,
-} from "@open-design/sidecar-proto";
-import { resolveNamespace } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { resolveNamespace } from "@readable-studio/sidecar";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

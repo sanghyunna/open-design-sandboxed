@@ -26,7 +26,7 @@ import type {
   ResearchOptions,
   RunContextSelection,
   SseErrorPayload,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type { StreamHandlers } from './anthropic';
 
 const ROLLBACK_MODE_VALUES = new Set(['files_only', 'chat_only', 'files_and_chat']);

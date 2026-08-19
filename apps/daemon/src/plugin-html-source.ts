@@ -1,7 +1,7 @@
 import { lstat, readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { InstalledPluginRecord } from '@open-design/contracts';
+import type { InstalledPluginRecord } from '@readable-studio/contracts';
 
 const MAX_PLUGIN_PREVIEW_BYTES = 5 * 1024 * 1024;
 

@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
 import { modalOverlay, modalContent } from '../motion';
 import type {
   DesignSystemSummary,

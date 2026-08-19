@@ -28,7 +28,7 @@ import type {
   InstalledPluginRecord,
   McpServerSpec,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { Icon } from '../Icon';
 import { TrustBadge } from '../TrustBadge';
 import { authorInitials, derivePluginSourceLinks } from '../../runtime/plugin-source';

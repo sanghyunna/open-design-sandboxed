@@ -1,6 +1,6 @@
 import type { BrowserWindow, MessageBoxOptions } from "electron";
 
-import type { DesktopRollbackApprovalNextResponse } from "@open-design/contracts";
+import type { DesktopRollbackApprovalNextResponse } from "@readable-studio/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import {

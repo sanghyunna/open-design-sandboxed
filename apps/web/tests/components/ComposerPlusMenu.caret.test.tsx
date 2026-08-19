@@ -7,7 +7,7 @@ import { ComposerPlusMenu } from '../../src/components/ComposerPlusMenu';
 import type {
   InstalledPluginRecord,
   McpServerConfig,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 // Regression coverage ported from the now-deleted
 // `ChatComposer.tools-menu-caret.test.tsx` (#3195 / #3368). The shared "+"

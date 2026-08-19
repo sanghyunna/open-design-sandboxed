@@ -19,7 +19,7 @@ import {
   type HostedRunStatus,
   type HostedRunStatusResponse,
   type JsonValue,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 import { isSafeId } from './projects.js';
 

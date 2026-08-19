@@ -4,7 +4,7 @@
 // The horizontal docked toolbars keep their own compact primitives; these are
 // the stacked equivalents.
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import { RemixIcon } from './RemixIcon';
 import { useSystemFonts } from './useSystemFonts';

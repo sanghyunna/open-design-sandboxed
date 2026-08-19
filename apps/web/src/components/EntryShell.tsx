@@ -24,8 +24,8 @@ import {
   defaultScenarioPluginIdForProjectMetadata,
   type ChatSessionMode,
   type InstalledPluginRecord,
-} from '@open-design/contracts';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+} from '@readable-studio/contracts';
+import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
 import type { DesignSystemGenerateSnapshot } from './DesignSystemFlow';
 import { useAnalytics } from '../analytics/provider';
 import {
@@ -50,8 +50,8 @@ import type {
   TrackingOnboardingCompletionResult,
   TrackingOnboardingCompletionType,
   TrackingCliProviderId,
-} from '@open-design/contracts/analytics';
-import { agentIdToTracking } from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
+import { agentIdToTracking } from '@readable-studio/contracts/analytics';
 import { useT } from '../i18n';
 import { navigate, useRoute } from '../router';
 import type {
@@ -150,7 +150,7 @@ const ONBOARDING_DROPDOWN_OPEN_EVENT = 'open-design:onboarding-dropdown-open';
 // `display` based on `--compact-topbar` breakpoint (900px).
 
 // Default scenario plugin for each project kind/intent. The mapping
-// lives in `@open-design/contracts` so the daemon's `/api/projects`
+// lives in `@readable-studio/contracts` so the daemon's `/api/projects`
 // and `/api/runs` fallbacks resolve to the same plugin id when no
 // `pluginId` is on the request body — plan §3.3 of
 // `specs/current/plugin-driven-flow-plan.md`.

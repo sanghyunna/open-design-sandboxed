@@ -11,7 +11,7 @@
 // desktop updater actually parses): `OD_UPDATE_METADATA_URL` at
 // `DESKTOP_UPDATE_ENV.METADATA_URL` and `OD_UPDATE_ENABLED` at
 // `DESKTOP_UPDATE_ENV.ENABLED`. We reference the literals rather than importing
-// the constant because it is not exported from the `@open-design/desktop/main`
+// the constant because it is not exported from the `@readable-studio/desktop/main`
 // package surface, and `apps/packaged` must not reach into another app's
 // private `src/` (see apps/AGENTS.md sidecar-awareness / import boundaries).
 export const UPDATE_METADATA_URL_ENV = "OD_UPDATE_METADATA_URL";

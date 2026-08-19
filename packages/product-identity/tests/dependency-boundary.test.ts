@@ -20,7 +20,7 @@ describe("product identity dependency boundary", () => {
 
     expect(manifest.name).toBe("@readable-studio/product-identity");
     expect(manifest.dependencies).toBeUndefined();
-    expect(source).not.toMatch(/from\s+["'](?:node:|@open-design\/|@readable-studio\/|react|next|electron)/);
+    expect(source).not.toMatch(/from\s+["'](?:node:|@readable-studio\/|@readable-studio\/|react|next|electron)/);
     expect(source).not.toMatch(/\b(?:process|window|document|Buffer)\b/);
   });
 

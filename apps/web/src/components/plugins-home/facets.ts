@@ -16,7 +16,7 @@
 // clicks make the row visually noisy and obscure how the overall
 // catalog is shaped.
 
-import { resolveLocalizedText, type InstalledPluginRecord } from '@open-design/contracts';
+import { resolveLocalizedText, type InstalledPluginRecord } from '@readable-studio/contracts';
 import { localizedText } from './localization';
 
 export type FacetAxis = 'category' | 'subcategory';

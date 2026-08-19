@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, within } from '@testing-library/react';
 import { ManualEditLeftInspector } from '../../src/components/ManualEditLeftInspector';
 import type { ManualEditRichFormatState } from '../../src/components/ManualEditTextControls';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../../src/edit-mode/types';
-import type { SystemFontFamily } from '@open-design/contracts';
+import type { SystemFontFamily } from '@readable-studio/contracts';
 
 const systemFontsMock = vi.hoisted(() => ({ families: [] as SystemFontFamily[] }));
 vi.mock('../../src/components/useSystemFonts', () => ({

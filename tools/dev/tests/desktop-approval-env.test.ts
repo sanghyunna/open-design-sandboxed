@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { APP_KEYS, SIDECAR_ENV } from "@open-design/sidecar-proto";
+import { APP_KEYS, SIDECAR_ENV } from "@readable-studio/sidecar-proto";
 
 import {
   createDesktopApprovalToken,

@@ -59,15 +59,15 @@ Run what is available in this environment:
 
 ```bash
 pnpm guard
-pnpm --filter @open-design/plugin-runtime typecheck
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 If the daemon CLI is built:
 
 ```bash
-od plugin validate ./<plugin-id>
-od plugin install ./<plugin-id>
-od plugin apply <plugin-id> --input key=value
+readable plugin validate ./<plugin-id>
+readable plugin install ./<plugin-id>
+readable plugin apply <plugin-id> --input key=value
 ```
 
 ## PR Output

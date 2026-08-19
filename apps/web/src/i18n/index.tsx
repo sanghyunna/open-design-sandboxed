@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { en } from './locales/en';
 import { ko } from './locales/ko';
-import { getOpenDesignHost } from '@open-design/host';
+import { getOpenDesignHost } from '@readable-studio/host';
 import { LOCALES, type Dict, type Locale } from './types';
 
 export { LOCALES, LOCALE_LABEL } from './types';

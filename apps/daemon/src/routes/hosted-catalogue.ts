@@ -1,4 +1,4 @@
-import { HOSTED_CSRF_HEADER } from '@open-design/contracts';
+import { HOSTED_CSRF_HEADER } from '@readable-studio/contracts';
 import express, { type Express, type RequestHandler } from 'express';
 
 import type { createHostedCatalogueAdapter } from '../hosted-catalogue-adapter.js';

@@ -3,7 +3,7 @@
 // (`layout="stack"`). Whole-element style edits go through onStyleField; image
 // replace and delete go through onApplyPatch.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Button, VisuallyHidden } from '@open-design/components';
+import { Button, VisuallyHidden } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ManualEditPatch, ManualEditResizeConstraint, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { RemixIcon } from './RemixIcon';

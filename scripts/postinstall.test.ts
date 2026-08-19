@@ -117,18 +117,19 @@ test("workspace bin entries use checked-in targets so pnpm can link them before 
   assert.deepEqual(unlinkableBins, []);
 });
 
-test("root workspace depends on the daemon package so pnpm exec resolves the od bin", () => {
+test("root workspace depends on the daemon package so pnpm exec resolves the readable bin", () => {
   const rootManifest = readPackageJson("package.json");
   const daemonManifest = readPackageJson("apps/daemon/package.json");
 
-  assert.equal(dependencySpecifier(rootManifest, "@open-design/daemon"), "workspace:*");
+  assert.equal(dependencySpecifier(rootManifest, "@readable-studio/daemon"), "workspace:*");
   assert.deepEqual((rootManifest as { bin?: unknown }).bin, {
-    od: "./apps/daemon/bin/od.mjs",
+    readable: "./apps/daemon/bin/readable.mjs",
   });
   assert.deepEqual((daemonManifest as { bin?: unknown }).bin, {
-    od: "./bin/od.mjs",
+    readable: "./bin/readable.mjs",
   });
-  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/od.mjs")), true);
+  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/readable.mjs")), true);
+  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/od.mjs")), false);
 });
 
 test("postinstall builds workspace packages whose linkable bins delegate to dist", () => {

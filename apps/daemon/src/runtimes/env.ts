@@ -2,8 +2,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { mergeProxyAwareEnv, resolveSystemProxyEnv } from '@open-design/platform';
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+import { mergeProxyAwareEnv, resolveSystemProxyEnv } from '@readable-studio/platform';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 import { resolveProjectRelativePath } from '../home-expansion.js';
 import { expandConfiguredEnv } from './paths.js';
 import { resolveAmrOpenCodeExecutable } from './executables.js';

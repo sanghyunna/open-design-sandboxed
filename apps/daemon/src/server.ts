@@ -13,7 +13,7 @@ function formatLocalProjectTimestamp(iso: string): string {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
-import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@open-design/sidecar-proto';
+import type { DesktopExportPdfInput, DesktopExportPdfResult } from '@readable-studio/sidecar-proto';
 import express from 'express';
 import multer from 'multer';
 import { execFile, spawn } from 'node:child_process';
@@ -27,7 +27,7 @@ import net from 'node:net';
 import {
   defaultScenarioPluginIdForProjectMetadata,
   PLUGIN_SHARE_ACTION_PLUGIN_IDS,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   composeSystemPrompt,
 } from './prompts/system.js';
@@ -52,8 +52,8 @@ import {
   createCommandInvocation,
   probeIsolatedAgentSupport,
   spawnIsolatedAgent,
-} from '@open-design/platform';
-import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
+} from '@readable-studio/platform';
+import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 import {
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
@@ -305,7 +305,7 @@ import {
   projectKindToTracking,
   sessionModeToTracking,
   type ObservabilityEventRequest,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import {
   mergeNoProxyWithLoopbackDefaults,
   redactSecrets,
@@ -367,7 +367,7 @@ import {
 } from './routines.js';
 import { buildMcpInstallPayload } from './mcp-install-info.js';
 import { createDiagnosticsExportHandler } from './diagnostics-export.js';
-import { DIAGNOSTICS_EXPORT_PATH } from '@open-design/diagnostics';
+import { DIAGNOSTICS_EXPORT_PATH } from '@readable-studio/diagnostics';
 import {
   buildProjectArchive,
   buildBatchArchive,
@@ -512,14 +512,14 @@ import {
   isLocalSameOrigin,
 } from './origin-validation.js';
 
-/** @typedef {import('@open-design/contracts').ApiErrorCode} ApiErrorCode */
-/** @typedef {import('@open-design/contracts').ApiError} ApiError */
-/** @typedef {import('@open-design/contracts').ApiErrorResponse} ApiErrorResponse */
-/** @typedef {import('@open-design/contracts').ChatRequest} ChatRequest */
-/** @typedef {import('@open-design/contracts').ChatSseEvent} ChatSseEvent */
-/** @typedef {import('@open-design/contracts').ProxyStreamRequest} ProxyStreamRequest */
-/** @typedef {import('@open-design/contracts').ProxySseEvent} ProxySseEvent */
-/** @typedef {import('@open-design/contracts').ProjectConversationCreatedSsePayload} ProjectConversationCreatedSsePayload */
+/** @typedef {import('@readable-studio/contracts').ApiErrorCode} ApiErrorCode */
+/** @typedef {import('@readable-studio/contracts').ApiError} ApiError */
+/** @typedef {import('@readable-studio/contracts').ApiErrorResponse} ApiErrorResponse */
+/** @typedef {import('@readable-studio/contracts').ChatRequest} ChatRequest */
+/** @typedef {import('@readable-studio/contracts').ChatSseEvent} ChatSseEvent */
+/** @typedef {import('@readable-studio/contracts').ProxyStreamRequest} ProxyStreamRequest */
+/** @typedef {import('@readable-studio/contracts').ProxySseEvent} ProxySseEvent */
+/** @typedef {import('@readable-studio/contracts').ProjectConversationCreatedSsePayload} ProjectConversationCreatedSsePayload */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -536,7 +536,7 @@ export function resolveDaemonCliPath(env: NodeJS.ProcessEnv = process.env): stri
   const configured = cleanOptionalPath(env[DAEMON_CLI_PATH_ENV]) ?? cleanOptionalPath(env.OD_BIN);
   if (configured) return configured;
 
-  const packageJsonPath = require.resolve('@open-design/daemon/package.json');
+  const packageJsonPath = require.resolve('@readable-studio/daemon/package.json');
   return path.join(path.dirname(packageJsonPath), 'dist', 'cli.js');
 }
 
@@ -5377,7 +5377,7 @@ export async function startServer({
     try {
       dbDeleteProject(db, req.params.id);
       await removeProjectDir(PROJECTS_DIR, req.params.id).catch(() => {});
-      /** @type {import('@open-design/contracts').OkResponse} */
+      /** @type {import('@readable-studio/contracts').OkResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -6538,7 +6538,7 @@ export async function startServer({
     type ScenarioEntry = {
       id: string;
       taskKind: 'new-generation' | 'figma-migration' | 'code-migration' | 'tune-collab';
-      pipeline: NonNullable<NonNullable<import('@open-design/contracts').PluginManifest['od']>['pipeline']>;
+      pipeline: NonNullable<NonNullable<import('@readable-studio/contracts').PluginManifest['od']>['pipeline']>;
     };
     const byTaskKind = new Map<ScenarioEntry['taskKind'], ScenarioEntry>();
     try {
@@ -8058,7 +8058,7 @@ export async function startServer({
       if (!isDeployProviderId(providerId)) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
       }
-      /** @type {import('@open-design/contracts').DeployConfigResponse} */
+      /** @type {import('@readable-studio/contracts').DeployConfigResponse} */
       const body = publicDeployConfigForProvider(providerId, await readDeployConfig(providerId));
       res.json(body);
     } catch (err) {
@@ -8074,7 +8074,7 @@ export async function startServer({
       if (!isDeployProviderId(providerId)) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'unsupported deploy provider');
       }
-      /** @type {import('@open-design/contracts').DeployConfigResponse} */
+      /** @type {import('@readable-studio/contracts').DeployConfigResponse} */
       const body = await writeDeployConfig(providerId, input);
       res.json(body);
     } catch (err) {
@@ -8084,7 +8084,7 @@ export async function startServer({
 
   app.get('/api/deploy/cloudflare-pages/zones', async (_req, res) => {
     try {
-      /** @type {import('@open-design/contracts').CloudflarePagesZonesResponse} */
+      /** @type {import('@readable-studio/contracts').CloudflarePagesZonesResponse} */
       const body = await listCloudflarePagesZones(await readDeployConfig(CLOUDFLARE_PAGES_PROVIDER_ID));
       res.json(body);
     } catch (err) {
@@ -8099,7 +8099,7 @@ export async function startServer({
 
   app.get('/api/projects/:id/deployments', (req, res) => {
     try {
-      /** @type {import('@open-design/contracts').ProjectDeploymentsResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectDeploymentsResponse} */
       const body = { deployments: publicDeployments(listDeployments(db, req.params.id)) };
       res.json(body);
     } catch (err) {
@@ -8152,7 +8152,7 @@ export async function startServer({
             projectId: req.params.id,
           });
       const now = Date.now();
-      /** @type {import('@open-design/contracts').DeployProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeployProjectFileResponse} */
       const body = upsertDeployment(db, {
         id: prior?.id ?? randomUUID(),
         projectId: req.params.id,
@@ -8205,7 +8205,7 @@ export async function startServer({
         return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
       }
       const preflightProject = getProject(db, req.params.id);
-      /** @type {import('@open-design/contracts').DeployPreflightResponse} */
+      /** @type {import('@readable-studio/contracts').DeployPreflightResponse} */
       const body = await prepareDeployPreflight(
         PROJECTS_DIR,
         req.params.id,
@@ -8350,7 +8350,7 @@ export async function startServer({
         if (existing.providerId === CLOUDFLARE_PAGES_PROVIDER_ID && existing.cloudflarePages?.pagesDev?.url) {
           const checked = await checkCloudflarePagesDeploymentLinks(existing);
           const now = Date.now();
-          /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
+          /** @type {import('@readable-studio/contracts').CheckDeploymentLinkResponse} */
           const body = upsertDeployment(db, {
             ...existing,
             ...checked,
@@ -8364,7 +8364,7 @@ export async function startServer({
           : existing.url;
         const result = await checkDeploymentUrl(checkUrl);
         const now = Date.now();
-        /** @type {import('@open-design/contracts').CheckDeploymentLinkResponse} */
+        /** @type {import('@readable-studio/contracts').CheckDeploymentLinkResponse} */
         const body = upsertDeployment(db, {
           ...existing,
           url: checkUrl || existing.url,
@@ -8401,7 +8401,7 @@ export async function startServer({
         since: Number.isFinite(since) ? since : undefined,
         metadata: project?.metadata,
       });
-      /** @type {import('@open-design/contracts').ProjectFilesResponse} */
+      /** @type {import('@readable-studio/contracts').ProjectFilesResponse} */
       const body = { files };
       res.json(body);
     } catch (err) {
@@ -8763,7 +8763,7 @@ export async function startServer({
       const rawSplat = String(req.params[1] ?? '');
       const project = getProject(db, projectId);
       await deleteProjectFile(PROJECTS_DIR, projectId, rawSplat, project?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -8856,7 +8856,7 @@ export async function startServer({
             uploadProject?.metadata,
           );
           fs.promises.unlink(req.file.path).catch(() => {});
-          /** @type {import('@open-design/contracts').ProjectFileResponse} */
+          /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
           const body = { file: meta };
           return res.json(body);
         }
@@ -8895,7 +8895,7 @@ export async function startServer({
           { artifactManifest },
           uploadProject?.metadata,
         );
-        /** @type {import('@open-design/contracts').ProjectFileResponse} */
+        /** @type {import('@readable-studio/contracts').ProjectFileResponse} */
         const body = { file: meta };
         res.json(body);
       } catch (err) {
@@ -8913,7 +8913,7 @@ export async function startServer({
     try {
       const delProject = getProject(db, req.params.id);
       await deleteProjectFile(PROJECTS_DIR, req.params.id, req.params.name, delProject?.metadata);
-      /** @type {import('@open-design/contracts').DeleteProjectFileResponse} */
+      /** @type {import('@readable-studio/contracts').DeleteProjectFileResponse} */
       const body = { ok: true };
       res.json(body);
     } catch (err) {
@@ -9060,7 +9060,7 @@ export async function startServer({
             // skip files that vanished mid-flight
           }
         }
-        /** @type {import('@open-design/contracts').UploadProjectFilesResponse} */
+        /** @type {import('@readable-studio/contracts').UploadProjectFilesResponse} */
         const body = { files: out };
         res.json(body);
       } catch (err) {
@@ -9464,7 +9464,7 @@ export async function startServer({
         const stages = snap?.pipeline?.stages ?? [];
         if (stages.length > 0) {
           const { loadAtomBodies } = await import('./plugins/atom-bodies.js');
-          const { renderActiveStageBlock } = await import('@open-design/contracts');
+          const { renderActiveStageBlock } = await import('@readable-studio/contracts');
           const blocks = [];
           for (const stage of stages) {
             const bodies = await loadAtomBodies(db, stage.atoms ?? []);
@@ -12796,7 +12796,7 @@ export async function startServer({
         err instanceof Error ? err.message : String(err),
       );
     }
-    /** @type {import('@open-design/contracts').ChatRunCreateResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunCreateResponse} */
     const body = {
       runId: run.id,
       // Surface the bound conversation/message so MCP / SDK callers
@@ -13260,7 +13260,7 @@ export async function startServer({
   app.get('/api/runs', (req, res) => {
     const { projectId, conversationId, status } = req.query;
     const runs = design.runs.list({ projectId, conversationId, status });
-    /** @type {import('@open-design/contracts').ChatRunListResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunListResponse} */
     const body = { runs: runs.map(design.runs.statusBody) };
     res.json(body);
   });
@@ -13287,7 +13287,7 @@ export async function startServer({
   app.get('/api/runs/:id/agui', async (req, res) => {
     const run = design.runs.get(req.params.id);
     if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
-    const { encodeOdEventForAgui } = await import('@open-design/agui-adapter');
+    const { encodeOdEventForAgui } = await import('@readable-studio/agui-adapter');
     const sse = createSseResponse(res);
     const lastEventId = Number(req.get('Last-Event-ID') || req.query.after || 0);
     const emitMapped = (record) => {
@@ -13330,7 +13330,7 @@ export async function startServer({
     const run = design.runs.get(req.params.id);
     if (!run) return sendApiError(res, 404, 'NOT_FOUND', 'run not found');
     design.runs.cancel(run);
-    /** @type {import('@open-design/contracts').ChatRunCancelResponse} */
+    /** @type {import('@readable-studio/contracts').ChatRunCancelResponse} */
     const body = { ok: true };
     res.json(body);
   });

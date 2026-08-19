@@ -260,18 +260,18 @@ The split keeps DESIGN.md authors free of universal-craft duplication and keeps 
 ## 6. Skill installation
 
 ```sh
-od skill add https://github.com/op7418/guizang-ppt-skill
+readable skill add https://github.com/op7418/guizang-ppt-skill
 # → clones into ~/.open-design/skills/magazine-web-ppt
 # → symlinks into ~/.claude/skills/ (and any other active agent dirs)
 # → re-indexes registry
 
-od skill add ./path/to/my-skill
+readable skill add ./path/to/my-skill
 # → symlinks local dir (no copy) into skills registry
 
-od skill list
+readable skill list
 # → table: name, mode, source, agent compatibility
 
-od skill remove <name>
+readable skill remove <name>
 # → unlinks; does not delete the source
 ```
 
@@ -279,7 +279,7 @@ od skill remove <name>
 
 The skill is unchanged. Here's the full path:
 
-1. User: `od skill add https://github.com/op7418/guizang-ppt-skill`
+1. User: `readable skill add https://github.com/op7418/guizang-ppt-skill`
 2. Registry indexes it. No `od:` block in front-matter → defaults applied:
    - `mode`: inferred from body mentioning "PPT" → `deck`.
    - `preview.type`: sniffed from `assets/template.html` → `html`.
@@ -361,10 +361,10 @@ A skill ships with optional test inputs that OD uses for CI:
     └── basic.expected.regex.txt       # text regex assertions against the primary output
 ```
 
-`od skill test <name>` runs the skill against each case using a cheap model (e.g. Haiku 4.5) and asserts on the manifest + regex. Low-fidelity but catches structural regressions.
+`readable skill test <name>` runs the skill against each case using a cheap model (e.g. Haiku 4.5) and asserts on the manifest + regex. Low-fidelity but catches structural regressions.
 
 ## 10. Open questions
 
-- **Skill signing.** Can we verify a skill hasn't been tampered with between publish and install? Simplest answer: `od skill add` records the git commit SHA; reinstall-on-update warns on signature change. Deferred to v1.
+- **Skill signing.** Can we verify a skill hasn't been tampered with between publish and install? Simplest answer: `readable skill add` records the git commit SHA; reinstall-on-update warns on signature change. Deferred to v1.
 - **Skill composition.** Can a `prototype-skill` call a `deck-skill` for a sub-artifact? Not in v1; skills are leaf-level. Composition would require a meta-skill concept, which is speculative.
 - **Parameter stability.** When sliders change, should the agent re-plan or just re-render? Lean: re-render (fast path), with an "also re-plan" button for larger changes.

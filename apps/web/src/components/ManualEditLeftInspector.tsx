@@ -2,7 +2,7 @@
 // normally holds the chat). Stacks the Text, Shape and Page sections and a
 // header with undo/redo + exit. Selecting an element swaps which sections are
 // shown; nothing moves around the canvas.
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ManualEditPatch, ManualEditResizeConstraint, ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';

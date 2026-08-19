@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { APP_KEYS, SIDECAR_ENV, type AppKey } from "@open-design/sidecar-proto";
+import { APP_KEYS, SIDECAR_ENV, type AppKey } from "@readable-studio/sidecar-proto";
 
 export function createDesktopApprovalToken(): string {
   return randomBytes(32).toString("base64url");

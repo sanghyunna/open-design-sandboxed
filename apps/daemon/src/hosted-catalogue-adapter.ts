@@ -10,7 +10,7 @@ import type {
   HostedSkillResponse,
   HostedSkillSummary,
   HostedSkillsResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { isSafeId } from './projects.js';
 
 const MAX_AGENTS = 64;

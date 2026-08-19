@@ -15,8 +15,8 @@ import {
   type DesktopExportPdfInput,
   type DesktopExportPdfResult,
   type DesktopUpdateStatusSnapshot,
-} from "@open-design/sidecar-proto";
-import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesignHostUpdaterActionOptions } from "@open-design/host";
+} from "@readable-studio/sidecar-proto";
+import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesignHostUpdaterActionOptions } from "@readable-studio/host";
 
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";

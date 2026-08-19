@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '@open-design/contracts';
+import type { ApiErrorCode } from '@readable-studio/contracts';
 import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, realpath, rename, rm, rmdir } from 'node:fs/promises';
 import path from 'node:path';

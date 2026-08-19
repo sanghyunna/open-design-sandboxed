@@ -4,7 +4,7 @@ import type {
   DesignSystemPackageAuditIssue,
   DesignSystemPackageAuditSeverity,
   DesignSystemPackageAudit,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 export type { DesignSystemPackageAuditIssue, DesignSystemPackageAuditSeverity, DesignSystemPackageAudit };
 async function listAuditFiles(root: string): Promise<string[]> {

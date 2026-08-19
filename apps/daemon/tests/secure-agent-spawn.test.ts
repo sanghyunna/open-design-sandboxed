@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createCommandInvocation } from '@open-design/platform';
+import { createCommandInvocation } from '@readable-studio/platform';
 import { closeHttpServer } from '../src/daemon-startup.js';
 import { closeDatabase } from '../src/db.js';
 import { startServer } from '../src/server.js';

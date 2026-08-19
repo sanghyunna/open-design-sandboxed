@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { parseTranslate } from '../edit-mode/resize-geometry';
 import type { ManualEditStyles, ManualEditTarget } from '../edit-mode/types';
 import { useT } from '../i18n';

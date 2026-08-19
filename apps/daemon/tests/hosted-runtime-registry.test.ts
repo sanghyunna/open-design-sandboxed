@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { PassThrough } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApiError } from '@open-design/contracts';
+import { createApiError } from '@readable-studio/contracts';
 import { insertConversation, insertProject, upsertAgentSession } from '../src/db.js';
 import {
   createHostedRuntimeRegistry,

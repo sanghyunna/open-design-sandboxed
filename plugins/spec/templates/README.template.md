@@ -13,9 +13,9 @@ One paragraph explaining what this plugin helps a user do.
 ## Try It
 
 ```bash
-od plugin validate .
-od plugin install .
-od plugin apply plugin-id --input artifact=prototype --input audience=founders --input topic=onboarding
+readable plugin validate .
+readable plugin install .
+readable plugin apply plugin-id --input artifact=prototype --input audience=founders --input topic=onboarding
 ```
 
 ## Files

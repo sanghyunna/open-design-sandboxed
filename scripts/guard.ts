@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import { checkCrossAppImports } from "./check-cross-app-imports.ts";
 import { checkReadableIdentityAudit } from "./readable-identity-audit.ts";
+import { checkReadableWorkspaceIdentity } from "./readable-workspace-identity.ts";
 import { checkBundledCopyLanguage } from "./check-bundled-copy-language.ts";
 import { checkDesignSystemManifests } from "./check-design-system-manifests.ts";
 import { checkDesignSystemPackageQuality } from "./check-design-system-package-quality.ts";
@@ -80,8 +81,8 @@ const residualAllowedExactPaths = new Set([
   // Maintainer utility scripts executed directly by Node and not loaded by the
   // app runtime.
   "scripts/postinstall.mjs",
-  // Checked-in bin shim so pnpm can link `od` before daemon dist output exists.
-  "apps/daemon/bin/od.mjs",
+  // Checked-in bin shim so pnpm can link `readable` before daemon dist output exists.
+  "apps/daemon/bin/readable.mjs",
   "apps/packaged/esbuild.config.mjs",
   // Browser service workers must be served as JavaScript files.
   "apps/web/public/od-notifications-sw.js",
@@ -1455,6 +1456,7 @@ async function checkStylePolicy(): Promise<boolean> {
 
 const checks: GuardCheck[] = [
   { name: "readable identity baseline", run: checkReadableIdentityAudit },
+  { name: "readable workspace identity", run: checkReadableWorkspaceIdentity },
   { name: "residual JavaScript", run: checkResidualJavaScript },
   { name: "bundled copy language", run: checkBundledCopyLanguage },
   { name: "package dependency specs", run: checkPackageDependencySpecs },

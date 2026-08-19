@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Button, Textarea } from '@open-design/components';
+import { Button, Textarea } from '@readable-studio/components';
 import { streamViaDaemon } from '../providers/daemon';
 import {
   createDesignSystemDraft,
@@ -83,7 +83,7 @@ import {
   designSystemModuleType,
   designSystemRepoHostFromUrl,
   designSystemTotalSizeBucket,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import type {
   DesignSystemsCreateClickProps,
   TrackingDesignSystemCreateEntryFrom,
@@ -97,7 +97,7 @@ import type {
   TrackingDesignSystemStatusAction,
   TrackingDesignSystemStatusValue,
   TrackingDesignSystemsEntryFrom,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useI18n } from '../i18n';
 
 // Source counts the embedded DS creation flow can report back to its

@@ -1,4 +1,4 @@
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import { emptyManualEditStyles, type ManualEditStyles, type ManualEditTarget } from '../edit-mode/types';
 import { Icon } from './Icon';

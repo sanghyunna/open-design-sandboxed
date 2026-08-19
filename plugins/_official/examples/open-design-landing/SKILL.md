@@ -252,7 +252,7 @@ For deployable production output, **fork the `apps/landing-page/`**
 package: copy it into your workspace, align `app/page.tsx` with content
 from your `inputs.json`, and copy your `<out>/assets/*.png` into the
 paths expected by `app/image-assets.ts` / R2 URLs. Build with
-`pnpm --filter @open-design/landing-page build` for a static `out/`
+`pnpm --filter @readable-studio/landing-page build` for a static `out/`
 export ready for any CDN.
 
 > A future iteration may bundle a composer that emits the full

@@ -69,9 +69,9 @@ Tightly coupled with:
 ## Boundary constraints
 
 - Must remain a static Astro output.
-- Must not import from `@open-design/web`, `@open-design/daemon`,
-  `@open-design/desktop`, `@open-design/sidecar*`, or
-  `@open-design/contracts`. Those are product runtime concerns.
+- Must not import from `@readable-studio/web`, `@readable-studio/daemon`,
+  `@readable-studio/desktop`, `@readable-studio/sidecar*`, or
+  `@readable-studio/contracts`. Those are product runtime concerns.
 - Must not introduce a `src/` shell — keep all source under `app/`.
   Component bundles live in `app/_components/<name>.{tsx,astro}`.
 - Must not depend on any non-Google web font.
@@ -92,10 +92,10 @@ Tightly coupled with:
 ## Common commands
 
 ```bash
-pnpm --filter @open-design/landing-page dev          # http://127.0.0.1:17574
-pnpm --filter @open-design/landing-page typecheck
-pnpm --filter @open-design/landing-page previews     # render thumbnails
-pnpm --filter @open-design/landing-page build        # static export → out/
+pnpm --filter @readable-studio/landing-page dev          # http://127.0.0.1:17574
+pnpm --filter @readable-studio/landing-page typecheck
+pnpm --filter @readable-studio/landing-page previews     # render thumbnails
+pnpm --filter @readable-studio/landing-page build        # static export → out/
 ```
 
 ## When to update this app

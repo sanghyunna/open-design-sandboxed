@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, Dispatch, KeyboardEvent as ReactKeyboardEvent, SetStateAction } from 'react';
-import { Button } from '@open-design/components';
-import { validateBaseUrl } from '@open-design/contracts/api/connectionTest';
+import { Button } from '@readable-studio/components';
+import { validateBaseUrl } from '@readable-studio/contracts/api/connectionTest';
 import {
   agentIdToTracking,
   byokProtocolToTracking,
   executionModeToTracking,
   settingsSectionToTracking,
   themeIdToTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackSettingsAppearanceClick,
@@ -88,7 +88,7 @@ import type {
   ProviderModelsResponse,
   SkillSummary,
 } from '../types';
-import type { AgentCatalogItem } from '@open-design/contracts';
+import type { AgentCatalogItem } from '@readable-studio/contracts';
 import { testAgent, testApiProvider } from '../providers/connection-test';
 import { fetchProviderModels } from '../providers/provider-models';
 import {

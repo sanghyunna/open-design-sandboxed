@@ -20,7 +20,7 @@ import {
   type RegisterDesktopAuthResult,
   type SidecarStamp,
   type WebStatusSnapshot,
-} from "@open-design/sidecar-proto";
+} from "@readable-studio/sidecar-proto";
 import { dirname, join } from "node:path";
 
 import {
@@ -32,8 +32,8 @@ import {
   resolveRuntimeNamespaceRoot,
   type JsonIpcServerHandle,
   type SidecarRuntimeContext,
-} from "@open-design/sidecar";
-import { readProcessStamp } from "@open-design/platform";
+} from "@readable-studio/sidecar";
+import { readProcessStamp } from "@readable-studio/platform";
 
 import { createDesktopRuntime, type DesktopRuntime } from "./runtime.js";
 import {

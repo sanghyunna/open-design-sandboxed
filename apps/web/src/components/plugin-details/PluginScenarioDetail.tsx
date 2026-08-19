@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   InstalledPluginRecord,
   PluginManifest,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useI18n } from '../../i18n';
 import { Icon } from '../Icon';
 import { TrustBadge } from '../TrustBadge';

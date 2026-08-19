@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@open-design/components';
+import { Button } from '@readable-studio/components';
 import { useT } from '../i18n';
 import type { ManualEditStyles } from '../edit-mode/types';
 import { stripPxUnit } from './ManualEditPanel';

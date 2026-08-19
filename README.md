@@ -69,27 +69,27 @@ Inside a project's Studio, the active design system drives prototypes, decks, da
 ---
 ## Platform Compatibility
 
-> Open Design ships as **skills, a CLI, and an MCP server** that mainstream coding agents consume natively. Once OD is installed, a single `od mcp install <agent>` wires the MCP server into that agent's config, and you call the same tools from inside any agent.
+> Open Design ships as **skills, a CLI, and an MCP server** that mainstream coding agents consume natively. Once OD is installed, a single `readable mcp install <agent>` wires the MCP server into that agent's config, and you call the same tools from inside any agent.
 
 | Coding agent / platform &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Status &nbsp;&nbsp; | One-line MCP server install &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
 |---|:---:|---|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ Supported | `od mcp install claude` |
-| [Codex CLI](https://github.com/openai/codex) | ✅ Supported | `od mcp install codex` |
-| [Cursor](https://www.cursor.com/cli) | ✅ Supported | `od mcp install cursor` |
-| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ Supported | `od mcp install copilot` |
-| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ Supported | `od mcp install copilot` |
-| Gemini CLI | ✅ Supported | `od mcp install gemini` |
-| [OpenCode](https://opencode.ai/) | ✅ Supported | `od mcp install opencode` |
-| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ Supported | `od mcp install openclaw` |
-| [Antigravity](https://antigravity.google) | ✅ Supported | `od mcp install antigravity` |
-| [Cline](https://github.com/cline/cline) | ✅ Supported | `od mcp install cline` |
-| [Trae](https://www.trae.ai/) | ✅ Supported | `od mcp install trae` |
-| Kimi CLI | ✅ Supported | `od mcp install kimi` |
-| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ Supported | `od mcp install pi` |
-| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ Supported | `od mcp install vibe` |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ Supported | `od mcp install hermes` |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | ✅ Supported | `readable mcp install claude` |
+| [Codex CLI](https://github.com/openai/codex) | ✅ Supported | `readable mcp install codex` |
+| [Cursor](https://www.cursor.com/cli) | ✅ Supported | `readable mcp install cursor` |
+| [VS Code + GitHub Copilot](https://github.com/features/copilot) | ✅ Supported | `readable mcp install copilot` |
+| [GitHub Copilot CLI](https://github.com/features/copilot/cli) | ✅ Supported | `readable mcp install copilot` |
+| Gemini CLI | ✅ Supported | `readable mcp install gemini` |
+| [OpenCode](https://opencode.ai/) | ✅ Supported | `readable mcp install opencode` |
+| [OpenClaw](https://github.com/openclaw/openclaw) | ✅ Supported | `readable mcp install openclaw` |
+| [Antigravity](https://antigravity.google) | ✅ Supported | `readable mcp install antigravity` |
+| [Cline](https://github.com/cline/cline) | ✅ Supported | `readable mcp install cline` |
+| [Trae](https://www.trae.ai/) | ✅ Supported | `readable mcp install trae` |
+| Kimi CLI | ✅ Supported | `readable mcp install kimi` |
+| [Pi Agent](https://github.com/badlogic/pi-mono) | ✅ Supported | `readable mcp install pi` |
+| [Mistral Vibe CLI](https://github.com/mistralai/mistral-vibe) | ✅ Supported | `readable mcp install vibe` |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | ✅ Supported | `readable mcp install hermes` |
 
-`od mcp install <agent> --print` for a dry-run preview · `--uninstall` to remove · full list with `od mcp install --help`.
+`readable mcp install <agent> --print` for a dry-run preview · `--uninstall` to remove · full list with `readable mcp install --help`.
 
 <p align="center">
   <img src="https://repo-assets.open-design.ai/resources/images/coding-agents.png" alt="The 21 coding-agent CLIs Open Design supports — Claude Code · Codex · OpenCode · Hermes · Antigravity · Gemini · Grok Build · Kimi · Cursor Agent · Qwen · Qoder · GitHub Copilot · Pi · Kiro · Kilo · Mistral Vibe · DeepSeek · Reasonix · Aider · Devin · Trae" width="100%" />
@@ -268,11 +268,11 @@ Open Design ships a **stdio MCP server** and per-agent **install scripts**. Any 
 curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 
 # Then the agent can:
-od search-files "primary button"      # search files across projects
-od get-file design-systems/linear-app/DESIGN.md
-od get-artifact <slug>                # latest rendered artifact
-od plugin run web-prototype --brief "..."
-od skill list --scenario marketing
+readable search-files "primary button"      # search files across projects
+readable get-file design-systems/linear-app/DESIGN.md
+readable get-artifact <slug>                # latest rendered artifact
+readable plugin run web-prototype --brief "..."
+readable skill list --scenario marketing
 ```
 
 **Why MCP?** Exporting and re-attaching a zip every iteration breaks flow. MCP exposes the design source directly — the agent always sees the live file.
@@ -371,20 +371,20 @@ Also [`plugins/community/`](plugins/community/) for community plugins and [`plug
 
 ### Using plugins
 
-Plugins are at full parity across the **web UI** and the **`od` CLI** — same `/api/plugins` endpoints, pick whichever fits.
+Plugins are at full parity across the **web UI** and the **`readable` CLI** — same `/api/plugins` endpoints, pick whichever fits.
 
 **In the desktop / web app:** open the **Plugin** page to browse the marketplace and click **Install**; inside a project's Studio, plugins appear as composer chips you click to apply (with the inputs they declare).
 
 **On the command line** (runs without a UI — this is the path external agents use):
 
 ```bash
-od plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
-od plugin search "landing page"      # search by keyword
-od plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
-od plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
-od plugin apply od-default --input brief="a one-page pitch for our seed round"
-od plugin upgrade od-default         # upgrade
-od plugin uninstall od-default       # uninstall
+readable plugin list                       # list installed plugins (--task-kind / --mode / --tag filters)
+readable plugin search "landing page"      # search by keyword
+readable plugin info od-default            # inspect a plugin's metadata, inputs, capabilities
+readable plugin install od-figma-migration # install from a registry; also accepts ./local-folder or an https://… link
+readable plugin apply od-default --input brief="a one-page pitch for our seed round"
+readable plugin upgrade od-default         # upgrade
+readable plugin uninstall od-default       # uninstall
 ```
 
 Every command supports `--json`, so you can pipe it through `jq` / `xargs` into automation.
@@ -407,9 +407,9 @@ Core `open-design.json` fields: `specVersion` (currently `1.0.0`), `name` (stabl
 Scaffold + validate locally:
 
 ```bash
-od plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
-od plugin validate ./my-plugin                          # check manifest / file layout
-pnpm guard && pnpm --filter @open-design/plugin-runtime typecheck
+readable plugin scaffold --id my-plugin --title "My Plugin"   # generate the skeleton
+readable plugin validate ./my-plugin                          # check manifest / file layout
+pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 Full field set and runtime contract → [`plugins/spec/SPEC.md`](plugins/spec/SPEC.md); developing a plugin with a coding agent → [`plugins/spec/AGENT-DEVELOPMENT.md`](plugins/spec/AGENT-DEVELOPMENT.md); copy-paste minimal templates → [`plugins/spec/examples/`](plugins/spec/examples/).
@@ -417,7 +417,7 @@ Full field set and runtime contract → [`plugins/spec/SPEC.md`](plugins/spec/SP
 ### Contributing a plugin
 
 1. Drop the plugin folder into [`plugins/community/`](plugins/community/) (third-party plugins), or — to ship it bundled with Open Design — into the matching tier of [`plugins/_official/`](plugins/_official/).
-2. Pass validation: `od plugin validate`, `pnpm guard`, `pnpm --filter @open-design/plugin-runtime typecheck`.
+2. Pass validation: `readable plugin validate`, `pnpm guard`, `pnpm --filter @readable-studio/plugin-runtime typecheck`.
 3. Fill the PR using the template in [`plugins/spec/CONTRIBUTING.md`](plugins/spec/CONTRIBUTING.md) (ID, version, lane, mode, capabilities, trigger examples; attach a screenshot / preview for visual plugins).
 4. To publish to an external registry (skills.sh / ClawHub / standalone GitHub) → [`plugins/spec/PUBLISHING-REGISTRIES.md`](plugins/spec/PUBLISHING-REGISTRIES.md).
 
@@ -482,8 +482,8 @@ Full architecture → [`docs/architecture.md`](docs/architecture.md). Skill prot
 - [x] Packaged desktop runtime
 - [ ] Comment-mode surgical edits — partially shipped; reliable targeted patching in progress
 - [ ] AI-emitted tweaks panel UX — not yet implemented
-- [ ] `npx od init` to scaffold a project with `DESIGN.md`
-- [ ] Plugin SDK + `od plugin {add,list,remove,test,publish}` CLI
+- [ ] `npx readable init` to scaffold a project with `DESIGN.md`
+- [ ] Plugin SDK + `readable plugin {add,list,remove,test,publish}` CLI
 - [ ] Figma / Pencil → React / Next / Vue migration plugins (alpha)
 - [ ] Refresh-existing-codebase plugin (point at a git repo + `DESIGN.md`)
 
@@ -535,7 +535,7 @@ gh issue develop <number>   # create a branch and worktree
 
 # 3. Make the change, run the checks
 pnpm guard && pnpm typecheck
-pnpm --filter @open-design/<package> test
+pnpm --filter @readable-studio/<package> test
 
 # 4. Open the PR
 gh pr create --fill

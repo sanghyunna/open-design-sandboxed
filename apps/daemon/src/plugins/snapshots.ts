@@ -23,7 +23,7 @@ import {
   type PluginAssetRef,
   type PluginPipeline,
   type ResolvedContext,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 
 type SqliteDb = Database.Database;
 type DbRow = Record<string, unknown>;

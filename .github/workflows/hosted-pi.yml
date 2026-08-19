@@ -40,10 +40,10 @@ jobs:
       - name: Install build dependencies
         run: pnpm install --frozen-lockfile
       - name: Install Chromium
-        run: pnpm --filter @open-design/e2e exec playwright install chromium
+        run: pnpm --filter @readable-studio/e2e exec playwright install chromium
       - name: Install Chromium system dependencies
         if: runner.os == 'Linux'
-        run: pnpm --filter @open-design/e2e exec playwright install-deps chromium
+        run: pnpm --filter @readable-studio/e2e exec playwright install-deps chromium
       - name: Run PR11 complete hosted acceptance and capacity suite
         run: node --experimental-strip-types tools/pack/src/hosted-validation.ts pr11
       - uses: actions/upload-artifact@v4

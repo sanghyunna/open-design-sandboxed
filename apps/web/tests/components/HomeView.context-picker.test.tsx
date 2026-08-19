@@ -7,7 +7,7 @@ import {
   type InstalledPluginRecord,
   type McpServerConfig,
   type SkillSummary,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { HomeView } from '../../src/components/HomeView';
 import { homeHeroPromptText, setHomeHeroPrompt } from '../helpers/home-hero-lexical';
 

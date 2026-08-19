@@ -33,7 +33,7 @@ corepack enable           # selects the pinned pnpm from packageManager
 pnpm install
 pnpm tools-dev run web    # daemon + web foreground loop
 pnpm typecheck            # tsc -b --noEmit
-pnpm --filter @open-design/web build  # web package build when needed
+pnpm --filter @readable-studio/web build  # web package build when needed
 ```
 
 Node `~24` and pnpm `10.33.x` are required. `nvm` / `fnm` are optional; use `nvm install 24 && nvm use 24` or `fnm install 24 && fnm use 24` if you prefer managing Node that way. Windows native is the primary path; macOS, Linux, and WSL2 are best-effort. See [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) for common setup gotchas.
@@ -158,7 +158,7 @@ The OVERRIDES table in `maxTokens.ts` is for the rare case where LiteLLM is miss
 
 ## Localization maintenance
 
-German uses formal `Sie` because OD speaks to a mixed audience of solo creators, agencies, and engineering teams; until project feedback shows that an informal `du` voice fits better, formal German is the least surprising default. Locale PRs should translate UI chrome, core docs, and display-only gallery metadata in `apps/web/src/i18n/content.ts`, but should not translate `skills/`, `design-systems/`, or prompt bodies that agents execute. Those source prompts are maintained as workflow inputs, and keeping one source language avoids multiplying prompt QA across locales. When adding or renaming a skill, design system, or prompt template, update the German display metadata and run `pnpm --filter @open-design/web test`; `content.test.ts` fails if German display coverage drifts. Daemon errors, export filenames, and agent-generated artifact text are known limitations unless a PR explicitly scopes them.
+German uses formal `Sie` because OD speaks to a mixed audience of solo creators, agencies, and engineering teams; until project feedback shows that an informal `du` voice fits better, formal German is the least surprising default. Locale PRs should translate UI chrome, core docs, and display-only gallery metadata in `apps/web/src/i18n/content.ts`, but should not translate `skills/`, `design-systems/`, or prompt bodies that agents execute. Those source prompts are maintained as workflow inputs, and keeping one source language avoids multiplying prompt QA across locales. When adding or renaming a skill, design system, or prompt template, update the German display metadata and run `pnpm --filter @readable-studio/web test`; `content.test.ts` fails if German display coverage drifts. Daemon errors, export filenames, and agent-generated artifact text are known limitations unless a PR explicitly scopes them.
 
 For step-by-step instructions on adding a new locale (UI dictionary, README, language switcher, regional terminology), see [`TRANSLATIONS.md`](TRANSLATIONS.md).
 

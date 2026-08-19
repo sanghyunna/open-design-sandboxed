@@ -30,7 +30,7 @@ The 305 PRs in this release are mostly the work of porting the old world into th
 
 **Headless by default.** The desktop app is now a thin wrapper around the OD CLI. The same engine runs from Claude Code, OpenClaw, Hermes Agent, and chat bots in Lark, Discord, and Slack. Custom CLI agent profiles ship in this release (#378), so you can plug an arbitrary CLI agent into the runtime without touching core. Design stops being a place you go and becomes a capability your agents have. This is what [the skill-layer manifesto](/blog/why-we-built-open-design-as-a-skill-layer/) was pointing at; 0.8.0 is the first release where the agent path is the canonical path, not a side door.
 
-**Plugins create plugins.** OD CLI wraps GitHub CLI, so an agent can clone the repo, scaffold a plugin, validate it, pack it, and open a PR — for you, or for itself. The [how-to-port-a-Figma-workflow guide](/blog/port-figma-workflow-open-design-plugin/) walks the human path; the automated version of the same path is now reachable from inside any agent that has `gh` and `od` on `$PATH`. The engine grows itself, in public, with you in the loop.
+**Plugins create plugins.** OD CLI wraps GitHub CLI, so an agent can clone the repo, scaffold a plugin, validate it, pack it, and open a PR — for you, or for itself. The [how-to-port-a-Figma-workflow guide](/blog/port-figma-workflow-open-design-plugin/) walks the human path; the automated version of the same path is now reachable from inside any agent that has `gh` and `readable` on `$PATH`. The engine grows itself, in public, with you in the loop.
 
 ## What else lands in 0.8.0
 
@@ -53,7 +53,7 @@ Three paths, depending on where you start.
 |---|---|
 | New to Open Design | Download the desktop app and let it bootstrap a project against an existing design system |
 | Already running Open Design | Let the packaged auto-update bring you to 0.8.0; the in-app updater popup walks you through the validated install |
-| Building a plugin | Scaffold with `od plugin scaffold --id <name>`, validate with `od plugin validate ./<path> --no-daemon`, and open a PR through the same OD publish path that ships every other plugin in the marketplace |
+| Building a plugin | Scaffold with `readable plugin scaffold --id <name>`, validate with `readable plugin validate ./<path> --no-daemon`, and open a PR through the same OD publish path that ships every other plugin in the marketplace |
 
 If you've been waiting for the agent-native loop to feel like the canonical loop instead of a demo, this is the release. Point Claude Code, Cursor, Codex, or any of the 16 detected CLI agents at the same OD CLI the desktop app ships with, and the two paths converge after the first prompt.
 

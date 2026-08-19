@@ -4,7 +4,7 @@ import {
   API_ERROR_CODES,
   HOSTED_CSRF_HEADER,
   HOSTED_PROVIDER_IDS,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import type {
   HostedProviderClearResponse,
   HostedProviderId,
@@ -14,7 +14,7 @@ import type {
   HostedProviderTestRequest,
   HostedProviderTestResponse,
   HostedSessionResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { resolveDaemonUrl } from './daemon-url.js';
 
 const MAX_SECRET_BYTES = 16 * 1024;

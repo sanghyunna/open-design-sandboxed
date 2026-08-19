@@ -9,8 +9,8 @@ import {
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
-} from "@open-design/sidecar-proto";
-import { resolveAppIpcPath, type SidecarRuntimeContext } from "@open-design/sidecar";
+} from "@readable-studio/sidecar-proto";
+import { resolveAppIpcPath, type SidecarRuntimeContext } from "@readable-studio/sidecar";
 import { describe, expect, it } from "vitest";
 
 import type { PackagedNamespacePaths } from "../src/paths.js";

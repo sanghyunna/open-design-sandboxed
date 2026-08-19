@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 import {
   buildPackagedDaemonSpawnEnv,

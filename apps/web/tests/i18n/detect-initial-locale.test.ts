@@ -2,7 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { installMockOpenDesignHost } from '@open-design/host/testing';
+import { installMockOpenDesignHost } from '@readable-studio/host/testing';
 import { detectInitialLocale, useI18n } from '../../src/i18n';
 
 const LS_KEY = 'open-design:locale';

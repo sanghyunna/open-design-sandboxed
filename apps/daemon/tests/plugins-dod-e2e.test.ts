@@ -27,7 +27,7 @@ import { installFromLocalFolder } from '../src/plugins/installer.js';
 import { getInstalledPlugin } from '../src/plugins/registry.js';
 import { createSnapshot, getSnapshot } from '../src/plugins/snapshots.js';
 import { resolvePluginSnapshot, capabilitiesRequiredError } from '../src/plugins/resolve-snapshot.js';
-import { renderPluginBlock } from '@open-design/contracts';
+import { renderPluginBlock } from '@readable-studio/contracts';
 
 import { FIRST_PARTY_ATOMS, type AtomCatalogEntry } from '../src/plugins/atoms.js';
 

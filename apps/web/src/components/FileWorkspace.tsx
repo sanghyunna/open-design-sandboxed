@@ -7,8 +7,8 @@ import {
   type DragEvent as ReactDragEvent,
   type ReactNode,
 } from 'react';
-import { Button } from '@open-design/components';
-import type { TrackingProjectKind } from '@open-design/contracts/analytics';
+import { Button } from '@readable-studio/components';
+import type { TrackingProjectKind } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackFileManagerClick,
@@ -55,7 +55,7 @@ import {
   type ProjectFile,
   type ProjectFolder,
 } from '../types';
-import type { ChatSessionMode, WorkspaceContextItem } from '@open-design/contracts';
+import type { ChatSessionMode, WorkspaceContextItem } from '@readable-studio/contracts';
 import { createTerminal, killTerminal } from '../state/projects';
 import type { QuestionForm } from '../artifacts/question-form';
 import { DesignFilesPanel, type DesignFilesNavState } from './DesignFilesPanel';

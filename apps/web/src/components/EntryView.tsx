@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
+import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
 import type {
   AgentInfo,
   ApiProtocol,

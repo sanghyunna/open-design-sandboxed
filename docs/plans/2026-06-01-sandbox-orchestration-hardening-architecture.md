@@ -255,7 +255,7 @@ should check one live daemon against the same fixture.
 
 ## Open Decisions
 
-1. `/api/ready` already exists. Either add `od daemon ready --json` for CLI
+1. `/api/ready` already exists. Either add `readable daemon ready --json` for CLI
    parity or classify readiness as an internal daemon probe exempt from the
    UI/CLI dual-track rule.
 2. CODEOWNERS needs real repository owner handles before it can be enforced.

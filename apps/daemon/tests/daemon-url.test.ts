@@ -2,8 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createJsonIpcServer, type JsonIpcServerHandle } from "@open-design/sidecar";
-import { SIDECAR_ENV, SIDECAR_MESSAGES } from "@open-design/sidecar-proto";
+import { createJsonIpcServer, type JsonIpcServerHandle } from "@readable-studio/sidecar";
+import { SIDECAR_ENV, SIDECAR_MESSAGES } from "@readable-studio/sidecar-proto";
 import { resolveDaemonUrl, DEFAULT_DAEMON_URL } from "../src/daemon-url.js";
 import { namedPipePath, writeExecutableScript } from "./helpers/fake-agent.js";
 

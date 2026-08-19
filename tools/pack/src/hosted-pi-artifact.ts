@@ -89,7 +89,7 @@ function pathInside(root: string, candidate: string): boolean {
   return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
 }
 
-const WORKSPACE_SELF_LINK = path.join('node_modules', '.pnpm', 'node_modules', '@open-design', 'daemon');
+const WORKSPACE_SELF_LINK = path.join('node_modules', '.pnpm', 'node_modules', '@readable-studio', 'daemon');
 
 type RelocationContext = {
   sourceRoot: string;
@@ -385,8 +385,8 @@ function build(stage: string): void {
     fail(`refusing to overwrite output outside a fresh .tmp directory: ${stage}`);
   }
   mkdirSync(path.dirname(stage), { recursive: true });
-  runBuildCommand(['--filter', '@open-design/daemon', 'build']);
-  runBuildCommand(['--filter', '@open-design/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', deployStage]);
+  runBuildCommand(['--filter', '@readable-studio/daemon', 'build']);
+  runBuildCommand(['--filter', '@readable-studio/daemon', 'deploy', '--prod', '--no-optional', '--ignore-scripts', '--legacy', deployStage]);
   removeWorkspaceSelfLink(deployStage);
   relocateTree(deployStage, stage);
   rmSync(deployStage, { recursive: true, force: true });

@@ -62,8 +62,8 @@ cursor-agent -> cursor-agent
   - enable 변경 시 config 저장, daemon sync, agent refresh 실행.
   - 현재 선택된 agent를 disable하면 `codex`, `cursor-agent`, 첫 available agent 순으로 fallback.
 - `apps/daemon/src/cli.ts`
-  - 최소: `od config set enabledAgentIds --value-json '["codex","cursor-agent"]'`가 동작하도록 계약 반영.
-  - 권장: `od agent list|enable|disable|reset --json` 추가.
+  - 최소: `readable config set enabledAgentIds --value-json '["codex","cursor-agent"]'`가 동작하도록 계약 반영.
+  - 권장: `readable agent list|enable|disable|reset --json` 추가.
 
 ### UI 동작
 
@@ -140,9 +140,9 @@ Disabled adapter는 "not installed"로 표시하지 않는다. 사용자가 "Ena
 ## 검증 순서
 
 ```bash
-pnpm --filter @open-design/contracts typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 pnpm guard
 pnpm typecheck
 ```
@@ -177,12 +177,12 @@ pnpm typecheck
   2. web locale / built-in localized content를 `en`, `ko`만 남긴다.
 - 사용자의 강한 완료 조건: **built portable program이 실제 최적화됐다고 Oracle이 확신하기 전에는 성공 선언 금지.**
 - 남은 완료 조건:
-  - `pnpm --filter @open-design/contracts typecheck`
-  - `pnpm --filter @open-design/daemon test`
-  - `pnpm --filter @open-design/web test`
+  - `pnpm --filter @readable-studio/contracts typecheck`
+  - `pnpm --filter @readable-studio/daemon test`
+  - `pnpm --filter @readable-studio/web test`
   - `pnpm guard`
   - `pnpm typecheck`
-  - `pnpm --filter @open-design/web build`
+  - `pnpm --filter @readable-studio/web build`
   - `pnpm tools-pack win build --to zip`
   - built portable 산출물 기준 크기/부팅/probe 측정
   - Oracle에게 diff + 측정값 제출 후 승인
@@ -208,7 +208,7 @@ pnpm typecheck
 - `apps/daemon/src/runtimes/defs/cursor-agent.ts`
   - `fallbackBins: ['agent']` 추가됨.
 - `apps/daemon/src/cli.ts`
-  - `od agent list|enable|disable|reset --json` 구현된 상태로 보임.
+  - `readable agent list|enable|disable|reset --json` 구현된 상태로 보임.
   - 파일은 `@ts-nocheck`라 typecheck로 안전성 보장 안 됨. daemon tests로 확인 필요.
 - 새 daemon test 파일이 생긴 상태:
   - `apps/daemon/tests/runtimes/detection.enabled-ids.test.ts`
@@ -257,7 +257,7 @@ pnpm typecheck
     - `apps/web/tests/components/plugins-home-section.test.tsx`
     - `apps/web/tests/components/SkillsSection.test.tsx`
   - `apps/web/tests/components/preset-seed-prompt.test.ts`의 zh-specific test를 일반 description-first test로 변경.
-- 확인됨: `pnpm --filter @open-design/web typecheck`는 이 cleanup 직후 통과했다.
+- 확인됨: `pnpm --filter @readable-studio/web typecheck`는 이 cleanup 직후 통과했다.
   - 출력은 `tsc -b --noEmit` 후 error 없이 종료.
   - 이후 subagent/background 작업이 파일을 더 건드렸을 수 있으니 반드시 재실행 필요.
 
@@ -335,16 +335,16 @@ pnpm typecheck
 #### 3. Verification 재실행
 
 - 마지막으로 내가 확실히 본 green:
-  - `pnpm --filter @open-design/web typecheck` 통과.
+  - `pnpm --filter @readable-studio/web typecheck` 통과.
 - interrupt/미확인:
-  - `pnpm --filter @open-design/daemon test`는 여러 번 interrupt/abort됨.
-  - `pnpm --filter @open-design/web test` interrupt됨.
+  - `pnpm --filter @readable-studio/daemon test`는 여러 번 interrupt/abort됨.
+  - `pnpm --filter @readable-studio/web test` interrupt됨.
   - `pnpm guard` interrupt됨.
 - 다음 에이전트 실행 순서 권장:
-  1. `pnpm --filter @open-design/web typecheck`
-  2. `pnpm --filter @open-design/contracts typecheck`
-  3. `pnpm --filter @open-design/daemon test`
-  4. `pnpm --filter @open-design/web test`
+  1. `pnpm --filter @readable-studio/web typecheck`
+  2. `pnpm --filter @readable-studio/contracts typecheck`
+  3. `pnpm --filter @readable-studio/daemon test`
+  4. `pnpm --filter @readable-studio/web test`
   5. `pnpm guard`
   6. `pnpm typecheck`
 
@@ -353,7 +353,7 @@ pnpm typecheck
 - 아직 시작 안 함.
 - root AGENTS 지침상 packaged updater/installer 관련 작업 전에 `tools/pack/AGENTS.md`의 packaged auto-update architecture/harness section 읽기.
 - 목표 command:
-  - `pnpm --filter @open-design/web build`
+  - `pnpm --filter @readable-studio/web build`
   - `pnpm tools-pack win build --to zip`
 - 측정 필요:
   - `/api/agents?stream=1` cold response time.
@@ -399,7 +399,7 @@ pnpm typecheck
 3. background agent가 남긴 partial changes 확인 (`SettingsDialog.module.css`, contracts registry/events 등).
 4. `/api/agents/catalog` 없으면 먼저 backend endpoint + contract + test 추가.
 5. SettingsDialog UI 없거나 partial이면 최소 구현 완료.
-6. `pnpm --filter @open-design/web typecheck` 재실행.
+6. `pnpm --filter @readable-studio/web typecheck` 재실행.
 7. daemon/web tests, guard/typecheck 실행.
 8. portable build + 측정.
 9. Oracle review 전까지 성공 선언 금지.

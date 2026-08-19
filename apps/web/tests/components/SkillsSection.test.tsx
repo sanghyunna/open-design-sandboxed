@@ -7,7 +7,7 @@ import { SkillsSection } from '../../src/components/SkillsSection';
 import { I18nProvider } from '../../src/i18n';
 import { Locale } from '../../src/i18n/types';
 import type { AppConfig } from '../../src/types';
-import type { SkillSummary } from '@open-design/contracts';
+import type { SkillSummary } from '@readable-studio/contracts';
 
 const originalFetch = globalThis.fetch;
 

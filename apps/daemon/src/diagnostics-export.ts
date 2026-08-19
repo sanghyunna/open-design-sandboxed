@@ -11,18 +11,18 @@ import {
   DIAGNOSTICS_FILENAME_PREFIX,
   diagnosticsFileName,
   type LogSource,
-} from '@open-design/diagnostics';
+} from '@readable-studio/diagnostics';
 import {
   APP_KEYS,
   SIDECAR_CONTRACT,
   SIDECAR_MODES,
   type SidecarStamp,
-} from '@open-design/sidecar-proto';
+} from '@readable-studio/sidecar-proto';
 import {
   resolveLogFilePath,
   resolveRuntimeNamespaceRoot,
   type SidecarRuntimeContext,
-} from '@open-design/sidecar';
+} from '@readable-studio/sidecar';
 
 import { readCurrentAppVersionInfo } from './app-version.js';
 import { agentCliEnvForAgent, readAppConfig } from './app-config.js';

@@ -11,9 +11,9 @@ const execFileAsync = promisify(execFile);
 const daemonRoot = fileURLToPath(new URL('..', import.meta.url));
 // Exercise the same built entry users launch. Spawning cli.ts through tsx made
 // readiness depend on cold transpilation of the daemon graph rather than bind.
-const cliEntry = fileURLToPath(new URL('../bin/od.mjs', import.meta.url));
+const cliEntry = fileURLToPath(new URL('../bin/readable.mjs', import.meta.url));
 
-const READY_PATTERN = /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u;
+const READY_PATTERN = /\[readable\] listening on (http:\/\/[^\s]+) \(headless\)/u;
 // This is a deadlock guard for cold Windows CI/workstation startup, not a startup SLO.
 const REAL_DAEMON_COLD_START_DEADLOCK_GUARD_MS = 60_000;
 const REAL_DAEMON_POST_START_ASSERTION_AND_CLEANUP_BUDGET_MS = 15_000;
@@ -47,7 +47,7 @@ async function forceTerminateKnownPid(pid: number): Promise<void> {
 
 describe('CLI startup boundaries', () => {
   it(
-    'keeps od daemon start alive until SIGTERM and reports the actual listening port',
+    'keeps readable daemon start alive until SIGTERM and reports the actual listening port',
     runRealDaemonLifecycleAssertion,
     REAL_DAEMON_LIFECYCLE_TEST_TIMEOUT_MS,
   );
@@ -56,7 +56,7 @@ describe('CLI startup boundaries', () => {
     ['doctor', ['doctor', '--help']],
     ['config', ['config', 'get', 'apiProtocol', '--daemon-url', 'http://127.0.0.1:9']],
     ['diagnostics', ['diagnostics', 'export', '--daemon-url', 'http://127.0.0.1:9']],
-  ])('initializes flag constants before dispatching od %s', async (_name, args) => {
+  ])('initializes flag constants before dispatching readable %s', async (_name, args) => {
     let output = '';
     try {
       const result = await execFileAsync(
@@ -86,7 +86,7 @@ describe('CLI startup boundaries', () => {
   it('captures immediate readiness and transfers idempotent termination ownership', async () => {
     const launched = spawnWaitingForOutputLine(
       process.execPath,
-      ['-e', "process.stdout.write('[od] listening on http://127.0.0.1:1 (headless)\\n'); setInterval(() => {}, 1000)"],
+      ['-e', "process.stdout.write('[readable] listening on http://127.0.0.1:1 (headless)\\n'); setInterval(() => {}, 1000)"],
       {},
       READY_PATTERN,
     );

@@ -72,8 +72,8 @@ pnpm tools-dev status          # 관리 중인 런타임 확인
 pnpm tools-dev logs            # daemon/web/desktop 로그 보기
 pnpm tools-dev check           # 상태 + 최근 로그 + 일반 진단
 pnpm tools-dev stop            # 관리 중인 런타임 중지
-pnpm --filter @open-design/daemon build  # `od`용 apps/daemon/dist/cli.js 빌드
-pnpm --filter @open-design/web build     # 필요할 때 web 패키지 빌드
+pnpm --filter @readable-studio/daemon build  # `readable`용 apps/daemon/dist/cli.js 빌드
+pnpm --filter @readable-studio/web build     # 필요할 때 web 패키지 빌드
 pnpm typecheck                 # 워크스페이스 타입 체크
 ```
 
@@ -83,7 +83,7 @@ pnpm typecheck                 # 워크스페이스 타입 체크
 
 ## 미디어 생성 / 에이전트 dispatcher 점검
 
-이미지, 비디오, 오디오, HyperFrames skill은 daemon이 에이전트를 spawn할 때 주입하는 환경 변수를 통해 로컬 `od` CLI를 호출합니다.
+이미지, 비디오, 오디오, HyperFrames skill은 daemon이 에이전트를 spawn할 때 주입하는 환경 변수를 통해 로컬 `readable` CLI를 호출합니다.
 
 - `OD_BIN` — `apps/daemon/dist/cli.js`의 절대 경로.
 - `OD_DAEMON_URL` — 실행 중인 daemon URL.
@@ -93,7 +93,7 @@ pnpm typecheck                 # 워크스페이스 타입 체크
 미디어 생성이 `OD_BIN: parameter not set`, `apps/daemon/dist/cli.js` 누락, `failed to reach daemon at http://127.0.0.1:0` 같은 메시지로 실패하면, daemon CLI를 다시 빌드하고 관리 중인 런타임을 재시작하세요.
 
 ```bash
-pnpm --filter @open-design/daemon build
+pnpm --filter @readable-studio/daemon build
 pnpm tools-dev restart --daemon-port 7457 --web-port 5175
 ls -la apps/daemon/dist/cli.js
 curl -s http://127.0.0.1:7457/api/health
@@ -162,7 +162,7 @@ open-design/
 ├── apps/
 │   ├── daemon/                # Node/Express — 로컬 에이전트 spawn + API 서빙
 │   │   └── src/
-│   │       ├── cli.ts             # `od` bin 진입점
+│   │       ├── cli.ts             # `readable` bin 진입점
 │   │       ├── server.ts          # /api/* + 정적 서빙
 │   │       ├── agents.ts          # claude/codex/devin/gemini/opencode/cursor-agent/qwen/qoder/copilot용 PATH 스캐너
 │   │       ├── skills.ts          # SKILL.md 로더 (frontmatter 파서)
@@ -213,12 +213,12 @@ open-design/
 │   ├── artifacts/              #   일회성 "Save to disk" 렌더링
 │   └── projects/<id>/          #   프로젝트별 작업 디렉터리 + 에이전트 cwd
 ├── pnpm-workspace.yaml        # apps/* + packages/* + tools/* + e2e
-└── package.json               # 루트 품질 스크립트 + `od` bin
+└── package.json               # 루트 품질 스크립트 + `readable` bin
 ```
 
 ## 문제 해결
 
-- **Node.js 버전을 바꾼 뒤 `better-sqlite3`가 로드되지 않거나 ABI가 맞지 않을 때** — `pnpm install`이 `postinstall`을 자동으로 다시 돌려 현재 Node.js에 맞게 네이티브 애드온을 리빌드합니다. 직접 리빌드하거나 수정을 확인하려면 `pnpm --filter @open-design/daemon rebuild better-sqlite3`를 실행한 뒤 `pnpm --filter @open-design/daemon exec node -e "require('better-sqlite3')"`를 돌리세요. 빌드 도구 `python3`, `make`, `g++`(또는 `clang++`)가 필요합니다. `.npmrc`에 `ignore-scripts=true`가 있다면, `pnpm install` 후 `node scripts/postinstall.mjs`를 실행하세요.
+- **Node.js 버전을 바꾼 뒤 `better-sqlite3`가 로드되지 않거나 ABI가 맞지 않을 때** — `pnpm install`이 `postinstall`을 자동으로 다시 돌려 현재 Node.js에 맞게 네이티브 애드온을 리빌드합니다. 직접 리빌드하거나 수정을 확인하려면 `pnpm --filter @readable-studio/daemon rebuild better-sqlite3`를 실행한 뒤 `pnpm --filter @readable-studio/daemon exec node -e "require('better-sqlite3')"`를 돌리세요. 빌드 도구 `python3`, `make`, `g++`(또는 `clang++`)가 필요합니다. `.npmrc`에 `ignore-scripts=true`가 있다면, `pnpm install` 후 `node scripts/postinstall.mjs`를 실행하세요.
 - **"no agents found on PATH"** — `claude`, `codex`, `devin`, `gemini`, `opencode`, `cursor-agent`, `qwen`, `qodercli`, `copilot` 중 하나를 설치하세요. 아니면 Settings에서 API 모드로 바꾸고 프로바이더 키를 붙여 넣으세요.
 - **Claude Code가 코드 1로 종료될 때** — Open Design이 `claude`를 시작하긴 했지만, spawn된 비대화형 실행이 응답을 내기 전에 실패한 경우입니다. Open Design을 시작하는 셸이나 앱 환경과 같은 곳에서 다음을 확인하세요.
   ```bash

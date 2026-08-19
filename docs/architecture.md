@@ -14,12 +14,12 @@ This doc describes the system topology, runtime modes, data flow, and file layou
 ## 1. Local runtime topology
 
 Open Design runs as a local web app and daemon, with optional Electron desktop
-and packaged shells. The browser and `od` CLI use the same daemon `/api/*`
+and packaged shells. The browser and `readable` CLI use the same daemon `/api/*`
 surface; the daemon owns filesystem access, persistence, skills, artifacts, and
 agent processes.
 
 ```
-browser / desktop / od CLI
+browser / desktop / readable CLI
              |
         HTTP + SSE
              |
@@ -34,7 +34,7 @@ selected by the control plane and must not be treated as persistent identity.
 ## 2. Component diagram (logical)
 
 ```
-Web app / desktop / packaged shell / od CLI
+Web app / desktop / packaged shell / readable CLI
                     |
                HTTP + SSE
                     |
@@ -55,7 +55,7 @@ Web app / desktop / packaged shell / od CLI
 - **Comment mode:** Click captures `[data-od-id]` on preview DOM, opens a popover, sends `{artifact_id, element_id, note}` to daemon → agent gets a surgical edit instruction.
 - **Slider UI:** When an agent emits a "tweak parameter" tool call (see [`skills-protocol.md`](skills-protocol.md) §4.2), the web app renders a live-update control that re-sends parameterized prompts without round-tripping the chat.
 
-### 3.2 Local daemon (`od daemon`)
+### 3.2 Local daemon (`readable daemon`)
 
 Single binary via `pkg` or a thin Node script distributed over npm. Responsibilities:
 
@@ -240,7 +240,7 @@ Safety:
   stays focused on design content.
 
 Request / response types: `ImportFolderRequest`, `ImportFolderResponse`
-in `@open-design/contracts`.
+in `@readable-studio/contracts`.
 
 #### Desktop folder-import auth (PR #974)
 

@@ -18,7 +18,7 @@ The shortest mental model:
 2. **User or agent picks a workflow.** The selection can happen from the marketplace, inline in the home input, inside an existing project chat, from CLI, or from CI.
 3. **OD applies the plugin without making the plugin a UI process.** Apply returns a hydrated brief, typed context chips, assets, and capability requirements. It does not start a hidden plugin runtime.
 4. **Agent drives generation.** The daemon creates or updates a project, starts a run, streams events over SSE / CLI ND-JSON, and records artifacts.
-5. **UI is a collaboration surface.** The web/desktop UI can show forms, previews, direction pickers, critique panels, and live artifacts, but the same flow must work headlessly through `od`.
+5. **UI is a collaboration surface.** The web/desktop UI can show forms, previews, direction pickers, critique panels, and live artifacts, but the same flow must work headlessly through `readable`.
 
 ### Figma-era vs agent-era boundary
 
@@ -62,7 +62,7 @@ sequenceDiagram
 | Marketplace detail | User clicks **Use** on a plugin page | `Make a 12-slide investor deck for a Series A SaaS startup targeting enterprise design teams.` | Deck skill, slide craft rules, example assets, required inputs, preview samples. |
 | Home inline input | User types a brief, then picks a suggested plugin | `Create a landing page for a new AI browser extension, use a dark neon visual direction.` | Landing-page skill, suggested design system, prompt rewrite, starter assets. |
 | Project chat follow-up | User is already inside a generated project | `Turn this landing page into a launch announcement deck.` | Existing project context, selected artifact refs, deck conversion skill, preserved brand tokens. |
-| Headless CLI / code agent | Claude Code, Cursor, Codex, CI, or script shells out to `od` | `od run create --plugin make-a-deck --input audience=investors --input topic='AI design ops'` | Same manifest resolution, same context chips, same run events without opening desktop. |
+| Headless CLI / code agent | Claude Code, Cursor, Codex, CI, or script shells out to `readable` | `readable run create --plugin make-a-deck --input audience=investors --input topic='AI design ops'` | Same manifest resolution, same context chips, same run events without opening desktop. |
 | Self-hosted marketplace | Team runs a private catalog | `Create an internal QBR deck using the Acme design system and sales metrics CSV.` | Private plugin index, trusted internal design system, asset attachments, restricted data policy. |
 
 The important product shift: **plugins are not local UI addons; they are reusable agent workflows.** UI components can collaborate with those workflows, but consumption and processing belong to the agent run.
@@ -143,9 +143,9 @@ Open Design becomes a **server + CLI + atomic core engine + plugin/marketplace s
 
 Each catalog needs a different listing format, but all of them index `SKILL.md`-shaped folders. By keeping `SKILL.md` canonical and `open-design.json` strictly sidecar, a single repo lands in every catalog without per-target rewrites.
 
-A second axis of the same vision: **the CLI is the canonical agent-facing API for Open Design.** Code agents (Claude Code, Cursor, Codex, OpenClaw, Hermes, in-house orchestrators) drive OD by shelling out `od …`, not by hitting `/api/*` directly. The CLI wraps every server capability — project creation, conversation/run lifecycle, plugin apply, file system operations on a project, design library introspection, daemon control — behind a stable subcommand contract. The HTTP server is an implementation detail that backs the desktop UI and the CLI itself; agents that talk HTTP are bypassing the contract.
+A second axis of the same vision: **the CLI is the canonical agent-facing API for Open Design.** Code agents (Claude Code, Cursor, Codex, OpenClaw, Hermes, in-house orchestrators) drive OD by shelling out `readable …`, not by hitting `/api/*` directly. The CLI wraps every server capability — project creation, conversation/run lifecycle, plugin apply, file system operations on a project, design library introspection, daemon control — behind a stable subcommand contract. The HTTP server is an implementation detail that backs the desktop UI and the CLI itself; agents that talk HTTP are bypassing the contract.
 
-A third axis, derived from the second: **OD runs fully headless; the UI is a productivity layer, not a runtime dependency.** A user with nothing but Claude Code (or Cursor, Codex, Gemini CLI) and `od` installed can browse the marketplace, install a plugin, create a project, run a task, and consume the produced artifacts end-to-end without ever launching the desktop app. The desktop UI is exactly the same value-add Cursor's IDE adds on top of `cursor-agent` CLI: faster discovery, live artifact preview, chat/canvas side-by-side, marketplace browsing, direction-picker GUI, critique-theater panel — all sugar on the same primitives. Every UI feature is implementable as a CLI subcommand or a streaming event first; the UI consumes those primitives and adds presentation. The decoupling is enforced architecturally (§11.7).
+A third axis, derived from the second: **OD runs fully headless; the UI is a productivity layer, not a runtime dependency.** A user with nothing but Claude Code (or Cursor, Codex, Gemini CLI) and `readable` installed can browse the marketplace, install a plugin, create a project, run a task, and consume the produced artifacts end-to-end without ever launching the desktop app. The desktop UI is exactly the same value-add Cursor's IDE adds on top of `cursor-agent` CLI: faster discovery, live artifact preview, chat/canvas side-by-side, marketplace browsing, direction-picker GUI, critique-theater panel — all sugar on the same primitives. Every UI feature is implementable as a CLI subcommand or a streaming event first; the UI consumes those primitives and adds presentation. The decoupling is enforced architecturally (§11.7).
 
 A fourth axis keeps the product **local-first and headless-capable**. The daemon, CLI, and web runtime share the same product contracts, while hosted/container deployment packaging remains outside this workspace (§15).
 
@@ -186,7 +186,7 @@ A fifth axis is the product-shape co-evolution with the agent: **UI is requested
 
 The takeaway: **`SKILL.md` is the lowest common denominator**. Every plugin recommended for distribution should ship a `SKILL.md` so it lands cleanly in every major catalog, then add `open-design.json` to gain OD's product surface.
 
-A folder that contains only `open-design.json` is not a runnable plugin in v1; it is a **metadata-only preset**. OD may read it to show a marketplace card, aggregate remote references, or act as a future install stub, but it cannot trigger an agent run and cannot be listed in cross-agent catalogs. `od plugin doctor` must mark this shape as `metadata-only` and prompt the author to add `SKILL.md` or `.claude-plugin/plugin.json` before publishing it as a runnable plugin.
+A folder that contains only `open-design.json` is not a runnable plugin in v1; it is a **metadata-only preset**. OD may read it to show a marketplace card, aggregate remote references, or act as a future install stub, but it cannot trigger an agent run and cannot be listed in cross-agent catalogs. `readable plugin doctor` must mark this shape as `metadata-only` and prompt the author to add `SKILL.md` or `.claude-plugin/plugin.json` before publishing it as a runnable plugin.
 
 ## 4. Plugin folder shape
 
@@ -346,7 +346,7 @@ Rules of authorship:
 - `od.context.*` — typed chips that hydrate the `ContextChipStrip` above the input. Each entry compiles to a `ContextItem` (§5.2).
 - `od.context.atoms` — **unordered set** declaring the atoms a plugin needs. The daemon uses them in default order; intended for simple plugins that don't customize flow.
 - `od.pipeline` — **ordered pipeline** in which the plugin author explicitly composes atoms into stages, loops, and termination conditions (§10.1). When both `od.pipeline` and `od.context.atoms` are present, `pipeline` wins; `context.atoms` is treated only as chip-strip metadata.
-- `od.genui.surfaces[]` — **Generative UI declaration**: the set of surfaces the agent may trigger during a run (§10.3). Each entry's `kind` is one of the v1 built-ins (`form` / `choice` / `confirmation` / `oauth-prompt`); `persist` decides where the answer is remembered (`run` / `conversation` / `project`); `trigger` binds the surface to a specific stage / atom so the agent cannot summon arbitrary UI; `schema` is a JSON Schema used to render the default form and validate the answer. **Surface kinds not declared in the manifest cannot be raised at runtime** — `od plugin doctor` plus daemon runtime jointly enforce that no unknown UI is ever produced.
+- `od.genui.surfaces[]` — **Generative UI declaration**: the set of surfaces the agent may trigger during a run (§10.3). Each entry's `kind` is one of the v1 built-ins (`form` / `choice` / `confirmation` / `oauth-prompt`); `persist` decides where the answer is remembered (`run` / `conversation` / `project`); `trigger` binds the surface to a specific stage / atom so the agent cannot summon arbitrary UI; `schema` is a JSON Schema used to render the default form and validate the answer. **Surface kinds not declared in the manifest cannot be raised at runtime** — `readable plugin doctor` plus daemon runtime jointly enforce that no unknown UI is ever produced.
 - `od.inputs` — surfaced as form fields on the detail page; their values template `useCase.query` and any string-valued context entries.
 - `od.capabilities` — declarative; defaults to `['prompt:inject']` if omitted on a `restricted` plugin.
 
@@ -400,7 +400,7 @@ When a plugin has no `open-design.json`, but its `SKILL.md` already contains the
 | `od.inputs` | `od.inputs` | `string` → `string`, `integer` → `number`, `enum` → `select`, `upload` → `file`, `values` → `options`; `min` / `max` are preserved as future metadata, and v1 UI may ignore but must not discard them |
 | `od.parameters` | adapter metadata | v1 plugin apply does not render live sliders; fields are preserved for Phase 4 and do not enter `ApplyResult.inputs` |
 | `od.outputs` | `projectMetadata` hints | Used for artifact bookkeeping and preview defaults, not surfaced as user-editable inputs |
-| `od.capabilities_required` | `od.capabilities` | Map only capabilities that can be expressed; unknown capabilities are kept in `compatWarnings[]`, and `od plugin doctor` must surface them |
+| `od.capabilities_required` | `od.capabilities` | Map only capabilities that can be expressed; unknown capabilities are kept in `compatWarnings[]`, and `readable plugin doctor` must surface them |
 
 If `open-design.json` and `SKILL.md` frontmatter both exist, `open-design.json` wins, but the loader must preserve adapter warnings. Authors can migrate incrementally: first keep the old skill runnable as-is, then add OD marketplace metadata.
 
@@ -425,7 +425,7 @@ Mirrors [`anthropics/skills/.claude-plugin/marketplace.json`](https://raw.github
 
 The marketplace top-level `version` is the catalog snapshot version; every `plugins[]` entry also declares the listed plugin version. Installers still verify the target folder's own `open-design.json` after fetching, but registry search, audit logs, and marketplace refresh events can now reason about catalog and plugin versions before install.
 
-Multiple marketplaces coexist — the user runs `od marketplace add <url>` to register additional indexes (Vercel's, OpenClaw's clawhub, an enterprise team's private catalog). By default, a user-added marketplace is only a discovery source and plugins from it still install as `restricted`; only the built-in official marketplace or a marketplace explicitly trusted through `od marketplace add <url> --trust` / `od marketplace trust <id>` can pass through default `trusted` status.
+Multiple marketplaces coexist — the user runs `readable marketplace add <url>` to register additional indexes (Vercel's, OpenClaw's clawhub, an enterprise team's private catalog). By default, a user-added marketplace is only a discovery source and plugins from it still install as `restricted`; only the built-in official marketplace or a marketplace explicitly trusted through `readable marketplace add <url> --trust` / `readable marketplace trust <id>` can pass through default `trusted` status.
 
 ## 7. Discovery and install
 
@@ -435,23 +435,23 @@ Multiple marketplaces coexist — the user runs `od marketplace add <url>` to re
 | -------- | ------------------------------------------------ | ------------------ | ---------------------------------------------------------------------- |
 | 1        | `<projectCwd>/.open-design/plugins/<id>/`        | plugin bundle      | New; explicitly installed into the project and committed with user code |
 | 2        | `<projectCwd>/.claude/skills/<id>/`              | legacy `SKILL.md`  | Keeps the project-private skill path from [`skills-protocol.md`](skills-protocol.md) compatible |
-| 3        | `<daemonDataDir>/plugins/<id>/`                  | plugin bundle      | New; written by `od plugin install` under the daemon data root          |
+| 3        | `<daemonDataDir>/plugins/<id>/`                  | plugin bundle      | New; written by `readable plugin install` under the daemon data root          |
 | 4        | `~/.open-design/skills/<id>/`                    | legacy `SKILL.md`  | OD canonical skill install path; may symlink into other agents          |
 | 5        | `~/.claude/skills/<id>/`                         | legacy `SKILL.md`  | Compatibility scan for external Claude Code / skills tooling            |
 | 6        | repo root `skills/`, `design-systems/`, `craft/` | bundled resources  | Existing first-party resources, unchanged                              |
 
-Conflict resolution uses normalized `name` / plugin id; lower numeric priority wins. Legacy `SKILL.md` locations are synthesized into plugin records by the adapter, but are not copied into `<daemonDataDir>/plugins/` unless the user explicitly runs `od plugin install`. This keeps existing Claude skills zero-config while giving plugin bundles a clear install root.
+Conflict resolution uses normalized `name` / plugin id; lower numeric priority wins. Legacy `SKILL.md` locations are synthesized into plugin records by the adapter, but are not copied into `<daemonDataDir>/plugins/` unless the user explicitly runs `readable plugin install`. This keeps existing Claude skills zero-config while giving plugin bundles a clear install root.
 
 ### 7.2 Install sources
 
 ```
-od plugin install ./folder
-od plugin install github:owner/repo
-od plugin install github:owner/repo@v1.2.0
-od plugin install github:owner/repo/path/to/subfolder
-od plugin install https://example.com/plugin.tar.gz
-od plugin install make-a-deck                   # via configured marketplaces
-od marketplace add https://.../open-design-marketplace.json
+readable plugin install ./folder
+readable plugin install github:owner/repo
+readable plugin install github:owner/repo@v1.2.0
+readable plugin install github:owner/repo/path/to/subfolder
+readable plugin install https://example.com/plugin.tar.gz
+readable plugin install make-a-deck                   # via configured marketplaces
+readable marketplace add https://.../open-design-marketplace.json
 ```
 
 GitHub install path uses `https://codeload.github.com/owner/repo/tar.gz/<ref>`, no git binary required, with path-traversal guards and a configurable size cap.
@@ -585,7 +585,7 @@ Lives in `packages/contracts/src/plugins/apply.ts`. Re-exported from [`packages/
 
 `appliedPlugin` is not a decorative field; it is the **contract** between "plugin" and "run". Passing only `pluginId` is not enough, because:
 
-- A plugin can be upgraded between two runs via `od plugin update`.
+- A plugin can be upgraded between two runs via `readable plugin update`.
 - The same `pluginId` may resolve to different git SHAs on different marketplaces.
 - Refs inside `od.pipeline` / `od.context.*` may point to a moving default branch.
 - Asset staging plans and `capabilitiesGranted` must match the view used when the prompt was generated.
@@ -594,10 +594,10 @@ The daemon therefore must:
 
 1. **At apply time** — hash the hydrated manifest plus inputs into `manifestSourceDigest`, then write `pluginSpecVersion`, `pluginVersion`, `pinnedRef`, `sourceMarketplaceId`, `resolvedContext`, `capabilitiesGranted`, `assetsStaged`, and **`mcpServers` (the MCP server set active at apply time)** into `appliedPlugin` and return it to the caller.
 2. **At project create / run start** — write the client-supplied `appliedPlugin` (or the daemon's server-side re-resolved snapshot) into the SQLite `applied_plugin_snapshots` table (§11.4) and FK-link it from `runs` / `conversations`.
-3. **Replay** — `od run replay <runId>` and `od plugin export <runId>` must reconstruct prompt and assets from the snapshot rather than the live manifest, so old runs remain reproducible after plugin upgrades.
+3. **Replay** — `readable run replay <runId>` and `readable plugin export <runId>` must reconstruct prompt and assets from the snapshot rather than the live manifest, so old runs remain reproducible after plugin upgrades.
 4. **Audit** — UI ProjectView shows snapshot id + version + digest at the top; artifact provenance (§11.5 ArtifactManifest) reverse-resolves plugin source via the snapshot id.
 
-Only the daemon writes `AppliedPluginSnapshot`; CLI/UI clients are read-only. Plugin upgrades or marketplace ref drift cause `od plugin doctor` to mark affected historical snapshots as `stale`, but **never** to rewrite them: reproducibility wins over freshness.
+Only the daemon writes `AppliedPluginSnapshot`; CLI/UI clients are read-only. Plugin upgrades or marketplace ref drift cause `readable plugin doctor` to mark affected historical snapshots as `stale`, but **never** to rewrite them: reproducibility wins over freshness.
 
 ### 8.3 Inline `od.inputs` form
 
@@ -623,7 +623,7 @@ Net effect: a single project can be steered through many plugin-driven tasks —
 1. **Apply does not render any surface.** Apply remains a pure resolver. UI / CLI surfaces only translate `genuiSurfaces` into a "this long task may ask you these questions" advisory card. As soon as a plugin declares an `oauth-prompt`, the detail-page capability checklist gains a row "This plugin will ask you to authorize <provider>", so the user knows ahead of Send what surfaces may pop during the run.
 2. **At runtime, the agent triggers surfaces only through declared atoms.** Each surface's `trigger.atom` (and optional `trigger.stageId`) acts as an allowlist: the daemon rejects any `genui_surface_request` event coming from an undeclared atom — this is the enforcement point for "no UI is ever produced unless declared" (doctor + runtime double-check).
 3. **Existing answers in the same project are reused.** When `persist` is `project` or `conversation`, the daemon checks the `genui_surfaces` table (§11.4) before emitting a request; if a valid stored value exists (not expired, not invalidated), it short-circuits with that value and never broadcasts the request. This is exactly how "the plugin creates a project, the user keeps interacting across multiple turns and conversations, and these meta-info are reused" lands in practice.
-4. **A non-response does not block the run forever.** Every surface declares `timeout` (default 5 minutes) and `onTimeout` (`abort` / `default` / `skip`); the CLI exposes the same surface description on the ND-JSON stream as a `genui_surface_request` event, so headless automation can answer it from another process via `od ui respond --surface-id …`, or skip cleanly when not needed (§10.3).
+4. **A non-response does not block the run forever.** Every surface declares `timeout` (default 5 minutes) and `onTimeout` (`abort` / `default` / `skip`); the CLI exposes the same surface description on the ND-JSON stream as a `genui_surface_request` event, so headless automation can answer it from another process via `readable ui respond --surface-id …`, or skip cleanly when not needed (§10.3).
 
 `ApplyResult.genuiSurfaces` plus `appliedPlugin.snapshotId` jointly form the GenUI contract between plugin and project: the snapshot is immutable; once a surface answer is written into `genui_surfaces`, the project owns it and any subsequent plugin (even a different plugin or a different conversation) can look it up by `surface.id` if it also declares the same id with a compatible `schema`.
 
@@ -639,7 +639,7 @@ flowchart LR
   P1 & P2 & P3 & P4 --> R[run agent]
 ```
 
-A `restricted` plugin can never reach P3/P4 unless the user grants the capability — either through `od plugin trust <id>` or "Grant capabilities" on the detail page. Only two sources are trusted by default: repo-bundled first-party plugins and the official OD marketplace. User-added third-party marketplaces are discovery sources; plugins from them still install as `restricted` unless the marketplace itself is explicitly trusted, or an individual plugin is granted capabilities by id + version + capability.
+A `restricted` plugin can never reach P3/P4 unless the user grants the capability — either through `readable plugin trust <id>` or "Grant capabilities" on the detail page. Only two sources are trusted by default: repo-bundled first-party plugins and the official OD marketplace. User-added third-party marketplaces are discovery sources; plugins from them still install as `restricted` unless the marketplace itself is explicitly trusted, or an individual plugin is granted capabilities by id + version + capability.
 
 Trust records must bind to provenance, not just a name:
 
@@ -659,8 +659,8 @@ The UI capability gate is a modal + checklist; headless and third-party code-age
 1. **Pre-trust** (recommended for non-interactive clients).
 
    ```bash
-   od plugin trust make-a-deck   --caps fs:read,mcp,subprocess
-   od plugin trust make-a-deck   --caps all          # equivalent to all capabilities the manifest declares
+   readable plugin trust make-a-deck   --caps fs:read,mcp,subprocess
+   readable plugin trust make-a-deck   --caps all          # equivalent to all capabilities the manifest declares
    ```
 
    Writes to SQLite `installed_plugins.capabilities_granted`. Applies to all subsequent apply / run calls until the plugin is upgraded or the source marketplace changes (§9 provenance rules), at which point re-confirmation is required.
@@ -668,8 +668,8 @@ The UI capability gate is a modal + checklist; headless and third-party code-age
 2. **Per-call temporary grant**.
 
    ```bash
-   od plugin apply make-a-deck   --project p_abc --grant-caps fs:read,mcp --json
-   od plugin run   make-a-deck   --project p_abc --grant-caps fs:read --follow
+   readable plugin apply make-a-deck   --project p_abc --grant-caps fs:read,mcp --json
+   readable plugin run   make-a-deck   --project p_abc --grant-caps fs:read --follow
    ```
 
    Scoped to the `AppliedPluginSnapshot` produced by this apply only. Persisted in `snapshot.capabilitiesGranted`; **not** written back to `installed_plugins`.
@@ -687,7 +687,7 @@ The UI capability gate is a modal + checklist; headless and third-party code-age
          "required": ["mcp", "subprocess"],
          "granted": ["prompt:inject", "fs:read"],
          "remediation": [
-           "od plugin trust make-a-deck --caps mcp,subprocess",
+           "readable plugin trust make-a-deck --caps mcp,subprocess",
            "or pass --grant-caps mcp,subprocess to this command"
          ]
        }
@@ -703,7 +703,7 @@ Elevated capabilities (`bash` / `subprocess` / `network`) **never** support `--g
 
 Plugin previews may come from untrusted GitHub repos or archives, so they cannot run with the same privileges as the OD app. `od.preview.entry` HTML previews must follow these constraints:
 
-- Preview iframes start with `sandbox="allow-scripts"` only. They do not get `allow-same-origin`, `allow-forms`, `allow-popups`, or `allow-downloads` by default. If a first-party preview needs an extra flag, it must declare that in the manifest and `od plugin doctor` must mark it as an elevated preview.
+- Preview iframes start with `sandbox="allow-scripts"` only. They do not get `allow-same-origin`, `allow-forms`, `allow-popups`, or `allow-downloads` by default. If a first-party preview needs an extra flag, it must declare that in the manifest and `readable plugin doctor` must mark it as an elevated preview.
 - Preview content is served through a read-only daemon preview endpoint. It cannot read `/api/*`, cannot attach `Authorization` headers, cannot access provider credentials, and cannot access the project filesystem.
 - Preview responses use a dedicated CSP: `default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'`. Remote fonts, remote images, and analytics are rejected in v1.
 - Preview asset paths must pass normalized relative path checks: reject absolute paths, `..` traversal, symlink escapes, hidden credential files, and resources over the size cap.
@@ -719,7 +719,7 @@ Promote what already exists in [`apps/daemon/src/prompts/system.ts`](../apps/dae
 | `direction-picker` | same | 3–5 direction picker before final | new-generation, tune-collab |
 | `todo-write` | same | TodoWrite-driven plan | all |
 | `file-read` / `file-write` / `file-edit` | code-agent native | File ops | all |
-| `research-search` | `od research search` ([`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)) | Tavily web research | new-generation |
+| `research-search` | `readable research search` ([`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)) | Tavily web research | new-generation |
 | `critique-theater` | `system.ts` critique addendum | 5-dim panel critique; devloop convergence signal | all |
 | `code-import` *(planned)* | tbd: repo handle ingestion | Clone / read existing repo, extract design-relevant structure | code-migration |
 | `design-extract` *(planned)* | tbd | Extract design tokens from source code / Figma / screenshot | code-migration, figma-migration |
@@ -729,7 +729,7 @@ Promote what already exists in [`apps/daemon/src/prompts/system.ts`](../apps/dae
 | `diff-review` *(planned)* | tbd | Render rewrite as diff for user/agent review | code-migration, tune-collab |
 | `handoff` *(planned)* | tbd | Push artifact to cli / other code agents / cloud / desktop surfaces | tune-collab |
 
-`(planned)` atoms are **not** implemented in v1, but their IDs are reserved here and in §5 schema to avoid a future name churn. `GET /api/atoms` returns only implemented atoms in v1; planned atoms emit a clear "not yet implemented" warning from `od plugin doctor` rather than a generic "unknown atom" error.
+`(planned)` atoms are **not** implemented in v1, but their IDs are reserved here and in §5 schema to avoid a future name churn. `GET /api/atoms` returns only implemented atoms in v1; planned atoms emit a clear "not yet implemented" warning from `readable plugin doctor` rather than a generic "unknown atom" error.
 
 ### 10.1 `od.pipeline` — the ordered atomic pipeline plugins assemble
 
@@ -751,7 +751,7 @@ Constraints:
 
 - `stages[*].id` is unique within a pipeline; the same atom may appear in multiple stages (typical example: critique runs after generate and again before final handoff).
 - Default order is array order; v1 does not support DAG branching — if a plugin needs branches, the author should split it into chained plugins.
-- `until` is a lightweight expression evaluated by the daemon (only comparisons and known signal variables: `critique.score`, `iterations`, `user.confirmed`, `preview.ok`); it is **not** arbitrary JS. `od plugin doctor` validates syntax.
+- `until` is a lightweight expression evaluated by the daemon (only comparisons and known signal variables: `critique.score`, `iterations`, `user.confirmed`, `preview.ok`); it is **not** arbitrary JS. `readable plugin doctor` validates syntax.
 - When `od.pipeline` is omitted, the daemon picks a reference pipeline based on `od.taskKind` (the typical sequence listed for that scenario in §1 "Four product scenarios").
 
 The pipeline is declarative; the agent does not read pipeline JSON directly. The daemon compiles each stage into a system-prompt block with an anchor id and emits `pipeline_stage_started` / `pipeline_stage_completed` SSE/ND-JSON events (aligned with the existing `PersistedAgentEvent` discriminated union) on stage entry/exit. UI and CLI render those as progress bars / stage timelines / devloop iteration counters.
@@ -763,11 +763,11 @@ A stage's `repeat: true` flag promotes single-step execution into a **loop**:
 1. The agent completes the stage once.
 2. The daemon evaluates the stage's `until` condition by reading the most recent critique-theater output, the artifact preview state, the user's response, or a built-in `iterations >= N` counter.
 3. Condition unmet → re-enter the stage with the previous round's artifact as input. Condition met → advance to the next stage.
-4. The user can break out anytime via `od run respond <runId> --json '{"action":"break-loop"}'` or the UI "Stop refining" button.
+4. The user can break out anytime via `readable run respond <runId> --json '{"action":"break-loop"}'` or the UI "Stop refining" button.
 
 Two hard constraints on devloop:
 
-- **`until` is required.** Pipelines with `repeat: true` but no `until` fail `od plugin doctor` and the daemon refuses to execute them.
+- **`until` is required.** Pipelines with `repeat: true` but no `until` fail `readable plugin doctor` and the daemon refuses to execute them.
 - **Iteration ceiling.** The daemon enforces `iterations <= 10` (configurable via `OD_MAX_DEVLOOP_ITERATIONS`) to keep a buggy plugin from burning provider quota in an infinite loop.
 
 Each devloop iteration writes the round's artifact diff, critique output, and consumed tokens into `runs.devloop_iterations` (§11.4 SQLite extension), which feeds audit and a future per-iteration pricing model.
@@ -776,7 +776,7 @@ Each devloop iteration writes the round's artifact diff, critique output, and co
 
 ### 10.3 Generative UI: AG-UI–inspired surfaces
 
-OD adopts the useful part of [CopilotKit / the AG-UI protocol](https://github.com/CopilotKit/CopilotKit): an agent can ask for interactive UI during a run. OD does **not** let the agent freely invent app UI or styling in the main product surface. v1 ships our own `GenUISurface*` discriminated union and reuses the existing `PersistedAgentEvent` SSE / ND-JSON channel; `@open-design/agui-adapter` projects those events into AG-UI canonical events for external clients.
+OD adopts the useful part of [CopilotKit / the AG-UI protocol](https://github.com/CopilotKit/CopilotKit): an agent can ask for interactive UI during a run. OD does **not** let the agent freely invent app UI or styling in the main product surface. v1 ships our own `GenUISurface*` discriminated union and reuses the existing `PersistedAgentEvent` SSE / ND-JSON channel; `@readable-studio/agui-adapter` projects those events into AG-UI canonical events for external clients.
 
 The product rule is: **agent/plugin output is data; OD owns the renderer.** A plugin can declare a `form`, `choice`, `confirmation`, or `oauth-prompt` surface, with schema and prompt data. The web / desktop / CLI renderer decides layout, typography, controls, validation affordances, accessibility, and persistence UX. This keeps plugin UI extensible across scenarios while preserving a coherent product system. Arbitrary visual or code output belongs in generated artifacts, or behind the separate custom-component sandbox and `genui:custom-component` capability gate; it does not replace the built-in renderer for core collaboration UI.
 
@@ -819,7 +819,7 @@ export interface GenUISurfaceSpec {
 | `mcp` | Reuses `POST /api/mcp/oauth/start`; the token lands in `<dataDir>/mcp-tokens.json` | Reuses the Settings → MCP servers OAuth visuals | `genui_surfaces.value_json = { mcpServerId }`; the token never enters SQLite |
 | `plugin` (Phase 4) | Plugin supplies arbitrary third-party OAuth metadata; daemon goes through a generic PKCE adapter | TBD | TBD |
 
-`od plugin doctor` enforces at install / apply time that when `oauth.route === 'mcp'`, `oauth.mcpServerId` matches a name in the plugin's MCP server set.
+`readable plugin doctor` enforces at install / apply time that when `oauth.route === 'mcp'`, `oauth.mcpServerId` matches a name in the plugin's MCP server set.
 
 #### 10.3.2 Runtime events (joined into the SSE / ND-JSON `PersistedAgentEvent` union)
 
@@ -868,31 +868,31 @@ Lookup rules:
 2. `persist='conversation'`: same lookup using `(conversation_id, surface_id)`. A new conversation invalidates reuse.
 3. `persist='run'`: only valid within the current run.
 4. **Schema drift demotes to `invalidated`:** when the plugin upgrades and the surface schema changes, old rows auto-invalidate and the new run re-asks the user.
-5. **User revoke:** UI / CLI provide `od ui revoke <surface-id>` to flip a row to `invalidated`. Common case: OAuth logout.
+5. **User revoke:** UI / CLI provide `readable ui revoke <surface-id>` to flip a row to `invalidated`. Common case: OAuth logout.
 
 This rule directly answers the user's request: **"Once the user has authorized or confirmed something inside the same project, do not pester them again across multi-turn / multi-conversation interactions."**
 
 #### 10.3.4 Headless / CLI behavior
 
-The ND-JSON stream from `od run watch` / `od run start --follow` includes `genui_surface_request` events. A third-party code agent has three response paths:
+The ND-JSON stream from `readable run watch` / `readable run start --follow` includes `genui_surface_request` events. A third-party code agent has three response paths:
 
 ```bash
 # Inspect pending surfaces on a run
-od ui list --run <runId> --json
+readable ui list --run <runId> --json
 
 # Read a single surface (kind / schema / prompt) for rendering or auto-fill
-od ui show <runId> <surface-id> --json
+readable ui show <runId> <surface-id> --json
 
 # Respond from any process; daemon writes to genui_surfaces, the run continues
-od ui respond <runId> <surface-id> --value-json '{"audience":"VC"}'
-od ui respond <runId> <surface-id> --skip          # triggers onTimeout='skip'
-od ui revoke  <projectId> <surface-id>             # cross-conversation revoke
+readable ui respond <runId> <surface-id> --value-json '{"audience":"VC"}'
+readable ui respond <runId> <surface-id> --skip          # triggers onTimeout='skip'
+readable ui revoke  <projectId> <surface-id>             # cross-conversation revoke
 ```
 
 If the CLI caller never responds, the run converges per `onTimeout` once `surface.timeout` elapses and never hangs forever. A code agent can also **pre-answer** for an entire plugin:
 
 ```bash
-od ui prefill <projectId> --plugin <pluginId> --json '{"figma-oauth":"<token>","direction-pick":"editorial"}'
+readable ui prefill <projectId> --plugin <pluginId> --json '{"figma-oauth":"<token>","direction-pick":"editorial"}'
 ```
 
 Prefill writes rows in `resolved` state; when the plugin triggers the surface, the daemon serves the cached value and still emits `genui_surface_response { respondedBy: 'cache' }` for audit.
@@ -904,7 +904,7 @@ Prefill writes rows in `resolved` state; when the plugin triggers the surface, t
 | Wire format | OD-native `PersistedAgentEvent` over SSE / ND-JSON | Also emit AG-UI canonical events (`agent.message`, `tool_call`, `state_update`, `ui.surface_requested`, `ui.surface_responded`) |
 | Surface kinds | Four built-ins + plugin-declared in manifest | Keep OD's built-ins as the product source of truth; custom plugin React paths require the `genui:custom-component` gate and sandbox |
 | Shared state | `genui_surfaces` table + `genui_state_synced` event | Map persisted OD state onto AG-UI's `state` channel for external consumers |
-| Frontend SDK compatibility | OD desktop / web with built-in renderer | `@open-design/agui-adapter` lets CopilotKit / other AG-UI clients consume an OD run unchanged |
+| Frontend SDK compatibility | OD desktop / web with built-in renderer | `@readable-studio/agui-adapter` lets CopilotKit / other AG-UI clients consume an OD run unchanged |
 
 The adapter is an interoperability surface, not the internal UI source of truth. OD should not add CopilotKit as a required product dependency unless a separate external embed/demo/client explicitly needs it. v1 plugins need no change to be consumable inside the AG-UI ecosystem because the adapter is a projection of OD's own events.
 
@@ -919,7 +919,7 @@ Pure TypeScript, no Next/Express/SQLite/browser deps:
 - `adapters/claude-plugin.ts` — read `.claude-plugin/plugin.json` → synthesize a `PluginManifest`.
 - `merge.ts` — merge sidecar + adapters with `open-design.json` winning; foreign content lands in `compat.*`.
 - `resolve.ts` — resolve `od.context.*` refs against the registry → `ResolvedContext`.
-- `validate.ts` — JSON Schema (drives both runtime checks and `od plugin doctor`).
+- `validate.ts` — JSON Schema (drives both runtime checks and `readable plugin doctor`).
 
 ### 11.2 New contracts: `packages/contracts/src/plugins/`
 
@@ -933,7 +933,7 @@ Pure TypeScript, no Next/Express/SQLite/browser deps:
 | New `apps/daemon/src/plugins/registry.ts` | Three-tier scan, conflict resolution, hot-reload watcher. |
 | New `apps/daemon/src/plugins/installer.ts` | github / https / local / marketplace install paths; tar/zip extraction; SQLite write. |
 | New `apps/daemon/src/plugins/apply.ts` | Implements `ApplyResult` assembly: resolves refs, returns asset refs / MCP specs / capability requirements / `appliedPlugin` snapshot; performs no writes. Actual staging and `.mcp.json` writes happen in project create / run start after the capability gate. |
-| New `apps/daemon/src/plugins/snapshots.ts` | §8.2.1 immutable snapshot read/write; `status='stale'` flips driven by `od plugin doctor`; provides the replay helper backing `POST /api/runs/:runId/replay`. |
+| New `apps/daemon/src/plugins/snapshots.ts` | §8.2.1 immutable snapshot read/write; `status='stale'` flips driven by `readable plugin doctor`; provides the replay helper backing `POST /api/runs/:runId/replay`. |
 | New `apps/daemon/src/plugins/pipeline.ts` | Parses `od.pipeline` (including the `until` expression evaluator), schedules stages, and drives §10.2 devloop (with `OD_MAX_DEVLOOP_ITERATIONS` ceiling and break signaling). |
 | New `apps/daemon/src/genui/{registry,events,store}.ts` | §10.3 GenUI: registers surfaces from `od.genui.surfaces[]`, publishes `genui_surface_*` events, reads/writes the cross-conversation persisted state, and serializes the AG-UI–inspired event union. |
 | [`apps/daemon/src/prompts/system.ts`](../apps/daemon/src/prompts/system.ts) `composeSystemPrompt()` | Assembles the base OD designer/discovery prompt, optional design system/craft/skill blocks, snapshot-derived `renderPluginBlock(snapshot)`, and active-stage atom blocks from `renderActiveStageBlock(stageId, bodies)`. Existing layer order remains intentional; plugin-driven fallback mode is still rejected per §11.8 even though the plugin-block renderer now lives in contracts. |
@@ -987,7 +987,7 @@ CREATE TABLE applied_plugin_snapshots (
   capabilities_granted    TEXT NOT NULL,               -- JSON array
   assets_staged_json      TEXT NOT NULL,               -- assets actually staged into cwd
   mcp_servers_json        TEXT NOT NULL DEFAULT '[]',  -- MCP server set active at apply time, frozen as McpServerSpec[]
-  status                  TEXT NOT NULL DEFAULT 'fresh', -- fresh | stale (set by `od plugin doctor` after upgrade)
+  status                  TEXT NOT NULL DEFAULT 'fresh', -- fresh | stale (set by `readable plugin doctor` after upgrade)
   applied_at              INTEGER NOT NULL,
   expires_at              INTEGER,                       -- NULL when referenced by any run / conversation / project (pinned forever); otherwise applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS at insert time. GC worker (Phase 5) deletes rows where expires_at <= now()
   FOREIGN KEY (project_id)      REFERENCES projects(id)      ON DELETE CASCADE,
@@ -1046,7 +1046,7 @@ CREATE INDEX idx_genui_conv_surface ON genui_surfaces(conversation_id, surface_i
 CREATE INDEX idx_genui_run          ON genui_surfaces(run_id);
 ```
 
-Migrations are additive only; existing `projects` / `runs` / `conversations` column semantics are untouched. The daemon writes per the schema at install / apply / run start / stage end. `od plugin doctor` flips affected snapshots to `status='stale'` after a plugin upgrade by comparing `manifest_source_digest`, but **never** deletes or rewrites a snapshot row — historical reproducibility wins over storage cost.
+Migrations are additive only; existing `projects` / `runs` / `conversations` column semantics are untouched. The daemon writes per the schema at install / apply / run start / stage end. `readable plugin doctor` flips affected snapshots to `status='stale'` after a plugin upgrade by comparing `manifest_source_digest`, but **never** deletes or rewrites a snapshot row — historical reproducibility wins over storage cost.
 
 ### 11.5 New HTTP endpoints
 
@@ -1070,7 +1070,7 @@ Migrations are additive only; existing `projects` / `runs` / `conversations` col
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/api/applied-plugins/:snapshotId` | read an immutable snapshot; used for audit, replay, `od plugin export` |
+| GET | `/api/applied-plugins/:snapshotId` | read an immutable snapshot; used for audit, replay, `readable plugin export` |
 | POST | `/api/runs/:runId/replay` | rerun the long-task starting from the run's snapshot id |
 | GET | `/api/runs/:runId/devloop-iterations` | read §10.2 devloop iteration history |
 | GET | `/api/runs/:runId/genui` | list pending / resolved §10.3 surfaces for the run |
@@ -1079,7 +1079,7 @@ Migrations are additive only; existing `projects` / `runs` / `conversations` col
 | POST | `/api/projects/:projectId/genui/:surfaceId/revoke` | flip a row to `invalidated` (OAuth logout etc.) |
 | POST | `/api/projects/:projectId/genui/prefill` | bulk pre-answer surfaces; body `{ pluginId, values }` |
 
-> **Transport equivalence (rule of thumb).** Every endpoint above is also exposed as a CLI subcommand and, where it fits MCP semantics, as an MCP tool. Code agents should use the CLI; only the desktop web app and `od …` itself use HTTP directly. See §12 for the full CLI surface.
+> **Transport equivalence (rule of thumb).** Every endpoint above is also exposed as a CLI subcommand and, where it fits MCP semantics, as an MCP tool. Code agents should use the CLI; only the desktop web app and `readable …` itself use HTTP directly. See §12 for the full CLI surface.
 
 #### 11.5.1 ArtifactManifest extension: plugin provenance
 
@@ -1133,7 +1133,7 @@ Write rules:
 
 - On run completion, the daemon writes the current `appliedPluginSnapshotId` plus redundant fields into every newly produced artifact manifest.
 - When a plugin declares output hints, the daemon writes `artifactKind`, `renderKind`, and `handoffKind`; otherwise it infers the safest value from `od.mode`, `od.preview.type`, and the emitted files. Unknown readers must preserve these fields even when they do not use them yet.
-- Every `od plugin export` / `od files upload --to <target>` / `od deploy ...` appends an `exportTargets` / `deployTargets` row but **never** mutates `sourcePluginSnapshotId`.
+- Every `readable plugin export` / `readable files upload --to <target>` / `readable deploy ...` appends an `exportTargets` / `deployTargets` row but **never** mutates `sourcePluginSnapshotId`.
 - Tuning-class artifacts (`tune-collab`) record both `sourcePluginSnapshotId` (the current plugin) and `parentArtifactId` (the previous version being tuned), forming a back-pointer chain.
 
 This contract makes "the same artifact flows across collaboration surfaces" a first-class operation: a CLI viewer of an artifact can always look up the source plugin / inputs / design system; a cloud collaborator can always reproduce a local result; subsequent code-migration / Figma-migration outputs are linked to their predecessors via `parentArtifactId`.
@@ -1171,9 +1171,9 @@ OD runs in three operating modes that share **one** daemon, **one** CLI, and **o
 
 | Mode                | What runs                                              | When to use                                          | Entry                                            |
 | ------------------- | ------------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------ |
-| **Headless**        | Daemon process only — no web bundle, no electron       | CI, servers, containers, Claude-Code-driven flows    | `od daemon start --headless` (new flag, Phase 2) |
-| **Web**             | Daemon + local web UI (no electron)                    | Browser-only setups, Linux without GUI dependencies  | `od daemon start --serve-web` (new, Phase 2)     |
-| **Desktop**         | Daemon + web bundle + electron shell                   | Full product experience (today's default)            | `od` (current default, unchanged)                |
+| **Headless**        | Daemon process only — no web bundle, no electron       | CI, servers, containers, Claude-Code-driven flows    | `readable daemon start --headless` (new flag, Phase 2) |
+| **Web**             | Daemon + local web UI (no electron)                    | Browser-only setups, Linux without GUI dependencies  | `readable daemon start --serve-web` (new, Phase 2)     |
+| **Desktop**         | Daemon + web bundle + electron shell                   | Full product experience (today's default)            | `readable` (current default, unchanged)                |
 
 The split is enforced by a single rule:
 
@@ -1181,21 +1181,21 @@ The split is enforced by a single rule:
 
 In practice this means:
 
-- **Marketplace browsing** — UI: grid + filters + previews. CLI: `od plugin list/info`, `od marketplace search`, `od plugin info <id> --json` returns the same manifest the UI renders.
-- **Plugin apply** — UI: click card, chips and inputs hydrate in place. CLI: `od plugin apply <id> --json` returns the identical `ApplyResult`.
-- **Run streaming** — UI: chat bubbles, todo list, progress chrome. CLI: `od run start --follow` emits ND-JSON events from the same `PersistedAgentEvent` discriminated union the UI consumes.
-- **Direction picker / question form** — UI: rendered as inline cards. CLI: emitted as structured events on stdout; agent or scripted wrapper picks an option by writing to stdin or via `od run respond <runId> --json '{...}'`.
-- **Live artifact preview** — UI: hot-reloading iframe. CLI: `od files watch <projectId> --path <relpath>` streams change events; user opens the file with their own tool of choice.
+- **Marketplace browsing** — UI: grid + filters + previews. CLI: `readable plugin list/info`, `readable marketplace search`, `readable plugin info <id> --json` returns the same manifest the UI renders.
+- **Plugin apply** — UI: click card, chips and inputs hydrate in place. CLI: `readable plugin apply <id> --json` returns the identical `ApplyResult`.
+- **Run streaming** — UI: chat bubbles, todo list, progress chrome. CLI: `readable run start --follow` emits ND-JSON events from the same `PersistedAgentEvent` discriminated union the UI consumes.
+- **Direction picker / question form** — UI: rendered as inline cards. CLI: emitted as structured events on stdout; agent or scripted wrapper picks an option by writing to stdin or via `readable run respond <runId> --json '{...}'`.
+- **Live artifact preview** — UI: hot-reloading iframe. CLI: `readable files watch <projectId> --path <relpath>` streams change events; user opens the file with their own tool of choice.
 - **Critique theater** — UI: 5-panel side-by-side. CLI: emitted as a structured `critique` event the agent or wrapper renders however it likes.
 
 What this unlocks:
 
-- A user with **only Claude Code** (or any code agent) plus `npm i -g @open-design/cli` plus a running headless daemon can do the entire user journey: install plugin → create project → run → consume artifacts. No OD desktop required.
+- A user with **only Claude Code** (or any code agent) plus `npm i -g @readable-studio/cli` plus a running headless daemon can do the entire user journey: install plugin → create project → run → consume artifacts. No OD desktop required.
 - The OD desktop UI installs the same daemon and the same CLI; it just adds a window. Users who later install the desktop find the same projects, plugins, and history that the headless flow produced — there is no "headless project format" vs. "desktop project format". Same `.od/projects/<id>/`, same SQLite db.
-- Non-interactive automation is a first-class client: it can `npm i -g @open-design/cli && od daemon start --headless && od plugin install … && od run start --project … --follow`. No display, no electron, no per-step UI scripting.
-- External products can embed OD by spawning a headless daemon and shelling out — `od` is the public surface, internals are free to evolve.
+- Non-interactive automation is a first-class client: it can `npm i -g @readable-studio/cli && readable daemon start --headless && readable plugin install … && readable run start --project … --follow`. No display, no electron, no per-step UI scripting.
+- External products can embed OD by spawning a headless daemon and shelling out — `readable` is the public surface, internals are free to evolve.
 
-The cost: a small handful of `od daemon` flags and one new lifecycle subcommand (`od daemon start/stop/status` with `--headless` / `--serve-web`). Implementation lands in Phase 2 alongside the CLI parity slice.
+The cost: a small handful of `readable daemon` flags and one new lifecycle subcommand (`readable daemon start/stop/status` with `--headless` / `--serve-web`). Implementation lands in Phase 2 alongside the CLI parity slice.
 
 ### 11.8 Prompt composition: v1 plugin runs go through the daemon, no fork
 
@@ -1216,17 +1216,17 @@ This also answers the "no plugin selected" path: a run without an applied plugin
 
 ## 12. CLI surface
 
-The CLI (`od …`) is **the canonical agent-facing API** for Open Design. Plugin verbs are one slice of it; the rest of the CLI wraps the daemon's core capabilities — projects, conversations, runs, file operations, design library introspection, daemon control — so that any code agent can drive OD end-to-end through shell calls. This is the "natural-language project + task creation through CLI" path: a code agent reads a user's request, then issues a sequence of `od …` calls instead of speaking HTTP.
+The CLI (`readable …`) is **the canonical agent-facing API** for Open Design. Plugin verbs are one slice of it; the rest of the CLI wraps the daemon's core capabilities — projects, conversations, runs, file operations, design library introspection, daemon control — so that any code agent can drive OD end-to-end through shell calls. This is the "natural-language project + task creation through CLI" path: a code agent reads a user's request, then issues a sequence of `readable …` calls instead of speaking HTTP.
 
 ### 12.1 Three transports of one logical API
 
 | Transport             | Use case                                              | Implementation                                                   |
 | --------------------- | ----------------------------------------------------- | ---------------------------------------------------------------- |
 | HTTP (`/api/*`)       | Desktop web app, internal tooling, the CLI's own use  | [`apps/daemon/src/server.ts`](../apps/daemon/src/server.ts)      |
-| **CLI (`od …`)**      | **Code agents shelling out, scripts, CI**             | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)            |
-| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `od mcp`                                                         |
+| **CLI (`readable …`)**      | **Code agents shelling out, scripts, CI**             | [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)            |
+| MCP stdio             | MCP-aware agents (Claude Code, Cursor, etc.)          | `readable mcp`                                                         |
 
-When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and covered by package-scoped tests; breaking changes follow a major-version bump of the `od` bin.
+When a new capability ships, the CLI subcommand is the primary contract. The HTTP route exists to back the CLI; the MCP server exposes a curated subset of CLI subcommands as tools. Versioning: subcommand names, argument names, and `--json` schemas are governed by `packages/contracts` and covered by package-scoped tests; breaking changes follow a major-version bump of the `readable` bin.
 
 ### 12.2 Command groups
 
@@ -1235,17 +1235,17 @@ Existing commands ([`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts)) stay; 
 #### Project lifecycle (new)
 
 ```
-od project create [--name "<title>"] [--skill <id>] [--design-system <id>]
+readable project create [--name "<title>"] [--skill <id>] [--design-system <id>]
                   [--plugin <id>] [--input k=v ...] [--brief "<text>"]
                   [--metadata-json <path|->] [--json]
-od project list   [--json]
-od project info   <id> [--json]
-od project delete <id>
-od project import <path> [--name "<title>"] [--json]   # wraps existing /api/import/folder
-od project open   <id>                                 # opens browser at /projects/<id>
+readable project list   [--json]
+readable project info   <id> [--json]
+readable project delete <id>
+readable project import <path> [--name "<title>"] [--json]   # wraps existing /api/import/folder
+readable project open   <id>                                 # opens browser at /projects/<id>
 ```
 
-Result of `od project create --json`:
+Result of `readable project create --json`:
 
 ```json
 { "projectId": "p_abc", "conversationId": "c_xyz", "url": "http://127.0.0.1:17456/projects/p_abc" }
@@ -1254,23 +1254,23 @@ Result of `od project create --json`:
 #### Conversation lifecycle (new)
 
 ```
-od conversation list <projectId> [--json]
-od conversation new  <projectId> [--name "<title>"] [--json]
-od conversation info <conversationId> [--json]
+readable conversation list <projectId> [--json]
+readable conversation new  <projectId> [--name "<title>"] [--json]
+readable conversation info <conversationId> [--json]
 ```
 
 #### Run / task lifecycle (new)
 
 ```
-od run start --project <projectId> [--conversation <conversationId>]
+readable run start --project <projectId> [--conversation <conversationId>]
              [--message "<text>"] [--plugin <pluginId>] [--input k=v ...]
              [--agent claude|codex|gemini] [--model <id>] [--reasoning <level>]
              [--attachments <relpath,...>] [--follow] [--json]
 
-od run watch  <runId>                # ND-JSON SSE-equivalent events on stdout
-od run cancel <runId>
-od run list   [--project <id>] [--status running|done|failed] [--json]
-od run logs   <runId>                # historical tail; --since for incremental
+readable run watch  <runId>                # ND-JSON SSE-equivalent events on stdout
+readable run cancel <runId>
+readable run list   [--project <id>] [--status running|done|failed] [--json]
+readable run logs   <runId>                # historical tail; --since for incremental
 ```
 
 `--follow` on `run start` is shorthand for `start && watch`. Both stream the same event schema, defined in `packages/contracts/src/api/chat.ts` (the existing `PersistedAgentEvent` discriminated union, exposed as one event per line).
@@ -1280,92 +1280,92 @@ od run logs   <runId>                # historical tail; --since for incremental
 The daemon already owns project filesystems under `.od/projects/<id>/` (or `metadata.baseDir` for imported folders). These commands are project-scoped — agents do not need to know where the project lives on disk.
 
 ```
-od files list   <projectId> [--path <subdir>] [--json]
-od files read   <projectId> <relpath>                   # writes to stdout
-od files write  <projectId> <relpath> [< stdin]         # reads from stdin
-od files upload <projectId> <localpath> [--as <relpath>]
-od files delete <projectId> <relpath>
-od files diff   <projectId> <relpath>                   # vs. last committed version (when imported from git)
+readable files list   <projectId> [--path <subdir>] [--json]
+readable files read   <projectId> <relpath>                   # writes to stdout
+readable files write  <projectId> <relpath> [< stdin]         # reads from stdin
+readable files upload <projectId> <localpath> [--as <relpath>]
+readable files delete <projectId> <relpath>
+readable files diff   <projectId> <relpath>                   # vs. last committed version (when imported from git)
 ```
 
-A code agent typically uses `od files read` / `od files write` instead of native file ops when targeting OD-managed projects, because the daemon owns artifact bookkeeping (`ArtifactManifest.sourceSkillId`, etc. in [`packages/contracts/src/api/registry.ts`](../packages/contracts/src/api/registry.ts)).
+A code agent typically uses `readable files read` / `readable files write` instead of native file ops when targeting OD-managed projects, because the daemon owns artifact bookkeeping (`ArtifactManifest.sourceSkillId`, etc. in [`packages/contracts/src/api/registry.ts`](../packages/contracts/src/api/registry.ts)).
 
 #### Plugin verbs
 
 ```
-od plugin install   <source>                            # github: | https://… | ./folder | <name from marketplace>
-od plugin uninstall <id>
-od plugin list      [--kind skill|scenario|atom|bundle] [--trust trusted|restricted] [--json]
-od plugin info      <id> [--json]
-od plugin update    [<id>]
-od plugin trust     <id> [--caps fs:write,mcp,bash,hooks]   # permanent grant; persisted on installed_plugins
-od plugin apply     <id> --project <projectId> [--input k=v ...] [--grant-caps fs:read,mcp ...] [--json]
+readable plugin install   <source>                            # github: | https://… | ./folder | <name from marketplace>
+readable plugin uninstall <id>
+readable plugin list      [--kind skill|scenario|atom|bundle] [--trust trusted|restricted] [--json]
+readable plugin info      <id> [--json]
+readable plugin update    [<id>]
+readable plugin trust     <id> [--caps fs:write,mcp,bash,hooks]   # permanent grant; persisted on installed_plugins
+readable plugin apply     <id> --project <projectId> [--input k=v ...] [--grant-caps fs:read,mcp ...] [--json]
                                                             # returns ApplyResult; pure (no run)
                                                             # --grant-caps: scoped to this apply's snapshot only
-od plugin run       <id> --project <projectId> [--input k=v ...] [--grant-caps ...] [--follow] [--json]
+readable plugin run       <id> --project <projectId> [--input k=v ...] [--grant-caps ...] [--follow] [--json]
                                                             # shorthand: apply + run start --follow
-od plugin replay    <runId> [--follow] [--json]             # rerun the long-task using the run's applied_plugin_snapshot
-od plugin export    <projectId> --as od|claude-plugin|agent-skill --out <dir>
-od plugin doctor    <id>
-od plugin scaffold
+readable plugin replay    <runId> [--follow] [--json]             # rerun the long-task using the run's applied_plugin_snapshot
+readable plugin export    <projectId> --as od|claude-plugin|agent-skill --out <dir>
+readable plugin doctor    <id>
+readable plugin scaffold
 ```
 
 #### Generative UI verbs (§10.3)
 
 ```
-od ui list      [--run <runId> | --project <projectId>] [--status pending|resolved|timeout|invalidated] [--json]
-od ui show      <runId> <surface-id> [--json]                 # surface kind / schema / prompt
-od ui respond   <runId> <surface-id> --value-json '{...}'     # write answer, unblock the run
-od ui respond   <runId> <surface-id> --skip                   # trigger onTimeout='skip'
-od ui revoke    <projectId> <surface-id>                      # invalidate persisted answer (e.g. OAuth logout)
-od ui prefill   <projectId> --plugin <pluginId> --json '{ "<surface-id>": <value>, ... }'
+readable ui list      [--run <runId> | --project <projectId>] [--status pending|resolved|timeout|invalidated] [--json]
+readable ui show      <runId> <surface-id> [--json]                 # surface kind / schema / prompt
+readable ui respond   <runId> <surface-id> --value-json '{...}'     # write answer, unblock the run
+readable ui respond   <runId> <surface-id> --skip                   # trigger onTimeout='skip'
+readable ui revoke    <projectId> <surface-id>                      # invalidate persisted answer (e.g. OAuth logout)
+readable ui prefill   <projectId> --plugin <pluginId> --json '{ "<surface-id>": <value>, ... }'
                                                               # bulk pre-answer, used before the run starts
 ```
 
 #### Marketplace verbs
 
 ```
-od marketplace add     <url> [--trust]
-od marketplace remove  <id>
-od marketplace trust   <id>
-od marketplace untrust <id>
-od marketplace list    [--json]
-od marketplace refresh [<id>]
-od marketplace search  "<query>" [--tag <tag>] [--json]   # search across configured catalogs
+readable marketplace add     <url> [--trust]
+readable marketplace remove  <id>
+readable marketplace trust   <id>
+readable marketplace untrust <id>
+readable marketplace list    [--json]
+readable marketplace refresh [<id>]
+readable marketplace search  "<query>" [--tag <tag>] [--json]   # search across configured catalogs
 ```
 
 #### Design library introspection (new)
 
 ```
-od skills list             [--json] [--scenario <s>] [--mode <m>]
-od skills show             <id> [--json]
-od design-systems list     [--json]
-od design-systems show     <id> [--json]
-od craft list              [--json]
-od atoms list              [--json]                       # first-party atoms (§10)
+readable skills list             [--json] [--scenario <s>] [--mode <m>]
+readable skills show             <id> [--json]
+readable design-systems list     [--json]
+readable design-systems show     <id> [--json]
+readable craft list              [--json]
+readable atoms list              [--json]                       # first-party atoms (§10)
 ```
 
 #### Daemon control (new)
 
 ```
-od daemon start  [--headless] [--serve-web] [--port <n>] [--host <h>]
+readable daemon start  [--headless] [--serve-web] [--port <n>] [--host <h>]
                                                            # explicit lifecycle (§11.7);
-                                                           # default `od` (no args) keeps current behavior
-od daemon stop   [--daemon-url <url>]
-od daemon status [--json]                                   # alias of `od status`
-od status        [--json]                                   # daemon up? port? installed plugins count
-od doctor                                                   # diagnostics: skills/DS/craft/plugins, providers, MCP
-od version       [--json]
-od config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
+                                                           # default `readable` (no args) keeps current behavior
+readable daemon stop   [--daemon-url <url>]
+readable daemon status [--json]                                   # alias of `readable status`
+readable status        [--json]                                   # daemon up? port? installed plugins count
+readable doctor                                                   # diagnostics: skills/DS/craft/plugins, providers, MCP
+readable version       [--json]
+readable config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
 ```
 
-`od daemon start --headless` is the entry for the headless mode in §11.7 (no web bundle, no electron). `od daemon start --serve-web` adds the local web UI without electron. Both keep using the existing tools-dev port conventions ([`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)).
+`readable daemon start --headless` is the entry for the headless mode in §11.7 (no web bundle, no electron). `readable daemon start --serve-web` adds the local web UI without electron. Both keep using the existing tools-dev port conventions ([`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)).
 
 #### Existing agent-callable tools (unchanged)
 
 ```
-od research search ...
-od mcp                       # stdio MCP server
+readable research search ...
+readable mcp                       # stdio MCP server
 ```
 
 ### 12.3 Output conventions
@@ -1383,16 +1383,16 @@ od mcp                       # stdio MCP server
 
 | Exit | Meaning | Recovery hint | Structured stderr `data` (excerpt) |
 | --- | --- | --- | --- |
-| 64 | Daemon not running | `od status`, then start daemon | `{ host, port }` |
-| 65 | Plugin not found / not installed | `od plugin list` then `od plugin install <source>` | `{ pluginId, candidateSources[] }` |
-| 66 | Plugin restricted, capability required | `od plugin trust <id> --caps …` or retry with `--grant-caps …` | `{ pluginId, pluginVersion, required[], granted[], remediation[] }` |
+| 64 | Daemon not running | `readable status`, then start daemon | `{ host, port }` |
+| 65 | Plugin not found / not installed | `readable plugin list` then `readable plugin install <source>` | `{ pluginId, candidateSources[] }` |
+| 66 | Plugin restricted, capability required | `readable plugin trust <id> --caps …` or retry with `--grant-caps …` | `{ pluginId, pluginVersion, required[], granted[], remediation[] }` |
 | 67 | Required input missing on apply | re-run with `--input k=v` for each missing field | `{ pluginId, missing[], schema }` |
-| 68 | Project not found | `od project list` | `{ projectId }` |
-| 69 | Run not found / already terminal | `od run list --project <id>` | `{ runId, status }` |
-| 70 | Provider not configured | `od config set ...` for the provider key | `{ provider, requiredKeys[] }` |
+| 68 | Project not found | `readable project list` | `{ projectId }` |
+| 69 | Run not found / already terminal | `readable run list --project <id>` | `{ runId, status }` |
+| 70 | Provider not configured | `readable config set ...` for the provider key | `{ provider, requiredKeys[] }` |
 | 71 | Plugin requires daemon mode | start daemon or switch to desktop / headless | `{ pluginId, mode: 'api-fallback' }` (§11.8) |
-| 72 | Applied plugin snapshot stale | `od plugin replay <runId>` or `od plugin upgrade <id>` then re-apply | `{ snapshotId, pluginId, currentVersion, snapshotVersion }` |
-| 73 | GenUI surface awaiting response | inspect via `od ui show <runId> <surface-id>` then answer with `od ui respond`, or `od ui prefill` before the run | `{ runId, surfaceId, kind, schema, prompt, persist, timeoutAt }` (§10.3) |
+| 72 | Applied plugin snapshot stale | `readable plugin replay <runId>` or `readable plugin upgrade <id>` then re-apply | `{ snapshotId, pluginId, currentVersion, snapshotVersion }` |
+| 73 | GenUI surface awaiting response | inspect via `readable ui show <runId> <surface-id>` then answer with `readable ui respond`, or `readable ui prefill` before the run | `{ runId, surfaceId, kind, schema, prompt, persist, timeoutAt }` (§10.3) |
 
 When `--json` is set, structured error output is `{ "error": { "code": "<short-code>", "message": "<human>", "data": { ... } } }` on stderr. The exit codes above remain stable; the human prose may evolve. The exit-66 `data` shape matches §9.1's capability gate JSON; an agent reading 66 can retry with `--grant-caps` or surface remediation text upstream.
 
@@ -1402,34 +1402,34 @@ A code agent driving Open Design through the CLI typically does:
 
 ```bash
 # 1. (Optional) Inspect what's available.
-od skills list --json
-od plugin list --json
+readable skills list --json
+readable plugin list --json
 
 # 2. Create a project bound to a skill or design system.
-PID=$(od project create --skill blog-post --design-system linear-clone --json | jq -r .projectId)
+PID=$(readable project create --skill blog-post --design-system linear-clone --json | jq -r .projectId)
 
 # 3. Apply a plugin to preview the brief and context (pure; no run yet).
-od plugin apply make-a-deck --project "$PID" --input topic="agentic design" --input audience=VC --json
+readable plugin apply make-a-deck --project "$PID" --input topic="agentic design" --input audience=VC --json
 
 # 4. Start the run, follow events live (ND-JSON on stdout).
-od run start --project "$PID" --plugin make-a-deck \
+readable run start --project "$PID" --plugin make-a-deck \
              --input topic="agentic design" --input audience=VC \
              --message "Make it concise; investor-ready." --follow \
   | jq -r 'select(.kind == "message_chunk") | .text' \
   | tee run.log
 
 # 5. Consume produced artifacts.
-od files list "$PID" --json
-od files read "$PID" index.html > out.html
+readable files list "$PID" --json
+readable files read "$PID" index.html > out.html
 ```
 
 This sequence works identically locally or when driven from inside another agent loop. No direct HTTP use, port discovery, or auth-token plumbing is required — the CLI hides those details behind the stable subcommand contract.
 
 ### 12.6 What this means for the existing CLI
 
-Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `od` (start daemon + open web UI) remains unchanged. Existing `od research` and `od mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
+Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/cli.ts). The current default `readable` (start daemon + open web UI) remains unchanged. Existing `readable research` and `readable mcp` commands keep their exact contracts. The new groups are wrappers around endpoints that already exist in `apps/daemon/src/server.ts` for the ones the desktop UI uses today (project create/list, run start/watch, file upload/list), plus the new endpoints from §11.5 for plugins/marketplace/atoms.
 
-> **Implementation rule:** if a code agent can do something through the desktop UI, it MUST be doable through `od …` with the same arguments and equivalent output. No silent UI-only capabilities.
+> **Implementation rule:** if a code agent can do something through the desktop UI, it MUST be doable through `readable …` with the same arguments and equivalent output. No silent UI-only capabilities.
 
 ## 13. Public web surface (open-design.ai/marketplace)
 
@@ -1473,9 +1473,9 @@ A single GitHub repo per plugin, simultaneously usable across every catalog the 
 
 ### 14.1 Author tooling
 
-- `od plugin scaffold` — writes a starter folder containing both `SKILL.md` (industry-standard, with `od:` frontmatter for backward compat) and `open-design.json` (OD enrichment with `compat.agentSkills` pointing at the SKILL.md).
-- `od plugin doctor` — runs the JSON Schema, the SKILL.md frontmatter parser, and a "does this look listable on awesome-agent-skills / clawhub / skills.sh?" lint that checks for README presence, license file, and frontmatter completeness.
-- `od plugin publish --to <catalog>` (Phase 4) — opens a browser to the catalog's PR template with a pre-filled row.
+- `readable plugin scaffold` — writes a starter folder containing both `SKILL.md` (industry-standard, with `od:` frontmatter for backward compat) and `open-design.json` (OD enrichment with `compat.agentSkills` pointing at the SKILL.md).
+- `readable plugin doctor` — runs the JSON Schema, the SKILL.md frontmatter parser, and a "does this look listable on awesome-agent-skills / clawhub / skills.sh?" lint that checks for README presence, license file, and frontmatter completeness.
+- `readable plugin publish --to <catalog>` (Phase 4) — opens a browser to the catalog's PR template with a pre-filled row.
 
 ### 14.2 Cross-agent consumption
 
@@ -1487,22 +1487,22 @@ Any code agent that consumes a folder via `SKILL.md` works without OD installed.
 
 The plugin author writes the SKILL.md once. All three modes consume it.
 
-### 14.3 Concrete headless pipeline (Claude Code + `od` CLI, no OD UI)
+### 14.3 Concrete headless pipeline (Claude Code + `readable` CLI, no OD UI)
 
 This mirrors what cursor-agent + scripts can do for Cursor — code agent does the thinking, OD CLI provides the project / plugin / artifact substrate.
 
 ```bash
-# One-time setup: install the OD CLI as an npm global (publishable as @open-design/cli).
-npm install -g @open-design/cli
+# One-time setup: install the OD CLI as an npm global (publishable as @readable-studio/cli).
+npm install -g @readable-studio/cli
 
 # Start the daemon in headless mode — no web bundle, no electron, no browser.
-od daemon start --headless --port 17456
+readable daemon start --headless --port 17456
 
 # Install the OD plugin you want to drive (or an upstream agent skill — both work).
-od plugin install github:open-design/plugins/make-a-deck
+readable plugin install github:open-design/plugins/make-a-deck
 
 # Create a project bound to the plugin. Inputs are templated into the brief.
-PID=$(od project create \
+PID=$(readable project create \
         --plugin make-a-deck \
         --input topic="agentic design" \
         --input audience=VC \
@@ -1510,22 +1510,22 @@ PID=$(od project create \
 
 # Drive the run with Claude Code (or any code agent). Two equivalent paths:
 
-# Path A — let `od` orchestrate Claude Code as the run's agent:
-od run start --project "$PID" --plugin make-a-deck \
+# Path A — let `readable` orchestrate Claude Code as the run's agent:
+readable run start --project "$PID" --plugin make-a-deck \
              --agent claude --follow
 
 # Path B — drive Claude Code directly inside the project cwd; OD only provides
 # context resolution and artifact bookkeeping. Useful when the user's existing
 # code-agent setup is opinionated.
-CWD=$(od project info "$PID" --json | jq -r .cwd)
+CWD=$(readable project info "$PID" --json | jq -r .cwd)
 cd "$CWD"
 # OD has already staged the merged SKILL.md / DESIGN.md / craft / atoms into
 # .od-skills/ inside the cwd, exactly as the desktop run would.
 claude code "Read .od-skills/ and produce the deliverables the active plugin describes."
 
 # Consume the produced artifacts.
-od files list "$PID" --json
-od files read "$PID" slides.html > slides.html
+readable files list "$PID" --json
+readable files read "$PID" slides.html > slides.html
 open slides.html      # or however the user wants to view the file
 ```
 
@@ -1535,13 +1535,13 @@ What this proves:
 - The OD daemon does not need to render anything; it acts as a project + plugin + artifact server.
 - The same project, when later opened in the OD desktop UI, shows the full conversation history, files, and artifacts produced by the headless run — because there is exactly one storage layer (§4.6 in [`spec.md`](spec.md), `.od/projects/<id>/` + SQLite).
 
-### 14.4 Analogy: Cursor vs `cursor-agent`, OD desktop vs `od` CLI
+### 14.4 Analogy: Cursor vs `cursor-agent`, OD desktop vs `readable` CLI
 
 The mental model:
 
 | Layer                 | Cursor                                       | Open Design                                          |
 | --------------------- | -------------------------------------------- | ---------------------------------------------------- |
-| Headless agent CLI    | `cursor-agent` (drives the agent loop)       | `od run start --agent claude --follow` + `od plugin run` |
+| Headless agent CLI    | `cursor-agent` (drives the agent loop)       | `readable run start --agent claude --follow` + `readable plugin run` |
 | Local services / db   | Cursor's background indexing / state         | OD daemon, SQLite, `.od/projects/<id>/`              |
 | GUI productivity layer| Cursor IDE                                   | OD desktop / web UI (`apps/web` + `apps/desktop`)    |
 | Plugin / skill format | `.cursor/rules/`, MCP servers                | `SKILL.md` + `open-design.json` + atoms              |
@@ -1568,7 +1568,7 @@ Product-owned runtime boundaries remain here:
 - Pure-TS contracts at `packages/contracts/src/plugins/{manifest,context,apply,marketplace,installed}.ts`.
 - Migration note: existing `skills/`, `design-systems/`, `craft/` are 100% backward compatible. SKILL.md frontmatter unchanged.
 
-Validation: `pnpm guard`, `pnpm typecheck`, `pnpm --filter @open-design/contracts test`.
+Validation: `pnpm guard`, `pnpm typecheck`, `pnpm --filter @readable-studio/contracts test`.
 
 ### Phase 1 — Loader, installer, persistence + headless MVP CLI loop (5–7 days)
 
@@ -1580,16 +1580,16 @@ Phase 1 contents (merges the original Phase 1 with the minimum subset of the ori
 - `apps/daemon/src/plugins/{registry,installer,apply}.ts`; refactor existing skills/DS/craft loaders to delegate.
 - SQLite migration for `installed_plugins`, `plugin_marketplaces`. The `applied_plugin_snapshots` schema also lands in this phase (full §10 pipeline support waits until Phase 2A).
 - Endpoints: `GET /api/plugins`, `GET /api/plugins/:id`, `POST /api/plugins/install` (folder + github tarball), `POST /api/plugins/:id/uninstall`, `POST /api/plugins/:id/apply`, `GET /api/atoms`, `GET /api/applied-plugins/:snapshotId`.
-- **Plugin CLI verbs:** `od plugin install/list/info/uninstall/apply/doctor`. `od plugin apply --json` is required by Phase 2's inline rail and by external code agents, and must already return an `ApplyResult` containing `appliedPlugin: AppliedPluginSnapshot`.
-- **Headless MVP CLI loop (newly pulled forward):** `od project create/list/info`, `od run start/watch/cancel` (with `--follow` and ND-JSON streaming), `od files list/read`. These wrap endpoints already used by the desktop UI today (`POST /api/projects`, `POST /api/runs`, `GET /api/runs/:id/events`, project list/read endpoints) — no new HTTP surface, only CLI surface.
+- **Plugin CLI verbs:** `readable plugin install/list/info/uninstall/apply/doctor`. `readable plugin apply --json` is required by Phase 2's inline rail and by external code agents, and must already return an `ApplyResult` containing `appliedPlugin: AppliedPluginSnapshot`.
+- **Headless MVP CLI loop (newly pulled forward):** `readable project create/list/info`, `readable run start/watch/cancel` (with `--follow` and ND-JSON streaming), `readable files list/read`. These wrap endpoints already used by the desktop UI today (`POST /api/projects`, `POST /api/runs`, `GET /api/runs/:id/events`, project list/read endpoints) — no new HTTP surface, only CLI surface.
 - `<daemonDataDir>/plugins/<id>/` write path with safe extraction (path-traversal guard, size cap, symlink rejection).
 
 Validation:
 
-- `pnpm --filter @open-design/plugin-runtime test` (parser fixtures: pure SKILL.md, pure claude plugin, metadata-only open-design.json, all three combined, SKILL frontmatter mapping).
-- `pnpm --filter @open-design/daemon test`. `pnpm guard`, `pnpm typecheck`.
-- **End-to-end headless smoke** (equivalent to the §12.5 walkthrough): `od plugin install ./fixtures/sample-plugin` → `od project create --plugin <id> --json` → `od run start --project <pid> --plugin <id> --follow` → `od files read <pid> <artifact>`. The produced artifact bytes must match exactly what the same plugin produces under the Phase 2A UI flow.
-- **Apply purity smoke:** after `od plugin apply <id>` followed by cancel-before-send, the project cwd is empty of staged assets, no `.mcp.json` is generated, but the `applied_plugin_snapshots` row exists (unreferenced from any run/project).
+- `pnpm --filter @readable-studio/plugin-runtime test` (parser fixtures: pure SKILL.md, pure claude plugin, metadata-only open-design.json, all three combined, SKILL frontmatter mapping).
+- `pnpm --filter @readable-studio/daemon test`. `pnpm guard`, `pnpm typecheck`.
+- **End-to-end headless smoke** (equivalent to the §12.5 walkthrough): `readable plugin install ./fixtures/sample-plugin` → `readable project create --plugin <id> --json` → `readable run start --project <pid> --plugin <id> --follow` → `readable files read <pid> <artifact>`. The produced artifact bytes must match exactly what the same plugin produces under the Phase 2A UI flow.
+- **Apply purity smoke:** after `readable plugin apply <id>` followed by cancel-before-send, the project cwd is empty of staged assets, no `.mcp.json` is generated, but the `applied_plugin_snapshots` row exists (unreferenced from any run/project).
 
 ### Phase 2A — Inline UI + full snapshot persistence + daemon-only plugin runs (4–6 days)
 
@@ -1606,7 +1606,7 @@ Validation:
   - HTTP: `GET /api/runs/:runId/genui`, `GET /api/projects/:projectId/genui`, `POST /api/runs/:runId/genui/:surfaceId/respond`, `POST /api/projects/:projectId/genui/:surfaceId/revoke`, `POST /api/projects/:projectId/genui/prefill`.
   - SSE / ND-JSON streams add `genui_surface_request`, `genui_surface_response`, `genui_surface_timeout`, and `genui_state_synced` events.
   - Web: `GenUISurfaceRenderer` mounted inside the `ProjectView` chat stream; `GenUIInbox` drawer lists project-tier persisted surfaces; revoke entry is functional.
-  - CLI: `od ui list/show/respond/revoke/prefill`; `od run watch` ND-JSON includes `genui_*` events; exit code 73 wired in.
+  - CLI: `readable ui list/show/respond/revoke/prefill`; `readable run watch` ND-JSON includes `genui_*` events; exit code 73 wired in.
   - **Persistence behavior verification:** after one project completes an `oauth-prompt`, a second conversation triggering the same surface id **does not** broadcast a new request; the event stream still emits `genui_surface_response { respondedBy: 'cache' }`.
 Validation: e2e in `e2e/`:
 
@@ -1614,11 +1614,11 @@ Validation: e2e in `e2e/`:
 
 (b) Apply then cancel before sending; project cwd has no staged assets and `.mcp.json` does not exist.
 
-(c) `od plugin replay <runId>` reproduces the **exact same prompt** even after the source plugin has been upgraded via `od plugin update` (snapshot is immutable).
+(c) `readable plugin replay <runId>` reproduces the **exact same prompt** even after the source plugin has been upgraded via `readable plugin update` (snapshot is immutable).
 
 (d) In web API-fallback mode (OD daemon stopped, browser talking provider directly), the inline rail still renders plugin cards but clicking "Use" pops a daemon-required notice; resuming the daemon restores normal behavior.
 
-(e) A plugin declares both `oauth-prompt` and `confirmation` surfaces: after conversation A completes them, conversation B (same project) re-applies the plugin. In the new run the `oauth-prompt` (`persist=project`) is served from cache; the `confirmation` (`persist=run`) re-asks. After `od ui revoke`, the next run re-asks the `oauth-prompt`.
+(e) A plugin declares both `oauth-prompt` and `confirmation` surfaces: after conversation A completes them, conversation B (same project) re-applies the plugin. In the new run the `oauth-prompt` (`persist=project`) is served from cache; the `confirmation` (`persist=run`) re-asks. After `readable ui revoke`, the next run re-asks the `oauth-prompt`.
 
 ### Phase 2B — Marketplace deep UI + ChatComposer apply (4–6 days)
 
@@ -1633,44 +1633,44 @@ Validation: e2e in `e2e/`: install local plugin → marketplace → detail previ
 
 > The minimum project + run + files CLI from the original Phase 2C is now in Phase 1; this phase covers only the **advanced** operations.
 
-- `od project delete/import`, `od run list/logs --since`, `od files write/upload/delete/diff`, `od conversation list/new/info`.
+- `readable project delete/import`, `readable run list/logs --since`, `readable files write/upload/delete/diff`, `readable conversation list/new/info`.
 - These wrap existing endpoints; no new HTTP surface.
 
-Validation: extend the §12.5 walkthrough — `od project import` an external folder → `od plugin apply` → `od run replay <runId>` reruns on top of the imported project.
+Validation: extend the §12.5 walkthrough — `readable project import` an external folder → `readable plugin apply` → `readable run replay <runId>` reruns on top of the imported project.
 
 ### Phase 3 — Federated marketplace + tiered trust (3–5 days)
 
-- `od marketplace add/remove/trust/untrust/list/refresh`; `od plugin install <name>` resolves through marketplaces.
+- `readable marketplace add/remove/trust/untrust/list/refresh`; `readable plugin install <name>` resolves through marketplaces.
 - `GET /api/marketplaces`, `POST /api/marketplaces`, `GET /api/marketplaces/:id/plugins`.
 - Trust UI on `PluginDetailView` (capability checklist + "Grant" action).
 - Apply pipeline gates by `trust` + `capabilities_granted`.
 - Bundle plugins (multiple skills + DS + craft in one repo) — installer fans out into the registry under namespaced ids.
-- `od plugin doctor <id>` runs full validation.
+- `readable plugin doctor <id>` runs full validation.
 
 Validation: install plugin from a local mock marketplace.json, rotate ref, uninstall. Restricted plugin cannot start MCP server until "Grant" is clicked.
 
 ### Phase 4 — Atoms, publish-back, full CLI parity (1–2 weeks, splittable)
 
 - Document atoms in `docs/atoms.md`; expose via `GET /api/atoms`.
-- `od plugin export <projectId> --as od|claude-plugin|agent-skill` — generates a publish-ready folder from an existing project.
-- `od plugin run <id> --input k=v --follow` — shorthand wrapper for apply + run start + watch.
-- `od plugin scaffold` interactive starter.
-- `od plugin publish --to anthropics-skills|awesome-agent-skills|clawhub` opens a PR template.
-- **Remaining CLI parity:** `od conversation list/new/info`, `od skills/design-systems/craft/atoms list/show`, `od status/doctor/version`, `od config get/set/list`, `od marketplace search`. All purely CLI work — endpoints exist or are trivial.
+- `readable plugin export <projectId> --as od|claude-plugin|agent-skill` — generates a publish-ready folder from an existing project.
+- `readable plugin run <id> --input k=v --follow` — shorthand wrapper for apply + run start + watch.
+- `readable plugin scaffold` interactive starter.
+- `readable plugin publish --to anthropics-skills|awesome-agent-skills|clawhub` opens a PR template.
+- **Remaining CLI parity:** `readable conversation list/new/info`, `readable skills/design-systems/craft/atoms list/show`, `readable status/doctor/version`, `readable config get/set/list`, `readable marketplace search`. All purely CLI work — endpoints exist or are trivial.
 - Optional: extract atoms into `skills/_official/<atom>/SKILL.md`. Only after Phases 1–3 are stable.
 - **§10.3.5 full AG-UI alignment:**
-  - New package `@open-design/agui-adapter` — bidirectionally maps OD's `PersistedAgentEvent` + `GenUIEvent` onto AG-UI canonical events (`agent.message`, `tool_call`, `state_update`, `ui.surface_requested`, `ui.surface_responded`).
+  - New package `@readable-studio/agui-adapter` — bidirectionally maps OD's `PersistedAgentEvent` + `GenUIEvent` onto AG-UI canonical events (`agent.message`, `tool_call`, `state_update`, `ui.surface_requested`, `ui.surface_responded`).
   - Daemon adds an optional `/api/runs/:runId/agui` SSE endpoint that emits AG-UI canonical events so CopilotKit / other AG-UI clients can consume an OD run unchanged.
   - Plugin manifest upgrade allows `od.genui.surfaces[].component` — a relative path to a plugin-bundled React component (capability gate `genui:custom-component`), loaded by the desktop / web renderer inside a sandbox.
   - Open-Ended (MCP-Apps / Open-JSON) mode: plugins push arbitrary JSON UI trees through an MCP server, rendered by desktop / web under a constrained schema.
 
-Validation: (a) install a published plugin → export from a real project that used it → diff the produced manifest against the original. (b) "UI vs CLI parity test": pick 5 desktop-UI workflows, replay each one through `od …` only, compare produced artifacts byte-for-byte (per the §12.6 implementation rule).
+Validation: (a) install a published plugin → export from a real project that used it → diff the produced manifest against the original. (b) "UI vs CLI parity test": pick 5 desktop-UI workflows, replay each one through `readable …` only, compare produced artifacts byte-for-byte (per the §12.6 implementation rule).
 
 ### Phase 5 — Runtime storage and non-loopback security
 
 - Keep the bound-API-token guard for non-loopback daemon binding.
 - Keep local-disk + SQLite as the reachable defaults behind `ProjectStorage` and `DaemonDb`.
-- Enforce snapshot retention and preserve the `od plugin snapshots prune --before <ts>` escape hatch.
+- Enforce snapshot retention and preserve the `readable plugin snapshots prune --before <ts>` escape hatch.
 - Keep hosted/container deployment assets and publishing automation outside this product workspace.
 
 Validation uses the package-scoped storage, auth, and retention tests documented by the local workflow.
@@ -1739,42 +1739,42 @@ The installer fans out nested skills/design-systems/craft into the registry unde
 | `composeSystemPrompt()` is already 200+ lines               | The `## Active plugin` block is appended in the existing place; no reordering of layers.             |
 | ExamplesTab vs Marketplace overlap                          | Phase 2 keeps ExamplesTab as is; Phase 3 folds it into Marketplace as a "Local skills" tab.         |
 | Atoms-as-plugins is large                                   | Entry slice shipped: bundled atom SKILL.md bodies + `renderActiveStageBlock()` exist, while the base OD designer/discovery prompt remains in daemon code until the remaining §23 migration is complete. |
-| Project-local plugins committed to user repos | Discovery only at `<projectCwd>/.open-design/plugins/`; opt-in via `od plugin install --project`. |
+| Project-local plugins committed to user repos | Discovery only at `<projectCwd>/.open-design/plugins/`; opt-in via `readable plugin install --project`. |
 | Trust model leaves community plugins half-functional by default | Detail page surfaces a clear capability checklist with a one-click "Grant all" action; restricted-mode behavior is explicit, not silent. |
-| Plugins shipping their own MCP servers may fail to start | `od plugin doctor` runs a dry-launch of declared MCP commands; failures surfaced before "Use". |
-| Unbounded growth of `applied_plugin_snapshots` | Per PB2 (resolved): unreferenced snapshots auto-expire at `applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default 30 d); referenced snapshots stay pinned forever (reproducibility wins); GC worker lands in Phase 5 (§16). `od plugin snapshots prune --before <ts>` remains as a forced-cleanup escape hatch; rows with `status='stale'` can be archived to external storage in batch. |
+| Plugins shipping their own MCP servers may fail to start | `readable plugin doctor` runs a dry-launch of declared MCP commands; failures surfaced before "Use". |
+| Unbounded growth of `applied_plugin_snapshots` | Per PB2 (resolved): unreferenced snapshots auto-expire at `applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default 30 d); referenced snapshots stay pinned forever (reproducibility wins); GC worker lands in Phase 5 (§16). `readable plugin snapshots prune --before <ts>` remains as a forced-cleanup escape hatch; rows with `status='stale'` can be archived to external storage in batch. |
 | Drift between daemon `composeSystemPrompt` and contracts `composeSystemPrompt` | Per PB1 (resolved): the plugin block renderer lives in `packages/contracts/src/prompts/plugin-block.ts` from Phase 2A onward; both composers import the same function. No byte-equality fixture needed — single-import compile-time guarantee. |
 | `od.pipeline` devloop infinite loop burning quota | `until` is required and uses a restricted syntax; `OD_MAX_DEVLOOP_ITERATIONS` ceiling (default 10); both UI and CLI expose a "Stop refining" break action. |
 | `OD_HOST` / `OD_BIND_HOST` naming drift | Use the existing `OD_BIND_HOST`; no `OD_HOST` alias is introduced. |
 | Non-loopback binding without the API-token guard could expose the API | The daemon refuses non-loopback binding without `OD_API_TOKEN`; bearer-token middleware protects `/api/*`. |
 | Sovereign-cloud customers (Aliyun / Tencent / Huawei) need provider-specific secret + storage integrations | S3-compatible adapter covers all three for blob storage (Phase 5); env-var-based secrets work everywhere; cloud-specific KMS integrations are non-blocking (post-v1). |
-| Malicious plugins phishing the user via GenUI surfaces      | `od.genui.surfaces[]` must be declared in the manifest and pass `od plugin doctor`; runtime rejects undeclared surface kinds / surface ids; `oauth-prompt` and `confirmation` always show "from plugin <id>, vetted by marketplace <id>"; restricted plugins must explicitly grant `network` before raising an `oauth-prompt` (§9). |
-| AG-UI ecosystem may evolve, drifting OD's wire format from canonical AG-UI | OD-native `GenUIEvent` remains the internal source of truth. `@open-design/agui-adapter` is an external projection layer, so upstream protocol revs do not couple to the daemon or web renderer release cadence. |
-| Cross-conversation reuse via `genui_surfaces` may make users "forget what they authorized" | The web `GenUIInbox` and `od ui list --project <id>` must enumerate every `persist=project` resolved row with revoke entry points; hosted mode can default-expire via `OD_GENUI_PROJECT_TTL_DAYS`; revoke writes an audit log entry. |
+| Malicious plugins phishing the user via GenUI surfaces      | `od.genui.surfaces[]` must be declared in the manifest and pass `readable plugin doctor`; runtime rejects undeclared surface kinds / surface ids; `oauth-prompt` and `confirmation` always show "from plugin <id>, vetted by marketplace <id>"; restricted plugins must explicitly grant `network` before raising an `oauth-prompt` (§9). |
+| AG-UI ecosystem may evolve, drifting OD's wire format from canonical AG-UI | OD-native `GenUIEvent` remains the internal source of truth. `@readable-studio/agui-adapter` is an external projection layer, so upstream protocol revs do not couple to the daemon or web renderer release cadence. |
+| Cross-conversation reuse via `genui_surfaces` may make users "forget what they authorized" | The web `GenUIInbox` and `readable ui list --project <id>` must enumerate every `persist=project` resolved row with revoke entry points; hosted mode can default-expire via `OD_GENUI_PROJECT_TTL_DAYS`; revoke writes an audit log entry. |
 
 Open questions worth confirming before code lands:
 
 - **Default trust tier** — keep tiered (current) or shift to capability-scoped from day 1?
 - **Marketplace JSON shape** — diverge from anthropic's `marketplace.json` shape, or stay byte-compatible so existing claude-plugin marketplaces are reusable as-is? (Default: stay byte-compatible.)
-- **`od plugin run` headless contract** — sufficient as-is, or also expose an HTTP POST endpoint for non-CLI agents? (Default: CLI only in v1; HTTP added in Phase 4 if needed.)
+- **`readable plugin run` headless contract** — sufficient as-is, or also expose an HTTP POST endpoint for non-CLI agents? (Default: CLI only in v1; HTTP added in Phase 4 if needed.)
 - **Multi-tenant auth (per-user OAuth, RBAC, project ownership, billing)** is explicitly out of scope for v1. The daemon API-token model is single-tenant; multi-tenancy needs its own spec.
 - **Trust propagation for non-local clients** — current spec locks arbitrary GitHub / URL / local plugins to `restricted` by default, and third-party marketplaces do not propagate trust by default. Confirm whether operators may trust individual plugins through `OD_TRUSTED_PLUGINS`, or must first trust the source marketplace.
-- **Discovery-time hot reload** — should the daemon watch `<daemonDataDir>/plugins/` for filesystem changes (developer ergonomics), or only reload after `od plugin install/update/uninstall` (stability)? (Default: watch, with a 500ms debounce.)
-- **Versioning policy** — pin to a tag/SHA on install, or always track the default branch with an opt-in pin? (Default: pin to the resolved ref at install time; `od plugin update` re-resolves.)
+- **Discovery-time hot reload** — should the daemon watch `<daemonDataDir>/plugins/` for filesystem changes (developer ergonomics), or only reload after `readable plugin install/update/uninstall` (stability)? (Default: watch, with a 500ms debounce.)
+- **Versioning policy** — pin to a tag/SHA on install, or always track the default branch with an opt-in pin? (Default: pin to the resolved ref at install time; `readable plugin update` re-resolves.)
 - ~~**When to lift the plugin prompt block into contracts**~~ — **resolved (PB1, see `docs/plans/plugins-implementation.md` §7).** Lift in Phase 2A as a pure `renderPluginBlock(snapshot)` function in `packages/contracts/src/prompts/plugin-block.ts`; both composers import it; v1 fallback rejection rule (§11.8) is preserved; Phase 4 turns on fallback support as a one-line wiring change. The Phase 1–4 byte-equality fixture is no longer needed.
-- ~~**`AppliedPluginSnapshot` retention**~~ — **resolved (PB2, see `docs/plans/plugins-implementation.md` §7).** Snapshots referenced by any run / conversation / project stay pinned forever (`expires_at = NULL`); unreferenced snapshots get `expires_at = applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, `0` disables). The "expire even referenced rows" knob `OD_SNAPSHOT_RETENTION_DAYS` is operator-opt-in only (default unset), and applies only when the referencing row is terminal. The `expires_at` column lands in Phase 1 (§11.4); the GC worker lands in Phase 5 (§16). The `od plugin snapshots prune` CLI remains as a forced-cleanup escape hatch.
+- ~~**`AppliedPluginSnapshot` retention**~~ — **resolved (PB2, see `docs/plans/plugins-implementation.md` §7).** Snapshots referenced by any run / conversation / project stay pinned forever (`expires_at = NULL`); unreferenced snapshots get `expires_at = applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, `0` disables). The "expire even referenced rows" knob `OD_SNAPSHOT_RETENTION_DAYS` is operator-opt-in only (default unset), and applies only when the referencing row is terminal. The `expires_at` column lands in Phase 1 (§11.4); the GC worker lands in Phase 5 (§16). The `readable plugin snapshots prune` CLI remains as a forced-cleanup escape hatch.
 - **Devloop billing granularity** — should each stage `iteration` be billed / audited / cancelled independently? (Default: independent audit + cancel; billing granularity follows the provider's actual consumption rather than introducing a new spec-level unit.)
 - **Whether `od.taskKind` becomes a first-class marketplace filter** — does the existing `kind` / `mode` / `scenario` UI need a reorder to surface the new `taskKind`? (Default: marketplace adds a top-level `taskKind` tab; existing filters drop to a secondary tier.)
-- ~~**Should `od.genui.surfaces[].component` ship in v1?**~~ — **resolved as a gated extension path.** The manifest schema accepts the field and `od plugin doctor` enforces `genui:custom-component` plus traversal guards. The built-in product renderer remains the default for `form` / `choice` / `confirmation` / `oauth-prompt`; custom components are sandboxed add-ons, not a replacement for core collaboration UI.
-- **Coupling between GenUI persisted state and `AppliedPluginSnapshot`** — when a plugin upgrades and `surface.schema` changes, old rows auto-`invalidate`; should we additionally **force a re-apply** (generating a new `AppliedPluginSnapshot`) or allow the surface to invalidate while leaving the snapshot untouched? (Default: surface only; `od plugin doctor` flags schema drift; replay still uses the old snapshot.)
-- ~~**Timing of AG-UI protocol adoption**~~ — **resolved.** `@open-design/agui-adapter` and `GET /api/runs/:runId/agui` have shipped as optional interoperability. OD-native GenUI remains the internal renderer and CopilotKit is not a required product dependency.
+- ~~**Should `od.genui.surfaces[].component` ship in v1?**~~ — **resolved as a gated extension path.** The manifest schema accepts the field and `readable plugin doctor` enforces `genui:custom-component` plus traversal guards. The built-in product renderer remains the default for `form` / `choice` / `confirmation` / `oauth-prompt`; custom components are sandboxed add-ons, not a replacement for core collaboration UI.
+- **Coupling between GenUI persisted state and `AppliedPluginSnapshot`** — when a plugin upgrades and `surface.schema` changes, old rows auto-`invalidate`; should we additionally **force a re-apply** (generating a new `AppliedPluginSnapshot`) or allow the surface to invalidate while leaving the snapshot untouched? (Default: surface only; `readable plugin doctor` flags schema drift; replay still uses the old snapshot.)
+- ~~**Timing of AG-UI protocol adoption**~~ — **resolved.** `@readable-studio/agui-adapter` and `GET /api/runs/:runId/agui` have shipped as optional interoperability. OD-native GenUI remains the internal renderer and CopilotKit is not a required product dependency.
 
 ## 19. Why this is a meaningful step for Open Design
 
 - **Inherited supply.** Every public agent skill on `anthropics/skills`, `awesome-agent-skills`, `clawhub`, and `skills.sh` is one optional `open-design.json` away from being an OD plugin — and reciprocally, every OD plugin is publishable to all four catalogs without modification.
 - **Boundary-clean.** New code lives in two pure-TS packages (`packages/plugin-runtime`, `packages/contracts/src/plugins/*`) and one daemon module group (`apps/daemon/src/plugins/`); no cross-app coupling, no contracts package leaks, no SKILL.md fork. Honors every constraint in the root [`AGENTS.md`](../AGENTS.md).
 - **Reversible refactors.** Existing loaders ([`apps/daemon/src/skills.ts`](../apps/daemon/src/skills.ts) etc.) and `composeSystemPrompt()` keep their public shape; Phase 1 is a drop-in delegate, Phase 2 only **appends** a prompt block.
-- **CLI from day 1.** Every new endpoint has a matching `od plugin …` subcommand, so the same surface is reachable from any code agent without the desktop app.
+- **CLI from day 1.** Every new endpoint has a matching `readable plugin …` subcommand, so the same surface is reachable from any code agent without the desktop app.
 - **Marketplace-first product narrative.** From Phase 2 onward, the home screen becomes "input + chip strip + deep marketplace" — exactly the inversion described in the brief: 主交互 = 输入框 + 插件社区.
 
 ## 20. Post-v1 extensibility — artifact taxonomy, evaluators, and production handoff
@@ -1914,7 +1914,7 @@ What v1 explicitly does **not** solve, listed once so it is unambiguous:
 - All required atoms are already implemented: `discovery-question-form`, `direction-picker`, `todo-write`, `file-read` / `file-write`, `research-search`, `critique-theater`. See §10 atom table.
 - The default reference pipeline `discovery → plan → generate → critique` matches the typical `new-generation` flow; plugins do not have to declare `od.pipeline` to get a working pipeline.
 - All four GenUI built-in surface kinds (`form` / `choice` / `confirmation` / `oauth-prompt`) target this scenario directly.
-- File-backed previews and the `od files` CLI primitives (§12) mean generated prototypes, reports, decks, and templates can be inspected and consumed in v1.
+- File-backed previews and the `readable files` CLI primitives (§12) mean generated prototypes, reports, decks, and templates can be inspected and consumed in v1.
 
 **Single optional improvement worth pulling forward:**
 
@@ -1931,8 +1931,8 @@ What v1 explicitly does **not** solve, listed once so it is unambiguous:
 
 **v1 contract (lock this in, see §21.5):**
 
-- "Design → production code" in v1 is a **two-product handoff**: OD owns the design substrate (SKILL.md / DESIGN.md / craft / generated artifacts staged into project cwd, plus `od files`-managed artifact bookkeeping); the user's existing code agent (Cursor / Claude Code / Codex / Gemini CLI) owns the actual repo patch in the user's repo cwd.
-- The handoff surface is the §14.3 headless pipeline plus `od files read` / `od files watch` for the code agent to consume artifacts inline.
+- "Design → production code" in v1 is a **two-product handoff**: OD owns the design substrate (SKILL.md / DESIGN.md / craft / generated artifacts staged into project cwd, plus `readable files`-managed artifact bookkeeping); the user's existing code agent (Cursor / Claude Code / Codex / Gemini CLI) owns the actual repo patch in the user's repo cwd.
+- The handoff surface is the §14.3 headless pipeline plus `readable files read` / `readable files watch` for the code agent to consume artifacts inline.
 
 **Native v1 delivery requires:**
 
@@ -1963,10 +1963,10 @@ Until Phases 6, 7, and 8 land, the production-code experience for users follows 
 
 The contract has four locked points:
 
-1. **OD stages the design substrate into a project cwd.** Per §14.3, the daemon writes SKILL.md / DESIGN.md / craft into `.od-skills/` and generated artifacts into the project cwd via `od files`. The cwd is discoverable via `od project info <id> --json | jq -r .cwd`.
+1. **OD stages the design substrate into a project cwd.** Per §14.3, the daemon writes SKILL.md / DESIGN.md / craft into `.od-skills/` and generated artifacts into the project cwd via `readable files`. The cwd is discoverable via `readable project info <id> --json | jq -r .cwd`.
 2. **The user's code agent operates in that cwd or in their own repo cwd.** OD does not run inside the IDE; it runs as a daemon next to the IDE. Cursor / Claude Code / Codex / Gemini CLI are the patch-applying surface.
-3. **Bookkeeping stays in OD.** `ArtifactManifest` (§11.5.1) records `sourcePluginSnapshotId`, `sourceTaskKind: 'tune-collab'` (or `'code-migration'` once Phase 7 lands), and `handoffKind: 'patch'`; `od files` tracks every artifact byte. Even when the code agent does the patch, OD remains the audit log.
-4. **Re-entry into OD is single-step.** The user can reapply any plugin (or a different plugin) on top of the same project at any time via the inline rail (§8) or `od plugin apply ... --project <id>`. `parentArtifactId` chaining (§11.5.1) preserves the lineage across the OD ↔ code-agent boundary.
+3. **Bookkeeping stays in OD.** `ArtifactManifest` (§11.5.1) records `sourcePluginSnapshotId`, `sourceTaskKind: 'tune-collab'` (or `'code-migration'` once Phase 7 lands), and `handoffKind: 'patch'`; `readable files` tracks every artifact byte. Even when the code agent does the patch, OD remains the audit log.
+4. **Re-entry into OD is single-step.** The user can reapply any plugin (or a different plugin) on top of the same project at any time via the inline rail (§8) or `readable plugin apply ... --project <id>`. `parentArtifactId` chaining (§11.5.1) preserves the lineage across the OD ↔ code-agent boundary.
 
 This is the answer to the user-level question "can I use this plugin system to deliver business code in v1?": yes, but the delivery is OD-substrate + external-code-agent-handoff, not OD-native one-click. Phase 8 (§21.4) is the path to native one-click delivery.
 
@@ -1982,7 +1982,7 @@ This section is the **single source of truth for "what is shipped vs. what is re
 
 The distinction this section formalizes:
 
-- **Substrate** = the primitives the v1 spec hands to plugin authors: manifest fields, capability vocabulary, atom catalog, pipeline / devloop / GenUI / MCP / `od files` / `parentArtifactId` / `AppliedPluginSnapshot` (§5–§11.5.1).
+- **Substrate** = the primitives the v1 spec hands to plugin authors: manifest fields, capability vocabulary, atom catalog, pipeline / devloop / GenUI / MCP / `readable files` / `parentArtifactId` / `AppliedPluginSnapshot` (§5–§11.5.1).
 - **Implementation** = which atoms are built into the daemon as one-line `od.pipeline` entries (§10).
 
 A scenario is "v1 native" only when both substrate and implementation are present. A scenario is "v1 community-buildable" when the substrate is present and the implementation gap can be filled by a plugin author using the substrate's escape hatches. Scenarios 1, 2, and 4 are community-buildable today; the implementation gaps live in atom ergonomics, not capability gates.
@@ -1995,14 +1995,14 @@ What plugin authors actually reach for to fill missing first-party behavior:
 | --- | --- | --- |
 | Call a tool OD does not provide (Figma REST, AST parsing, SVG conversion, etc.) | Bundle an MCP server in `od.context.mcp[]` | §5 / §5.3 (`mcp` + `subprocess` + `network`) |
 | Call a third-party API (Slack / Notion / GitHub / Figma / Drive) | Bundle an MCP server in `od.context.mcp[]` | §5 / §5.3 (`mcp` + `subprocess` + `network`) |
-| Operate on the user's real repo | `od project import <path>` brings the repo into OD's project model; `od files` and agent file ops then work in-place | §12 / §11.7 / §14.3 |
+| Operate on the user's real repo | `readable project import <path>` brings the repo into OD's project model; `readable files` and agent file ops then work in-place | §12 / §11.7 / §14.3 |
 | Run arbitrary build / test / lint / scripts | `bash` / `subprocess` capabilities | §5.3 |
 | Drive a third-party OAuth flow | GenUI `oauth-prompt` surface, route `mcp` | §10.3.1 |
 | Custom HITL form / picker / confirmation | GenUI `form` / `choice` / `confirmation` surface declaration | §10.3 |
 | Don't pester the user across conversations / runs | `genui_surfaces` table + `persist: 'project' \| 'conversation' \| 'run'` | §10.3.3 |
 | Multi-stage flow with iterative convergence | `od.pipeline.stages[]` + `repeat: true` + `until` | §10.1 / §10.2 |
 | Carry artifact lineage | `ArtifactManifest.parentArtifactId` + `sourcePluginSnapshotId` | §11.5.1 |
-| Reproducible replay months later | `AppliedPluginSnapshot` immutable + `od plugin replay` | §8.2.1 / §12 |
+| Reproducible replay months later | `AppliedPluginSnapshot` immutable + `readable plugin replay` | §8.2.1 / §12 |
 | Teach the agent a domain workflow | `SKILL.md` body injected into prompt + `od.context.assets[]` reference materials | §11.3 `composeSystemPrompt()` |
 
 Phrased as a rule: **OD-native atom missing → plugin authors compose `MCP server + bash + SKILL.md` to substitute**. The cost is ergonomics (each plugin re-invents its own naming and prompt fragments), not capability.
@@ -2052,7 +2052,7 @@ The accompanying `SKILL.md` teaches the agent the procedure: "Figma URL in → c
 
 #### 22.3.2 Existing-codebase refresh without first-party `code-import` / `rewrite-plan` / `build-test`
 
-Pre-step the user runs: `od project import /path/to/old-repo`. Project cwd is now the real repo.
+Pre-step the user runs: `readable project import /path/to/old-repo`. Project cwd is now the real repo.
 
 Manifest declares `bash` + `subprocess` + `fs:write`; SKILL.md guides the agent through:
 
@@ -2075,7 +2075,7 @@ Plugin authors should not try to do the full handoff in v1. The right shape is:
 
 - Plugin produces `artifactKind: 'code-diff'` plus `handoffKind: 'patch'` artifacts in the project cwd.
 - Last stage emits a `confirmation` GenUI surface: "ready to apply? Open the project cwd in Cursor / Claude Code / Codex and run the included instructions."
-- `od files` retains audit; `parentArtifactId` chains the patch artifact to the design artifact.
+- `readable files` retains audit; `parentArtifactId` chains the patch artifact to the design artifact.
 
 This is exactly the §21.5 contract; the plugin author writes the SKILL.md that drives the agent toward producing handoff-shaped artifacts and stops short of running the patch inside OD.
 
@@ -2129,7 +2129,7 @@ Category C is the half v1 has shipped, and the first pieces of category A have a
 - The active design system + craft injection that drives "consistency" in §1's product brief is already a plugin-substrate read: there is no privileged path for first-party DESIGN.md vs. third-party DESIGN.md.
 - First-party atom plugins under `plugins/_official/atoms/**` carry atom SKILL.md bodies and manifest metadata; `packages/contracts/src/prompts/atom-block.ts` renders active stage blocks from those bodies.
 - Bundled scenario plugins under `plugins/_official/scenarios/**` carry default pipeline shapes, including `od-default` for Home free-form routing and task shaping. `packages/plugin-runtime/src/pipeline-fallback.ts` resolves an applied pipeline through these bundled scenarios when a plugin omits `od.pipeline`.
-- `@open-design/agui-adapter` and `/api/runs/:runId/agui` provide external AG-UI event projection without changing OD's internal GenUI renderer.
+- `@readable-studio/agui-adapter` and `/api/runs/:runId/agui` provide external AG-UI event projection without changing OD's internal GenUI renderer.
 
 This is why §22 holds: the substrate is already self-hosting for plugin artifacts, snapshots, GenUI declarations, pipeline declarations, bundled scenarios, and the first atom-body injection path. The remaining hard-coded parts are narrower and more product-shaped: the base OD designer/discovery prompt, some stage-entry selection logic, Home's curated scenario rail, and the closed signal / surface vocabularies listed in §22.4.
 
@@ -2173,7 +2173,7 @@ Today §9 conflates "bundled with the daemon" and "from the official marketplace
 | Trust tier | Source | Capability prompt at install? | Replaceable by marketplace upgrade? | SQLite `source_kind` |
 | --- | --- | --- | --- | --- |
 | `bundled` | `<repo-root>/plugins/_official/**` | No — capabilities granted by daemon-internal allowlist | No — replaced only on daemon upgrade | `bundled` |
-| `trusted` | First-party / explicitly-trusted marketplace | No — auto-granted on install | Yes — `od plugin update` may pull a newer version | `marketplace` |
+| `trusted` | First-party / explicitly-trusted marketplace | No — auto-granted on install | Yes — `readable plugin update` may pull a newer version | `marketplace` |
 | `restricted` | Anything else (GitHub URL, arbitrary marketplace, local folder) | Yes — capability checklist required | Yes | `github` / `url` / `local` / `marketplace` |
 
 The `bundled` tier is what makes patches 2 and 3 safe: the daemon does not capability-prompt itself for capabilities it has always had, and a malicious marketplace plugin cannot impersonate a bundled atom by reusing its id.
@@ -2184,7 +2184,7 @@ Daemon startup adds a step:
 
 1. Walk `<repo-root>/plugins/_official/**` and register every plugin under `installed_plugins.source_kind='bundled'`, `trust='bundled'`, capabilities = the plugin's declared `od.capabilities`.
 2. Bundled plugins are not copied into `<daemonDataDir>/plugins/`; they live and reload from the repo path so daemon upgrades replace them in lockstep with daemon code.
-3. `od plugin uninstall` refuses to uninstall a `bundled` plugin (would break the daemon); `od plugin update` is a no-op for bundled.
+3. `readable plugin uninstall` refuses to uninstall a `bundled` plugin (would break the daemon); `readable plugin update` is a no-op for bundled.
 4. A user may install a `trusted` or `restricted` plugin with the same id as a bundled one; the user-installed copy wins for normal apply, but the daemon retains the bundled copy as a fallback for replays of older `AppliedPluginSnapshot` rows that pinned the bundled version.
 
 ### 23.4 The kernel after self-hosting: a pure assembler

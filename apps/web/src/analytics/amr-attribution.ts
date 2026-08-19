@@ -2,7 +2,7 @@ import type {
   AmrEntryAttribution,
   TrackingAmrEntrySource,
   TrackingPageName,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { trackAmrEntryClick } from './events';
 
 type Track = (

@@ -16,7 +16,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - Workspace packages come from `pnpm-workspace.yaml`: `apps/*`, `packages/*`, `tools/*`, and `e2e`.
 - Top-level content directories: `skills/` (functional skills the agent invokes mid-task — utilities, briefs, packagers; see `skills/AGENTS.md`), `design-templates/` (rendering catalogue: decks, prototypes, image/video/audio templates; see `design-templates/AGENTS.md` and `specs/current/skills-and-design-templates.md`), `design-systems/` (brand `DESIGN.md` files), `craft/` (universal brand-agnostic craft rules a skill can opt into via `od.craft.requires`), `mocks/` (replay-based mock CLIs for `opencode`/`claude`/`codex`/`gemini`/`cursor-agent`/`deepseek`/`qwen`/`grok`, the ACP family `devin`/`hermes`/`kilo`/`kimi`/`kiro`/`vibe`, and the AMR `vela` CLI (login + models + ACP), built from anonymized Langfuse traces — PATH-overlay drop-in for tests and self-validation; see `mocks/README.md`).
 - `apps/web` is the Next.js 16 App Router + React 18 web runtime; do not restore `apps/nextjs`.
-- `apps/daemon` is the local privileged daemon and `od` bin. It owns `/api/*`, agent spawning, skills, design systems, artifacts, and static serving.
+- `apps/daemon` is the local privileged daemon and `readable` bin. It owns `/api/*`, agent spawning, skills, design systems, artifacts, and static serving.
 - `apps/desktop` is the Electron shell; it discovers the web URL through sidecar IPC.
 - `apps/packaged` is the thin packaged Electron runtime entry; it starts packaged sidecars and owns the `od://` entry glue only.
 - `packages/contracts` is the pure TypeScript web/daemon app contract layer.
@@ -89,14 +89,14 @@ This file is the single source of truth for agents entering this repository. Rea
 
 ## Capability exposure (UI/CLI dual-track)
 
-Every user-facing capability must be reachable through both the web UI **and** the `od` CLI (`apps/daemon/src/cli.ts`). Shipping a feature with only one of the two surfaces is a regression.
+Every user-facing capability must be reachable through both the web UI **and** the `readable` CLI (`apps/daemon/src/cli.ts`). Shipping a feature with only one of the two surfaces is a regression.
 
-- The CLI is the embeddability contract. External agents (hermes-agent, openclaw, custom Slack/Discord bots, packaged runtimes invoked from another shell) drive Open Design through `od` subcommands — they do not render the web UI. If a capability is UI-only, it cannot be composed into those external agents.
+- The CLI is the embeddability contract. External agents (hermes-agent, openclaw, custom Slack/Discord bots, packaged runtimes invoked from another shell) drive Open Design through `readable` subcommands — they do not render the web UI. If a capability is UI-only, it cannot be composed into those external agents.
 - Both surfaces must call the same `/api/*` endpoints; do not let the CLI talk to one shape and the UI to another. The daemon HTTP layer is the single source of truth, with `packages/contracts` carrying the shared DTOs.
 - The CLI form must support `--json` for machine-readable output and accept long-form prompts via `--prompt-file <path|->`, so jobs that pipe through `xargs`, `jq`, and `<heredoc` stay clean.
-- Adding a new capability is a three-step closure: HTTP endpoint in `apps/daemon/src/*-routes.ts` (with a contract type in `packages/contracts/src/api/`), UI surface in `apps/web/src/`, and `od <capability>` subcommand in `apps/daemon/src/cli.ts` registered through `SUBCOMMAND_MAP`. Land all three in the same PR; do not stage them across PRs.
+- Adding a new capability is a three-step closure: HTTP endpoint in `apps/daemon/src/*-routes.ts` (with a contract type in `packages/contracts/src/api/`), UI surface in `apps/web/src/`, and `readable <capability>` subcommand in `apps/daemon/src/cli.ts` registered through `SUBCOMMAND_MAP`. Land all three in the same PR; do not stage them across PRs.
 - The PR template's Surface area checklist must reflect *both* surfaces. If you ticked UI, tick CLI too — and vice-versa — or explain in the PR body why the missing surface is genuinely not applicable (e.g. an internal-only daemon health probe). "I'll do the CLI later" is not a valid reason.
-- Existing reference points: `od automation …` mirrors the Automations tab against `/api/routines`; `od plugin …`, `od ui …`, `od project …`, `od media …`, `od mcp …`, `od research …` follow the same shape. Copy that pattern for new capabilities.
+- Existing reference points: `readable automation …` mirrors the Automations tab against `/api/routines`; `readable plugin …`, `readable ui …`, `readable project …`, `readable media …`, `readable mcp …`, `readable research …` follow the same shape. Copy that pattern for new capabilities.
 
 ## Git commit policy
 
@@ -126,7 +126,7 @@ Every user-facing capability must be reachable through both the web UI **and** t
 This repository no longer ships a maintainer PR-duty control plane. The former
 `pnpm tools-pr` workflow has moved to the standalone `PerishCode/duty` project
 so personal review-lane automation does not become product workspace
-maintenance surface. Do not recreate `tools/pr`, `@open-design/tools-pr`, or a
+maintenance surface. Do not recreate `tools/pr`, `@readable-studio/tools-pr`, or a
 root `pnpm tools-pr` script without a new explicit maintainer decision.
 
 ## Agent runtime conventions
@@ -156,15 +156,15 @@ root `pnpm tools-pr` script without a new explicit maintainer decision.
 - New component-owned UI styles should default to CSS Modules next to the component (`Component.module.css`) instead of expanding global stylesheets. This is preferred for isolated components, panels, menus, drawers, toolbars, cards, and form sections.
 - When touching an existing component with nearby global styles, prefer migrating that component's local selectors to a CSS Module as part of the change if it is small and testable. Do not mix a large mechanical move with behavior/styling changes in the same patch.
 - Keep global class names only for deliberate shared contracts: reusable primitives, theme hooks, third-party/content styling, cross-component layout, or selectors that rely on global cascade/specificity. Document any new global selector group with its owning feature.
-- CSS refactors must preserve cascade semantics. For mechanical splits, verify expanded import content/order matches the previous stylesheet; for CSS Module migrations, validate the affected UI path with `pnpm --filter @open-design/web typecheck` and a focused build/test or visual check when practical.
+- CSS refactors must preserve cascade semantics. For mechanical splits, verify expanded import content/order matches the previous stylesheet; for CSS Module migrations, validate the affected UI path with `pnpm --filter @readable-studio/web typecheck` and a focused build/test or visual check when practical.
 
 ## Web component reuse
 
-- New `apps/web` UI should reuse shared primitives from `@open-design/components` when one exists instead of styling plain HTML elements directly. For example, use `Button` for app buttons and `VisuallyHidden` for screen-reader-only text/status content.
+- New `apps/web` UI should reuse shared primitives from `@readable-studio/components` when one exists instead of styling plain HTML elements directly. For example, use `Button` for app buttons and `VisuallyHidden` for screen-reader-only text/status content.
 - Do not add new raw primitive classes such as `primary`, `primary-ghost`, `ghost`, `subtle`, `icon-btn`, or `sr-only` for new UI. Those classes are legacy compatibility surface for existing markup until it is migrated.
 - If a needed primitive is missing, prefer adding a small focused primitive to `packages/components` with colocated CSS Modules, then consume it from the app. Keep product-specific layout and workflow styling in the app, not in `packages/components`.
 - Keep semantic plain HTML when it is content markup or a specialized control that the shared package does not model yet; do not force a migration that would hide native behavior or make a custom widget harder to reason about.
-- `apps/web` transpiles `@open-design/components` from source during dev, so component and CSS Module edits should work through the normal web dev loop without rebuilding the package.
+- `apps/web` transpiles `@readable-studio/components` from source during dev, so component and CSS Module edits should work through the normal web dev loop without rebuilding the package.
 
 ## i18n keys
 
@@ -226,9 +226,9 @@ pnpm typecheck
 ```
 
 ```bash
-pnpm --filter @open-design/web typecheck
-pnpm --filter @open-design/web test
-pnpm --filter @open-design/daemon test
+pnpm --filter @readable-studio/web typecheck
+pnpm --filter @readable-studio/web test
+pnpm --filter @readable-studio/daemon test
 ```
 
 ```bash
@@ -256,7 +256,7 @@ Desktop queries runtime status through sidecar IPC. The web URL comes from `tool
 
 ## How are sidecar-proto, sidecar, and platform split?
 
-`@open-design/sidecar-proto` owns Open Design app/mode/source constants, namespace validation, stamp fields/flags, IPC message schema, status shapes, and error semantics. `@open-design/sidecar` provides only generic bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime files. `@open-design/platform` provides only generic OS process stamp serialization, command parsing, and process matching/search primitives, consuming the proto descriptor.
+`@readable-studio/sidecar-proto` owns Open Design app/mode/source constants, namespace validation, stamp fields/flags, IPC message schema, status shapes, and error semantics. `@readable-studio/sidecar` provides only generic bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime files. `@readable-studio/platform` provides only generic OS process stamp serialization, command parsing, and process matching/search primitives, consuming the proto descriptor.
 
 ## Where is data written?
 

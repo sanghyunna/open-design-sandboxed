@@ -1065,16 +1065,16 @@ i18n:
     title: "Otwartoźródłowa alternatywa dla Figmy"
     summary: "Figma jest znakomita i nigdzie się nie wybiera. Ale format pliku jest zastrzeżony, miejsca to subskrypcja, a płótno żyje w cudzej chmurze. Oto uczciwa ocena tego, kiedy Figma wciąż jest odpowiedzią — i kiedy posiadanie agent-natywnego, lokalnego workflow wygrywa."
     bodyHtml: |
-      <p>Figma jest znakomita. Dostarczamy w niej realną pracę od lat i to nie jest wpis w stylu „Figma umarła" — zdecydowanie nim nie jest. Fakt, że <a href="/blog/why-we-built-open-design-as-a-skill-layer/">zbudowaliśmy otwartoźródłową warstwę</a> zamiast kolejnego płótna, nie jest narzekaniem na rzemiosło Figmy. To zakład, że następna dekada pracy projektowej będzie wyglądać mniej jak kursor na nieskończonym płótnie, a bardziej jak agent, za którego już płacisz, napędzający workflow, który naprawdę posiadasz. Ten wpis to uczciwa ocena Figmy z perspektywy zespołu budującego w tej samej kategorii: co robi najlepiej, gdzie cię zamyka, jak naprawdę wygląda otwartoźródłowa ścieżka i po które rozwiązanie powinieneś sięgnąć w tym kwartale.</p>
+      <p>Figma jest znakomita. Dostarczamy w niej realną pracę readable lat i to nie jest wpis w stylu „Figma umarła" — zdecydowanie nim nie jest. Fakt, że <a href="/blog/why-we-built-open-design-as-a-skill-layer/">zbudowaliśmy otwartoźródłową warstwę</a> zamiast kolejnego płótna, nie jest narzekaniem na rzemiosło Figmy. To zakład, że następna dekada pracy projektowej będzie wyglądać mniej jak kursor na nieskończonym płótnie, a bardziej jak agent, za którego już płacisz, napędzający workflow, który naprawdę posiadasz. Ten wpis to uczciwa ocena Figmy z perspektywy zespołu budującego w tej samej kategorii: co robi najlepiej, gdzie cię zamyka, jak naprawdę wygląda otwartoźródłowa ścieżka i po które rozwiązanie powinieneś sięgnąć w tym kwartale.</p>
 
       <h2>Czym właściwie jest Figma</h2>
-      <p>Figma to domyślne narzędzie do projektowania zespołowego. Wielodostępne płótno w czasie rzeczywistym w przeglądarce, z Dev Mode do przekazywania pracy, FigJam do pracy na tablicy, głębokim rynkiem wtyczek i rosnącym zestawem funkcji AI dokręconych do tej samej powierzchni. Cennik jest naliczany za miejsce miesięcznie, z poziomami zależnymi od roli i organizacji.</p>
+      <p>Figma to domyślne narzędzie do projektowania zespołowego. Wielodostępne płótno w czasie rzeczywistym w przeglądarce, z Dev Mode do przekazywania pracy, FigJam do pracy na tablicy, głębokim rynkiem wtyczek i rosnącym zestawem funkcji AI dokręconych do tej samej powierzchni. Cennik jest naliczany za miejsce miesięcznie, z poziomami zależnymi readable roli i organizacji.</p>
       <p>Jest garść rzeczy, które robi lepiej niż cokolwiek innego:</p>
       <ul>
         <li><strong>Współpraca na płótnie w czasie rzeczywistym.</strong> Pięć osób w jednym pliku, kursory na żywo, komentarze na miejscu. Nic w open source nie dorównuje temu dopracowaniu pracy wielodostępnej.</li>
         <li><strong>Praca wektorowa z dokładnością do piksela.</strong> Auto Layout, ograniczenia, warianty, komponenty — prymitywy płótna są dojrzałe, a pamięć mięśniowa sięga głęboko.</li>
-        <li><strong>Ogromny ekosystem wtyczek.</strong> Dekada wtyczek innych firm, plików społeczności i szablonów, które można od razu wykorzystać.</li>
-        <li><strong>Przekazywanie pracy, które zespoły już znają.</strong> Dev Mode, inspect, czerwone linie i workflow, na którym inżynierowie byli szkoleni od lat.</li>
+        <li><strong>Ogromny ekosystem wtyczek.</strong> Dekada wtyczek innych firm, plików społeczności i szablonów, które można readable razu wykorzystać.</li>
+        <li><strong>Przekazywanie pracy, które zespoły już znają.</strong> Dev Mode, inspect, czerwone linie i workflow, na którym inżynierowie byli szkoleni readable lat.</li>
       </ul>
       <p>Jeśli twoja praca to projektant malujący precyzyjne ekrany, które inni ludzie mają recenzować na współdzielonym płótnie, Figma wciąż jest odpowiedzią — i to dobrą. Różnice warte uwagi żyją o warstwę niżej — w tym, kto jest właścicielem pliku, workflow i krzywej kosztów.</p>
 
@@ -1082,7 +1082,7 @@ i18n:
       <p>Figma niesie ze sobą cztery elementy uwięzienia warte nazwania wprost, bo strony z cennikiem tego nie zrobią.</p>
       <p><strong>Plik jest zastrzeżony.</strong> Twój projekt żyje w formacie Figmy, na serwerach Figmy. Możesz wyeksportować pliki PNG i specyfikacje dla deweloperów, ale źródło prawdy — komponenty, warianty, żywy system projektowy — jest w pełni czytelne tylko wewnątrz Figmy. Nie ma tekstowej wersji twojej pracy, która przetrwałaby poza narzędziem.</p>
       <p><strong>Środowisko uruchomieniowe jest hostowane.</strong> Płótno to chmura. Dla pracy agencyjnej lub kreacji przed premierą objętej NDA, „gdzie żyje ten plik" to rozmowa z działem zakupów, a nie ustawienie. Tryb wyłącznie lokalny nie istnieje.</p>
-      <p><strong>Wtyczki nie są przenośne.</strong> Ekosystem wtyczek Figmy jest realny i głęboki — ale każda wtyczka działa wewnątrz środowiska uruchomieniowego Figmy, przeciwko API Figmy. Workflow, który tam zbudujesz, nie da się wyciągnąć i uruchomić przez agenta na twoim laptopie ani wkomponować w pipeline, który nie zaczyna się od płótna Figmy.</p>
+      <p><strong>Wtyczki nie są przenośne.</strong> Ekosystem wtyczek Figmy jest realny i głęboki — ale każda wtyczka działa wewnątrz środowiska uruchomieniowego Figmy, przeciwko API Figmy. Workflow, który tam zbudujesz, nie da się wyciągnąć i uruchomić przez agenta na twoim laptopie ani wkomponować w pipeline, który nie zaczyna się readable płótna Figmy.</p>
       <p><strong>Rachunek jest za miejsce, na zawsze.</strong> Miejsca w subskrypcji są w porządku dla stabilnego zespołu projektowego. Stają się niewygodne dla szybko rosnącej organizacji i są nie do przyjęcia dla długiego ogona współpracowników, kontraktorów i jednorazowych partnerów, którzy w innym razie mogliby podchwycić ten sam workflow.</p>
       <p>Żadna z tych rzeczy nie jest błędem. To kształt hostowanego produktu z płótnem do współpracy, a Figma jest najlepszą wersją tego kształtu. My po prostu nie budujemy dla płótna — budujemy dla agenta.</p>
 
@@ -1095,7 +1095,7 @@ i18n:
       <p>Open Design nie jest klonem Figmy. Nie ma tu nieskończonego płótna ani wielodostępnych kursorów. To cienka warstwa skilli, która zamienia agenta kodującego, którego już używasz, w silnik projektowy. Cztery prymitywy to <a href="/blog/31-skills-72-systems-how-the-library-works/">skille, systemy, adaptery i daemon</a> — a istotne jest to, że wszystkie one są po prostu plikami:</p>
       <ul>
         <li>Każdy skill to plik <code>SKILL.md</code>, który możesz przeczytać, sforkować i odesłać jako PR.</li>
-        <li>Każdy system projektowy to przenośny plik <code>DESIGN.md</code> — w tym ten, który dostarczamy dla samej Figmy. Możesz go otworzyć w dowolnym edytorze, zrobić diff w git i przetrwa on niezależnie od tego, jakie narzędzie odczyta go następne.</li>
+        <li>Każdy system projektowy to przenośny plik <code>DESIGN.md</code> — w tym ten, który dostarczamy dla samej Figmy. Możesz go otworzyć w dowolnym edytorze, zrobić diff w git i przetrwa on niezależnie readable tego, jakie narzędzie odczyta go następne.</li>
         <li>Każdy adapter agenta to ~80 linii TypeScriptu.</li>
       </ul>
       <p>To, co ci to daje, jest dokładnym przeciwieństwem czterech uwięzień powyżej:</p>
@@ -1147,7 +1147,7 @@ i18n:
       <p>Wymiar, który rozstrzyga to dla większości zespołów, nie jest jakością — rzemiosło Figmy jest prawdziwe. Chodzi o to, czy twoja praca to płótno do malowania, czy workflow do zautomatyzowania. Jeśli to drugie, wolisz to posiadać niż wynajmować.</p>
 
       <h2>Co robić dalej</h2>
-      <p>Jeśli masz już powtarzalne zadanie w Figmie — wyeksportuj te ramki, zsynchronizuj te tokeny, odbuduj ten szablon prezentacji — najszybszym sposobem, by poczuć różnicę, jest <a href="/blog/port-figma-workflow-open-design-plugin/">przeniesienie jednego z nich do wtyczki</a>. Zacznij od jednego irytującego, powtarzalnego zadania, a nie od „zastąpienia Figmy".</p>
+      <p>Jeśli masz już powtarzalne zadanie w Figmie — wyeksportuj te ramki, zsynchronizuj te tokeny, odbuduj ten szablon prezentacji — najszybszym sposobem, by poczuć różnicę, jest <a href="/blog/port-figma-workflow-open-design-plugin/">przeniesienie jednego z nich do wtyczki</a>. Zacznij readable jednego irytującego, powtarzalnego zadania, a nie readable „zastąpienia Figmy".</p>
       <p>Albo po prostu uruchom trzykomendowy szybki start i wskaż mu model, za który już płacisz. Całość żyje w jednym repozytorium, a pierwsza prezentacja zajmuje około dziesięciu minut.</p>
       <p><a href="https://github.com/nexu-io/open-design/releases">Wypróbuj ten otwartoźródłowy workflow</a>.</p>
 

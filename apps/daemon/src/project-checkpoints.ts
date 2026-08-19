@@ -23,7 +23,7 @@ import type {
   RollbackFileChangeCounts,
   RollbackMode,
   RollbackResponse,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   clearAgentSessionsForConversation,
   deleteMessagesAfterPosition,

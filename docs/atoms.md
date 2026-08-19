@@ -44,7 +44,7 @@ never own the atom implementations; they only reference them by id.
 ## Planned atoms
 
 There are no reserved planned atoms in the v1 catalog. Unknown atom ids are
-reported by `od plugin doctor` as errors.
+reported by `readable plugin doctor` as errors.
 
 ## How the daemon resolves an atom
 
@@ -78,4 +78,4 @@ The closed v1 `until` vocabulary is:
 5. The atom is now reachable via:
    - `od.pipeline.stages[*].atoms[]` references in any plugin,
    - `GET /api/atoms` discovery,
-   - `od plugin doctor` validation.
+   - `readable plugin doctor` validation.

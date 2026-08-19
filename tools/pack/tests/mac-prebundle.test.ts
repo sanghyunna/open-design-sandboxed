@@ -28,13 +28,13 @@ describe("mac standalone prebundle policy", () => {
   it("keeps server-mode package topology unchanged", () => {
     expect(
       shouldInstallInternalPackageForMacPrebundle({
-        packageName: "@open-design/web",
+        packageName: "@readable-studio/web",
         webOutputMode: "server",
       }),
     ).toBe(true);
     expect(
       shouldInstallInternalPackageForMacPrebundle({
-        packageName: "@open-design/packaged",
+        packageName: "@readable-studio/packaged",
         webOutputMode: "server",
       }),
     ).toBe(true);
@@ -42,12 +42,12 @@ describe("mac standalone prebundle policy", () => {
 
   it("excludes internal packages replaced by mac standalone prebundles", () => {
     for (const packageName of [
-      "@open-design/daemon",
-      "@open-design/desktop",
-      "@open-design/packaged",
-      "@open-design/sidecar",
-      "@open-design/sidecar-proto",
-      "@open-design/web",
+      "@readable-studio/daemon",
+      "@readable-studio/desktop",
+      "@readable-studio/packaged",
+      "@readable-studio/sidecar",
+      "@readable-studio/sidecar-proto",
+      "@readable-studio/web",
     ]) {
       expect(
         shouldInstallInternalPackageForMacPrebundle({
@@ -58,13 +58,13 @@ describe("mac standalone prebundle policy", () => {
     }
     expect(
       shouldInstallInternalPackageForMacPrebundle({
-      packageName: "@open-design/contracts",
+      packageName: "@readable-studio/contracts",
       webOutputMode: "standalone",
     }),
   ).toBe(true);
   expect(
     shouldInstallInternalPackageForMacPrebundle({
-      packageName: "@open-design/platform",
+      packageName: "@readable-studio/platform",
       webOutputMode: "standalone",
     }),
   ).toBe(true);
@@ -132,7 +132,7 @@ describe("assertMacPrebundleMetafile", () => {
     try {
       await writeFile(
         metafilePath,
-        JSON.stringify({ inputs: { "/repo/node_modules/@open-design/web/dist/sidecar/index.js": {} } }),
+        JSON.stringify({ inputs: { "/repo/node_modules/@readable-studio/web/dist/sidecar/index.js": {} } }),
         "utf8",
       );
 
@@ -167,11 +167,11 @@ describe("assertMacPrebundleMetafile", () => {
 describe("renderMacPackagedMainEntry", () => {
   it("renders the prebundled runtime entry shim", () => {
     expect(renderMacPackagedMainEntry(true)).toContain("./prebundled/packaged-main.mjs");
-    expect(renderMacPackagedMainEntry(true)).not.toContain("@open-design/packaged");
+    expect(renderMacPackagedMainEntry(true)).not.toContain("@readable-studio/packaged");
   });
 
   it("renders the package entry shim for non-prebundled mode", () => {
-    expect(renderMacPackagedMainEntry(false)).toContain("@open-design/packaged");
+    expect(renderMacPackagedMainEntry(false)).toContain("@readable-studio/packaged");
     expect(renderMacPackagedMainEntry(false)).not.toContain("./prebundled/packaged-main.mjs");
   });
 });

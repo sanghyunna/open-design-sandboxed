@@ -25,11 +25,11 @@ For plugin content changes, run:
 
 ```bash
 pnpm guard
-pnpm --filter @open-design/plugin-runtime typecheck
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 When the daemon CLI is built and available, also validate runnable plugin folders with:
 
 ```bash
-od plugin validate ./plugins/spec/examples/<plugin-id>
+readable plugin validate ./plugins/spec/examples/<plugin-id>
 ```

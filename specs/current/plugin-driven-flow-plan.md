@@ -153,6 +153,6 @@ Deferred to a follow-up:
 ```bash
 pnpm guard
 pnpm typecheck
-pnpm --filter @open-design/daemon test
-pnpm --filter @open-design/web test
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/web test
 ```

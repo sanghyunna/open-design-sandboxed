@@ -18,7 +18,7 @@ import {
   resolveAppliedPipeline,
   resolveContext,
   type RegistryView,
-} from '@open-design/plugin-runtime';
+} from '@readable-studio/plugin-runtime';
 import {
   renderPluginBlock,
   resolveLocalizedText,
@@ -30,7 +30,7 @@ import {
   type PluginManifest,
   type PluginProjectMetadataPatch,
   type TrustTier,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { resolveCapabilitiesGranted, requiredCapabilities } from './trust.js';
 import { deriveAutoAtomSurfaces } from './atoms/auto-surfaces.js';
 import { getManifestContextCraft } from './context-craft.js';

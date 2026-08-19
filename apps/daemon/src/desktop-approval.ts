@@ -8,8 +8,8 @@ import type {
   RollbackConflictPolicy,
   RollbackMode,
   RollbackResponse,
-} from '@open-design/contracts';
-import { SIDECAR_ENV } from '@open-design/sidecar-proto';
+} from '@readable-studio/contracts';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 import {
   findProjectCheckpointForMessage,
   getConversation,

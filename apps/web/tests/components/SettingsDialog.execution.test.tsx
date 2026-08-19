@@ -2212,7 +2212,7 @@ describe('SettingsDialog MCP server interactions', () => {
   const installInfo = {
     command: '/Applications/Open Design.app/Contents/Resources/open-design/bin/node',
     args: [
-      '/Applications/Open Design.app/Contents/Resources/app/node_modules/@open-design/daemon/dist/cli.js',
+      '/Applications/Open Design.app/Contents/Resources/app/node_modules/@readable-studio/daemon/dist/cli.js',
       'mcp',
       '--daemon-url',
       'http://127.0.0.1:51706',

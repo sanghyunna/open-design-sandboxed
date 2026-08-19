@@ -5,7 +5,7 @@ import {
   type ApplyResult,
   type InstalledPluginRecord,
   type PluginSourceKind,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackPageView,

@@ -46,15 +46,15 @@ Open Design 插件遵循和 Agent Skills 兼容的可移植形态：一个包含
 
 ```bash
 pnpm guard
-pnpm --filter @open-design/plugin-runtime typecheck
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
 如果 daemon CLI 已构建：
 
 ```bash
-od plugin validate ./path/to/plugin
-od plugin install ./path/to/plugin
-od plugin apply <plugin-id> --input key=value
+readable plugin validate ./path/to/plugin
+readable plugin install ./path/to/plugin
+readable plugin apply <plugin-id> --input key=value
 ```
 
 ## 兼容性承诺

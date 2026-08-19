@@ -25,7 +25,7 @@ import type {
   AppliedPluginSnapshot,
   ApplyResult,
   InstalledPluginRecord,
-} from '@open-design/contracts';
+} from '@readable-studio/contracts';
 import {
   applyPlugin,
   MissingInputError,
@@ -42,7 +42,7 @@ import {
   linkSnapshotToRun,
 } from './snapshots.js';
 import { getManifestContextCraft } from './context-craft.js';
-import type { RegistryView } from '@open-design/plugin-runtime';
+import type { RegistryView } from '@readable-studio/plugin-runtime';
 
 type SqliteDb = Database.Database;
 

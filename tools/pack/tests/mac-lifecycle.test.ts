@@ -20,13 +20,13 @@ const spawnLoggedProcess = vi.fn(async ({ env }: { env: NodeJS.ProcessEnv }) => 
   }) as unknown as ChildProcess & { env: NodeJS.ProcessEnv };
 });
 
-vi.mock("@open-design/sidecar", () => ({
+vi.mock("@readable-studio/sidecar", () => ({
   createSidecarLaunchEnv,
   requestJsonIpc,
   resolveAppIpcPath,
 }));
 
-vi.mock("@open-design/platform", () => ({
+vi.mock("@readable-studio/platform", () => ({
   collectProcessTreePids: vi.fn(),
   createProcessStampArgs: vi.fn(() => []),
   isProcessAlive: vi.fn(() => true),

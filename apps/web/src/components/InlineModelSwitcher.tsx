@@ -22,7 +22,7 @@ import {
   agentIdToTracking,
   byokProtocolToTracking,
   modelIdForTracking,
-} from '@open-design/contracts/analytics';
+} from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
 import { recordAmrEntry, type AmrEntryAttribution } from '../analytics/amr-attribution';
 import { trackExecutionSettingsPopoverClick } from '../analytics/events';

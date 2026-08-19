@@ -6,7 +6,7 @@
 // tests without a real Windows font registry. Real callers wire it to
 // `system-fonts.ts` + `fs`.
 
-import type { SystemFontFace, SystemFontFamily, SystemFontFormat } from '@open-design/contracts';
+import type { SystemFontFace, SystemFontFamily, SystemFontFormat } from '@readable-studio/contracts';
 
 export const MAX_SYSTEM_FONT_FACE_BYTES = 5 * 1024 * 1024;
 export const MAX_SYSTEM_FONT_TOTAL_BYTES = 50 * 1024 * 1024;

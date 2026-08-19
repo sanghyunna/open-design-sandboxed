@@ -28,8 +28,8 @@ import type {
   InputFieldSpec,
   InstalledPluginRecord,
   McpServerConfig,
-} from '@open-design/contracts';
-import { Button } from '@open-design/components';
+} from '@readable-studio/contracts';
+import { Button } from '@readable-studio/components';
 import { DesignSystemPicker } from './DesignSystemPicker';
 import type { SkillSummary } from '../types';
 import { Icon, type IconName } from './Icon';
@@ -38,7 +38,7 @@ import {
   trackComposerSessionModeClick,
   trackHomeChatComposerClick,
 } from '../analytics/events';
-import { sessionModeToTracking } from '@open-design/contracts/analytics';
+import { sessionModeToTracking } from '@readable-studio/contracts/analytics';
 import {
   chipsForGroup,
   type ChipGroup,

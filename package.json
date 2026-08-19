@@ -1,5 +1,5 @@
 {
-  "name": "open-design",
+  "name": "readable-studio",
   "version": "0.2.2",
   "private": true,
   "packageManager": "pnpm@10.33.2",
@@ -7,7 +7,7 @@
   "description": "Local-first design product: detects your installed code-agent CLI, runs design skills + design systems, streams artifacts into a sandboxed preview.",
   "license": "Apache-2.0",
   "bin": {
-    "od": "./apps/daemon/bin/od.mjs"
+    "readable": "./apps/daemon/bin/readable.mjs"
   },
   "scripts": {
     "postinstall": "node ./scripts/postinstall.mjs",
@@ -26,11 +26,11 @@
     "typecheck": "pnpm -r --workspace-concurrency=4 --if-present run typecheck && tsc -p scripts/tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@open-design/components": "workspace:*",
-    "@open-design/daemon": "workspace:*",
-    "@open-design/tools-dev": "workspace:*",
-    "@open-design/tools-pack": "workspace:*",
-    "@open-design/tools-serve": "workspace:*",
+    "@readable-studio/components": "workspace:*",
+    "@readable-studio/daemon": "workspace:*",
+    "@readable-studio/tools-dev": "workspace:*",
+    "@readable-studio/tools-pack": "workspace:*",
+    "@readable-studio/tools-serve": "workspace:*",
     "@types/node": "20.19.39",
     "tsx": "4.22.3",
     "typescript": "5.9.3"

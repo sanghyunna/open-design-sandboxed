@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 
-import { SIDECAR_CONTRACT } from '@open-design/sidecar-proto';
+import { SIDECAR_CONTRACT } from '@readable-studio/sidecar-proto';
 import { describe, test, vi } from 'vitest';
 
 const brokerCall = vi.hoisted<{ socketBase: string | null }>(() => ({ socketBase: null }));

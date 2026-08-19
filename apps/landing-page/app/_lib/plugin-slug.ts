@@ -1,6 +1,6 @@
 // Local slug/path helpers for the static plugin pages.
 //
-// The marketing site must NOT import `@open-design/contracts` (see
+// The marketing site must NOT import `@readable-studio/contracts` (see
 // `apps/landing-page/AGENTS.md` boundary — contracts is the web/daemon
 // product-runtime contract layer, and the static site stays build-only and
 // isolated from it). The web client's Share links derive the SAME scheme from

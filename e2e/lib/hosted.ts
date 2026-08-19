@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   HostedRuntimeCapacitySnapshot,
   HostedRuntimeMeasurement,
-} from '@open-design/daemon/hosted-server';
+} from '@readable-studio/daemon/hosted-server';
 
 import type { SmokeSuite } from './smoke-suite.ts';
 import {

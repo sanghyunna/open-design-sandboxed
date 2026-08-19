@@ -26,7 +26,7 @@ export async function ensureWindowsNativeIsolator(options: {
   if (outputStat != null && outputStat.mtimeMs >= newestInput) return false;
 
   await options.log(
-    `[tools-dev] building @open-design/platform native isolator because ${
+    `[tools-dev] building @readable-studio/platform native isolator because ${
       outputStat == null ? "the helper is missing" : "native source is newer"
     }\n`,
   );

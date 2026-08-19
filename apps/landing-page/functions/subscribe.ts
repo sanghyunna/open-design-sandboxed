@@ -51,8 +51,8 @@ const MAX_EMAIL_LENGTH = 254;
 const ALLOWED_SOURCES = new Set(["landing", "client"]);
 const RESEND_CONTACTS_URL = "https://api.resend.com/contacts";
 const RESEND_EMAILS_URL = "https://api.resend.com/emails";
-const DEFAULT_WELCOME_EMAIL_FROM = "Open Design <updates@open-design.ai>";
-const DEFAULT_WELCOME_EMAIL_REPLY_TO = "updates@open-design.ai";
+const DEFAULT_WELCOME_EMAIL_FROM = "Open Design <updates@readable-studio.ai>";
+const DEFAULT_WELCOME_EMAIL_REPLY_TO = "updates@readable-studio.ai";
 const WELCOME_EMAIL_SUBJECT = "Welcome to OpenDesign — you're in 🎉";
 const WELCOME_EMAIL_TEXT = `Hi there,
 
