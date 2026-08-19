@@ -1,0 +1,46 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { parseProductIdentity, serializeProductIdentity } from "../src/index.js";
+
+type PackageManifest = {
+  readonly dependencies?: Readonly<Record<string, string>>;
+  readonly name?: string;
+};
+
+const packageRoot = resolve(import.meta.dirname, "..");
+const workspaceRoot = resolve(packageRoot, "../..");
+
+describe("product identity dependency boundary", () => {
+  it("has no runtime dependencies or runtime-specific API imports", async () => {
+    const manifest: PackageManifest = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"));
+    const source = await readFile(resolve(packageRoot, "src/index.ts"), "utf8");
+
+    expect(manifest.name).toBe("@readable-studio/product-identity");
+    expect(manifest.dependencies).toBeUndefined();
+    expect(source).not.toMatch(/from\s+["'](?:node:|@open-design\/|@readable-studio\/|react|next|electron)/);
+    expect(source).not.toMatch(/\b(?:process|window|document|Buffer)\b/);
+  });
+
+  it("ships the canonical serializable JSON artifact", async () => {
+    const artifact = await readFile(resolve(packageRoot, "product-identity.json"), "utf8");
+
+    expect(serializeProductIdentity(parseProductIdentity(JSON.parse(artifact)))).toBe(artifact);
+  });
+
+  it("keeps generic sidecar and platform packages product-neutral", async () => {
+    const [sidecarSource, platformSource] = await Promise.all([
+      readFile(resolve(workspaceRoot, "packages/sidecar/src/index.ts"), "utf8"),
+      readFile(resolve(workspaceRoot, "packages/platform/src/index.ts"), "utf8"),
+    ]);
+
+    for (const source of [sidecarSource, platformSource]) {
+      expect(source).not.toMatch(/Readable Studio|readable-studio|READABLE_|@readable-studio|__readableStudio__/);
+      expect(source).not.toContain("@readable-studio/product-identity");
+    }
+    expect(sidecarSource).toContain("SidecarContractDescriptor");
+    expect(platformSource).toContain("ProcessStampContract");
+  });
+});

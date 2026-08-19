@@ -12,6 +12,7 @@ import {
   normalizeSidecarStamp,
   OPEN_DESIGN_SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
+  SIDECAR_DEFAULTS,
   SIDECAR_ENV,
   SIDECAR_SOURCES,
   SIDECAR_STAMP_FIELDS,
@@ -34,6 +35,7 @@ const validStamp = {
 describe("open-design sidecar contract", () => {
   it("exports the canonical five-field stamp descriptor", () => {
     expect(SIDECAR_STAMP_FIELDS).toEqual(["app", "mode", "namespace", "ipc", "source"]);
+    expect(OPEN_DESIGN_SIDECAR_CONTRACT.defaults).toBe(SIDECAR_DEFAULTS);
     expect(OPEN_DESIGN_SIDECAR_CONTRACT.stampFlags).toEqual({
       app: STAMP_APP_FLAG,
       ipc: STAMP_IPC_FLAG,
