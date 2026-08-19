@@ -208,9 +208,8 @@ export function resolveNamespaceRoot<TStamp extends SidecarStampShape>({
  *   resolved that way is an ENOENT — which is why packaged diagnostics bundles
  *   used to capture none of them.
  *
- * Callers pass their contract's runtime-mode constant (e.g.
- * `SIDECAR_MODES.RUNTIME`) so this generic helper does not have to hardcode
- * Open Design's mode strings.
+ * Callers pass their contract's runtime-mode constant so this generic helper
+ * does not have to hardcode product-specific mode strings.
  */
 // @dsp func-a6c99382
 export function resolveRuntimeNamespaceRoot<TStamp extends SidecarStampShape>({
