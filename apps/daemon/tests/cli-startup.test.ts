@@ -8,7 +8,9 @@ import { describe, expect, it } from 'vitest';
 
 const execFileAsync = promisify(execFile);
 const daemonRoot = fileURLToPath(new URL('..', import.meta.url));
-const cliEntry = fileURLToPath(new URL('../src/cli.ts', import.meta.url));
+// Exercise the same built entry users launch. Spawning cli.ts through tsx made
+// readiness depend on cold transpilation of the daemon graph rather than bind.
+const cliEntry = fileURLToPath(new URL('../bin/od.mjs', import.meta.url));
 
 describe('CLI startup boundaries', () => {
   it.each([
@@ -20,7 +22,7 @@ describe('CLI startup boundaries', () => {
     try {
       const result = await execFileAsync(
         process.execPath,
-        ['--import', 'tsx', cliEntry, ...args],
+        [cliEntry, ...args],
         {
           cwd: daemonRoot,
           env: { ...process.env },
@@ -45,8 +47,6 @@ describe('CLI startup boundaries', () => {
     const child = spawn(
       process.execPath,
       [
-        '--import',
-        'tsx',
         cliEntry,
         'daemon',
         'start',
