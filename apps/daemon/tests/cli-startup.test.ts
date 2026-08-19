@@ -14,6 +14,11 @@ const daemonRoot = fileURLToPath(new URL('..', import.meta.url));
 const cliEntry = fileURLToPath(new URL('../bin/od.mjs', import.meta.url));
 
 const READY_PATTERN = /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u;
+// This is a deadlock guard for cold Windows CI/workstation startup, not a startup SLO.
+const REAL_DAEMON_COLD_START_DEADLOCK_GUARD_MS = 60_000;
+const REAL_DAEMON_POST_START_ASSERTION_AND_CLEANUP_BUDGET_MS = 15_000;
+const REAL_DAEMON_LIFECYCLE_TEST_TIMEOUT_MS =
+  REAL_DAEMON_COLD_START_DEADLOCK_GUARD_MS + REAL_DAEMON_POST_START_ASSERTION_AND_CLEANUP_BUDGET_MS;
 
 function expectReadinessListenersReleased(launched: ReturnType<typeof spawnWaitingForOutputLine>): void {
   expect(launched.child.stdout.listenerCount('data')).toBe(0);
@@ -41,7 +46,11 @@ async function forceTerminateKnownPid(pid: number): Promise<void> {
 }
 
 describe('CLI startup boundaries', () => {
-  it('keeps od daemon start alive until SIGTERM and reports the actual listening port', runRealDaemonLifecycleAssertion);
+  it(
+    'keeps od daemon start alive until SIGTERM and reports the actual listening port',
+    runRealDaemonLifecycleAssertion,
+    REAL_DAEMON_LIFECYCLE_TEST_TIMEOUT_MS,
+  );
 
   it.each([
     ['doctor', ['doctor', '--help']],
@@ -205,6 +214,7 @@ async function runRealDaemonLifecycleAssertion(): Promise<void> {
       },
     },
     READY_PATTERN,
+    REAL_DAEMON_COLD_START_DEADLOCK_GUARD_MS,
   );
 
   try {
