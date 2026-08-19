@@ -121,6 +121,8 @@ We seriously considered it. The concrete blockers:
 
 We keep the good parts: comment mode, slider-emitted parameters, multi-frame preview, single-file HTML export, sandboxed iframe rendering. These are all UI ideas that are orthogonal to the agent layer and we'll absolutely borrow them. See [`references.md`](references.md) for the explicit borrow list.
 
+Single-file HTML export embeds statically discoverable local HTML, CSS, JavaScript module, image, and font dependencies. External HTTP(S) and missing local references remain unchanged and are reported as warnings; runtime network capture and multi-page packaging are outside this contract.
+
 ## 8. Positioning against Anthropic's [Claude Design][cd]
 
 We are **not** trying to out-feature [Claude Design][cd]. Claude Design has Anthropic's model team, internal tooling, and a rendering pipeline we can't match. What we offer instead:

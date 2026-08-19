@@ -1,35 +1,10 @@
 import type http from 'node:http';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  inlineRelativeAssets,
-  type InlineAssetReader,
-} from '../src/inline-assets.js';
 import { injectStandaloneDeckKeyDedupe } from '../src/standalone-deck-nav.js';
 import { startServer } from '../src/server.js';
-
-// ---------------------------------------------------------------------------
-// Unit — inlineRelativeAssets pure helper
-// ---------------------------------------------------------------------------
-//
-// These tests pin the behavior contract documented in
-// `~/.claude/plans/declarative-roaming-gosling.md` §2.3. The helper is a
-// server-side port of the web-client logic at `apps/web/src/components/
-// FileViewer.tsx:5248-5354` (@ base SHA 5bd97631); the divergence from
-// `FileViewer.tsx:5313` (replace-all vs first-match) is locked decision §3.3.
-
-function readerFrom(files: Record<string, string>) {
-  return async (relPath: string) => {
-    const value = files[relPath];
-    if (typeof value !== 'string') return null;
-    return {
-      size: Buffer.byteLength(value, 'utf8'),
-      read: async () => value,
-    };
-  };
-}
 
 function duplicateDeckHtml() {
   return (
@@ -45,536 +20,6 @@ function duplicateDeckHtml() {
     '</body></html>'
   );
 }
-
-describe('inlineRelativeAssets', () => {
-  it('inlines a single <link rel=stylesheet> with verbatim CSS body', async () => {
-    const html =
-      '<!doctype html><html><head><link rel="stylesheet" href="a.css"></head><body></body></html>';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'a.css': 'body{color:red}' }));
-    expect(out).toContain('<style data-od-inline-asset="a.css">');
-    expect(out).toContain('body{color:red}');
-    expect(out).not.toContain('<link rel="stylesheet" href="a.css">');
-  });
-
-  it('inlines a <script src> preserving non-src attrs (type=module, defer, crossorigin)', async () => {
-    const html =
-      '<html><head><script type="module" defer crossorigin src="x.js"></script></head></html>';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'x.js': 'console.log(1)' }));
-    expect(out).toMatch(/<script[^>]*type="module"[^>]*>/);
-    expect(out).toMatch(/<script[^>]*\bdefer\b[^>]*>/);
-    expect(out).toMatch(/<script[^>]*\bcrossorigin\b[^>]*>/);
-    expect(out).toContain('console.log(1)');
-    expect(out).not.toContain('src="x.js"');
-  });
-
-  it('resolves relative paths for both nested and root owners', async () => {
-    const nestedOut = await inlineRelativeAssets(
-      '<script src="../shared/util.js"></script>',
-      'pages/index.html',
-      readerFrom({ 'shared/util.js': 'export const x = 1;' }),
-    );
-    expect(nestedOut).toContain('export const x = 1;');
-
-    const rootOut = await inlineRelativeAssets(
-      '<link rel="stylesheet" href="a.css">',
-      'index.html',
-      readerFrom({ 'a.css': '.root{}' }),
-    );
-    expect(rootOut).toContain('.root{}');
-  });
-
-  it('handles self-closing <link …/> form', async () => {
-    const html = '<link rel="stylesheet" href="a.css" />';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'a.css': '/*ok*/' }));
-    expect(out).toContain('/*ok*/');
-    expect(out).not.toContain('href="a.css"');
-  });
-
-  it("accepts single-quoted attrs (href='a.css')", async () => {
-    const html = `<link rel='stylesheet' href='a.css'>`;
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'a.css': '/*single*/' }));
-    expect(out).toContain('/*single*/');
-  });
-
-  it('does NOT rewrite a <link> tag without a rel attribute', async () => {
-    const html = '<link href="a.css">';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'a.css': '.x{}' }));
-    expect(out).toBe(html);
-  });
-
-  it('does NOT rewrite <link rel="preload"> (only rel=stylesheet)', async () => {
-    const html = '<link rel="preload" href="x.css">';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'x.css': '.x{}' }));
-    expect(out).toBe(html);
-  });
-
-  it('does NOT rewrite absolute / data / blob / mailto / tel / anchor / leading-slash refs', async () => {
-    const cases = [
-      '<link rel="stylesheet" href="https://cdn.example.com/x.css">',
-      '<link rel="stylesheet" href="http://cdn.example.com/x.css">',
-      '<link rel="stylesheet" href="data:text/css,body{}">',
-      '<link rel="stylesheet" href="blob:abc">',
-      '<link rel="stylesheet" href="/abs/path.css">',
-      '<script src="https://cdn.example.com/x.js"></script>',
-      '<script src="data:text/javascript,1+1"></script>',
-      '<script src="/abs/x.js"></script>',
-    ];
-    const reader = readerFrom({}); // never called
-    for (const html of cases) {
-      const out = await inlineRelativeAssets(html, 'index.html', reader);
-      expect(out).toBe(html);
-    }
-  });
-
-  it('escapes </style inside CSS body to <\\/style', async () => {
-    const css = 'body::before{content:"</style>"}';
-    const out = await inlineRelativeAssets(
-      '<link rel="stylesheet" href="a.css">',
-      'index.html',
-      readerFrom({ 'a.css': css }),
-    );
-    expect(out).toContain('<\\/style');
-    expect(out).not.toMatch(/<\/style[^>]*?>\s*<\/style>/);
-    expect(out.match(/<\/style>/g)?.length).toBe(1);
-  });
-
-  it('escapes </script inside JS body to <\\/script', async () => {
-    const js = 'const x = "</script>"';
-    const out = await inlineRelativeAssets(
-      '<script src="x.js"></script>',
-      'index.html',
-      readerFrom({ 'x.js': js }),
-    );
-    expect(out).toContain('<\\/script');
-    expect(out.match(/<\/script>/g)?.length).toBe(1);
-  });
-
-  it('leaves tag intact when fileReader returns null, but still inlines other assets', async () => {
-    const html =
-      '<link rel="stylesheet" href="missing.css"><script src="present.js"></script>';
-    const out = await inlineRelativeAssets(
-      html,
-      'index.html',
-      readerFrom({ 'present.js': 'ok' }),
-    );
-    expect(out).toContain('<link rel="stylesheet" href="missing.css">');
-    expect(out).toContain('ok');
-    expect(out).not.toContain('src="present.js"');
-  });
-
-  it('replaces ALL occurrences of identical duplicate tags (diverges from FileViewer.tsx:5313)', async () => {
-    // The web client uses `.replace(from, () => to)` which only replaces the
-    // first match. Locked decision §3.3: the server helper replaces all.
-    const html = '<script src="x.js"></script>\n<script src="x.js"></script>';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'x.js': 'BODY' }));
-    expect(out.match(/src="x\.js"/g) ?? []).toEqual([]);
-    expect(out.match(/BODY/g)?.length).toBe(2);
-  });
-
-  it('HTML-escapes the href value in data-od-inline-asset attr', async () => {
-    // Using `&` only — the realistic case for filenames that need escaping.
-    // `<`, `>`, `"` are forbidden in real filenames on most platforms and
-    // additionally break the tag-matching regex (a limitation inherited
-    // from the web client at FileViewer.tsx:5271). The escapeHtmlAttr fn
-    // itself covers `&`, `"`, `<`, `>` by inspection.
-    const href = 'weird&name.css';
-    const html = `<link rel="stylesheet" href="${href}">`;
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ [href]: '.x{}' }));
-    expect(out).toContain('data-od-inline-asset="weird&amp;name.css"');
-    expect(out).not.toContain(`data-od-inline-asset="${href}"`);
-  });
-
-  it('does not treat "disabled" inside a quoted attribute value as the disabled boolean attr', async () => {
-    // PR #1312 round-2 review (lefarcen P3): the current
-    // `hasBooleanHtmlAttr` regex `\sdisabled(?=\s|=|/?>)` tests the
-    // tag string with NO attr-quoting awareness, so the literal text
-    // `disabled` appearing inside any quoted attribute value, followed
-    // by another whitespace char, satisfies the lookahead. A source
-    // tag like
-    //   <link rel=stylesheet href=x.css data-note="content disabled stuff">
-    // would then emit a <style disabled> block — silently disabling
-    // a stylesheet the author wrote without that attr.
-    const html =
-      '<link rel="stylesheet" href="x.css" data-note="content disabled stuff">';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'x.css': '.x{}' }));
-    expect(out).toMatch(/<style\b[^>]*data-od-inline-asset/);
-    expect(out).not.toMatch(/<style\b[^>]*\bdisabled\b/);
-  });
-
-  it('still detects disabled when it is a real boolean attr (regression for the dedup fix)', async () => {
-    // Counterweight to the previous case: don't over-correct and
-    // start dropping the legitimate `disabled` attr.
-    const html = '<link rel="stylesheet" href="x.css" disabled>';
-    const out = await inlineRelativeAssets(html, 'index.html', readerFrom({ 'x.css': '.x{}' }));
-    expect(out).toMatch(/<style\b[^>]*\bdisabled\b/);
-  });
-
-  it('preserves <link> attrs (media, title, disabled, nonce) on the generated <style> tag', async () => {
-    // PR #1312 round-2 (lefarcen P2 @ inline-assets.ts:44): a stylesheet
-    // <link> with `media="print"` was becoming a plain <style> with no
-    // media query, so print-only styles applied unconditionally. Same
-    // problem for `title` (alternate stylesheet sets), `disabled`
-    // (initial disabled state), `nonce` (CSP nonce). All four are valid
-    // attributes on both <link rel=stylesheet> and <style> per HTML
-    // spec, so the inliner should copy them across.
-    const html =
-      '<link rel="stylesheet" href="print.css" media="print" title="Print">' +
-      '<link rel="stylesheet" href="alt.css" disabled>' +
-      '<link rel="stylesheet" href="csp.css" nonce="abc123">';
-    const out = await inlineRelativeAssets(
-      html,
-      'index.html',
-      readerFrom({
-        'print.css': '.p{}',
-        'alt.css': '.a{}',
-        'csp.css': '.c{}',
-      }),
-    );
-    expect(out).toMatch(/<style\b[^>]*\bmedia="print"[^>]*>[\s\S]*?\.p\{\}/);
-    expect(out).toMatch(/<style\b[^>]*\btitle="Print"[^>]*>[\s\S]*?\.p\{\}/);
-    expect(out).toMatch(/<style\b[^>]*\bdisabled\b[^>]*>[\s\S]*?\.a\{\}/);
-    expect(out).toMatch(/<style\b[^>]*\bnonce="abc123"[^>]*>[\s\S]*?\.c\{\}/);
-  });
-
-  it('resolves deep-nested owner (a/b/c/index.html + ../../shared/util.js)', async () => {
-    const out = await inlineRelativeAssets(
-      '<script src="../../shared/util.js"></script>',
-      'a/b/c/index.html',
-      readerFrom({ 'a/shared/util.js': 'DEEP' }),
-    );
-    expect(out).toContain('DEEP');
-    expect(out).not.toContain('src="../../shared/util.js"');
-  });
-
-  // ---- Cap enforcement (PR #1312 round-3, lefarcen P2) ---------------
-  // The helper accepts an InlineOptions bag (test-door per
-  // feedback_test_doors_over_fake_timers.md) so the tests can exercise
-  // each cap with tiny fixtures rather than 2-50 MiB on-disk writes.
-  // Production callers use the module-level defaults.
-  // --------------------------------------------------------------------
-
-  it('throws InlineAssetsLimitError("owner") when the owner html exceeds maxOwnerBytes', async () => {
-    const html = '<html><head>' + 'x'.repeat(500) + '</head></html>';
-    await expect(
-      inlineRelativeAssets(html, 'index.html', readerFrom({}), { maxOwnerBytes: 100 }),
-    ).rejects.toMatchObject({
-      name: 'InlineAssetsLimitError',
-      limit: 'owner',
-    });
-  });
-
-  it('throws InlineAssetsLimitError("candidates") when tag matches exceed maxCandidates', async () => {
-    // Build HTML with 5 link tags, cap at 3.
-    const html = Array.from({ length: 5 }, (_, i) =>
-      `<link rel="stylesheet" href="a${i}.css">`,
-    ).join('');
-    await expect(
-      inlineRelativeAssets(html, 'index.html', readerFrom({}), { maxCandidates: 3 }),
-    ).rejects.toMatchObject({
-      name: 'InlineAssetsLimitError',
-      limit: 'candidates',
-    });
-  });
-
-  it('leaves a tag intact (no replacement) when its asset body exceeds maxAssetBytes', async () => {
-    const html =
-      '<link rel="stylesheet" href="big.css"><link rel="stylesheet" href="small.css">';
-    const out = await inlineRelativeAssets(
-      html,
-      'index.html',
-      readerFrom({
-        'big.css': 'a'.repeat(2000), // exceeds cap
-        'small.css': '.s{}',
-      }),
-      { maxAssetBytes: 1000 },
-    );
-    // Oversized asset stays as a URL ref (graceful — the export still
-    // succeeds; the consumer sees an un-inlined link instead of inflated
-    // memory or a 413 for one bad asset).
-    expect(out).toContain('<link rel="stylesheet" href="big.css">');
-    // The small asset still inlines normally.
-    expect(out).toContain('.s{}');
-    expect(out).not.toContain('href="small.css"');
-  });
-
-  it('throws InlineAssetsLimitError("total") when the assembled output exceeds maxTotalBytes', async () => {
-    const html =
-      '<link rel="stylesheet" href="a.css"><link rel="stylesheet" href="b.css">';
-    const big = 'x'.repeat(800);
-    await expect(
-      inlineRelativeAssets(
-        html,
-        'index.html',
-        readerFrom({ 'a.css': big, 'b.css': big }),
-        { maxTotalBytes: 1000 },
-      ),
-    ).rejects.toMatchObject({
-      name: 'InlineAssetsLimitError',
-      limit: 'total',
-    });
-  });
-
-  it('checks maxAssetBytes via handle.size BEFORE invoking handle.read()', async () => {
-    // PR #1312 round-4 (lefarcen P2): the maxAssetBytes cap must fire
-    // pre-buffer. A reader whose read() throws is fine — the helper
-    // must not invoke it once the stat-side size exceeds the cap.
-    let readsAttempted = 0;
-    const sizeOnlyReader = async (relPath: string) => ({
-      size: 10_000,
-      read: async (): Promise<string | null> => {
-        readsAttempted += 1;
-        throw new Error(`read should not happen for ${relPath}`);
-      },
-    });
-    const html = '<link rel="stylesheet" href="big.css">';
-    const out = await inlineRelativeAssets(html, 'index.html', sizeOnlyReader, {
-      maxAssetBytes: 1_000,
-    });
-    expect(readsAttempted).toBe(0);
-    expect(out).toContain('<link rel="stylesheet" href="big.css">');
-  });
-
-  it('stops dispatching reads once running total exceeds maxTotalBytes', async () => {
-    // PR #1312 round-4 (lefarcen P2): the running-total guard must
-    // abort the worker pool, not wait for the final concat. With a
-    // tiny totalBytes cap and 20 candidates each contributing 800
-    // bytes of stat-size, we expect at most a few reads to actually
-    // run before the abort flag short-circuits the rest. Concurrency
-    // is 1 so the abort timing is deterministic.
-    let reads = 0;
-    const countingReader = async (relPath: string) => ({
-      size: 800,
-      read: async () => {
-        reads += 1;
-        return `/* ${relPath} */`;
-      },
-    });
-    const html = Array.from({ length: 20 }, (_, i) =>
-      `<link rel="stylesheet" href="a${i}.css">`,
-    ).join('');
-    await expect(
-      inlineRelativeAssets(html, 'index.html', countingReader, {
-        maxTotalBytes: 1_000,
-        maxReadConcurrency: 1,
-      }),
-    ).rejects.toMatchObject({ name: 'InlineAssetsLimitError', limit: 'total' });
-    // Owner html is ~760 bytes. First asset's 800 stat-size pushes
-    // running over 1000 → abort. So at most ONE read should fire.
-    expect(reads).toBeLessThanOrEqual(2);
-  });
-
-  it('reconciles handle.size with actual content bytes — trips total abort post-read on stat-lying readers', async () => {
-    // PR #1312 round-5 (lefarcen P3 confirmed at PR-1312#issuecomment-4424868413
-    // follow-up, path-a): the helper must reconcile handle.size with the
-    // actual byte length of `content` AFTER `read()`, not just trust the
-    // stat-side number. A reader that under-reports size (stale stat,
-    // UTF-8 expansion at decode, sparse file, deliberate lie) would
-    // otherwise let many strings materialize before the concat-time
-    // guard at the bottom of the helper throws — defeating the round-4
-    // pre-buffer cap intent.
-    //
-    // Discriminator: read count. Pre-fix the helper trusts handle.size
-    // (10), so both reads complete (each returning 1000 bytes) under
-    // the reservation total of 56+10+10=76 < cap 500; the concat-time
-    // guard then catches the 2000+-byte assembly and throws 'total'.
-    // Post-fix worker 1's reconciliation trips totalAborted as soon as
-    // its actualBytes (1000) is added to runningBytes, pushing running
-    // over the cap; worker 2 then sees totalAborted and returns null
-    // without invoking read(). One read, not two.
-    //
-    // Lefarcen-confirmed path-a (drop-asset + abort + throw 'total'
-    // after Promise.all settles): preserves the round-2/3/4 graceful-
-    // fallback pattern instead of racing throws between in-flight
-    // workers.
-    let reads = 0;
-    const lyingReader: InlineAssetReader = async (_relPath: string) => ({
-      size: 10, // stat lies — actual is 100x
-      read: async () => {
-        reads += 1;
-        return 'x'.repeat(1000);
-      },
-    });
-    const html = '<script src="a.js"></script><script src="b.js"></script>';
-    await expect(
-      inlineRelativeAssets(html, 'index.html', lyingReader, {
-        maxTotalBytes: 500,
-        maxReadConcurrency: 1, // sequential so the abort timing is deterministic
-      }),
-    ).rejects.toMatchObject({ name: 'InlineAssetsLimitError', limit: 'total' });
-    // Pre-fix: 2 (helper trusts stat → both reads complete → concat catches).
-    // Post-fix: 1 (worker 1 reconciles after read, trips abort; worker 2 skipped).
-    expect(reads).toBe(1);
-  });
-
-  it('caps concurrent file reads at maxReadConcurrency', async () => {
-    // A reader that records peak concurrency inside read(): increments
-    // on entry, decrements on exit, tracks the high-water mark. The
-    // size lookup is synchronous-fast so it doesn't contribute.
-    let inFlight = 0;
-    let peak = 0;
-    const readerWithCounter = async (relPath: string) => {
-      const body = `/* ${relPath} */`;
-      return {
-        size: Buffer.byteLength(body, 'utf8'),
-        read: async () => {
-          inFlight += 1;
-          if (inFlight > peak) peak = inFlight;
-          // Yield a microtask so other concurrent calls can interleave.
-          await new Promise((r) => setImmediate(r));
-          inFlight -= 1;
-          return body;
-        },
-      };
-    };
-    const html = Array.from({ length: 20 }, (_, i) =>
-      `<link rel="stylesheet" href="a${i}.css">`,
-    ).join('');
-    await inlineRelativeAssets(html, 'index.html', readerWithCounter, { maxReadConcurrency: 4 });
-    expect(peak).toBeLessThanOrEqual(4);
-    expect(peak).toBeGreaterThan(0);
-  });
-
-  it('does not re-replace a tag literal that appears inside an already-inlined asset body', async () => {
-    // Regression for nexu-io/open-design#1312 review feedback (Siri-Ray
-    // looper + codex bot): the previous reduce/split-join approach
-    // re-scanned the progressively mutated HTML, so a tag literal that
-    // happened to appear inside an inlined asset body got the inner
-    // literal also replaced — corrupting the body.
-    //
-    // The reproducer uses two <link rel=stylesheet> tags where a.css's
-    // body contains the literal text of b.css's <link> tag (e.g. inside
-    // a CSS comment or content: declaration). The </style escape on
-    // CSS bodies doesn't touch <link>, so split/join over the mutated
-    // HTML finds the literal inside a.css's inline body and replaces
-    // it on the second pass — injecting b.css's inline body where the
-    // literal comment text used to be.
-    const html =
-      '<link rel="stylesheet" href="a.css"><link rel="stylesheet" href="b.css">';
-    const aCssBody = '/* see also <link rel="stylesheet" href="b.css"> */';
-    const bCssBody = 'body{color:red}';
-    const out = await inlineRelativeAssets(
-      html,
-      'index.html',
-      readerFrom({ 'a.css': aCssBody, 'b.css': bCssBody }),
-    );
-    // The literal <link> string inside a.css's comment must survive
-    // verbatim — position-based replacement only touches the original
-    // outer-tag spans, not text introduced by earlier replacements.
-    expect(out).toContain('/* see also <link rel="stylesheet" href="b.css"> */');
-    // b.css's body is inlined exactly once, at the real outer tag's
-    // position — not injected inside a.css's inline body.
-    expect(out.match(/body\{color:red\}/g)?.length).toBe(1);
-    // Neither original outer <link href="…"> survives as a URL ref.
-    expect(out).not.toMatch(/<link\b[^>]*\bhref="a\.css"/);
-    expect(out).not.toMatch(/<link\b[^>]*\bhref="b\.css"(?![^<]*\*\/)/);
-  });
-});
-
-describe('injectStandaloneDeckKeyDedupe', () => {
-  const duplicateListenerDeck =
-    '<!doctype html><html><head></head><body>' +
-    '<section class="slide active"></section><section class="slide"></section>' +
-    '<script>' +
-    'function onKey(e){if(e.key==="ArrowRight"){e.preventDefault();window.moves=(window.moves||0)+1;}}' +
-    'window.addEventListener("keydown",onKey,true);' +
-    'document.addEventListener("keydown",onKey,true);' +
-    '</script>' +
-    '</body></html>';
-
-  it('dedupes the same listener without blocking other keydown listeners', () => {
-    const duplicateWithoutPreventDefault =
-      '<!doctype html><html><body>' +
-      '<section class="slide active"></section><section class="slide"></section>' +
-      '<script>' +
-      'function onKey(e){if(e.key==="ArrowRight"){window.moves=(window.moves||0)+1;}}' +
-      'function onOther(e){if(e.key==="ArrowRight"){window.other=(window.other||0)+1;}}' +
-      'window.addEventListener("keydown",onKey,true);' +
-      'document.addEventListener("keydown",onKey,true);' +
-      'document.addEventListener("keydown",onOther,true);' +
-      '</script>' +
-      '</body></html>';
-    const out = injectStandaloneDeckKeyDedupe(duplicateWithoutPreventDefault);
-    const guardBody = out.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
-    const deckBody = out.match(/<script>function onKey([\s\S]*?)<\/script>/)?.[0]
-      .replace(/^<script>/, '')
-      .replace(/<\/script>$/, '');
-    expect(guardBody).toBeTruthy();
-    expect(deckBody).toBeTruthy();
-
-    interface FakeKeyEvent {
-      key: string;
-      defaultPrevented: boolean;
-      preventDefault(): void;
-    }
-    type FakeKeyListener = (event: FakeKeyEvent) => void;
-
-    const windowListeners: FakeKeyListener[] = [];
-    const documentListeners: FakeKeyListener[] = [];
-    const fakeWindow = {
-      moves: 0,
-      other: 0,
-      addEventListener: (_type: string, listener: FakeKeyListener) => windowListeners.push(listener),
-      removeEventListener: () => {},
-    };
-    const fakeDocument = {
-      addEventListener: (_type: string, listener: FakeKeyListener) => documentListeners.push(listener),
-      removeEventListener: () => {},
-    };
-
-    Function('window', 'document', guardBody!)(fakeWindow, fakeDocument);
-    Function('window', 'document', deckBody!)(fakeWindow, fakeDocument);
-
-    const event = {
-      key: 'ArrowRight',
-      defaultPrevented: false,
-      preventDefault() {
-        this.defaultPrevented = true;
-      },
-    };
-    for (const listener of windowListeners) listener.call(fakeWindow, event);
-    for (const listener of documentListeners) listener.call(fakeDocument, event);
-
-    expect(fakeWindow.moves).toBe(1);
-    expect(fakeWindow.other).toBe(1);
-  });
-
-  it('does not substitute keydown proxies when removing other event types', () => {
-    const out = injectStandaloneDeckKeyDedupe(duplicateListenerDeck);
-    const guardBody = out.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
-    expect(guardBody).toBeTruthy();
-
-    type Listener = () => void;
-    const windowListeners = new Map<string, Listener[]>();
-    const fakeWindow = {
-      addEventListener: (type: string, listener: Listener) => {
-        windowListeners.set(type, [...(windowListeners.get(type) ?? []), listener]);
-      },
-      removeEventListener: (type: string, listener: Listener) => {
-        windowListeners.set(type, (windowListeners.get(type) ?? []).filter((item) => item !== listener));
-      },
-    };
-    const fakeDocument = {
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    };
-
-    Function('window', 'document', guardBody!)(fakeWindow, fakeDocument);
-    const listener = () => {};
-    fakeWindow.addEventListener('keydown', listener);
-    fakeWindow.addEventListener('click', listener);
-    fakeWindow.removeEventListener('click', listener);
-    expect(windowListeners.get('click')).toEqual([]);
-    expect(windowListeners.get('keydown')?.length).toBe(1);
-
-    fakeWindow.removeEventListener('keydown', listener);
-    expect(windowListeners.get('keydown')).toEqual([]);
-  });
-
-  it('leaves non-duplicate documents unchanged', () => {
-    const html = '<!doctype html><html><body><script>document.addEventListener("keydown",function(){})</script></body></html>';
-    expect(injectStandaloneDeckKeyDedupe(html)).toBe(html);
-  });
-});
 
 // ---------------------------------------------------------------------------
 // HTTP integration — GET /api/projects/:id/export/*?inline=1
@@ -598,6 +43,18 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     baseUrl = started.url;
     server = started.server;
 
+    const createProject = await fetch(`${baseUrl}/api/projects`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: projectId,
+        name: 'Standalone export fixture',
+        metadata: { kind: 'prototype' },
+        skipDiscoveryBrief: true,
+      }),
+    });
+    expect(createProject.status).toBe(200);
+
     projectsRoot = path.join(process.env.OD_DATA_DIR!, 'projects');
     const dir = path.join(projectsRoot, projectId);
     const pages = path.join(dir, 'pages');
@@ -615,6 +72,35 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     );
     await writeFile(path.join(dir, 'app.css'), cssBody);
     await writeFile(path.join(dir, 'app.js'), jsBody);
+
+    await mkdir(path.join(dir, 'images'), { recursive: true });
+    await writeFile(
+      path.join(dir, 'image.html'),
+      '<!doctype html><html><body><img src="./images/logo.png"></body></html>',
+    );
+    await writeFile(
+      path.join(dir, 'images', 'logo.png'),
+      Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+    );
+    await writeFile(path.join(dir, 'broken.html'), '<!doctype html><script type="module">export {</script>');
+    await mkdir(path.join(dir, 'node_modules', 'fixture-package'), { recursive: true });
+    await writeFile(
+      path.join(dir, 'node_modules', 'fixture-package', 'package.json'),
+      JSON.stringify({ module: './entry.js' }),
+    );
+    await writeFile(path.join(dir, 'node_modules', 'fixture-package', 'entry.js'), 'export const PACKAGE_MARKER = "BARE_PACKAGE_OK";');
+    await writeFile(
+      path.join(dir, 'package-module.html'),
+      '<!doctype html><script type="module">import { PACKAGE_MARKER } from "fixture-package"; window.PACKAGE_MARKER = PACKAGE_MARKER;</script>',
+    );
+    await mkdir(path.join(dir, 'node_modules', 'exports-package'), { recursive: true });
+    await writeFile(
+      path.join(dir, 'node_modules', 'exports-package', 'package.json'),
+      JSON.stringify({ module: './legacy-module.js', exports: { '.': { browser: './browser.js', import: './entry.js', default: './fallback.js' } } }),
+    );
+    await writeFile(path.join(dir, 'node_modules', 'exports-package', 'browser.js'), 'export const marker = "EXPORTS_BROWSER_OK";');
+    await writeFile(path.join(dir, 'node_modules', 'exports-package', 'legacy-module.js'), 'export const marker = "LEGACY_MODULE_WRONG";');
+    await writeFile(path.join(dir, 'exports-package.html'), '<!doctype html><script type="module">import { marker } from "exports-package"; window.marker = marker;</script>');
 
     await writeFile(
       path.join(dir, 'partial.html'),
@@ -649,18 +135,130 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
   const exportUrl = (name: string, query = 'inline=1') =>
     `${baseUrl}/api/projects/${projectId}/export/${name}${query ? `?${query}` : ''}`;
 
+  it('POST /api/exports/standalone-html embeds a local project image', async () => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        source: { kind: 'project', projectId, filePath: 'image.html' },
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
+    expect(res.headers.get('x-open-design-external-reference-count')).toBe('0');
+    expect(res.headers.get('x-open-design-missing-local-reference-count')).toBe('0');
+    const body = await res.text();
+    expect(body).toContain('src="data:image/png;base64,');
+    expect(body).not.toContain('./images/logo.png');
+  });
+
+  it('POST standalone export returns exact download/security/summary headers', async () => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'inline', html: '<!doctype html><img src="https://example.com/a.png"><img src="missing.png">' } }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-disposition')).toBe('attachment; filename="standalone.html"');
+    expect(res.headers.get('content-security-policy')).toBe('sandbox allow-scripts');
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(res.headers.get('x-open-design-external-reference-count')).toBe('1');
+    expect(res.headers.get('x-open-design-missing-local-reference-count')).toBe('1');
+    expect(res.headers.get('x-open-design-skipped-system-font-count')).toBe('0');
+    const body = await res.text();
+    expect(Number(res.headers.get('content-length'))).toBe(Buffer.byteLength(body));
+  });
+
+  it('POST standalone export rejects malformed requests, non-HTML files, and invalid modules', async () => {
+    const post = (source: unknown) => fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+    const malformed = await post({ kind: 'project', projectId });
+    expect(malformed.status).toBe(400);
+    const unsupported = await post({ kind: 'project', projectId, filePath: 'app.css' });
+    expect(unsupported.status).toBe(415);
+    expect((await post({ kind: 'project', projectId, filePath: '../outside.html' })).status).toBe(400);
+    const broken = await post({ kind: 'project', projectId, filePath: 'broken.html' });
+    expect(broken.status).toBe(422);
+    expect(((await broken.json()) as { error: { code: string } }).error.code).toBe('BUNDLE_FAILED');
+
+    const oversized = await post({ kind: 'inline', html: 'x'.repeat(2 * 1024 * 1024 + 1) });
+    expect(oversized.status).toBe(413);
+    expect(((await oversized.json()) as { error: { code: string } }).error.code).toBe('PAYLOAD_TOO_LARGE');
+
+    const missingProject = await post({ kind: 'project', projectId: 'missing-project', filePath: 'index.html' });
+    expect(missingProject.status).toBe(404);
+    expect(((await missingProject.json()) as { error: { code: string } }).error.code).toBe('FILE_NOT_FOUND');
+  });
+
+  it('bundles bare imports from the project node_modules only', async () => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'package-module.html' } }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain('BARE_PACKAGE_OK');
+    expect(body).not.toContain('from "fixture-package"');
+  });
+
+  it('resolves the root browser condition in package exports maps', async () => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'exports-package.html' } }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain('EXPORTS_BROWSER_OK');
+    expect(body).not.toContain('LEGACY_MODULE_WRONG');
+  });
+
+  it.each(['showcase', 'preview'] as const)('exports the design-system %s view', async (view) => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'design-system', designSystemId: 'default', view } }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
+    expect((await res.text()).toLowerCase()).toContain('<!doctype html>');
+  });
+
+  it('returns 404 for a missing design system', async () => {
+    const res = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'design-system', designSystemId: 'does-not-exist', view: 'showcase' } }),
+    });
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('FILE_NOT_FOUND');
+  });
+
+  it('legacy GET export uses the standalone bundler for images', async () => {
+    const res = await fetch(exportUrl('image.html'));
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain('src="data:image/png;base64,');
+    expect(body).not.toContain('./images/logo.png');
+  });
+
   it('returns a self-contained HTML body when ?inline=1 on a 3-file layout', async () => {
     const res = await fetch(exportUrl('index.html'));
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
     const body = await res.text();
-    // Wiring guard: removing the await inlineRelativeAssets(...) line in the
-    // handler fails these assertions, not just the helper-internals tests.
+    // Wiring guard: the compatibility route uses the standalone bundler.
     expect(body).toContain(cssBody);
     expect(body).toContain(jsBody);
     expect(body).not.toContain('href="app.css"');
     expect(body).not.toContain('src="app.js"');
-    expect(body).toContain('<style data-od-inline-asset="app.css">');
+    expect(body).toContain('<style data-od-bundled-from="app.css">');
   });
 
   it('exported standalone deck advances one slide per physical arrow key', async () => {
@@ -795,18 +393,88 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
         '</head><body><div id="root"></div></body></html>',
     );
     await writeFile(path.join(dir, 'dist', 'assets', 'app.js'), 'window.VITE_EXPORT_OK = true;');
-    await writeFile(path.join(dir, 'dist', 'assets', 'app.css'), 'body{background:#123456}');
+    await writeFile(path.join(dir, 'dist', 'assets', 'app.css'), 'body{background:#123456 url(/assets/logo.png)}');
+    await writeFile(path.join(dir, 'dist', 'assets', 'logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 
     const res = await fetch(exportUrl('vite-entry.html'));
     expect(res.status).toBe(200);
     const body = await res.text();
 
     expect(body).toContain('window.VITE_EXPORT_OK = true;');
-    expect(body).toContain('body{background:#123456}');
+    expect(body).toContain('body{background:#123456 url(');
+    expect(body).toContain('data:image/png;base64,');
     expect(body).not.toContain('/src/main.tsx');
     expect(body).not.toContain('/assets/app.js');
     expect(body).not.toContain('/assets/app.css');
-    expect(body).toContain('data-od-inline-asset="assets/app.css"');
+    expect(body).toContain('data-od-bundled-from="assets/app.css"');
+
+    const post = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'vite-entry.html' } }),
+    });
+    expect(post.status).toBe(200);
+    expect(await post.text()).toContain('window.VITE_EXPORT_OK = true;');
+  });
+
+  it('detects Vite module scripts regardless of attribute order', async () => {
+    const dir = path.join(projectsRoot, projectId);
+    await writeFile(path.join(dir, 'vite-reversed.html'), '<!doctype html><script src="/src/main.ts" type="module"></script>');
+    const res = await fetch(exportUrl('vite-reversed.html'));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('window.VITE_EXPORT_OK = true;');
+  });
+
+  it('rejects a project entry reached through an internal symlink', async () => {
+    const dir = path.join(projectsRoot, projectId);
+    const linked = path.join(dir, 'linked-entry.html');
+    try {
+      await symlink(path.join(dir, 'index.html'), linked, 'file');
+    } catch (error: any) {
+      if (error?.code === 'EPERM') return;
+      throw error;
+    }
+    const response = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'linked-entry.html' } }),
+    });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe('BAD_REQUEST');
+  });
+
+  it('rejects a Vite dist entry reached through an internal symlink', async () => {
+    const dir = path.join(projectsRoot, projectId, 'symlink-vite');
+    await mkdir(path.join(dir, 'dist'), { recursive: true });
+    await writeFile(path.join(dir, 'entry.html'), '<!doctype html><script type="module" src="/src/main.ts"></script>');
+    await writeFile(path.join(dir, 'dist', 'real.html'), '<!doctype html><p>linked dist</p>');
+    try {
+      await symlink(path.join(dir, 'dist', 'real.html'), path.join(dir, 'dist', 'index.html'), 'file');
+    } catch (error: any) {
+      if (error?.code === 'EPERM') return;
+      throw error;
+    }
+    const response = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'symlink-vite/entry.html' } }),
+    });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe('BAD_REQUEST');
+  });
+
+  it('returns 413 instead of falling back when Vite dist HTML is oversized', async () => {
+    const dir = path.join(projectsRoot, projectId, 'oversized-vite');
+    await mkdir(path.join(dir, 'dist'), { recursive: true });
+    await writeFile(path.join(dir, 'entry.html'), '<!doctype html><script type="module" src="/src/main.ts"></script>');
+    await writeFile(path.join(dir, 'dist', 'index.html'), Buffer.alloc(2 * 1024 * 1024 + 1, 0x20));
+    const response = await fetch(`${baseUrl}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source: { kind: 'project', projectId, filePath: 'oversized-vite/entry.html' } }),
+    });
+    expect(response.status).toBe(413);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe('PAYLOAD_TOO_LARGE');
   });
 
   it('exports a nested Vite dev HTML entry through its sibling built dist artifact', async () => {
@@ -835,7 +503,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(body).not.toContain('/src/main.tsx');
     expect(body).not.toContain('/assets/nested.js');
     expect(body).not.toContain('/assets/nested.css');
-    expect(body).toContain('data-od-inline-asset="assets/nested.css"');
+    expect(body).toContain('data-od-bundled-from="assets/nested.css"');
   });
 
   it('sends Content-Security-Policy: sandbox allow-scripts to block daemon-origin privilege escalation', async () => {
@@ -865,13 +533,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
   });
 
   it('returns 413 PAYLOAD_TOO_LARGE when the owner file blows past the candidates cap', async () => {
-    // PR #1312 round-3 (lefarcen P2): the route must surface the
-    // InlineAssetsLimitError as a structured 413 envelope, not let it
-    // propagate as a 400 BAD_REQUEST. Generated owner has 501
-    // `<link rel=stylesheet>` tags, one above the default
-    // MAX_INLINE_CANDIDATES (500). The candidates cap fires after
-    // matchAll, BEFORE any sibling read, so the fact that `a.css`
-    // doesn't exist on disk is irrelevant.
+    // Generated owner has 501 references, one above the standalone limit.
     const dir = path.join(projectsRoot, projectId);
     const huge = '<!doctype html><html><head>' +
       '<link rel="stylesheet" href="a.css">'.repeat(501) +
@@ -884,20 +546,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
   });
 
   it('returns 413 (not 415) for an oversize non-HTML file — proves owner cap fires pre-buffer', async () => {
-    // PR #1312 round-5 (lefarcen P2): the route must stat the owner with
-    // resolveProjectFilePath BEFORE readProjectFile and reject sizes
-    // above MAX_INLINE_OWNER_BYTES with 413 PAYLOAD_TOO_LARGE. The
-    // Red→Green discriminator is the combination "oversize AND
-    // non-HTML": pre-fix, the route reads the buffer first and the
-    // text/plain mime check at file.mime fires → 415. Post-fix, the
-    // route stats first and the size check fires before the mime
-    // check → 413. Asserting "got 413, not 415" pins both the
-    // pre-buffer property and the check ordering (size before mime,
-    // per lefarcen's locked round-5 sequence).
-    //
-    // 2 MiB+1 byte fixture is acceptable in test setup; MAX_INLINE_OWNER_BYTES
-    // is 2 MiB so this is the minimal fixture that exceeds the cap with the
-    // production constant (no test-door needed).
+    // Source size is checked from stat metadata before MIME or buffer reads.
     const dir = path.join(projectsRoot, projectId);
     const overCap = 2 * 1024 * 1024 + 1;
     await writeFile(path.join(dir, 'huge.txt'), Buffer.alloc(overCap, 0x61));

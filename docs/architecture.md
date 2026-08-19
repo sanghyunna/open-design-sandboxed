@@ -123,11 +123,13 @@ Rationale:
 
 | Format | How |
 |---|---|
-| HTML (self-contained) | Inline all CSS, rewrite asset URLs to data: URIs |
+| HTML (self-contained) | The daemon recursively inlines local HTML/CSS/ES-module dependencies and rewrites local binary assets and fonts to data URIs |
 | PDF | `puppeteer` → `page.pdf()` on the rendered HTML |
 | PPTX | `deck-skill` outputs a JSON intermediate (`slides.json`); `pptxgenjs` generates the `.pptx` |
 | ZIP | `archiver` over `artifacts/<id>/` |
 | Markdown | direct copy if artifact is `.md`, otherwise skill-defined render |
+
+Standalone HTML export is intentionally static: external HTTP(S) URLs and missing local references are preserved and reported to the UI/CLI. The daemon never downloads remote assets for an export and does not capture runtime `fetch()`, service-worker, or multi-page traffic.
 
 ## 4. Data flow — a typical "generate prototype" turn
 

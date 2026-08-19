@@ -1,8 +1,6 @@
 // Base64-embed the installed (non-web-safe) fonts a design actually uses
 // into an export/deploy HTML so it renders the same on a machine that does
-// not have those fonts. This is the "fully self-contained export follow-up"
-// that `inline-assets.ts` explicitly leaves out of scope (it inlines
-// <link>/<script> only, never `@font-face`/font bytes).
+// not have those fonts.
 //
 // Pure + dependency-injected (`resolveFamily`, `readFontBytes`) so it unit
 // tests without a real Windows font registry. Real callers wire it to
@@ -10,7 +8,8 @@
 
 import type { SystemFontFace, SystemFontFamily, SystemFontFormat } from '@open-design/contracts';
 
-import { MAX_INLINE_ASSET_BYTES, MAX_INLINE_TOTAL_BYTES } from './inline-assets.js';
+export const MAX_SYSTEM_FONT_FACE_BYTES = 5 * 1024 * 1024;
+export const MAX_SYSTEM_FONT_TOTAL_BYTES = 50 * 1024 * 1024;
 
 export interface EmbedFontsDeps {
   /** Look up an installed family by its (case-insensitive) name; undefined if not installed. */
@@ -20,9 +19,9 @@ export interface EmbedFontsDeps {
 }
 
 export interface EmbedFontsOptions {
-  /** Skip a single face larger than this (default: MAX_INLINE_ASSET_BYTES). */
+  /** Skip a single face larger than this (default: MAX_SYSTEM_FONT_FACE_BYTES). */
   maxAssetBytes?: number;
-  /** Stop once embedded base64 output would exceed this (default: MAX_INLINE_TOTAL_BYTES). */
+  /** Stop once embedded base64 output would exceed this (default: MAX_SYSTEM_FONT_TOTAL_BYTES). */
   maxTotalBytes?: number;
   /**
    * Extra raw CSS (external stylesheets) to scan for used families and
@@ -198,8 +197,8 @@ export async function embedSystemFonts(
   deps: EmbedFontsDeps,
   options: EmbedFontsOptions = {},
 ): Promise<EmbedFontsResult> {
-  const maxAssetBytes = options.maxAssetBytes ?? MAX_INLINE_ASSET_BYTES;
-  const maxTotalBytes = options.maxTotalBytes ?? MAX_INLINE_TOTAL_BYTES;
+  const maxAssetBytes = options.maxAssetBytes ?? MAX_SYSTEM_FONT_FACE_BYTES;
+  const maxTotalBytes = options.maxTotalBytes ?? MAX_SYSTEM_FONT_TOTAL_BYTES;
   const extraCss = options.extraCss ?? [];
 
   const alreadyFaced = existingFontFaceFamilies(html, extraCss);

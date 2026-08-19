@@ -109,6 +109,11 @@ export function PluginExampleDetail({
             ? { kind: unavailableKind, noun: isDeck ? 'template' : 'plugin' }
             : null,
           deck: isDeck,
+          standaloneSource: {
+            kind: 'plugin',
+            pluginId: record.id,
+            ...(exampleStem ? { exampleName: exampleStem } : {}),
+          },
         },
       ]}
       onView={onView}

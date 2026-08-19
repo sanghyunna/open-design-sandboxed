@@ -105,8 +105,18 @@ export function DesignSystemPreviewModal({ system, onClose }: Props) {
       title={system.title}
       subtitle={system.summary || system.category}
       views={[
-        { id: 'showcase', label: t('ds.showcase'), html: showcaseHtml },
-        { id: 'tokens', label: t('ds.tokens'), html: tokensHtml },
+        {
+          id: 'showcase',
+          label: t('ds.showcase'),
+          html: showcaseHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: system.id, view: 'showcase' },
+        },
+        {
+          id: 'tokens',
+          label: t('ds.tokens'),
+          html: tokensHtml,
+          standaloneSource: { kind: 'design-system', designSystemId: system.id, view: 'preview' },
+        },
       ]}
       initialViewId="showcase"
       onView={handleView}

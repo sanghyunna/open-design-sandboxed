@@ -9,6 +9,7 @@ import { DESIGN_SYSTEMS_USAGE, isDesignSystemsHelpArg } from './design-systems-c
 import { parseDesignSystemRenameArgs } from './design-system-rename-args.js';
 import { runProviderCli } from './provider-cli.js';
 import { SIDECAR_ENV, SIDECAR_MESSAGES } from '@open-design/sidecar-proto';
+import { STANDALONE_HTML_EXPORT_HEADERS } from '@open-design/contracts';
 import {
   AGENT_SLUGS,
   isAgentSlug,
@@ -200,6 +201,10 @@ const SHARE_STRING_FLAGS = new Set([
 const SHARE_BOOLEAN_FLAGS = new Set([
   'help', 'h', 'json',
 ]);
+const EXPORT_STRING_FLAGS = new Set([
+  'daemon-url', 'project', 'file', 'plugin', 'example', 'design-system', 'view', 'input', 'output',
+]);
+const EXPORT_BOOLEAN_FLAGS = new Set(['help', 'h', 'json', 'force']);
 // Hoisted because `runAutomation` is reachable through the top-of-file
 // SUBCOMMAND_MAP dispatch, which runs during module evaluation —
 // any `const` declared further down would still be in TDZ when
@@ -243,6 +248,7 @@ const PLUGIN_LIST_BOOLEAN_FLAGS = new Set([
 ]);
 
 const SUBCOMMAND_MAP = {
+  export: runExport,
   artifacts: runArtifacts,
   mcp: runMcp,
   research: runResearch,
@@ -332,6 +338,9 @@ function printRootHelp() {
   od provider <status|set|test|clear> [options]
       Configure and verify an ephemeral hosted provider credential. Secrets are
       read only from identity/key files or stdin; use --json for automation.
+
+  od export html --project <id> --file <path> [--output <path>] [--force] [--json]
+      Save a self-contained HTML artifact through the local daemon.
 
 
   od tools design-systems read --path <manifest-declared-path>
@@ -4367,6 +4376,137 @@ async function runShare(args) {
   console.log(data.copyText);
   for (const target of data.platforms ?? []) {
     console.log(`${target.platform}\t${target.shareUrl ?? target.entryUrl ?? '-'}`);
+  }
+}
+
+function printExportUsage() {
+  console.log(`Usage:
+  od export html --project <id> --file <path> [--output <path>] [--force] [--json]
+  od export html --plugin <id> [--example <name>] [--output <path>] [--force] [--json]
+  od export html --design-system <id> --view showcase|preview [--output <path>] [--force] [--json]
+  od export html --input <path|-> --output <path> [--force] [--json]`);
+}
+
+async function runExport(args) {
+  if (args.length === 0 || args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
+    printExportUsage();
+    process.exit(args.length === 0 ? 2 : 0);
+  }
+  if (args[0] !== 'html') {
+    console.error('only `od export html` is supported');
+    process.exit(2);
+  }
+  let flags;
+  try {
+    flags = parseFlags(args.slice(1), { string: EXPORT_STRING_FLAGS, boolean: EXPORT_BOOLEAN_FLAGS });
+  } catch (error) {
+    console.error(error.message);
+    printExportUsage();
+    process.exit(2);
+  }
+
+  for (const selector of ['project', 'plugin', 'design-system', 'input']) {
+    if (args.slice(1).filter((arg) => arg === `--${selector}` || arg.startsWith(`--${selector}=`)).length > 1) {
+      console.error(`--${selector} may only be specified once`);
+      process.exit(2);
+    }
+  }
+  const selectors = ['project', 'plugin', 'design-system', 'input'].filter((key) => typeof flags[key] === 'string');
+  const invalid = (message) => {
+    console.error(message);
+    printExportUsage();
+    process.exit(2);
+  };
+  for (const selector of selectors) {
+    if (!flags[selector].trim()) invalid(`--${selector} must not be empty`);
+  }
+  if (selectors.length !== 1) invalid('choose exactly one of --project, --plugin, --design-system, or --input');
+  if (flags.project && !flags.file) invalid('--file is required with --project');
+  if (flags.file && !flags.project) invalid('--file is only valid with --project');
+  if (flags.example && !flags.plugin) invalid('--example is only valid with --plugin');
+  if (flags['design-system'] && !['showcase', 'preview'].includes(flags.view)) invalid('--view showcase|preview is required with --design-system');
+  if (flags.view && !flags['design-system']) invalid('--view is only valid with --design-system');
+  if (flags.input === '-' && !flags.output) invalid('--output is required with --input -');
+
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
+  const source = flags.project
+    ? { kind: 'project', projectId: flags.project, filePath: flags.file }
+    : flags.plugin
+      ? { kind: 'plugin', pluginId: flags.plugin, ...(flags.example ? { exampleName: flags.example } : {}) }
+      : flags['design-system']
+        ? { kind: 'design-system', designSystemId: flags['design-system'], view: flags.view }
+        : { kind: 'inline', html: flags.input === '-' ? await readStdinUtf8() : await fs.readFile(flags.input, 'utf8') };
+  const stem = flags.project
+    ? path.basename(flags.file, path.extname(flags.file))
+    : flags.plugin ?? flags['design-system'] ?? path.basename(flags.input, path.extname(flags.input));
+  const safeStem = String(stem).replace(/[<>:"/\\|?*\x00-\x1f]+/g, '-').replace(/[. ]+$/g, '').slice(0, 100) || 'standalone';
+  const outputPath = path.resolve(flags.output ?? `${safeStem}-standalone.html`);
+  if (!flags.force) {
+    try {
+      await fs.access(outputPath);
+      console.error(`output already exists: ${outputPath} (use --force to replace it)`);
+      process.exit(2);
+    } catch {
+      // Missing is the expected case.
+    }
+  }
+
+  const base = (await cliDaemonUrl(flags)).replace(/\/$/, '');
+  let response;
+  try {
+    response = await fetch(`${base}/api/exports/standalone-html`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+  } catch (error) {
+    surfaceFetchError(error, base);
+    process.exit(3);
+  }
+  if (!response.ok) {
+    const body = await response.text();
+    console.error(`standalone HTML export failed: ${response.status} ${body}`);
+    process.exit(1);
+  }
+
+  const count = (name) => {
+    const raw = response.headers.get(name);
+    const value = raw == null ? NaN : Number(raw);
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error(`invalid response header: ${name}`);
+    return value;
+  };
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const summary = {
+    path: outputPath,
+    sizeBytes: bytes.length,
+    externalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.externalReferenceCount),
+    missingLocalReferenceCount: count(STANDALONE_HTML_EXPORT_HEADERS.missingLocalReferenceCount),
+    skippedSystemFontCount: count(STANDALONE_HTML_EXPORT_HEADERS.skippedSystemFontCount),
+  };
+  const { randomUUID } = await import('node:crypto');
+  const tempPath = path.join(path.dirname(outputPath), `.${path.basename(outputPath)}.${process.pid}.${randomUUID()}.tmp`);
+  let tempCreated = false;
+  try {
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(tempPath, bytes, { flag: 'wx' });
+    tempCreated = true;
+    if (flags.force) {
+      await fs.rename(tempPath, outputPath);
+    } else {
+      await fs.link(tempPath, outputPath);
+      await fs.rm(tempPath);
+    }
+    tempCreated = false;
+  } catch (error) {
+    if (tempCreated) await fs.rm(tempPath, { force: true }).catch(() => {});
+    console.error(`failed to write ${outputPath}: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+  if (flags.json) return process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+  console.log(`Saved ${outputPath} (${bytes.length} bytes)`);
+  if (summary.externalReferenceCount || summary.missingLocalReferenceCount || summary.skippedSystemFontCount) {
+    console.warn(`Warnings: ${summary.externalReferenceCount} external, ${summary.missingLocalReferenceCount} missing local, ${summary.skippedSystemFontCount} skipped system fonts`);
   }
 }
 

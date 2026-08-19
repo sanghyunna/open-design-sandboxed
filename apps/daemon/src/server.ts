@@ -466,6 +466,8 @@ import { registerDeployRoutes, registerDeploymentCheckRoutes } from './routes/de
 import { registerMediaRoutes } from './media-routes.js';
 import { registerProjectRoutes, registerProjectArtifactRoutes, registerProjectFileRoutes, registerProjectUploadRoutes } from './project-routes.js';
 import { registerFinalizeRoutes, registerImportRoutes, registerProjectExportRoutes } from './import-export-routes.js';
+import { registerStandaloneHtmlRoutes } from './routes/standalone-html.js';
+import { PluginHtmlTooLargeError, resolvePluginHtml } from './plugin-html-source.js';
 import { registerHandoffRoutes } from './routes/handoff.js';
 import { EmptyTranscriptError, synthesizeHandoffPrompt } from './handoff-design.js';
 import { TranscriptExportLockedError } from './transcript-export.js';
@@ -5252,6 +5254,14 @@ export async function startServer({
     projectFiles: projectFileDeps,
     validation: validationDeps,
   });
+  registerStandaloneHtmlRoutes(app, {
+    db,
+    http: httpDeps,
+    paths: pathDeps,
+    projectStore: projectStoreDeps,
+    projectFiles: projectFileDeps,
+    designSystems: { read: readAvailableDesignSystem },
+  });
 
   // Resource catalog
   registerStaticResourceRoutes(app, {
@@ -7146,17 +7156,18 @@ export async function startServer({
   }
 
   app.get('/api/plugins/:id/preview', async (req, res) => {
-    await servePluginSandboxedHtml(req, res, async (plugin) => {
-      const curated = collectPluginPreviewCandidates(plugin);
-      const fsPath = (plugin as { fsPath?: unknown }).fsPath;
-      if (typeof fsPath !== 'string') return curated;
-      const discovered = await discoverPluginHtmlAssets(fsPath);
-      const seen = new Set(curated);
-      for (const rel of discovered) {
-        if (!seen.has(rel)) curated.push(rel);
-      }
-      return curated;
-    });
+    try {
+      const plugin = getInstalledPlugin(db, req.params.id);
+      if (!plugin) return res.status(404).json({ error: 'plugin not found' });
+      const resolved = await resolvePluginHtml(plugin);
+      if (!resolved) return res.status(404).json({ error: 'preview not found' });
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.type('text/html').send(rewritePluginAssetUrls(resolved.html, req.params.id, path.posix.dirname(resolved.entryPath)));
+    } catch (error) {
+      if (error instanceof PluginHtmlTooLargeError) return res.status(413).json({ error: 'preview asset too large' });
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   app.get('/api/plugins/:id/example/:name', async (req, res) => {
@@ -7164,30 +7175,18 @@ export async function startServer({
     if (!name || /[\\/\0]|\.\./.test(name)) {
       return res.status(400).json({ error: 'invalid example name' });
     }
-    await servePluginSandboxedHtml(req, res, async (plugin) => {
-      const examples = ((plugin as { manifest?: { od?: { useCase?: { exampleOutputs?: Array<{ path?: unknown; title?: unknown }> } } } })
-        .manifest?.od?.useCase?.exampleOutputs ?? []) as Array<{ path?: unknown; title?: unknown }>;
-      const match = examples.find((e) => {
-        if (!e || typeof e.path !== 'string') return false;
-        const segments = e.path.split(/[\\/]/).filter(Boolean);
-        const base = segments[segments.length - 1] ?? '';
-        const baseStem = base.replace(/\.[^.]+$/, '');
-        // For `examples/<folder>/index.html` the conceptual "name"
-        // is the folder, not the inner basename.
-        const parent = segments.length >= 2 ? segments[segments.length - 2] : null;
-        const candidates = [base, baseStem, parent].filter((s): s is string => !!s);
-        if (typeof e.title === 'string') candidates.push(e.title);
-        return candidates.includes(name);
-      });
-      if (match && typeof match.path === 'string') return [match.path];
-      // Allow `examples/<name>/index.html` and `examples/<name>.html`
-      // so plugin authors can ship example folders without enumerating
-      // them in the manifest.
-      return [
-        `examples/${name}/index.html`,
-        `examples/${name}.html`,
-      ];
-    });
+    try {
+      const plugin = getInstalledPlugin(db, req.params.id);
+      if (!plugin) return res.status(404).json({ error: 'plugin not found' });
+      const resolved = await resolvePluginHtml(plugin, name);
+      if (!resolved) return res.status(404).json({ error: 'preview not found' });
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'self'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.type('text/html').send(rewritePluginAssetUrls(resolved.html, req.params.id, path.posix.dirname(resolved.entryPath)));
+    } catch (error) {
+      if (error instanceof PluginHtmlTooLargeError) return res.status(413).json({ error: 'preview asset too large' });
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   app.get('/api/plugins/:id/asset/*splat', async (req, res) => {

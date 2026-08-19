@@ -337,6 +337,13 @@ describe('hosted request boundary', () => {
     },
   );
 
+  it('allows only the exact standalone export POST path', () => {
+    expect(isHostedRouteAllowed('POST', '/api/exports/standalone-html')).toBe(true);
+    expect(isHostedRouteAllowed('GET', '/api/exports/standalone-html')).toBe(false);
+    expect(isHostedRouteAllowed('POST', '/api/exports/standalone-html/extra')).toBe(false);
+    expect(isHostedRouteAllowed('GET', '/api/projects/a/export/index.html')).toBe(false);
+  });
+
   it.each(HOSTED_ROUTE_CHARACTERIZATION.excluded)(
     'keeps characterized local route excluded: $method $path',
     ({ method, path }) => {
