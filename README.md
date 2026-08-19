@@ -1,37 +1,26 @@
-<h1 align="center">Open Design: The open-source Claude Design alternative</h1>
+<h1 align="center">Readable Studio</h1>
 
-> 🔥 **Open Design 0.9.0 is here: create without the setup.** The [official Model Router](https://open-design.ai/amr) is built right into the app — no extra configuration, no CLI to install, no API key to prepare. Just open the app, sign in, and start designing and creating right away. [Download 0.9.0](https://github.com/nexu-io/open-design/releases) · [Join the discussion](https://github.com/nexu-io/open-design/discussions/3524)
->
-> 🏅 **The Open Design Fellow program is now open.** If you also believe design should be open — become an Open Design Fellow, shape the product alongside the core team, and help more people take part in defining the future of design. Details → [`MAINTAINERS.md`](MAINTAINERS.md) and [Discord](https://discord.gg/qhbcCH8Am4).
+<p align="center"><b>Turn source text into polished, directly editable business documents.</b></p>
 
-<p align="center">
-  <img src="https://repo-assets.open-design.ai/resources/images/hero.png" alt="Open Design — The open-source Claude Design alternative · 150 Design Systems · 261 Plugins · 21 Coding Agents · local agents" width="100%" />
-</p>
+Readable Studio is for office workers creating reports, briefs, presentations, plans, and other documents as their organizations move through enterprise AI transformation.
 
-<p align="center">
-  <a href="https://open-design.ai/">Website</a> ·   <a href="https://open-design.ai/">Download</a> ·   <a href="https://discord.gg/qhbcCH8Am4">Discord</a> ·   <a href="https://x.com/nexudotio">Follow @nexudotio</a>
-</p>
+The canonical workflow is:
 
-<p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
-  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
-  <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
-  <a href="QUICKSTART.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
-</p>
+**source text -> AI generation -> PowerPoint-like direct editing -> polished standalone HTML**
+
+Start with existing business material rather than a blank canvas. AI generation structures and designs the first draft. Then select content in the preview and edit it directly instead of returning to a prompt for every small revision. The finished deliverable is a self-contained HTML document that opens independently and preserves its presentation.
+
+Readable Studio does not depend on automatic publishing or an online destination. This brief makes no promise for formats beyond the standalone HTML workflow.
 
 <p align="center"><b>English</b> · <a href="docs/i18n/README.es.md">Español</a> · <a href="docs/i18n/README.pt-BR.md">Português</a> · <a href="docs/i18n/README.de.md">Deutsch</a> · <a href="docs/i18n/README.fr.md">Français</a> · <a href="docs/i18n/README.zh-CN.md">简体中文</a> · <a href="docs/i18n/README.zh-TW.md">繁體中文</a> · <a href="docs/i18n/README.ko.md">한국어</a> · <a href="docs/i18n/README.ja-JP.md">日本語</a> · <a href="docs/i18n/README.ar.md">العربية</a> · <a href="docs/i18n/README.ru.md">Русский</a> · <a href="docs/i18n/README.uk.md">Українська</a> · <a href="docs/i18n/README.tr.md">Türkçe</a></p>
 
 ---
 
-## What is Open Design
+## What is Readable Studio
 
-🎨 **The local-first, open-source [Claude Design][cd] alternative.** &nbsp;🖥️ **Native desktop app for macOS and Windows.** &nbsp;⚡ **100+ skills** · ✨ **150 brand-grade `DESIGN.md` systems** · 📦 **261 ready-to-use plugins.** &nbsp;🖼️ Generates **web · desktop · mobile prototypes**, **dashboards / artifacts**, and **decks**. Sandboxed iframe preview · HTML / PDF / PPTX / ZIP / Markdown export. &nbsp;🤖 **Runs on Claude Code · OpenClaw · Codex · Cursor · OpenCode · Qwen · Copilot · Hermes · Kimi · Antigravity and 21 local CLIs**, or any OpenAI-compatible endpoint via BYOK.
+Readable Studio combines an AI document workflow with familiar visual control. It grounds generation in the user's source documents, keeps the resulting HTML available for direct editing, and produces a polished standalone HTML deliverable.
 
-Open Design is what you get when the **agent-native** loop Anthropic shipped with Claude Design — discover the brief, lock the direction, stream the artifact, critique, deliver — stops being closed and becomes a **filesystem of skills, design systems, and plugins** that the coding agents already on your laptop can read, write, and remix. Your CLI becomes the design engine, your laptop becomes the studio, and your team's `DESIGN.md` becomes the brand contract.
-
-It's also the **Figma alternative for the agent era** — instead of pushing pixels on a canvas, it delivers single-page artifacts in real CSS, real fonts, real components, exported straight to HTML / PDF / PPTX / ZIP / Markdown — already shaped by your design system, already runnable inside the agent you use every day.
-
-[cd]: https://x.com/claudeai/status/2045156267690213649
+Its differentiator is the handoff between generation and editing: AI creates the structured first draft, while PowerPoint-like direct editing lets the user revise text, hierarchy, spacing, and presentation details in place. The user remains the editor of the document rather than the operator of a prompt loop.
 
 ---
 
@@ -197,7 +186,7 @@ Open Design (OD) is the open-source alternative. Same loop, same artifact-first 
 
 - 🤖 **Agent-native, model-agnostic.** We don't ship an agent. The `claude` / `codex` / `cursor-agent` / `copilot` / `hermes` / `kimi` already on your `PATH` are the design engine. Swap with one click.
 - 🧠 **Brand-grade by default.** Every render reads the active `DESIGN.md` — a 9-section schema covering palette, type, spacing, motion, voice, anti-patterns. 150 systems ship with the repo (Linear, Stripe, Vercel, Airbnb, Apple, Tesla, Notion, Anthropic, Cursor, Supabase, Figma…). Drop a folder in, the picker finds it.
-- 🖥️ **Local-first, BYOK at every layer.** Native desktop apps for macOS (Apple Silicon + Intel) and Windows (x64). Linux AppImage builds are available through local `tools-pack`. SQLite at `.od/app.sqlite`, files at `.od/projects/<id>/`, no telemetry, no cloud round-trip.
+- 🖥️ **Local-first project work.** Project files and document state remain available to the local workspace while users generate and refine their material.
 - 🌍 **Composable on three planes.** **Plugins** carry runnable workflows · **skills** carry the agent's design taste · **design systems** carry the brand. All three are plain files anyone can author, version, and publish.
 - 🔁 **Refresh an existing codebase.** Hand a `git` repo + `DESIGN.md` to the agent and it refactors your real components to the brand spec. Dedicated plugins migrate Figma / Pencil workflows into React / Next.js / Vue code.
 - 🔒 **Privacy by conviction.** Everything runs where your data lives — your laptop, your team's server, your Vercel project. When the network is needed, the BYOK proxy is SSRF-guarded.
@@ -489,8 +478,8 @@ Full architecture → [`docs/architecture.md`](docs/architecture.md). Skill prot
 - [x] Sidecar protocol + Electron desktop + IPC automation
 - [x] Artifact lint API + 5-dim self-critique pre-emit gate
 - [x] **0.8.0** — plugin marketplace infrastructure (261 official plugins, manifest spec, per-agent install scripts)
-- [x] **0.9.0** — Open Design AMR (official Model Router built into the app: zero config, one-click sign-in)
-- [x] Packaged Electron builds — macOS (Apple Silicon + Intel) + Windows (x64) + Linux AppImage (optional lane)
+- [x] Configurable model execution for document generation
+- [x] Packaged desktop runtime
 - [ ] Comment-mode surgical edits — partially shipped; reliable targeted patching in progress
 - [ ] AI-emitted tweaks panel UX — not yet implemented
 - [ ] `npx od init` to scaffold a project with `DESIGN.md`
@@ -553,12 +542,6 @@ gh pr create --fill
 ```
 
 Full agent-friendly contribution flow, code style, and PR bar → [`CONTRIBUTING.md`](CONTRIBUTING.md) ([Deutsch](docs/i18n/CONTRIBUTING.de.md) · [Français](docs/i18n/CONTRIBUTING.fr.md) · [简体中文](docs/i18n/CONTRIBUTING.zh-CN.md) · [日本語](docs/i18n/CONTRIBUTING.ja-JP.md) · [Português](docs/i18n/CONTRIBUTING.pt-BR.md)).
-
-### 🏅 Open Design Fellow program
-
-We're recruiting **Open Design Fellows** around the world — Fellows shape the product alongside the core team, represent Open Design officially in their region, and grow the community locally, backed by funded support ($1,000 / MR), free LLM credits, and a direct review track. Details → [`MAINTAINERS.md`](MAINTAINERS.md) and the announcement on [Discord](https://discord.gg/qhbcCH8Am4).
-
----
 
 ## Maintainers
 
@@ -636,7 +619,7 @@ If this saved you thirty minutes, give it a ★. Stars don't pay rent — but th
 | [`alchaincyf/huashu-design`](https://github.com/alchaincyf/huashu-design) | The design-philosophy compass — junior-designer workflow, brand-asset protocol, anti-AI-slop checklist, five-dimensional critique. |
 | [`op7418/guizang-ppt-skill`](https://github.com/op7418/guizang-ppt-skill) | The magazine-style web PPT skill, bundled verbatim under [`design-templates/guizang-ppt/`](design-templates/guizang-ppt/). Default for deck mode. |
 | [`lewislulu/html-ppt-skill`](https://github.com/lewislulu/html-ppt-skill) | The HTML PPT Studio family — 15 deck templates, 36 themes, 31 page layouts, animation runtime, magnetic-card presenter mode. |
-| [`OpenCoworkAI/open-codesign`](https://github.com/OpenCoworkAI/open-codesign) | The first open-source Claude Design alternative; UX patterns we borrow (streaming-artifact loop, sandboxed iframe, live agent panel). |
+| [`OpenCoworkAI/open-codesign`](https://github.com/OpenCoworkAI/open-codesign) | An early related project whose streaming-artifact loop, sandboxed iframe, and live agent panel informed this repository. |
 | [`multica-ai/multica`](https://github.com/multica-ai/multica) | The daemon + adapter architecture — PATH-scan agent detection, local daemon as the only privileged process. |
 | [`VoltAgent/awesome-design-md`](https://github.com/VoltAgent/awesome-design-md) | Source of the 9-section `DESIGN.md` schema and 70 product systems. |
 | [`bergside/awesome-design-skills`](https://github.com/bergside/awesome-design-skills) | Source of the 57 design skills added under `design-systems/`. |
