@@ -1,8 +1,7 @@
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFile, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
@@ -13,6 +12,24 @@ const daemonRoot = fileURLToPath(new URL('..', import.meta.url));
 // Exercise the same built entry users launch. Spawning cli.ts through tsx made
 // readiness depend on cold transpilation of the daemon graph rather than bind.
 const cliEntry = fileURLToPath(new URL('../bin/od.mjs', import.meta.url));
+
+const READY_PATTERN = /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u;
+
+function expectReadinessListenersReleased(launched: ReturnType<typeof spawnWaitingForOutputLine>): void {
+  expect(launched.child.stdout.listenerCount('data')).toBe(0);
+  expect(launched.child.stderr.listenerCount('data')).toBe(0);
+  expect(launched.child.listenerCount('error')).toBe(0);
+  expect(launched.child.listenerCount('close')).toBe(0);
+}
+
+function processIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 describe('CLI startup boundaries', () => {
   it.each([
@@ -42,20 +59,84 @@ describe('CLI startup boundaries', () => {
     expect(output).not.toContain('DIAGNOSTICS_STRING_FLAGS');
   });
 
-  it('captures an immediately emitted readiness line through the launch seam', async () => {
+  it('captures immediate readiness and transfers idempotent termination ownership', async () => {
     const launched = spawnWaitingForOutputLine(
       process.execPath,
-      ['-e', "process.stdout.write('[od] listening on http://127.0.0.1:1 (headless)\\n')"],
+      ['-e', "process.stdout.write('[od] listening on http://127.0.0.1:1 (headless)\\n'); setInterval(() => {}, 1000)"],
       {},
-      /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u,
+      READY_PATTERN,
     );
     await expect(launched.line).resolves.toContain('http://127.0.0.1:1');
+    const firstTermination = launched.terminate();
+    const secondTermination = launched.terminate();
+    expect(secondTermination).toBe(firstTermination);
+    await firstTermination;
+    expect(launched.child.exitCode !== null || launched.child.signalCode !== null).toBe(true);
+    expectReadinessListenersReleased(launched);
+  });
+
+  it('terminates a silent owned child before timeout rejection settles', async () => {
+    const launched = spawnWaitingForOutputLine(
+      process.execPath,
+      ['-e', 'setInterval(() => {}, 1000)'],
+      {},
+      READY_PATTERN,
+      0,
+    );
+    await expect(launched.line).rejects.toThrow(/timed out waiting for stdout/u);
+    expect(launched.child.exitCode !== null || launched.child.signalCode !== null).toBe(true);
+    expectReadinessListenersReleased(launched);
+  });
+
+  it('waits for close so early-exit diagnostics include final stderr', async () => {
+    const launched = spawnWaitingForOutputLine(
+      process.execPath,
+      ['-e', "process.stderr.write('final stderr line\\n', () => process.exit(7))"],
+      {},
+      READY_PATTERN,
+    );
+    await expect(launched.line).rejects.toThrow(/final stderr line/u);
+    expect(launched.child.exitCode).toBe(7);
+    expectReadinessListenersReleased(launched);
+  });
+
+  it('terminates descendants before owned timeout rejection settles', async () => {
+    const source = [
+      "const { spawn } = require('node:child_process');",
+      "const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });",
+      "process.stderr.write(`descendant=${child.pid}\\n`);",
+      "setInterval(() => {}, 1000);",
+    ].join(' ');
+    const launched = spawnWaitingForOutputLine(
+      process.execPath,
+      ['-e', source],
+      {},
+      READY_PATTERN,
+      100,
+    );
+    let diagnostic = '';
+    try {
+      await launched.line;
+      throw new Error('readiness unexpectedly resolved');
+    } catch (error) {
+      diagnostic = error instanceof Error ? error.message : String(error);
+    }
+    const descendantPid = Number(/descendant=(\d+)/u.exec(diagnostic)?.[1]);
+    expect(Number.isInteger(descendantPid)).toBe(true);
+    expect(processIsAlive(descendantPid)).toBe(false);
+    expectReadinessListenersReleased(launched);
   });
 
   it('keeps od daemon start alive until SIGTERM and reports the actual listening port', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'od-cli-daemon-start-'));
+    const scratchRoot = join(daemonRoot, '.tmp');
+    await mkdir(scratchRoot, { recursive: true });
+    const root = await mkdtemp(join(scratchRoot, 'cli-daemon-lifecycle-'));
     const dataDir = join(root, 'data');
-    await mkdir(dataDir);
+    const resourceRoot = join(root, 'resources');
+    await Promise.all([
+      mkdir(dataDir),
+      mkdir(resourceRoot),
+    ]);
     const launched = spawnWaitingForOutputLine(
       process.execPath,
       [
@@ -72,11 +153,11 @@ describe('CLI startup boundaries', () => {
           ...process.env,
           OD_BIND_HOST: '127.0.0.1',
           OD_DATA_DIR: dataDir,
+          OD_RESOURCE_ROOT: resourceRoot,
         },
       },
-      /\[od\] listening on (http:\/\/[^\s]+) \(headless\)/u,
+      READY_PATTERN,
     );
-    const { child } = launched;
 
     try {
       const line = await launched.line;
@@ -91,31 +172,19 @@ describe('CLI startup boundaries', () => {
 
       const statusResp = await fetch(`${daemonUrl}/api/daemon/status`);
       expect(statusResp.status).toBe(200);
-      const status = await statusResp.json() as { bindHost: string; port: number };
+      const status = await statusResp.json() as { bindHost: string; port: number; installedPlugins: number };
       expect(status.bindHost).toBe('127.0.0.1');
       expect(status.port).toBe(Number(parsed.port));
-      expect(child.exitCode).toBeNull();
+      expect(status.installedPlugins).toBe(0);
+
+      const pluginsResp = await fetch(`${daemonUrl}/api/plugins`);
+      expect(pluginsResp.status).toBe(200);
+      const plugins = await pluginsResp.json() as { plugins: unknown[] };
+      expect(plugins.plugins).toEqual([]);
+      expect(launched.child.exitCode).toBeNull();
     } finally {
-      await terminateChild(child);
+      await launched.terminate();
       await rm(root, { recursive: true, force: true });
     }
   });
-
 });
-
-
-async function terminateChild(child: ChildProcessWithoutNullStreams): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise<void>((resolve) => {
-    child.once('exit', () => resolve());
-  });
-  child.kill('SIGTERM');
-  const timeout = new Promise<void>((resolve) => {
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      resolve();
-    }, 5_000);
-    timer.unref?.();
-  });
-  await Promise.race([exited, timeout]);
-}
