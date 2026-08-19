@@ -1,10 +1,10 @@
+import assert from 'node:assert/strict';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { expect } from 'vitest';
-
 import { assertRelativeReportPath, createReport, type E2eReport } from './report.ts';
+import type { HostedSuiteContext, HostedSuiteOptions } from './hosted.ts';
 import type {
   ToolsDevCheckResult,
   ToolsDevLogResult,
@@ -33,6 +33,10 @@ export type SmokeSuiteFinalizeInput = {
 };
 
 export type SmokeSuiteWith = {
+  hosted: (
+    run: (context: HostedSuiteContext) => Promise<void>,
+    options?: HostedSuiteOptions,
+  ) => Promise<string>;
   toolsDev: (
     run: (context: ToolsDevSuiteContext) => Promise<void>,
     options?: ToolsDevSuiteOptions,
@@ -58,7 +62,7 @@ export type ToolsDevSuiteOptions = {
   skipFatalLogCheck?: boolean;
 };
 
-const e2eRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const e2eRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = dirname(e2eRoot);
 
 export function e2eWorkspaceRoot(): string {
@@ -95,6 +99,7 @@ export async function createSmokeSuite(name: string): Promise<SmokeSuite> {
     scratchDir,
     toolsDevRoot,
     with: {
+      hosted: (run, options) => runHostedSuite(suite, run, options),
       toolsDev: (run, options) => runToolsDevSuite(suite, run, options),
     },
     writeScratchJson: (name, value) => writeJson(scratchDir, name, value),
@@ -121,6 +126,15 @@ export async function createSmokeSuite(name: string): Promise<SmokeSuite> {
     },
   };
   return suite;
+}
+
+async function runHostedSuite(
+  suite: SmokeSuite,
+  run: (context: HostedSuiteContext) => Promise<void>,
+  options?: HostedSuiteOptions,
+): Promise<string> {
+  const hosted = await import('./hosted.ts');
+  return await hosted.runHostedSuite(suite, run, options);
 }
 
 async function runToolsDevSuite(
@@ -218,19 +232,19 @@ function assertRuntimeUrl(value: string | null | undefined, app: string): string
 }
 
 function assertToolsDevStatus(suite: SmokeSuite, status: ToolsDevStatusResult): void {
-  expect(status.namespace).toBe(suite.namespace);
-  expect(status.apps?.daemon?.state).toBe('running');
-  expect(status.apps?.web?.state).toBe('running');
+  assert.equal(status.namespace, suite.namespace);
+  assert.equal(status.apps?.daemon?.state, 'running');
+  assert.equal(status.apps?.web?.state, 'running');
 }
 
 function assertNoFatalLogs(logs: Record<string, { lines: string[] }>): void {
   const combined = Object.values(logs)
     .flatMap((entry) => entry.lines)
     .join('\n');
-  expect(combined).not.toMatch(/ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING/);
-  expect(combined).not.toMatch(/standalone Next\.js server exited/i);
-  expect(combined).not.toMatch(/packaged runtime failed/i);
-  expect(combined).not.toMatch(/Agent completed without producing any output/i);
+  assert.doesNotMatch(combined, /ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING/);
+  assert.doesNotMatch(combined, /standalone Next\.js server exited/i);
+  assert.doesNotMatch(combined, /packaged runtime failed/i);
+  assert.doesNotMatch(combined, /Agent completed without producing any output/i);
 }
 
 function sanitizeSegment(value: string): string {

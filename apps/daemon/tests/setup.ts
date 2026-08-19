@@ -1,12 +1,17 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const daemonRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const daemonCliDist = path.join(daemonRoot, 'dist', 'cli.js');
+
+if (process.platform === 'win32') {
+  const canonicalTemp = realpathSync.native(tmpdir());
+  process.env.TEMP = canonicalTemp;
+  process.env.TMP = canonicalTemp;
+}
 
 function pnpmInvocation(): { args: string[]; command: string } {
   const npmExecPath = process.env.npm_execpath;

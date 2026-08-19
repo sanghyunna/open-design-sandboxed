@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
 
+/** Runner-neutral payload accepted by the curated E2E report boundary. */
 export type ReportBlob = ArrayBuffer | Blob | string | Uint8Array;
 
 export type ReportEntry = {

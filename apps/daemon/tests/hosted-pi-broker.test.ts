@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createConnection } from 'node:net';
-import { mkdtempSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, test } from 'vitest';
@@ -27,6 +27,7 @@ function fixture(): { root: string; project: string; binding: HostedPiBinding } 
     root,
     project,
     binding: {
+      generation: 7,
       userKey: 'user-a',
       runId: 'run-a',
       projectId: 'project-a',
@@ -104,6 +105,7 @@ describe('hosted Pi broker', () => {
       assert.equal(stableList.entries?.includes('external.txt'), false);
 
       for (const mismatch of [
+        { generation: 8 },
         { userKey: 'user-b' },
         { runId: 'run-b' },
         { projectId: 'project-b' },
@@ -236,6 +238,29 @@ describe('hosted Pi broker', () => {
       await brokerA.close();
       await brokerB.close();
     }
+  });
+
+  test('keeps POSIX sockets usable when the owned runtime root is long', async () => {
+    if (process.platform === 'win32') return;
+    const f = fixture();
+    const runtimeRoot = join(f.root, 'r'.repeat(120));
+    const socketBase = join(f.root, 'sockets');
+    mkdirSync(runtimeRoot);
+    const broker = await createHostedPiBroker({ binding: f.binding, runtimeRoot, socketBase });
+    const socketRoot = join(broker.socketPath, '..');
+    try {
+      assert.equal(broker.socketPath.startsWith(runtimeRoot), false);
+      assert.equal(broker.socketPath.startsWith(socketBase), true);
+      const response = await socketRequest(broker.socketPath, {
+        token: broker.token,
+        operation: 'project:file:read',
+        path: 'index.html',
+      });
+      assert.equal(response.ok, true);
+    } finally {
+      await broker.close();
+    }
+    assert.equal(existsSync(socketRoot), false);
   });
 
   test('rejects system project and runtime roots', async () => {

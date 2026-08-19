@@ -8,7 +8,7 @@ import { writeFakeAgyBin } from '@/antigravity';
 import { createAntigravityProject, putAntigravityAppConfig } from '@/vitest/antigravity';
 import { listMessages } from '@/vitest/messages';
 import { readRunEvents, startRun, waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 describe('Antigravity error convergence', () => {
   test('marks the run and assistant message as failed with AGENT_AUTH_REQUIRED when agy print mode hits OAuth auth flow', { timeout: 180_000 }, async () => {

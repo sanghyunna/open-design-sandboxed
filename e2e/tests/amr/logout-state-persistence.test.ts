@@ -8,7 +8,7 @@ import { writeFakeVelaBin } from '@/amr';
 import { createAmrProject, putAmrAppConfig } from '@/vitest/amr';
 import { requestJson } from '@/vitest/http';
 import { readRunEvents, startRun, waitForRunStatus, waitForRunTerminal } from '@/vitest/runs';
-import { createSmokeSuite } from '@/vitest/smoke-suite';
+import { createSmokeSuite } from '@/smoke-suite';
 
 describe('AMR logout state persistence', () => {
   test('a previously working AMR session stops working after local logout and requires re-login', { timeout: 180_000 }, async () => {

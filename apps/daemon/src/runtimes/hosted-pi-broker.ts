@@ -7,12 +7,14 @@ import {
   constants,
   fstatSync,
   lstatSync,
+  mkdtempSync,
   mkdirSync,
   openSync,
   opendirSync,
   readFileSync,
   realpathSync,
   renameSync,
+  rmdirSync,
   rmSync,
   statSync,
   unlinkSync,
@@ -37,6 +39,8 @@ export const HOSTED_PI_BROKER_OPERATIONS = [
 export type HostedPiBrokerOperation = (typeof HOSTED_PI_BROKER_OPERATIONS)[number];
 
 export type HostedPiBinding = {
+  /** Runtime generation that owns this turn-scoped capability. */
+  generation: number;
   /** Server-authenticated identity; never accepted from a broker request. */
   userKey: string;
   /** Daemon-created run identifier. */
@@ -53,6 +57,7 @@ export type HostedPiBinding = {
 
 export type HostedPiBrokerGrant = {
   token: string;
+  generation: number;
   userKey: string;
   runId: string;
   projectId: string;
@@ -186,17 +191,17 @@ function projectRootStillBound(root: string, expected?: RootIdentity): boolean {
   }
 }
 
-function safeRuntimeRoot(input: string): string {
-  if (!path.isAbsolute(input)) throw new Error('hosted Pi broker runtime root must be absolute');
+function safeRuntimeRoot(input: string, label = 'runtime root'): string {
+  if (!path.isAbsolute(input)) throw new Error(`hosted Pi broker ${label} must be absolute`);
   if (existsSync(input) && lstatSync(input).isSymbolicLink()) {
-    throw new Error('hosted Pi broker runtime root must not be a symlink or junction');
+    throw new Error(`hosted Pi broker ${label} must not be a symlink or junction`);
   }
   mkdirSync(input, { recursive: true });
   const resolved = realpathSync(input);
   if (comparable(resolved) !== comparable(path.resolve(input))) {
-    throw new Error('hosted Pi broker runtime root must not resolve through a symlink or junction');
+    throw new Error(`hosted Pi broker ${label} must not resolve through a symlink or junction`);
   }
-  if (systemPath(resolved)) throw new Error('hosted Pi broker runtime root is a system path');
+  if (systemPath(resolved)) throw new Error(`hosted Pi broker ${label} is a system path`);
   return resolved;
 }
 
@@ -281,7 +286,8 @@ function targetInsideProject(root: string, relative: string, allowMissing: boole
 }
 
 function bindingMatches(expected: HostedPiBinding, grant: HostedPiBrokerGrant): boolean {
-  return expected.userKey === grant.userKey
+  return expected.generation === grant.generation
+    && expected.userKey === grant.userKey
     && expected.runId === grant.runId
     && expected.projectId === grant.projectId
     && comparable(expected.projectRoot) === comparable(grant.projectRoot);
@@ -427,8 +433,12 @@ async function listen(server: Server, socketPath: string): Promise<void> {
 export async function createHostedPiBroker(options: {
   binding: HostedPiBinding;
   runtimeRoot: string;
+  socketBase?: string;
 }): Promise<HostedPiBroker> {
   const binding = options.binding;
+  if (!Number.isSafeInteger(binding.generation) || binding.generation < 1) {
+    throw new Error('hosted Pi broker generation is invalid');
+  }
   validBindingValue(binding.userKey, 'user key');
   validBindingValue(binding.runId, 'run id');
   validBindingValue(binding.projectId, 'project id');
@@ -443,6 +453,7 @@ export async function createHostedPiBroker(options: {
   const allowedEndpoints = normalizeEndpoints(binding.allowedEndpoints);
   const grant: HostedPiBrokerGrant = Object.freeze({
     token: createToken(),
+    generation: binding.generation,
     userKey: binding.userKey,
     runId: binding.runId,
     projectId: binding.projectId,
@@ -457,10 +468,19 @@ export async function createHostedPiBroker(options: {
   const rootListingTarget: ResolvedTarget = { path: projectRoot, exists: true, stat: projectRootStat };
   const directorySnapshot: DirectorySnapshot = new Map();
   captureProjectDirectory(projectRoot, projectRootIdentity, rootListingTarget, '', directorySnapshot, { entries: 0 });
-  const socketPath = process.platform === 'win32'
-    ? `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`
-    : path.join(runtimeRoot, `hosted-pi-${randomBytes(12).toString('hex')}.sock`);
-  if (process.platform !== 'win32' && existsSync(socketPath)) rmSync(socketPath, { force: true });
+  const socketBase = process.platform === 'win32'
+    ? null
+    : safeRuntimeRoot(options.socketBase ?? runtimeRoot, 'socket base');
+  if (socketBase && inside(projectRoot, socketBase)) {
+    throw new Error('hosted Pi broker socket base must stay outside the project root');
+  }
+  const socketRoot = socketBase === null
+    ? null
+    : realpathSync(mkdtempSync(path.join(socketBase, 'pi-')));
+  if (socketRoot) chmodSync(socketRoot, 0o700);
+  const socketPath = socketRoot
+    ? path.join(socketRoot, 'broker.sock')
+    : `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`;
 
   let closed = false;
   let operationTail: Promise<void> = Promise.resolve();
@@ -560,8 +580,16 @@ export async function createHostedPiBroker(options: {
     });
   });
 
-  await listen(server, socketPath);
-  if (process.platform !== 'win32') chmodSync(socketPath, 0o600);
+  try {
+    await listen(server, socketPath);
+    if (socketRoot) chmodSync(socketPath, 0o600);
+  } catch (error) {
+    if (socketRoot) {
+      try { unlinkSync(socketPath); } catch { /* listen never created it */ }
+      try { rmdirSync(socketRoot); } catch { /* preserve listen failure */ }
+    }
+    throw error;
+  }
 
   return {
     grant,
@@ -573,8 +601,9 @@ export async function createHostedPiBroker(options: {
       if (closed) return;
       closed = true;
       await new Promise<void>((resolve) => server.close(() => resolve()));
-      if (process.platform !== 'win32') {
+      if (socketRoot) {
         try { unlinkSync(socketPath); } catch { /* already removed */ }
+        try { rmdirSync(socketRoot); } catch { /* already removed */ }
       }
     },
   };

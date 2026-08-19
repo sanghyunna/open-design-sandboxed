@@ -40,12 +40,16 @@
     "pnpm": ">=10.33.2 <11"
   },
   "pnpm": {
+    "patchedDependencies": {
+      "@earendil-works/pi-coding-agent@0.83.0": "patches/@earendil-works__pi-coding-agent@0.83.0.patch"
+    },
     "overrides": {
       "brace-expansion": "5.0.9",
       "devalue": "5.8.1",
       "fast-uri": "3.1.5",
       "hono": "4.12.25",
       "ip-address": "10.3.1",
+      "jsdom>undici": "7.29.0",
       "postcss": "8.5.15",
       "protobufjs": "8.4.1",
       "qs": "6.15.2",

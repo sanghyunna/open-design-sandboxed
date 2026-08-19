@@ -64,6 +64,7 @@
       ];
       daemonSrc = filterProjectSource ([
         "package.json"
+        "patches"
         "pnpm-lock.yaml"
         "pnpm-workspace.yaml"
         "tsconfig.json"
@@ -78,6 +79,7 @@
       ++ daemonWorkspacePaths);
       webSrc = filterProjectSource ([
         "package.json"
+        "patches"
         "pnpm-lock.yaml"
         "pnpm-workspace.yaml"
         "tsconfig.json"

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createReport } from '../lib/vitest/report.ts';
+import { createReport } from '../lib/report.ts';
 
 type Platform = 'mac' | 'win';
 

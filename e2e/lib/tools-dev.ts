@@ -47,6 +47,11 @@ export type ToolsDevLogResult = {
   logPath: string;
 };
 
+export type ToolsDevStopResult = Record<string, {
+  status?: string;
+  stop?: { remainingPids?: number[] };
+}>;
+
 export type ToolsDevCheckResult = {
   apps?: Record<string, ToolsDevAppStatus | null>;
   diagnostics?: unknown;
@@ -108,8 +113,8 @@ export async function startToolsDevWeb(
 export async function stopToolsDevWeb(
   suite: SmokeSuite,
   env: Record<string, string | undefined> = {},
-): Promise<unknown> {
-  return await runToolsDevJson<unknown>(
+): Promise<ToolsDevStopResult> {
+  return await runToolsDevJson<ToolsDevStopResult>(
     suite,
     [
       'stop',
@@ -121,6 +126,27 @@ export async function stopToolsDevWeb(
       '--json',
     ],
     env,
+    15_000,
+  );
+}
+
+export async function stopToolsDevDaemon(
+  suite: SmokeSuite,
+  env: Record<string, string | undefined> = {},
+): Promise<ToolsDevStopResult> {
+  return await runToolsDevJson<ToolsDevStopResult>(
+    suite,
+    [
+      'stop',
+      'daemon',
+      '--namespace',
+      suite.namespace,
+      '--tools-dev-root',
+      suite.toolsDevRoot,
+      '--json',
+    ],
+    env,
+    15_000,
   );
 }
 
@@ -190,6 +216,7 @@ async function runToolsDevJson<T>(
   suite: SmokeSuite,
   args: string[],
   extraEnv: Record<string, string | undefined> = {},
+  timeout = 0,
 ): Promise<T> {
   const useNpmExecPathWithNode = process.env.OD_E2E_PNPM_COMMAND == null
     && pnpmExecPath != null
@@ -211,6 +238,7 @@ async function runToolsDevJson<T>(
     },
     maxBuffer: 20 * 1024 * 1024,
     shell: process.platform === 'win32' && command !== process.execPath,
+    timeout,
   });
   return parseJsonOutput<T>(stdout);
 }
