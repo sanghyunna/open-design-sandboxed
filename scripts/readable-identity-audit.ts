@@ -15,12 +15,12 @@ export const identityClasses = [
   "vendor/license",
   "deletion target",
 ] as const;
+export const identityTokens = ["Open Design", "open-design", "OD_", "od://", "@open-design", ".od", "__od__"] as const;
 
 export type IdentityClass = (typeof identityClasses)[number];
 export type IdentityScope = "active" | "all";
 export type IdentityLocation = "content" | "path";
-export type IdentityToken = "Open Design" | "open-design" | "OD_" | "od://" | "@open-design" | ".od" | "__od__";
-
+export type IdentityToken = (typeof identityTokens)[number];
 export type IdentitySource = { path: string; source: string };
 export type IdentityBaselineEntry = {
   class: IdentityClass;
@@ -28,6 +28,8 @@ export type IdentityBaselineEntry = {
   fingerprint: string;
   location: IdentityLocation;
   path: string;
+  reason: string;
+  ruleId: string;
   token: IdentityToken;
 };
 export type IdentityBaseline = {
@@ -40,23 +42,44 @@ export type IdentityAuditReport = {
   schemaVersion: 1;
   scope: IdentityScope;
   classCounts: Record<IdentityClass, number>;
-  summary: { classified: number; files: number; matches: number; unclassified: number };
+  summary: { classified: number; files: number; matches: number; stale: number; unclassified: number };
   entries: IdentityReportEntry[];
+  staleEntries: IdentityBaselineEntry[];
   unclassified: IdentityReportEntry[];
 };
-type AuditIdentitySourcesOptions = {
-  baseline: IdentityBaselineEntry[];
-  scope: IdentityScope;
-  sources: IdentitySource[];
+type AuditIdentitySourcesOptions = { baseline: IdentityBaselineEntry[]; scope: IdentityScope; sources: IdentitySource[] };
+
+type ClassificationRule = { reason: string; ruleId: string };
+const classificationRules: Record<IdentityClass, ClassificationRule> = {
+  "active product": {
+    ruleId: "identity.active-product",
+    reason: "Repository-owned product identity residue awaiting migration.",
+  },
+  "machine contract to migrate": {
+    ruleId: "identity.machine-contract",
+    reason: "Machine-consumed identity contract awaiting coordinated migration.",
+  },
+  "generated derivative": {
+    ruleId: "identity.generated-derivative",
+    reason: "Generated identity derivative retained until its source is migrated and regenerated.",
+  },
+  "immutable history/provenance": {
+    ruleId: "identity.immutable-history-provenance",
+    reason: "Truthful immutable history or raw provenance retained without rewriting.",
+  },
+  "vendor/license": {
+    ruleId: "identity.vendor-license",
+    reason: "License obligation or third-party vendor provenance retained verbatim.",
+  },
+  "deletion target": {
+    ruleId: "identity.deletion-target",
+    reason: "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
+  },
 };
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const baselinePath = path.join(import.meta.dirname, "readable-identity-baseline.json");
-const auditInfrastructurePaths = new Set([
-  "scripts/readable-identity-audit.ts",
-  "scripts/readable-identity-audit.test.ts",
-  "scripts/readable-identity-baseline.json",
-]);
+const baselineRepositoryPath = "scripts/readable-identity-baseline.json";
 const activeClasses = new Set<IdentityClass>([
   "active product",
   "machine contract to migrate",
@@ -64,6 +87,11 @@ const activeClasses = new Set<IdentityClass>([
   "deletion target",
 ]);
 const identityPattern = /@open-design|Open Design|open-design|OD_|od:\/\/|__od__|\.od(?=$|[^A-Za-z0-9_])/g;
+const identityClassSet = new Set<string>(identityClasses);
+const identityTokenSet = new Set<string>(identityTokens);
+const identityLocationSet = new Set<string>(["content", "path"]);
+const baselineTopLevelFields = ["description", "entries", "schemaVersion"];
+const baselineEntryFields = ["class", "count", "fingerprint", "location", "path", "reason", "ruleId", "token"];
 
 function normalizePath(filePath: string): string {
   return filePath.replaceAll("\\", "/").replace(/^\.\//, "");
@@ -77,8 +105,7 @@ function isVendorOrLicensePath(repositoryPath: string): boolean {
 
 function isImmutableHistoryPath(repositoryPath: string): boolean {
   return repositoryPath === "CHANGELOG.md" || repositoryPath.startsWith("specs/change/") ||
-    repositoryPath.startsWith("mocks/traces/") ||
-    /^v\d+\.\d+\.\d+_(?:implementation|plan)\.md$/.test(repositoryPath);
+    repositoryPath.startsWith("mocks/traces/") || /^v\d+\.\d+\.\d+_(?:implementation|plan)\.md$/.test(repositoryPath);
 }
 
 function isDeletionTargetPath(repositoryPath: string): boolean {
@@ -91,8 +118,7 @@ function isDeletionTargetPath(repositoryPath: string): boolean {
 
 function isGeneratedDerivativePath(repositoryPath: string): boolean {
   return repositoryPath === "pnpm-lock.yaml" || repositoryPath.startsWith("generated/") ||
-    repositoryPath.includes("/generated/") || repositoryPath.includes("/previews/") ||
-    /\.(?:snap|lock)$/.test(repositoryPath);
+    repositoryPath.includes("/generated/") || repositoryPath.includes("/previews/") || /\.(?:snap|lock)$/.test(repositoryPath);
 }
 
 function identityClassFor(repositoryPath: string, token: IdentityToken): IdentityClass {
@@ -101,8 +127,9 @@ function identityClassFor(repositoryPath: string, token: IdentityToken): Identit
   if (isDeletionTargetPath(repositoryPath)) return "deletion target";
   if (isGeneratedDerivativePath(repositoryPath)) return "generated derivative";
   const extension = path.posix.extname(repositoryPath).toLowerCase();
-  const isMachineFile = [".json", ".jsonc", ".toml", ".ts", ".tsx", ".yaml", ".yml"].includes(extension);
-  if (token !== "Open Design" && isMachineFile) return "machine contract to migrate";
+  if (token !== "Open Design" && [".json", ".jsonc", ".toml", ".ts", ".tsx", ".yaml", ".yml"].includes(extension)) {
+    return "machine contract to migrate";
+  }
   return "active product";
 }
 
@@ -141,6 +168,75 @@ function emptyClassCounts(): Record<IdentityClass, number> {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function assertExactFields(value: Record<string, unknown>, expected: string[], label: string): void {
+  const actual = Object.keys(value).sort((left, right) => left.localeCompare(right, "en"));
+  const sortedExpected = [...expected].sort((left, right) => left.localeCompare(right, "en"));
+  if (actual.join("\0") !== sortedExpected.join("\0")) {
+    throw new Error(`Invalid readable identity baseline: ${label} fields must be exactly ${sortedExpected.join(", ")}.`);
+  }
+}
+
+function validateBaselineEntries(entries: unknown): IdentityBaselineEntry[] {
+  if (!Array.isArray(entries)) throw new Error("Invalid readable identity baseline: entries must be an array.");
+  const validated: IdentityBaselineEntry[] = [];
+  const keys = new Set<string>();
+
+  for (const [index, candidate] of entries.entries()) {
+    if (!isRecord(candidate)) throw new Error(`Invalid readable identity baseline: entries[${index}] must be an object.`);
+    assertExactFields(candidate, baselineEntryFields, `entries[${index}]`);
+    if (!identityClassSet.has(String(candidate.class))) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].class is not allowed.`);
+    }
+    if (!identityTokenSet.has(String(candidate.token))) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].token is not allowed.`);
+    }
+    if (!identityLocationSet.has(String(candidate.location))) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].location is not allowed.`);
+    }
+    if (!Number.isInteger(candidate.count) || Number(candidate.count) <= 0) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].count must be a positive integer.`);
+    }
+    if (typeof candidate.fingerprint !== "string" || !/^[0-9a-f]{64}$/.test(candidate.fingerprint)) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].fingerprint must be lowercase SHA-256.`);
+    }
+    if (typeof candidate.path !== "string" || candidate.path.length === 0 || normalizePath(candidate.path) !== candidate.path || candidate.path.includes("\0")) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].path must be a canonical repository path.`);
+    }
+    const identityClass = candidate.class as IdentityClass;
+    const rule = classificationRules[identityClass];
+    if (candidate.ruleId !== rule.ruleId || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(String(candidate.ruleId))) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].ruleId must equal ${rule.ruleId}.`);
+    }
+    if (candidate.reason !== rule.reason || String(candidate.reason).trim().length === 0) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].reason must equal the stable rule reason.`);
+    }
+
+    const entry = candidate as IdentityBaselineEntry;
+    const key = entryKey(entry);
+    if (keys.has(key)) throw new Error(`Invalid readable identity baseline: duplicate key at entries[${index}].`);
+    if (validated.length > 0 && compareEntries(validated[validated.length - 1]!, entry) >= 0) {
+      throw new Error(`Invalid readable identity baseline: entries are not in canonical order at index ${index}.`);
+    }
+    keys.add(key);
+    validated.push(entry);
+  }
+  return validated;
+}
+
+export function validateIdentityBaseline(value: unknown): IdentityBaseline {
+  if (!isRecord(value)) throw new Error("Invalid readable identity baseline: root must be an object.");
+  assertExactFields(value, baselineTopLevelFields, "root");
+  if (value.schemaVersion !== 1) throw new Error("Invalid readable identity baseline: schemaVersion must be 1.");
+  if (typeof value.description !== "string" || value.description.trim().length === 0) {
+    throw new Error("Invalid readable identity baseline: description must be a nonempty string.");
+  }
+  return { schemaVersion: 1, description: value.description, entries: validateBaselineEntries(value.entries) };
+}
+
 function collectMatches(sources: IdentitySource[], scope: IdentityScope): IdentityReportEntry[] {
   const grouped = new Map<string, IdentityReportEntry>();
   const addMatches = (repositoryPath: string, location: IdentityLocation, value: string): void => {
@@ -149,6 +245,7 @@ function collectMatches(sources: IdentitySource[], scope: IdentityScope): Identi
       const token = match[0] as IdentityToken;
       const identityClass = identityClassFor(repositoryPath, token);
       if (scope === "active" && !activeClasses.has(identityClass)) continue;
+      const rule = classificationRules[identityClass];
       const candidate: IdentityReportEntry = {
         class: identityClass,
         count: 1,
@@ -156,6 +253,8 @@ function collectMatches(sources: IdentitySource[], scope: IdentityScope): Identi
         firstLine: location === "path" ? 0 : lineNumberForIndex(value, match.index ?? 0),
         location,
         path: repositoryPath,
+        reason: rule.reason,
+        ruleId: rule.ruleId,
         token,
       };
       const key = entryKey(candidate);
@@ -167,7 +266,7 @@ function collectMatches(sources: IdentitySource[], scope: IdentityScope): Identi
 
   for (const item of [...sources].sort((left, right) => left.path.localeCompare(right.path, "en"))) {
     const repositoryPath = normalizePath(item.path);
-    if (auditInfrastructurePaths.has(repositoryPath)) continue;
+    if (repositoryPath === baselineRepositoryPath) continue;
     addMatches(repositoryPath, "path", repositoryPath);
     addMatches(repositoryPath, "content", item.source);
   }
@@ -175,19 +274,36 @@ function collectMatches(sources: IdentitySource[], scope: IdentityScope): Identi
 }
 
 export function auditIdentitySources(options: AuditIdentitySourcesOptions): IdentityAuditReport {
+  const validatedBaseline = validateBaselineEntries(options.baseline);
+  const scopedBaseline = options.scope === "active"
+    ? validatedBaseline.filter((entry) => activeClasses.has(entry.class))
+    : validatedBaseline;
   const entries = collectMatches(options.sources, options.scope);
-  const baselineByKey = new Map(options.baseline.map((entry) => [entryKey(entry), entry]));
+  const baselineByKey = new Map(scopedBaseline.map((entry) => [entryKey(entry), entry]));
+  const observedByKey = new Map(entries.map((entry) => [entryKey(entry), entry]));
   const classCounts = emptyClassCounts();
   const unclassified: IdentityReportEntry[] = [];
+  const staleEntries: IdentityBaselineEntry[] = [];
+
   for (const entry of entries) {
     classCounts[entry.class] += entry.count;
-    if (!activeClasses.has(entry.class)) continue;
     const allowed = baselineByKey.get(entryKey(entry));
-    const allowedCount = allowed?.class === entry.class ? allowed.count : 0;
+    const allowedCount = allowed?.class === entry.class && allowed.ruleId === entry.ruleId && allowed.reason === entry.reason
+      ? allowed.count
+      : 0;
     if (entry.count > allowedCount) unclassified.push({ ...entry, count: entry.count - allowedCount });
   }
+  for (const entry of scopedBaseline) {
+    const observed = observedByKey.get(entryKey(entry));
+    const observedCount = observed?.class === entry.class && observed.ruleId === entry.ruleId && observed.reason === entry.reason
+      ? observed.count
+      : 0;
+    if (entry.count > observedCount) staleEntries.push({ ...entry, count: entry.count - observedCount });
+  }
+
   const matches = entries.reduce((total, entry) => total + entry.count, 0);
   const unclassifiedCount = unclassified.reduce((total, entry) => total + entry.count, 0);
+  const staleCount = staleEntries.reduce((total, entry) => total + entry.count, 0);
   return {
     schemaVersion: 1,
     scope: options.scope,
@@ -196,29 +312,34 @@ export function auditIdentitySources(options: AuditIdentitySourcesOptions): Iden
       classified: matches - unclassifiedCount,
       files: new Set(entries.map((entry) => entry.path)).size,
       matches,
+      stale: staleCount,
       unclassified: unclassifiedCount,
     },
     entries,
+    staleEntries,
     unclassified,
   };
 }
 
 export function formatIdentityAuditFailure(report: IdentityAuditReport): string {
-  const tokenOrder: IdentityToken[] = ["Open Design", "open-design", "OD_", "od://", "@open-design", ".od", "__od__"];
-  const foundTokens = tokenOrder.filter((token) => report.unclassified.some((entry) => entry.token === token));
-  const details = report.unclassified.map((entry) =>
-    `- ${entry.path}:${entry.firstLine} (${entry.location}) ${entry.token} x${entry.count} -> ${entry.class}`,
+  const foundTokens = identityTokens.filter((token) => report.unclassified.some((entry) => entry.token === token));
+  const unclassifiedDetails = report.unclassified.map((entry) =>
+    `- unclassified ${entry.path}:${entry.firstLine} (${entry.location}) ${entry.token} x${entry.count} -> ${entry.class}`,
+  );
+  const staleDetails = report.staleEntries.map((entry) =>
+    `- stale ${entry.path} (${entry.location}) ${entry.token} x${entry.count} -> ${entry.ruleId}`,
   );
   return [
-    `Readable identity audit rejected ${report.summary.unclassified} unclassified active match(es).`,
+    `Readable identity audit rejected ${report.summary.unclassified} unclassified match(es) and ${report.summary.stale} stale ledger match(es).`,
     `Tokens: ${foundTokens.join(", ")}`,
-    ...details,
-    "Classify current residue in scripts/readable-identity-baseline.json or remove the active identity token.",
+    ...unclassifiedDetails,
+    ...staleDetails,
+    "Regenerate the exact classified ledger after an intentional identity migration; path classes never bypass ledger enforcement.",
   ].join("\n");
 }
 
 export function assertIdentityAuditPassed(report: IdentityAuditReport): void {
-  if (report.summary.unclassified > 0) throw new Error(formatIdentityAuditFailure(report));
+  if (report.summary.unclassified > 0 || report.summary.stale > 0) throw new Error(formatIdentityAuditFailure(report));
 }
 
 async function trackedSources(root: string): Promise<IdentitySource[]> {
@@ -238,20 +359,16 @@ async function trackedSources(root: string): Promise<IdentitySource[]> {
 }
 
 export async function loadIdentityBaseline(): Promise<IdentityBaseline> {
-  const value = JSON.parse(await readFile(baselinePath, "utf8")) as IdentityBaseline;
-  if (value.schemaVersion !== 1 || !Array.isArray(value.entries)) {
-    throw new Error("Invalid readable identity baseline: expected schemaVersion 1 and an entries array.");
-  }
-  return value;
+  return validateIdentityBaseline(JSON.parse(await readFile(baselinePath, "utf8")) as unknown);
 }
 
 export async function createIdentityBaseline(root = repoRoot): Promise<IdentityBaseline> {
   const entries = collectMatches(await trackedSources(root), "all").map(({ firstLine: _firstLine, ...entry }) => entry);
-  return {
+  return validateIdentityBaseline({
     schemaVersion: 1,
-    description: "Classified tracked Open Design identity residue frozen before the Readable Studio cutover.",
+    description: "Exact classified tracked Open Design identity residue frozen before the Readable Studio cutover.",
     entries,
-  };
+  });
 }
 
 export async function auditRepositoryIdentity(scope: IdentityScope, root = repoRoot): Promise<IdentityAuditReport> {
@@ -261,9 +378,9 @@ export async function auditRepositoryIdentity(scope: IdentityScope, root = repoR
 
 export async function checkReadableIdentityAudit(): Promise<boolean> {
   try {
-    const report = await auditRepositoryIdentity("active");
+    const report = await auditRepositoryIdentity("all");
     assertIdentityAuditPassed(report);
-    console.log(`Readable identity audit passed: ${report.summary.classified} classified active matches, 0 unclassified.`);
+    console.log(`Readable identity audit passed: ${report.summary.classified} exact ledger matches, 0 unclassified, 0 stale.`);
     return true;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
@@ -300,7 +417,7 @@ async function main(): Promise<void> {
   await mkdir(path.dirname(path.resolve(options.report)), { recursive: true });
   await writeFile(options.report, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   assertIdentityAuditPassed(report);
-  console.log(`Readable identity audit passed: scope=${options.scope}, matches=${report.summary.matches}, unclassified=0, report=${normalizePath(options.report)}`);
+  console.log(`Readable identity audit passed: scope=${options.scope}, matches=${report.summary.matches}, unclassified=0, stale=0, report=${normalizePath(options.report)}`);
 }
 
 const isMain = process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
