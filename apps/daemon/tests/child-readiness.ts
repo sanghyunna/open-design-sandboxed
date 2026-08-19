@@ -36,6 +36,7 @@ export function spawnWaitingForOutputLine(
   let readinessState: 'pending' | 'ready' | 'failing' | 'failed' = 'pending';
   let terminationPromise: Promise<void> | undefined;
   let closeResult: CloseResult | undefined;
+  const ownedDescendantPids = new Set<number>();
 
   let resolveLine!: (line: string) => void;
   let rejectLine!: (error: Error) => void;
@@ -52,7 +53,7 @@ export function spawnWaitingForOutputLine(
   });
 
   const terminate = (): Promise<void> => {
-    terminationPromise ??= terminateOwnedTree(child, closed, () => closeResult);
+    terminationPromise ??= terminateOwnedTree(child, closed, () => closeResult, ownedDescendantPids);
     return terminationPromise;
   };
 
@@ -95,6 +96,10 @@ export function spawnWaitingForOutputLine(
     const text = chunk.toString('utf8');
     if (stream === 'stdout') stdout += text;
     else stderr += text;
+    for (const match of `${stdout}\n${stderr}`.matchAll(/\[readiness-owned-descendant:(\d+)\]/gu)) {
+      const pid = Number(match[1]);
+      if (Number.isInteger(pid) && pid > 0) ownedDescendantPids.add(pid);
+    }
     if (readinessState !== 'pending') return;
     const combined = `${stdout}\n${stderr}`;
     const matchingLine = combined.split(/\r?\n/u).find((candidate) => pattern.test(candidate));
@@ -117,9 +122,9 @@ export function spawnWaitingForOutputLine(
 
   void closed.then((result) => {
     if (readinessState !== 'pending') return;
-    readinessState = 'failed';
-    detachReadinessObservers();
-    rejectLine(diagnostic('child closed before stdout matched readiness pattern', result));
+    void failReadiness(new Error(
+      `child closed before stdout matched readiness pattern: code=${result.code} signal=${result.signal}`,
+    ));
   });
 
   return { child, line, terminate };
@@ -129,27 +134,40 @@ async function terminateOwnedTree(
   child: ChildProcessWithoutNullStreams,
   closed: Promise<CloseResult>,
   currentClose: () => CloseResult | undefined,
+  ownedDescendantPids: ReadonlySet<number>,
 ): Promise<void> {
-  if (currentClose() !== undefined) return;
   const pid = child.pid;
   if (pid === undefined) {
     await requireClose(closed, FORCED_CLOSE_TIMEOUT_MS, 'spawn failure did not emit close');
     return;
   }
+  const rootAlreadyClosed = currentClose() !== undefined;
 
   if (process.platform === 'win32') {
-    // Node's child.kill() targets only the direct process on Windows. taskkill
-    // owns the tree and returns only after descendants have been terminated.
+    // A root may close before readiness while detached descendants survive.
+    // taskkill the original tree and every PID reported over the controlled
+    // ownership channel; command completion is the terminal-state boundary.
     await taskkillTree(pid).catch(() => undefined);
-    if (await closesWithin(closed, GRACEFUL_CLOSE_TIMEOUT_MS)) return;
-    child.kill('SIGKILL');
-  } else {
-    signalPosixTree(child, pid, 'SIGTERM');
-    if (await closesWithin(closed, GRACEFUL_CLOSE_TIMEOUT_MS)) return;
-    signalPosixTree(child, pid, 'SIGKILL');
+    for (const descendantPid of ownedDescendantPids) {
+      await taskkillTree(descendantPid).catch(() => undefined);
+    }
+    if (!rootAlreadyClosed && !(await closesWithin(closed, GRACEFUL_CLOSE_TIMEOUT_MS))) {
+      child.kill('SIGKILL');
+      await requireClose(closed, FORCED_CLOSE_TIMEOUT_MS, `child tree ${pid} did not close after forced termination`);
+    }
+    return;
   }
 
-  await requireClose(closed, FORCED_CLOSE_TIMEOUT_MS, `child tree ${pid} did not close after forced termination`);
+  // The detached root is its POSIX process-group leader. Keep targeting the
+  // recorded group id even after the leader closes; descendants remain members.
+  signalPosixTree(child, pid, 'SIGTERM');
+  for (const descendantPid of ownedDescendantPids) signalKnownPid(descendantPid, 'SIGTERM');
+  if (!rootAlreadyClosed && await closesWithin(closed, GRACEFUL_CLOSE_TIMEOUT_MS)) return;
+  signalPosixTree(child, pid, 'SIGKILL');
+  for (const descendantPid of ownedDescendantPids) signalKnownPid(descendantPid, 'SIGKILL');
+  if (!rootAlreadyClosed) {
+    await requireClose(closed, FORCED_CLOSE_TIMEOUT_MS, `child tree ${pid} did not close after forced termination`);
+  }
 }
 
 function signalPosixTree(
@@ -158,9 +176,21 @@ function signalPosixTree(
   signal: NodeJS.Signals,
 ): void {
   try {
-    process.kill(-pid, signal);
+    process.kill(posixProcessGroupTarget(pid), signal);
   } catch {
     child.kill(signal);
+  }
+}
+
+export function posixProcessGroupTarget(pid: number): number {
+  return -pid;
+}
+
+function signalKnownPid(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(pid, signal);
+  } catch {
+    // Already terminal is the desired state.
   }
 }
 
