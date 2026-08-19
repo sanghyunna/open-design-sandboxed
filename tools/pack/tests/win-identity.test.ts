@@ -17,7 +17,7 @@ describe("resolveWinInstallIdentity", () => {
     expect(resolveWinInstallIdentity({ namespace: "release-stable-win" })).toMatchObject({
       appPathsKey: "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Open Design.exe",
       displayName: "Open Design",
-      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Open Design-release-stable-win",
+      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-release-stable-win",
       shortcutName: "Open Design.lnk",
       uninstallerName: "Uninstall Open Design.exe",
     });
@@ -27,7 +27,7 @@ describe("resolveWinInstallIdentity", () => {
     expect(resolveWinInstallIdentity({ namespace: "release-beta-win" })).toMatchObject({
       appPathsKey: "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Open Design Beta.exe",
       displayName: "Open Design Beta",
-      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Open Design-release-beta-win",
+      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-release-beta-win",
       shortcutName: "Open Design Beta.lnk",
       uninstallerName: "Uninstall Open Design Beta.exe",
     });
@@ -37,7 +37,7 @@ describe("resolveWinInstallIdentity", () => {
     expect(resolveWinInstallIdentity({ namespace: "beta-local-flow" })).toMatchObject({
       appPathsKey: "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Open Design beta-local-flow.exe",
       displayName: "Open Design beta-local-flow",
-      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Open Design-beta-local-flow",
+      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-beta-local-flow",
       shortcutName: "Open Design beta-local-flow.lnk",
       uninstallerName: "Uninstall Open Design beta-local-flow.exe",
     });
@@ -47,7 +47,7 @@ describe("resolveWinInstallIdentity", () => {
     expect(resolveWinInstallIdentity({ namespace: "release-preview-win" })).toMatchObject({
       appPathsKey: "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Open Design Preview.exe",
       displayName: "Open Design Preview",
-      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Open Design-release-preview-win",
+      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-release-preview-win",
       shortcutName: "Open Design Preview.lnk",
       uninstallerName: "Uninstall Open Design Preview.exe",
     });
@@ -60,7 +60,7 @@ describe("resolveWinInstallIdentity", () => {
     })).toMatchObject({
       appPathsKey: "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\Open Design Nightly.exe",
       displayName: "Open Design Nightly",
-      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Open Design-release-stable-win",
+      registryKey: "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-release-stable-win",
       shortcutName: "Open Design Nightly.lnk",
       uninstallerName: "Uninstall Open Design Nightly.exe",
     });

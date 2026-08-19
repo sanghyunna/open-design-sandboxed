@@ -14,7 +14,7 @@ import {
 } from '@open-design/diagnostics';
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_MODES,
   type SidecarStamp,
 } from '@open-design/sidecar-proto';
@@ -110,7 +110,7 @@ function buildSidecarLogSources(runtime: SidecarRuntimeContext<SidecarStamp> | n
   // accounts for that (a plain `resolveNamespaceRoot` here resolved every
   // daemon/web log to an ENOENT phantom path and captured none of them).
   const namespaceRoot = resolveRuntimeNamespaceRoot({
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     runtime,
     runtimeMode: SIDECAR_MODES.RUNTIME,
   });
@@ -119,7 +119,7 @@ function buildSidecarLogSources(runtime: SidecarRuntimeContext<SidecarStamp> | n
   for (const app of apps) {
     const absolutePath = resolveLogFilePath({
       app,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       runtimeRoot: namespaceRoot,
     });
     sources.push({

@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
   type SidecarStamp,
@@ -158,7 +158,7 @@ function createFixtureHarness(
     base: paths.runtimeRoot,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,

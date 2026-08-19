@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
@@ -919,7 +919,7 @@ async function validateDesktopAppImageMarker(
   // the dual-source acceptance pattern in mac/lifecycle.ts.
   const expectedIpc = resolveAppIpcPath({
     app: APP_KEYS.DESKTOP,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace: config.namespace,
   });
   const stampOk =
@@ -966,7 +966,7 @@ function linuxDesktopStamp(config: ToolPackConfig): SidecarStamp {
     app: APP_KEYS.DESKTOP,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace: config.namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,
@@ -987,7 +987,7 @@ async function waitForMarker(markerPath: string, timeoutMs: number): Promise<boo
 async function fetchDesktopStatus(config: ToolPackConfig): Promise<DesktopStatusSnapshot | null> {
   try {
     const ipc = resolveAppIpcPath({
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace: config.namespace,
       app: APP_KEYS.DESKTOP,
     });
@@ -1024,7 +1024,7 @@ export async function startPackedLinuxApp(config: ToolPackConfig): Promise<Linux
   // --appimage-extract-and-run bypasses FUSE-mounted SquashFS, which is too slow
   // for daemon startup on first launch (smoke testing showed startup exceeded the
   // packaged sidecar's 35-second timeout when running from FUSE).
-  const args = ["--appimage-extract-and-run", ...createProcessStampArgs(stamp, OPEN_DESIGN_SIDECAR_CONTRACT)];
+  const args = ["--appimage-extract-and-run", ...createProcessStampArgs(stamp, SIDECAR_CONTRACT)];
 
   const child = await spawnBackgroundProcess({
     args,
@@ -1032,7 +1032,7 @@ export async function startPackedLinuxApp(config: ToolPackConfig): Promise<Linux
     cwd: dirname(appImagePath),
     env: createSidecarLaunchEnv({
       base: join(config.roots.runtime.namespaceRoot, "runtime"),
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       extraEnv: { ...process.env, [DESKTOP_LOG_ECHO_ENV]: "0" },
       stamp,
     }),
@@ -1546,7 +1546,7 @@ export async function stopPackedLinuxHeadless(config: ToolPackConfig): Promise<L
   // the AppImage runtime.
   const expectedIpc = resolveAppIpcPath({
     app: APP_KEYS.DESKTOP,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace: config.namespace,
   });
   const stampOk =

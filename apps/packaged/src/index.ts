@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
@@ -53,7 +53,7 @@ function createPackagedDesktopStamp(namespace: string): SidecarStamp {
     app: APP_KEYS.DESKTOP,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,
@@ -65,7 +65,7 @@ function createPackagedDesktopStamp(namespace: string): SidecarStamp {
 function applyLaunchEnv(base: string, stamp: SidecarStamp): void {
   const env = createSidecarLaunchEnv({
     base,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     stamp,
   });
 
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
   const config = await readPackagedConfig();
   startupTiming.mark("config-read-complete");
   const afterQuit = parseLauncherAfterQuitArgs(process.argv.slice(1));
-  const argvStamp = readProcessStamp(process.argv.slice(1), OPEN_DESIGN_SIDECAR_CONTRACT);
+  const argvStamp = readProcessStamp(process.argv.slice(1), SIDECAR_CONTRACT);
   const namespace = argvStamp?.namespace ?? config.namespace;
   const namespaceConfig = namespace === config.namespace ? config : { ...config, namespace };
   const initialPaths = resolvePackagedNamespacePaths(namespaceConfig, namespace, process.env);
@@ -158,7 +158,7 @@ async function main(): Promise<void> {
   const runtime = bootstrapSidecarRuntime(stamp, process.env, {
     app: APP_KEYS.DESKTOP,
     base: paths.runtimeRoot,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
   });
 
   const sidecars = await startPackagedSidecars(runtime, paths, {

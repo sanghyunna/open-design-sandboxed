@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { waitForProcessExit } from "@open-design/platform";
 import type { LauncherAfterQuitRequest } from "@open-design/launcher-proto";
-import { APP_KEYS, OPEN_DESIGN_SIDECAR_CONTRACT, SIDECAR_MESSAGES, type DesktopStatusSnapshot } from "@open-design/sidecar-proto";
+import { APP_KEYS, SIDECAR_CONTRACT, SIDECAR_MESSAGES, type DesktopStatusSnapshot } from "@open-design/sidecar-proto";
 import { requestJsonIpc, resolveAppIpcPath } from "@open-design/sidecar";
 
 import type { PackagedNamespacePaths } from "./paths.js";
@@ -53,7 +53,7 @@ export async function inspectExistingDesktopForLauncher(
   const requestIpc = options.requestIpc ?? requestJsonIpc;
   const ipcPath = resolveAppIpcPath({
     app: APP_KEYS.DESKTOP,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace,
   });
   let status: DesktopStatusSnapshot | null = null;

@@ -15,6 +15,7 @@ const buildTargets = [
   "packages/registry-protocol",
   "packages/agui-adapter",
   "packages/plugin-runtime",
+  "packages/product-identity",
   "packages/sidecar-proto",
   "packages/launcher-proto",
   "packages/sidecar",

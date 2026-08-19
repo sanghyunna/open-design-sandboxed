@@ -30,6 +30,20 @@ describe("product identity dependency boundary", () => {
     expect(serializeProductIdentity(parseProductIdentity(JSON.parse(artifact)))).toBe(artifact);
   });
 
+  it("allows only sidecar-proto to depend on product identity", async () => {
+    const sidecarProtoRoot = resolve(workspaceRoot, "packages/sidecar-proto");
+    const manifest: PackageManifest = JSON.parse(
+      await readFile(resolve(sidecarProtoRoot, "package.json"), "utf8"),
+    );
+    const source = await readFile(resolve(sidecarProtoRoot, "src/index.ts"), "utf8");
+
+    expect(manifest.dependencies).toEqual({
+      "@readable-studio/product-identity": "workspace:*",
+    });
+    expect(source).toContain('from "@readable-studio/product-identity"');
+    expect(source).not.toMatch(/OPEN_DESIGN_PRODUCT_NAME|OpenDesignSidecarContract|OPEN_DESIGN_SIDECAR_CONTRACT/);
+  });
+
   it("keeps generic sidecar and platform packages product-neutral", async () => {
     const [sidecarSource, platformSource] = await Promise.all([
       readFile(resolve(workspaceRoot, "packages/sidecar/src/index.ts"), "utf8"),

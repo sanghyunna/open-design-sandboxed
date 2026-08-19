@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_DEFAULTS,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
@@ -47,7 +47,7 @@ function resolveHeadlessAmrProfile(): PackagedConfig["amrProfile"] {
 
 function resolveHeadlessConfig(): PackagedConfig {
   const namespace =
-    OPEN_DESIGN_SIDECAR_CONTRACT.normalizeNamespace(
+    SIDECAR_CONTRACT.normalizeNamespace(
       process.env[PACKAGED_NAMESPACE_ENV] ?? SIDECAR_DEFAULTS.namespace,
     );
 
@@ -85,7 +85,7 @@ function createHeadlessStamp(namespace: string): SidecarStamp {
     app: APP_KEYS.DESKTOP,
     ipc: resolveAppIpcPath({
       app: APP_KEYS.DESKTOP,
-      contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+      contract: SIDECAR_CONTRACT,
       namespace,
     }),
     mode: SIDECAR_MODES.RUNTIME,
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
   const runtime = bootstrapSidecarRuntime(stamp, process.env, {
     app: APP_KEYS.DESKTOP,
     base: paths.runtimeRoot,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
   });
 
   // Write a headless-specific identity marker so `tools-pack linux stop --headless`

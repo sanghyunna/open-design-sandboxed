@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import {
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_DEFAULTS,
 } from "@open-design/sidecar-proto";
 import { resolveNamespace } from "@open-design/sidecar";
@@ -185,7 +185,7 @@ export function resolveToolPackConfig(
 ): ToolPackConfig {
   const appVersion = resolveToolPackAppVersion(options.appVersion);
   const namespace = resolveNamespace({
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     env: process.env,
     namespace: options.namespace ?? defaultNamespaceForAppVersion(platform, appVersion),
   });

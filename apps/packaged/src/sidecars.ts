@@ -6,7 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   APP_KEYS,
-  OPEN_DESIGN_SIDECAR_CONTRACT,
+  SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
@@ -391,7 +391,7 @@ async function spawnSidecarChild(options: {
 }): Promise<ManagedSidecarChild> {
   const ipcPath = resolveAppIpcPath({
     app: options.app,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     namespace: options.runtime.namespace,
   });
   const stamp = {
@@ -405,7 +405,7 @@ async function spawnSidecarChild(options: {
   const logHandle = await openLog(logPath);
   const childEnv = createSidecarLaunchEnv({
     base: options.paths.runtimeRoot,
-    contract: OPEN_DESIGN_SIDECAR_CONTRACT,
+    contract: SIDECAR_CONTRACT,
     extraEnv: {
       ...resolvePackagedChildBaseEnv(
         process.env,
@@ -423,7 +423,7 @@ async function spawnSidecarChild(options: {
   const command = options.nodeCommand ?? (await resolvePackagedElectronNodeCommand());
   const child = spawn(
     command,
-    [options.entryPath, ...createProcessStampArgs(stamp, OPEN_DESIGN_SIDECAR_CONTRACT)],
+    [options.entryPath, ...createProcessStampArgs(stamp, SIDECAR_CONTRACT)],
     {
       cwd: process.cwd(),
       env: childEnv,

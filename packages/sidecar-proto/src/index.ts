@@ -1,3 +1,5 @@
+import { PRODUCT_IDENTITY, type ProductIdentity } from "@readable-studio/product-identity";
+
 // @dsp func-a62f84e4
 export const APP_KEYS = Object.freeze({
   DAEMON: "daemon",
@@ -72,18 +74,6 @@ export const STAMP_SOURCE_FLAG = SIDECAR_STAMP_FLAGS.source;
 // @dsp func-d79ee8a7
 export const SIDECAR_STAMP_FIELDS = ["app", "mode", "namespace", "ipc", "source"] as const;
 
-// @dsp func-e847aaf5
-export const SIDECAR_DEFAULTS = Object.freeze({
-  host: "127.0.0.1",
-  ipcBase: "/tmp/open-design/ipc",
-  namespace: "default",
-  projectTmpDirName: ".tmp",
-  windowsPipePrefix: "open-design",
-} as const);
-
-// @dsp func-03549bc7
-export const OPEN_DESIGN_PRODUCT_NAME = "Open Design";
-
 // @dsp func-018389a7
 export function resolveWindowsReleaseNamespaceToken(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, "-");
@@ -92,7 +82,7 @@ export function resolveWindowsReleaseNamespaceToken(value: string): string {
 // @dsp func-5b66036b
 export function resolveWindowsUninstallRegistryKey(namespace: string): string {
   const namespaceToken = resolveWindowsReleaseNamespaceToken(namespace);
-  return `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${OPEN_DESIGN_PRODUCT_NAME}-${namespaceToken}`;
+  return `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${PRODUCT_IDENTITY.productName}-${namespaceToken}`;
 }
 
 // @dsp func-f6bb5bc3
@@ -475,25 +465,33 @@ export type SidecarStamp = {
 export type SidecarStampInput = Partial<Record<(typeof SIDECAR_STAMP_FIELDS)[number], unknown>>;
 export type SidecarStampCriteria = Partial<SidecarStamp>;
 
-export type OpenDesignSidecarContract = {
-  appKeys: typeof APP_KEYS;
-  defaults: typeof SIDECAR_DEFAULTS;
-  env: typeof SIDECAR_RUNTIME_ENV;
-  errorCodes: typeof SIDECAR_ERROR_CODES;
-  messages: typeof SIDECAR_MESSAGES;
-  modes: typeof SIDECAR_MODES;
-  normalizeApp: typeof normalizeAppKey;
-  normalizeNamespace: typeof normalizeNamespace;
-  normalizeSource: typeof normalizeSidecarSource;
-  normalizeStamp: typeof normalizeSidecarStamp;
-  normalizeStampCriteria: typeof normalizeSidecarStampCriteria;
-  sources: typeof SIDECAR_SOURCES;
-  stampFields: typeof SIDECAR_STAMP_FIELDS;
-  stampFlags: typeof SIDECAR_STAMP_FLAGS;
-  updateActions: typeof DESKTOP_UPDATE_ACTIONS;
-  updateChannels: typeof DESKTOP_UPDATE_CHANNELS;
-  updateModes: typeof DESKTOP_UPDATE_MODES;
-  updateStates: typeof DESKTOP_UPDATE_STATES;
+export type SidecarDefaults = {
+  readonly host: "127.0.0.1";
+  readonly ipcBase: string;
+  readonly namespace: "default";
+  readonly projectTmpDirName: ".tmp";
+  readonly windowsPipePrefix: string;
+};
+
+export type SidecarContract = {
+  readonly appKeys: typeof APP_KEYS;
+  readonly defaults: SidecarDefaults;
+  readonly env: typeof SIDECAR_RUNTIME_ENV;
+  readonly errorCodes: typeof SIDECAR_ERROR_CODES;
+  readonly messages: typeof SIDECAR_MESSAGES;
+  readonly modes: typeof SIDECAR_MODES;
+  readonly normalizeApp: typeof normalizeAppKey;
+  readonly normalizeNamespace: typeof normalizeNamespace;
+  readonly normalizeSource: typeof normalizeSidecarSource;
+  readonly normalizeStamp: typeof normalizeSidecarStamp;
+  readonly normalizeStampCriteria: typeof normalizeSidecarStampCriteria;
+  readonly sources: typeof SIDECAR_SOURCES;
+  readonly stampFields: typeof SIDECAR_STAMP_FIELDS;
+  readonly stampFlags: typeof SIDECAR_STAMP_FLAGS;
+  readonly updateActions: typeof DESKTOP_UPDATE_ACTIONS;
+  readonly updateChannels: typeof DESKTOP_UPDATE_CHANNELS;
+  readonly updateModes: typeof DESKTOP_UPDATE_MODES;
+  readonly updateStates: typeof DESKTOP_UPDATE_STATES;
 };
 
 function assertObject(value: unknown, label: string): Record<string, unknown> {
@@ -757,23 +755,36 @@ export function normalizeDesktopSidecarMessage(input: unknown): DesktopSidecarMe
 }
 
 // @dsp func-e67eab33
-export const OPEN_DESIGN_SIDECAR_CONTRACT = Object.freeze({
-  appKeys: APP_KEYS,
-  defaults: SIDECAR_DEFAULTS,
-  env: SIDECAR_RUNTIME_ENV,
-  errorCodes: SIDECAR_ERROR_CODES,
-  messages: SIDECAR_MESSAGES,
-  modes: SIDECAR_MODES,
-  normalizeApp: normalizeAppKey,
-  normalizeNamespace,
-  normalizeSource: normalizeSidecarSource,
-  normalizeStamp: normalizeSidecarStamp,
-  normalizeStampCriteria: normalizeSidecarStampCriteria,
-  sources: SIDECAR_SOURCES,
-  stampFields: SIDECAR_STAMP_FIELDS,
-  stampFlags: SIDECAR_STAMP_FLAGS,
-  updateActions: DESKTOP_UPDATE_ACTIONS,
-  updateChannels: DESKTOP_UPDATE_CHANNELS,
-  updateModes: DESKTOP_UPDATE_MODES,
-  updateStates: DESKTOP_UPDATE_STATES,
-} as const satisfies OpenDesignSidecarContract);
+export function createSidecarContract(identity: ProductIdentity): SidecarContract {
+  const defaults = Object.freeze({
+    host: "127.0.0.1",
+    ipcBase: `/tmp/${identity.productId}/ipc`,
+    namespace: "default",
+    projectTmpDirName: ".tmp",
+    windowsPipePrefix: identity.productId,
+  } as const satisfies SidecarDefaults);
+
+  return Object.freeze({
+    appKeys: APP_KEYS,
+    defaults,
+    env: SIDECAR_RUNTIME_ENV,
+    errorCodes: SIDECAR_ERROR_CODES,
+    messages: SIDECAR_MESSAGES,
+    modes: SIDECAR_MODES,
+    normalizeApp: normalizeAppKey,
+    normalizeNamespace,
+    normalizeSource: normalizeSidecarSource,
+    normalizeStamp: normalizeSidecarStamp,
+    normalizeStampCriteria: normalizeSidecarStampCriteria,
+    sources: SIDECAR_SOURCES,
+    stampFields: SIDECAR_STAMP_FIELDS,
+    stampFlags: SIDECAR_STAMP_FLAGS,
+    updateActions: DESKTOP_UPDATE_ACTIONS,
+    updateChannels: DESKTOP_UPDATE_CHANNELS,
+    updateModes: DESKTOP_UPDATE_MODES,
+    updateStates: DESKTOP_UPDATE_STATES,
+  } as const satisfies SidecarContract);
+}
+
+export const SIDECAR_CONTRACT = createSidecarContract(PRODUCT_IDENTITY);
+export const SIDECAR_DEFAULTS = SIDECAR_CONTRACT.defaults;
