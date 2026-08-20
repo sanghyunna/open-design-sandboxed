@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create a bug-report issue on sanghyunna/open-design-sandboxed from a rendered body file.
+# Create a bug-report issue on sanghyunna/readable-studio from a rendered body file.
 # Usage:
 #   create-issue.sh --title "<issue title>" --body-file <rendered .md>
 #                   [--allow-duplicates] [--dedupe-keywords "<kw>"]
@@ -39,18 +39,18 @@ while (($#)); do
     --body-file)        BODY_FILE="$2"; shift 2 ;;
     --dedupe-keywords)  DEDUPE_KEYWORDS="$2"; shift 2 ;;
     --allow-duplicates) ALLOW_DUPES=1; shift ;;
-    *) od::die "unknown flag: $1" ;;
+    *) readable::die "unknown flag: $1" ;;
   esac
 done
 
-[[ -n "$TITLE"     ]] || od::die "--title required"
-[[ -f "$BODY_FILE" ]] || od::die "--body-file does not exist: $BODY_FILE"
+[[ -n "$TITLE"     ]] || readable::die "--title required"
+[[ -f "$BODY_FILE" ]] || readable::die "--body-file does not exist: $BODY_FILE"
 
-od::require gh
-od::require jq
+readable::require gh
+readable::require jq
 
 if [[ -n "$DEDUPE_KEYWORDS" && "$ALLOW_DUPES" -eq 0 ]]; then
-  od::log "checking for duplicates: $DEDUPE_KEYWORDS"
+  readable::log "checking for duplicates: $DEDUPE_KEYWORDS"
 
   # Run gh search and jq as separate steps so a failure in either is loud
   # rather than swallowed by `|| true`. The previous implementation chained
@@ -62,14 +62,14 @@ if [[ -n "$DEDUPE_KEYWORDS" && "$ALLOW_DUPES" -eq 0 ]]; then
         --state open \
         --limit 5 \
         --json number,title,url 2>&1)"; then
-    od::err "gh search failed: $SEARCH_JSON"
+    readable::err "gh search failed: $SEARCH_JSON"
     printf 'REASON=search_failed\n' >&2
     exit 2
   fi
 
   MATCH_COUNT="$(printf '%s' "$SEARCH_JSON" | jq -r 'length' 2>/dev/null || echo 'parse-error')"
   if [[ "$MATCH_COUNT" == "parse-error" ]]; then
-    od::err "could not parse gh search output as JSON"
+    readable::err "could not parse gh search output as JSON"
     printf 'REASON=parse_failed\n' >&2
     exit 2
   fi
@@ -77,24 +77,24 @@ if [[ -n "$DEDUPE_KEYWORDS" && "$ALLOW_DUPES" -eq 0 ]]; then
   if (( MATCH_COUNT > 0 )); then
     printf '%s' "$SEARCH_JSON" \
       | jq -r '.[] | "  #\(.number)  \(.title)\n           \(.url)"' >&2
-    od::err "${MATCH_COUNT} potentially duplicate open issue(s) found."
-    od::err "Refusing to create a new issue. Show these to the user and ask:"
-    od::err "  (a) comment on an existing one — open the URL above"
-    od::err "  (b) open a new issue anyway — re-run with --allow-duplicates"
-    od::err "  (c) cancel — do nothing"
+    readable::err "${MATCH_COUNT} potentially duplicate open issue(s) found."
+    readable::err "Refusing to create a new issue. Show these to the user and ask:"
+    readable::err "  (a) comment on an existing one — open the URL above"
+    readable::err "  (b) open a new issue anyway — re-run with --allow-duplicates"
+    readable::err "  (c) cancel — do nothing"
     printf 'REASON=duplicates_found\n' >&2
     printf 'MATCH_COUNT=%s\n' "$MATCH_COUNT" >&2
     exit 3
   fi
 
-  od::log "no duplicates found — proceeding with create"
+  readable::log "no duplicates found — proceeding with create"
 fi
 
 URL="$(gh issue create \
   --repo "$TARGET_REPO" \
   --title "$TITLE" \
   --body-file "$BODY_FILE" \
-  --label bug)" || od::die "gh issue create failed"
+  --label bug)" || readable::die "gh issue create failed"
 
 printf '\n'
 printf '%s\n' "$URL"

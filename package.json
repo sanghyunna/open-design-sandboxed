@@ -6,6 +6,14 @@
   "type": "module",
   "description": "Local-first design product: detects your installed code-agent CLI, runs design skills + design systems, streams artifacts into a sandboxed preview.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanghyunna/readable-studio.git"
+  },
+  "homepage": "https://github.com/sanghyunna/readable-studio#readme",
+  "bugs": {
+    "url": "https://github.com/sanghyunna/readable-studio/issues"
+  },
   "bin": {
     "readable": "./apps/daemon/bin/readable.mjs"
   },

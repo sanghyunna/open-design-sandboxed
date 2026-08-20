@@ -1,14 +1,14 @@
-# What an OD design-system folder looks like
+# What an Readable Studio design-system folder looks like
 
-Reference for the `od-contribute` skill's `validate-design-system.sh` step.
+Reference for the `readable-contribute` skill's `validate-design-system.sh` step.
 
-> **Authoritative source**: read 1–2 existing folders under `design-systems/` in `sanghyunna/open-design-sandboxed` at runtime — the conventions evolve as new systems land.
+> **Authoritative source**: read 1–2 existing folders under `design-systems/` in `sanghyunna/readable-studio` at runtime — the conventions evolve as new systems land.
 
 ## Minimum viable design system
 
 ```
 design-systems/<brand-slug>/
-└── DESIGN.md          # required — the brand brief OD loads
+└── DESIGN.md          # required — the brand brief Readable Studio loads
 ```
 
 A few systems include extras: `components.html`, `tokens.css`. These are optional, referenced from `DESIGN.md` if present.
@@ -47,5 +47,5 @@ That's deliberately loose — DESIGN.md is a creative brief, not a schema.
 ## Don'ts
 
 - Don't reference assets outside the brand folder.
-- Don't paste binary fonts; use a CSS `@font-face` reference and let OD resolve at runtime.
+- Don't paste binary fonts; use a CSS `@font-face` reference and let Readable Studio resolve at runtime.
 - Don't use real customer logos / proprietary brand assets you don't have rights to (the validator won't catch this — it's a maintainer-review concern).

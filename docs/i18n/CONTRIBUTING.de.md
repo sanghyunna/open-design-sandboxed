@@ -18,7 +18,7 @@ Dieser Leitfaden zeigt, wo Sie für welche Art Beitrag suchen sollten und welche
 | Feature ergänzen, Bug fixen, UX-Pattern aus [`open-codesign`][ocod] übernehmen | Code | `apps/web/src/`, `apps/daemon/` | normaler PR |
 | Dokumentation verbessern, Französisch / Deutsch / 中文 ergänzen, Tippfehler fixen | Dokumentation | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | ein PR |
 
-Wenn Sie nicht sicher sind, in welchen Bereich Ihre Idee fällt, [öffnen Sie zuerst eine Discussion / Issue](https://github.com/sanghyunna/open-design-sandboxed/issues/new). Wir zeigen Ihnen dann die passende Oberfläche.
+Wenn Sie nicht sicher sind, in welchen Bereich Ihre Idee fällt, [öffnen Sie zuerst eine Discussion / Issue](https://github.com/sanghyunna/readable-studio/issues/new). Wir zeigen Ihnen dann die passende Oberfläche.
 
 ---
 
@@ -27,8 +27,8 @@ Wenn Sie nicht sicher sind, in welchen Bereich Ihre Idee fällt, [öffnen Sie zu
 Das vollständige One-Page-Setup steht in [`QUICKSTART.de.md`](QUICKSTART.de.md). TL;DR für Mitwirkende:
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable           # wählt das gepinnte pnpm aus packageManager
 pnpm install
 pnpm tools-dev run web    # daemon + web foreground loop
@@ -243,7 +243,7 @@ Für Prompt-Stack-Bugs fügen Sie die **vollständige Assistant Message** bei, d
 
 ## Fragen stellen
 
-- Architekturfrage, Designfrage, "Bug oder Fehlbenutzung?" → [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions) (bevorzugt, weil suchbar).
+- Architekturfrage, Designfrage, "Bug oder Fehlbenutzung?" → [GitHub Discussions](https://github.com/sanghyunna/readable-studio/discussions) (bevorzugt, weil suchbar).
 - "Wie schreibe ich einen Skill für X?" → Discussion öffnen. Wir beantworten sie und übernehmen fehlende Muster in [`docs/skills-protocol.md`](../../docs/skills-protocol.md).
 
 ---
@@ -274,7 +274,7 @@ Wenn Sie kontinuierlich beigetragen haben und wissen möchten, wie der Weg zum M
 
 Das tl;dr: Liefern Sie gute PRs, prüfen Sie sorgfältig, halten Sie sich in [Discussions][discussions] / [Discord][discord] auf — und der Rest ergibt sich von selbst.
 
-[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
+[discussions]: https://github.com/sanghyunna/readable-studio/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

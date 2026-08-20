@@ -1,8 +1,8 @@
-# What an OD skill folder looks like
+# What an Readable Studio skill folder looks like
 
-Reference for the `od-contribute` skill's `validate-skill-submission.sh` step and for guiding a user through assembling a Skill submission.
+Reference for the `readable-contribute` skill's `validate-skill-submission.sh` step and for guiding a user through assembling a Skill submission.
 
-> **Authoritative source**: read 1–2 existing folders under `skills/` in `sanghyunna/open-design-sandboxed` at runtime — conventions evolve faster than this doc.
+> **Authoritative source**: read 1–2 existing folders under `skills/` in `sanghyunna/readable-studio` at runtime — conventions evolve faster than this doc.
 
 ## Minimum viable skill
 
@@ -11,7 +11,7 @@ skills/<your-skill>/
 └── SKILL.md          # required, must have YAML frontmatter
 ```
 
-That's it. Many of the simplest skills in OD are exactly that: one Markdown file in one folder.
+That's it. Many of the simplest skills in Readable Studio are exactly that: one Markdown file in one folder.
 
 ## Frontmatter — what `validate-skill-submission.sh` requires
 
@@ -23,7 +23,7 @@ description: |                    # required; one paragraph; what the skill does
 triggers:                         # optional but strongly recommended
   - "ad creative"
   - "ad headline"
-od:                               # optional; OD-specific metadata
+readable:                               # optional; Readable Studio-specific metadata
   mode: design-system             # or other modes; check existing skills
   category: <category-slug>
   upstream: "https://github.com/..."  # if the skill was lifted from somewhere

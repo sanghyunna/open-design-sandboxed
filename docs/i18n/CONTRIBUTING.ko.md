@@ -18,7 +18,7 @@
 | 기능 추가, 버그 수정, [`open-codesign`][ocod]에서 UX 패턴 가져오기 | 코드 | `apps/web/src/`, `apps/daemon/` | 일반 PR |
 | 문서 개선, 일부 섹션을 Français / Deutsch / 中文로 번역, 오타 수정 | 문서 | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | PR 한 건 |
 
-어느 쪽에 해당하는지 모르겠다면 [먼저 discussion이나 issue를 열어주세요](https://github.com/sanghyunna/open-design-sandboxed/issues/new). 적절한 위치를 안내해 드리겠습니다.
+어느 쪽에 해당하는지 모르겠다면 [먼저 discussion이나 issue를 열어주세요](https://github.com/sanghyunna/readable-studio/issues/new). 적절한 위치를 안내해 드리겠습니다.
 
 ---
 
@@ -27,8 +27,8 @@
 한 페이지짜리 전체 설정 안내는 [`QUICKSTART.ko.md`](QUICKSTART.ko.md)에 있습니다. 기여자를 위한 요약은 다음과 같습니다.
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable           # packageManager에 고정된 pnpm을 선택합니다
 pnpm install
 pnpm tools-dev run web    # daemon + web 포그라운드 루프
@@ -210,7 +210,7 @@ CLA는 요구하지 않습니다. Apache-2.0으로 충분하며, 당신의 기�
 
 ## 질문하기
 
-- 아키텍처 질문, 설계 질문, "이게 버그인지 오용인지" → [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions) (권장 — 다음 사람이 검색할 수 있습니다).
+- 아키텍처 질문, 설계 질문, "이게 버그인지 오용인지" → [GitHub Discussions](https://github.com/sanghyunna/readable-studio/discussions) (권장 — 다음 사람이 검색할 수 있습니다).
 - "X를 하는 skill을 어떻게 작성하나요" → discussion을 열어주세요. 답해드리고, 빠져 있던 패턴이라면 그 답을 [`docs/skills-protocol.md`](../../docs/skills-protocol.md)에 정리합니다.
 
 ---
@@ -240,7 +240,7 @@ CLA는 요구하지 않습니다. Apache-2.0으로 충분하며, 당신의 기�
 
 요컨대 좋은 PR을 내고, 사려 깊게 리뷰하고, [Discussions][discussions]와 [Discord][discord]에서 어울리다 보면 나머지는 알아서 따라옵니다.
 
-[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
+[discussions]: https://github.com/sanghyunna/readable-studio/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

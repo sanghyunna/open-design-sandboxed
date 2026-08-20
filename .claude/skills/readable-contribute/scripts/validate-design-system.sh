@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Validate a user-supplied DESIGN.md (Open Design "design system" submission).
+# Validate a user-supplied DESIGN.md (Readable Studio "design system" submission).
 # Usage: validate-design-system.sh <DESIGN.md path> [--reference <existing-DESIGN.md>]
 #
 # Strategy: instead of hardcoding a schema, we read 1-3 existing DESIGN.md files
-# from the OD repo at runtime to learn which top-level sections are conventional,
+# from the Readable Studio repo at runtime to learn which top-level sections are conventional,
 # then check the new file has at least those sections (case-insensitive H1/H2 match).
 #
 # Heuristic-only: warns rather than fails on missing optional sections; only fails
@@ -19,12 +19,12 @@ REFERENCE_FILES=()
 while (($#)); do
   case "$1" in
     --reference) REFERENCE_FILES+=("$2"); shift 2 ;;
-    *) od::die "unknown flag: $1" ;;
+    *) readable::die "unknown flag: $1" ;;
   esac
 done
 
-[[ -f "$NEW_FILE" ]] || od::die "not a file: $NEW_FILE"
-[[ -s "$NEW_FILE" ]] || od::die "file is empty: $NEW_FILE"
+[[ -f "$NEW_FILE" ]] || readable::die "not a file: $NEW_FILE"
+[[ -s "$NEW_FILE" ]] || readable::die "file is empty: $NEW_FILE"
 
 extract_headings() {
   # Pull H1/H2 lines, lowercase, trim, dedupe.

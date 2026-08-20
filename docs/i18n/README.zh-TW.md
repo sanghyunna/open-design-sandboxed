@@ -1,6 +1,6 @@
 <h1 align="center">Open Design：開源的 Claude Design 替代方案</h1>
 
-> 🔥 **Open Design 0.9.0 登場：免設定即可開始創作。** [官方 Model Router](https://open-design.ai/amr) 已直接內建於應用程式中——無須額外設定、無須安裝 CLI、無須準備 API key。只要打開應用程式、登入，就能立刻開始設計與創作。[下載 0.9.0](https://github.com/nexu-io/open-design/releases) · [加入討論](https://github.com/nexu-io/open-design/discussions/3524)
+> 🔥 **Open Design 0.9.0 登場：免設定即可開始創作。** [官方 Model Router](https://open-design.ai/amr) 已直接內建於應用程式中——無須額外設定、無須安裝 CLI、無須準備 API key。只要打開應用程式、登入，就能立刻開始設計與創作。[下載 0.9.0](https://github.com/sanghyunna/readable-studio/releases) · [加入討論](https://github.com/sanghyunna/readable-studio/discussions/3524)
 >
 > 🏅 **Open Design Fellow 計畫現已開放。** 如果你也相信設計應該是開放的——歡迎成為 Open Design Fellow，與核心團隊一同形塑這項產品，並協助更多人參與定義設計的未來。詳情請見 → [`MAINTAINERS.md`](../../MAINTAINERS.md) 與 [Discord](https://discord.gg/qhbcCH8Am4)。
 
@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio/releases"><img alt="release" src="https://img.shields.io/github/v/release/sanghyunna/readable-studio?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="../../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
   <a href="QUICKSTART.zh-TW.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
@@ -287,9 +287,9 @@ Open Design（OD）就是那個開源的替代方案。同樣的迴圈、同樣�
 
 使用 Open Design 最快的方式。無須 Node、無須 pnpm、無須 clone。
 
-- **macOS**（Apple Silicon · Intel x64）→ [**open-design.ai**](https://open-design.ai/) 或 [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Windows**（x64）→ [**open-design.ai**](https://open-design.ai/) 或 [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Linux**（AppImage，選用通道）→ [GitHub Releases](https://github.com/nexu-io/open-design/releases)
+- **macOS**（Apple Silicon · Intel x64）→ [**open-design.ai**](https://open-design.ai/) 或 [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Windows**（x64）→ [**open-design.ai**](https://open-design.ai/) 或 [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Linux**（AppImage，選用通道）→ [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
 
 安裝後：應用程式會自動偵測你 `PATH` 上的每一個編碼 agent CLI、載入 100+ 個 skills 與 150 套設計系統，並讓你在入口視圖中輸入需求。
 
@@ -315,8 +315,8 @@ agent 會讀取 `skills/`、挑出正確的 `SKILL.md`、綁定你指名的 `DES
 ### 🧑‍💻 從原始碼執行
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable && pnpm install
 pnpm tools-dev run web
 ```
@@ -576,10 +576,10 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 
 - 💬 **Discord**——每日聊天、外掛分享、提問 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter**——發行說明、里程碑、幕後花絮 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions**——深入問答、RFC、「秀出你的成果」 → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- 🐛 **GitHub Issues**——錯誤回報、功能請求 → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- 🗣️ **GitHub Discussions**——深入問答、RFC、「秀出你的成果」 → [**Discussions**](https://github.com/sanghyunna/readable-studio/discussions)
+- 🐛 **GitHub Issues**——錯誤回報、功能請求 → [**Issues**](https://github.com/sanghyunna/readable-studio/issues)
 
-[`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 與 [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) 這兩個標籤是最容易的入門方式。
+[`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 與 [`help-wanted`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) 這兩個標籤是最容易的入門方式。
 
 ---
 
@@ -595,7 +595,7 @@ Open Design 之所以能持續前進，是因為貢獻者——設計師、工�
 | 一套新的 **設計系統** | 放進一份採 9 段式 schema 的 `DESIGN.md` | [`design-systems/<brand>/`](../../design-systems/) |
 | 一個新的 **外掛** | 在某個分類資料夾下放進 `readable-studio.json` + manifest | [`plugins/community/`](../../plugins/community/) · 規格見 [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · agent 開發指南見 [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | 支援一個新的 **編碼 agent CLI** | 一筆 adapter 設定 + stream parser | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| 修錯誤或打磨 UI | 瀏覽 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 標籤 | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
+| 修錯誤或打磨 UI | 瀏覽 [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 標籤 | [Issues →](https://github.com/sanghyunna/readable-studio/issues) |
 | 翻譯文件 | 更新 `README.<lang>.md` 檔案 | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 以 agent 身分貢獻
@@ -604,8 +604,8 @@ Open Design 之所以能持續前進，是因為貢獻者——設計師、工�
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design && corepack enable && pnpm install
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio && corepack enable && pnpm install
 pnpm tools-dev run web
 
 # 2. Find a good-first-issue and assign yourself
@@ -657,8 +657,8 @@ gh pr create --fill
 
 感謝每一位參與過的人——程式碼、文件、回饋、一則犀利的 issue、一個新的 skill、一套新的設計系統。
 
-<a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
+<a href="https://github.com/sanghyunna/readable-studio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sanghyunna/readable-studio&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
 </a>
 
 ---
@@ -674,16 +674,16 @@ gh pr create --fill
 ## 給我們一顆星
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/nexu-io/open-design" width="100%" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/sanghyunna/readable-studio" width="100%" /></a>
 </p>
 
 如果這幫你省下了三十分鐘，給它一顆 ★。星星不能付房租——但它們會告訴下一位設計師、agent 與貢獻者，這場實驗值得他們關注。一鍵、三秒，一個真實的訊號。
 
-<a href="https://star-history.com/#nexu-io/open-design&Date">
+<a href="https://star-history.com/#sanghyunna/readable-studio&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-28" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&theme=dark&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
   </picture>
 </a>
 

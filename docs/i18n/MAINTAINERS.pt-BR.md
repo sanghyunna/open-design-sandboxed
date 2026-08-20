@@ -4,7 +4,7 @@
 <p align="center"><a href="../../MAINTAINERS.md">English</a> · <b>Português (Brasil)</b> · <a href="MAINTAINERS.de.md">Deutsch</a> · <a href="MAINTAINERS.fr.md">Français</a> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <a href="MAINTAINERS.ja-JP.md">日本語</a></p>
 
 Este documento define as regras para se tornar, atuar como e deixar o cargo de
-Maintainer de `sanghyunna/open-design-sandboxed`. A composição individual do Core Team é
+Maintainer de `sanghyunna/readable-studio`. A composição individual do Core Team é
 mantida internamente e não é enumerada aqui — o que importa publicamente são
 as regras pelas quais todos jogam.
 
@@ -50,7 +50,7 @@ Há **três** critérios de entrada. Todos os três precisam ser atendidos.
 
 ### 1. Volume de contribuição
 
-- **≥ 20 merged PRs** em `sanghyunna/open-design-sandboxed`.
+- **≥ 20 merged PRs** em `sanghyunna/readable-studio`.
 
 Este é um piso flexível, não uma passagem automática. Atingir 20 PRs te coloca
 em consideração; isso não garante o papel.
@@ -72,7 +72,7 @@ pelo menos 5 das 7 linhas de admissão e não acione nenhuma linha de veto.**
 
 #### Dispensa para projeto inicial (expira automaticamente quando o repositório completa 6 meses)
 
-Enquanto `sanghyunna/open-design-sandboxed` tiver menos de seis meses desde o commit inicial,
+Enquanto `sanghyunna/readable-studio` tiver menos de seis meses desde o commit inicial,
 o veto de **atividade entre projetos** (#6) pode ser dispensado por consenso do Core Team
 quando:
 

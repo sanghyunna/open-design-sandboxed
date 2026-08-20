@@ -25,8 +25,8 @@ Use this for the body when there's nuance:
 
 ---
 
-👋 This is my first OD contribution. Hi! Small fix, but I figured every typo / dead link costs the next reader 30 seconds, and this saves that.
+👋 This is my first Readable Studio contribution. Hi! Small fix, but I figured every typo / dead link costs the next reader 30 seconds, and this saves that.
 
-If you want to chat or there's something you'd love help getting fixed, come find us in the OD Discord: {{DISCORD_INVITE}}
+If you want to chat or there's something you'd love help getting fixed, come find us in the Readable Studio Discord: {{DISCORD_INVITE}}
 
-_Generated with the `od-contribute` skill._
+_Generated with the `readable-contribute` skill._

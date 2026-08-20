@@ -8,7 +8,7 @@ const STORAGE_KEY = 'open-design:config';
 const GITHUB_STARS_STORAGE_KEY = 'open-design:gh-stars';
 const VISUAL_STYLE_ID = 'od-visual-stability-style';
 // Keep this exact-route mock narrow so unrelated GitHub UI still behaves normally.
-const VISUAL_GITHUB_REPO_API = 'https://api.github.com/repos/nexu-io/open-design';
+const VISUAL_GITHUB_REPO_API = 'https://api.github.com/repos/sanghyunna/readable-studio';
 const VISUAL_GITHUB_STARS = 40_000;
 
 type VisualConfig = {

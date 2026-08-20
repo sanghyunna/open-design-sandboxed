@@ -1,13 +1,13 @@
-# OD repo map — what goes where
+# Readable Studio repo map — what goes where
 
-Mirrors `sanghyunna/open-design-sandboxed` `CONTRIBUTING.md` so the skill doesn't need to re-fetch it on every run. **If this drifts from the target repository's CONTRIBUTING.md, the target repository wins** — re-read the live file when in doubt.
+Mirrors `sanghyunna/readable-studio` `CONTRIBUTING.md` so the skill doesn't need to re-fetch it on every run. **If this drifts from the target repository's CONTRIBUTING.md, the target repository wins** — re-read the live file when in doubt.
 
-## Three high-leverage contribution surfaces (per OD's CONTRIBUTING.md)
+## Three high-leverage contribution surfaces (per Readable Studio's CONTRIBUTING.md)
 
 | If you want to… | You're really adding | Where it lives | Ship size |
 |---|---|---|---|
-| Make OD render a new kind of artifact | a **Skill** | `skills/<your-skill>/` | one folder, ~2 files |
-| Make OD speak a new brand's visual language | a **Design System** | `design-systems/<brand>/DESIGN.md` | one Markdown file |
+| Make Readable Studio render a new kind of artifact | a **Skill** | `skills/<your-skill>/` | one folder, ~2 files |
+| Make Readable Studio speak a new brand's visual language | a **Design System** | `design-systems/<brand>/DESIGN.md` | one Markdown file |
 | Hook up a new coding-agent CLI | an **Agent adapter** | `apps/daemon/src/agents.ts` | ~10 lines (code — out of scope for this skill) |
 | Improve docs, port a section to fr / de / zh-CN, fix typos | docs | `README.md`, `docs/i18n/README.fr.md`, `docs/i18n/README.de.md`, `docs/i18n/README.zh-CN.md`, `docs/`, `QUICKSTART.md` | one PR |
 

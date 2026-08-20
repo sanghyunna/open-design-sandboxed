@@ -21,7 +21,7 @@
 
 ```bash
 # Render preview locally
-cd open-design
+cd readable-studio
 # (or just open the .md file in any Markdown viewer)
 ```
 
@@ -34,8 +34,8 @@ cd open-design
 
 ---
 
-👋 This is my first OD contribution. I'm a native {{LANG_DISPLAY_NAME}} speaker (or close to it!) and want to help OD reach more people in my language.
+👋 This is my first Readable Studio contribution. I'm a native {{LANG_DISPLAY_NAME}} speaker (or close to it!) and want to help Readable Studio reach more people in my language.
 
-If you want to chat or you're another translator reading this, come find us in the OD Discord: {{DISCORD_INVITE}}
+If you want to chat or you're another translator reading this, come find us in the Readable Studio Discord: {{DISCORD_INVITE}}
 
-_Generated with the `od-contribute` skill._
+_Generated with the `readable-contribute` skill._

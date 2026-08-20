@@ -43,7 +43,7 @@ ReadableStudioData/
 .env.*
 !.env.example
 !**/.env.example
-# Belt-and-suspenders: the BYOK credentials file under any OD_MEDIA_CONFIG_DIR.
+# Belt-and-suspenders: the BYOK credentials file under any READABLE_MEDIA_CONFIG_DIR.
 media-config.json
 # Code-signing material, private keys, certificates.
 *.pfx
@@ -116,15 +116,15 @@ task.md
 specs/change/active
 
 .claude/*
-# Exception: od-contribute skill ships with the repo so the OD app can mount it
+# Exception: readable-contribute skill ships with the repo so the Readable Studio app can mount it
 # for non-coder contributors. Personal Claude state (sessions, settings, etc.)
 # stays ignored.
 !.claude/skills/
 .claude/skills/*
-!.claude/skills/od-contribute/
+!.claude/skills/readable-contribute/
 !.claude/commands/
 .claude/commands/*
-!.claude/commands/od-contribute.md
+!.claude/commands/readable-contribute.md
 
 # --- Nix / direnv ------------------------------------------------------------
 .direnv/

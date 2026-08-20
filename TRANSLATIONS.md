@@ -429,7 +429,7 @@ when a natural French equivalent exists:
 
 ### zh-CN ↔ zh-TW Glossary
 
-When converting between Simplified and Traditional Chinese, prefer Taiwan-specific phrasing in zh-TW rather than character-only conversion. This list grew out of [PR #194](https://github.com/nexu-io/open-design/pull/194) and is meant as a starting point, not a rulebook.
+When converting between Simplified and Traditional Chinese, prefer Taiwan-specific phrasing in zh-TW rather than character-only conversion. This list grew out of [PR #194](https://github.com/sanghyunna/readable-studio/pull/194) and is meant as a starting point, not a rulebook.
 
 **Tooling:** [OpenCC](https://github.com/BYVoid/OpenCC) with `s2twp.json` handles most core terms automatically. The idiomatic table below is where human review pays off.
 
@@ -863,8 +863,8 @@ If yes to all, it's good enough!
 
 ## 🆘 Getting Help
 
-- **Questions?** Open a [GitHub Discussion](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- **Found an issue?** Open a [GitHub Issue](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- **Questions?** Open a [GitHub Discussion](https://github.com/sanghyunna/readable-studio/discussions)
+- **Found an issue?** Open a [GitHub Issue](https://github.com/sanghyunna/readable-studio/issues)
 - **Want to chat?** Join our [Discord](https://discord.gg/qhbcCH8Am4)
 - **Need a review?** Request review from `@sanghyunna` in your PR
 
@@ -878,7 +878,7 @@ Genuinely undecided — flagged so contributors know they're live design discuss
 - **README freshness signal.** A small badge or front-matter timestamp on each `README.<code>.md` could help readers gauge how current a translation is.
 - **Native-speaker review window.** Whether `~7 days` is too short for smaller language communities — adjust if real data shows otherwise.
 
-If you have an opinion on any of the above, open an issue or comment on [#195](https://github.com/nexu-io/open-design/issues/195).
+If you have an opinion on any of the above, open an issue or comment on [#195](https://github.com/sanghyunna/readable-studio/issues/195).
 
 ---
 
@@ -887,7 +887,7 @@ If you have an opinion on any of the above, open an issue or comment on [#195](h
 These items are **decided to defer** — the team has agreed not to act on them now, with rough triggers for revisiting:
 
 - **Translation memory tooling** (Crowdin / Weblate / Lingui). Re-evaluate once the project hits ~12-15 active locales **or** when contributors start visibly duplicating effort across PRs.
-- **README template-driven generation** (e.g. [NRG](https://github.com/nanolaba/readme-generator), custom `.src.md` build scripts, All Contributors-style tooling). Re-evaluate once the project hits ≥15 locales **or** README structural edits become more frequent than monthly. Discussion in [#195](https://github.com/nexu-io/open-design/issues/195): template-driven generation solves the "update line 27 in 10 README variants" brittleness, but forces a shared structure that today's locale variants intentionally diverge from (e.g. `README.zh-TW.md`'s "上手體驗" section, the pt-BR / pt-PT precedent for content-level — not just translation-level — differences). Worth revisiting once locale voice is more settled or the manual-update cost grows.
+- **README template-driven generation** (e.g. [NRG](https://github.com/nanolaba/readme-generator), custom `.src.md` build scripts, All Contributors-style tooling). Re-evaluate once the project hits ≥15 locales **or** README structural edits become more frequent than monthly. Discussion in [#195](https://github.com/sanghyunna/readable-studio/issues/195): template-driven generation solves the "update line 27 in 10 README variants" brittleness, but forces a shared structure that today's locale variants intentionally diverge from (e.g. `README.zh-TW.md`'s "上手體驗" section, the pt-BR / pt-PT precedent for content-level — not just translation-level — differences). Worth revisiting once locale voice is more settled or the manual-update cost grows.
 
 ---
 
@@ -898,7 +898,7 @@ Thank you to all our translation contributors! 🌍
 Every translation makes Open Design accessible to more developers worldwide.
 
 **Current contributors:**
-- See [Contributors](https://github.com/nexu-io/open-design/graphs/contributors) for the full list
+- See [Contributors](https://github.com/sanghyunna/readable-studio/graphs/contributors) for the full list
 
 ---
 

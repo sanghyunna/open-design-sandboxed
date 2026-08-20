@@ -24,7 +24,7 @@ une PR doit atteindre avant d’être mergée.
 | Améliorer la doc, porter une section en Français / Deutsch / 中文, corriger une faute | documentation | `README.md`, `README.fr.md`, `README.de.md`, `README.zh-CN.md`, `docs/`, `QUICKSTART.md` | une PR |
 
 Si vous ne savez pas dans quelle catégorie tombe votre idée, [ouvrez d'abord
-une discussion ou une issue](https://github.com/sanghyunna/open-design-sandboxed/issues/new)
+une discussion ou une issue](https://github.com/sanghyunna/readable-studio/issues/new)
 et nous vous orienterons vers la bonne surface.
 
 ---
@@ -35,8 +35,8 @@ Le setup complet en une page se trouve dans [`QUICKSTART.fr.md`](QUICKSTART.fr.m
 TL;DR pour contribuer :
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable           # sélectionne la version de pnpm définie par packageManager
 pnpm install
 pnpm tools-dev run web    # boucle daemon + web au premier plan
@@ -396,7 +396,7 @@ afin de voir si la violation vient du modèle ou du prompt.
 ## Poser des questions
 
 - Question d'architecture, question de design, "bug ou mauvaise utilisation ?" →
-  [GitHub Discussions](https://github.com/sanghyunna/open-design-sandboxed/discussions)
+  [GitHub Discussions](https://github.com/sanghyunna/readable-studio/discussions)
   (préféré, car searchable pour la personne suivante).
 - "Comment écrire un Skill qui fait X ?" → ouvrez une discussion. Nous y
   répondrons et transformerons la réponse en ajout dans
@@ -453,7 +453,7 @@ Le tl;dr : livrez de bonnes PR, faites des reviews réfléchies, traînez
 dans les [Discussions][discussions] / sur [Discord][discord], et le reste
 se fait tout seul.
 
-[discussions]: https://github.com/sanghyunna/open-design-sandboxed/discussions
+[discussions]: https://github.com/sanghyunna/readable-studio/discussions
 [discord]: https://discord.gg/qhbcCH8Am4
 
 ---

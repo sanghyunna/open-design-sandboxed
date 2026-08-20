@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Find translation gaps in sanghyunna/open-design-sandboxed.
+# Find translation gaps in sanghyunna/readable-studio.
 # Usage: discover-i18n-gaps.sh <workdir>
 # Stdout: NDJSON, one row per gap:
 #   {"doc":"README","english":"README.md","lang":"es","translated":null,"status":"missing"}
@@ -12,16 +12,16 @@ set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
 WORKDIR="${1:?workdir required}"
-[[ -d "$WORKDIR/.git" ]] || od::die "not a git workdir: $WORKDIR"
+[[ -d "$WORKDIR/.git" ]] || readable::die "not a git workdir: $WORKDIR"
 
 cd "$WORKDIR"
-od::require git
-od::require jq
+readable::require git
+readable::require jq
 
 # Translatable English source files we care about (top-level docs).
 ENGLISH_DOCS=(README.md QUICKSTART.md CONTRIBUTING.md MAINTAINERS.md TRANSLATIONS.md PRIVACY.md)
 
-# Common language suffixes seen in OD's tree (extend as the project grows).
+# Common language suffixes seen in Readable Studio's tree (extend as the project grows).
 LANGS=(zh-CN zh-TW ja-JP de fr es ko ru pt-BR tr uk ar)
 
 # Languages already represented for a given doc are detected from disk;

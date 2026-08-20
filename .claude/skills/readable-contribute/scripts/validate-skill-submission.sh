@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Validate a user-supplied OD skill folder before staging it for PR.
+# Validate a user-supplied Readable Studio skill folder before staging it for PR.
 # Usage: validate-skill-submission.sh <skill-folder>
 # Checks (each prints PASS/FAIL line on stdout):
 #   - SKILL.md exists
 #   - SKILL.md has frontmatter with `name` and `description`
-#   - `name` matches folder name (warn-only, since OD may rename on merge)
+#   - `name` matches folder name (warn-only, since Readable Studio may rename on merge)
 #   - all relative paths in SKILL.md resolve to files inside the folder
 #   - no path escapes the skill folder (../ in references)
 # Exit 0 = all PASS or only warnings. Exit 1 = at least one FAIL.
@@ -13,7 +13,7 @@ set -uo pipefail
 source "$(dirname "$0")/config.sh"
 
 SKILL_DIR="${1:?skill folder path required}"
-[[ -d "$SKILL_DIR" ]] || od::die "not a directory: $SKILL_DIR"
+[[ -d "$SKILL_DIR" ]] || readable::die "not a directory: $SKILL_DIR"
 
 ABS_SKILL_DIR="$(cd "$SKILL_DIR" && pwd -P)"
 FAIL=0
@@ -24,7 +24,7 @@ fail() { printf 'FAIL  %s\n' "$1"; FAIL=1; }
 
 SKILL_MD="$ABS_SKILL_DIR/SKILL.md"
 if [[ ! -f "$SKILL_MD" ]]; then
-  fail "SKILL.md missing — every OD skill folder must contain SKILL.md at its root"
+  fail "SKILL.md missing — every Readable Studio skill folder must contain SKILL.md at its root"
   printf 'RESULT=%s\n' "fail"
   exit 1
 fi

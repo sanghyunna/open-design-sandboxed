@@ -240,6 +240,47 @@ describe("readable identity audit", () => {
     assert.equal(sources[0]?.source.includes("opendesign.app"), false);
   });
 
+  test("rejects old repository targets", () => {
+    const repositoryPaths = [
+      ".claude-plugin/marketplace.json",
+      ".claude/commands/readable-contribute.md",
+      ".claude/skills/readable-contribute/SKILL.md",
+      ".claude/skills/readable-contribute/scripts/config.sh",
+      ".github/ISSUE_TEMPLATE/bug-report.yml",
+      ".github/ISSUE_TEMPLATE/config.yml",
+      ".github/ISSUE_TEMPLATE/feature-request.yml",
+      ".github/pull_request_template.md",
+      ".vaunt/config.yaml",
+      "CONTRIBUTING.md",
+      "MAINTAINERS.md",
+      "README.md",
+      "docs/skills-contributing.md",
+      "package.json",
+    ];
+    const retiredTargets = [
+      "sanghyunna/open-design-sandboxed",
+      "nexu-io/open-design",
+      "od-contribute",
+      "OD_CONTRIBUTE",
+      ".od-contrib",
+      "od-contrib-work",
+    ];
+
+    for (const repositoryPath of repositoryPaths) {
+      const source = readFileSync(new URL(`../${repositoryPath}`, import.meta.url), "utf8");
+      for (const retiredTarget of retiredTargets) {
+        assert.equal(source.includes(retiredTarget), false, `${repositoryPath}: ${retiredTarget}`);
+      }
+    }
+
+    const packageManifest = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { bugs?: { url?: string }; homepage?: string; repository?: { url?: string } };
+    assert.equal(packageManifest.repository?.url, "git+https://github.com/sanghyunna/readable-studio.git");
+    assert.equal(packageManifest.homepage, "https://github.com/sanghyunna/readable-studio#readme");
+    assert.equal(packageManifest.bugs?.url, "https://github.com/sanghyunna/readable-studio/issues");
+  });
+
   test("produces byte-stable reports for identical exact-ledger inputs", () => {
     const sources = [{ path: "CHANGELOG.md", source: "Open Design\n" }];
     const options = { baseline: ledgerEntries(sources), scope: "all" as const, sources };

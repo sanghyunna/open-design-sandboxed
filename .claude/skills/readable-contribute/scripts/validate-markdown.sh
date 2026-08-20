@@ -9,7 +9,7 @@
 #   - Newly-introduced relative refs that don't resolve on disk fail.
 #     Refs that ALREADY exist in the --reference file (the English source for
 #     a translation, or HEAD's version for a docs edit) are NOT failed even
-#     if they don't resolve — many OD docs reference website-router slugs
+#     if they don't resolve — many Readable Studio docs reference website-router slugs
 #     like `skills/blog-post/` that aren't files in the checked-out repo.
 #   - External http(s) links return 2xx/3xx (best-effort, capped, 8s timeout).
 #
@@ -28,12 +28,12 @@ while (($#)); do
   case "$1" in
     --reference) REFERENCE="$2"; shift 2 ;;
     --) shift; while (($#)); do FILES+=("$1"); shift; done ;;
-    -*) od::die "unknown flag: $1" ;;
+    -*) readable::die "unknown flag: $1" ;;
     *) FILES+=("$1"); shift ;;
   esac
 done
 
-(( ${#FILES[@]} >= 1 )) || od::die "usage: validate-markdown.sh <file> [<file> ...] [--reference <orig>]"
+(( ${#FILES[@]} >= 1 )) || readable::die "usage: validate-markdown.sh <file> [<file> ...] [--reference <orig>]"
 
 # Build the "already-broken in source" set of relative refs (newline-delimited
 # string for Bash 3 compatibility — no associative arrays). Anything in this
@@ -41,7 +41,7 @@ done
 KNOWN_DEAD=$'\n'
 if [[ -n "$REFERENCE" ]]; then
   if [[ ! -f "$REFERENCE" ]]; then
-    od::warn "--reference $REFERENCE does not exist; ignoring."
+    readable::warn "--reference $REFERENCE does not exist; ignoring."
   else
     ref_dir="$(cd "$(dirname "$REFERENCE")" && pwd -P)"
     while IFS= read -r ref; do
@@ -96,7 +96,7 @@ check_file() {
   #
   #   Other link refs (e.g. `skills/blog-post/`) — only validated when
   #   --reference is supplied (we excuse refs already broken in the source).
-  #   Without --reference we skip these because OD docs use slug-style refs
+  #   Without --reference we skip these because Readable Studio docs use slug-style refs
   #   for website routes that don't resolve to files in the checkout.
   #
   # In all cases, refs already broken in --reference (when supplied) are
@@ -180,7 +180,7 @@ check_file() {
         ;;
     esac
   # URL extraction: stop at whitespace, ), ", ', <, >, [, ]. HTML <img src="..."> in
-  # OD docs would otherwise leak a trailing quote into the URL and cause false 404s.
+  # Readable Studio docs would otherwise leak a trailing quote into the URL and cause false 404s.
   done < <(grep -oE 'https?://[^][[:space:]"'\''<>)]+' "$f" 2>/dev/null | sort -u)
 
   if (( http_bad == 0 && http_seen > 0 )); then

@@ -1,6 +1,6 @@
 <h1 align="center">Open Design: Açık kaynaklı Claude Design alternatifi</h1>
 
-> 🔥 **Open Design 0.9.0 burada: kurulum olmadan üret.** [Resmî Model Router](https://open-design.ai/amr) doğrudan uygulamaya gömülü — ek yapılandırma yok, kurulacak CLI yok, hazırlanacak API anahtarı yok. Sadece uygulamayı açın, oturum açın ve hemen tasarlamaya ve üretmeye başlayın. [0.9.0'ı indir](https://github.com/nexu-io/open-design/releases) · [Tartışmaya katıl](https://github.com/nexu-io/open-design/discussions/3524)
+> 🔥 **Open Design 0.9.0 burada: kurulum olmadan üret.** [Resmî Model Router](https://open-design.ai/amr) doğrudan uygulamaya gömülü — ek yapılandırma yok, kurulacak CLI yok, hazırlanacak API anahtarı yok. Sadece uygulamayı açın, oturum açın ve hemen tasarlamaya ve üretmeye başlayın. [0.9.0'ı indir](https://github.com/sanghyunna/readable-studio/releases) · [Tartışmaya katıl](https://github.com/sanghyunna/readable-studio/discussions/3524)
 >
 > 🏅 **Open Design Fellow programı artık açık.** Siz de tasarımın açık olması gerektiğine inanıyorsanız — bir Open Design Fellow olun, ürünü çekirdek ekiple birlikte şekillendirin ve daha fazla insanın tasarımın geleceğini tanımlamaya katılmasına yardımcı olun. Ayrıntılar → [`MAINTAINERS.md`](../../MAINTAINERS.md) ve [Discord](https://discord.gg/qhbcCH8Am4).
 
@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio/releases"><img alt="release" src="https://img.shields.io/github/v/release/sanghyunna/readable-studio?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="../../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
   <a href="../../QUICKSTART.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
@@ -287,9 +287,9 @@ Open Design (OD) açık kaynaklı alternatiftir. Aynı döngü, aynı artifact �
 
 Open Design'ı kullanmanın en hızlı yolu. Node yok, pnpm yok, klonlama yok.
 
-- **macOS** (Apple Silicon · Intel x64) → [**open-design.ai**](https://open-design.ai/) veya [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Windows** (x64) → [**open-design.ai**](https://open-design.ai/) veya [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Linux** (AppImage, isteğe bağlı hat) → [GitHub Releases](https://github.com/nexu-io/open-design/releases)
+- **macOS** (Apple Silicon · Intel x64) → [**open-design.ai**](https://open-design.ai/) veya [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Windows** (x64) → [**open-design.ai**](https://open-design.ai/) veya [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Linux** (AppImage, isteğe bağlı hat) → [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
 
 Kurulumdan sonra: uygulama `PATH`'inizdeki her kodlama ajanı CLI'sini otomatik algılar, 100+ beceri ve 150 tasarım sistemi yükler ve giriş görünümünde bir özet yazmanıza olanak tanır.
 
@@ -315,8 +315,8 @@ Ajan `skills/` dizinini okur, doğru `SKILL.md` dosyasını seçer, adını verd
 ### 🧑‍💻 Kaynaktan çalıştırın
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable && pnpm install
 pnpm tools-dev run web
 ```
@@ -576,10 +576,10 @@ Her kanalın arkasında gerçek insanlar var.
 
 - 💬 **Discord** — günlük sohbet, eklenti paylaşımı, sorular → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — sürüm notları, kilometre taşları, perde arkası → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — derinlemesine soru-cevap, RFC'ler, "çalışmanı göster" → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- 🐛 **GitHub Issues** — hata raporları, özellik istekleri → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- 🗣️ **GitHub Discussions** — derinlemesine soru-cevap, RFC'ler, "çalışmanı göster" → [**Discussions**](https://github.com/sanghyunna/readable-studio/discussions)
+- 🐛 **GitHub Issues** — hata raporları, özellik istekleri → [**Issues**](https://github.com/sanghyunna/readable-studio/issues)
 
-[`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ve [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) etiketleri başlamanın en kolay yoludur.
+[`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ve [`help-wanted`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) etiketleri başlamanın en kolay yoludur.
 
 ---
 
@@ -595,7 +595,7 @@ Open Design, katkıda bulunanlar — tasarımcılar, mühendisler, komut yazarla
 | Yeni bir **tasarım sistemi** | 9 bölümlük şemayı kullanan bir `DESIGN.md` bırakın | [`design-systems/<brand>/`](../../design-systems/) |
 | Yeni bir **eklenti** | Bir kategori klasörü altına `readable-studio.json` + manifest bırakın | [`plugins/community/`](../../plugins/community/) · spesifikasyon [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) içinde · ajan geliştirme kılavuzu [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) içinde |
 | Yeni bir **kodlama ajanı CLI'si** destekleyin | Bir adaptör girdisi + akış ayrıştırıcı | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| Bir hatayı düzeltin veya UI'yi cilalayın | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) etiketine göz atın | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
+| Bir hatayı düzeltin veya UI'yi cilalayın | [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) etiketine göz atın | [Issues →](https://github.com/sanghyunna/readable-studio/issues) |
 | Belgeleri çevirin | `README.<lang>.md` dosyalarını güncelleyin | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 Bir ajan olarak katkıda bulunma
@@ -604,8 +604,8 @@ Open Design, katkıda bulunanlar — tasarımcılar, mühendisler, komut yazarla
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design && corepack enable && pnpm install
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio && corepack enable && pnpm install
 pnpm tools-dev run web
 
 # 2. Find a good-first-issue and assign yourself
@@ -657,8 +657,8 @@ Bakımcı kuralları, terfi kriterleri ve çıkış protokolü → [`MAINTAINERS
 
 Katılan herkese teşekkürler — kod, belge, geri bildirim, keskin bir issue, yeni bir beceri, yeni bir tasarım sistemi.
 
-<a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
+<a href="https://github.com/sanghyunna/readable-studio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sanghyunna/readable-studio&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
 </a>
 
 ---
@@ -674,16 +674,16 @@ Katılan herkese teşekkürler — kod, belge, geri bildirim, keskin bir issue, 
 ## Bize yıldız verin
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/nexu-io/open-design" width="100%" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/sanghyunna/readable-studio" width="100%" /></a>
 </p>
 
 Bu size otuz dakika kazandırdıysa, bir ★ verin. Yıldızlar kira ödemez — ama bir sonraki tasarımcıya, ajana ve katkıda bulunana bu deneyin dikkatlerine değer olduğunu söyler. Tek tıkla, üç saniyede, gerçek bir sinyal.
 
-<a href="https://star-history.com/#nexu-io/open-design&Date">
+<a href="https://star-history.com/#sanghyunna/readable-studio&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-28" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&theme=dark&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
   </picture>
 </a>
 

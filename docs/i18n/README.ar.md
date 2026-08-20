@@ -2,7 +2,7 @@
 
 <h1 align="center">Open Design: البديل مفتوح المصدر لـ Claude Design</h1>
 
-> 🔥 **‏Open Design 0.9.0 وصل: أنشئ دون أي إعداد.** [Model Router الرسمي](https://open-design.ai/amr) مدمج مباشرة في التطبيق — لا إعدادات إضافية، ولا CLI لتثبيته، ولا مفتاح API لتجهيزه. ما عليك سوى فتح التطبيق وتسجيل الدخول والبدء فورًا في التصميم والإنشاء. [حمّل 0.9.0](https://github.com/nexu-io/open-design/releases) · [انضم إلى النقاش](https://github.com/nexu-io/open-design/discussions/3524)
+> 🔥 **‏Open Design 0.9.0 وصل: أنشئ دون أي إعداد.** [Model Router الرسمي](https://open-design.ai/amr) مدمج مباشرة في التطبيق — لا إعدادات إضافية، ولا CLI لتثبيته، ولا مفتاح API لتجهيزه. ما عليك سوى فتح التطبيق وتسجيل الدخول والبدء فورًا في التصميم والإنشاء. [حمّل 0.9.0](https://github.com/sanghyunna/readable-studio/releases) · [انضم إلى النقاش](https://github.com/sanghyunna/readable-studio/discussions/3524)
 >
 > 🏅 **برنامج Open Design Fellow مفتوح الآن.** إن كنت تؤمن أنت أيضًا بأن التصميم يجب أن يكون مفتوحًا — كُن Open Design Fellow، وشارك في تشكيل المنتج جنبًا إلى جنب مع الفريق الأساسي، وساعد المزيد من الناس على المشاركة في تحديد مستقبل التصميم. التفاصيل ← [`MAINTAINERS.md`](../../MAINTAINERS.md) و[Discord](https://discord.gg/qhbcCH8Am4).
 
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio/releases"><img alt="release" src="https://img.shields.io/github/v/release/sanghyunna/readable-studio?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="../../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
   <a href="../../QUICKSTART.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
@@ -289,9 +289,9 @@
 
 أسرع طريقة لاستخدام Open Design. لا Node، ولا pnpm، ولا استنساخ.
 
-- **macOS** (Apple Silicon · Intel x64) ← [**open-design.ai**](https://open-design.ai/) أو [إصدارات GitHub](https://github.com/nexu-io/open-design/releases)
-- **Windows** (x64) ← [**open-design.ai**](https://open-design.ai/) أو [إصدارات GitHub](https://github.com/nexu-io/open-design/releases)
-- **Linux** (AppImage، مسار اختياري) ← [إصدارات GitHub](https://github.com/nexu-io/open-design/releases)
+- **macOS** (Apple Silicon · Intel x64) ← [**open-design.ai**](https://open-design.ai/) أو [إصدارات GitHub](https://github.com/sanghyunna/readable-studio/releases)
+- **Windows** (x64) ← [**open-design.ai**](https://open-design.ai/) أو [إصدارات GitHub](https://github.com/sanghyunna/readable-studio/releases)
+- **Linux** (AppImage، مسار اختياري) ← [إصدارات GitHub](https://github.com/sanghyunna/readable-studio/releases)
 
 بعد التثبيت: يكتشف التطبيق تلقائيًا كل واجهة CLI لوكلاء البرمجة في `PATH` لديك، ويحمّل أكثر من 100 مهارة و150 نظام تصميم، ويتيح لك كتابة موجز في واجهة الدخول.
 
@@ -317,8 +317,8 @@ curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 ### 🧑‍💻 التشغيل من المصدر
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable && pnpm install
 pnpm tools-dev run web
 ```
@@ -578,10 +578,10 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 
 - 💬 **Discord** — دردشة يومية، مشاركة الإضافات، أسئلة ← [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — ملاحظات الإصدارات، المعالم، ما وراء الكواليس ← [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — أسئلة وأجوبة معمّقة، RFCs، "اعرض عملك" ← [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- 🐛 **GitHub Issues** — تقارير الأخطاء، طلبات الميزات ← [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- 🗣️ **GitHub Discussions** — أسئلة وأجوبة معمّقة، RFCs، "اعرض عملك" ← [**Discussions**](https://github.com/sanghyunna/readable-studio/discussions)
+- 🐛 **GitHub Issues** — تقارير الأخطاء، طلبات الميزات ← [**Issues**](https://github.com/sanghyunna/readable-studio/issues)
 
-تصنيفا [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) و[`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) هما أسهل طريق للدخول.
+تصنيفا [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) و[`help-wanted`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) هما أسهل طريق للدخول.
 
 ---
 
@@ -597,7 +597,7 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 | **نظام تصميم** جديد | أسقِط ملف `DESIGN.md` باستخدام مخطط الأقسام التسعة | [`design-systems/<brand>/`](../../design-systems/) |
 | **إضافة** جديدة | أسقِط `readable-studio.json` + بيانًا ضمن مجلد فئة | [`plugins/community/`](../../plugins/community/) · المواصفة في [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · دليل تطوير الوكيل في [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | دعم **واجهة CLI** جديدة لوكيل برمجة | مدخل محوّل واحد + محلّل بثّ | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| إصلاح خطأ أو تحسين الواجهة | تصفّح تصنيف [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues ←](https://github.com/sanghyunna/open-design-sandboxed/issues) |
+| إصلاح خطأ أو تحسين الواجهة | تصفّح تصنيف [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues ←](https://github.com/sanghyunna/readable-studio/issues) |
 | ترجمة الوثائق | حدّث ملفات `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 المساهمة بصفتك وكيلًا
@@ -606,8 +606,8 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design && corepack enable && pnpm install
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio && corepack enable && pnpm install
 pnpm tools-dev run web
 
 # 2. Find a good-first-issue and assign yourself
@@ -659,8 +659,8 @@ gh pr create --fill
 
 شكرًا لكل من شارك — شفرة، وثائق، ملاحظات، مشكلة دقيقة، مهارة جديدة، نظام تصميم جديد.
 
-<a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
+<a href="https://github.com/sanghyunna/readable-studio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sanghyunna/readable-studio&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
 </a>
 
 ---
@@ -676,16 +676,16 @@ gh pr create --fill
 ## امنحنا نجمة
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/nexu-io/open-design" width="100%" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/sanghyunna/readable-studio" width="100%" /></a>
 </p>
 
 إن وفّر عليك هذا ثلاثين دقيقة، فامنحه ★. النجوم لا تدفع الإيجار — لكنها تخبر المصمم والوكيل والمساهم التالي بأن هذه التجربة تستحق اهتمامهم. نقرة واحدة، وثلاث ثوانٍ، وإشارة حقيقية.
 
-<a href="https://star-history.com/#nexu-io/open-design&Date">
+<a href="https://star-history.com/#sanghyunna/readable-studio&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-28" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&theme=dark&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
   </picture>
 </a>
 

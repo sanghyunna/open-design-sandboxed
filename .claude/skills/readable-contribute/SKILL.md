@@ -1,6 +1,6 @@
 ---
-name: od-contribute
-description: One-click contribution flow for Open Design (sanghyunna/open-design-sandboxed) — even for non-coders. Pick one of four cards (ship a Skill or Design System you made with OD; translate docs; fix a typo / write a blog; report a bug), the agent validates and opens a PR (or issue) for you. Trigger words contribute to open design, ship my OD skill, ship my OD design system, translate OD docs, report an OD bug, od-contribute.
+name: readable-contribute
+description: One-click contribution flow for Readable Studio (sanghyunna/readable-studio) — even for non-coders. Pick one of four cards (ship a Skill or Design System you made with Readable Studio; translate docs; fix a typo / write a blog; report a bug), the agent validates and opens a PR (or issue) for you. Trigger words contribute to readable studio, ship my Readable Studio skill, ship my Readable Studio design system, translate Readable Studio docs, report a Readable Studio bug, readable-contribute.
 allowed-tools:
   - Bash
   - Read
@@ -12,9 +12,9 @@ allowed-tools:
   - WebFetch
 ---
 
-# od-contribute — first-contribution flow for Open Design
+# readable-contribute — first-contribution flow for Readable Studio
 
-Locked to `sanghyunna/open-design-sandboxed`. Branches by **contribution type**, not by issue. Replaces the dev-loop with type-specific no-code validators. Designed so a product user with zero coding background can ship a real PR.
+Locked to `sanghyunna/readable-studio`. Branches by **contribution type**, not by issue. Replaces the dev-loop with type-specific no-code validators. Designed so a product user with zero coding background can ship a real PR.
 
 ## Language
 
@@ -38,17 +38,17 @@ source "$(dirname "$0")/config.sh"
 bash "$SKILL_DIR/scripts/check-prereqs.sh"
 ```
 
-- Exit 0: capture `GH_USER=<login>` from stdout. Default `TARGET_FORK="${GH_USER}/open-design-sandboxed"`.
+- Exit 0: capture `GH_USER=<login>` from stdout. Default `TARGET_FORK="${GH_USER}/readable-studio"`.
 - Exit 2: surface the printed install / auth hint **verbatim** and stop. Do not attempt token workarounds.
 
-If `gh repo view "$TARGET_FORK"` fails, ask the user (one `AskUserQuestion`) whether to fork now via `gh repo fork sanghyunna/open-design-sandboxed --clone=false`. Default to yes.
+If `gh repo view "$TARGET_FORK"` fails, ask the user (one `AskUserQuestion`) whether to fork now via `gh repo fork sanghyunna/readable-studio --clone=false`. Default to yes.
 
 ## Step 2 — Pick contribution type
 
 Single `AskUserQuestion` (header: "Contribution", multiSelect: false), four options. Translate option labels/descriptions into the user's chat language; the branch routing is unchanged.
 
-1. **🎨 Ship something I made with OD** — _a Skill, Design System, HyperFrame, or template I want to contribute upstream_ → branch `3a`
-2. **🌍 Translate OD docs** — _README / QUICKSTART / CONTRIBUTING into a new language_ → branch `3b`
+1. **🎨 Ship something I made with Readable Studio** — _a Skill, Design System, HyperFrame, or template I want to contribute upstream_ → branch `3a`
+2. **🌍 Translate Readable Studio docs** — _README / QUICKSTART / CONTRIBUTING into a new language_ → branch `3b`
 3. **📝 Fix docs / write a blog / fix a typo** — _typo fix, dead link, use-case writeup_ → branch `3c`
 4. **🐛 Report a bug** — _something broke; I'll help turn it into a high-quality issue_ → branch `3d` (issue path, no PR)
 
@@ -56,7 +56,7 @@ Each branch below is self-contained. Steps 7–8 (preview + push) are shared acr
 
 ---
 
-### Step 3a — OD product submission (Skill / Design System)
+### Step 3a — Readable Studio product submission (Skill / Design System)
 
 **3a.1** Ask user: "What's the local path to the artifact you want to ship?" (single free-text, translated into the user's chat language). Common: a folder path (Skill) or a single `DESIGN.md` file (Design System).
 
@@ -77,7 +77,7 @@ bash "$SKILL_DIR/scripts/setup-workspace.sh" skill <slug>
 bash "$SKILL_DIR/scripts/setup-workspace.sh" design-system <slug>
 ```
 
-`<slug>` is `od::slugify` of the Skill `name` frontmatter field or of the brand name. Capture `WORKDIR` from stdout.
+`<slug>` is `readable::slugify` of the Skill `name` frontmatter field or of the brand name. Capture `WORKDIR` from stdout.
 
 **3a.4** Copy artifact into workspace at the right target dir:
 - Skill → `$WORKDIR/skills/<slug>/`
@@ -107,9 +107,9 @@ If validation fails, surface the FAIL lines verbatim, ask the user to fix, retry
 - `{{MOTIVATION}}` (free-text — agent can offer to draft this from the skill body, but user confirms)
 - `{{TRY_PROMPT}}` (a prompt they recommend trying — agent suggests a default, user confirms)
 - `{{SCREENSHOT_BLOCK}}` (Markdown image block if a screenshot path was given, else empty)
-- `{{DISCORD_INVITE}}` from `$OD_DISCORD_INVITE`
+- `{{DISCORD_INVITE}}` from `$READABLE_DISCORD_INVITE`
 
-Write to `$WORKDIR/.od-contrib/PR-BODY.md`.
+Write to `$WORKDIR/.readable-contrib/PR-BODY.md`.
 
 → Jump to **Step 7**.
 
@@ -127,7 +127,7 @@ bash "$SKILL_DIR/scripts/setup-workspace.sh" i18n translate
 **3b.2** Discover gaps:
 
 ```bash
-bash "$SKILL_DIR/scripts/discover-i18n-gaps.sh" "$WORKDIR" > /tmp/od-i18n-gaps.json
+bash "$SKILL_DIR/scripts/discover-i18n-gaps.sh" "$WORKDIR" > /tmp/readable-i18n-gaps.json
 ```
 
 Each line is JSON. Rank by:
@@ -139,7 +139,7 @@ Each line is JSON. Rank by:
 
 **3b.4** Once user picks, **rename branch** to be specific:
 ```bash
-git -C "$WORKDIR" branch -m "od-contrib/i18n/<doc>-<lang>-<date>"
+git -C "$WORKDIR" branch -m "readable-contrib/i18n/<doc>-<lang>-<date>"
 ```
 (or pre-set the slug in step 3b.1 if the user confirmed earlier.)
 
@@ -153,7 +153,7 @@ git -C "$WORKDIR" branch -m "od-contrib/i18n/<doc>-<lang>-<date>"
 
 Write the result to `$WORKDIR/<TRANSLATED_PATH>` (e.g. `QUICKSTART.es.md`). Show user a unified diff vs. the English source for visual sanity-check (line-count delta within ±15% is a healthy signal).
 
-**3b.6** Validate the translated file against the English source. The `--reference` flag tells the validator to ignore relative refs that were already broken in the source — OD docs frequently link to website route slugs (e.g. `skills/blog-post/`) that aren't files on disk; we don't want a structure-preserving translation to fail because of pre-existing dead refs.
+**3b.6** Validate the translated file against the English source. The `--reference` flag tells the validator to ignore relative refs that were already broken in the source — Readable Studio docs frequently link to website route slugs (e.g. `skills/blog-post/`) that aren't files on disk; we don't want a structure-preserving translation to fail because of pre-existing dead refs.
 
 ```bash
 bash "$SKILL_DIR/scripts/validate-markdown.sh" \
@@ -185,14 +185,14 @@ bash "$SKILL_DIR/scripts/setup-workspace.sh" docs <slug>
 **3c.3 (Auto-discover branch)** Run:
 
 ```bash
-bash "$SKILL_DIR/scripts/discover-doc-gaps.sh" "$WORKDIR" > /tmp/od-doc-gaps.json
+bash "$SKILL_DIR/scripts/discover-doc-gaps.sh" "$WORKDIR" > /tmp/readable-doc-gaps.json
 ```
 
 Group by `kind` (typo / deadlink / todo). Show the user up to 6 candidates via `AskUserQuestion`. Once picked, apply the fix in code (typo: replace word; deadlink: ask user for the new URL; todo: that's a proper task, ask user to write the missing prose).
 
 **3c.4 (Specific-fix branch)** Read the file, apply user's described change. Confirm via diff.
 
-**3c.5 (Blog branch)** First check whether OD has a blog directory:
+**3c.5 (Blog branch)** First check whether Readable Studio has a blog directory:
 
 ```bash
 ls "$WORKDIR/docs" 2>/dev/null
@@ -204,10 +204,10 @@ If a `docs/blog/` or similar exists, place the new post there. If not, ask the u
 
 ```bash
 # For modifications to existing files:
-git -C "$WORKDIR" show "HEAD:<path>" > "/tmp/od-contrib-orig-<basename>" 2>/dev/null
+git -C "$WORKDIR" show "HEAD:<path>" > "/tmp/readable-contrib-orig-<basename>" 2>/dev/null
 bash "$SKILL_DIR/scripts/validate-markdown.sh" \
   "$WORKDIR/<changed-path>" \
-  --reference "/tmp/od-contrib-orig-<basename>"
+  --reference "/tmp/readable-contrib-orig-<basename>"
 
 # For brand-new files (e.g. a blog post the user is creating from scratch),
 # omit --reference. The validator will skip the relative-ref check entirely
@@ -222,10 +222,10 @@ bash "$SKILL_DIR/scripts/validate-markdown.sh" \
 
 ### Step 3d — Bug report (issue path, no PR)
 
-**3d.1** Read OD's actual schema at runtime to make sure we mirror it:
+**3d.1** Read Readable Studio's actual schema at runtime to make sure we mirror it:
 
 ```bash
-gh api "repos/${TARGET_REPO}/contents/.github/ISSUE_TEMPLATE/bug-report.yml" --jq .content | base64 -d > /tmp/od-bug-report.yml
+gh api "repos/${TARGET_REPO}/contents/.github/ISSUE_TEMPLATE/bug-report.yml" --jq .content | base64 -d > /tmp/readable-bug-report.yml
 ```
 
 If the schema has drifted from the template (`templates/ISSUE-BODY-bug.md`), regenerate the body to match.
@@ -237,7 +237,7 @@ If the schema has drifted from the template (`templates/ISSUE-BODY-bug.md`), reg
 | `description` | "What went wrong? One sentence is fine." |
 | `steps` | "How can I reproduce it? Walk me through step by step." |
 | `expected` | "What did you expect to happen?" |
-| `version` | "Which OD version are you running? (About menu, or `readable --version`)" |
+| `version` | "Which Readable Studio version are you running? (About menu, or `readable --version`)" |
 | `platform` | dropdown: macOS (Apple Silicon) / macOS (Intel) / Windows / Linux / Other |
 | `logs` | "Any error logs you can paste? Skip if you don't have them." |
 | `screenshots` | "Path to a screenshot? Skip if you don't have one." |
@@ -261,7 +261,7 @@ If matches exist, present them to the user via `AskUserQuestion` (translate to u
 ```bash
 bash "$SKILL_DIR/scripts/create-issue.sh" \
   --title "$TITLE" \
-  --body-file "$WORKDIR_OR_TMP/.od-contrib/ISSUE-BODY.md" \
+  --body-file "$WORKDIR_OR_TMP/.readable-contrib/ISSUE-BODY.md" \
   --dedupe-keywords "<keywords>"
 ```
 
@@ -275,12 +275,12 @@ Show the user a clean summary:
 
 ```text
 About to commit:
-  Branch:  od-contrib/<type>/<slug>-<date>
+  Branch:  readable-contrib/<type>/<slug>-<date>
   Files:
     + skills/foo/SKILL.md            (1.2 KB)
     + skills/foo/preview.png         (54 KB)
   Push to:  <fork or upstream>
-  Open PR:  sanghyunna/open-design-sandboxed:main ← <fork>:<branch>
+  Open PR:  sanghyunna/readable-studio:main ← <fork>:<branch>
 ```
 
 Then `git -C "$WORKDIR" diff --stat` and a `head -40` of the rendered PR body for visual sanity.
@@ -299,7 +299,7 @@ bash "$SKILL_DIR/scripts/create-pr.sh" \
   --workdir "$WORKDIR" \
   --type "<skill|design-system|i18n|docs>" \
   --title "<PR title from references/newcomer-tone.md>" \
-  --body-file "$WORKDIR/.od-contrib/PR-BODY.md"
+  --body-file "$WORKDIR/.readable-contrib/PR-BODY.md"
 ```
 
 Print the PR URL on its own line. Done.
@@ -310,11 +310,11 @@ Print the PR URL on its own line. Done.
 
 - Never push to `main` / `master` / `develop`. The push scripts refuse.
 - Never `--force` push. Just don't.
-- All workspace activity stays under `$OD_WORK_ROOT` (default `$HOME/od-contrib-work`). `od::assert_in_workroot` enforces this.
+- All workspace activity stays under `$READABLE_WORK_ROOT` (default `$HOME/readable-contrib-work`). `readable::assert_in_workroot` enforces this.
 - Bug-report path **always** runs the dedupe search before `gh issue create`.
 - Honor user memory: skip GitHub user `xxiaoxiong` from any contributor lookup ([[feedback_no_outreach_xxiaoxiong]]).
 
 ## When NOT to use this skill
 
 - The user wants to fix a daemon / web bug or add a feature with code changes → use `auto-github-contributor` instead (it has the TDD loop). This skill deliberately doesn't run lint/typecheck/tests because content paths don't need them.
-- The user wants to *generate* a Skill / Design System from scratch → that's Open Design itself. Run OD first, get an artifact, then come back here to ship it.
+- The user wants to *generate* a Skill / Design System from scratch → that's Readable Studio itself. Run Readable Studio first, get an artifact, then come back here to ship it.

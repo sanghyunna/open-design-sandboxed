@@ -3,7 +3,7 @@
 
 <p align="center"><a href="../../MAINTAINERS.md">English</a> · <a href="MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <a href="MAINTAINERS.de.md">Deutsch</a> · <a href="MAINTAINERS.fr.md">Français</a> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <b>日本語</b></p>
 
-このドキュメントは、`sanghyunna/open-design-sandboxed` の Maintainer になるため、その役割を務めるため、そして退任するためのルールを定めるものです。Core Team の個別のメンバー一覧は内部で管理されており、ここには列挙していません。公に重要なのは、全員が従うルールそのものです。
+このドキュメントは、`sanghyunna/readable-studio` の Maintainer になるため、その役割を務めるため、そして退任するためのルールを定めるものです。Core Team の個別のメンバー一覧は内部で管理されており、ここには列挙していません。公に重要なのは、全員が従うルールそのものです。
 
 > **ステータス**: v1、2026-05-11 にドラフト作成。[`CONTRIBUTING.md`](../../CONTRIBUTING.md#becoming-a-maintainer) のコンパニオン文書です。CONTRIBUTING.md は、コントリビューターを完全なルールのためにこちらへ案内しています。
 
@@ -47,7 +47,7 @@ PR は — 誰が作成したものであれ — 以下の **3 つすべて** �
 
 ### 1. 貢献量
 
-- `sanghyunna/open-design-sandboxed` への **20 件以上の merged PR**。
+- `sanghyunna/readable-studio` への **20 件以上の merged PR**。
 
 これはあくまでソフトな下限であり、自動的なチケットではありません。20 PR に到達することで検討対象に入りますが、役割が保証されるわけではありません。
 
@@ -67,7 +67,7 @@ PR は — 誰が作成したものであれ — 以下の **3 つすべて** �
 
 #### 初期プロジェクトの猶予条項（リポジトリが 6 ヶ月を迎えた時点で自動失効）
 
-`sanghyunna/open-design-sandboxed` が初回コミットから 6 ヶ月未満である間は、以下の場合に **クロスプロジェクト活動** の veto（#6）を Core Team の合意により免除できます：
+`sanghyunna/readable-studio` が初回コミットから 6 ヶ月未満である間は、以下の場合に **クロスプロジェクト活動** の veto（#6）を Core Team の合意により免除できます：
 
 - 観点 1、2、3、5 が admission line を明確に上回っていること。**かつ**
 - 当リポジトリにおける候補者の PR 品質が、Core Team の実地レビューにより高いと判断されること。

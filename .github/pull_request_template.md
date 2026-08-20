@@ -7,7 +7,7 @@ Fixes #
 
 <!-- Why are you opening this PR? Cover two things:
        - Your use case — what made you write this today? Did you hit it yourself
-         while building on top of OD, are you scratching an itch for a team, or
+         while building on top of Readable Studio, are you scratching an itch for a team, or
          are you speculatively adding for others? All are fine, but say which.
        - The pain being addressed — user-facing problem, technical debt, a prod
          issue, or unblocking another change.
@@ -31,7 +31,7 @@ Fixes #
 
 - [ ] **UI** — new page / dialog / panel / menu item / setting / empty state in `apps/web` or `apps/desktop` (including Electron menu bar)
 - [ ] **Keyboard shortcut** — new or changed
-- [ ] **CLI / env var** — new `readable` subcommand or flag, new `tools-dev` / `tools-pack` / `tools-pr` flag, or new `OD_*` env var
+- [ ] **CLI / env var** — new `readable` subcommand or flag, new `tools-dev` or `tools-pack` flag, or new `READABLE_*` env var
 - [ ] **API / contract** — new `/api/*` endpoint, new SSE event, or changed shape in `packages/contracts`
 - [ ] **Extension point** — new entry under `skills/`, `design-systems/`, `design-templates/`, or `craft/`, or change to the skills protocol
 - [ ] **i18n keys** — added new translation keys (see `TRANSLATIONS.md` for the locale workflow)

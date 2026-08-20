@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Find low-effort doc improvements in sanghyunna/open-design-sandboxed.
+# Find low-effort doc improvements in sanghyunna/readable-studio.
 # Usage: discover-doc-gaps.sh <workdir>
 # Stdout: NDJSON rows. Three classes:
 #   {"kind":"todo","file":"docs/foo.md","line":42,"text":"TODO: explain the daemon"}
@@ -12,10 +12,10 @@ set -uo pipefail
 source "$(dirname "$0")/config.sh"
 
 WORKDIR="${1:?workdir required}"
-[[ -d "$WORKDIR/.git" ]] || od::die "not a git workdir: $WORKDIR"
+[[ -d "$WORKDIR/.git" ]] || readable::die "not a git workdir: $WORKDIR"
 
 cd "$WORKDIR"
-od::require jq
+readable::require jq
 
 # Use ripgrep when present for speed; fall back to grep -rE.
 if command -v rg >/dev/null 2>&1; then

@@ -1,6 +1,6 @@
 <h1 align="center">Open Design: la alternativa de código abierto a Claude Design</h1>
 
-> 🔥 **Open Design 0.9.0 ya está aquí: crea sin configuración previa.** El [Model Router oficial](https://open-design.ai/amr) viene integrado directamente en la app — sin configuración adicional, sin CLI que instalar, sin clave de API que preparar. Solo abre la app, inicia sesión y empieza a diseñar y crear de inmediato. [Descargar 0.9.0](https://github.com/nexu-io/open-design/releases) · [Únete a la conversación](https://github.com/nexu-io/open-design/discussions/3524)
+> 🔥 **Open Design 0.9.0 ya está aquí: crea sin configuración previa.** El [Model Router oficial](https://open-design.ai/amr) viene integrado directamente en la app — sin configuración adicional, sin CLI que instalar, sin clave de API que preparar. Solo abre la app, inicia sesión y empieza a diseñar y crear de inmediato. [Descargar 0.9.0](https://github.com/sanghyunna/readable-studio/releases) · [Únete a la conversación](https://github.com/sanghyunna/readable-studio/discussions/3524)
 >
 > 🏅 **El programa Open Design Fellow ya está abierto.** Si tú también crees que el diseño debe ser abierto, conviértete en Open Design Fellow, da forma al producto junto al equipo principal y ayuda a que más personas participen en definir el futuro del diseño. Detalles → [`MAINTAINERS.md`](../../MAINTAINERS.md) y [Discord](https://discord.gg/qhbcCH8Am4).
 
@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio/releases"><img alt="release" src="https://img.shields.io/github/v/release/sanghyunna/readable-studio?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="../../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
   <a href="../../QUICKSTART.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
@@ -287,9 +287,9 @@ Open Design (OD) es la alternativa de código abierto. El mismo bucle, el mismo 
 
 La forma más rápida de usar Open Design. Sin Node, sin pnpm, sin clonar.
 
-- **macOS** (Apple Silicon · Intel x64) → [**open-design.ai**](https://open-design.ai/) o [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Windows** (x64) → [**open-design.ai**](https://open-design.ai/) o [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Linux** (AppImage, vía opcional) → [GitHub Releases](https://github.com/nexu-io/open-design/releases)
+- **macOS** (Apple Silicon · Intel x64) → [**open-design.ai**](https://open-design.ai/) o [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Windows** (x64) → [**open-design.ai**](https://open-design.ai/) o [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Linux** (AppImage, vía opcional) → [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
 
 Tras la instalación: la app detecta automáticamente cada CLI de agente de codificación en tu `PATH`, carga más de 100 skills y 150 sistemas de diseño, y te deja escribir un brief en la vista de entrada.
 
@@ -315,8 +315,8 @@ El agente lee `skills/`, elige el `SKILL.md` correcto, vincula el `DESIGN.md` qu
 ### 🧑‍💻 Ejecútalo desde el código fuente
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable && pnpm install
 pnpm tools-dev run web
 ```
@@ -576,10 +576,10 @@ Personas reales detrás de cada canal.
 
 - 💬 **Discord** — chat diario, intercambio de plugins, preguntas → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — notas de lanzamiento, hitos, detrás de cámaras → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — preguntas y respuestas a fondo, RFCs, "muestra tu trabajo" → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- 🐛 **GitHub Issues** — reportes de bugs, solicitudes de características → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- 🗣️ **GitHub Discussions** — preguntas y respuestas a fondo, RFCs, "muestra tu trabajo" → [**Discussions**](https://github.com/sanghyunna/readable-studio/discussions)
+- 🐛 **GitHub Issues** — reportes de bugs, solicitudes de características → [**Issues**](https://github.com/sanghyunna/readable-studio/issues)
 
-Las etiquetas [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) y [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) son la forma más fácil de empezar.
+Las etiquetas [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) y [`help-wanted`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) son la forma más fácil de empezar.
 
 ---
 
@@ -595,7 +595,7 @@ Open Design sigue avanzando porque los colaboradores — diseñadores, ingeniero
 | Un nuevo **sistema de diseño** | Suelta un `DESIGN.md` usando el esquema de 9 secciones | [`design-systems/<brand>/`](../../design-systems/) |
 | Un nuevo **plugin** | Suelta `readable-studio.json` + manifiesto bajo una carpeta de categoría | [`plugins/community/`](../../plugins/community/) · especificación en [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · guía de desarrollo con agente en [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | Dar soporte a una nueva **CLI de agente de codificación** | Una entrada de adaptador + analizador de stream | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| Corregir un bug o pulir la UI | Explora la etiqueta [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
+| Corregir un bug o pulir la UI | Explora la etiqueta [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/readable-studio/issues) |
 | Traducir la documentación | Actualiza los archivos `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 Contribuir como agente
@@ -604,8 +604,8 @@ Si *tú eres el agente que lee esto*, la vía más rápida es:
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design && corepack enable && pnpm install
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio && corepack enable && pnpm install
 pnpm tools-dev run web
 
 # 2. Find a good-first-issue and assign yourself
@@ -657,8 +657,8 @@ Reglas de los mantenedores, criterios de promoción y el protocolo de salida →
 
 Gracias a todos los que han participado — código, documentación, comentarios, una incidencia certera, un nuevo skill, un nuevo sistema de diseño.
 
-<a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
+<a href="https://github.com/sanghyunna/readable-studio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sanghyunna/readable-studio&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
 </a>
 
 ---
@@ -674,16 +674,16 @@ Gracias a todos los que han participado — código, documentación, comentarios
 ## Danos una estrella
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Dale una estrella a Open Design en GitHub — github.com/nexu-io/open-design" width="100%" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Dale una estrella a Open Design en GitHub — github.com/sanghyunna/readable-studio" width="100%" /></a>
 </p>
 
 Si esto te ahorró treinta minutos, dale una ★. Las estrellas no pagan el alquiler — pero le dicen al siguiente diseñador, agente y colaborador que este experimento merece su atención. Un clic, tres segundos, una señal real.
 
-<a href="https://star-history.com/#nexu-io/open-design&Date">
+<a href="https://star-history.com/#sanghyunna/readable-studio&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-28" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&theme=dark&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
   </picture>
 </a>
 

@@ -1,6 +1,6 @@
 <h1 align="center">Open Design: オープンソースの Claude Design 代替ツール</h1>
 
-> 🔥 **Open Design 0.9.0 が登場——セットアップなしで創作を。** [公式 Model Router](https://open-design.ai/amr) がアプリに直接組み込まれました。追加設定も、インストールする CLI も、用意する API キーも不要。アプリを開いてサインインするだけで、すぐにデザインと創作を始められます。[0.9.0 をダウンロード](https://github.com/nexu-io/open-design/releases) · [ディスカッションに参加](https://github.com/nexu-io/open-design/discussions/3524)
+> 🔥 **Open Design 0.9.0 が登場——セットアップなしで創作を。** [公式 Model Router](https://open-design.ai/amr) がアプリに直接組み込まれました。追加設定も、インストールする CLI も、用意する API キーも不要。アプリを開いてサインインするだけで、すぐにデザインと創作を始められます。[0.9.0 をダウンロード](https://github.com/sanghyunna/readable-studio/releases) · [ディスカッションに参加](https://github.com/sanghyunna/readable-studio/discussions/3524)
 >
 > 🏅 **Open Design Fellow プログラムの募集を開始しました。** あなたもデザインはオープンであるべきだと信じるなら——Open Design Fellow となり、コアチームとともにプロダクトを形づくり、より多くの人がデザインの未来を定義することに参加できるよう手助けしてください。詳細 → [`MAINTAINERS.md`](../../MAINTAINERS.md) と [Discord](https://discord.gg/qhbcCH8Am4)。
 
@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design/releases"><img alt="release" src="https://img.shields.io/github/v/release/nexu-io/open-design?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio/releases"><img alt="release" src="https://img.shields.io/github/v/release/sanghyunna/readable-studio?style=flat&color=blueviolet&label=release&include_prereleases&display_name=tag" /></a>
   <a href="../../LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat" /></a>
   <a href="https://discord.gg/qhbcCH8Am4"><img alt="discord" src="https://img.shields.io/discord/1479002485040480266?style=flat&logo=discord&logoColor=white&label=discord&color=5865F2&cacheSeconds=3600" /></a>
   <a href="QUICKSTART.ja-JP.md"><img alt="quickstart" src="https://img.shields.io/badge/quickstart-3%20commands-green?style=flat" /></a>
@@ -287,9 +287,9 @@ Open Design (OD) はそのオープンソースの代替ツールです。同じ
 
 Open Design を使う最も速い方法。Node も、pnpm も、クローンも不要です。
 
-- **macOS**（Apple Silicon · Intel x64）→ [**open-design.ai**](https://open-design.ai/) または [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Windows**（x64）→ [**open-design.ai**](https://open-design.ai/) または [GitHub Releases](https://github.com/nexu-io/open-design/releases)
-- **Linux**（AppImage、オプションのレーン）→ [GitHub Releases](https://github.com/nexu-io/open-design/releases)
+- **macOS**（Apple Silicon · Intel x64）→ [**open-design.ai**](https://open-design.ai/) または [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Windows**（x64）→ [**open-design.ai**](https://open-design.ai/) または [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
+- **Linux**（AppImage、オプションのレーン）→ [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases)
 
 インストール後: アプリはあなたの `PATH` 上のすべてのコーディングエージェント CLI を自動検出し、100 種類以上のスキルと 150 のデザインシステムを読み込み、エントリービューでブリーフを入力できるようにします。
 
@@ -315,8 +315,8 @@ curl -fsSL https://open-design.ai/install.sh | sh -s <agent>
 ### 🧑‍💻 ソースから実行
 
 ```bash
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio
 corepack enable && pnpm install
 pnpm tools-dev run web
 ```
@@ -576,10 +576,10 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 
 - 💬 **Discord** — 日々のチャット、プラグインの共有、質問 → [**discord.gg/qhbcCH8Am4**](https://discord.gg/qhbcCH8Am4)
 - 🐦 **X / Twitter** — リリースノート、マイルストーン、舞台裏 → [**@nexudotio**](https://x.com/nexudotio)
-- 🗣️ **GitHub Discussions** — 深い Q&A、RFC、「成果を見せて」 → [**Discussions**](https://github.com/sanghyunna/open-design-sandboxed/discussions)
-- 🐛 **GitHub Issues** — バグ報告、機能リクエスト → [**Issues**](https://github.com/sanghyunna/open-design-sandboxed/issues)
+- 🗣️ **GitHub Discussions** — 深い Q&A、RFC、「成果を見せて」 → [**Discussions**](https://github.com/sanghyunna/readable-studio/discussions)
+- 🐛 **GitHub Issues** — バグ報告、機能リクエスト → [**Issues**](https://github.com/sanghyunna/readable-studio/issues)
 
-[`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) と [`help-wanted`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) のラベルが、最も入りやすい入口です。
+[`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) と [`help-wanted`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) のラベルが、最も入りやすい入口です。
 
 ---
 
@@ -595,7 +595,7 @@ Open Design が動き続けるのは、貢献者——デザイナー、エン�
 | 新しい**デザインシステム** | 9 セクションのスキーマを使った `DESIGN.md` をドロップ | [`design-systems/<brand>/`](../../design-systems/) |
 | 新しい**プラグイン** | カテゴリーフォルダの下に `readable-studio.json` + マニフェストをドロップ | [`plugins/community/`](../../plugins/community/) · 仕様は [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · エージェント開発ガイドは [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | 新しい**コーディングエージェント CLI** をサポート | アダプターエントリー 1 つ + ストリームパーサー | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
-| バグ修正や UI の磨き上げ | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ラベルを閲覧 | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
+| バグ修正や UI の磨き上げ | [`good-first-issue`](https://github.com/sanghyunna/readable-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ラベルを閲覧 | [Issues →](https://github.com/sanghyunna/readable-studio/issues) |
 | ドキュメントを翻訳 | `README.<lang>.md` ファイルを更新 | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |
 
 ### 🤖 エージェントとして貢献する
@@ -604,8 +604,8 @@ Open Design が動き続けるのは、貢献者——デザイナー、エン�
 
 ```bash
 # 1. Boot locally
-git clone https://github.com/sanghyunna/open-design-sandboxed.git open-design
-cd open-design && corepack enable && pnpm install
+git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+cd readable-studio && corepack enable && pnpm install
 pnpm tools-dev run web
 
 # 2. Find a good-first-issue and assign yourself
@@ -657,8 +657,8 @@ gh pr create --fill
 
 参加してくださったすべての方に感謝します——コード、ドキュメント、フィードバック、鋭い issue、新しいスキル、新しいデザインシステム。
 
-<a href="https://github.com/nexu-io/open-design/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=nexu-io/open-design&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
+<a href="https://github.com/sanghyunna/readable-studio/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=sanghyunna/readable-studio&max=500&columns=20&anon=1&cache_bust=2026-05-30" alt="Open Design contributors" />
 </a>
 
 ---
@@ -674,16 +674,16 @@ gh pr create --fill
 ## スターをお願いします
 
 <p align="center">
-  <a href="https://github.com/nexu-io/open-design"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/nexu-io/open-design" width="100%" /></a>
+  <a href="https://github.com/sanghyunna/readable-studio"><img src="https://repo-assets.open-design.ai/resources/images/star-us.png" alt="Star Open Design on GitHub — github.com/sanghyunna/readable-studio" width="100%" /></a>
 </p>
 
 これで 30 分を節約できたなら、★ を付けてください。スターは家賃を払ってはくれません——でも、次のデザイナー、エージェント、貢献者に、この実験が注目に値することを伝えてくれます。ワンクリック、3 秒、本物のシグナルです。
 
-<a href="https://star-history.com/#nexu-io/open-design&Date">
+<a href="https://star-history.com/#sanghyunna/readable-studio&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&theme=dark&cache_bust=2026-05-28" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
-    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=nexu-io/open-design&type=Date&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&theme=dark&cache_bust=2026-05-28" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
+    <img alt="Open Design star history" src="https://api.star-history.com/svg?repos=sanghyunna/readable-studio&type=Date&cache_bust=2026-05-28" />
   </picture>
 </a>
 

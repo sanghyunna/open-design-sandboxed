@@ -3,7 +3,7 @@
 
 <p align="center"><a href="../../MAINTAINERS.md">English</a> · <a href="MAINTAINERS.pt-BR.md">Português (Brasil)</a> · <b>Deutsch</b> · <a href="MAINTAINERS.fr.md">Français</a> · <a href="MAINTAINERS.zh-CN.md">简体中文</a> · <a href="MAINTAINERS.ja-JP.md">日本語</a></p>
 
-Dieses Dokument legt die Regeln dafür fest, wie man Maintainer von `sanghyunna/open-design-sandboxed` wird, diese Rolle ausübt und sich aus ihr zurückzieht. Die individuelle Zusammensetzung des Core Teams wird intern verwaltet und ist hier nicht aufgeführt — was öffentlich zählt, sind die Regeln, an die sich alle halten.
+Dieses Dokument legt die Regeln dafür fest, wie man Maintainer von `sanghyunna/readable-studio` wird, diese Rolle ausübt und sich aus ihr zurückzieht. Die individuelle Zusammensetzung des Core Teams wird intern verwaltet und ist hier nicht aufgeführt — was öffentlich zählt, sind die Regeln, an die sich alle halten.
 
 > **Status**: v1, entworfen am 2026-05-11. Begleitdokument zu [`CONTRIBUTING.md`](../../CONTRIBUTING.md#becoming-a-maintainer) — diese Datei verweist Beitragende für die vollständigen Regeln hierher.
 
@@ -47,7 +47,7 @@ Es gibt **drei** Aufnahmekriterien. Alle drei müssen erfüllt sein.
 
 ### 1. Beitragsumfang
 
-- **≥ 20 merged PRs** zu `sanghyunna/open-design-sandboxed`.
+- **≥ 20 merged PRs** zu `sanghyunna/readable-studio`.
 
 Dies ist eine weiche Untergrenze, kein automatisches Ticket. Das Erreichen von 20 PRs bringt Sie in die Betrachtung; es garantiert die Rolle nicht.
 
@@ -67,7 +67,7 @@ Wir prüfen das GitHub-Profil des Kandidaten anhand von sieben Dimensionen. **Mi
 
 #### Frühphasen-Ausnahme (läuft automatisch ab, wenn das Repo 6 Monate alt wird)
 
-Solange `sanghyunna/open-design-sandboxed` jünger als sechs Monate seit dem initialen Commit ist, kann das Veto zur **projektübergreifenden Aktivität** (#6) durch Konsens des Core Teams ausgesetzt werden, wenn:
+Solange `sanghyunna/readable-studio` jünger als sechs Monate seit dem initialen Commit ist, kann das Veto zur **projektübergreifenden Aktivität** (#6) durch Konsens des Core Teams ausgesetzt werden, wenn:
 
 - Die Dimensionen 1, 2, 3 und 5 deutlich über der Aufnahmelinie liegen; **und**
 - Die PR-Qualität des Kandidaten in diesem Repo vom Core Team nach praxisnaher Prüfung als hoch beurteilt wird.
