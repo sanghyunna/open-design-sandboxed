@@ -19,7 +19,7 @@ example_tagline: "Cyan/magenta chromatic offset and CRT scanlines"
 example_desc: "Large title, data-corruption artifacts, and corner ASCII noise"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · glitch"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

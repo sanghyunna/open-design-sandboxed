@@ -14,7 +14,7 @@ triggers:
   - "WeRead annual report"
   - "annual reading recap video"
   - "reading year-in-review HyperFrames"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes
@@ -55,7 +55,7 @@ weread-year-in-review-video-template/
 ```
 
 The rendered MP4 showcase used by `example.html` is hosted at
-`https://repo-assets.open-design.ai/resources/videos/skills/weread-year-in-review-video-template/default-showcase.mp4`.
+`https://repo-assets.readable-studio.ai/resources/videos/skills/weread-year-in-review-video-template/default-showcase.mp4`.
 
 ## Workflow
 

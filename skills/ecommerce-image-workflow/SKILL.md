@@ -17,7 +17,7 @@ triggers:
   - "amazon product images"
   - "shopify product images"
   - "taobao product images"
-od:
+readable:
   mode: image
   surface: image
   category: image-generation
@@ -169,7 +169,7 @@ Then add slot-specific instructions:
 
 ### Step 4 - Dispatch through the media contract
 
-Use the unified Open Design media dispatcher. Do not call provider APIs or
+Use the unified Readable Studio media dispatcher. Do not call provider APIs or
 custom model commands directly.
 
 For each slot, run the standard generate/wait loop:

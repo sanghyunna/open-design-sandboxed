@@ -9,7 +9,7 @@ triggers:
   - "interaction animation"
   - "tasteful animation"
   - "motion polish"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

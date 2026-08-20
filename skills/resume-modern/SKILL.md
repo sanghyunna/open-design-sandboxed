@@ -16,7 +16,7 @@ example_name: "Modern Resume · Frontend Engineer"
 example_format: markdown
 example_tagline: "Single A4 page, print or PDF ready"
 example_desc: "Senior frontend engineer resume with a two-column layout and quantified achievements"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

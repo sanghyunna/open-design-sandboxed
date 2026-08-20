@@ -13,7 +13,7 @@ triggers:
   - "creative mode deck"
   - "Swiss presentation template"
   - "premium design-language template"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

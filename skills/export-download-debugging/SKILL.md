@@ -11,7 +11,7 @@ triggers:
   - "createWritable"
   - "blob URL"
   - "Electron download"
-od:
+readable:
   mode: utility
   category: web-artifacts
 ---

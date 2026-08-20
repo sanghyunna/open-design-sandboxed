@@ -18,7 +18,7 @@ example_tagline: "Aurora Violet fluid"
 example_desc: "Layered breathing radial-gradient background with difference text"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · vfx-liquid-background"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

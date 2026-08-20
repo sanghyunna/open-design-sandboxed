@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly in a browser.
 - `example.html` previews both the editable template and the hosted showcase MP4.
-- Skill frontmatter uses `od.mode: template`, `od.surface: video`, and `od.type: hyperframes`.
+- Skill frontmatter uses `readable.mode: template`, `od.surface: video`, and `od.type: hyperframes`.
 - Composition is vertical 9:16, 1080x1920, with exactly 12 scenes.
 - Every scene has direct `class="scene clip"` plus explicit `data-start`, `data-duration`, and `data-track-index` attributes.
 - Rendered MP4 is not blank: contact sheet must show visible content in all 12 scenes.

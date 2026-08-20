@@ -8,9 +8,7 @@ description: >
   zh-CN · ja). One self-contained HTML file, zero dependencies.
 triggers:
   - kami
-  - paper
   - paper one-pager
-  - White paper
   - white paper
   - parchment landing
   - editorial document
@@ -22,7 +20,6 @@ readable:
   mode: prototype
   platform: desktop
   scenario: marketing
-  featured: 3
   audience: founders, design studios, OSS maintainers, researchers
   tone: editorial, restrained, print-first
   scale: viewport-anchored long-form single page
@@ -176,7 +173,7 @@ example's `<style>` block):
 - `.code` — ivory-bg, 1px-border code block
 - `.footer-kicker` — mega serif 500 word
 
-Tag every editable element with `data-od-id="<unique-slug>"` so the
+Tag every editable element with `data-readable-id="<unique-slug>"` so the
 host app's comment mode can target it.
 
 ### 4. Self-check before delivering

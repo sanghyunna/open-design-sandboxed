@@ -16,7 +16,7 @@ example_name: "Xiaohongshu Card · AI Tool Habits"
 example_format: markdown
 example_tagline: "Seven-card carousel with a muted gradient"
 example_desc: "Practical knowledge-card set for sharing as screenshots"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

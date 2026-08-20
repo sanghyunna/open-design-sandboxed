@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` is complete and matches the same visual language as the template.
-- Skill frontmatter uses `od.mode: template` and `od.scenario: live-artifacts`.
+- Skill frontmatter uses `readable.mode: template` and `readable.scenario: live-artifacts`.
 - Three-slide structure is preserved: cover, priorities, roadmap.
 - Headline hierarchy remains bold slab-serif with blue/orange retro treatment.
 - Timeline + KPI strip is present on slide 3.

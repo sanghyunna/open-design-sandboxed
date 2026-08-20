@@ -24,7 +24,7 @@ If you reach for a class not on this list, define it in `<style>` first or use `
 Use when the page leads with a thesis sentence (most landings, most marketing pages). One eyebrow, one h1 (≤14 words), one lead sentence, two CTAs.
 
 ```html
-<section class="section hero" data-od-id="hero">
+<section class="section hero" data-readable-id="hero">
   <div class="container hero-center">
     <p class="eyebrow">EYEBROW · CONTEXT</p>
     <h1>One sharp sentence about what this is.</h1>
@@ -42,7 +42,7 @@ Use when the page leads with a thesis sentence (most landings, most marketing pa
 Use when there is a real product visual (product UI, screenshot, photograph). Left half copy, right half a `ph-img` placeholder the user replaces.
 
 ```html
-<section class="section" data-od-id="hero-split">
+<section class="section" data-readable-id="hero-split">
   <div class="container hero-split">
     <div>
       <p class="eyebrow">EYEBROW · ROLE</p>
@@ -63,7 +63,7 @@ Use when there is a real product visual (product UI, screenshot, photograph). Le
 Three feature cells. Lead with a small `<h2>` framing the row. Don't put an icon on every heading — one tasteful mark per cell, monoline.
 
 ```html
-<section class="section" data-od-id="features">
+<section class="section" data-readable-id="features">
   <div class="container stack" style="gap: 56px;">
     <div style="max-width: 36ch;">
       <p class="eyebrow">WHAT'S DIFFERENT</p>
@@ -101,7 +101,7 @@ Three feature cells. Lead with a small `<h2>` framing the row. Don't put an icon
 Use when there are real numbers. Three stats max — four feels like a brochure. **Don't invent metrics.** If you don't have a number, use a different layout.
 
 ```html
-<section class="section" data-od-id="stats">
+<section class="section" data-readable-id="stats">
   <div class="container">
     <p class="eyebrow" style="margin-bottom: 40px;">BY THE NUMBERS · 2026</p>
     <div class="grid-3">
@@ -127,7 +127,7 @@ Use when there are real numbers. Three stats max — four feels like a brochure.
 A single decisive quote with attribution. Use sparingly — one per page, never two in a row.
 
 ```html
-<section class="section" data-od-id="quote">
+<section class="section" data-readable-id="quote">
   <div class="container" style="max-width: 800px;">
     <div class="quote-mark">"</div>
     <blockquote class="quote">Filebase pays for itself in the first month. We were going to hire a dedicated DevOps person to babysit our sync — instead we just switched.</blockquote>
@@ -141,7 +141,7 @@ A single decisive quote with attribution. Use sparingly — one per page, never 
 End the page on one decisive ask. Centered, generous whitespace, one primary button. No secondary unless the page has zero other buttons.
 
 ```html
-<section class="section" data-od-id="cta-strip" style="text-align: center;">
+<section class="section" data-readable-id="cta-strip" style="text-align: center;">
   <div class="container" style="max-width: 600px;">
     <h2>Stop measuring meetings. Start measuring focus.</h2>
     <p class="lead" style="margin: 16px auto 32px;">Free for solo. $4/mo per teammate after that.</p>
@@ -155,7 +155,7 @@ End the page on one decisive ask. Centered, generous whitespace, one primary but
 Editorial layout for a list of dated entries. Date in mono on the left, title + dek in the middle, optional pull stat on the right. Borders on top, never around — boxes feel like a brochure.
 
 ```html
-<section class="section" data-od-id="log">
+<section class="section" data-readable-id="log">
   <div class="container">
     <div class="row-between" style="margin-bottom: 32px;">
       <h2>Recent changes</h2>
@@ -214,7 +214,7 @@ When Layout 7 is used for release-note Added/Fixed/Breaking/Known issues section
 Use `.list` for itemized issue rows or step-by-step upgrade guidance. Keep the list clear, short, and factual; avoid long prose inside each bullet.
 
 ```html
-<section class="section" id="known-issues" data-od-id="known-issues">
+<section class="section" id="known-issues" data-readable-id="known-issues">
   <div class="container">
     <div class="row-between" style="margin-bottom: 16px;">
       <h2>Known issues</h2>
@@ -228,7 +228,7 @@ Use `.list` for itemized issue rows or step-by-step upgrade guidance. Keep the l
   </div>
 </section>
 
-<section class="section" id="upgrade-note" data-od-id="upgrade-note">
+<section class="section" id="upgrade-note" data-readable-id="upgrade-note">
   <div class="container">
     <div class="row-between" style="margin-bottom: 16px;">
       <h2>Upgrade note</h2>
@@ -248,7 +248,7 @@ Use `.list` for itemized issue rows or step-by-step upgrade guidance. Keep the l
 Hairline borders, mono numerics, one column highlighted via an accent border. Don't put the whole row in surface-color — that screams "table".
 
 ```html
-<section class="section" data-od-id="pricing">
+<section class="section" data-readable-id="pricing">
   <div class="container">
     <div style="text-align: center; max-width: 36ch; margin: 0 auto 56px;">
       <p class="eyebrow">PRICING</p>

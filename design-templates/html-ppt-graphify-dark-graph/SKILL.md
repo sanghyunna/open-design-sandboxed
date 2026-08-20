@@ -7,7 +7,7 @@ triggers:
   - "dev tool launch"
   - "cli launch"
   - "data viz launch"
-od:
+readable:
   mode: deck
   scenario: engineering
   upstream: "https://github.com/lewislulu/html-ppt-skill"

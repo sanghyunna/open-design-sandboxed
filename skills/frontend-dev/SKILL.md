@@ -8,7 +8,7 @@ triggers:
   - "generative web"
   - "hero page"
   - "showcase site"
-od:
+readable:
   mode: prototype
   category: web-artifacts
   upstream: "https://github.com/MiniMax-AI/skills"
@@ -29,7 +29,7 @@ Full-stack frontend with cinematic animations, AI-generated media via MiniMax AP
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

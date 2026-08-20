@@ -18,7 +18,7 @@ example_tagline: "Inspired by a post from @trq212"
 example_desc: "An extended essay on HTML over Markdown, with an attribution and linked source"
 example_source_url: "https://x.com/trq212/status/2052809885763747935"
 example_source_label: "@trq212 / x.com"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

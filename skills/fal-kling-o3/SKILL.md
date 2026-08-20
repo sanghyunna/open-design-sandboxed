@@ -7,7 +7,7 @@ triggers:
   - "kling o3"
   - "kling video"
   - "kling image"
-od:
+readable:
   mode: video
   category: video-generation
   upstream: "https://github.com/fal-ai-community/skills"
@@ -28,7 +28,7 @@ Generate images and videos with Kling O3 — Kling's most powerful model family 
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

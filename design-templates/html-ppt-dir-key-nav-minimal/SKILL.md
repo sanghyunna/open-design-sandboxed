@@ -7,7 +7,7 @@ triggers:
   - "one idea per slide"
   - "public talk"
   - "launch keynote"
-od:
+readable:
   mode: deck
   scenario: personal
   upstream: "https://github.com/lewislulu/html-ppt-skill"

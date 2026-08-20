@@ -10,7 +10,7 @@ triggers:
   - "principles manifesto slides"
   - "pink burgundy premium presentation"
   - "burgundy blush editorial template"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

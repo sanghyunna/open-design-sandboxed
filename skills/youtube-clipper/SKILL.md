@@ -7,7 +7,7 @@ triggers:
   - "video clip"
   - "highlight reel"
   - "auto caption clip"
-od:
+readable:
   mode: video
   category: video-generation
   upstream: "https://github.com/op7418/Youtube-clipper-skill"
@@ -28,7 +28,7 @@ YouTube clip generation and editing with automated workflows — pull source vid
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

@@ -12,7 +12,7 @@ triggers:
   - "magazine style cinematic slides"
   - "luxury dark fashion template"
   - "haute couture magazine motion"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

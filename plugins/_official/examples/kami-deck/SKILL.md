@@ -9,8 +9,6 @@ description: >
   Google Fonts.
 triggers:
   - kami deck
-- paper deck
-  - paper deck
   - paper slides
   - white paper deck
   - editorial deck
@@ -21,7 +19,6 @@ readable:
   surface: web
   mode: deck
   scenario: marketing
-  featured: 4
   audience: founders, researchers, design studios, conference talks
   tone: editorial, restrained, print-first
   scale: 6-15 viewport-locked slides
@@ -151,8 +148,8 @@ Output a single file with all CSS inline. Mirror the structure of
 
 The runtime script (keyboard / wheel / touch nav, dot indicator,
 progress bar, ESC overview) should match the model documented in
-[`open-design-landing-deck/scripts/compose.ts`](../open-design-landing-deck/scripts/compose.ts).
-Do **not** reuse the open-design-landing-deck CSS; the visual
+[`readable-landing-deck/scripts/compose.ts`](../readable-landing-deck/scripts/compose.ts).
+Do **not** reuse the readable-landing-deck CSS; the visual
 language is different.
 
 ### 4. Self-check
@@ -181,7 +178,7 @@ language is different.
   and use solid hex from the table in
   `design-systems/kami/DESIGN.md` §2.
 - **Do not** add a router. This is a single-file artifact.
-- **Do not** reuse Atelier Zero collage imagery (the open-design-landing
+- **Do not** reuse Atelier Zero collage imagery (the readable-landing
   visual system). Kami is gradient-free, image-light, and hierarchy
   is carried by type.
 
@@ -189,7 +186,7 @@ language is different.
 
 - [`kami-landing`](../kami-landing/) — long-form one-pager sister skill.
 - [`design-systems/kami/DESIGN.md`](../../design-systems/kami/DESIGN.md) — token spec.
-- [`open-design-landing-deck`](../open-design-landing-deck/) — same
+- [`readable-landing-deck`](../readable-landing-deck/) — same
   horizontal swipe nav model, different visual language (Atelier Zero).
 - Upstream: [`tw93/kami`](https://github.com/tw93/kami) — original
   Claude skill (MIT). Kami's slides.py template documents the macro

@@ -17,12 +17,9 @@ triggers:
   - "football field valuation"
   - "trading comps"
   - "precedent transactions"
-  - "M&A materials"
-  - "strategic options"
 readable:
   mode: deck
   scenario: finance
-  featured: 15
   upstream: "https://github.com/anthropics/financial-services/tree/main/plugins/agent-plugins/pitch-agent"
   preview:
     type: html
@@ -44,7 +41,7 @@ End-to-end **investment-banking-style** pitch materials for a **strategic
 alternatives** conversation (coverage & advisory). This is the workflow shape
 of Anthropic's **Pitch Agent** from
 [`financial-services`](https://github.com/anthropics/financial-services),
-repackaged as a Readable Studio `deck` skill.
+repackaged as an Readable Studio `deck` skill.
 
 ## When to use
 

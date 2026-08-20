@@ -7,7 +7,7 @@
 // stays light — it points the agent at the upstream repo, lists the
 // skill's purpose, and tells the user how to install the full upstream
 // bundle if they want the original assets/scripts. The frontmatter carries
-// `od.category` so the Settings → Skills filter row groups them visibly.
+// `readable.category` so the Settings → Skills filter row groups them visibly.
 //
 // Idempotent: a skill folder is only created when it does not already
 // exist. To re-seed an entry, delete its folder under `skills/` first.
@@ -35,14 +35,14 @@ interface CuratedSkill {
   // Lowercase keywords / phrases the agent matches against. Aim for 3-6
   // distinct phrases per skill so triggers stay specific.
   triggers: string[];
-  // Maps to the existing `od.mode` filter. Pick the closest of the seven
+  // Maps to the existing `readable.mode` filter. Pick the closest of the seven
   // modes the daemon recognises; everything else falls back to "prototype".
   mode: Mode;
   // Free-form category slug that powers the new category filter row in
   // Settings → Skills. Keep the vocabulary tight so a few pills cover the
   // whole catalogue.
   category: string;
-  // Upstream URL recorded under `od.upstream`. The Skills detail panel
+  // Upstream URL recorded under `readable.upstream`. The Skills detail panel
   // surfaces it as a clickable source link.
   upstream: string;
   // Short one-line tagline rendered above the body. Keep it under 120
@@ -646,14 +646,14 @@ const CATALOGUE: CuratedSkill[] = [
   {
     id: 'ui-ux-pro-max',
     description:
-      'Catalog-only UI/UX Pro Max entry. The full upstream templates, data, and search workflow are not bundled in Open Design.',
+      'Catalog-only UI/UX Pro Max entry. The full upstream templates, data, and search workflow are not bundled in Readable Studio.',
     triggers: ['ui ux patterns', 'design patterns', 'ux heuristics', 'usability'],
     mode: 'design-system',
     category: 'design-systems',
     upstream: 'https://github.com/nextlevelbuilder/ui-ux-pro-max-skill',
     attribution: 'Curated from @nextlevelbuilder.',
     catalogueOnlyNote:
-      'Open Design ships this entry as discovery metadata only. The upstream UI/UX Pro Max data CSVs, scripts/search.py helper, templates, references, and related skill instructions are not bundled here; if those files are absent, disclose the limitation before falling back to Open Design defaults.',
+      'Readable Studio ships this entry as discovery metadata only. The upstream UI/UX Pro Max data CSVs, scripts/search.py helper, templates, references, and related skill instructions are not bundled here; if those files are absent, disclose the limitation before falling back to Readable Studio defaults.',
   },
   {
     id: 'taste-skill',
@@ -1072,7 +1072,7 @@ function buildBody(s: CuratedSkill): string {
   lines.push(s.description);
   lines.push('');
   if (s.catalogueOnlyNote) {
-    lines.push('## Current Open Design scope');
+    lines.push('## Current Readable Studio scope');
     lines.push('');
     lines.push(s.catalogueOnlyNote);
     lines.push('');
@@ -1085,7 +1085,7 @@ function buildBody(s: CuratedSkill): string {
   lines.push('## How to use');
   lines.push('');
   lines.push(
-    'This catalogue entry advertises the skill in Open Design so the agent',
+    'This catalogue entry advertises the skill in Readable Studio so the agent',
   );
   lines.push(
     'discovers it during planning. To run the full upstream workflow with',

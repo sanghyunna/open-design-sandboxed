@@ -13,7 +13,7 @@ triggers:
   - pitch deck
   - tech sharing
   - technical presentation
-od:
+readable:
   mode: deck
   scenario: marketing
   upstream: "https://github.com/lewislulu/html-ppt-skill"

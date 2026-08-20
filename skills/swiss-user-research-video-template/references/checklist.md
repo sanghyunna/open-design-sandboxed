@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` is complete and uses realistic user-research labels and values.
-- Skill frontmatter uses `od.mode: template` and `od.scenario: live-artifacts`.
+- Skill frontmatter uses `readable.mode: template` and `readable.scenario: live-artifacts`.
 - Exactly three slides are present, and nav dots reflect active slide.
 - Keyboard navigation works (`ArrowLeft` / `ArrowRight`) and click navigation works.
 - Participant donut and legend percentages are consistent (sum to 100%).

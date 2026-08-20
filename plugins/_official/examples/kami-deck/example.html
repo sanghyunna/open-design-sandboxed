@@ -1062,7 +1062,7 @@ strong { font-weight: 500; }
      as class-driven (because go() toggles .slide.active) but the visible
      slide is moved by deck.style.transform, which the bridge can't drive.
      Two cooperating handlers keep the deck in sync with the host:
-       1. An od:slide message listener routes host nav through go() and
+       1. An readable:slide message listener routes host nav through go() and
           calls stopImmediatePropagation() so the bridge's own listener
           (registered after this one) doesn't run a second time and
           overshoot by re-reading the freshly-toggled .active class.
@@ -1072,7 +1072,7 @@ strong { font-weight: 500; }
           restoreInitialSlide path, which calls setActive() directly. */
   addEventListener('message', function (e) {
     var data = e && e.data;
-    if (!data || data.type !== 'od:slide') return;
+    if (!data || data.type !== 'readable:slide') return;
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
     if (data.action === 'go' && typeof data.index === 'number') applySlide(data.index);
     else if (data.action === 'next') applySlide(idx + 1);

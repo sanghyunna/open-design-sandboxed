@@ -176,7 +176,7 @@ example's `<style>` block):
 - `.code` — ivory-bg, 1px-border code block
 - `.footer-kicker` — mega serif 500 word
 
-Tag every editable element with `data-od-id="<unique-slug>"` so the
+Tag every editable element with `data-readable-id="<unique-slug>"` so the
 host app's comment mode can target it.
 
 ### 4. Self-check before delivering

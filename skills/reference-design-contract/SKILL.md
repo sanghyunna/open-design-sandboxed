@@ -16,7 +16,7 @@ triggers:
   - "make it feel like this"
   - "match the look without copying"
   - "turn reference images into a design system"
-od:
+readable:
   mode: design-system
   platform: desktop
   scenario: planning
@@ -63,7 +63,7 @@ without guessing.
 
 Create three files:
 
-1. `DESIGN.md` — the reusable visual direction, following Open Design's
+1. `DESIGN.md` — the reusable visual direction, following Readable Studio's
    standard nine-section design-system shape.
 2. `design-contract.md` — the decision record: evidence used, keep/change
    boundaries, rationale, risks, and quality gate.

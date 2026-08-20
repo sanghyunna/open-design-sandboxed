@@ -178,6 +178,19 @@ describe("readable identity audit", () => {
     }
   });
 
+  test("rejects old resource frontmatter and stale generated copies", () => {
+    const sources = [
+      { path: "skills/example/SKILL.md", source: "---\nname: example\nod:\n  mode: utility\n---\n" },
+      { path: "design-templates/open-design-landing/example.html", source: "<title>Open Design</title>\n" },
+    ];
+
+    const report = auditIdentitySources({ baseline: emptyBaseline, scope: "active", sources });
+
+    assert.ok(report.summary.unclassified >= 2);
+    assert.throws(() => assertIdentityAuditPassed(report));
+    console.log(formatIdentityAuditFailure(report));
+  });
+
   test("produces byte-stable reports for identical exact-ledger inputs", () => {
     const sources = [{ path: "CHANGELOG.md", source: "Open Design\n" }];
     const options = { baseline: ledgerEntries(sources), scope: "all" as const, sources };

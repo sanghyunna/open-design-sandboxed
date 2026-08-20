@@ -11,7 +11,7 @@ triggers:
   - "android onboarding"
   - "phone signup"
   - "app onboarding"
-od:
+readable:
   mode: prototype
   platform: mobile
   scenario: design

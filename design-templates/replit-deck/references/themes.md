@@ -314,7 +314,7 @@ If the source uses two near-identical grays, collapse to one `--border`. Don't i
 ### 4. Add the theme block
 
 1. Append a new `body[data-theme="<name>"] { … }` block to `assets/template.html` in the theme tokens section. Mirror an existing block's token order.
-2. Add the theme row to the `od.inputs.theme.values` enum in `SKILL.md` (frontmatter).
+2. Add the theme row to the `readable.inputs.theme.values` enum in `SKILL.md` (frontmatter).
 3. Add a "When to pick" row to the pick-table in `SKILL.md` and to the table in this file.
 4. Write a new `## <theme> — <name>` section below (palette block + Do / Don't / Best layouts), matching the shape of the other eight.
 5. Add a P1 theme-specific must to `checklist.md` (one bullet describing the theme's non-negotiable visual tell).

@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` exists with realistic editorial copy and numeric values.
-- Frontmatter uses `od.mode: template` and `od.scenario: live-artifacts`.
+- Frontmatter uses `readable.mode: template` and `readable.scenario: live-artifacts`.
 - Exactly three slides are present with working buttons, dots, and arrow navigation.
 - No sandbox-hostile APIs are used (`localStorage`, `sessionStorage`, `alert`, `confirm`, `prompt`, `window.open`).
 

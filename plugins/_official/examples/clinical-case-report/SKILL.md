@@ -191,16 +191,16 @@ Requirements for the HTML output:
 - Critical findings (ST elevation, raised troponin, low BP, etc.)
   highlighted in a visually distinct callout box with red left border
 - @media print CSS rules so the document prints cleanly on A4/Letter
-- Tag every major section with `data-od-id` for comment-mode targeting:
+- Tag every major section with `data-readable-id` for comment-mode targeting:
 
 ```html
-<section data-od-id="hpi">...</section>
-<section data-od-id="vitals">...</section>
-<section data-od-id="pmh">...</section>
-<section data-od-id="examination">...</section>
-<section data-od-id="investigations">...</section>
-<section data-od-id="assessment">...</section>
-<section data-od-id="plan">...</section>
+<section data-readable-id="hpi">...</section>
+<section data-readable-id="vitals">...</section>
+<section data-readable-id="pmh">...</section>
+<section data-readable-id="examination">...</section>
+<section data-readable-id="investigations">...</section>
+<section data-readable-id="assessment">...</section>
+<section data-readable-id="plan">...</section>
 ```
 
 ### Step 7 — Self-check against `references/checklist.md`

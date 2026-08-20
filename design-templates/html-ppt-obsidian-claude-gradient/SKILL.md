@@ -8,7 +8,7 @@ triggers:
   - "agent tutorial"
   - "dev workflow"
   - "changelog deck"
-od:
+readable:
   mode: deck
   scenario: engineering
   upstream: "https://github.com/lewislulu/html-ppt-skill"

@@ -19,7 +19,7 @@ example_tagline: "Midnight Indigo + glow bloom"
 example_desc: "Logo assembly, brand name, tagline, and CTA for a video outro"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · logo-outro"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

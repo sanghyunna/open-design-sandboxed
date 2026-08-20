@@ -8,7 +8,7 @@ triggers:
   - "interactive deck"
   - "web ppt"
   - "reveal slides"
-od:
+readable:
   mode: deck
   category: slides
   upstream: "https://github.com/zarazhangrui/frontend-slides"
@@ -29,7 +29,7 @@ Generate animation-rich HTML presentations with visual style previews. Useful fo
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

@@ -7,7 +7,7 @@ triggers:
   - "html artifact"
   - "multi component artifact"
   - "react artifact"
-od:
+readable:
   mode: prototype
   category: web-artifacts
   upstream: "https://github.com/ComposioHQ/awesome-claude-skills/tree/master/artifacts-builder"
@@ -28,7 +28,7 @@ Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts 
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

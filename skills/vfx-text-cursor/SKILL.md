@@ -19,7 +19,7 @@ example_tagline: "Word-by-word reveal with chromatic trails"
 example_desc: "Hot-pink and cyan cursor typing effect for a video opening"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · vfx-text-cursor"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

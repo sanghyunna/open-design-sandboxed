@@ -7,7 +7,7 @@ triggers:
   - "landing page comp"
   - "web design reference"
   - "section images"
-od:
+readable:
   mode: image
   surface: image
   platform: desktop

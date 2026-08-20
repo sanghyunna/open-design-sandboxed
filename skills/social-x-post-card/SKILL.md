@@ -18,7 +18,7 @@ example_tagline: "X dark mode with engagement metrics"
 example_desc: "A short quote post with 12.3K likes, 1.2K reposts, and a verified badge"
 example_source_url: "https://hyperframes.heygen.com/catalog"
 example_source_label: "hyperframes · x-post"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

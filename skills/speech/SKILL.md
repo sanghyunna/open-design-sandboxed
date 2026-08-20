@@ -7,7 +7,7 @@ triggers:
   - "tts openai"
   - "narrated audio"
   - "voice over"
-od:
+readable:
   mode: audio
   category: audio-music
   upstream: "https://github.com/openai/skills"
@@ -28,7 +28,7 @@ Generate spoken audio from text using OpenAI's API with built-in voices. Useful 
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

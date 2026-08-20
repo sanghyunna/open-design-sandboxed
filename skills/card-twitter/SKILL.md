@@ -15,7 +15,7 @@ example_name: "Twitter Card · Quote"
 example_format: text
 example_tagline: "16:9 dark quote card, ready to pair with a post"
 example_desc: "High-contrast quote template with a grid and gradient glow"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

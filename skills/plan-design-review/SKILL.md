@@ -7,7 +7,7 @@ triggers:
   - "senior designer review"
   - "design rating"
   - "ai slop check"
-od:
+readable:
   mode: design-system
   category: creative-direction
   upstream: "https://github.com/garrytan/gstack"
@@ -28,7 +28,7 @@ Senior Designer review: rates each design dimension 0-10, explains what a 10 loo
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

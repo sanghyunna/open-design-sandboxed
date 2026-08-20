@@ -7,7 +7,7 @@ triggers:
   - "team report"
   - "business review"
   - "wbr"
-od:
+readable:
   mode: deck
   scenario: operations
   upstream: "https://github.com/lewislulu/html-ppt-skill"

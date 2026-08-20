@@ -15,7 +15,7 @@ Run this before emitting `<artifact>`. P0 must pass.
 - [ ] **Tab bar matches the screen kind.** Onboarding / detail / checkout: drop the `<nav class="tabbar">` entirely. Feed / focus / profile: keep it.
 - [ ] **Display headlines use `var(--font-display)` (serif).** The seed binds this via `.h1`, `.h2`, `.header h1`. Don't override headings to system-sans — it instantly looks like a stock template.
 - [ ] **No emoji icons in the UI.** SVG monoline only. Emoji in copy is fine ("9:41 ☀️ Tuesday" is not, but "Sunny day in Berlin" is).
-- [ ] **`data-od-id` on the device, content, header, and any major sections.**
+- [ ] **`data-readable-id` on the device, content, header, and any major sections.**
 
 ## P1 — should pass
 

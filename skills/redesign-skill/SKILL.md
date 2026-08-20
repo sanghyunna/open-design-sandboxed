@@ -7,7 +7,7 @@ triggers:
   - "improve current UI"
   - "premium redesign"
   - "audit UI"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

@@ -8,7 +8,7 @@ triggers:
   - "styled ppt"
   - "document to ppt"
   - "banana ppt"
-od:
+readable:
   mode: deck
   category: image-generation
   upstream: "https://github.com/op7418/NanoBanana-PPT-Skills"
@@ -29,7 +29,7 @@ AI-powered PPT generation with document analysis and styled images via the NanoB
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

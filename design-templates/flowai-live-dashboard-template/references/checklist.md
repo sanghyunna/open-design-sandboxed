@@ -4,8 +4,8 @@
 
 - `assets/template.html` exists and opens directly from disk in a browser.
 - `example.html` is a complete, hand-built sample with real labels, names, and values.
-- Skill frontmatter is `od.mode: prototype`, `od.scenario: operations`,
-  `od.preview.type: html`, `od.design_system.requires: true`.
+- Skill frontmatter is `readable.mode: prototype`, `readable.scenario: operations`,
+  `readable.preview.type: html`, `od.design_system.requires: true`.
 - All three tabs (`Team Members`, `Team Details`, `Activity Log`) switch
   correctly; only one view is visible at a time.
 - Role bar chart animates with easing on first reveal of the details tab.

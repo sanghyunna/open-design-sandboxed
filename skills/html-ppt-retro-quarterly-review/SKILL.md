@@ -13,7 +13,7 @@ triggers:
   - "vintage business deck"
   - "retro quarterly review"
   - "blue orange retro report template"
-od:
+readable:
   mode: template
   surface: video
   type: hyperframes

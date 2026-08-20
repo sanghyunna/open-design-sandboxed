@@ -8,7 +8,7 @@ triggers:
   - "3d web"
   - "webgl scene"
   - "3d interactive"
-od:
+readable:
   mode: prototype
   category: 3d-shaders
   upstream: "https://github.com/CloudAI-X/threejs-skills"
@@ -29,7 +29,7 @@ Three.js skills for creating 3D elements and interactive experiences in the brow
 
 ## How to use
 
-This catalogue entry advertises the skill in Open Design so the agent
+This catalogue entry advertises the skill in Readable Studio so the agent
 discovers it during planning. To run the full upstream workflow with
 its original assets, scripts, and references, install the upstream
 bundle into your active agent's skills directory:

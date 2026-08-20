@@ -16,7 +16,7 @@ example_name: "Data Report · Weekly Review"
 example_format: csv
 example_tagline: "KPI cards, Chart.js charts, and a table"
 example_desc: "Nine months of growth data rendered into a visual report with inline Chart.js"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

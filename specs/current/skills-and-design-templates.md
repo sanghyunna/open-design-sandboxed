@@ -33,9 +33,9 @@ References:
 
 Functional vs. design-template classification rule:
 
-- A skill whose `od.mode` is one of `prototype | deck | template` is a **design template**.
+- A skill whose `readable.mode` is one of `prototype | deck | template` is a **design template**.
 - A skill whose primary output is an `image | video | audio` *artifact* is a **design template** (`audio-jingle`, `image-poster`, `video-shortform`, `hyperframes`).
-- A skill whose `od.mode` is `utility`, `design-system`, or whose role is to *do work* on user input (capture a brief, package a pet, audit a file, …) is a **functional skill** — stays under `skills/`.
+- A skill whose `readable.mode` is `utility`, `design-system`, or whose role is to *do work* on user input (capture a brief, package a pet, audit a file, …) is a **functional skill** — stays under `skills/`.
 
 ## Phase 0 — Split + rename (MVP)
 

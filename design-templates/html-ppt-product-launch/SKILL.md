@@ -7,7 +7,7 @@ triggers:
   - "launch deck"
   - "feature reveal"
   - "launch slides"
-od:
+readable:
   mode: deck
   scenario: marketing
   upstream: "https://github.com/lewislulu/html-ppt-skill"
