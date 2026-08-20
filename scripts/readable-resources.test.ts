@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -12,6 +12,18 @@ const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const resourceRoots = ["skills", "design-templates", "craft"] as const;
 const retiredIdentity = /Open Design|open-design|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|^od:/mu;
+const retiredProviderLogos = [
+  "anthropic.svg",
+  "deepseek.svg",
+  "gemini.svg",
+  "minimax.svg",
+  "moonshot.svg",
+  "openai.svg",
+  "qwen.svg",
+  "xai.svg",
+  "xiaomi.svg",
+  "zhipu.svg",
+] as const;
 
 async function filesBelow(root: string): Promise<readonly string[]> {
   const entries = await readdir(root, { withFileTypes: true });
@@ -51,6 +63,53 @@ test("rejects old resource frontmatter and stale generated copies", async () => 
 
   // Then: no active source, metadata, path, or generated copy retains it.
   assert.deepEqual(stale, []);
+});
+
+test("rejects website-only metadata and malformed code spans in the canonical landing manifest", async () => {
+  // Given: the machine-consumed canonical landing manifest.
+  const raw = await readFile(
+    path.join(repoRoot, "plugins/_official/examples/readable-landing/readable-studio.json"),
+    "utf8",
+  );
+  const manifest: unknown = JSON.parse(raw);
+  assert.ok(typeof manifest === "object" && manifest !== null && !Array.isArray(manifest));
+  const description = Reflect.get(manifest, "description");
+  const localized = Reflect.get(manifest, "description_i18n");
+  assert.equal(typeof description, "string");
+  assert.ok(typeof localized === "object" && localized !== null && !Array.isArray(localized));
+  const englishDescription = Reflect.get(localized, "en");
+  assert.equal(typeof englishDescription, "string");
+
+  // When: active distribution residue and malformed empty code spans are inspected.
+  const invalidFragments = [description, englishDescription].filter(
+    (value) => value.includes("Astro marketing site") || value.includes("``"),
+  );
+
+  // Then: canonical metadata contains neither defect.
+  assert.deepEqual(invalidFragments, []);
+});
+
+test("removes only the unreferenced website-provider logo bundle", async () => {
+  // Given: all shipped text under the resource and runtime surfaces.
+  const roots = ["design-templates", "plugins", "skills", "apps"] as const;
+  const files = (await Promise.all(roots.map((root) => filesBelow(path.join(repoRoot, root))))).flat();
+
+  // When: references to the retired provider-logo bundle are collected.
+  const references: string[] = [];
+  for (const file of files) {
+    if (!/\.(?:css|html|js|json|md|ts|tsx|yaml|yml)$/u.test(file)) continue;
+    const source = await readFile(file, "utf8");
+    if (source.includes("assets/agents/") || retiredProviderLogos.some((name) => source.includes(`agents/${name}`))) {
+      references.push(path.relative(repoRoot, file).replaceAll(path.sep, "/"));
+    }
+  }
+
+  // Then: no consumer remains and the exact retired directory is absent.
+  assert.deepEqual(references, []);
+  await assert.rejects(
+    () => access(path.join(repoRoot, "design-templates/readable-landing/assets/agents")),
+    { code: "ENOENT" },
+  );
 });
 
 test("regenerates neutral landing and deck examples byte-stably from canonical inputs", async () => {
