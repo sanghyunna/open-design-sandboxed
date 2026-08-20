@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`、pnpm `10.33.x`。Windows ユーザーは [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md) を参照してください。完全なクイックスタート、環境変数、Nix flake、パッケージ化されたビルドフロー → [`QUICKSTART.ja-JP.md`](QUICKSTART.ja-JP.md)。
+Node `~24`、pnpm `10.33.x`。Windows ユーザーは [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md) を参照してください。完全なクイックスタート、環境変数、パッケージ化されたビルドフロー → [`QUICKSTART.ja-JP.md`](QUICKSTART.ja-JP.md)。
 
 ### 完全なワークフロー — ブリーフからアーティファクトまで
 

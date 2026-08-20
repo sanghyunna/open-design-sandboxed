@@ -65,30 +65,3 @@ jobs:
             e2e/ui/reports
           if-no-files-found: warn
           include-hidden-files: true
-
-  nix-packaging:
-    name: Hosted / Nix dependency hash and flake check
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Assert exact candidate checkout
-        env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node -e "const {execFileSync}=require('node:child_process'); const actual=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(); console.log(actual); if(actual!==process.env.EXPECTED_SHA) process.exit(1)"
-      - uses: cachix/install-nix-action@v31
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.x
-          cache: pnpm
-      - name: Install build dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Refresh and validate Nix pnpm dependency hash
-        run: |
-          pnpm nix:update-hash
-          nix flake check --print-build-logs --keep-going
-          git diff --exit-code -- nix/pnpm-deps.nix

@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`, pnpm `10.33.x`. Пользователям Windows см. [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Полный быстрый старт, переменные окружения, Nix flake и процесс упакованной сборки → [`QUICKSTART.md`](../../QUICKSTART.md).
+Node `~24`, pnpm `10.33.x`. Пользователям Windows см. [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Полный быстрый старт, переменные окружения, процесс упакованной сборки → [`QUICKSTART.md`](../../QUICKSTART.md).
 
 ### Полный рабочий процесс — от брифа до артефакта
 

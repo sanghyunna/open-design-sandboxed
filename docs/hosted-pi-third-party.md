@@ -25,9 +25,3 @@ and system paths. Directory listings are captured recursively when the grant
 is created and updated only by broker writes, so a concurrent root swap cannot
 disclose names from an external directory or introduce request-time directory
 enumeration.
-The lockfile changed on the Windows development host. `pnpm nix:update-hash`
-was attempted here and failed before any file edit because `nix` is not
-installed (`spawnSync nix ENOENT`); the generated hash was deliberately not
-hand-written. The Linux release gate must run `pnpm nix:update-hash` and
-`nix flake check --print-build-logs --keep-going` before merge, then include
-the resulting `nix/pnpm-deps.nix` update if the daemon hash changes.

@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`, pnpm `10.33.x`. Користувачі Windows, див. [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Повний швидкий старт, змінні середовища, Nix flake та процес упакованого збирання → [`QUICKSTART.md`](../../QUICKSTART.md).
+Node `~24`, pnpm `10.33.x`. Користувачі Windows, див. [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Повний швидкий старт, змінні середовища, процес упакованого збирання → [`QUICKSTART.md`](../../QUICKSTART.md).
 
 ### Повний робочий процес — від брифа до артефакта
 

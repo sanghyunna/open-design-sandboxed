@@ -323,7 +323,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-‏Node `~24`، وpnpm `10.33.x`. مستخدمو Windows، راجعوا [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). البدء السريع الكامل، ومتغيرات البيئة، وNix flake، وسير بناء الحزمة ← [`QUICKSTART.md`](../../QUICKSTART.md).
+‏Node `~24`، وpnpm `10.33.x`. مستخدمو Windows، راجعوا [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). البدء السريع الكامل، ومتغيرات البيئة، وسير بناء الحزمة ← [`QUICKSTART.md`](../../QUICKSTART.md).
 
 ### سير عمل كامل — من الموجز إلى المخرَج
 

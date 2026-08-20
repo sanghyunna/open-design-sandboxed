@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`、pnpm `10.33.x`。Windows 使用者請參見 [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md)。完整快速開始、環境變數、Nix flake 與打包建置流程 → [`QUICKSTART.zh-TW.md`](QUICKSTART.zh-TW.md)。
+Node `~24`、pnpm `10.33.x`。Windows 使用者請參見 [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md)。完整快速開始、環境變數、打包建置流程 → [`QUICKSTART.zh-TW.md`](QUICKSTART.zh-TW.md)。
 
 ### 完整工作流程——從需求到 artifact
 

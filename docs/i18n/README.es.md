@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`, pnpm `10.33.x`. Usuarios de Windows, consulten [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Inicio rápido completo, variables de entorno, Nix flake y flujo de compilación empaquetada → [`QUICKSTART.md`](../../QUICKSTART.md).
+Node `~24`, pnpm `10.33.x`. Usuarios de Windows, consulten [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Inicio rápido completo, variables de entorno, flujo de compilación empaquetada → [`QUICKSTART.md`](../../QUICKSTART.md).
 
 ### Un flujo de trabajo completo — del brief al artefacto
 
