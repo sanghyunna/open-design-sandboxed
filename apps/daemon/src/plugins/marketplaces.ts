@@ -147,9 +147,21 @@ export function resolveMarketplaceFetchUrl(url: string): string {
 }
 
 function isUnsupportedMarketplaceUrl(url: string): boolean {
-  return url.includes('://open-design.ai/')
-    || url.includes('raw.githubusercontent.com/nexu-io/open-design/')
-    || url.endsWith('/open-design-marketplace.json');
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch (error) {
+    if (error instanceof TypeError) return false;
+    throw error;
+  }
+
+  const { hostname, pathname } = parsed;
+  if (pathname.endsWith('/open-design-marketplace.json')) return true;
+  if (hostname === 'open-design.ai' || hostname === 'www.open-design.ai') return true;
+  if (hostname !== 'github.com' && hostname !== 'raw.githubusercontent.com') return false;
+
+  const [owner, repository] = pathname.split('/').filter(Boolean);
+  return owner === 'nexu-io' && repository === 'open-design';
 }
 
 function normalizeMarketplaceTrust(value: unknown): MarketplaceTrustTier {

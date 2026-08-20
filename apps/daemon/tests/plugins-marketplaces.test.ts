@@ -152,6 +152,28 @@ describe('marketplaces', () => {
     expect(fetchCount).toBe(0);
   });
 
+  it.each([
+    'https://open-design.ai',
+    'https://www.open-design.ai/marketplace/readable-studio-marketplace.json',
+    'https://github.com/nexu-io/open-design/raw/main/plugins/registry/official/readable-studio-marketplace.json',
+  ])('rejects legacy marketplace URL variant without fetching: %s', async (url) => {
+    // Given: a legacy URL whose fetcher would return a valid new manifest.
+    let fetchCount = 0;
+
+    // When: the URL crosses the marketplace boundary.
+    const result = await addMarketplace(db, {
+      url,
+      fetcher: async () => {
+        fetchCount += 1;
+        return { ok: true, status: 200, text: async () => VALID_MANIFEST };
+      },
+    });
+
+    // Then: the old source is rejected before fetch or normalization.
+    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_OPEN_DESIGN_V1'] });
+    expect(fetchCount).toBe(0);
+  });
+
   it('rejects an external Open Design v1 registry without normalization', async () => {
     const result = await addMarketplace(db, {
       url: 'https://raw.githubusercontent.com/nexu-io/open-design/garnet-hemisphere/plugins/registry/community/open-design-marketplace.json',
@@ -166,7 +188,7 @@ describe('marketplaces', () => {
 
   it('requires a raw readable-studio-marketplace.json document, not a GitHub tree page', async () => {
     const result = await addMarketplace(db, {
-      url: 'https://github.com/nexu-io/open-design/tree/garnet-hemisphere/plugins/registry/community',
+      url: 'https://github.com/example-org/example-marketplace/tree/main/plugins/registry/community',
       fetcher: fixtureFetcher('<!doctype html><html><body>GitHub tree page</body></html>'),
     });
 
