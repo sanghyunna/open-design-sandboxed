@@ -80,7 +80,7 @@ export function buildProjectExportManifestResponse({
   note(entryFile, 'project-entry-file');
 
   return {
-    schema: 'open-design.project-export-manifest.v1',
+    schema: 'readable-studio.project-export-manifest.v1',
     projectId,
     projectName: typeof project?.name === 'string' ? project.name : null,
     generatedAt: new Date().toISOString(),

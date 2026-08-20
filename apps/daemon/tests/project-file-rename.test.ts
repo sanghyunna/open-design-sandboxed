@@ -155,6 +155,7 @@ describe('project file rename route', () => {
         name: 'old.html',
         content: '<!doctype html>',
         artifactManifest: {
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           renderer: 'html',
           exports: ['html'],

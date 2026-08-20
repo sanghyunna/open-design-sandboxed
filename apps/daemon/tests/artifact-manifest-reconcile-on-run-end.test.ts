@@ -67,7 +67,7 @@ describe('run-end artifact manifest reconciliation (#2893)', () => {
     // Agent wrote HTML WITH an explicit manifest (create_artifact path)
     await writeProjectFile(projectsRoot, PROJECT_ID, 'deck.html', '<p>pitch</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'deck',
         title: 'My Deck',
         entry: 'deck.html',
@@ -171,7 +171,7 @@ describe('run-end artifact manifest reconciliation (#2893)', () => {
     fs.writeFileSync(
       path.join(dir, 'index.html.artifact.json'),
       JSON.stringify({
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         entry: 'index.html',
         renderer: 'html',

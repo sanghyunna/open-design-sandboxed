@@ -1,20 +1,3 @@
-/**
- * Regression coverage for the OD_LEGACY_DATA_DIR migration-aware
- * daemon status timeout in apps/packaged/src/sidecars.ts.
- *
- * Background: when the user is recovering 0.3.x `.od/` data via
- * OD_LEGACY_DATA_DIR, apps/daemon/src/legacy-data-migrator.ts runs a
- * synchronous payload copy at module import time, before the daemon
- * sidecar can answer status. With the default 35-second status budget
- * a multi-GB legacy `.od/projects` or `.od/artifacts` tree can hit the
- * timeout while staging is still copying, after which the parent tears
- * the child down mid-promotion and can leave dataDir half-promoted
- * even with the in-process rollback.
- *
- * @see apps/packaged/src/sidecars.ts
- * @see apps/daemon/src/legacy-data-migrator.ts
- * @see https://github.com/nexu-io/open-design/issues/710
- */
 import { EventEmitter } from 'node:events';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -25,47 +8,12 @@ import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 import {
   buildPackagedDaemonSpawnEnv,
-  resolveDaemonStatusTimeoutMs,
   resolvePackagedChildBaseEnv,
   resolvePackagedElectronNodeCommand,
   resolvePackagedPathEnv,
   waitForStatus,
 } from '../src/sidecars.js';
 import type { PackagedNamespacePaths } from '../src/paths.js';
-
-describe('resolveDaemonStatusTimeoutMs', () => {
-  it('uses the default 35-second budget for normal cold boots', () => {
-    expect(resolveDaemonStatusTimeoutMs({})).toBe(35_000);
-  });
-
-  it('treats an empty OD_LEGACY_DATA_DIR as unset', () => {
-    expect(resolveDaemonStatusTimeoutMs({ OD_LEGACY_DATA_DIR: '' })).toBe(35_000);
-  });
-
-  it('extends the budget to 30 minutes when OD_LEGACY_DATA_DIR is set', () => {
-    // The packaged sidecar must give the daemon a long-enough window to
-    // sync-copy a multi-GB legacy `.od/` payload. Anything below ~10
-    // minutes was historically observed to time out on real installs.
-    const value = resolveDaemonStatusTimeoutMs({
-      OD_LEGACY_DATA_DIR: '/path/to/old/.od',
-    });
-    expect(value).toBeGreaterThanOrEqual(10 * 60 * 1000);
-    expect(value).toBe(30 * 60 * 1000);
-  });
-
-  it('falls back to process.env when called with no argument', () => {
-    const original = process.env.OD_LEGACY_DATA_DIR;
-    try {
-      delete process.env.OD_LEGACY_DATA_DIR;
-      expect(resolveDaemonStatusTimeoutMs()).toBe(35_000);
-      process.env.OD_LEGACY_DATA_DIR = '/some/legacy/path';
-      expect(resolveDaemonStatusTimeoutMs()).toBe(30 * 60 * 1000);
-    } finally {
-      if (original == null) delete process.env.OD_LEGACY_DATA_DIR;
-      else process.env.OD_LEGACY_DATA_DIR = original;
-    }
-  });
-});
 
 describe('packaged child Vite+ environment forwarding', () => {
   it('never inherits the desktop approval bearer through packaged child forwarding', () => {
@@ -331,7 +279,6 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       appVersion: '1.2.3',
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
     expect(env.OD_REQUIRE_DESKTOP_AUTH).toBe('1');
@@ -339,7 +286,6 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
     expect(env.OD_APP_VERSION).toBe('1.2.3');
     expect(env[SIDECAR_ENV.DAEMON_PORT]).toBe('7456');
-    expect(env.OD_LEGACY_DATA_DIR).toBeUndefined();
   });
 
   it('passes the ephemeral approval bearer only through the explicit daemon env', () => {
@@ -359,7 +305,6 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       appVersion: null,
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: false,
     });
     // Round-5 (lefarcen P2): MUST NOT set the env var, even to "0" —
@@ -372,34 +317,11 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env.OD_APP_VERSION).toBeUndefined();
   });
 
-  it('forwards OD_LEGACY_DATA_DIR only when set, irrespective of requireDesktopAuth', () => {
-    const withLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
-      appVersion: null,
-      daemonCliEntry: null,
-      daemonPort: 7456,
-      legacyDataDir: '/old/.od',
-      requireDesktopAuth: false,
-    });
-    expect(withLegacy.OD_LEGACY_DATA_DIR).toBe('/old/.od');
-
-    const withEmptyLegacy = buildPackagedDaemonSpawnEnv(fakePaths(), {
-      appVersion: null,
-      daemonCliEntry: null,
-      daemonPort: 7456,
-      legacyDataDir: '',
-      requireDesktopAuth: true,
-    });
-    // Empty string must NOT propagate — daemon treats "env set but
-    // path invalid" as an error and refuses to start.
-    expect('OD_LEGACY_DATA_DIR' in withEmptyLegacy).toBe(false);
-  });
-
   it('forwards daemonCliEntry through READABLE_DAEMON_CLI_PATH when set', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: '/path/to/cli/dist/index.js',
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
     expect(env.READABLE_DAEMON_CLI_PATH).toBe('/path/to/cli/dist/index.js');
@@ -411,7 +333,6 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       amrProfile: 'test',
       daemonCliEntry: null,
       daemonPort: 7456,
-      legacyDataDir: null,
       requireDesktopAuth: true,
     });
     expect(env.OPEN_DESIGN_AMR_PROFILE).toBe('test');
@@ -420,15 +341,6 @@ describe('buildPackagedDaemonSpawnEnv', () => {
 });
 
 describe('waitForStatus child-exit fast-fail', () => {
-  // mrcfps round-7: when OD_LEGACY_DATA_DIR is set the daemon status
-  // budget extends to 30 minutes for legitimate large-payload migrations.
-  // But a daemon that throws LegacyMigrationError at startup (invalid
-  // legacy dir, existing target payload, symlink, marker write failure)
-  // exits before reporting status, and waiting the full 30 minutes makes
-  // the packaged app look hung. Racing the IPC polling against the
-  // child's exit event surfaces the failure promptly with a pointer to
-  // the daemon log.
-
   it('rejects within milliseconds when the child exits before status is ready', async () => {
     const child = fakeChild();
     const ipcPath = '/tmp/od-test-no-such-ipc-' + Date.now();

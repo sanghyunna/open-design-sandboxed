@@ -20,7 +20,7 @@ declare global {
 }
 
 const DIAGNOSTICS_EXPORT_PATH = '/api/diagnostics/export';
-const DIAGNOSTICS_FILENAME_PREFIX = 'open-design-diagnostics';
+const DIAGNOSTICS_FILENAME_PREFIX = 'readable-studio-diagnostics';
 const STATUS_CLEAR_MS = 6000;
 
 type Status =

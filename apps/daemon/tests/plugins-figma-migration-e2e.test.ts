@@ -112,7 +112,7 @@ describe('figma-migration pipeline — full atom chain', () => {
     // 4. handoff. Without build-test the rung tops out at
     //    'implementation-plan'.
     const seed: ArtifactManifest = {
-      version:  1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind:     'html',
       title:    'Hero from Figma',
       entry:    'index.html',
@@ -148,7 +148,7 @@ describe('figma-migration pipeline — full atom chain', () => {
     await runTokenMap({ cwd, designSystem });
     await runDiffReview({ cwd, decision: { decision: 'reject', reviewer: 'user' } });
     const seed: ArtifactManifest = {
-      version: 1, kind: 'html', title: 'X', entry: 'x.html',
+      schema: 'readable-studio.artifact-manifest.v1', kind: 'html', title: 'X', entry: 'x.html',
       renderer: 'html', exports: [],
     };
     const handoff = await runAndPersistHandoff({ cwd, manifestSeed: seed });

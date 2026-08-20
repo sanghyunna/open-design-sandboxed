@@ -55,7 +55,7 @@ describe('POST /api/projects/:id/finalize/anthropic — request-lifecycle abort'
     await writeFile(
       path.join(projectDir, 'deck.html.artifact.json'),
       JSON.stringify({
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',

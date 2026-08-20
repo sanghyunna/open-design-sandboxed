@@ -156,7 +156,7 @@ describe('resolveCurrentArtifact', () => {
     // Older artifact - active tab points here.
     await writeProjectFile(projectsRoot, PROJECT_ID, 'pinned.html', '<p>pinned body</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Pinned',
         entry: 'pinned.html',
@@ -168,7 +168,7 @@ describe('resolveCurrentArtifact', () => {
     // Newer artifact - NOT in the active tab.
     await writeProjectFile(projectsRoot, PROJECT_ID, 'newer.html', '<p>newer body</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Newer',
         entry: 'newer.html',
@@ -193,7 +193,7 @@ describe('resolveCurrentArtifact', () => {
     // The actual artifact - NOT in active tab.
     await writeProjectFile(projectsRoot, PROJECT_ID, 'design.html', '<p>design</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Design',
         entry: 'design.html',
@@ -255,7 +255,7 @@ describe('resolveCurrentArtifact', () => {
 
     await writeProjectFile(projectsRoot, PROJECT_ID, 'newer.html', '<p>newer</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Newer',
         entry: 'newer.html',
@@ -294,7 +294,7 @@ describe('resolveCurrentArtifact', () => {
     // A real artifact exists.
     await writeProjectFile(projectsRoot, PROJECT_ID, 'design.html', '<p>real</p>', {
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Design',
         entry: 'design.html',

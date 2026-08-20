@@ -153,27 +153,6 @@ async function openLog(path: string): Promise<FileHandle> {
 }
 
 const DAEMON_STATUS_TIMEOUT_MS = 35_000;
-const DAEMON_MIGRATION_STATUS_TIMEOUT_MS = 30 * 60 * 1000;
-
-/**
- * Daemon status wait budget. The default 35s is fine for normal cold
- * boots, but the OD_LEGACY_DATA_DIR one-shot recovery flow can synch-
- * copy a multi-GB legacy `.od/` payload before SQLite even opens, and
- * killing the child mid-migration can leave dataDir half-promoted.
- * When the env var is set, use a 30-minute budget so the parent will
- * not tear the daemon down before the migration can complete.
- *
- * @see apps/daemon/src/legacy-data-migrator.ts
- * @see https://github.com/nexu-io/open-design/issues/710
- */
-// @dsp func-ca65beb2
-export function resolveDaemonStatusTimeoutMs(
-  env: NodeJS.ProcessEnv = process.env,
-): number {
-  const raw = env.OD_LEGACY_DATA_DIR;
-  if (raw != null && raw.length > 0) return DAEMON_MIGRATION_STATUS_TIMEOUT_MS;
-  return DAEMON_STATUS_TIMEOUT_MS;
-}
 
 const WEB_STATUS_TIMEOUT_MS = 180_000;
 
@@ -204,11 +183,8 @@ export function resolveWebStatusTimeoutMs(
  * Waits for the sidecar to report a ready status over IPC.
  *
  * When `watch` is provided, the polling loop also races the spawned
- * child's `exit` event so a daemon that throws at startup (e.g. the
- * #710 migrator's LegacyMigrationError on invalid OD_LEGACY_DATA_DIR,
- * existing target payload, symlink in payload, or marker write
- * failure) surfaces immediately instead of leaving the packaged app
- * waiting the full DAEMON_MIGRATION_STATUS_TIMEOUT_MS for a process
+ * child's `exit` event so a daemon that throws at startup surfaces
+ * immediately instead of leaving the packaged app waiting for a process
  * that already exited. The error message includes the daemon log path
  * so the user can read the actual failure reason.
  */
@@ -336,7 +312,6 @@ export type PackagedDaemonSpawnEnvOptions = {
    * headless runtime can never deliver.
    */
   requireDesktopAuth: boolean;
-  legacyDataDir?: string | null;
 };
 
 /**
@@ -373,15 +348,6 @@ export function buildPackagedDaemonSpawnEnv(
       ? {}
       : { OPEN_DESIGN_AMR_PROFILE: options.amrProfile }),
     ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
-    // OD_LEGACY_DATA_DIR is the one-shot recovery handle for users
-    // upgrading from 0.3.x .od/ layouts. The daemon's startup
-    // migrator (legacy-data-migrator.ts) reads it; the env-allowlist
-    // for packaged children would otherwise drop it. Forward only
-    // when set so we do not invent an empty string and trigger the
-    // daemon's "env set but path invalid" error path.
-    ...(options.legacyDataDir == null || options.legacyDataDir.length === 0
-      ? {}
-      : { OD_LEGACY_DATA_DIR: options.legacyDataDir }),
   };
 }
 
@@ -539,7 +505,6 @@ export async function startPackagedSidecars(
           daemonCliEntry: options.daemonCliEntry,
           daemonPort,
           desktopApprovalToken: options.desktopApprovalToken,
-          legacyDataDir: process.env.OD_LEGACY_DATA_DIR ?? null,
           requireDesktopAuth: options.requireDesktopAuth,
         }),
         nodeCommand: options.nodeCommand,
@@ -571,12 +536,10 @@ export async function startPackagedSidecars(
         waitForStatus<DaemonStatusSnapshot>(
           daemon.ipcPath,
           (status) => status.url != null,
-          resolveDaemonStatusTimeoutMs(),
+          DAEMON_STATUS_TIMEOUT_MS,
           // Race the IPC polling against the daemon child's exit. Without
-          // this, a daemon that throws at startup (LegacyMigrationError on
-          // invalid OD_LEGACY_DATA_DIR, existing target payload, symlink,
-          // marker write failure) leaves the packaged app waiting the full
-          // 30-minute migration budget for a process that already died.
+          // this, a daemon that throws at startup leaves the packaged app
+          // waiting for the full status budget after the process already died.
           { child: daemon.child, logPath: logPathFor(paths, APP_KEYS.DAEMON) },
         ).then((status) => {
           logStartupPhase("daemon-status-ready");

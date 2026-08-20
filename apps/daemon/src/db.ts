@@ -1,6 +1,6 @@
 // SQLite-backed persistence for projects, conversations, messages, and the
 // per-project set of open workspace tabs. The on-disk project folder under
-// .od/projects/<id>/ is still the single owner of the user's actual files
+// .readable-studio/projects/<id>/ is still the single owner of the user's actual files
 // (HTML artifacts, sketches, uploads); this database tracks the metadata
 // that used to live in localStorage.
 
@@ -29,6 +29,29 @@ let dbInstance: SqliteDb | null = null;
 let dbFile: string | null = null;
 
 export const HOSTED_DATABASE_OPEN_TIMEOUT_MS = 30_000;
+export const READABLE_STUDIO_SQLITE_APPLICATION_ID = 0x52535444;
+
+export class DataIdentityError extends Error {
+  readonly code = 'foreign_data_identity';
+
+  constructor(readonly file: string) {
+    super(`database does not belong to Readable Studio: ${file}`);
+    this.name = 'DataIdentityError';
+  }
+}
+
+function assertReadableStudioDatabaseIdentity(file: string): void {
+  if (!fs.existsSync(file)) return;
+  const probe = new Database(file, { fileMustExist: true, readonly: true });
+  try {
+    const applicationId = probe.pragma('application_id', { simple: true });
+    if (applicationId !== READABLE_STUDIO_SQLITE_APPLICATION_ID) {
+      throw new DataIdentityError(file);
+    }
+  } finally {
+    probe.close();
+  }
+}
 
 function row(value: unknown): DbRow | null {
   return value && typeof value === 'object' ? value as DbRow : null;
@@ -39,12 +62,15 @@ function rows(value: unknown[]): DbRow[] {
 }
 
 export function openDatabase(projectRoot: string, { dataDir }: { dataDir?: string } = {}): SqliteDb {
-  const dir = dataDir ? path.resolve(dataDir) : path.join(projectRoot, '.od');
+  const dir = dataDir ? path.resolve(dataDir) : path.join(projectRoot, '.readable-studio');
   const file = path.join(dir, 'app.sqlite');
   if (dbInstance && dbFile === file) return dbInstance;
   if (dbInstance) closeDatabase();
   fs.mkdirSync(dir, { recursive: true });
+  assertReadableStudioDatabaseIdentity(file);
+  const isFresh = !fs.existsSync(file);
   const db = new Database(file);
+  if (isFresh) db.pragma(`application_id = ${READABLE_STUDIO_SQLITE_APPLICATION_ID}`);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   migrate(db);
@@ -70,10 +96,13 @@ export function openHostedDatabaseAtPath(file: string): SqliteDb {
     }
   }
 
+  assertReadableStudioDatabaseIdentity(file);
+  const isFresh = !fs.existsSync(file);
   let db: SqliteDb | null = null;
   const startedAt = performance.now();
   try {
     db = new Database(file, { timeout: HOSTED_DATABASE_OPEN_TIMEOUT_MS });
+    if (isFresh) db.pragma(`application_id = ${READABLE_STUDIO_SQLITE_APPLICATION_ID}`);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     migrate(db);

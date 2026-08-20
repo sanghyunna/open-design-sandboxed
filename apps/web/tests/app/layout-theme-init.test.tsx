@@ -42,7 +42,7 @@ describe('RootLayout theme init script', () => {
       const script = findThemeInitScript(RootLayout({ children: null }));
       expect(script).toBeTruthy();
 
-      localStorage.setItem('open-design:config', JSON.stringify({ theme: theme.id }));
+      localStorage.setItem('readable-studio:config', JSON.stringify({ theme: theme.id }));
       new Function(script ?? '')();
 
       expect(document.documentElement.getAttribute('data-theme')).toBe(theme.id);
@@ -65,7 +65,7 @@ describe('RootLayout theme init script', () => {
       document.documentElement.setAttribute('data-od-composition', 'hosted');
       new Function(script ?? '')();
 
-      expect(getItem).not.toHaveBeenCalledWith('open-design:config');
+      expect(getItem).not.toHaveBeenCalledWith('readable-studio:config');
       getItem.mockRestore();
     } finally {
       if (previousComposition == null) delete process.env.OD_WEB_COMPOSITION;

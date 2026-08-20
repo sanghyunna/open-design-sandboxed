@@ -13,12 +13,12 @@ describe('parseArtifactManifest', () => {
   });
 
   it('returns null when required fields are missing', () => {
-    expect(parseArtifactManifest(JSON.stringify({ version: 1, kind: 'html' }))).toBeNull();
+    expect(parseArtifactManifest(JSON.stringify({ schema: 'readable-studio.artifact-manifest.v1', kind: 'html' }))).toBeNull();
   });
 
-  it('returns null for wrong version', () => {
+  it('returns null for an unsupported schema', () => {
     const raw = JSON.stringify({
-      version: 2,
+      schema: 'open-design.artifact-manifest.v1',
       kind: 'html',
       title: 'x',
       entry: 'index.html',
@@ -30,7 +30,7 @@ describe('parseArtifactManifest', () => {
 
   it('defaults status to complete when missing', () => {
     const raw = JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'x',
       entry: 'index.html',
@@ -43,7 +43,7 @@ describe('parseArtifactManifest', () => {
 
   it('preserves valid status when provided', () => {
     const raw = JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'x',
       entry: 'index.html',
@@ -57,7 +57,7 @@ describe('parseArtifactManifest', () => {
 
   it('preserves primary file hints', () => {
     const raw = JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'x',
       entry: 'index.html',
@@ -121,7 +121,7 @@ describe('artifactManifestNameFor', () => {
 describe('createHtmlArtifactManifest', () => {
   it('creates expected default html manifest shape', () => {
     const out = createHtmlArtifactManifest({ entry: 'index.html', title: 'Landing' });
-    expect(out.version).toBe(1);
+    expect(out.schema).toBe('readable-studio.artifact-manifest.v1');
     expect(out.kind).toBe('html');
     expect(out.renderer).toBe('html');
     expect(out.status).toBe('complete');

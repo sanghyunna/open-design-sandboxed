@@ -100,7 +100,7 @@ describe('project export manifest route', () => {
       name: 'index.html',
       content: '<!doctype html><link rel="stylesheet" href="styles.css">',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Reviewed prototype',
         entry: 'index.html',
@@ -124,7 +124,7 @@ describe('project export manifest route', () => {
     };
 
     expect(body).toMatchObject({
-      schema: 'open-design.project-export-manifest.v1',
+      schema: 'readable-studio.project-export-manifest.v1',
       projectId,
       entryFile: 'index.html',
     });
@@ -161,7 +161,7 @@ describe('project export manifest route', () => {
       name: 'preview/wrapper.html',
       content: '<!doctype html><iframe src="../reviewed.html"></iframe>',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Review wrapper',
         renderer: 'html',
@@ -199,7 +199,7 @@ describe('project export manifest route', () => {
       name: 'preview/wrapper.html',
       content: '<!doctype html><iframe src="../reviewed.html"></iframe>',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Review wrapper',
         entry: 'reviewed.html',
@@ -237,7 +237,7 @@ describe('project export manifest route', () => {
       name: 'preview/wrapper.html',
       content: '<!doctype html><iframe src="../reviewed.html"></iframe>',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Review wrapper',
         entry: 'reviewed.html',
@@ -298,7 +298,7 @@ describe('project export manifest route', () => {
       name: 'preview/wrapper.html',
       content: '<!doctype html><iframe src="reviewed.html"></iframe>',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Review wrapper',
         entry: 'reviewed.html',

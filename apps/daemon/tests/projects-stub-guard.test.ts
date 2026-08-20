@@ -17,6 +17,7 @@ function htmlBody(byteLength: number): string {
 
 function manifestFor(identifier: string, kind: 'html' | 'deck' = 'html') {
   return {
+    schema: 'readable-studio.artifact-manifest.v1',
     kind,
     renderer: kind === 'deck' ? 'deck-html' : 'html',
     title: identifier,

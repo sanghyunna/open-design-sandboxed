@@ -368,6 +368,7 @@ describe('POST /api/import/folder', () => {
       body: JSON.stringify({
         artifact: true,
         artifactManifest: {
+          schema: 'readable-studio.artifact-manifest.v1',
           exports: ['html'],
           kind: 'html',
           renderer: 'html',

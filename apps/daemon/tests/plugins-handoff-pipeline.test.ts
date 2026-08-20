@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 const baseManifest = (over: Partial<ArtifactManifest> = {}): ArtifactManifest => ({
-  version:  1,
+  schema: 'readable-studio.artifact-manifest.v1',
   kind:     'react-component',
   title:    'Patch artifact',
   entry:    'index.tsx',

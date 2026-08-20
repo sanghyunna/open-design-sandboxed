@@ -66,7 +66,7 @@ describe('runAndPersistHandoff', () => {
     const result = await runAndPersistHandoff({
       cwd,
       manifestSeed: {
-        version: 1, kind: 'react-component', title: 'Button',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
         entry: 'Button.tsx', renderer: 'react-component', exports: [],
       },
     });
@@ -79,7 +79,7 @@ describe('runAndPersistHandoff', () => {
   it('round-trips an existing manifest + advances handoffKind monotonically', async () => {
     await writeDecision('accept');
     const initial: ArtifactManifest = {
-      version: 1, kind: 'react-component', title: 'Button',
+      schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
       entry: 'Button.tsx', renderer: 'react-component', exports: [],
       handoffKind: 'design-only',
     };
@@ -102,7 +102,7 @@ describe('runAndPersistHandoff', () => {
     const result = await runAndPersistHandoff({
       cwd,
       manifestSeed: {
-        version: 1, kind: 'react-component', title: 'Button',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
         entry: 'Button.tsx', renderer: 'react-component', exports: [],
       },
       exportTarget: { surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 },

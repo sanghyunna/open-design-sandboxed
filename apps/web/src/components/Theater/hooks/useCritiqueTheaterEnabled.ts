@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const TOGGLE_EVENT = 'open-design:critique-theater-toggle';
 
 interface ConfigShape {
@@ -11,7 +11,7 @@ interface ConfigShape {
 /**
  * Read the Settings-toggle flag for Critique Theater (Phase 15.3).
  *
- * Source of truth is the existing `open-design:config` localStorage
+ * Source of truth is the `readable-studio:config` localStorage
  * blob the Settings panel already round-trips. The web layer reads the
  * stored boolean; the daemon-side `isCritiqueEnabled` makes the final
  * routing decision (project-level override, env override, rollout

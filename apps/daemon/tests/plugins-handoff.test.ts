@@ -5,7 +5,7 @@ import type { ArtifactManifest } from '@readable-studio/contracts';
 import { isDeployableAppEligible, recordHandoff } from '../src/plugins/atoms/handoff.js';
 
 const baseManifest = (extra: Partial<ArtifactManifest> = {}): ArtifactManifest => ({
-  version:  1,
+  schema: 'readable-studio.artifact-manifest.v1',
   kind:     'html',
   title:    'Fixture',
   entry:    'index.html',

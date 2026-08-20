@@ -35,7 +35,7 @@ export type PackagedAmrProfile = "prod" | "test" | "local";
 export function resolveDefaultPackagedNodeCommandRelativePath(
   platform: NodeJS.Platform = process.platform,
 ): string {
-  return `open-design/bin/${platform === "win32" ? "node.exe" : "node"}`;
+  return `readable-studio/bin/${platform === "win32" ? "node.exe" : "node"}`;
 }
 
 export type RawPackagedConfig = {
@@ -48,7 +48,7 @@ export type RawPackagedConfig = {
   namespaceBaseRoot?: string;
   nodeCommandRelative?: string;
   // True only in the portable Windows ZIP artifact. tools/pack injects this
-  // flag into the archive's copy of open-design-config.json after the cached
+  // flag into the archive's copy of readable-studio-config.json after the cached
   // win-unpacked tree is built (see tools/pack/src/win/zip.ts). When set, the
   // runtime keeps all data beside the extracted executable and disables the
   // updater (see readPackagedConfig and apps/packaged/src/index.ts).
@@ -92,7 +92,7 @@ async function readJsonIfExists(filePath: string): Promise<RawPackagedConfig | n
 }
 
 function resolveDefaultConfigPath(): string {
-  return join(process.resourcesPath, "open-design-config.json");
+  return join(process.resourcesPath, "readable-studio-config.json");
 }
 
 async function readRawPackagedConfig(): Promise<RawPackagedConfig> {
@@ -106,7 +106,7 @@ async function readRawPackagedConfig(): Promise<RawPackagedConfig> {
   const electronApp = await loadElectronApp();
   return (
     (await readJsonIfExists(resolveDefaultConfigPath())) ??
-    (await readJsonIfExists(join(electronApp.getAppPath(), "open-design-config.json"))) ??
+    (await readJsonIfExists(join(electronApp.getAppPath(), "readable-studio-config.json"))) ??
     {}
   );
 }
@@ -156,7 +156,7 @@ function resolvePackagedWebStandaloneRoot(
   const configured = resolveOptionalPath(value);
   if (configured != null) return configured;
   if (webOutputMode !== "standalone") return null;
-  return join(process.resourcesPath, "open-design-web-standalone");
+  return join(process.resourcesPath, "readable-studio-web-standalone");
 }
 
 async function resolvePackagedRelativeEntry(value: string | undefined): Promise<string | null> {
@@ -183,7 +183,7 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   const electronApp = await loadElectronApp();
   const portable = resolvePackagedPortable(raw.portable);
   // Portable invariant: a portable extraction keeps ALL runtime data beside the
-  // extracted exe (`<exeDir>/OpenDesignData/namespaces`) so nothing lands in
+  // extracted exe (`<exeDir>/ReadableStudioData/namespaces`) so nothing lands in
   // %APPDATA% or the registry. In the win-unpacked/zip layout
   // `dirname(process.execPath)` IS the extraction root (resources/ sits beside
   // the exe), and everything else — daemon dataRoot, Chromium profile, logs,
@@ -197,9 +197,9 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   const namespaceBaseRoot =
     resolveOptionalPath(raw.namespaceBaseRoot) ??
     (portable
-      ? join(dirname(process.execPath), "OpenDesignData", "namespaces")
-      : join(electronApp.getPath("userData"), "namespaces"));
-  const resourceRoot = resolveOptionalPath(raw.resourceRoot) ?? join(process.resourcesPath, "open-design");
+      ? join(dirname(process.execPath), "ReadableStudioData", "namespaces")
+      : join(dirname(electronApp.getPath("userData")), "Readable Studio", "namespaces"));
+  const resourceRoot = resolveOptionalPath(raw.resourceRoot) ?? join(process.resourcesPath, "readable-studio");
   const relativeNodeCommand =
     raw.nodeCommandRelative == null || raw.nodeCommandRelative.length === 0
       ? resolveDefaultPackagedNodeCommandRelativePath()

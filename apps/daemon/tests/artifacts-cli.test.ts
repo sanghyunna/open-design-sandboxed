@@ -117,6 +117,7 @@ describe('od artifacts CLI', () => {
   it('sends an explicit manifest file when provided', async () => {
     const inputPath = await makeFile('report.md', '# Report');
     const manifestPath = await makeFile('manifest.json', JSON.stringify({
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'markdown-document',
       renderer: 'markdown',
       exports: ['md', 'html', 'pdf', 'zip'],
@@ -148,6 +149,7 @@ describe('od artifacts CLI', () => {
       name: 'report.md',
       content: '# Report',
       artifactManifest: {
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'markdown-document',
         renderer: 'markdown',
         exports: ['md', 'html', 'pdf', 'zip'],

@@ -112,6 +112,7 @@ describe('normal artifact create helper', () => {
         name: 'component.jsx',
         content: 'export function Component() { return <div />; }',
         artifactManifest: {
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'react-component',
           exports: ['jsx'],
         },
@@ -134,6 +135,7 @@ describe('normal artifact create helper', () => {
           name: 'dry-run/deck.html',
           content: '<!doctype html><h1>Deck</h1>',
           artifactManifest: {
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'deck',
             renderer: 'deck-html',
             exports: ['html', 'pdf'],

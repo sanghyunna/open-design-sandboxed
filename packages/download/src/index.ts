@@ -17,14 +17,14 @@ import { pipeline } from "node:stream/promises";
 
 import { atomicCopyFile, isProcessAlive, pathContains, removePathBestEffort } from "@readable-studio/platform";
 
-const STORE_SENTINEL = ".open-design-download-root.json";
+const STORE_SENTINEL = ".readable-studio-download-root.json";
 const STATE_DIR = ".state";
 const PARTIAL_DIR = ".partial";
 const LOCK_DIR = ".locks";
 const STORE_SCHEMA_VERSION = 1;
 const MANIFEST_SCHEMA_VERSION = 1;
-const STORE_KIND = "open-design-managed-download-root";
-const MANIFEST_KIND = "open-design-managed-download";
+const STORE_KIND = "readable-studio-managed-download-root";
+const MANIFEST_KIND = "readable-studio-managed-download";
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_PRUNE_OLDER_THAN_MS = 24 * 60 * 60 * 1000;
 const PID_REUSE_GRACE_MS = 1000;

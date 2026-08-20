@@ -25,7 +25,8 @@ describe('public MCP create_artifact', () => {
         JSON.stringify({
           file: {
             name: 'deck.html',
-            artifactManifest: { kind: 'deck', renderer: 'deck-html', entry: 'deck.html' },
+            artifactManifest: { schema: 'readable-studio.artifact-manifest.v1',
+          kind: 'deck', renderer: 'deck-html', entry: 'deck.html' },
           },
         }),
         { status: 200 },
@@ -51,7 +52,8 @@ describe('public MCP create_artifact', () => {
     expect(JSON.parse(firstText(result))).toMatchObject({
       file: {
         name: 'deck.html',
-        artifactManifest: { kind: 'deck', renderer: 'deck-html', entry: 'deck.html' },
+        artifactManifest: { schema: 'readable-studio.artifact-manifest.v1',
+          kind: 'deck', renderer: 'deck-html', entry: 'deck.html' },
       },
     });
   });

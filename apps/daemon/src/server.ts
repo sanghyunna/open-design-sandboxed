@@ -94,7 +94,6 @@ import {
   fetchVelaPresetModels,
   fetchVelaRemoteModelsWithRetry,
 } from './runtimes/defs/amr.js';
-import { migrateLegacyDataDirSync } from './legacy-data-migrator.js';
 import {
   consumedImportNonces,
   getDesktopAuthSecret,
@@ -1309,7 +1308,7 @@ export function resolveDataDir(raw, projectRoot, options = {}) {
     if (options.requireExplicit) {
       throw new Error('OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled');
     }
-    return path.join(projectRoot, '.od');
+    return path.join(projectRoot, '.readable-studio');
   }
   // expandHomePrefix is shared with media-config.ts so OD_DATA_DIR and
   // OD_MEDIA_CONFIG_DIR can never split state under a $HOME-style value.
@@ -1365,15 +1364,6 @@ const RUNTIME_DATA_DIR_CANONICAL = (() => {
     return RUNTIME_DATA_DIR;
   }
 })();
-// One-shot legacy data migration. When OD_LEGACY_DATA_DIR is set and the
-// new data root is fresh (no app.sqlite), copy the 0.3.x .od/ payload
-// across before SQLite opens. Synchronous on purpose: openDatabase below
-// would race an async copy. See apps/daemon/src/legacy-data-migrator.ts
-// and https://github.com/nexu-io/open-design/issues/710.
-migrateLegacyDataDirSync({
-  legacyDir: process.env.OD_LEGACY_DATA_DIR,
-  dataDir: RUNTIME_DATA_DIR,
-});
 const ARTIFACTS_DIR = path.join(RUNTIME_DATA_DIR, 'artifacts');
 // Critique Theater artifacts intentionally live outside the static
 // `/artifacts` tree. The per-run artifact endpoint is the sanctioned
@@ -3376,7 +3366,7 @@ const projectUpload = multer({
         // the user's files so the agent can read them via the same path
         // it sees. projectMetadataLookup is populated at startServer() boot
         // and keyed by project id; null fallback gives the standard
-        // .od/projects/<id>/ behavior for non-imported projects.
+        // .readable-studio/projects/<id>/ behavior for non-imported projects.
         const meta = projectMetadataLookup?.(req.params.id) ?? null;
         // Optional `dir` form field (sent BEFORE the file parts by the web
         // client) routes uploads into a subfolder, so files dropped/picked
@@ -8395,7 +8385,7 @@ export async function startServer({
   // No mtime-based caching — frames are static and small.
   app.use('/frames', express.static(FRAMES_DIR));
 
-  // Project files. Each project owns a flat folder under .od/projects/<id>/
+  // Project files. Each project owns a flat folder under .readable-studio/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
   // project's own folder (see apps/daemon/src/projects.ts).

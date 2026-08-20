@@ -148,7 +148,7 @@ describe('code-migration pipeline — full atom chain', () => {
     // 8. handoff. With accept + both build/test signals AND a 'cli'
     //    exportTarget, the manifest promotes to 'deployable-app'.
     const initialManifest: ArtifactManifest = {
-      version:  1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind:     'react-component',
       title:    'Button (re-tokenised)',
       entry:    'components/Button.tsx',
@@ -180,7 +180,7 @@ describe('code-migration pipeline — full atom chain', () => {
     const handoff = await runHandoffAtom({
       cwd,
       manifest: {
-        version: 1, kind: 'react-component', title: 'X', entry: 'x.tsx',
+        schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'X', entry: 'x.tsx',
         renderer: 'react-component', exports: [],
       },
     });

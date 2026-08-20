@@ -21,7 +21,7 @@ import {
 async function writeArtifactPair(dir: string, name: string, body: string, identifier: string): Promise<void> {
   await writeFile(path.join(dir, name), body);
   const manifest = {
-    version: 1,
+    schema: 'readable-studio.artifact-manifest.v1',
     kind: 'html',
     title: identifier,
     entry: name,

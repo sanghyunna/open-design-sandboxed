@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { inferLegacyManifest, validateArtifactManifestInput } from '../src/artifact-manifest.js';
+import {
+  inferLegacyManifest,
+  parsePersistedManifest,
+  validateArtifactManifestInput,
+} from '../src/artifact-manifest.js';
 
 function validBase() {
   return {
+    schema: 'readable-studio.artifact-manifest.v1',
     kind: 'html',
     renderer: 'html',
     title: 'Test',
@@ -46,10 +51,37 @@ describe('validateArtifactManifestInput', () => {
     expect(res.ok).toBe(false);
   });
 
-  it('defaults status to complete when missing', () => {
+  it('writes the Readable Studio artifact schema', () => {
     const res = validateArtifactManifestInput(validBase(), 'index.html');
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.value?.status).toBe('complete');
+    if (res.ok) {
+      expect(res.value?.schema).toBe('readable-studio.artifact-manifest.v1');
+      expect(res.value?.status).toBe('complete');
+    }
+  });
+
+  it('rejects the old version shape at the machine boundary', () => {
+    const result = validateArtifactManifestInput({
+      ...validBase(),
+      schema: undefined,
+      version: 1,
+    }, 'index.html');
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'artifactManifest.schema must be readable-studio.artifact-manifest.v1',
+    });
+  });
+
+  it('rejects persisted manifests from the old schema', () => {
+    const oldManifest = JSON.stringify({
+      ...validBase(),
+      schema: undefined,
+      version: 1,
+      entry: 'index.html',
+    });
+
+    expect(parsePersistedManifest(oldManifest, 'index.html')).toBeNull();
   });
 
   it('preserves valid status values', () => {

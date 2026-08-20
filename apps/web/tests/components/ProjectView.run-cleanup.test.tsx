@@ -56,7 +56,7 @@ function artifactProjectFile(name: string, mtime: number): ProjectFile {
       },
       renderer: 'html',
       title: 'Real Daemon Smoke',
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
     },
     kind: 'html',
     mime: 'text/html',
@@ -201,7 +201,7 @@ describe('selectPrimaryProjectFile', () => {
       primary: true,
       renderer: 'html',
       title: 'Index',
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
     });
 
     expect(selectPrimaryProjectFile([newer, primary])).toBe(primary);
@@ -1362,7 +1362,7 @@ describe('ProjectView daemon cleanup', () => {
         },
         renderer: 'html',
         title: 'Real Daemon Smoke',
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
       },
       kind: 'html',
       mime: 'text/html',

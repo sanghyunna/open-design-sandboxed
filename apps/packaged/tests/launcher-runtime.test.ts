@@ -74,19 +74,19 @@ describe("resolvePackagedLauncherRuntime", () => {
         version: "1.2.3-beta.5",
       });
       const resourcesPath = join(versionPaths.payloadRoot, "Open Design Beta.app", "Contents", "Resources");
-      await mkdir(join(resourcesPath, "open-design", "bin"), { recursive: true });
+      await mkdir(join(resourcesPath, "readable-studio", "bin"), { recursive: true });
       await mkdir(join(resourcesPath, "prebundled", "daemon"), { recursive: true });
       await mkdir(join(resourcesPath, "prebundled", "web"), { recursive: true });
-      await writeFile(join(resourcesPath, "open-design", "bin", "node"), "");
+      await writeFile(join(resourcesPath, "readable-studio", "bin", "node"), "");
       await writeFile(join(resourcesPath, "prebundled", "daemon", "daemon-sidecar.mjs"), "");
       await writeFile(join(resourcesPath, "prebundled", "web", "web-sidecar.mjs"), "");
       await writeFile(
-        join(resourcesPath, "open-design-config.json"),
+        join(resourcesPath, "readable-studio-config.json"),
         `${JSON.stringify({
           appVersion: "1.2.3-beta.5",
           descriptor: createRuntimeDescriptor("1.2.3-beta.5"),
           daemonSidecarEntryRelative: "prebundled/daemon/daemon-sidecar.mjs",
-          nodeCommandRelative: "open-design/bin/node",
+          nodeCommandRelative: "readable-studio/bin/node",
           webOutputMode: "standalone",
           webSidecarEntryRelative: "prebundled/web/web-sidecar.mjs",
         })}\n`,
@@ -134,11 +134,11 @@ describe("resolvePackagedLauncherRuntime", () => {
       expect(runtime.targetVersion).toBe("1.2.3-beta.5");
       expect(runtime.config.appVersion).toBe("1.2.3-beta.5");
       expect(runtime.config.descriptor).toEqual(createRuntimeDescriptor("1.2.3-beta.5"));
-      expect(runtime.config.resourceRoot).toBe(join(resourcesPath, "open-design"));
+      expect(runtime.config.resourceRoot).toBe(join(resourcesPath, "readable-studio"));
       expect(runtime.config.daemonSidecarEntry).toBe(join(resourcesPath, "prebundled", "daemon", "daemon-sidecar.mjs"));
       expect(runtime.config.webSidecarEntry).toBe(join(resourcesPath, "prebundled", "web", "web-sidecar.mjs"));
-      expect(runtime.config.webStandaloneRoot).toBe(join(resourcesPath, "open-design-web-standalone"));
-      expect(runtime.paths.resourceRoot).toBe(join(resourcesPath, "open-design"));
+      expect(runtime.config.webStandaloneRoot).toBe(join(resourcesPath, "readable-studio-web-standalone"));
+      expect(runtime.paths.resourceRoot).toBe(join(resourcesPath, "readable-studio"));
       expect(JSON.parse(await readFile(runtime.launcherPaths.attemptsPath, "utf8"))).toMatchObject({
         channel: "beta",
         generation: 1,

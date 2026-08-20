@@ -36,7 +36,7 @@ function resolveHeadlessNamespaceBaseRoot(): string {
     xdgDataHome != null && xdgDataHome.length > 0
       ? xdgDataHome
       : join(homedir(), ".local", "share");
-  return join(dataBase, "open-design", "namespaces");
+  return join(dataBase, "readable-studio", "namespaces");
 }
 
 function resolveHeadlessAmrProfile(): PackagedConfig["amrProfile"] {
@@ -55,11 +55,11 @@ function resolveHeadlessConfig(): PackagedConfig {
   const namespaceBaseRoot = resolveHeadlessNamespaceBaseRoot();
 
   // OD_RESOURCE_ROOT may be set by a launcher script; otherwise default to a
-  // sibling open-design/ directory relative to the node_modules that contain
+  // sibling readable-studio/ directory relative to the node_modules that contain
   // this file — the layout written by tools-pack linux headless-install.
   const resourceRoot =
     process.env.OD_RESOURCE_ROOT ??
-    join(__dirname, "..", "..", "..", "open-design");
+    join(__dirname, "..", "..", "..", "readable-studio");
 
   const appVersion = process.env.OD_APP_VERSION?.trim() || "0.0.0";
   return {
@@ -162,7 +162,7 @@ async function main(): Promise<void> {
   }
 
   const shutdown = async (): Promise<void> => {
-    process.stdout.write("\n Shutting down Open Design...\n");
+    process.stdout.write("\n Shutting down Readable Studio...\n");
     await ipcServer.close().catch(() => undefined);
     await sidecars.close().catch(() => undefined);
     await identity.close().catch(() => undefined);
@@ -199,7 +199,7 @@ async function main(): Promise<void> {
   });
   await confirmPackagedLauncherRuntime(launcherRuntime);
 
-  process.stdout.write(`\n Open Design is running\n\n`);
+  process.stdout.write(`\n Readable Studio is running\n\n`);
   process.stdout.write(` ➜ ${colorize(webUrl)}\n\n`);
   process.stdout.write(` Press Ctrl+C to stop\n\n`);
 
@@ -213,7 +213,7 @@ async function main(): Promise<void> {
 
 void main().catch((error: unknown) => {
   process.stderr.write(
-    `open-design headless failed: ${error instanceof Error ? error.message : String(error)}\n`,
+    `readable-studio headless failed: ${error instanceof Error ? error.message : String(error)}\n`,
   );
   process.exit(1);
 });

@@ -213,7 +213,7 @@ describe('deploy provider routes', () => {
           name: 'index.html',
           content: '<!doctype html><h1>Hello</h1>',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'html',
             title: 'Index',
             entry: 'index.html',

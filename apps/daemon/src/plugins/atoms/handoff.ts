@@ -270,7 +270,7 @@ export interface RunAndPersistHandoffResult extends RunHandoffAtomResult {
 }
 
 const DEFAULT_MANIFEST_SEED: ArtifactManifest = {
-  version:  1,
+  schema:   'readable-studio.artifact-manifest.v1',
   kind:     'react-component',
   title:    'Pipeline output',
   entry:    '',

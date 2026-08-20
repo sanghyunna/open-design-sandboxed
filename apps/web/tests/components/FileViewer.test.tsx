@@ -500,7 +500,7 @@ describe('FileViewer SVG artifacts', () => {
       path: 'diagram.svg',
       mime: 'image/svg+xml',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'svg',
         title: 'Diagram',
         entry: 'diagram.svg',
@@ -536,7 +536,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'application/json; charset=utf-8',
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       items: [
         {
           kind: 'arrow',
@@ -571,7 +571,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'application/json; charset=utf-8',
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       items: [
         {
           kind: 'rect',
@@ -630,7 +630,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -833,7 +833,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -861,7 +861,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -896,7 +896,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',
@@ -932,7 +932,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Workspace',
         entry: 'workspace.html',
@@ -964,7 +964,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1012,7 +1012,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1069,7 +1069,7 @@ describe('FileViewer SVG artifacts', () => {
           mime: 'text/html',
           kind: 'html',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'html',
             title: 'Page',
             entry: 'page.html',
@@ -1121,7 +1121,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Search',
         entry: 'search.html',
@@ -1153,7 +1153,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1198,7 +1198,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'First',
         entry: 'first.html',
@@ -1261,7 +1261,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'page.html',
@@ -1320,7 +1320,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/jsx',
       kind: 'code',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'react-component',
         title: 'Card',
         entry: 'Card.jsx',
@@ -1349,7 +1349,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/jsx',
       kind: 'code',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'react-component',
         title: 'icons',
         entry: 'icons.jsx',
@@ -1416,7 +1416,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'deck',
         title: 'Deck',
         entry: 'deck.html',
@@ -1447,7 +1447,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Inferred',
         entry: 'inferred.html',
@@ -1474,7 +1474,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Deck',
         entry: 'deck.html',
@@ -1519,7 +1519,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1565,7 +1565,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1624,7 +1624,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Nudge',
         entry: 'nudge.html',
@@ -1659,7 +1659,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'First',
         entry: 'nudge-first.html',
@@ -1673,7 +1673,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Second',
         entry: 'nudge-second.html',
@@ -1720,7 +1720,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1796,7 +1796,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -1874,7 +1874,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2006,7 +2006,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2079,7 +2079,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2145,7 +2145,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2200,7 +2200,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2256,7 +2256,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2309,7 +2309,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2368,7 +2368,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2416,7 +2416,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/markdown',
       kind: 'text',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'markdown-document',
         title: 'Notes',
         entry: 'notes.md',
@@ -2448,7 +2448,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2504,7 +2504,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2568,7 +2568,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2635,7 +2635,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Page',
         entry: 'index.html',
@@ -2734,7 +2734,7 @@ describe('FileViewer SVG artifacts', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Landing Page',
         entry: 'landing-page.html',
@@ -2797,7 +2797,7 @@ describe('FileViewer tweaks toolbar', () => {
       mime: 'text/html',
       kind: 'html',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'Preview',
         entry: 'preview.html',
@@ -3526,7 +3526,7 @@ describe('FileViewer tweaks toolbar', () => {
           mime: 'text/html',
           kind: 'html',
           artifactManifest: {
-            version: 1,
+            schema: 'readable-studio.artifact-manifest.v1',
             kind: 'html',
             title: 'Deck',
             entry: 'deck.html',

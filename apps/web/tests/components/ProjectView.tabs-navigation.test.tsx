@@ -284,7 +284,7 @@ describe('ProjectView tab URL hydration', () => {
         mime: 'text/html',
         kind: 'html',
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           title: 'Index',
           entry: 'index.html',
@@ -326,7 +326,7 @@ describe('ProjectView tab URL hydration', () => {
         mime: 'text/html',
         kind: 'html',
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           title: 'Index',
           entry: 'index.html',

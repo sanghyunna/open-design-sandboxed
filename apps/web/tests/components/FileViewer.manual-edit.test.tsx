@@ -1018,7 +1018,7 @@ function htmlPreviewFile(): ProjectFile {
     mime: 'text/html',
     kind: 'html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Preview',
       entry: 'preview.html',

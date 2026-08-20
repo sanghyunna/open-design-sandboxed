@@ -1,5 +1,5 @@
 # =============================================================================
-# Open Design — .gitignore
+# Readable Studio — .gitignore
 # pnpm-workspace monorepo (apps/ packages/ tools/ e2e/), Electron + Next.js,
 # packaged via tools-pack. Keep generated output, local runtime data, and
 # secrets out of git.
@@ -32,14 +32,11 @@ result-*
 # metadata), projects/<id>/ (per-project artifacts / the agent's CWD),
 # artifacts/ (one-off renders), and media-config.json (BYOK API CREDENTIALS).
 # Never commit.
-.od
-.od-e2e
-# Legacy folder name from before the rename; keep ignored so existing clones
-# don't accidentally stage stale runtime data.
-.ocd
+.readable-studio
+.readable-studio-e2e
 # Portable-zip runtime data — lands beside the extracted exe, so this only
 # appears in-tree if a portable build is launched from inside the repo.
-OpenDesignData/
+ReadableStudioData/
 
 # --- Secrets / credentials  (matters most for a public repo) -----------------
 .env
@@ -62,7 +59,7 @@ playwright-report
 coverage/
 .nyc_output/
 *.lcov
-e2e/.od-data
+e2e/.readable-studio-data
 e2e/playwright-report
 e2e/reports/html
 e2e/reports/playwright-html-report
@@ -70,7 +67,7 @@ e2e/reports/test-results
 e2e/reports/results.json
 e2e/reports/junit.xml
 e2e/reports/latest.md
-e2e/ui/.od-data
+e2e/ui/.readable-studio-data
 e2e/ui/reports
 e2e/ui/test-results
 apps/web/playwright/

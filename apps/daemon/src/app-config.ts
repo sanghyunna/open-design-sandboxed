@@ -2,7 +2,7 @@
 //
 // The web frontend pushes preferences here via PUT /api/app-config; the
 // daemon persists them to <dataDir>/app-config.json (where dataDir defaults
-// to <projectRoot>/.od but follows OD_DATA_DIR when set, keeping test and
+// to <projectRoot>/.readable-studio but follows OD_DATA_DIR when set, keeping test and
 // multi-namespace runs isolated). This survives browser storage resets and
 // origin changes so onboarding and agent selection don't reappear unexpectedly.
 //

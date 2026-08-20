@@ -58,7 +58,7 @@ function htmlFile(): ProjectFile {
     kind: 'html',
     mime: 'text/html',
     artifactManifest: {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'html',
       title: 'Workspace',
       entry: 'workspace.html',
