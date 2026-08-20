@@ -47,10 +47,9 @@ export type RawPackagedConfig = {
   namespace?: string;
   namespaceBaseRoot?: string;
   nodeCommandRelative?: string;
-  // True only in the portable Windows ZIP artifact. tools/pack injects this
-  // flag into the archive's copy of readable-studio-config.json after the cached
-  // win-unpacked tree is built (see tools/pack/src/win/zip.ts). When set, the
-  // runtime keeps all data beside the extracted executable.
+  // True in the sole Windows portable ZIP artifact. tools/pack writes this
+  // directly into readable-studio-config.json before assembling the extracted
+  // runtime so all runtime data stays beside the executable.
   portable?: boolean;
   resourceRoot?: string;
   webSidecarEntryRelative?: string;

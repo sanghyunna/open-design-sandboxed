@@ -1,11 +1,10 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import type { ToolPackConfig } from "../config.js";
 import { winResources } from "../resources.js";
-import { removeTree } from "./fs.js";
 import type { WinBuiltAppManifest, WinPackTiming, WinPaths } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -13,13 +12,10 @@ const DEFAULT_PORTABLE_ZIP_COMPRESSION = 5;
 const PORTABLE_ZIP_COMPRESSION_ENV = "OD_PORTABLE_ZIP_COMPRESSION";
 export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as const;
 
-// Relative path of the packaged config inside both the unpacked tree and the
-// archive. The portable flag is injected ONLY into the zip's copy of this file.
-const PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH = "resources/readable-studio-config.json";
 const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";
 
 export function shouldPruneWinPortableZipLocales(config: ToolPackConfig): boolean {
-  return config.to === "zip" && config.portable === true && config.signed !== true;
+  return config.signed !== true;
 }
 
 export async function resolveWinPortableZipLocalePruneEntries(input: {
@@ -39,33 +35,6 @@ export async function resolveWinPortableZipLocalePruneEntries(input: {
     .filter((entry) => entry.endsWith(".pak") && !allowed.has(entry))
     .sort()
     .map((entry) => `${CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR}/${entry}`);
-}
-
-// Adds the portable signal to a packaged `readable-studio-config.json` payload,
-// preserving every other (including unknown) field and re-serializing in the
-// exact shape tools/pack writes it everywhere else — `JSON.stringify(obj, null,
-// 2)` followed by a trailing newline (see writePackagedConfigFile in
-// tools/pack/src/win/manifest.ts and the unpacked-tree write in
-// builder.ts:430). `portable` is appended after the existing keys (insertion
-// order), so a clean round-trip is deterministic and stable across rebuilds.
-//
-// ZIP-only injection: the archive is assembled from a cached win-unpacked
-// tree. This patch is applied to a staging copy and added with a second `7z a`
-// pass so the reusable unpacked tree is never modified.
-//
-// The patch must also DROP any baked `namespaceBaseRoot`: a non-`--portable`
-// build bakes the build machine's tools-pack runtime root into the shared
-// tree's config (manifest.ts), and the runtime lets an explicit
-// `namespaceBaseRoot` win over the portable exe-adjacent fallback — so leaving
-// it in place would ship a build-machine path inside the portable artifact and
-// defeat exe-adjacent data entirely. Stripping it also makes the zip's config
-// identical whether or not `--portable` was passed, so the cached zip can never
-// be a flag-dependent artifact.
-export function withPortableConfigFlag(configJsonText: string): string {
-  const parsed = JSON.parse(configJsonText) as Record<string, unknown>;
-  delete parsed.namespaceBaseRoot;
-  parsed.portable = true;
-  return `${JSON.stringify(parsed, null, 2)}\n`;
 }
 
 export function resolvePortableZipCompression(value = process.env[PORTABLE_ZIP_COMPRESSION_ENV]): number {
@@ -91,10 +60,8 @@ function logWinZipProgress(message: string, fields: Record<string, unknown> = {}
   process.stderr.write(`[tools-pack win] ${message}${suffix.length === 0 ? "" : ` ${suffix}`}\n`);
 }
 
-// Produces a portable ZIP from the cached unpacked Electron build. Files are
-// flat at the archive root so users can extract it anywhere and run the app.
-// The ZIP always carries `portable: true`; a second 7z pass replaces only its
-// packaged config without modifying the cached source tree.
+// Produces a portable ZIP from the extracted Electron build. Files are flat at
+// the archive root so users can extract it anywhere and run the app.
 export async function buildWinPortableZip(
   config: ToolPackConfig,
   paths: WinPaths,
@@ -191,37 +158,6 @@ export async function buildWinPortableZip(
         outputPath: paths.setupZipPath,
       },
     );
-  });
-  // Inject the portable flag zip-only. Patch a staging copy of the config and
-  // replace the archive entry with a second `7z a` pass; the shared
-  // cached win-unpacked tree stays untouched.
-  await runSegment("portable-zip:portable-flag", async () => {
-    const sourceConfigPath = join(
-      builtApp.unpackedRoot,
-      "resources",
-      "readable-studio-config.json",
-    );
-    const stagingRoot = await mkdtemp(join(dirname(paths.setupZipPath), "portable-config-"));
-    try {
-      const stagedConfigPath = join(stagingRoot, "resources", "readable-studio-config.json");
-      await mkdir(dirname(stagedConfigPath), { recursive: true });
-      await writeFile(
-        stagedConfigPath,
-        withPortableConfigFlag(await readFile(sourceConfigPath, "utf8")),
-        "utf8",
-      );
-      await runExecSegment(
-        "portable-zip:portable-flag:process",
-        winResources.sevenZipExe,
-        ["a", "-tzip", paths.setupZipPath, PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH],
-        {
-          cwd: stagingRoot,
-          outputPath: paths.setupZipPath,
-        },
-      );
-    } finally {
-      await removeTree(stagingRoot);
-    }
   });
   await runSegment("portable-zip:stat", async () => {
     await stat(paths.setupZipPath);

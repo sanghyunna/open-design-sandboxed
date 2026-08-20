@@ -16,6 +16,7 @@ import {
   resolveHostedSidecarRoute,
   resolveStandaloneBackendOrigin,
   resolveStandaloneServerEntry,
+  resolveWebAppVersion,
 } from '../sidecar/server';
 
 describe('hosted public sidecar boundary', () => {
@@ -132,6 +133,12 @@ describe('resolveDaemonProxyTarget', () => {
 
   it('rejects non-daemon paths', () => {
     expect(resolveDaemonProxyTarget('http://127.0.0.1:7456', '/settings')).toBeNull();
+  });
+});
+
+describe('packaged standalone metadata', () => {
+  it('uses the baked app version without resolving a web package root', () => {
+    expect(resolveWebAppVersion(null, { NODE_ENV: 'production', OD_APP_VERSION: '0.2.2' })).toBe('0.2.2');
   });
 });
 

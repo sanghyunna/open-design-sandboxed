@@ -235,7 +235,7 @@ pnpm --filter @readable-studio/daemon test
 
 ```bash
 powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
-pnpm tools-pack win build --to zip
+pnpm tools-pack win build
 pnpm tools-pack win cleanup
 ```
 

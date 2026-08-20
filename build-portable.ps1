@@ -13,7 +13,7 @@
     npm / Node / git installed — only the two external agent CLIs (codex,
     cursor-agent) need to be on PATH in the target environment.
 
-    What --portable guarantees (apps/packaged/src/config.ts +
+    The portable runtime guarantees (apps/packaged/src/config.ts +
     tools/pack/src/win/*):
       - all runtime data lands beside the extracted exe
         (<exeDir>\OpenDesignData\namespaces), never %APPDATA% or the registry
@@ -52,12 +52,6 @@
 .PARAMETER Namespace
     Runtime namespace baked into the artifact. Default: rg.
 
-.PARAMETER To
-    Build target: zip (default) | all | dir | nsis.
-      zip -> portable zip only (the deliverable; skips the slow NSIS makensis)
-      all -> packaged dir + NSIS installer + portable zip
-    Keep 'zip' unless you also need the NSIS installer.
-
 .PARAMETER DropDir
     Folder that receives the final portable zip after the build moves it. Default:
     D:\dev\open_design_port.
@@ -71,14 +65,11 @@
 
 .EXAMPLE
     .\build-portable.ps1
-    .\build-portable.ps1 -To all
     .\build-portable.ps1 -DropDir D:\dev\open_design_port
 #>
 [CmdletBinding()]
 param(
     [string]$Namespace = "rg",
-    [ValidateSet("zip", "all", "dir", "nsis")]
-    [string]$To = "zip",
     [string]$DropDir = "D:\dev\open_design_port",
     [string]$PortableZipCompression,
     [string]$AppVersion = "0.1.5"
@@ -94,7 +85,6 @@ $Node24 = "D:\dev\open_design_port\.tools\node24"
 Write-Host "=== Open Design portable build ===" -ForegroundColor Cyan
 Write-Host "Project root : $ProjectRoot"
 Write-Host "Namespace    : $Namespace"
-Write-Host "Target (--to): $To"
 Write-Host "Zip drop dir : $DropDir"
 Write-Host "App version  : $AppVersion"
 if ([string]::IsNullOrWhiteSpace($PortableZipCompression)) {
@@ -129,9 +119,7 @@ Write-Host "Node         : $nodeVersion (from $Node24)" -ForegroundColor Green
 # the assembled app's native module.
 $buildArgs = @(
     "tools-pack", "win", "build",
-    "--to", $To,
     "--namespace", $Namespace,
-    "--portable",
     "--app-version", $AppVersion
 )
 if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
@@ -177,7 +165,7 @@ Write-Host ""
 Write-Host "=== Build complete in $elapsed ===" -ForegroundColor Green
 
 $nsDir = Join-Path $ProjectRoot ".tmp\tools-pack\out\win\namespaces\$Namespace"
-$zip = Get-ChildItem -Path $nsDir -Recurse -Filter "*-portable.zip" -ErrorAction SilentlyContinue |
+$zip = Get-ChildItem -Path (Join-Path $nsDir "builder") -Filter "*-portable.zip" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($zip) {
     $zipMB = [math]::Round($zip.Length / 1MB, 1)
@@ -196,8 +184,6 @@ if ($zip) {
         Move-Item -LiteralPath $zip.FullName -Destination $dropPath
         Write-Host "Moved to     : $dropPath" -ForegroundColor Green
     }
-} elseif ($To -eq "nsis" -or $To -eq "dir") {
-    Write-Host "(No portable zip for --to '$To'; that's expected.)" -ForegroundColor Yellow
 } else {
     Write-Host "Portable zip not found under $nsDir — check the build log above." -ForegroundColor Yellow
 }

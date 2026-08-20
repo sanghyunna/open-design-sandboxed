@@ -83,7 +83,6 @@ export type WinPackResult = {
   segments: WinPackTiming[];
   sizeReport: WinSizeReport;
   timings: WinPackTiming[];
-  to: ToolPackConfig["to"];
   unpackedPath: string | null;
   webStandaloneHookAuditPath: string | null;
 };
@@ -177,19 +176,6 @@ export type WinCleanupResult = {
   removedOutputRoot: boolean;
   removedRuntimeNamespaceRoot: boolean;
   stop: WinStopResult;
-};
-
-export type WinListResult = {
-  current: {
-    builtExecutableExists: boolean;
-    builtExecutablePath: string | null;
-    builtManifestPath: string;
-    namespace: string;
-    runtimeNamespaceRoot: string;
-    runtimeNamespaceRootExists: boolean;
-  };
-  outputNamespaces: string[];
-  runtimeNamespaces: string[];
 };
 
 export type WinInspectResult = {

@@ -4,11 +4,6 @@ import { dirname, join } from "node:path";
 import { hashJson, hashPath, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import { copyBundledResourceTrees, winResources } from "../resources.js";
-import {
-  copyOptionalVelaCliBinary,
-  resolveOptionalVelaCliBinary,
-  resolveOptionalVelaCliOpenCodeCompanionTree,
-} from "../vela-cli.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
 const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 10;
@@ -28,13 +23,6 @@ function nativeIsolatorPaths(workspaceRoot: string): {
 
 async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<string> {
   const nativeIsolator = nativeIsolatorPaths(config.workspaceRoot);
-  const velaCliBin = await resolveOptionalVelaCliBinary({
-    requireBundled: config.requireVelaCli,
-  });
-  const velaOpenCodeCompanion =
-    velaCliBin == null
-      ? null
-      : await resolveOptionalVelaCliOpenCodeCompanionTree(velaCliBin);
   return hashJson({
     assetsCommunityPets: await hashPath(join(config.workspaceRoot, "assets", "community-pets")),
     assetsFrames: await hashPath(join(config.workspaceRoot, "assets", "frames")),
@@ -49,16 +37,10 @@ async function createResourceTreeCacheKey(config: ToolPackConfig): Promise<strin
     pluginOfficial: await hashPath(join(config.workspaceRoot, "plugins", "_official")),
     pluginPreviews: await hashPath(join(config.workspaceRoot, "data", "plugin-previews")),
     pluginRegistry: await hashPath(join(config.workspaceRoot, "plugins", "registry")),
-    portable: config.portable,
     schemaVersion: RESOURCE_TREE_CACHE_SCHEMA_VERSION,
     skills: await hashPath(join(config.workspaceRoot, "skills")),
     sevenZipDll: await hashPath(winResources.sevenZipDll),
     sevenZipExe: await hashPath(winResources.sevenZipExe),
-    requireVelaCli: config.requireVelaCli,
-    velaCliBin: velaCliBin ? await hashPath(velaCliBin) : null,
-    velaOpenCodeCompanion: velaOpenCodeCompanion
-      ? await hashPath(velaOpenCodeCompanion)
-      : null,
   });
 }
 
@@ -85,7 +67,6 @@ export async function prepareResourceTree(
       await copyBundledResourceTrees({
         workspaceRoot: config.workspaceRoot,
         resourceRoot,
-        portable: config.portable,
       });
       await mkdir(join(resourceRoot, "bin"), { recursive: true });
       await cp(process.execPath, join(resourceRoot, "bin", "node.exe"));
@@ -95,11 +76,6 @@ export async function prepareResourceTree(
       );
       await cp(winResources.sevenZipExe, join(resourceRoot, "bin", "7z.exe"));
       await cp(winResources.sevenZipDll, join(resourceRoot, "bin", "7z.dll"));
-      await copyOptionalVelaCliBinary({
-        platform: "win",
-        requireBundled: config.requireVelaCli,
-        resourceRoot,
-      });
       return { resourceName: "open-design" };
     },
   };

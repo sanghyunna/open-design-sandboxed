@@ -27,12 +27,10 @@ function fakeConfig(workspaceRoot: string): ToolPackConfig {
     electronVersion: "0.0.0",
     namespace: "test",
     platform: "win",
-    portable: false,
     removeData: false,
     removeLogs: false,
     removeProductUserData: false,
     removeSidecars: false,
-    requireVelaCli: false,
     roots: {
       output: {
         appBuilderRoot: join(workspaceRoot, "out", "builder"),
@@ -49,7 +47,6 @@ function fakeConfig(workspaceRoot: string): ToolPackConfig {
     },
     signed: false,
     silent: true,
-    to: "zip",
     webOutputMode: "standalone",
     workspaceRoot,
   };

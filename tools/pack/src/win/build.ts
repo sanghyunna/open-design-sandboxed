@@ -24,10 +24,6 @@ function logWinBuildProgress(message: string, fields: Record<string, unknown> = 
   process.stderr.write(`[tools-pack win] ${message}${suffix.length === 0 ? "" : ` ${suffix}`}\n`);
 }
 
-export function shouldMaterializeWinResourceTree(config: ToolPackConfig): boolean {
-  return !config.portable;
-}
-
 export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
   const paths = resolveWinPaths(config);
   const cache = new ToolPackCache(config.roots.cacheRoot);
@@ -56,7 +52,7 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
     await ensureWinWorkspaceBuild(config, cache);
   });
   const resourceTree = await runPhase("resource-tree", async () =>
-    prepareResourceTree(config, paths, cache, { materialize: shouldMaterializeWinResourceTree(config) })
+    prepareResourceTree(config, paths, cache, { materialize: false })
   );
   await runPhase("win-icon", async () => {
     await copyWinIcon(paths);
@@ -78,9 +74,8 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
     segments.push(...builderSegments);
   });
   const builtApp = await readBuiltAppManifest(paths);
-  const detailedSizeReport = !config.portable;
   const sizeReport = await runPhase("size-report", async () =>
-    collectWinSizeReport(config, paths, builtApp, { detailed: detailedSizeReport }),
+    collectWinSizeReport(config, paths, builtApp),
   );
 
   return {
@@ -92,7 +87,6 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
     segments,
     sizeReport,
     timings,
-    to: config.to,
     unpackedPath: builtApp?.unpackedRoot ?? paths.unpackedRoot,
     webStandaloneHookAuditPath: builtApp?.webStandaloneHookAuditPath ?? null,
   };

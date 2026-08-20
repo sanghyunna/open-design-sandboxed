@@ -26,21 +26,6 @@ function isBetterSqlite3SourceResidue(path: string): boolean {
   );
 }
 
-export function resolveWinTargets(to: ToolPackConfig["to"]): ["zip"] {
-  if (to !== "zip") throw new Error(`unsupported win target: ${to}`);
-  return ["zip"];
-}
-
-// The portable archive is assembled from electron-builder's unpacked directory.
-export function resolveElectronBuilderWinTargets(to: ToolPackConfig["to"]): ["dir"] {
-  resolveWinTargets(to);
-  return ["dir"];
-}
-
-export function shouldBuildWinPortableZip(to: ToolPackConfig["to"]): boolean {
-  return resolveWinTargets(to).includes("zip");
-}
-
 export async function collectWinSizeReport(
   config: ToolPackConfig,
   paths: WinPaths,
@@ -60,7 +45,7 @@ export async function collectWinSizeReport(
     },
     nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
     npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
-    targets: resolveWinTargets(config.to),
+    targets: ["zip"] as ["zip"],
     webOutputMode: config.webOutputMode,
   };
   const generatedAt = new Date().toISOString();
@@ -119,6 +104,7 @@ export async function collectWinSizeReport(
   const sizeIndex = await PathSizeIndex.create(unpackedRoot);
   const namespaceSizeIndex = await PathSizeIndex.create(config.roots.output.namespaceRoot);
   const appResourcesRoot = join(unpackedRoot, "resources");
+  const bundledResourceRoot = join(appResourcesRoot, "readable-studio");
   const appNodeModulesRoot = join(appResourcesRoot, "app", "node_modules");
   const copiedStandaloneRoot = join(appResourcesRoot, WEB_STANDALONE_RESOURCE_NAME);
   const copiedStandaloneNodeModulesRoot = join(copiedStandaloneRoot, "node_modules");
@@ -133,7 +119,7 @@ export async function collectWinSizeReport(
     mode: "detailed",
     outputRootBytes: namespaceSizeIndex.sizePathBytes(config.roots.output.namespaceRoot),
     portableZipBytes,
-    resourceRootBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "readable-studio")),
+    resourceRootBytes: sizeIndex.sizePathBytes(bundledResourceRoot),
     runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
     topLevel: {
       appResourcesBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "app")),
@@ -147,7 +133,7 @@ export async function collectWinSizeReport(
       betterSqlite3SourceResidueBytes: sizeIndex.sizePathBytes(unpackedRoot, {
         includeFile: isBetterSqlite3SourceResidue,
       }),
-      bundledNodeBytes: sizeIndex.sizePathBytes(join(paths.resourceRoot, "bin", "node.exe")),
+      bundledNodeBytes: sizeIndex.sizePathBytes(join(bundledResourceRoot, "bin", "node.exe")),
       copiedStandaloneNextBytes:
         sizeIndex.sizePathBytes(join(copiedStandaloneNodeModulesRoot, "next")) +
         sizeIndex.sizePathBytes(join(copiedStandaloneWebNodeModulesRoot, "next")),

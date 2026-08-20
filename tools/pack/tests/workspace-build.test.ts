@@ -90,12 +90,10 @@ function createConfig(root: string, cacheRoot: string): ToolPackConfig {
     electronVersion: "41.3.0",
     namespace: "test",
     platform: "win",
-    portable: false,
     removeData: false,
     removeLogs: false,
     removeProductUserData: false,
     removeSidecars: false,
-    requireVelaCli: false,
     roots: {
       cacheRoot,
       output: {
@@ -112,7 +110,6 @@ function createConfig(root: string, cacheRoot: string): ToolPackConfig {
     },
     signed: false,
     silent: true,
-    to: "zip",
     webOutputMode: "standalone",
     workspaceRoot: root,
   };

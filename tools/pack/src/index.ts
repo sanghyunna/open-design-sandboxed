@@ -5,7 +5,6 @@ import { resolveToolPackConfig, type ToolPackCliOptions } from "./config.js";
 import {
   cleanupPackedWinNamespace,
   inspectPackedWinApp,
-  listPackedWinNamespaces,
   packWin,
   readPackedWinLogs,
   startPackedWinApp,
@@ -24,40 +23,30 @@ function printLogs(result: { logs: Record<string, { lines: string[]; logPath: st
     printJson(result);
     return;
   }
-
   for (const [app, entry] of Object.entries(result.logs)) {
     process.stdout.write(`[${app}] ${entry.logPath}\n`);
     process.stdout.write(entry.lines.length > 0 ? `${entry.lines.join("\n")}\n` : "(no log lines)\n");
   }
 }
 
-function addSharedOptions(command: CacCommand) {
+function addOptions(command: CacCommand): CacCommand {
   return command
+    .option("--app-version <version>", "override packaged app version")
     .option("--cache-dir <path>", "tools-pack cache directory")
     .option("--dir <path>", "tools-pack root directory")
+    .option("--expr <expression>", "desktop inspect eval expression")
     .option("--json", "print JSON")
     .option("--namespace <name>", "runtime namespace")
-    .option("--expr <expression>", "desktop inspect eval expression")
-    .option("--path <path>", "desktop inspect screenshot path");
-}
-
-function addBuildOptions(command: CacCommand) {
-  return command
-    .option("--app-version <version>", "override packaged app version for release artifacts")
-    .option("--portable", "do not bake local tools-pack runtime roots into the packaged config")
-    .option("--require-vela-cli", "fail packaging when the bundled Vela CLI cannot be resolved")
-    .option("--signed", "build a signed Windows artifact")
-    .option("--to <target>", "build target: zip (default: zip)");
+    .option("--path <path>", "desktop inspect screenshot path")
+    .option("--signed", "sign the executable in the portable ZIP");
 }
 
 const cli = cac("tools-pack");
 
-addBuildOptions(
-  addSharedOptions(
-    cli.command(
-      "win <action>",
-      "Windows portable commands: build|start|stop|logs|cleanup|list|inspect",
-    ),
+addOptions(
+  cli.command(
+    "win <action>",
+    "Windows x64 portable ZIP: build|start|stop|logs|inspect|cleanup",
   ),
 ).action(async (action: string, options: CliOptions) => {
   const config = resolveToolPackConfig("win", options);
@@ -65,10 +54,6 @@ addBuildOptions(
     case "build":
       printJson(await packWin(config));
       return;
-    case "install":
-    case "uninstall":
-    case "reset":
-      throw new Error(`unsupported Windows installed-product action: ${action}`);
     case "start":
       printJson(await startPackedWinApp(config));
       return;
@@ -78,23 +63,20 @@ addBuildOptions(
     case "logs":
       printLogs(await readPackedWinLogs(config), options);
       return;
-    case "cleanup":
-      printJson(await cleanupPackedWinNamespace(config));
-      return;
-    case "list":
-      printJson(await listPackedWinNamespaces(config));
-      return;
     case "inspect":
       printJson(await inspectPackedWinApp(config, options));
       return;
+    case "cleanup":
+      printJson(await cleanupPackedWinNamespace(config));
+      return;
     default:
-      throw new Error(`unsupported win action: ${action}`);
+      throw new Error(`unsupported tools-pack command: win ${action}`);
   }
 });
 
 cli.on("command:*", () => {
-  const platform = process.argv[2] ?? "unknown";
-  process.stderr.write(`unsupported tools-pack platform: ${platform}\n`);
+  const command = process.argv.slice(2).join(" ") || "unknown";
+  process.stderr.write(`unsupported tools-pack command: ${command}\n`);
   process.exitCode = 1;
 });
 

@@ -800,16 +800,26 @@ function attachParentMonitor(stop: () => Promise<void>): void {
   timer.unref();
 }
 
+export function resolveWebAppVersion(
+  webRoot: string | null,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const configured = env.OD_APP_VERSION?.trim();
+  if (configured != null && configured.length > 0) return configured;
+  if (webRoot == null) return "0.0.0";
+  const packageMetadata = JSON.parse(readFileSync(join(webRoot, "package.json"), "utf8")) as { version?: unknown };
+  return typeof packageMetadata.version === "string" ? packageMetadata.version : "0.0.0";
+}
+
 async function createWebSidecarHandle(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   httpServer: HttpServer,
   closeRuntime: () => Promise<void> | void,
+  webRoot: string | null,
   isRuntimeRunning?: () => boolean,
 ): Promise<WebSidecarHandle> {
   const port = await listen(httpServer, parsePort(process.env[WEB_PORT_ENV]));
-  const packageMetadata = JSON.parse(readFileSync(join(resolveWebRoot(), "package.json"), "utf8")) as { version?: unknown };
-  const appVersion = process.env.OD_APP_VERSION?.trim()
-    || (typeof packageMetadata.version === "string" ? packageMetadata.version : "0.0.0");
+  const appVersion = resolveWebAppVersion(webRoot);
   const state: WebStatusSnapshot = {
     descriptor: createRuntimeDescriptor(appVersion),
     pid: process.pid,
@@ -956,7 +966,7 @@ async function startRegularNextSidecar(
 
   return await createWebSidecarHandle(runtime, httpServer, async () => {
     await app.close?.();
-  });
+  }, webRoot);
 }
 
 async function startStandaloneNextSidecar(
@@ -983,7 +993,7 @@ async function startStandaloneNextSidecar(
   if (hostedPublicOrigin != null) httpServer.on('upgrade', (_request, socket) => socket.destroy());
 
   try {
-    return await createWebSidecarHandle(runtime, httpServer, backend.stop, backend.isRunning);
+    return await createWebSidecarHandle(runtime, httpServer, backend.stop, webRoot, backend.isRunning);
   } catch (error) {
     await backend.stop().catch(() => undefined);
     throw error;

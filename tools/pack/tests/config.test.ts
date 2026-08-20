@@ -46,31 +46,12 @@ describe("resolveToolPackConfig AMR profile", () => {
   });
 });
 
-describe("resolveToolPackConfig Vela CLI requirement", () => {
-  it("defaults to optional Vela CLI bundling", () => {
-    const config = resolveToolPackConfig("win", { namespace: "vela-optional-test" });
-    expect(config.requireVelaCli).toBe(false);
-  });
-
-  it("reads --require-vela-cli from build options", () => {
-    const config = resolveToolPackConfig("win", {
-      namespace: "vela-required-test",
-      requireVelaCli: true,
-    });
-    expect(config.requireVelaCli).toBe(true);
-  });
-});
-
-describe("resolveToolPackConfig win build target", () => {
-  it("defaults to the portable zip target", () => {
-    expect(resolveToolPackConfig("win").to).toBe("zip");
-  });
-
-  it("accepts only the portable zip target", () => {
-    expect(resolveToolPackConfig("win", { to: "zip" }).to).toBe("zip");
-    expect(() => resolveToolPackConfig("win", { to: "all" })).toThrow(/unsupported win --to target: all/);
-    expect(() => resolveToolPackConfig("win", { to: "dir" })).toThrow(/unsupported win --to target: dir/);
-    expect(() => resolveToolPackConfig("win", { to: "nsis" })).toThrow(/unsupported win --to target: nsis/);
+describe("resolveToolPackConfig portable-only surface", () => {
+  it("has no target, compatibility-mode, or dead Vela configuration", () => {
+    const config = resolveToolPackConfig("win", { namespace: "portable-only" });
+    expect(config).not.toHaveProperty("to");
+    expect(config).not.toHaveProperty("portable");
+    expect(config).not.toHaveProperty("requireVelaCli");
   });
 });
 

@@ -16,100 +16,10 @@ import {
   resolveWinPortableZipLocalePruneEntries,
   shouldPruneWinPortableZipLocales,
   WIN_PORTABLE_CHROMIUM_LOCALE_PAKS,
-  withPortableConfigFlag,
 } from "../src/win/zip.js";
 import type { WinBuiltAppManifest, WinPaths } from "../src/win/types.js";
 
 const execFileAsync = promisify(execFile);
-
-describe("withPortableConfigFlag", () => {
-  it("sets portable: true on a packaged config", () => {
-    const patched = JSON.parse(withPortableConfigFlag(`${JSON.stringify({ namespace: "rg" }, null, 2)}\n`)) as {
-      portable?: unknown;
-    };
-    expect(patched.portable).toBe(true);
-  });
-
-  it("round-trips every other field, including unknown ones", () => {
-    const original = {
-      appVersion: "1.2.3",
-      namespace: "rg",
-      webOutputMode: "standalone",
-      // A field this code does not know about must survive untouched.
-      futureField: { nested: [1, 2, 3] },
-    };
-    const patched = JSON.parse(withPortableConfigFlag(`${JSON.stringify(original, null, 2)}\n`)) as Record<
-      string,
-      unknown
-    >;
-    expect(patched).toEqual({ ...original, portable: true });
-  });
-
-  it("serializes with the same 2-space indent + trailing newline as writePackagedConfigFile", () => {
-    const original = { appVersion: "1.2.3", namespace: "rg" };
-    const output = withPortableConfigFlag(`${JSON.stringify(original, null, 2)}\n`);
-    // Matches manifest.ts writePackagedConfigFile: JSON.stringify(obj, null, 2) + "\n".
-    expect(output).toBe(`${JSON.stringify({ ...original, portable: true }, null, 2)}\n`);
-    expect(output.endsWith("\n")).toBe(true);
-    expect(output.endsWith("}\n")).toBe(true);
-  });
-
-  it("overwrites a pre-existing portable: false rather than appending a duplicate", () => {
-    const patched = JSON.parse(
-      withPortableConfigFlag(`${JSON.stringify({ namespace: "rg", portable: false }, null, 2)}\n`),
-    ) as { portable?: unknown };
-    expect(patched.portable).toBe(true);
-  });
-
-  it("keys the portable-zip cache on the materialized tree and the exact injected config", () => {
-    // The zip's true inputs are the electron-builder dir tree (resourceTreeKey
-    // rides its key) and the post-injection config text. Without both in the
-    // key, a resource-tree or baked-config-only change could serve a stale cached zip.
-    const base = {
-      electronBuilderDirKey: "dir-key-1",
-      injectedPackagedConfig: '{\n  "namespace": "rg",\n  "portable": true\n}\n',
-      namespace: "rg",
-      packagedAppKey: "app-key-1",
-      packagedVersion: "1.2.3",
-      portableZipCompression: 5,
-      signing: null,
-    };
-    const input = buildWinPortableZipCacheKeyInput(base);
-    expect(input).toMatchObject({
-      electronBuilderDirKey: "dir-key-1",
-      injectedPackagedConfig: base.injectedPackagedConfig,
-      target: "portable-zip",
-    });
-    // Mutating either previously-missing input must change the keyed payload.
-    expect(
-      buildWinPortableZipCacheKeyInput({ ...base, electronBuilderDirKey: "dir-key-2" }),
-    ).not.toEqual(input);
-    expect(
-      buildWinPortableZipCacheKeyInput({
-        ...base,
-        injectedPackagedConfig: '{\n  "amrProfile": "test",\n  "namespace": "rg",\n  "portable": true\n}\n',
-      }),
-    ).not.toEqual(input);
-    expect(buildWinPortableZipCacheKeyInput({ ...base, portableZipCompression: 1 })).not.toEqual(input);
-  });
-
-  it("strips a baked namespaceBaseRoot so the build-machine root cannot defeat the exe-adjacent fallback", () => {
-    // Non-`--portable` builds bake the tools-pack runtime root into the shared
-    // tree's config; an explicit namespaceBaseRoot wins over the portable
-    // fallback at runtime, so the zip's copy must not carry it.
-    const original = {
-      appVersion: "1.2.3",
-      namespace: "rg",
-      namespaceBaseRoot: "D:\\repo\\.tmp\\tools-pack\\out\\win\\namespaces\\rg\\runtime\\namespaces",
-    };
-    const patched = JSON.parse(withPortableConfigFlag(`${JSON.stringify(original, null, 2)}\n`)) as Record<
-      string,
-      unknown
-    >;
-    expect(patched).toEqual({ appVersion: "1.2.3", namespace: "rg", portable: true });
-    expect("namespaceBaseRoot" in patched).toBe(false);
-  });
-});
 
 describe("resolvePortableZipCompression", () => {
   it("defaults to release compression when unset", () => {
@@ -133,9 +43,8 @@ describe("Windows portable zip locale pruning", () => {
   });
 
   it("is guarded to unsigned portable ZIP builds", () => {
-    expect(shouldPruneWinPortableZipLocales({ portable: true, signed: false, to: "zip" } as ToolPackConfig)).toBe(true);
-    expect(shouldPruneWinPortableZipLocales({ portable: false, signed: false, to: "zip" } as ToolPackConfig)).toBe(false);
-    expect(shouldPruneWinPortableZipLocales({ portable: true, signed: true, to: "zip" } as ToolPackConfig)).toBe(false);
+    expect(shouldPruneWinPortableZipLocales({ signed: false } as ToolPackConfig)).toBe(true);
+    expect(shouldPruneWinPortableZipLocales({ signed: true } as ToolPackConfig)).toBe(false);
   });
 
   it("selects only unsupported top-level Chromium locale paks", async () => {
@@ -149,7 +58,7 @@ describe("Windows portable zip locale pruning", () => {
 
       await expect(
         resolveWinPortableZipLocalePruneEntries({
-          config: { portable: true, signed: false, to: "zip" } as ToolPackConfig,
+          config: { signed: false } as ToolPackConfig,
           unpackedRoot: root,
         }),
       ).resolves.toEqual(["locales/ja.pak"]);
@@ -170,7 +79,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       descriptor: RuntimeDescriptor;
       futureField: number;
       namespace: string;
-      namespaceBaseRoot: string;
+      portable: boolean;
     };
     extractedAppI18nLocales: string[];
     extractedChromiumLocales: string[];
@@ -192,13 +101,12 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       // shared unpacked tree's config. The zip copy must gain portable:true
       // and LOSE the baked root (which would otherwise win over the
       // exe-adjacent fallback at runtime).
-      const bakedNamespaceBaseRoot = join(root, "fake-tools-pack-runtime", "namespaces");
       const originalConfig = {
         appVersion: "1.2.3",
         descriptor: createRuntimeDescriptor("1.2.3"),
         futureField: 7,
         namespace: "rg",
-        namespaceBaseRoot: bakedNamespaceBaseRoot,
+        portable: true,
       };
       await writeFile(
         join(unpackedRoot, "resources", "readable-studio-config.json"),
@@ -227,7 +135,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
         webStandaloneHookAuditPath: null,
       };
 
-      const timings = await buildWinPortableZip({ portable: true, signed: false, to: "zip" } as ToolPackConfig, paths, builtApp);
+      const timings = await buildWinPortableZip({ signed: false } as ToolPackConfig, paths, builtApp);
 
       const extractRoot = join(root, "extracted");
       await mkdir(extractRoot, { recursive: true });
@@ -291,9 +199,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       | undefined;
 
     expect(compressedArgs).toContain("-mx=5");
-    const { namespaceBaseRoot: _stripped, ...portableFields } = originalConfig;
-    expect(extractedConfig).toEqual({ ...portableFields, portable: true });
-    expect("namespaceBaseRoot" in extractedConfig).toBe(false);
+    expect(extractedConfig).toEqual(originalConfig);
     expect(extractedChromiumLocales).toEqual(["en-US.pak", "ko.pak"]);
     expect(extractedAppI18nLocales).toEqual(["ja.ts"]);
   }, 20_000);
@@ -305,8 +211,6 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       | undefined;
 
     expect(compressedArgs).toContain("-mx=1");
-    const { namespaceBaseRoot: _stripped, ...portableFields } = originalConfig;
-    expect(extractedConfig).toEqual({ ...portableFields, portable: true });
-    expect("namespaceBaseRoot" in extractedConfig).toBe(false);
+    expect(extractedConfig).toEqual(originalConfig);
   }, 20_000);
 });

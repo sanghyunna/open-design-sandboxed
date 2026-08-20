@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 
 import { ToolPackCache } from "../src/cache.js";
 import type { ToolPackConfig } from "../src/config.js";
-import { shouldMaterializeWinResourceTree } from "../src/win/build.js";
 import { prepareResourceTree } from "../src/win/resources.js";
 import type { WinPaths } from "../src/win/types.js";
 
@@ -80,11 +79,7 @@ describe("prepareResourceTree", () => {
     const workspaceRoot = join(root, "workspace");
     const resourceRoot = join(root, "materialized", "open-design");
     const cache = new ToolPackCache(join(root, "cache"));
-    const config = {
-      portable: true,
-      to: "zip",
-      workspaceRoot,
-    } as ToolPackConfig;
+    const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
     const templatePath = join(
       workspaceRoot,
@@ -97,11 +92,7 @@ describe("prepareResourceTree", () => {
       await createWorkspaceFixture(workspaceRoot);
       await writeFile(templatePath, "portable resource\n", "utf8");
 
-      await prepareResourceTree({ ...config, portable: false }, paths, cache, { materialize: true });
-
-      const result = await prepareResourceTree(config, paths, cache, {
-        materialize: shouldMaterializeWinResourceTree(config),
-      });
+      const result = await prepareResourceTree(config, paths, cache, { materialize: false });
 
       expect(result.resourceRoot).not.toBe(resourceRoot);
       await expect(
@@ -121,11 +112,6 @@ describe("prepareResourceTree", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
-  });
-
-  it("skips namespace resource materialization for a portable ZIP", () => {
-    expect(shouldMaterializeWinResourceTree({ portable: true, to: "zip" } as ToolPackConfig)).toBe(false);
-    expect(shouldMaterializeWinResourceTree({ portable: false, to: "zip" } as ToolPackConfig)).toBe(true);
   });
 
   it("invalidates the Windows resource tree cache when design templates change", async () => {
@@ -305,63 +291,4 @@ describe("prepareResourceTree", () => {
     }
   });
 
-  it("never copies the vela CLI into the Windows resource tree (AMR removed)", async () => {
-    // Corporate fork: resolveOptionalVelaCliBinary returns null unconditionally,
-    // so no vela binary is ever written, even when OPEN_DESIGN_VELA_CLI_BIN is set.
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-vela-"));
-    const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
-    const source = join(root, "source", "vela.exe");
-    const cache = new ToolPackCache(join(root, "cache"));
-    const config = { workspaceRoot } as ToolPackConfig;
-    const paths = { resourceRoot } as WinPaths;
-    const originalVelaBin = process.env.OPEN_DESIGN_VELA_CLI_BIN;
-
-    try {
-      await createWorkspaceFixture(workspaceRoot);
-      await mkdir(join(root, "source"), { recursive: true });
-      await writeFile(source, "fake vela exe\n", "utf8");
-      process.env.OPEN_DESIGN_VELA_CLI_BIN = source;
-
-      await prepareResourceTree(config, paths, cache, { materialize: true });
-
-      // vela.exe must NOT be present — vela bundling is disabled in this fork
-      await expect(readFile(join(resourceRoot, "bin", "vela.exe"), "utf8")).rejects.toThrow();
-      await expect(
-        readFile(join(resourceRoot, "bin", "libexec", "opencode", "opencode"), "utf8"),
-      ).rejects.toThrow();
-    } finally {
-      if (originalVelaBin == null) delete process.env.OPEN_DESIGN_VELA_CLI_BIN;
-      else process.env.OPEN_DESIGN_VELA_CLI_BIN = originalVelaBin;
-      await rm(root, { force: true, recursive: true });
-    }
-  });
-
-  it("does not throw even with requireVelaCli=true (AMR removed — no-op)", async () => {
-    // Corporate fork: resolveOptionalVelaCliBinary returns null, so --require-vela-cli
-    // no longer hard-fails; it simply bundles nothing.
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-vela-strict-"));
-    const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
-    const cache = new ToolPackCache(join(root, "cache"));
-    const config = {
-      workspaceRoot,
-      requireVelaCli: true,
-    } as ToolPackConfig;
-    const paths = { resourceRoot } as WinPaths;
-    const originalVelaBin = process.env.OPEN_DESIGN_VELA_CLI_BIN;
-
-    try {
-      await createWorkspaceFixture(workspaceRoot);
-      process.env.OPEN_DESIGN_VELA_CLI_BIN = join(root, "missing", "vela.exe");
-      // Must NOT throw — resolver returns null before checking the path
-      await expect(
-        prepareResourceTree(config, paths, cache, { materialize: true }),
-      ).resolves.not.toThrow();
-    } finally {
-      if (originalVelaBin == null) delete process.env.OPEN_DESIGN_VELA_CLI_BIN;
-      else process.env.OPEN_DESIGN_VELA_CLI_BIN = originalVelaBin;
-      await rm(root, { force: true, recursive: true });
-    }
-  });
 });

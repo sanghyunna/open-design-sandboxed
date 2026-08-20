@@ -18,5 +18,5 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 - Do not hand-build `--readable-studio-stamp-*` args; use `createProcessStampArgs` with `SIDECAR_CONTRACT`.
 - Do not use port numbers in data/log/runtime/cache path decisions. Namespace decides paths; ports are only transient transports.
-- Use `--portable` for artifacts that leave the local build workspace so packaged config does not bake local tools-pack runtime roots from the build machine.
+- Windows x64 portable ZIP is the only artifact. Do not add target selectors, installers, updaters, or compatibility aliases.
 - Pack resource files used by electron-builder belong under `tools/pack/resources/`; do not point pack logic at Downloads, web public assets, docs assets, or other app-owned resource paths.

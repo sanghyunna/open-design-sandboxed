@@ -14,7 +14,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const WORKSPACE_ROOT = resolve(__dirname, "../../..");
 
 export type ToolPackPlatform = "win";
-export type ToolPackBuildOutput = "zip";
 export type ToolPackWebOutputMode = "server" | "standalone";
 export type ToolPackAmrProfile = "prod" | "test" | "local";
 type ToolPackPrereleaseChannel = "beta" | "nightly" | "preview";
@@ -27,15 +26,12 @@ export type ToolPackCliOptions = {
   json?: boolean;
   namespace?: string;
   path?: string;
-  portable?: boolean;
   removeData?: boolean;
   removeLogs?: boolean;
   removeProductUserData?: boolean;
   removeSidecars?: boolean;
-  requireVelaCli?: boolean;
   signed?: boolean;
   silent?: boolean;
-  to?: string;
 };
 
 export type ToolPackRoots = {
@@ -60,26 +56,17 @@ export type ToolPackConfig = {
   electronVersion: string;
   namespace: string;
   platform: ToolPackPlatform;
-  portable: boolean;
   removeData: boolean;
   removeLogs: boolean;
   removeProductUserData: boolean;
   removeSidecars: boolean;
-  requireVelaCli: boolean;
   roots: ToolPackRoots;
   signed: boolean;
   silent: boolean;
   amrProfile?: ToolPackAmrProfile;
-  to: ToolPackBuildOutput;
   webOutputMode: ToolPackWebOutputMode;
   workspaceRoot: string;
 };
-
-function resolveToolPackBuildOutput(value: string | undefined): ToolPackBuildOutput {
-  if (value == null || value.length === 0) return "zip";
-  if (value === "zip") return value;
-  throw new Error(`unsupported win --to target: ${value}`);
-}
 
 function resolveToolPackAppVersion(value: string | undefined): string | undefined {
   if (value == null) return undefined;
@@ -164,7 +151,6 @@ export function resolveToolPackConfig(
     electronVersion: resolveElectronVersion(WORKSPACE_ROOT),
     namespace,
     platform,
-    portable: options.portable === true,
     roots: {
       output: {
         appBuilderRoot: join(outputNamespaceRoot, "builder"),
@@ -183,11 +169,9 @@ export function resolveToolPackConfig(
     removeLogs: options.removeLogs === true,
     removeProductUserData: options.removeProductUserData === true,
     removeSidecars: options.removeSidecars === true,
-    requireVelaCli: options.requireVelaCli === true,
     signed: options.signed === true,
     silent: options.silent !== false,
     amrProfile: resolveToolPackAmrProfile(process.env.OPEN_DESIGN_AMR_PROFILE),
-    to: resolveToolPackBuildOutput(options.to),
     webOutputMode: resolveToolPackWebOutputMode(process.env.OD_WEB_OUTPUT_MODE),
     workspaceRoot: WORKSPACE_ROOT,
   };

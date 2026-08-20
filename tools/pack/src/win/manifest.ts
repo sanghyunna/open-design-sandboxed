@@ -29,8 +29,8 @@ function createPackagedConfig(
     descriptor: createRuntimeDescriptor(packagedVersion),
     ...entrypoints,
     namespace: config.namespace,
+    portable: true,
     webOutputMode: config.webOutputMode,
-    ...(config.portable ? {} : { namespaceBaseRoot: config.roots.runtime.namespaceBaseRoot }),
   };
 }
 

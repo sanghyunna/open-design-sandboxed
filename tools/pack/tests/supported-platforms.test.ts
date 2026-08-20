@@ -67,13 +67,18 @@ describe("supported packaged platforms", () => {
 
     // Then the CLI fails explicitly rather than silently succeeding
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(`unsupported tools-pack platform: ${platform}`);
+    expect(result.stderr).toContain(`unsupported tools-pack command: ${platform} build --to ${target}`);
   });
 
   it.each([
-    [["updater"], "unsupported tools-pack platform: updater"],
-    [["win", "updater"], "unsupported win action: updater"],
-  ] as const)("rejects the former updater action %j", (args, diagnostic) => {
+    [["updater"], "unsupported tools-pack command: updater"],
+    [["win", "updater"], "unsupported tools-pack command: win updater"],
+    [["win", "update"], "unsupported tools-pack command: win update"],
+    [["win", "install"], "unsupported tools-pack command: win install"],
+    [["win", "uninstall"], "unsupported tools-pack command: win uninstall"],
+    [["win", "reset"], "unsupported tools-pack command: win reset"],
+    [["win", "list"], "unsupported tools-pack command: win list"],
+  ] as const)("rejects removed command %j", (args, diagnostic) => {
     // Given the TypeScript tools-pack entrypoint
     const entrypoint = join(REPOSITORY_ROOT, "tools", "pack", "src", "index.ts");
 
@@ -85,5 +90,32 @@ describe("supported packaged platforms", () => {
     // Then the CLI rejects it nonzero with an explicit boundary diagnostic
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(diagnostic);
+  });
+
+  it.each(["all", "app", "dir", "dmg", "nsis", "appimage"])(
+    "rejects removed build target %s",
+    (target) => {
+      const entrypoint = join(REPOSITORY_ROOT, "tools", "pack", "src", "index.ts");
+      const result = spawnSync(
+        process.execPath,
+        ["--import", "tsx", entrypoint, "win", "build", "--to", target],
+        { encoding: "utf8" },
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Unknown option `--to`");
+    },
+  );
+
+  it("rejects the removed portable compatibility flag", () => {
+    const entrypoint = join(REPOSITORY_ROOT, "tools", "pack", "src", "index.ts");
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", entrypoint, "win", "build", "--portable"],
+      { encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Unknown option `--portable`");
   });
 });

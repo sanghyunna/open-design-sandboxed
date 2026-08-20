@@ -2,7 +2,6 @@ export { packWin } from "./build.js";
 export {
   cleanupPackedWinNamespace,
   inspectPackedWinApp,
-  listPackedWinNamespaces,
   readPackedWinLogs,
   startPackedWinApp,
   stopPackedWinApp,
@@ -10,7 +9,6 @@ export {
 export type {
   WinCleanupResult,
   WinInspectResult,
-  WinListResult,
   WinPackResult,
   WinPackTiming,
   WinSizeReport,

@@ -27,13 +27,12 @@ import {
 
 import type { ToolPackConfig } from "../config.js";
 import { DESKTOP_LOG_ECHO_ENV } from "./constants.js";
-import { listDirectories, pathExists, removeTree } from "./fs.js";
+import { pathExists, removeTree } from "./fs.js";
 import { readBuiltAppManifest } from "./manifest.js";
 import { resolveWinPaths } from "./paths.js";
 import type {
   WinCleanupResult,
   WinInspectResult,
-  WinListResult,
   WinStartResult,
   WinStopResult,
 } from "./types.js";
@@ -87,7 +86,7 @@ async function resolveStartTarget(config: ToolPackConfig): Promise<{ configPath:
   if (await pathExists(paths.unpackedExePath)) {
     return { configPath: null, executablePath: paths.unpackedExePath, source: "built" };
   }
-  throw new Error(`no extracted Windows app found for namespace=${config.namespace}; run tools-pack win build --to zip first`);
+  throw new Error(`no extracted Windows portable runtime found for namespace=${config.namespace}; run tools-pack win build first`);
 }
 
 export async function startPackedWinApp(config: ToolPackConfig): Promise<WinStartResult> {
@@ -199,23 +198,6 @@ export async function cleanupPackedWinNamespace(config: ToolPackConfig): Promise
     removedOutputRoot,
     removedRuntimeNamespaceRoot,
     stop,
-  };
-}
-
-export async function listPackedWinNamespaces(config: ToolPackConfig): Promise<WinListResult> {
-  const paths = resolveWinPaths(config);
-  const builtManifest = await readBuiltAppManifest(paths, { requireExecutable: true });
-  return {
-    current: {
-      builtExecutableExists: builtManifest != null || await pathExists(paths.unpackedExePath),
-      builtExecutablePath: builtManifest?.executablePath ?? ((await pathExists(paths.unpackedExePath)) ? paths.unpackedExePath : null),
-      builtManifestPath: paths.builtManifestPath,
-      namespace: config.namespace,
-      runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
-      runtimeNamespaceRootExists: await pathExists(config.roots.runtime.namespaceRoot),
-    },
-    outputNamespaces: await listDirectories(join(config.roots.output.platformRoot, "namespaces")),
-    runtimeNamespaces: await listDirectories(config.roots.runtime.namespaceBaseRoot),
   };
 }
 

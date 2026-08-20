@@ -27,12 +27,10 @@ function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode
     electronVersion: "41.3.0",
     namespace: "test",
     platform: "win",
-    portable: false,
     removeData: false,
     removeLogs: false,
     removeProductUserData: false,
     removeSidecars: false,
-    requireVelaCli: false,
     roots: {
       cacheRoot: join(root, ".cache"),
       output: {
@@ -49,7 +47,6 @@ function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode
     },
     signed: false,
     silent: true,
-    to: "zip",
     webOutputMode,
     workspaceRoot: root,
   };
