@@ -6,6 +6,17 @@ import { ko } from '../../src/i18n/locales/ko';
 import { LOCALES, LOCALE_LABEL, type Dict, type Locale } from '../../src/i18n/types';
 
 const EXPECTED_LOCALES = ['en', 'ko'];
+const RETIRED_KEYS = [
+  'settings.installLatest',
+  'settings.alreadyLatest',
+  'entry.helpWhatsNew',
+  'entry.helpDownloadDesktop',
+  'socialShare.openDesignSection',
+  'socialShare.openDesignTitle',
+  'socialShare.openDesignText',
+  'socialShare.openDesignCopyText',
+  'assistant.shareToOpenDesign',
+] as const;
 
 function placeholders(value: string): string[] {
   const names: string[] = [];
@@ -45,6 +56,14 @@ describe('i18n locales', () => {
     expect(LOCALES).toEqual(EXPECTED_LOCALES);
     expect((LOCALE_LABEL as Record<string, string>).en).toBe('English');
     expect((LOCALE_LABEL as Record<string, string>).ko).toBe('한국어');
+  });
+
+  it('keeps canonical product identity and retired keys out of every complete dictionary', async () => {
+    for (const locale of LOCALES) {
+      const dict = await loadDict(locale);
+      expect(dict['app.brand'], `${locale}.app.brand`).toBe('Readable Studio');
+      expect(explicitLocaleKeys(locale)).not.toEqual(expect.arrayContaining([...RETIRED_KEYS]));
+    }
   });
 
   it('keeps locale dictionaries aligned with English keys and placeholders', async () => {

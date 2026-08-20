@@ -468,8 +468,6 @@ export interface Dict {
   'settings.runtimePackaged': string;
   'settings.runtimeDevelopment': string;
   'settings.versionUnavailable': string;
-  'settings.installLatest': string;
-  'settings.alreadyLatest': string;
   'settings.skills': string;
   'settings.skillsHint': string;
   'settings.skillsNew': string;
@@ -1377,8 +1375,6 @@ export interface Dict {
   'entry.helpMenuAria': string;
   'entry.helpGetHelp': string;
   'entry.helpSubmitFeature': string;
-  'entry.helpWhatsNew': string;
-  'entry.helpDownloadDesktop': string;
   // GitHub star pill in the top bar
 
 
@@ -1599,10 +1595,6 @@ export interface Dict {
   'avatar.modelLabel': string;
   'avatar.reasoningLabel': string;
   'avatar.customSuffix': string;
-  'socialShare.openDesignSection': string;
-  'socialShare.openDesignTitle': string;
-  'socialShare.openDesignText': string;
-  'socialShare.openDesignCopyText': string;
   'socialShare.projectSection': string;
   'socialShare.projectTitle': string;
   'socialShare.projectText': string;
@@ -2640,7 +2632,6 @@ export interface Dict {
   'rollback.agentRequestDiffAria': string;
   'rollback.agentRequestRejected': string;
   'rollback.agentRequestExpired': string;
-  'assistant.shareToOpenDesign': string;
   'assistant.emptyResponseLabel': string;
   'assistant.emptyResponseMessage': string;
   'assistant.unfinishedLabel': string;
