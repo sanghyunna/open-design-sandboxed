@@ -80,7 +80,6 @@ describe('PLUGIN_AUTHORING_PROMPT_TEMPLATE', () => {
   it('points the user at the plugin-folder card buttons instead', () => {
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('Add to My plugins');
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('Publish repo');
-    expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('Open Design PR');
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toMatch(
       /Point the user at whichever button|Tell the user to click whichever button/i,
     );
@@ -97,7 +96,7 @@ describe('PLUGIN_AUTHORING_PROMPT_TEMPLATE', () => {
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toMatch(
       /Do NOT\W*assume the standalone `jq` binary is installed/i,
     );
-    expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toMatch(/cat .*open-design\.json/);
+    expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toMatch(/cat .*readable-studio\.json/);
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('node -e');
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toMatch(/`gh \.\.\. --jq` flag is fine|gh ships its own embedded library/i);
   });

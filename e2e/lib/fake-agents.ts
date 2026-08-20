@@ -166,8 +166,8 @@ async function emitRun(promptText) {
     return;
   }
   if (
-    promptText.includes('Create an Readable Studio plugin for:') &&
-    promptText.includes('produce a folder named generated-plugin')
+    promptText.includes('produce a folder named generated-plugin') &&
+    promptText.includes('od plugin validate')
   ) {
     await emitPluginAuthoringRun();
     return;

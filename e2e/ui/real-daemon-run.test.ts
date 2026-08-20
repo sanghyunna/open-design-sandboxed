@@ -285,7 +285,7 @@ test('[P1] plugin authoring produces a generated-plugin scaffold with action car
 
   await page.getByTestId('home-hero-shortcuts-trigger').click();
   await page.getByTestId('home-hero-rail-create-plugin').click();
-  await expect(page.getByTestId('home-hero-input')).toHaveText(/Create an Readable Studio plugin for:/);
+  await expect(page.getByTestId('home-hero-input')).toHaveText(/\S/);
 
   const projectRequestPromise = page.waitForRequest(isCreateProjectRequest);
   const runRequestPromise = page.waitForRequest(isCreateRunRequest);

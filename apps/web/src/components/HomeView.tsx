@@ -156,7 +156,7 @@ interface PendingPluginUseHandoff {
 const AUTHORING_DEFAULT_SCENARIO_INPUTS = {
   artifactKind: 'Readable Studio plugin',
   audience: 'Readable Studio plugin authors',
-  topic: 'packaging a reusable workflow as an Readable Studio plugin',
+  topic: 'packaging a reusable workflow as a Readable Studio plugin',
 };
 
 

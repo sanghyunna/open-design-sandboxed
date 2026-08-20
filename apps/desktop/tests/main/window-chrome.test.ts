@@ -3,10 +3,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 const runtimeSource = readFileSync(new URL("../../src/main/runtime.ts", import.meta.url), "utf8");
+const splashSource = readFileSync(new URL("../../assets/splash.html", import.meta.url), "utf8");
+const splashIconSource = readFileSync(new URL("../../assets/splash-icon.svg", import.meta.url), "utf8");
+const approvedAppIconSource = readFileSync(new URL("../../../web/public/app-icon.svg", import.meta.url), "utf8");
 
 describe("desktop BrowserWindow chrome options", () => {
   test("hides Electron's native menu bar in the Windows/Linux app window", () => {
-    const browserWindowBlock = /new BrowserWindow\(\{([\s\S]*?)title: "Readable Studio",([\s\S]*?)webPreferences:/.exec(runtimeSource)?.[0] ?? "";
+    const browserWindowBlock = /new BrowserWindow\(\{([\s\S]*?)minWidth: 900,([\s\S]*?)webPreferences:/.exec(runtimeSource)?.[0] ?? "";
 
     expect(browserWindowBlock).toContain("autoHideMenuBar: true");
   });
@@ -22,5 +25,14 @@ describe("desktop BrowserWindow chrome options", () => {
     const browserWindowBlock = /new BrowserWindow\(\{([\s\S]*?)minWidth: 900,([\s\S]*?)width: 1280,/.exec(runtimeSource)?.[0] ?? "";
 
     expect(browserWindowBlock).toContain("backgroundThrottling: false");
+  });
+
+  test("uses the approved splash icon while retaining cover-sized video playback", () => {
+    const videoStyles = /video \{([\s\S]*?)\}/.exec(splashSource)?.[0] ?? "";
+
+    expect(splashSource).toContain('src="splash-icon.svg"');
+    expect(videoStyles).toContain("object-fit: cover");
+    expect(videoStyles).toContain("opacity: 0");
+    expect(splashIconSource).toBe(approvedAppIconSource);
   });
 });

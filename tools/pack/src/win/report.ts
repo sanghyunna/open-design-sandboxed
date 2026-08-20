@@ -133,7 +133,7 @@ export async function collectWinSizeReport(
     mode: "detailed",
     outputRootBytes: namespaceSizeIndex.sizePathBytes(config.roots.output.namespaceRoot),
     portableZipBytes,
-    resourceRootBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "open-design")),
+    resourceRootBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "readable-studio")),
     runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
     topLevel: {
       appResourcesBytes: sizeIndex.sizePathBytes(join(appResourcesRoot, "app")),

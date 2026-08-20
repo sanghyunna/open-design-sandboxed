@@ -162,7 +162,7 @@ describe("collectWinSizeReport", () => {
       expect(detailedReport.portableZipBytes).toBe(portableZipBytes);
       expect(detailedReport.outputRootBytes).toBeGreaterThan(0);
       expect(detailedReport.tracked.betterSqlite3Bytes).toBe(Buffer.byteLength("sqlite\n"));
-      expect(detailedReport.resourceRootBytes).toBeGreaterThan(0);
+      expect(detailedReport.resourceRootBytes).toBe(Buffer.byteLength("asset\n"));
 
       detailedSpy.mockRestore();
     } finally {

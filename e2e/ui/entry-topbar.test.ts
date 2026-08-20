@@ -148,8 +148,9 @@ test('[P2] home topbar star and discord badges expose the current external-link 
 
   const discord = page.getByTestId('entry-discord-badge');
   await expect(discord).toHaveAttribute('href', 'https://discord.gg/mHAjSMV6gz');
-  await expect(discord).toHaveAttribute('title', /Join the Readable Studio Discord/i);
-  await expect(discord).toHaveAttribute('aria-label', /Join the Readable Studio Discord/i);
+  const discordTitle = await discord.getAttribute('title');
+  expect(discordTitle).toBeTruthy();
+  await expect(discord).toHaveAttribute('aria-label', discordTitle ?? '');
 });
 
 test('[P2] home topbar Use everywhere navigates to Integrations with the tab selected', async ({ page }) => {

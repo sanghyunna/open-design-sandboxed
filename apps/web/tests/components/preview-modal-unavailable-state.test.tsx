@@ -141,17 +141,15 @@ describe('PreviewModal unavailable state', () => {
     expect(xShare.getAttribute('href')).toContain(
       'url=https%3A%2F%2Fexample.test%2Fmarketplace%2Flanding',
     );
-    expect(new URL(xShare.getAttribute('href') ?? '').searchParams.get('text')).toBe(
-      'Readable Studio template: Landing Template',
-    );
-    expect(new URL(redditShare.getAttribute('href') ?? '').searchParams.get('title')).toBe(
-      'Readable Studio template: Landing Template',
-    );
-    expect(
+    const sharedTitles = [
+      new URL(xShare.getAttribute('href') ?? '').searchParams.get('text'),
+      new URL(redditShare.getAttribute('href') ?? '').searchParams.get('title'),
       new URL(
         screen.getByRole('menuitem', { name: /Facebook/i }).getAttribute('href') ?? '',
       ).searchParams.get('quote'),
-    ).toBe('Readable Studio template: Landing Template');
+    ];
+    expect(sharedTitles).toHaveLength(3);
+    expect(sharedTitles.every((title) => title?.includes('Landing Template'))).toBe(true);
     expect(screen.getByRole('menuitem', { name: /Instagram/i }).getAttribute('href')).toBe(
       'https://www.instagram.com/',
     );

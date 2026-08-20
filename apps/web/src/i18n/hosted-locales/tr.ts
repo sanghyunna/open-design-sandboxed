@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const tr: HostedMessages = {
-  'hosted.provider.eyebrow': 'Barındırılan Readable Studio',
+  'hosted.provider.eyebrow': 'Readable Studio Barındırma',
   'hosted.provider.title': 'Model sağlayıcısı bağla',
   'hosted.provider.description': 'Anahtar yalnızca bu oturumda tutulur ve tarayıcıya kaydedilmez.',
   'hosted.provider.runtime': 'Ajan çalışma zamanı',

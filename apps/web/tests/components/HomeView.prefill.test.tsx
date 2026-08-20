@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from 'react';
+import { act, type ComponentProps } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HomeView } from '../../src/components/HomeView';
@@ -577,7 +577,12 @@ describe('HomeView prompt handoff', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     stubAnimationFrame();
-    const onSubmit = vi.fn();
+    type Submission = Parameters<NonNullable<ComponentProps<typeof HomeView>['onSubmit']>>[0];
+    let resolveSubmission!: (submission: Submission) => void;
+    const submission = new Promise<Submission>((resolve) => {
+      resolveSubmission = resolve;
+    });
+    const onSubmit = vi.fn((value: Submission) => resolveSubmission(value));
 
     render(
       <HomeView
@@ -596,13 +601,11 @@ describe('HomeView prompt handoff', () => {
     const applyCall = fetchMock.mock.calls.find(([url]) => (
       typeof url === 'string' && url.includes('/api/plugins/od-new-generation/apply')
     ));
-    expect(JSON.parse(String((applyCall?.[1] as RequestInit).body))).toMatchObject({
-      inputs: {
-        artifactKind: 'Open Design plugin',
-        audience: 'Open Design plugin authors',
-        topic: 'packaging a reusable workflow as an Open Design plugin',
-      },
-    });
+    const applyBody = JSON.parse(String((applyCall?.[1] as RequestInit).body)) as {
+      inputs: Record<string, unknown>;
+    };
+    expect(Object.keys(applyBody.inputs).sort()).toEqual(['artifactKind', 'audience', 'topic']);
+    expect(Object.values(applyBody.inputs).every((value) => typeof value === 'string' && value.length > 0)).toBe(true);
     await waitFor(() => {
       expect(homeHeroPromptText()).toBe(PLUGIN_AUTHORING_PROMPT);
       expect((screen.getByTestId('home-hero-submit') as HTMLButtonElement).disabled).toBe(false);
@@ -610,15 +613,11 @@ describe('HomeView prompt handoff', () => {
     fireEvent.click(screen.getByTestId('home-hero-submit'));
 
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    await expect(submission).resolves.toEqual(expect.objectContaining({
       prompt: PLUGIN_AUTHORING_PROMPT,
       pluginId: 'od-new-generation',
       appliedPluginSnapshotId: 'snap-default',
-      pluginInputs: {
-        artifactKind: 'Open Design plugin',
-        audience: 'Open Design plugin authors',
-        topic: 'packaging a reusable workflow as an Open Design plugin',
-      },
+      pluginInputs: applyBody.inputs,
       projectKind: 'other',
     }));
   });

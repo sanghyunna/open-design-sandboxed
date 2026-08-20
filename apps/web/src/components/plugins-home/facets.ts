@@ -114,13 +114,13 @@ const PRIMARY_CATEGORIES: readonly CategoryDef[] = [
   {
     slug: 'prototype',
     label: 'Prototype',
-    starterPrompt: 'Create an Readable Studio plugin that generates an interactive prototype from a product brief.',
+    starterPrompt: 'Create a Readable Studio plugin that generates an interactive prototype from a product brief.',
     test: byMode('prototype'),
   },
   {
     slug: 'deck',
     label: 'Slides',
-    starterPrompt: 'Create an Readable Studio plugin that generates a polished slide deck from a narrative brief.',
+    starterPrompt: 'Create a Readable Studio plugin that generates a polished slide deck from a narrative brief.',
     test: byMode('deck'),
   },
 ];
@@ -178,7 +178,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'business-dashboards',
     label: 'Dashboards',
-    starterPrompt: 'Create an Readable Studio prototype plugin for business systems, admin panels, or analytics dashboards.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for business systems, admin panels, or analytics dashboards.',
     test: byAnySlug(
       'dashboard',
       'admin-panel',
@@ -198,7 +198,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'app-prototypes',
     label: 'Apps',
-    starterPrompt: 'Create an Readable Studio prototype plugin for multi-screen apps, onboarding, or task-productivity flows.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for multi-screen apps, onboarding, or task-productivity flows.',
     test: byAnySlug(
       'mobile',
       'app',
@@ -220,7 +220,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'landing-marketing',
     label: 'Landing / marketing',
-    starterPrompt: 'Create an Readable Studio prototype plugin for landing pages, marketing sites, pricing pages, or campaign pages.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for landing pages, marketing sites, pricing pages, or campaign pages.',
     test: byAnySlug(
       'landing',
       'landing-page',
@@ -243,7 +243,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'developer-tools',
     label: 'Developer tools',
-    starterPrompt: 'Create an Readable Studio prototype plugin for developer tools, engineering workflows, docs, or code collaboration.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for developer tools, engineering workflows, docs, or code collaboration.',
     test: byAnySlug(
       'engineering',
       'docs',
@@ -261,7 +261,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'docs-reports',
     label: 'Docs / reports',
-    starterPrompt: 'Create an Readable Studio prototype plugin for reports, documents, case studies, specs, invoices, or resumes.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for reports, documents, case studies, specs, invoices, or resumes.',
     test: byAnySlug(
       'report',
       'financial-report',
@@ -283,7 +283,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'prototype',
     slug: 'brand-design',
     label: 'Brand / design',
-    starterPrompt: 'Create an Readable Studio prototype plugin for brand pages, visual exploration, design reviews, or mockups.',
+    starterPrompt: 'Create a Readable Studio prototype plugin for brand pages, visual exploration, design reviews, or mockups.',
     test: byAnySlug(
       'design',
       'design-review',
@@ -299,7 +299,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'pitch-business',
     label: 'Pitch / business',
-    starterPrompt: 'Create an Readable Studio deck plugin for fundraising, business plans, investor decks, or strategic narratives.',
+    starterPrompt: 'Create a Readable Studio deck plugin for fundraising, business plans, investor decks, or strategic narratives.',
     test: byAnySlug(
       'pitch-deck',
       'pitch',
@@ -316,7 +316,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'course-training',
     label: 'Course / training',
-    starterPrompt: 'Create an Readable Studio deck plugin for courses, training materials, workshops, or classroom slides.',
+    starterPrompt: 'Create a Readable Studio deck plugin for courses, training materials, workshops, or classroom slides.',
     test: byAnySlug(
       'course-module',
       'course-slides',
@@ -331,7 +331,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'reports-briefings',
     label: 'Reports / briefings',
-    starterPrompt: 'Create an Readable Studio deck plugin for weekly reports, management briefings, white papers, or business reviews.',
+    starterPrompt: 'Create a Readable Studio deck plugin for weekly reports, management briefings, white papers, or business reviews.',
     test: byAnySlug(
       'weekly-report',
       'status-update',
@@ -348,7 +348,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'product-sales',
     label: 'Product / sales',
-    starterPrompt: 'Create an Readable Studio deck plugin for product launches, sales enablement, feature reveals, or customer pitches.',
+    starterPrompt: 'Create a Readable Studio deck plugin for product launches, sales enablement, feature reveals, or customer pitches.',
     test: byAnySlug(
       'product-launch',
       'launch-deck',
@@ -363,7 +363,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'engineering-talks',
     label: 'Engineering talks',
-    starterPrompt: 'Create an Readable Studio deck plugin for technical presentations, architecture walkthroughs, or dev workflow talks.',
+    starterPrompt: 'Create a Readable Studio deck plugin for technical presentations, architecture walkthroughs, or dev workflow talks.',
     test: byAnySlug(
       'engineering',
       'tech-sharing',
@@ -382,7 +382,7 @@ const SUBCATEGORIES: readonly SubcategoryDef[] = [
     parent: 'deck',
     slug: 'creative-decks',
     label: 'Creative decks',
-    starterPrompt: 'Create an Readable Studio deck plugin for creative, editorial, brand, social, or visual storytelling decks.',
+    starterPrompt: 'Create a Readable Studio deck plugin for creative, editorial, brand, social, or visual storytelling decks.',
     test: byAnySlug(
       'marketing',
       'editorial',

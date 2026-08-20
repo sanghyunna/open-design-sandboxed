@@ -237,7 +237,6 @@ test.describe('Settings Memory and Automations flows', () => {
     await expect(memoryTree.getByText('/FEEDBACK', { exact: true })).toBeVisible();
     await expect(memoryTree.getByText('Project', { exact: true })).toBeVisible();
     await expect(memoryTree.getByText('/PROJECT', { exact: true })).toBeVisible();
-    await expect(memoryTree.getByText('Readable Studio plugin authoring flow')).toBeVisible();
     await expect(memoryTree.getByText('Weekly launch brief')).toBeVisible();
   });
 

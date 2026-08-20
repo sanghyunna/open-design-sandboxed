@@ -76,7 +76,7 @@ function buildPublishPrompt(folderPath: string): string {
     `Plugin folder: \`${folderPath}\``,
     `Manifest: \`${folderPath}/readable-studio.json\``,
     '',
-    'This is the **repository publish** action, NOT the registry-submission action — do NOT route through `od plugin publish --to open-design`. That command emits an Readable Studio issue URL and belongs to the "Readable Studio PR" button.',
+    'This is the **repository publish** action, NOT the registry-submission action — do NOT route through `od plugin publish --to open-design`. That command emits a Readable Studio issue URL and belongs to the "Readable Studio PR" button.',
     '',
     'Run this deterministic Readable Studio CLI workflow from the current project workspace:',
     '',
