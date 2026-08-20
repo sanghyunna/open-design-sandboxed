@@ -14775,36 +14775,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "08939e07700adfe09bb7e63439a292d5c9c1295c0ea32bfa63d380ca8993edc0",
-      "location": "content",
-      "path": "apps/packaged/src/launcher-after-quit.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "106d53879fd3f6a651958739c3292fbfd084fb93540d33b97a732fcfba57f594",
-      "location": "content",
-      "path": "apps/packaged/src/launcher-after-quit.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "698e912972a342ce2542bdf903e34e86e3283d1785dfaae66c774bad090ed1eb",
-      "location": "content",
-      "path": "apps/packaged/src/launcher-after-quit.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "164026b2dc29680bd176254e7c602e0381386d90dd5dd010d609a76fc51a0868",
       "location": "content",
       "path": "apps/packaged/src/logging.ts",
@@ -15128,76 +15098,6 @@
       "fingerprint": "020de67faba6f391d93b9484aefd39adb692cab62fe8a431c73e61ae49f00ce2",
       "location": "content",
       "path": "apps/packaged/tests/desktop-url-allowlist.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "ffec69e814839b6b0923d9a7a4f1db713a0bc3100206411942924eda08e4929d",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-after-quit.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "39dacd9b6a09caee35f74c4cbcafb2b21f6da5f7066a30891083d6e7a693896f",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "4ab2adbff56079d9b093f1d1749456a4a5d40bf093008b703bd0bc2223d8ec8e",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "67cf011c88fcf8f2c1f95b33f02f68910164a05ec9d0f5ccd18d53a0baf7235a",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "958178547fc05eaf90b91dbd4e2c443261d14f0b0ce3008971322f48c82f7c20",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 4,
-      "fingerprint": "a48396315a01c05be7c7bc57dddb9afb8b0a4f3a8b7c4e8b76f32fa3fdfa02b9",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "608cef157bd6a5262bfba98d2665d1659276de6c5a5bdabac45356e4c5084034",
-      "location": "content",
-      "path": "apps/packaged/tests/launcher-runtime.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
@@ -52873,16 +52773,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6291f5b3732d0b1404a89ba12d62282961b9f182192747c1ec74f8ac14c333d9",
-      "location": "content",
-      "path": "tools/pack/src/launcher-layout.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "4489ea190df9d565e63d73799e5d40c5039fe53f6e34112af96da1bf02f11903",
@@ -53261,26 +53151,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4c8536dd8cf5c8ee45dfeffd5bd4bd4523095257ad298a0cd4872b0aae27130f",
-      "location": "content",
-      "path": "tools/pack/tests/launcher-layout.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "613b1944bbcb8badbcbb7b8f3bd870967f497f46e3e2ab007fadfb9f6b82b54d",
-      "location": "content",
-      "path": "tools/pack/tests/launcher-layout.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
