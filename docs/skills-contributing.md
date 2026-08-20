@@ -4,7 +4,7 @@
 
 > Want to read the protocol spec instead? See [`skills-protocol.md`](skills-protocol.md). This file is the **how-to** for shipping a skill upstream — what to write, how to run it locally, what we'll send back at review.
 
-A skill is the most leverage you can ship into Open Design without writing framework code. One folder, one Markdown file with frontmatter, a hand-built example, and the picker shows it. This guide walks you through the path from `git clone` to merged PR, plus the bar we hold skill PRs to and the patterns that get bounced.
+A skill is one of the highest-leverage contributions to Readable Studio without writing framework code. One folder, one Markdown file with frontmatter, a hand-built example, and the picker shows it. This guide walks you through the path from `git clone` to merged PR, plus the bar we hold skill PRs to and the patterns that get bounced.
 
 If you only have ten seconds, the picture is:
 
@@ -153,7 +153,7 @@ pnpm tools-dev run web
 #      Design system / Image / Video / Audio)
 #    - Find your skill in the picker
 #    - Click it, paste the example_prompt
-#    - Watch the artifact stream into .od/artifacts/<run-id>/
+#    - Watch the artifact stream into .readable-studio/artifacts/<run-id>/
 #    - Verify preview iframe renders correctly
 #    - Verify export (PPTX / PDF) works if the mode supports it
 ```
@@ -173,7 +173,7 @@ We hold skill PRs to a higher bar than feature PRs because skills are the user-f
 - [ ] **`example.html` is hand-built.** Opens straight from disk, looks like something a designer would actually deliver. No lorem ipsum, no `<svg><rect/></svg>` placeholder hero. If you can't build the example yourself, the skill probably isn't ready.
 - [ ] **No AI slop in the example.** No purple gradients, no generic emoji icons (📊 💡 🚀), no rounded card with a left-border accent, no Inter as a *display* face, no invented stats ("10× faster", "users save 4 hours/week"). Read the **Anti-AI-slop machinery** section of the README for the full list.
 - [ ] **Honest placeholders.** When the agent doesn't have a real number, the skill body should instruct it to write `—` or a labelled grey block, not fabricate one.
-- [ ] **`references/checklist.md` exists** with at least P0 gates (the rules the agent has to pass before emitting `<artifact>`). Lift the format from [`skills/guizang-ppt/references/checklist.md`](../skills/guizang-ppt/references/checklist.md) or [`skills/web-prototype/references/checklist.md`](../skills/web-prototype/references/checklist.md).
+- [ ] **`references/checklist.md` exists** with at least P0 gates (the rules the agent has to pass before emitting `<artifact>`). Lift the format from [`design-templates/guizang-ppt/references/checklist.md`](../design-templates/guizang-ppt/references/checklist.md) or [`design-templates/web-prototype/references/checklist.md`](../design-templates/web-prototype/references/checklist.md).
 - [ ] **`example_prompt` actually works.** Run it locally end-to-end before submitting. If you wouldn't paste this prompt in front of a stranger to demo the skill, rewrite it.
 - [ ] **Triggers are concrete.** "design something cool" is not a trigger. "investor pitch deck", "saas landing page", "约会应用" are.
 
@@ -268,11 +268,10 @@ So you don't waste a week. Each pattern below has been the close reason on a rec
 
 Pick the closest one to your idea and read its `SKILL.md` body before writing your own.
 
-- **Visual showcase, single-screen prototype:** [`skills/dating-web/`](../skills/dating-web/), [`skills/digital-eguide/`](../skills/digital-eguide/)
-- **Multi-frame mobile flow:** [`skills/mobile-onboarding/`](../skills/mobile-onboarding/), [`skills/gamified-app/`](../skills/gamified-app/)
-- **Document / template (no design system required):** [`skills/pm-spec/`](../skills/pm-spec/), [`skills/weekly-update/`](../skills/weekly-update/)
-- **Deck mode:** [`skills/guizang-ppt/`](../skills/guizang-ppt/) (bundled verbatim from [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)) and [`skills/simple-deck/`](../skills/simple-deck/)
-- **Media skills (image / video / audio):** [`skills/image-poster/`](../skills/image-poster/), [`skills/video-shortform/`](../skills/video-shortform/), [`skills/audio-jingle/`](../skills/audio-jingle/)
+- **Visual showcase, single-screen prototype:** [`design-templates/dating-web/`](../design-templates/dating-web/), [`design-templates/digital-eguide/`](../design-templates/digital-eguide/)
+- **Multi-frame mobile flow:** [`design-templates/mobile-onboarding/`](../design-templates/mobile-onboarding/), [`design-templates/gamified-app/`](../design-templates/gamified-app/)
+- **Document / template (no design system required):** [`design-templates/pm-spec/`](../design-templates/pm-spec/), [`design-templates/weekly-update/`](../design-templates/weekly-update/)
+- **Deck mode:** [`design-templates/guizang-ppt/`](../design-templates/guizang-ppt/) (bundled verbatim from [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)) and [`design-templates/simple-deck/`](../design-templates/simple-deck/)
 
 ### Spec & supporting docs
 
@@ -291,4 +290,4 @@ Pick the closest one to your idea and read its `SKILL.md` body before writing yo
 
 ## License
 
-By contributing a skill, you agree your contribution is licensed under the [Apache-2.0 License](../LICENSE) of this repository, with the exception of files inside [`skills/guizang-ppt/`](../skills/guizang-ppt/), which retain their original MIT license and authorship attribution to [op7418](https://github.com/op7418).
+By contributing a skill, you agree your contribution is licensed under the [Apache-2.0 License](../LICENSE) of this repository, with the exception of files inside [`design-templates/guizang-ppt/`](../design-templates/guizang-ppt/), which retain their original MIT license and authorship attribution to [op7418](https://github.com/op7418).

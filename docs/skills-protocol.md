@@ -289,7 +289,7 @@ The skill is unchanged. Here's the full path:
 4. User types "给我做一份杂志风 8 页投资人 PPT".
 5. Daemon dispatches to active agent (Claude Code) with:
    - system message: skill's `SKILL.md` body
-   - cwd: `./.od/artifacts/2026-04-24-pitch-deck/`
+   - cwd: `./.readable-studio/artifacts/2026-04-24-pitch-deck/`
    - files already placed in cwd: `template.html` (from skill's `assets/`)
 6. Agent runs its 6-step workflow (clarify → copy template → populate → self-check → preview → refine).
 7. OD streams the agent's tool calls as UI events; artifact dir grows.

@@ -1,82 +1,81 @@
-# Readable Studio
+# Readable Studio language and context
 
-Readable Studio is a document workspace for turning source text into polished standalone HTML. This glossary records canonical product language, not implementation details.
+This file defines canonical product language for current documentation and product copy.
 
-## Product doctrine
+## Product thesis
 
-**Primary audience**:
-Office workers who create briefs, reports, presentations, plans, and other business documents, including teams adopting AI as part of enterprise AI transformation.
-_Avoid_: designers only, developer tool, model showcase
+**Readable Studio turns source text into polished standalone HTML with AI generation and PowerPoint-like direct editing.** It is built for office workers creating AI-readable company documents without entering a prompt-and-wait cycle for every small revision. Its enterprise AI transformation thesis is practical: company source remains governed and inspectable while people and AI systems work from the same structured document.
 
-**Source Text**:
-The user's existing business material: notes, outlines, reports, research, requirements, or other text that grounds a document.
-_Avoid_: empty prompt, invented source, design prompt only
+Canonical workflow:
 
-**AI Generation**:
-The first-draft stage that transforms Source Text into a structured, visually considered document. Generation accelerates the work; it does not remove the user's editorial control.
-_Avoid_: one-click final answer, chatbot response, autonomous publishing
+```text
+Source Text -> AI Generation -> Direct Editing -> Standalone HTML
+```
 
-**Direct Editing**:
-PowerPoint-like editing of generated content in the preview: select elements, revise text, and adjust presentation details directly instead of returning to a prompt for every change.
-_Avoid_: prompt-only iteration, regenerate from scratch, code-only editing
+## Canonical terms
 
-**Standalone HTML**:
-The canonical finished document: a polished, self-contained HTML file that can be opened independently and retains its intended presentation.
-_Avoid_: hosted page, share URL, website, unsupported format promise
+**Source Text**
 
-**Readable Studio Workflow**:
-Source Text -> AI Generation -> Direct Editing -> Standalone HTML.
-_Avoid_: prompt -> opaque output, generation -> automatic publishing
+The user-supplied business material that grounds the document: a brief, report, plan, notes, requirements, approved copy, tables, or imported project files.
 
-## Workspace language
+_Avoid:_ empty prompt as the expected starting point; invented facts; design-only prompt.
 
-**Project**:
-A top-level document workspace that contains conversations and document files.
-_Avoid_: repo, session
+**AI Generation**
 
-**Normal Artifact**:
-A project document output represented by an artifact entry file and its artifact manifest.
-_Avoid_: live artifact, generic file upload
+The agent-assisted first draft and substantive revision path. The selected plugin, skill, design system, source material, and project context are composed into the run.
 
-**Live Artifact**:
-A refreshable project output stored with source data and preview state.
-_Avoid_: normal artifact, static artifact
+_Avoid:_ magic generation; automatic publishing; implying that AI replaces the user's editorial responsibility.
 
-**Artifact Entry File**:
-The primary project file that opens or renders a Normal Artifact.
-_Avoid_: support file, asset, sidecar
+**Direct Editing**
 
-**Artifact Manifest**:
-Metadata that identifies a project file as a Normal Artifact and records its kind, renderer, exports, and entry file.
-_Avoid_: live-artifact document, project metadata
+PowerPoint-like editing in the rendered preview. The user selects content and changes text or presentation details directly, with source-backed persistence.
 
-**Active Project**:
-The project the user most recently interacted with and that tools may use when no project is specified.
-_Avoid_: latest project, default project
+_Avoid:_ prompt-only iteration; regenerate for a typo; code editing as the only correction path.
 
-**Home Composer Media Surface**:
-A Home-only composer intent that exposes media-specific defaults before project creation while mapping onto an existing project kind.
-_Avoid_: project kind, backend kind
+**Standalone HTML**
 
-**Chip Rail**:
-The row of intent chips below the Home prompt card. A chip chooses the composer surface, default scenario, option state, and project kind before the user presses Run.
-_Avoid_: plugin list, template list
+The canonical finished document: a self-contained HTML file that opens independently. Statically discoverable local dependencies are inlined; unresolved external or missing references are reported.
 
-**Onboarding Skip**:
-The explicit path that lets a user leave onboarding without completing the currently selected setup option.
-_Avoid_: continue, finish setup, passive close
+_Avoid:_ hosted page; share URL; website; automatic upload; claim that every runtime network dependency is captured.
 
-## Relationships
+**AI-readable company document**
 
-- A **Project** contains zero or more **Normal Artifacts**.
-- A **Normal Artifact** has exactly one **Artifact Entry File** and one **Artifact Manifest**.
-- A **Live Artifact** belongs to a **Project** but is distinct from a **Normal Artifact**.
-- An **Active Project** can be the target when a caller omits an explicit **Project**.
-- A **Home Composer Media Surface** maps user intent to existing project metadata.
-- The **Chip Rail** is the visible Home entry point for choosing that surface.
-- **Onboarding Skip** bypasses setup requirements on the normal continue path.
+A structured artifact whose headings, text, tables, semantics, and source remain usable by people and downstream tools. It is not a screenshot-only canvas.
+
+**Portable ZIP**
+
+The only supported product artifact: a manually downloaded Windows 10/11 x64 ZIP containing `Readable Studio.exe`. It has no installer or updater.
+
+**Plugin**
+
+A portable workflow folder. `SKILL.md` carries agent-readable instructions; optional `readable-studio.json` carries Readable Studio metadata, inputs, capabilities, stages, and references.
+
+**Studio**
+
+The project workspace containing conversation, source files, rendered preview, direct editing, comments, tweaks, and export actions.
+
+## Product boundaries
+
+Say:
+
+- Windows 10/11 x64 portable ZIP;
+- manually download from GitHub Releases;
+- extract and run `Readable Studio.exe`;
+- local daemon, web UI, desktop shell, CLI, plugins, skills, design systems, direct editing, and exports;
+- standalone HTML is canonical, with artifact-dependent PDF/PPTX/ZIP/Markdown support.
+
+Do not claim:
+
+- a product website or website download;
+- an installer, updater, app store, or automatic release channel;
+- macOS, Linux, WSL, or Nix product support;
+- cloud publishing as part of the core workflow;
+- that direct editing removes or replaces integrated agent and CLI capabilities.
+
+Historical records, upstream issue citations, vendor names, and legal notices may use legacy terminology when accuracy requires it.
 
 ## Example dialogue
 
-> **Office worker:** "I have the source text for our quarterly review. Do I need to keep prompting for every layout change?"
-> **Domain expert:** "No. Use **AI Generation** for the first draft, refine it with **Direct Editing**, then export the polished **Standalone HTML** document."
+> **Office worker:** "The first draft is right, but the heading is too long and two cards need to move. Do I have to prompt the agent again?"
+>
+> **Readable Studio:** "No. Select those elements in Edit mode, change the text and layout directly, then export the updated document as standalone HTML. Use the agent again when the revision is substantive rather than mechanical."

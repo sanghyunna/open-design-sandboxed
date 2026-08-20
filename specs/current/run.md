@@ -1,14 +1,18 @@
-# Run Model and Recovery Flow
+# Run model and recovery flow
+
+## Product context
+
+A run performs the AI-generation portion of Readable Studio's source-to-document workflow. The resulting project remains available for PowerPoint-like direct editing and standalone HTML export after the run ends. Direct edits do not create an agent run unless the user explicitly invokes an AI-assisted path.
 
 ## Purpose
 
-A run is one daemon-owned background execution instance for a user request. It lets the daemon keep an agent task alive across web page refreshes, tab closes, route changes, and temporary SSE disconnects.
+A run is one daemon-owned background execution instance for a user request. It lets the daemon keep an agent task alive across web page refreshes, route changes, and temporary SSE disconnects.
 
 The frontend owns presentation state. The daemon owns execution state. SSE owns live subscription and replay.
 
 ## Concept Model
 
-A project is the top-level design workspace. It contains conversations, owns artifacts, and provides the daemon working directory for agent execution.
+A project is the top-level document workspace. It contains source files and conversations, owns artifacts, preserves direct edits, and provides the daemon working directory for agent execution.
 
 A conversation is a thread inside a project. It contains ordered messages and provides the UI context for multi-turn work.
 
@@ -35,7 +39,7 @@ The recovery path follows the user-visible hierarchy: open a project, load a con
 A project is the design workspace. It provides:
 
 - project metadata, such as skill, design system, and fidelity;
-- the daemon working directory, usually `.od/projects/<projectId>/`;
+- the daemon working directory, usually `.readable-studio/projects/<projectId>/`;
 - artifact ownership;
 - the top-level scope for conversations and runs.
 

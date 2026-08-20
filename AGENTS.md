@@ -4,8 +4,8 @@ This file is the single source of truth for agents entering this repository. Rea
 
 ## Core documentation index
 
-- Product and onboarding: `README.md`, `docs/i18n/README.zh-CN.md`, `QUICKSTART.md`.
-- Contribution and environment: `CONTRIBUTING.md`, `docs/i18n/CONTRIBUTING.zh-CN.md`.
+- Product and onboarding: `README.md`, `docs/i18n/README.ko.md`, `QUICKSTART.md`.
+- Contribution and environment: `CONTRIBUTING.md`, `docs/i18n/CONTRIBUTING.ko.md`.
 - Architecture and protocols: `docs/spec.md`, `docs/architecture.md`, `docs/skills-protocol.md`, `docs/agent-adapters.md`, `docs/modes.md`.
 - Roadmap and references: `docs/roadmap.md`, `docs/references.md`, `docs/code-review-guidelines.md`, `specs/current/maintainability-roadmap.md`.
 - Directory-level agent guidance: `apps/AGENTS.md`, `packages/AGENTS.md`, `tools/AGENTS.md`, `e2e/AGENTS.md`.
@@ -19,7 +19,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - `apps/desktop` is the Electron shell; it discovers the web URL through sidecar IPC.
 - `apps/packaged` is the thin packaged Electron runtime entry; it starts packaged sidecars and owns the `od://` entry glue only.
 - `packages/contracts` is the pure TypeScript web/daemon app contract layer.
-- `packages/sidecar-proto` owns the Open Design sidecar business protocol; `packages/sidecar` owns the generic sidecar runtime; `packages/platform` owns generic OS process primitives.
+- `packages/sidecar-proto` owns the Readable Studio sidecar business protocol; `packages/sidecar` owns the generic sidecar runtime; `packages/platform` owns generic OS process primitives.
 - `tools/dev` is the local development lifecycle control plane.
 - `tools/pack` is the local Windows portable ZIP build/start/stop/logs control plane.
 - `e2e` owns user-level end-to-end smoke tests and Playwright UI automation; read `e2e/AGENTS.md` before editing its tests or commands.
@@ -27,7 +27,7 @@ This file is the single source of truth for agents entering this repository. Rea
 ## Inactive or placeholder directories
 
 - `apps/nextjs` and `packages/shared` have been removed; do not recreate or reference them.
-- `.od/`, `.tmp/`, Playwright reports, and agent scratch directories are local runtime data and must stay out of git.
+- `.readable-studio/`, `.tmp/`, `ReadableStudioData/`, Playwright reports, and agent scratch directories are local runtime data and must stay out of git.
 
 # Development workflow
 
@@ -45,9 +45,9 @@ This file is the single source of truth for agents entering this repository. Rea
 - New project-owned entrypoints, modules, scripts, tests, reporters, and configs should default to TypeScript.
 - Residual JavaScript is limited to generated output, vendored dependencies, explicitly documented compatibility build artifacts, and the allowlist in `scripts/guard.ts`.
 
-## Windows native
+## Windows product boundary
 
-- Windows is the primary supported platform; product features may assume Windows-native capabilities (e.g. system-font enumeration reads the Windows font registry). macOS, Linux, and WSL2 are best-effort — file an issue if something doesn't work.
+- Windows 10/11 x64 is the only supported product platform. The artifact is a portable ZIP downloaded manually from GitHub Releases, extracted, and started with `Readable Studio.exe`. Do not add website, installer, updater, macOS, Linux, WSL, or Nix product claims.
 - Historical Windows-specific friction is documented in closed issues #10, #96, #100, #203, and #315; check the issue tracker for the current state before filing new reports.
 - Install Node 24. Either `winget install OpenJS.NodeJS.LTS` (currently Node 24.x) or download from https://nodejs.org. After install, verify with `node --version` — the WinGet LTS pointer rolls to the next major in October 2026, so re-verify if you re-run the install command later. Do not use Node 22 — see FAQ.
 - `corepack enable` fails with EPERM on Windows (cannot write shims to `Program Files`). Use `npm install -g pnpm@10.33.2` instead.
@@ -63,7 +63,8 @@ This file is the single source of truth for agents entering this repository. Rea
 
 ## Windows portable build
 
-- When a user asks to build this workspace on Windows without specifying a package, run the project-root `build-portable.ps1`.
+- When a user asks to build this workspace without specifying a package, run the project-root `build-portable.ps1`.
+- The Windows 10/11 x64 portable ZIP is the only artifact. There is no installer, updater, alternate target, or release-publishing workflow.
 - Treat package-scoped build commands as targeted validation only; do not substitute them for the portable build request.
 
 ## Root command boundary
@@ -90,13 +91,13 @@ This file is the single source of truth for agents entering this repository. Rea
 - Sidecar process stamps must have exactly five fields: `app`, `mode`, `namespace`, `ipc`, and `source`.
 - Orchestration layers (`tools-dev`, `tools-pack`, packaged launchers) must call package primitives; do not hand-build `--readable-studio-stamp-*` args or process-scan regexes.
 - Packaged runtime paths must be namespace-scoped and independent from daemon/web ports; ports are transient transport details only.
-- Default runtime files live under `<project-root>/.tmp/<source>/<namespace>/...`; POSIX IPC sockets are fixed at `/tmp/readable-studio/ipc/<namespace>/<app>.sock`.
+- Portable user data lives under `<exeDir>\ReadableStudioData\namespaces\<namespace>\...`; source daemon data defaults to `<project-root>\.readable-studio\...`; development control-plane state lives under `<project-root>\.tmp\<source>\<namespace>\...`.
 
 ## Capability exposure (UI/CLI dual-track)
 
 Every user-facing capability must be reachable through both the web UI **and** the `readable` CLI (`apps/daemon/src/cli.ts`). Shipping a feature with only one of the two surfaces is a regression.
 
-- The CLI is the embeddability contract. External agents (hermes-agent, openclaw, custom Slack/Discord bots, packaged runtimes invoked from another shell) drive Open Design through `readable` subcommands — they do not render the web UI. If a capability is UI-only, it cannot be composed into those external agents.
+- The CLI is the embeddability contract. External agents and packaged runtimes invoked from another shell drive Readable Studio through `readable` subcommands — they do not render the web UI. If a capability is UI-only, it cannot be composed into those external agents.
 - Both surfaces must call the same `/api/*` endpoints; do not let the CLI talk to one shape and the UI to another. The daemon HTTP layer is the single source of truth, with `packages/contracts` carrying the shared DTOs.
 - The CLI form must support `--json` for machine-readable output and accept long-form prompts via `--prompt-file <path|->`, so jobs that pipe through `xargs`, `jq`, and `<heredoc` stay clean.
 - Adding a new capability is a three-step closure: HTTP endpoint in `apps/daemon/src/*-routes.ts` (with a contract type in `packages/contracts/src/api/`), UI surface in `apps/web/src/`, and `readable <capability>` subcommand in `apps/daemon/src/cli.ts` registered through `SUBCOMMAND_MAP`. Land all three in the same PR; do not stage them across PRs.
@@ -173,7 +174,7 @@ root `pnpm tools-pr` script without a new explicit maintainer decision.
 
 ## i18n keys
 
-- `apps/web/src/i18n/types.ts` is the typed `Dict`; every key must be defined in all 18 locale files under `apps/web/src/i18n/locales/*.ts` (`ar`, `de`, `en`, `es-ES`, `fa`, `fr`, `hu`, `id`, `ja`, `ko`, `pl`, `pt-BR`, `ru`, `th`, `tr`, `uk`, `zh-CN`, `zh-TW`). Add the key to `types.ts` first; missing translations produce a typecheck error.
+- `apps/web/src/i18n/types.ts` is the typed `Dict`; every key must be defined in both maintained locale files under `apps/web/src/i18n/locales/`: `en.ts` and `ko.ts`. Add the key to `types.ts` first; missing translations produce a typecheck error.
 
 ## UI animation philosophy
 
@@ -233,9 +234,13 @@ pnpm --filter @readable-studio/web test
 pnpm --filter @readable-studio/daemon test
 ```
 
-```bash
+```powershell
 powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 pnpm tools-pack win build
+pnpm tools-pack win start
+pnpm tools-pack win inspect --expr "document.title"
+pnpm tools-pack win logs
+pnpm tools-pack win stop
 pnpm tools-pack win cleanup
 ```
 
@@ -255,16 +260,16 @@ Desktop queries runtime status through sidecar IPC. The web URL comes from `tool
 
 ## How are sidecar-proto, sidecar, and platform split?
 
-`@readable-studio/sidecar-proto` owns Open Design app/mode/source constants, namespace validation, stamp fields/flags, IPC message schema, status shapes, and error semantics. `@readable-studio/sidecar` provides only generic bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime files. `@readable-studio/platform` provides only generic OS process stamp serialization, command parsing, and process matching/search primitives, consuming the proto descriptor.
+`@readable-studio/sidecar-proto` owns Readable Studio app/mode/source constants, namespace validation, stamp fields/flags, IPC message schema, status shapes, and error semantics. `@readable-studio/sidecar` provides only generic bootstrap, IPC transport, path/runtime resolution, launch env, and JSON runtime files. `@readable-studio/platform` provides only generic OS process stamp serialization, command parsing, and process matching/search primitives, consuming the proto descriptor.
 
 ## Where is data written?
 
-The daemon writes `.od/` by default: SQLite at `.od/app.sqlite`, agent CWDs under `.od/projects/<id>/`, saved renders under `.od/artifacts/`, and credentials at `.od/media-config.json`. Two env vars override the storage root, in order:
+The daemon writes `.readable-studio/` by default: SQLite at `.readable-studio/app.sqlite`, agent CWDs under `.readable-studio/projects/<id>/`, saved renders under `.readable-studio/artifacts/`, and credentials at `.readable-studio/media-config.json`. Two env vars override the storage root, in order:
 
 1. `OD_DATA_DIR=<dir>` — relocates *all* daemon runtime data to `<dir>` (used by Playwright for test isolation and by the packaged daemon to point at a writable directory when the install root is read-only). The path is resolved with `~/` expansion and relative paths anchored to `<projectRoot>`.
 2. `OD_MEDIA_CONFIG_DIR=<dir>` — narrower override that relocates *only* `media-config.json`. Same resolution semantics. Most installs do not need this; it exists for setups that want to keep API credentials in a different location from the rest of the runtime data.
 
-Default precedence is OD_MEDIA_CONFIG_DIR > OD_DATA_DIR > `<projectRoot>/.od`.
+Default precedence is OD_MEDIA_CONFIG_DIR > OD_DATA_DIR > `<projectRoot>/.readable-studio`. The portable runtime sets its root beneath `<exeDir>\ReadableStudioData\namespaces\<namespace>`.
 
 ## When is `pnpm install` required?
 

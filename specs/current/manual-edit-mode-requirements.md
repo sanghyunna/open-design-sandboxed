@@ -1,23 +1,29 @@
-# Open Design Manual Edit Mode Requirements
+# Readable Studio direct-editing requirements
 
 ## Purpose
 
-This document records the accepted manual edit-mode model from `apps/edit-mode-demo` so it can be migrated into the main Open Design web app.
+Direct editing is the second half of Readable Studio's core workflow:
 
-The key product decision is:
+```text
+Source Text -> AI Generation -> Direct Editing -> Standalone HTML
+```
 
-- `Comment AI` is the AI-assisted editing path.
-- `Edit` is the manual HTML/CSS editing path.
+It gives office workers PowerPoint-like control over generated company documents. A user must be able to correct copy, typography, spacing, geometry, and presentation details immediately instead of entering a prompt-and-wait cycle for every small revision. The project source remains the only source of truth, so the edited document stays AI-readable and exportable.
+
+The mode boundaries are:
+
+- `Comment AI` is the AI-assisted editing path for substantive revisions.
+- `Edit` is the direct HTML/CSS editing path.
 - `Tweaks` is the global parameter/token editing path.
 - `Draw` is a visual annotation path, not direct source editing.
 
-Manual edit mode must let users modify the rendered page directly while keeping the project source file as the only source of truth.
+Direct editing must not remove or bypass comments, plugins, CLI access, or export behavior.
 
 ## Product Boundary
 
 ### Edit Mode
 
-Edit mode is a manual editor for the current artifact.
+Edit mode is the direct editor for the current artifact.
 
 Users should be able to:
 
@@ -30,7 +36,7 @@ Users should be able to:
 - Edit the full artifact source when necessary.
 - Apply, cancel, undo, redo, reset, and inspect changes.
 
-Edit mode must not call an AI agent automatically. Any AI-assisted change belongs to `Comment AI`.
+Edit mode must not call an AI agent automatically. Any AI-assisted change belongs to `Comment AI`. This separation is what makes minor corrections immediate while preserving agents for changes that benefit from reasoning.
 
 ### Comment AI Mode
 
@@ -95,7 +101,7 @@ Purpose: live artifact preview.
 Required behavior:
 
 - Render artifact in sandboxed iframe.
-- Preserve Open Design's existing preview model.
+- Preserve Readable Studio's sandboxed preview model.
 - In edit mode, selectable elements show subtle outlines.
 - Hovered/selectable elements should feel discoverable without overwhelming the artifact.
 - Center toolbar includes:
@@ -411,7 +417,7 @@ The accepted design direction:
   - left layers
   - center canvas
   - right properties modal
-- Open Design-specific mode rail:
+- Readable Studio mode rail:
   - Preview
   - Edit
   - Comment AI
@@ -443,7 +449,7 @@ Likely production destinations:
 - `apps/web/src/components/FileViewer.tsx`
 - `apps/web/src/index.css`
 
-Existing Open Design integration points:
+Existing Readable Studio integration points:
 
 - `FileViewer` already owns preview iframe and mode toolbar.
 - Existing comment mode already injects a preview bridge.

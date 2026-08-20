@@ -1,8 +1,12 @@
-# Project Status
+# Project status
+
+## Product context
+
+A Readable Studio project carries source material, generated files, direct edits, and exports. Status describes the latest agent run only; it must not imply that a completed draft is published or that direct editing requires a new run.
 
 ## Goal
 
-Show a compact status on each project card that reflects the current state of the project's most relevant run.
+Show a compact status on each project card that reflects the current state of the project's most relevant agent run.
 
 ## Status source
 
@@ -89,6 +93,6 @@ Use stronger visual treatment for active and error states:
 
 ## Rationale
 
-Project status represents the user's project-level mental model. Users need to know whether a project is waiting, actively running, completed, failed, canceled, or untouched.
+Project status represents the user's project-level mental model. Users need to know whether agent work is waiting, active, completed, failed, canceled, or untouched while the source-backed project remains available for direct editing and standalone HTML export.
 
 Using `running` as the primary active label keeps the UI aligned with the underlying run model and covers generation, editing, repair, analysis, export, and future run types.

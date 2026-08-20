@@ -1,12 +1,12 @@
-# Daemon HTTP Adapter
+# Daemon HTTP adapter
+
+## Product context
+
+The daemon API is the shared capability boundary for Readable Studio's web UI and `readable` CLI. Source ingestion, AI runs, project files, direct-edit persistence, plugins, and standalone HTML export must not diverge into UI-only and CLI-only implementations.
 
 ## Purpose
 
-Replace the untyped `ServerContext` service-locator pattern at the daemon HTTP
-boundary with a typed **Adapter Seam** plus a typed **Deps** record. Make
-request parsing, response shaping, and error mapping the only HTTP-aware code;
-let routes become pure `(input, deps) -> Result<output>` functions whose
-interface is the test surface.
+Replace the untyped `ServerContext` service-locator pattern at the daemon HTTP boundary with a typed **Adapter Seam** plus a typed **Deps** record. Keep request parsing, response shaping, and error mapping in HTTP-aware code; let routes become pure `(input, deps) -> Result<output>` functions whose interface is the test surface.
 
 This work sharpens W4 (validation at boundary), W5 (modularize `server.ts`),
 and unlocks W6 (run lifecycle) in `maintainability-roadmap.md`. It does not

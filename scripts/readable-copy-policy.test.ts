@@ -68,6 +68,33 @@ describe("Readable Studio copy policy", () => {
     );
   });
 
+  test("allows explicit negation of retired distribution claims", () => {
+    const report = auditCopySources([
+      {
+        path: "boundary.md",
+        source: `${APPROVED_DOCTRINE}\nThere is no product website, automatic updater, macOS build, or Linux build.`,
+      },
+    ]);
+
+    assert.equal(report.ok, true);
+    assert.deepEqual(report.forbiddenDistributionClaims, []);
+  });
+
+  test("does not let negation in an earlier clause hide a positive claim", () => {
+    const report = auditCopySources([
+      {
+        path: "mixed.md",
+        source: `${APPROVED_DOCTRINE}\nNo product website is required; a Linux build is available.`,
+      },
+    ]);
+
+    assert.equal(report.ok, false);
+    assert.deepEqual(
+      [...new Set(report.forbiddenDistributionClaims.map(({ id }) => id))],
+      ["unsupported-distribution"],
+    );
+  });
+
   test("reports missing doctrine without comparing exact prose", () => {
     const report = auditCopySources([{ path: "thin.md", source: "Readable Studio makes documents." }]);
 

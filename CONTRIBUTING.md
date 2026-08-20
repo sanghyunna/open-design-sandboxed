@@ -1,255 +1,138 @@
-# Contributing to Open Design
+# Contributing to Readable Studio
 
-Thanks for thinking about contributing. OD is small on purpose — most of the value lives in **files** (skills, design systems, prompt fragments) rather than framework code. That means the highest-leverage contributions are usually one folder, one Markdown file, or one PR-sized adapter.
+Readable Studio turns source text into standalone HTML with AI generation and PowerPoint-like direct editing for office workers. Contributions should strengthen that workflow without removing the integrated UI, CLI, plugin, editing, or export paths.
 
-This guide tells you exactly where to look for each type of contribution and what bar a PR has to clear before we merge it.
+Read [`AGENTS.md`](AGENTS.md) first, then the nearest directory-level `AGENTS.md` before editing code in that area.
 
-<p align="center"><b>English</b> · <a href="docs/i18n/CONTRIBUTING.pt-BR.md">Português (Brasil)</a> · <a href="docs/i18n/CONTRIBUTING.de.md">Deutsch</a> · <a href="docs/i18n/CONTRIBUTING.fr.md">Français</a> · <a href="docs/i18n/CONTRIBUTING.zh-CN.md">简体中文</a> · <a href="docs/i18n/CONTRIBUTING.ja-JP.md">日本語</a></p>
+## Product relevance
 
----
+A contribution is in scope when it improves a shipped capability or its maintainability, including:
 
-## Three things you can ship in one afternoon
+- source-grounded document or deck generation;
+- direct editing, preview, comments, tweaks, and source persistence;
+- standalone HTML and artifact-dependent PDF/PPTX/ZIP/Markdown export;
+- plugins, skills, design systems, templates, and craft guidance;
+- the `readable` CLI and the shared daemon HTTP contracts;
+- Windows portable packaging and local development tooling;
+- English or Korean product language.
 
-| If you want to… | You're really adding | Where it lives | Ship size |
-|---|---|---|---|
-| Make OD render a new kind of artifact (an invoice, an iOS Settings screen, a one-pager…) | a **Skill** | [`skills/<your-skill>/`](skills/) | one folder, ~2 files |
-| Make OD speak a new brand's visual language | a **Design System** | [`design-systems/<brand>/DESIGN.md`](design-systems/) | one Markdown file |
-| Hook up a new coding-agent CLI | an **Agent adapter** | [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts) | ~10 lines in one array |
-| Add a feature, fix a bug, lift a UX pattern from [`open-codesign`][ocod] | code | `apps/web/src/`, `apps/daemon/` | normal PR |
-| Improve docs, port a section to Français / Deutsch / 中文, fix typos | docs | `README.md`, `docs/i18n/README.fr.md`, `docs/i18n/README.de.md`, `docs/i18n/README.zh-CN.md`, `docs/`, `QUICKSTART.md` | one PR |
+Do not add product claims or implementation for a website, updater, installer, macOS package, Linux package, or Nix package. The supported artifact is a manually downloaded Windows 10/11 x64 portable ZIP.
 
-If you're not sure which bucket your idea is in, [open a discussion / issue first](https://github.com/sanghyunna/readable-studio/issues/new) and we'll point you at the right surface.
+## Set up on Windows
 
----
+Required: Node `~24`, pnpm `10.33.2`, Python 3, and Visual Studio Build Tools 2022 or newer.
 
-## Local setup
-
-The full one-page setup lives in [`QUICKSTART.md`](QUICKSTART.md). The TL;DR for contributors:
-
-```bash
-git clone https://github.com/sanghyunna/readable-studio.git readable-studio
+```powershell
+git clone https://github.com/sanghyunna/readable-studio.git
 cd readable-studio
-corepack enable           # selects the pinned pnpm from packageManager
+npm install -g pnpm@10.33.2
 pnpm install
-pnpm tools-dev run web    # daemon + web foreground loop
-pnpm typecheck            # tsc -b --noEmit
-pnpm --filter @readable-studio/web build  # web package build when needed
+pnpm tools-dev
 ```
 
-Node `~24` and pnpm `10.33.x` are required. `nvm` / `fnm` are optional; use `nvm install 24 && nvm use 24` or `fnm install 24 && fnm use 24` if you prefer managing Node that way. Windows native is the primary path; macOS, Linux, and WSL2 are best-effort. See [`docs/windows-troubleshooting.md`](docs/windows-troubleshooting.md) for common setup gotchas.
+`better-sqlite3` compiles from source for Node 24 on Windows. This is expected. Use `pnpm tools-dev` for the development lifecycle; do not add root `dev`, `start`, `build`, or `test` aliases.
 
-## Adding a new Skill
+## Make a focused change
 
-A skill is a folder under [`skills/`](skills/) with a `SKILL.md` at the root, following Claude Code's [`SKILL.md` convention][skill] plus our optional `od:` extension. **No registration step.** Drop the folder in, restart the daemon, the picker shows it.
+- Open an issue before a non-trivial feature.
+- Keep one pull request focused on one user or maintenance outcome.
+- Put package tests in the package-level `tests/` directory, not under `src/`.
+- Keep shared UI/daemon DTOs in `packages/contracts`.
+- Every user-facing capability must remain reachable through both the web UI and the `readable` CLI unless the PR explains why a surface is not applicable.
+- CLI machine output uses `--json`; long prompts use `--prompt-file <path|->` where relevant.
+- Do not hand-build process stamps, namespace paths, or packaged launch arguments outside their owning packages.
 
-### → See [`docs/skills-contributing.md`](docs/skills-contributing.md) for the full guide
+## Document workflow behavior accurately
 
-That file walks through:
+Use the canonical terms in [`CONTEXT.md`](CONTEXT.md). In current product docs:
 
-- **Quick start** — clone → copy a closest existing skill → run `pnpm tools-dev run web` → see the picker → open PR.
-- **What a skill IS / IS NOT** — saves you a week if your idea turns out to be a feature or vendor integration in disguise.
-- **Skill anatomy** — minimum folder layout and `SKILL.md` frontmatter cheat sheet.
-- **Running locally** — the four commands that actually matter.
-- **Merge bar** — copy-pasteable checklist of every thing a reviewer will check.
-- **PR description template** — drop into your PR body and fill in.
-- **Common rejection patterns** — the close reasons we've used recently, with concrete examples.
+- lead with `Source Text -> AI Generation -> Direct Editing -> Standalone HTML`;
+- describe direct editing as avoiding unnecessary prompt-wait cycles, not replacing agents;
+- preserve plugin, CLI, and secondary export capabilities;
+- use `.readable-studio` for source-mode daemon data;
+- use `ReadableStudioData\namespaces\<namespace>` for portable data;
+- name plugin sidecars `readable-studio.json`;
+- point downloads only to manual GitHub Releases;
+- do not rewrite changelog entries, `specs/change/`, upstream issue citations, provenance, or legal text.
 
-The protocol spec (full frontmatter grammar — typed inputs, slider parameters, craft references, testing primitives) lives separately in [`docs/skills-protocol.md`](docs/skills-protocol.md).
+Pure prose does not need a test that pins its wording. Validate links, references, and commands instead.
 
----
+## Add a plugin
 
-## Adding a new Design System
-
-A design system is a single [`DESIGN.md`](design-systems/README.md) file under `design-systems/<slug>/`. **One file, no code.** Drop it in, restart the daemon, the picker shows it grouped by category.
-
-### Design system folder layout
+A plugin is a portable Agent Skills folder:
 
 ```text
-design-systems/your-brand/
-└── DESIGN.md
+my-plugin\
+├── SKILL.md
+└── readable-studio.json
 ```
 
-### `DESIGN.md` shape
+`SKILL.md` contains agent-readable workflow instructions. `readable-studio.json` is the optional typed sidecar for identity, version, inputs, capabilities, pipeline stages, examples, and resource references. Do not duplicate the skill body in the JSON.
 
-```markdown
-# Design System Inspired by YourBrand
-
-> Category: Developer Tools
-> One-line summary that shows in the picker preview.
-
-## 1. Visual Theme & Atmosphere
-…
-
-## 2. Color
-- Primary: `#hex` / `oklch(...)`
-- …
-
-## 3. Typography
-…
-
-## 4. Spacing & Grid
-## 5. Layout & Composition
-## 6. Components
-## 7. Motion & Interaction
-## 8. Voice & Brand
-## 9. Anti-patterns
+```powershell
+readable plugin validate .\my-plugin --json
+pnpm guard
+pnpm --filter @readable-studio/plugin-runtime typecheck
 ```
 
-The 9-section schema is fixed — that's what skill bodies grep for. The first H1 becomes the picker label (the `Design System Inspired by` prefix is stripped automatically), and the `> Category: …` line decides which group it lands in. Existing categories are listed in [`design-systems/README.md`](design-systems/README.md); if your brand truly doesn't fit, you can introduce a new one, but **try existing categories first**.
+Follow [`plugins/AGENTS.md`](plugins/AGENTS.md), [`plugins/spec/SPEC.md`](plugins/spec/SPEC.md), and [`plugins/spec/CONTRIBUTING.md`](plugins/spec/CONTRIBUTING.md).
 
-### Bar for merging a new design system
+## Add a skill or design system
 
-1. **All 9 sections present.** Empty section bodies are fine for hard-to-find data (e.g. motion tokens), but the headings have to be there or the prompt grep breaks.
-2. **Hex codes are real.** Sample directly from the brand's site or product, not from memory or AI guesses. The README's "brand-spec extraction" 5-step protocol applies to maintainers too.
-3. **OKLch values for accent colors** are nice-to-have. They make palettes lerp predictably across light/dark.
-4. **No marketing fluff.** The brand's tagline is not a design token. Cut it.
-5. **Slug uses ASCII** — `linear.app` becomes `linear-app`, `x.ai` becomes `x-ai`. The 69 imported systems already follow this convention; mirror it.
+Skills live in `skills/<id>/SKILL.md` and follow the repository's Agent Skills protocol. Read [`skills/AGENTS.md`](skills/AGENTS.md) and [`docs/skills-contributing.md`](docs/skills-contributing.md).
 
-The 69 product systems we ship are imported from [`VoltAgent/awesome-design-md`][acd2] via [`scripts/sync-design-systems.ts`](scripts/sync-design-systems.ts). If your brand belongs upstream, **send the PR there first** — we'll pick it up automatically on the next sync. The `design-systems/` folder is for systems that don't fit upstream, plus our two hand-authored starters.
+Design systems live in `design-systems/<id>/` and must satisfy the schema and evidence requirements described by [`design-systems/_schema/AGENTS.md`](design-systems/_schema/AGENTS.md). They should be reusable brand contracts, not one-off artifact prompts.
 
----
+## Add or change a CLI capability
 
-## Adding a new coding-agent CLI
+The daemon HTTP endpoint is the source of truth. Add or update:
 
-Hooking up a new agent (e.g. some new shop's `foo-coder` CLI) is one entry in [`apps/daemon/src/agents.ts`](apps/daemon/src/agents.ts):
+1. a DTO in `packages/contracts`;
+2. the daemon `/api/*` endpoint;
+3. the web UI surface;
+4. the `readable` subcommand registered through `SUBCOMMAND_MAP`;
+5. focused tests for both human and `--json` behavior.
 
-```javascript
-{
-  id: 'foo',
-  name: 'Foo Coder',
-  bin: 'foo',
-  versionArgs: ['--version'],
-  buildArgs: (prompt) => ['exec', '-p', prompt],
-  streamFormat: 'plain',           // or 'claude-stream-json' if it speaks that
-}
+Do not create a CLI-only product feature.
+
+## Localization
+
+English (`en`) and Korean (`ko`) are the maintained product locales. Add keys to the typed dictionary and both locale files in the same change. Agent-executed prompts, skill instructions, design-system source, commands, identifiers, file names, and JSON keys stay in their source language unless the relevant protocol explicitly localizes them.
+
+See [`TRANSLATIONS.md`](TRANSLATIONS.md).
+
+## Verification
+
+Run checks matching the changed area, then the repository baseline:
+
+```powershell
+pnpm guard
+pnpm typecheck
 ```
 
-That's it — daemon will detect it on `PATH`, the picker shows it, the chat path works. If the CLI emits **typed events** (like Claude Code's `--output-format stream-json`), wire a parser in [`apps/daemon/src/claude-stream.ts`](apps/daemon/src/claude-stream.ts) and set `streamFormat: 'claude-stream-json'`.
+Examples:
 
-Bar for merging:
-
-1. **A real session works end-to-end** with the new agent — paste the daemon log into the PR description showing it streamed an artifact through.
-2. **`docs/agent-adapters.md`** is updated with the CLI's quirks (does it require a key file? does it support image input? what's its non-interactive flag?).
-3. **The README's "Supported coding agents" table** gets one row.
-
----
-
-## Updating model `max_tokens` metadata
-
-API-mode chat sends `max_tokens` to the upstream provider on every request. The web client picks that number from a three-tier lookup in [`apps/web/src/state/maxTokens.ts`](apps/web/src/state/maxTokens.ts):
-
-1. The user's explicit override in Settings, if set.
-2. Otherwise, the per-model default in [`apps/web/src/state/litellm-models.json`](apps/web/src/state/litellm-models.json) — a vendored slice of [BerriAI/litellm][litellm]'s `model_prices_and_context_window.json` (MIT). It covers ~2k chat models across Anthropic, OpenAI, DeepSeek, Groq, Together, Mistral, Gemini, Bedrock, Vertex, OpenRouter, and friends.
-3. Otherwise, `FALLBACK_MAX_TOKENS = 8192`.
-
-To pick up a newly-launched model, regenerate the vendored JSON:
-
-```bash
-node --experimental-strip-types scripts/sync-litellm-models.ts
+```powershell
+pnpm --filter @readable-studio/contracts typecheck
+pnpm --filter @readable-studio/web test
+pnpm --filter @readable-studio/daemon test
+pnpm --filter @readable-studio/tools-pack test
 ```
 
-The script fetches LiteLLM's catalog, filters to `mode: 'chat'` entries, projects each to its `max_output_tokens` (or `max_tokens` fallback), and writes a sorted snapshot. Commit the regenerated `litellm-models.json` alongside whatever PR triggered the refresh.
+For a requested Windows workspace build, use the canonical entry point:
 
-The OVERRIDES table in `maxTokens.ts` is for the rare case where LiteLLM is missing or wrong for a model id we actually use — for example, `mimo-v2.5-pro` (LiteLLM only ships MiMo via the `openrouter/xiaomi/...` and `novita/xiaomimimo/...` aliases, neither of which matches the canonical id Xiaomi's direct API uses). Keep it small; everything that LiteLLM gets right belongs upstream.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
+```
 
-[litellm]: https://github.com/BerriAI/litellm
+Package-scoped builds are validation, not a substitute for that portable build.
 
----
+## Pull requests
 
-## Localization maintenance
+Use [`.github/pull_request_template.md`](.github/pull_request_template.md). Explain the user's problem, what users will see, every affected surface, and the exact verification performed. Attach entry-point screenshots for UI changes. Bug fixes should include a focused regression test that fails before the fix when practical.
 
-German uses formal `Sie` because OD speaks to a mixed audience of solo creators, agencies, and engineering teams; until project feedback shows that an informal `du` voice fits better, formal German is the least surprising default. Locale PRs should translate UI chrome, core docs, and display-only gallery metadata in `apps/web/src/i18n/content.ts`, but should not translate `skills/`, `design-systems/`, or prompt bodies that agents execute. Those source prompts are maintained as workflow inputs, and keeping one source language avoids multiplying prompt QA across locales. When adding or renaming a skill, design system, or prompt template, update the German display metadata and run `pnpm --filter @readable-studio/web test`; `content.test.ts` fails if German display coverage drifts. Daemon errors, export filenames, and agent-generated artifact text are known limitations unless a PR explicitly scopes them.
-
-For step-by-step instructions on adding a new locale (UI dictionary, README, language switcher, regional terminology), see [`TRANSLATIONS.md`](TRANSLATIONS.md).
-
----
-
-## Code style
-
-We're not pedantic about formatting (Prettier on save is fine), but two rules are non-negotiable because they show up in the prompt stack and the user-facing API:
-
-1. **Single quotes in JS/TS.** Strings are single-quoted unless escaping makes them ugly. The codebase is already consistent — please match.
-2. **Comments in English.** Even if the PR is translating something into Deutsch or 中文, code comments stay in English so we can keep one set of greppable references.
-
-Beyond that:
-
-- **Don't narrate.** No `// import the module`, no `// loop through items`. If the code reads obviously, the comment is noise. Save comments for non-obvious intent or constraints the code can't express.
-- **TypeScript-first** for project-owned entrypoints, modules, scripts, tests, reporters, and configs, including `apps/web/` and `apps/daemon/`.
-- **No new top-level dependencies** without a paragraph in the PR description on what we get vs. what bytes we ship. The dep list in [`package.json`](package.json) is small on purpose.
-- **Run `pnpm typecheck`** before pushing and record the result in the PR validation section.
-
----
-
-## Commits & pull requests
-
-- **One concern per PR.** Adding a skill + refactoring the parser + bumping a dep is three PRs.
-- **Title is imperative + scope.** `add dating-web skill`, `fix daemon SSE backpressure when CLI hangs`, `docs: clarify .od layout`.
-- **Use the PR template.** Fill every section of [`.github/pull_request_template.md`](.github/pull_request_template.md) — Why, What users will see, Surface area, Screenshots (if UI), Bug fix verification (if bug fix), Validation. Empty sections earn a "please fill in" reply.
-- **Body explains the why.** "What does this do" is usually obvious from the diff; "why does this need to exist" rarely is.
-- **Reference an issue** if there is one. If there isn't and the PR is non-trivial, open one first so we can agree the change is wanted before you spend the time.
-- **No squash-during-review.** Push fixups; we'll squash on merge.
-- **No force-push to a shared branch** unless the reviewer asked.
-
-We don't enforce a CLA. Apache-2.0 covers us; your contribution is licensed under the same.
-
----
-
-## Reporting bugs
-
-Open an issue with:
-
-- What you ran (the exact `pnpm tools-dev ...` invocation).
-- Which agent CLI was selected (or whether you were on the BYOK path).
-- The skill + design system pair that triggered it.
-- The relevant **daemon stderr tail** — most "the artifact never rendered" reports get diagnosed in 30 seconds when we can see `spawn ENOENT` or the CLI's actual error.
-- A screenshot if it's UI.
-
-For prompt-stack bugs ("the agent emitted a purple gradient hero, the slop blacklist was supposed to forbid that"), include the **full assistant message** so we can see whether the violation was the model or the prompt.
-
----
-
-## Asking questions
-
-- Architecture question, design question, "is this a bug or a misuse" → [GitHub Discussions](https://github.com/sanghyunna/readable-studio/discussions) (preferred — searchable for the next person).
-- "How do I write a skill that does X" → Open a discussion. We'll answer it and turn the answer into [`docs/skills-protocol.md`](docs/skills-protocol.md) if it's a missing pattern.
-
----
-
-## What we don't accept
-
-To keep the project focused, please don't open PRs that:
-
-- **Vendor a model runtime.** OD's whole bet is "your existing CLI is enough". We don't ship `pi-ai`, OpenAI keys, or model loaders.
-- **Rewrite the frontend away from the current stack without prior discussion.** Next.js 16 App Router + React 18 + TS is the line. No Astro, Solid, Svelte, or other framework rewrites unless maintainers explicitly want that migration.
-- **Replace the daemon with a serverless function.** The daemon's whole point is owning a real `cwd` and spawning a real CLI. Vercel deployment of the SPA is fine; the daemon stays a daemon.
-- **Add telemetry / analytics / phone-home.** OD is local-first. The only outbound calls are to providers the user explicitly configured.
-- **Bundle a binary** without a license file and authorship attribution next to it.
-
-If you're not sure whether your idea fits, open a discussion before writing the code.
-
----
-
-## Becoming a Maintainer
-
-If you've been contributing consistently and want to know what the path to becoming a Maintainer looks like, the rules live in **[`MAINTAINERS.md`](MAINTAINERS.md)**. The short version:
-
-- A Maintainer can review, approve, and close issues. The merge button stays with the Core Team — your approval still counts as the required approval for merge.
-- The bar is **≥ 20 merged PRs** plus a published account-quality check (anti-bot, anti-sock-puppet) plus a Core Team judgment on contribution quality. There is no application form; the Core Team raises candidates internally and reaches out.
-- There are **no quotas, no SLAs, and no fixed term.** Stepping down is easy and reversible (Emeritus → return when life calms down).
-- All the thresholds, the nomination flow, the step-down rules, and the early-project waiver are in [`MAINTAINERS.md`](MAINTAINERS.md). Read that document if any of the above interests you.
-
-The tl;dr: ship good PRs, review thoughtfully, hang out in [Discussions][discussions] / [Discord][discord], and the rest takes care of itself.
-
-[discussions]: https://github.com/sanghyunna/readable-studio/discussions
-[discord]: https://discord.gg/qhbcCH8Am4
-
----
+Commit messages should be imperative and scoped. Do not add co-author trailers. Never commit `.readable-studio/`, `.tmp/`, generated reports, credentials, or portable runtime data.
 
 ## License
 
-By contributing, you agree your contribution is licensed under the [Apache-2.0 License](LICENSE) of this repository, with the exception of files inside [`skills/guizang-ppt/`](skills/guizang-ppt/), which retain their original MIT license and authorship attribution to [op7418](https://github.com/op7418).
-
-[skill]: https://docs.anthropic.com/en/docs/claude-code/skills
-[guizang]: https://github.com/op7418/guizang-ppt-skill
-[acd2]: https://github.com/VoltAgent/awesome-design-md
-[ocod]: https://github.com/OpenCoworkAI/open-codesign
+By contributing, you agree that your contribution is licensed under the repository's [`LICENSE`](LICENSE).

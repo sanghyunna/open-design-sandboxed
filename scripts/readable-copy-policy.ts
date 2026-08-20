@@ -65,10 +65,22 @@ function excerptForLine(line: string): string {
   return line.trim().replace(/\s+/g, " ").slice(0, 240);
 }
 
-function collectMatches(rule: Rule, source: CopySource): CopyPolicyMatch[] {
+const explicitNegationPattern = /\b(?:no|not|never|without|does not|do not|is not|are not|has no|have no)\b/i;
+const contrastPattern = /\b(?:but|however|yet)\b/gi;
+
+function isExplicitlyNegated(line: string, matchIndex: number): boolean {
+  const prefix = line.slice(0, matchIndex);
+  const punctuationStart = Math.max(prefix.lastIndexOf("."), prefix.lastIndexOf(";"), prefix.lastIndexOf(":"));
+  let contrastStart = -1;
+  for (const match of prefix.matchAll(contrastPattern)) contrastStart = match.index + match[0].length - 1;
+  return explicitNegationPattern.test(prefix.slice(Math.max(punctuationStart, contrastStart) + 1));
+}
+
+function collectMatches(rule: Rule, source: CopySource, ignoreExplicitNegation = false): CopyPolicyMatch[] {
   const matches: CopyPolicyMatch[] = [];
   for (const [index, line] of source.source.split(/\r?\n/).entries()) {
-    if (rule.pattern.test(line)) {
+    const match = rule.pattern.exec(line);
+    if (match && !(ignoreExplicitNegation && isExplicitlyNegated(line, match.index))) {
       matches.push({
         id: rule.id,
         path: normalizePath(source.path),
@@ -80,8 +92,12 @@ function collectMatches(rule: Rule, source: CopySource): CopyPolicyMatch[] {
   return matches;
 }
 
-function collectRuleSet(rules: readonly Rule[], sources: readonly CopySource[]): CopyPolicyMatch[] {
-  return rules.flatMap((rule) => sources.flatMap((source) => collectMatches(rule, source)));
+function collectRuleSet(
+  rules: readonly Rule[],
+  sources: readonly CopySource[],
+  ignoreExplicitNegation = false,
+): CopyPolicyMatch[] {
+  return rules.flatMap((rule) => sources.flatMap((source) => collectMatches(rule, source, ignoreExplicitNegation)));
 }
 
 export function auditCopySources(sources: readonly CopySource[]): CopyPolicyReport {
@@ -91,7 +107,7 @@ export function auditCopySources(sources: readonly CopySource[]): CopyPolicyRepo
     return { id: rule.id, present: matches.length > 0, matches };
   });
   const retiredClaims = collectRuleSet(retiredClaimRules, sortedSources);
-  const forbiddenDistributionClaims = collectRuleSet(forbiddenDistributionRules, sortedSources);
+  const forbiddenDistributionClaims = collectRuleSet(forbiddenDistributionRules, sortedSources, true);
   const presentPillars = pillars.filter(({ present }) => present).length;
   const missingPillars = pillars.length - presentPillars;
 

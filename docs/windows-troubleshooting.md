@@ -1,230 +1,111 @@
-# Windows Troubleshooting Guide
+# Windows troubleshooting
 
-Open Design runs on Windows natively, but the path is less travelled than macOS, Linux, or WSL2. This guide covers the most common errors you will hit on a fresh Windows machine and the exact fix for each.
+Readable Studio supports Windows 10/11 x64. Normal users should run the extracted portable ZIP; contributors can run the source workspace with Node 24.
 
-> **Tip:** If you already have WSL2 set up, that is the smoothest path on Windows. This guide is for native Windows (PowerShell).
+## Portable app
 
----
+### Download and extraction
 
-## Prerequisites
+Manually download `Readable Studio-<namespace>-portable.zip` from [GitHub Releases](https://github.com/sanghyunna/readable-studio/releases), extract the complete archive to a writable directory, and run `Readable Studio.exe`. Do not run it from the compressed-folder view.
 
-| Tool | Version | How to verify |
-|---|---|---|
-| Node.js | `~24` | `node -v` |
-| pnpm | `10.33.x` | `pnpm -v` |
-| Git | any recent | `git --version` |
+### SmartScreen warning
 
----
+An unsigned build can trigger Windows SmartScreen. Confirm that the archive came from the repository's GitHub Releases page and verify the release asset before running it. Readable Studio has no installer or updater.
 
-## 1. Node 24 installation
+### Projects disappeared after moving the app
 
-### Symptom
-`node -v` returns something older than `v24.x.x`, or you do not have Node installed at all.
-
-### Fix
-
-**Option A — nvm-windows (recommended)**
-
-1. Install [nvm-windows](https://github.com/coreybutler/nvm-windows/releases).
-2. In a fresh PowerShell window:
-
-   ```powershell
-   nvm install 24
-   nvm use 24
-   node -v   # should print v24.x.x
-   ```
-
-**Option B — Official installer**
-
-Download and run the Node 24 `.msi` from [nodejs.org](https://nodejs.org/).
-
-### Common nvm-windows gotcha
-
-If running `nvm version` or `node -v` pops up a Windows dialog that asks *"How do you want to open this file?"*, a fake `nvm` file (no extension) has been created in `C:\Windows\System32`.
-
-**Fix:** Delete that file, then restart PowerShell.
-
----
-
-## 2. pnpm not found
-
-### Symptom
+Portable state lives beside the executable under:
 
 ```text
-pnpm : The term 'pnpm' is not recognized as the name of a cmdlet...
+<exeDir>\ReadableStudioData\namespaces\<namespace>\
 ```
 
-### Fix (Corepack — recommended)
+Move or back up `ReadableStudioData` together with `Readable Studio.exe`. Different namespaces intentionally use separate state.
 
-The repo pins `pnpm@10.33.2` in `packageManager`. Corepack selects that exact version automatically:
+### App does not start
+
+- Extract all files rather than copying only the executable.
+- Use a writable local directory.
+- Check logs with the local packaging lifecycle if this is a maintainer build:
 
 ```powershell
-corepack enable
-corepack pnpm --version   # should print 10.33.2
+pnpm tools-pack win logs
+pnpm tools-pack win inspect --expr "document.title"
 ```
 
-> **Note:** If `corepack enable` fails with `EPERM` or `EACCES` (common when Node is installed under `C:\Program Files\nodejs`), use the npm-global fallback in the next section instead.
+## Source development
 
+### Wrong Node version
 
+Readable Studio requires Node `~24`.
 
-### Fix (npm global — alternative)
+```powershell
+node --version
+```
 
-If Corepack is not available:
+Install Node 24 from [nodejs.org](https://nodejs.org/) or with WinGet, then open a new terminal. Node 22 is not supported by this workspace.
+
+### pnpm or Corepack permission error
+
+`corepack enable` can fail because it tries to write shims under Program Files. Install the pinned pnpm version directly:
 
 ```powershell
 npm install -g pnpm@10.33.2
-pnpm -v   # should print 10.33.2
+pnpm --version
 ```
 
----
+### `better-sqlite3` build fails
 
-## 3. Build scripts blocked
-
-### Symptom
-
-During `pnpm install` you see:
-
-```text
-Ignored build scripts: better-sqlite3, ...
-```
-
-Later, `pnpm tools-dev run web` fails with native-module errors.
-
-### Fix
-
-pnpm 10 blocks lifecycle scripts by default. Allow the packages that need native compilation:
-
-```powershell
-pnpm approve-builds
-```
-
-Approve any packages that appear in the list (commonly `better-sqlite3`, `electron`, and `esbuild`). Then re-run:
+Node 24 uses a local native build. Install Python 3 and Visual Studio Build Tools 2022 or newer with the Desktop development with C++ workload, then run:
 
 ```powershell
 pnpm install
+pnpm --filter @readable-studio/daemon exec node -e "require('better-sqlite3')"
 ```
 
-> **Note:** `better-sqlite3` may fall back to compiling from source on Windows. If `pnpm install` hangs or fails on this package, make sure the Visual Studio Build Tools (step 4) are installed *before* running `pnpm install`.
+### Agent is not detected
 
----
-
-## 4. Visual Studio / `gyp` build errors
-
-### Symptom
-
-```text
-gyp ERR! find VS could not find Visual Studio
-```
-
-or
-
-```text
-error MSB8036: The Windows SDK version was not found
-```
-
-### Fix
-
-Install **Build Tools for Visual Studio 2022** with the following workloads:
-
-- **Desktop development with C++**
-- **MSVC v143 - VS 2022 C++ x64/x86 build tools**
-- **Windows 11 SDK** (or Windows 10 SDK if you are on Windows 10)
-
-Download: [https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
-
-If you see `gyp ERR! find Python`, verify Python is installed:
+Codex and Cursor Agent are scanned by default. Confirm the CLI works and is authenticated in the same Windows user environment that starts Readable Studio:
 
 ```powershell
-python --version   # or py --version
+codex --version
+cursor-agent --version
 ```
 
-If missing, install Python 3.x from [python.org](https://www.python.org/downloads/) and ensure it's on PATH.
+Then use Rescan in Settings. Enable another registered adapter before expecting Readable Studio to probe it.
 
-After installing all build tools, open a **fresh** PowerShell window and re-run `pnpm install`.
+### Port or stale process problem
 
----
-
-## 5. PowerShell execution policy
-
-### Symptom
-
-```text
- cannot be loaded because running scripts is disabled on this system.
-```
-
-### Fix
-
-On fresh Windows installs, PowerShell blocks script execution by default:
+Use the control plane rather than starting packages independently:
 
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+pnpm tools-dev status --json
+pnpm tools-dev logs --json
+pnpm tools-dev stop
+pnpm tools-dev check
 ```
 
-Restart PowerShell after changing the policy.
+### Data directory
 
----
+Source data defaults to `<repo>\.readable-studio`. `OD_DATA_DIR` may point to an explicit absolute directory. Development lifecycle state is separate under `<repo>\.tmp\tools-dev\<namespace>`.
 
-## 6. Start the dev server
+## Portable build diagnosis
 
-### Symptom
-You have completed the steps above but are not sure how to launch the app.
-
-### Fix
-
-From the repository root:
+The canonical workspace build is:
 
 ```powershell
-pnpm tools-dev run web
+powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 ```
 
-Expected output ends with something like:
-
-```text
-Open Design dev server ready
-  - Local:   http://localhost:17573
-```
-
-The exact port may change; always read the terminal output.
-
----
-
-## Quick diagnostic checklist
-
-Run these commands in PowerShell before opening an issue. Include the output in your report.
+The complete lower-level lifecycle is:
 
 ```powershell
-node -v
-pnpm -v
-where.exe pnpm
-where.exe node
-where.exe opencode
-corepack --version
-python --version   # or py --version
-Get-ExecutionPolicy -List
+pnpm tools-pack win build
+pnpm tools-pack win start
+pnpm tools-pack win inspect --expr "document.title"
+pnpm tools-pack win logs
+pnpm tools-pack win stop
+pnpm tools-pack win cleanup
 ```
 
-## 7. Optional: quick launcher
-
-If you want a double-click entry point on Windows, create a `launch.bat` file in the repo root with:
-
-```bat
-@echo off
-cd /d %~dp0
-corepack pnpm tools-dev run web
-```
-
-That keeps the launcher on the supported `pnpm tools-dev run web` path while still giving you a one-click start.
-
----
-
-## Optional: OpenCode agent CLI on Windows
-
-OpenCode is one of the local agent CLIs Open Design can drive. If you want to use it:
-
-```powershell
-npm install -g opencode-ai
-where.exe opencode   # should show C:\Users\YOUR_USERNAME\AppData\Roaming\npm\opencode.cmd
-opencode --version
-```
-
-If Open Design still shows OpenCode as *not installed* in **Settings → Execution mode**, click **Rescan** after confirming the `opencode.cmd` directory is on your user `PATH`.
+Build output is namespace-scoped under `.tmp\tools-pack\out\win\namespaces\<namespace>` and runtime state under `.tmp\tools-pack\runtime\win\namespaces\<namespace>`.
