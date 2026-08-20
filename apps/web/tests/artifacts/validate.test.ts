@@ -52,8 +52,14 @@ describe('validateHtmlArtifact', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('rejects unquoted URL attributes that reference reserved storage', () => {
+  it('rejects unquoted URL attributes that reference legacy reserved storage', () => {
     const html = '<!doctype html><html><body><img src=./.od/thumb.png alt="Preview"><p>Enough content to look like a real document.</p></body></html>';
+    const result = validateHtmlArtifact(html);
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects unquoted URL attributes that reference Readable Studio storage', () => {
+    const html = '<!doctype html><html><body><img src=./.readable-studio/thumb.png alt="Preview"><p>Enough content to look like a real document.</p></body></html>';
     const result = validateHtmlArtifact(html);
     expect(result.ok).toBe(false);
   });
@@ -77,7 +83,7 @@ describe('validateHtmlArtifact', () => {
   });
 
   it('accepts plain text mentions of reserved directory names', () => {
-    const html = '<!doctype html><html><body><p>The .readable folder and .tmp files are mentioned as documentation text only, not linked paths.</p></body></html>';
+    const html = '<!doctype html><html><body><p>The .readable-studio, .od, and .tmp folders are mentioned as documentation text only, not linked paths.</p></body></html>';
     const result = validateHtmlArtifact(html);
     expect(result.ok).toBe(true);
   });
