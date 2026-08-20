@@ -109,8 +109,24 @@
       ],
       "assets": [
         "./example.html",
+        "./assets/about.png",
+        "./assets/capabilities.png",
+        "./assets/cta.png",
+        "./assets/hero.png",
         "./assets/image-manifest.json",
-        "./assets/imagegen-prompts.md"
+        "./assets/imagegen-prompts.md",
+        "./assets/lab-1.png",
+        "./assets/lab-2.png",
+        "./assets/lab-3.png",
+        "./assets/lab-4.png",
+        "./assets/lab-5.png",
+        "./assets/method-1.png",
+        "./assets/method-2.png",
+        "./assets/method-3.png",
+        "./assets/method-4.png",
+        "./assets/testimonial.png",
+        "./assets/work-1.png",
+        "./assets/work-2.png"
       ]
     },
     "pipeline": {

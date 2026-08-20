@@ -340,7 +340,9 @@ export async function collectBundledCopyLanguageViolations(
 
       let source: string;
       try {
-        source = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(fullPath));
+        const bytes = await readFile(fullPath);
+        if (bytes.includes(0)) continue;
+        source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
         continue;
       }
