@@ -33,6 +33,11 @@ This file is the single source of truth for agents entering this repository. Rea
 
 # Development workflow
 
+## Repository discovery
+
+- Use `fd` for filename and path discovery. Do not use POSIX `find`, PowerShell `Get-ChildItem -Recurse`, or custom recursive filesystem walkers when `fd` can express the query.
+- Keep discovery bounded with `fd` path/glob filters before reading or searching file contents.
+
 ## Environment baseline
 
 - Runtime target is Node `~24` and `pnpm@10.33.2`; use Corepack so the pnpm version pinned in `package.json` is selected.
