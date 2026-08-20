@@ -4,10 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { INTERNAL_PACKAGES as LINUX_INTERNAL_PACKAGES } from "../src/linux.js";
-import { INTERNAL_PACKAGES as MAC_INTERNAL_PACKAGES } from "../src/mac/constants.js";
-import { shouldInstallInternalPackageForMacPrebundle } from "../src/mac-prebundle.js";
-import { INTERNAL_PACKAGES as WIN_INTERNAL_PACKAGES } from "../src/win/constants.js";
+import { INTERNAL_PACKAGES } from "../src/win/constants.js";
 import { shouldInstallInternalPackageForWinPrebundle } from "../src/win-prebundle.js";
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -18,66 +15,26 @@ function runtimeWorkspaceDeps(directory: string): string[] {
   const manifest = JSON.parse(
     readFileSync(join(workspaceRoot, directory, "package.json"), "utf8"),
   ) as { dependencies?: Record<string, string> };
-  return Object.keys(manifest.dependencies ?? {}).filter((dep) => dep.startsWith("@readable-studio/"));
+  return Object.keys(manifest.dependencies ?? {}).filter((dependency) => dependency.startsWith("@readable-studio/"));
 }
 
-// Each pack lane assembles its packaged app by `pnpm pack`-ing a subset of
-// INTERNAL_PACKAGES into tarballs, wiring them as `file:` dependencies, and
-// running an npm/pnpm install in the isolated app directory. `pnpm pack`
-// rewrites every `workspace:*` ref to a concrete version, so the install
-// resolves each tarball's runtime `@readable-studio/*` dependencies. Any such
-// dependency that is NOT also installed as a local tarball is fetched from the
-// public npm registry and 404s — these packages are workspace-only and never
-// published.
-//
-// The invariant: the set a lane actually installs must be closed under its
-// runtime `@readable-studio/*` dependencies.
-//
-// The lanes diverge by web output mode:
-//   - linux ships "server" mode and tarball-installs every INTERNAL_PACKAGES
-//     entry, including @readable-studio/desktop and @readable-studio/web — so it must
-//     also install their runtime deps (@readable-studio/download, @readable-studio/host).
-//   - mac/win default to "standalone", where desktop/web/packaged/daemon are
-//     prebundled with esbuild and excluded from the tarball install. The
-//     packages they do install have no download/host dependency, so those
-//     lanes correctly omit them. Adding download/host there would be dead
-//     weight and would drag in the shared workspace-build cache.
-const LANES: { name: string; packages: readonly PackageEntry[]; isInstalled: (pkg: PackageEntry) => boolean }[] = [
-  {
-    name: "linux",
-    packages: LINUX_INTERNAL_PACKAGES,
-    isInstalled: () => true,
-  },
-  {
-    name: "mac",
-    packages: MAC_INTERNAL_PACKAGES,
-    isInstalled: (pkg) =>
-      shouldInstallInternalPackageForMacPrebundle({ packageName: pkg.name, webOutputMode: "standalone" }),
-  },
-  {
-    name: "win",
-    packages: WIN_INTERNAL_PACKAGES,
-    isInstalled: (pkg) =>
-      shouldInstallInternalPackageForWinPrebundle({ packageName: pkg.name, webOutputMode: "standalone" }),
-  },
-];
+describe("Windows INTERNAL_PACKAGES dependency closure", () => {
+  it("installs every runtime workspace dependency locally", () => {
+    // Given the packages installed into the standalone Windows artifact
+    const installed = INTERNAL_PACKAGES.filter((entry) =>
+      shouldInstallInternalPackageForWinPrebundle({ packageName: entry.name, webOutputMode: "standalone" })
+    );
+    const installedNames = new Set<string>(installed.map((entry) => entry.name));
 
-describe("pack lane INTERNAL_PACKAGES dependency closure", () => {
-  for (const lane of LANES) {
-    it(`${lane.name}: every installed package's runtime @readable-studio deps are installed`, () => {
-      const installed = lane.packages.filter((pkg) => lane.isInstalled(pkg));
-      const installedNames = new Set(installed.map((pkg) => pkg.name));
-      const missing: { dependency: string; dependent: string }[] = [];
-
-      for (const pkg of installed) {
-        for (const dependency of runtimeWorkspaceDeps(pkg.directory)) {
-          if (!installedNames.has(dependency)) {
-            missing.push({ dependency, dependent: pkg.name });
-          }
-        }
+    // When their runtime workspace dependency closure is inspected
+    const missing: { readonly dependency: string; readonly dependent: string }[] = [];
+    for (const entry of installed) {
+      for (const dependency of runtimeWorkspaceDeps(entry.directory)) {
+        if (!installedNames.has(dependency)) missing.push({ dependency, dependent: entry.name });
       }
+    }
 
-      expect(missing).toEqual([]);
-    });
-  }
+    // Then no workspace package would be fetched from the public registry
+    expect(missing).toEqual([]);
+  });
 });

@@ -22,13 +22,11 @@ afterEach(async () => {
 function fakeConfig(workspaceRoot: string): ToolPackConfig {
   return {
     appVersion: "0.0.0-test",
-    containerized: false,
     electronBuilderCliPath: "/dev/null",
     electronDistPath: "/dev/null",
     electronVersion: "0.0.0",
-    macCompression: "normal",
     namespace: "test",
-    platform: "mac",
+    platform: "win",
     portable: false,
     removeData: false,
     removeLogs: false,
@@ -39,7 +37,7 @@ function fakeConfig(workspaceRoot: string): ToolPackConfig {
       output: {
         appBuilderRoot: join(workspaceRoot, "out", "builder"),
         namespaceRoot: join(workspaceRoot, "out", "ns"),
-        platformRoot: join(workspaceRoot, "out", "mac"),
+        platformRoot: join(workspaceRoot, "out", "win"),
         root: join(workspaceRoot, "out"),
       },
       runtime: {
@@ -51,7 +49,7 @@ function fakeConfig(workspaceRoot: string): ToolPackConfig {
     },
     signed: false,
     silent: true,
-    to: "all",
+    to: "zip",
     webOutputMode: "standalone",
     workspaceRoot,
   };

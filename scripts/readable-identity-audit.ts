@@ -111,9 +111,7 @@ function isImmutableHistoryPath(repositoryPath: string): boolean {
 function isDeletionTargetPath(repositoryPath: string): boolean {
   return repositoryPath.startsWith("apps/landing-page/") || repositoryPath === "flake.nix" || repositoryPath === "flake.lock" ||
     repositoryPath.startsWith("nix/") ||
-    /(?:^|\/)(?:updater|release-feed|nsis|custom-installer)(?:[./-]|$)/i.test(repositoryPath) ||
-    repositoryPath.startsWith("tools/pack/src/mac/") || repositoryPath.startsWith("tools/pack/resources/mac/") ||
-    repositoryPath.startsWith("tools/pack/src/linux") || repositoryPath.startsWith("tools/pack/resources/linux/");
+    /(?:^|\/)(?:updater|release-feed|nsis|custom-installer)(?:[./-]|$)/i.test(repositoryPath);
 }
 
 function isGeneratedDerivativePath(repositoryPath: string): boolean {

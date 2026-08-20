@@ -239,11 +239,8 @@ pnpm --filter @readable-studio/daemon test
 
 ```bash
 powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
-pnpm tools-pack mac install
-pnpm tools-pack mac cleanup
 pnpm tools-pack win build --to zip
 pnpm tools-pack win cleanup
-pnpm tools-pack linux install
 ```
 
 # FAQ

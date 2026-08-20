@@ -8,7 +8,7 @@ Follow the root `AGENTS.md` first. This file only records module-level boundarie
 - `pnpm tools-dev` manages daemon -> web -> desktop.
 - `pnpm tools-dev run web` runs foreground daemon + web for the Playwright webServer flow.
 - `pnpm tools-dev inspect desktop ...` inspects the desktop runtime through sidecar IPC.
-- `tools/pack` provides `@readable-studio/tools-pack` and the `tools-pack` bin. It owns local packaged artifact build/start/stop/logs/cleanup/list, plus platform-specific macOS and Linux install lifecycles.
+- `tools/pack` provides `@readable-studio/tools-pack` and the `tools-pack` bin. It owns the local Windows portable ZIP build/start/stop/logs/cleanup/list/inspect lifecycle.
 - `tools/serve` provides `@readable-studio/tools-serve` and the `tools-serve` bin. It owns local fixture services such as `tools-serve start updater`.
 
 ## Retired tools
@@ -20,7 +20,7 @@ Follow the root `AGENTS.md` first. This file only records module-level boundarie
 - Keep `tools-pack` focused on local packaging/runtime control and updater validation.
 - Pack-specific Electron builder resources belong under `tools/pack/resources/`; do not reference app/docs/download assets directly from pack logic.
 - Namespace controls packaged data/log/runtime/cache paths. Ports are transient transport details and must not participate in path decisions.
-- There is no root `pnpm build` aggregate. Use package-scoped builds for source packages and `pnpm tools-pack ...` for local packaged build/install flows.
+- There is no root `pnpm build` aggregate. Use package-scoped builds for source packages and `pnpm tools-pack ...` for local packaged build/runtime flows.
 
 ## Orchestration boundary
 
@@ -41,18 +41,9 @@ pnpm --filter @readable-studio/tools-serve build
 pnpm tools-dev status --json
 pnpm tools-dev logs --json
 pnpm tools-dev check
-pnpm tools-pack mac build --to all
-pnpm tools-pack mac install
-pnpm tools-pack mac cleanup
 pnpm tools-pack win build --to zip
 pnpm tools-pack win start
 pnpm tools-pack win inspect --expr "document.title"
 pnpm tools-pack win cleanup
-pnpm tools-pack linux build --to appimage
-pnpm tools-pack linux install
-pnpm tools-pack linux install --headless
-pnpm tools-pack linux start --headless
-pnpm tools-pack linux stop --headless
-pnpm tools-pack linux build --containerized
 pnpm tools-serve start updater
 ```

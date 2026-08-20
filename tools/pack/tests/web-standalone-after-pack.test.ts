@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, mkdtemp, readFile, readlink, rm, symlink, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path, { join } from "node:path";
@@ -9,7 +9,6 @@ const require = createRequire(import.meta.url);
 const runWebStandaloneAfterPack = require("../resources/web-standalone-after-pack.cjs") as (context: unknown) => Promise<void>;
 
 const CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
-const darwinSymlinkIt = process.platform === "win32" ? it.skip : it;
 
 async function pathExists(filePath: string): Promise<boolean> {
   try {
@@ -89,13 +88,9 @@ async function writeStandaloneFixture(
 async function runFixture(options: {
   includeHoistedNext?: boolean;
   includeWebNext: boolean;
-  macAdhocBundleSign?: boolean;
-  omitMacAdhocBundleSign?: boolean;
   omitRootWebPackage?: boolean;
-  platformName?: "darwin" | "win32";
   requireRootWebPackageAudit?: boolean;
   useAbsolutePnpmSymlinks?: boolean;
-  writeMacCodeBundleFixture?: boolean;
 }): Promise<{
   appOutDir: string;
   auditReportPath: string;
@@ -109,29 +104,13 @@ async function runFixture(options: {
     includeWebNext: options.includeWebNext,
     useAbsolutePnpmSymlinks: options.useAbsolutePnpmSymlinks,
   });
-  const platformName = options.platformName ?? "win32";
-  const appOutDir = join(root, "builder", platformName === "darwin" ? "mac-arm64" : "win-unpacked");
-  const resourcesRoot = platformName === "darwin"
-    ? join(appOutDir, "Open Design.app", "Contents", "Resources")
-    : join(appOutDir, "resources");
-  const appPath = join(appOutDir, "Open Design.app");
+  const appOutDir = join(root, "builder", "win-unpacked");
+  const resourcesRoot = join(appOutDir, "resources");
   const auditReportPath = join(root, "audit.json");
   const configPath = join(root, "config.json");
   const oldConfigEnv = process.env[CONFIG_ENV];
 
   await mkdir(resourcesRoot, { recursive: true });
-  if (platformName === "darwin" && options.writeMacCodeBundleFixture) {
-    const frameworksRoot = join(appPath, "Contents", "Frameworks");
-    const electronFrameworkRoot = join(frameworksRoot, "Electron Framework.framework");
-    await mkdir(join(electronFrameworkRoot, "Resources"), { recursive: true });
-    await mkdir(join(electronFrameworkRoot, "Versions", "A", "Resources"), { recursive: true });
-    await mkdir(join(electronFrameworkRoot, "Versions", "Current", "Resources"), { recursive: true });
-    await writeFile(join(electronFrameworkRoot, "Electron Framework"), "binary\n", "utf8");
-    await writeFile(join(electronFrameworkRoot, "Versions", "A", "Electron Framework"), "binary\n", "utf8");
-    await writeFile(join(electronFrameworkRoot, "Versions", "Current", "Electron Framework"), "binary\n", "utf8");
-    await mkdir(join(frameworksRoot, "ReactiveObjC.framework"), { recursive: true });
-    await mkdir(join(frameworksRoot, "Open Design Helper.app"), { recursive: true });
-  }
   if (options.omitRootWebPackage !== true) {
     await writeRootWebPackage(resourcesRoot);
   }
@@ -140,7 +119,6 @@ async function runFixture(options: {
     `${JSON.stringify(
       {
         auditReportPath,
-        ...(options.omitMacAdhocBundleSign ? {} : { macAdhocBundleSign: options.macAdhocBundleSign ?? false }),
         pruneCopiedSharp: false,
         pruneRootNext: false,
         pruneRootSharp: false,
@@ -164,7 +142,7 @@ async function runFixture(options: {
   try {
     await runWebStandaloneAfterPack({
       appOutDir,
-      electronPlatformName: platformName,
+      electronPlatformName: "win32",
       packager: { appInfo: { productFilename: "Open Design" } },
     });
   } catch (error) {
@@ -228,22 +206,6 @@ describe("web standalone afterPack hook", () => {
     );
   });
 
-  it("defaults the mac ad-hoc signing hook option off for win32 configs", async () => {
-    const fixture = await runFixture({ includeWebNext: true, omitMacAdhocBundleSign: true });
-
-    try {
-      const report = JSON.parse(await readFile(fixture.auditReportPath, "utf8")) as {
-        macAdhocBundleSign: unknown[];
-        platformName: string;
-      };
-
-      expect(report.platformName).toBe("win32");
-      expect(report.macAdhocBundleSign).toEqual([]);
-    } finally {
-      await rm(fixture.root, { force: true, recursive: true });
-    }
-  });
-
   it("allows win32 prebundle mode to omit the root web package audit", async () => {
     const fixture = await runFixture({
       includeWebNext: true,
@@ -262,121 +224,4 @@ describe("web standalone afterPack hook", () => {
     }
   });
 
-  darwinSymlinkIt("rewrites darwin copied pnpm symlinks to stay inside the packaged resource", async () => {
-    const fixture = await runFixture({
-      includeWebNext: true,
-      platformName: "darwin",
-      useAbsolutePnpmSymlinks: true,
-    });
-
-    try {
-      const report = JSON.parse(await readFile(fixture.auditReportPath, "utf8")) as {
-        copiedAudit: { externalSymlinks: string[]; resolvedModules: Record<string, string> };
-      };
-      const copiedNextLink = join(fixture.destinationRoot, "apps", "web", "node_modules", "next");
-      const nextTarget = await readlink(copiedNextLink);
-
-      expect(path.isAbsolute(nextTarget)).toBe(false);
-      expect(report.copiedAudit.externalSymlinks).toEqual([]);
-      expect(report.copiedAudit.resolvedModules["next/package.json"].split(path.sep).join("/")).toMatch(
-        /open-design-web-standalone\/node_modules\/\.pnpm\/next@0\.0\.0\/node_modules\/next\/package\.json$/,
-      );
-    } finally {
-      await rm(fixture.root, { force: true, recursive: true });
-    }
-  });
-
-  darwinSymlinkIt("signs versioned mac frameworks at their Current version path", async () => {
-    const codesignRoot = await mkdtemp(join(tmpdir(), "open-design-fake-codesign-"));
-    const codesignBin = join(codesignRoot, "bin");
-    const codesignLog = join(codesignRoot, "codesign.log");
-    const oldPath = process.env.PATH;
-    const oldCodesignLog = process.env.OD_FAKE_CODESIGN_LOG;
-
-    await mkdir(codesignBin, { recursive: true });
-    await writeFile(
-      join(codesignBin, "codesign"),
-      "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$OD_FAKE_CODESIGN_LOG\"\n",
-      "utf8",
-    );
-    await chmod(join(codesignBin, "codesign"), 0o755);
-
-    process.env.PATH = `${codesignBin}${path.delimiter}${oldPath ?? ""}`;
-    process.env.OD_FAKE_CODESIGN_LOG = codesignLog;
-
-    let fixture: Awaited<ReturnType<typeof runFixture>> | null = null;
-    try {
-      fixture = await runFixture({
-        includeWebNext: true,
-        macAdhocBundleSign: true,
-        platformName: "darwin",
-        writeMacCodeBundleFixture: true,
-      });
-
-      const report = JSON.parse(await readFile(fixture.auditReportPath, "utf8")) as {
-        macAdhocBundleSign: string[];
-      };
-      const signedTargets = report.macAdhocBundleSign.map((target) => target.split(path.sep).join("/"));
-      const codesignInvocations = await readFile(codesignLog, "utf8");
-
-      expect(signedTargets).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/Electron Framework\.framework\/Versions\/Current$/),
-          expect.stringMatching(/ReactiveObjC\.framework$/),
-          expect.stringMatching(/Open Design Helper\.app$/),
-          expect.stringMatching(/Open Design\.app$/),
-        ]),
-      );
-      expect(signedTargets).not.toContainEqual(expect.stringMatching(/Electron Framework\.framework$/));
-      await expect(
-        readlink(join(
-          fixture.appOutDir,
-          "Open Design.app",
-          "Contents",
-          "Frameworks",
-          "Electron Framework.framework",
-          "Versions",
-          "Current",
-        )),
-      ).resolves.toBe("A");
-      await expect(
-        readlink(join(
-          fixture.appOutDir,
-          "Open Design.app",
-          "Contents",
-          "Frameworks",
-          "Electron Framework.framework",
-          "Electron Framework",
-        )),
-      ).resolves.toBe("Versions/Current/Electron Framework");
-      await expect(
-        readlink(join(
-          fixture.appOutDir,
-          "Open Design.app",
-          "Contents",
-          "Frameworks",
-          "Electron Framework.framework",
-          "Resources",
-        )),
-      ).resolves.toBe("Versions/Current/Resources");
-      expect(codesignInvocations.split(path.sep).join("/")).toContain(
-        "Electron Framework.framework/Versions/Current",
-      );
-    } finally {
-      if (fixture != null) {
-        await rm(fixture.root, { force: true, recursive: true });
-      }
-      await rm(codesignRoot, { force: true, recursive: true });
-      if (oldPath == null) {
-        delete process.env.PATH;
-      } else {
-        process.env.PATH = oldPath;
-      }
-      if (oldCodesignLog == null) {
-        delete process.env.OD_FAKE_CODESIGN_LOG;
-      } else {
-        process.env.OD_FAKE_CODESIGN_LOG = oldCodesignLog;
-      }
-    }
-  });
 });

@@ -11,7 +11,7 @@ import {
 } from "@readable-studio/launcher-proto";
 import { SIDECAR_DEFAULTS } from "@readable-studio/sidecar-proto";
 
-import type { ToolPackConfig, ToolPackPlatform } from "./config.js";
+import type { ToolPackConfig } from "./config.js";
 
 export type ToolPackLauncherLayout = {
   channel: LauncherChannel;
@@ -75,10 +75,6 @@ function sanitizeArtifactSegment(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
-export function payloadArchiveExtension(platform: ToolPackPlatform): "7z" | "zip" {
-  return platform === "win" ? "7z" : "zip";
-}
-
 export function resolveToolPackLauncherPayloadLayout(
   config: Pick<ToolPackConfig, "appVersion" | "namespace" | "platform" | "roots">,
   version: string,
@@ -95,7 +91,7 @@ export function resolveToolPackLauncherPayloadLayout(
   const archivePath = join(
     config.roots.output.namespaceRoot,
     "payload",
-    `Open Design-${namespaceToken}-payload.${payloadArchiveExtension(config.platform)}`,
+    `Open Design-${namespaceToken}-payload.7z`,
   );
   return {
     archivePath,

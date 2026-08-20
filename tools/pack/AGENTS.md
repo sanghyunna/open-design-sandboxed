@@ -4,12 +4,8 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 ## Owns
 
-- Local packaging orchestration for packaged Open Design artifacts.
-- mac build/install/start/stop/logs/uninstall/cleanup smoke commands.
+- Local packaging orchestration for packaged Readable Studio artifacts.
 - Windows portable ZIP build/start/stop/logs/cleanup/list/inspect smoke commands.
-- Linux AppImage build/install/start/stop/logs/uninstall/cleanup smoke commands.
-- Linux headless (no-Electron) install/start/stop via `--headless` flag on `install`, `start`, and `stop`.
-- Linux containerized builds via `electronuserland/builder` Docker image for distro-agnostic glibc compat.
 - Consuming sidecar/process/path primitives from `@readable-studio/sidecar-proto`, `@readable-studio/sidecar`, and `@readable-studio/platform`.
 
 ## Does not own
@@ -23,7 +19,6 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 - Do not hand-build `--readable-studio-stamp-*` args; use `createProcessStampArgs` with `SIDECAR_CONTRACT`.
 - Do not use port numbers in data/log/runtime/cache path decisions. Namespace decides paths; ports are only transient transports.
-- Do not let namespace-named `.app` installs change data/log/runtime/cache path conventions.
 - Use `--portable` for artifacts that leave the local build workspace so packaged config does not bake local tools-pack runtime roots from the build machine.
 - Pack resource files used by electron-builder belong under `tools/pack/resources/`; do not point pack logic at Downloads, web public assets, docs assets, or other app-owned resource paths.
 
@@ -46,7 +41,6 @@ Read this section before changing packaged auto-update behavior. The updater cro
 
 The runtime updater reads `https://releases.open-design.ai/<channel>/latest/metadata.json` unless `OD_UPDATE_METADATA_URL` overrides it. For package-launcher updates:
 
-- mac selects `platforms.mac.artifacts.dmg`.
 - Windows selects `platforms.win.artifacts.installer`.
 - The artifact must have a checksum, preferably `sha256Url`; the updater verifies bytes before exposing an install action.
 - `OD_UPDATE_CURRENT_VERSION` may override the packaged version for tests, but user-flow package validation should prefer building the package with the intended `--app-version`.

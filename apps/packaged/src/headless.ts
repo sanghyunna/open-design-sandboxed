@@ -56,7 +56,7 @@ function resolveHeadlessConfig(): PackagedConfig {
 
   // OD_RESOURCE_ROOT may be set by a launcher script; otherwise default to a
   // sibling readable-studio/ directory relative to the node_modules that contain
-  // this file — the layout written by tools-pack linux headless-install.
+  // this file.
   const resourceRoot =
     process.env.OD_RESOURCE_ROOT ??
     join(__dirname, "..", "..", "..", "readable-studio");
@@ -122,9 +122,8 @@ async function main(): Promise<void> {
     contract: SIDECAR_CONTRACT,
   });
 
-  // Write a headless-specific identity marker so `tools-pack linux stop --headless`
-  // can find this process without confusing it for a menu-launched
-  // AppImage that owns desktop-root.json in the same namespace.
+  // Write a headless-specific identity marker so a host can find this process
+  // without confusing it with a desktop runtime in the same namespace.
   const identity = await writePackagedDesktopIdentity({
     descriptor: activeConfig.descriptor,
     identityPath: paths.headlessIdentityPath,

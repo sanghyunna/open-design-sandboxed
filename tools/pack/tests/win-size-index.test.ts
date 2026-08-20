@@ -43,11 +43,9 @@ function createPaths(root: string): WinPaths {
 
 function createConfig(root: string): ToolPackConfig {
   return {
-    containerized: false,
     electronBuilderCliPath: "electron-builder",
     electronDistPath: "electron-dist",
     electronVersion: "41.0.0",
-    macCompression: "normal",
     namespace: "second",
     platform: "win",
     portable: true,

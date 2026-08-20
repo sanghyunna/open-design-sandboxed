@@ -1,13 +1,10 @@
-const { execFile } = require("node:child_process");
 const { access, cp, lstat, mkdir, readFile, readlink, readdir, realpath, rm, stat, symlink, writeFile } = require("node:fs/promises");
 const { createRequire } = require("node:module");
 const path = require("node:path");
-const { promisify } = require("node:util");
 
 const CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
 const STANDALONE_RESOURCE_NAME = "open-design-web-standalone";
 const REQUIRED_MODULES = ["next/package.json", "react/package.json", "react-dom/package.json", "styled-jsx/package.json"];
-const execFileAsync = promisify(execFile);
 
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -106,7 +103,6 @@ async function readHookConfig() {
 
   return {
     auditReportPath,
-    macAdhocBundleSign: optionalBoolean(raw, "macAdhocBundleSign", false),
     pruneCopiedSharp: requireBoolean(raw, "pruneCopiedSharp"),
     pruneRootNext: requireBoolean(raw, "pruneRootNext"),
     pruneRootSharp: requireBoolean(raw, "pruneRootSharp"),
@@ -127,19 +123,14 @@ function resolveAppPath(context) {
   if (typeof productFilename !== "string" || productFilename.length === 0) {
     throw new Error("[tools-pack web-standalone] electron-builder productFilename is missing");
   }
-  if (context.electronPlatformName === "win32") return context.appOutDir;
-  return path.join(context.appOutDir, `${productFilename}.app`);
+  return context.appOutDir;
 }
 
-function resolveResourcesRoot(context, appPath) {
-  switch (context?.electronPlatformName) {
-    case "darwin":
-      return path.join(appPath, "Contents", "Resources");
-    case "win32":
-      return path.join(context.appOutDir, "resources");
-    default:
-      throw new Error(`[tools-pack web-standalone] unsupported platform: ${context?.electronPlatformName ?? "unknown"}`);
+function resolveResourcesRoot(context) {
+  if (context?.electronPlatformName !== "win32") {
+    throw new Error(`[tools-pack web-standalone] unsupported platform: ${context?.electronPlatformName ?? "unknown"}`);
   }
+  return path.join(context.appOutDir, "resources");
 }
 
 function resolveRootAppNodeModulesRoot(resourcesRoot) {
@@ -498,9 +489,7 @@ async function pruneSourceBuildResidue(root, reason) {
 function isForbiddenCopiedEntry(relativePath, platformName) {
   const normalized = relativePath.split(path.sep).join("/");
   const withRootSlash = `/${normalized}`;
-  const forbiddenSwc = platformName === "win32"
-    ? withRootSlash.includes("swc-darwin") || withRootSlash.includes("swc-linux")
-    : withRootSlash.includes("swc-darwin");
+  const forbiddenSwc = withRootSlash.includes("swc-darwin") || withRootSlash.includes("swc-linux");
   return (
     withRootSlash.includes("/node_modules/.pnpm/sharp@") ||
     withRootSlash.includes("/node_modules/.pnpm/@img+colour@") ||
@@ -551,113 +540,6 @@ async function collectClosureStats(
     await collectClosureStats(root, path.join(current, entry.name), stats, platformName);
   }
   return stats;
-}
-
-function isMacCodeBundle(name) {
-  return name.endsWith(".app") || name.endsWith(".framework");
-}
-
-async function ensureRelativeSymlink(linkPath, targetPath, type) {
-  if (await pathLstatExists(linkPath)) {
-    const metadata = await lstat(linkPath);
-    if (metadata.isSymbolicLink()) {
-      const existingTarget = await readlink(linkPath);
-      if (existingTarget === targetPath) return false;
-    }
-    await rm(linkPath, { force: true, recursive: true });
-  }
-
-  await symlink(targetPath, linkPath, type);
-  return true;
-}
-
-async function normalizeMacVersionedFramework(frameworkPath) {
-  const versionsRoot = path.join(frameworkPath, "Versions");
-  const entries = await readdir(versionsRoot, { withFileTypes: true }).catch(() => []);
-  const versionName = entries
-    .filter((entry) => entry.isDirectory() && entry.name !== "Current")
-    .map((entry) => entry.name)
-    .sort()[0];
-  if (versionName == null) return false;
-
-  const versionPath = path.join(versionsRoot, versionName);
-  await ensureRelativeSymlink(path.join(versionsRoot, "Current"), versionName, "dir");
-
-  const versionEntries = await readdir(versionPath, { withFileTypes: true }).catch(() => []);
-  let changed = false;
-  for (const entry of versionEntries) {
-    if (entry.name === "_CodeSignature") continue;
-    const targetPath = `Versions/Current/${entry.name}`;
-    const linkPath = path.join(frameworkPath, entry.name);
-    const type = entry.isDirectory() ? "dir" : "file";
-    changed = (await ensureRelativeSymlink(linkPath, targetPath, type)) || changed;
-  }
-
-  return changed;
-}
-
-async function normalizeMacVersionedFrameworks(appPath) {
-  const frameworksRoot = path.join(appPath, "Contents", "Frameworks");
-
-  async function visit(current) {
-    const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const entryPath = path.join(current, entry.name);
-      if (entry.name.endsWith(".framework")) {
-        await normalizeMacVersionedFramework(entryPath);
-        continue;
-      }
-      await visit(entryPath);
-    }
-  }
-
-  await visit(frameworksRoot);
-}
-
-async function resolveMacAdhocSignTarget(bundlePath, bundleName) {
-  if (!bundleName.endsWith(".framework")) return bundlePath;
-
-  const currentVersionPath = path.join(bundlePath, "Versions", "Current");
-  if (await pathExists(currentVersionPath)) return currentVersionPath;
-
-  return bundlePath;
-}
-
-async function collectMacAdhocSignTargets(appPath) {
-  const frameworksRoot = path.join(appPath, "Contents", "Frameworks");
-  const targets = [];
-
-  async function visit(current) {
-    const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const entryPath = path.join(current, entry.name);
-      if (isMacCodeBundle(entry.name)) {
-        targets.push(await resolveMacAdhocSignTarget(entryPath, entry.name));
-        continue;
-      }
-      await visit(entryPath);
-    }
-  }
-
-  await visit(frameworksRoot);
-  targets.push(appPath);
-  return targets;
-}
-
-async function signMacAdhocBundle(appPath) {
-  await normalizeMacVersionedFrameworks(appPath);
-  const targets = await collectMacAdhocSignTargets(appPath);
-  for (const target of targets) {
-    await execFileAsync("codesign", ["--force", "--sign", "-", "--timestamp=none", target], {
-      maxBuffer: 20 * 1024 * 1024,
-    });
-  }
-  await execFileAsync("codesign", ["--verify", "--deep", "--strict", "--verbose=2", appPath], {
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  return targets;
 }
 
 async function assertResolvedInside(root, moduleName, resolvedPath) {
@@ -759,26 +641,16 @@ async function auditCopiedStandaloneNextDedupe(installResult, platformName) {
 async function pruneRootNext(appNodeModulesRoot, platformName) {
   const removedPaths = [];
 
-  if (platformName === "win32") {
-    await removePathAndRecord(
-      path.join(appNodeModulesRoot, "next"),
-      "root next package superseded by copied standalone resource",
-      removedPaths,
-    );
-    await removePathAndRecord(
-      path.join(appNodeModulesRoot, "@next"),
-      "root @next package scope superseded by copied standalone resource",
-      removedPaths,
-    );
-  } else {
-    const nextScopeRoot = path.join(appNodeModulesRoot, "@next");
-    const nextScopeEntries = await readdir(nextScopeRoot).catch(() => []);
-    for (const entry of nextScopeEntries) {
-      if (platformName === "darwin" && entry.startsWith("swc-darwin-")) {
-        await removePathAndRecord(path.join(nextScopeRoot, entry), "root next darwin swc package", removedPaths);
-      }
-    }
-  }
+  await removePathAndRecord(
+    path.join(appNodeModulesRoot, "next"),
+    "root next package superseded by copied standalone resource",
+    removedPaths,
+  );
+  await removePathAndRecord(
+    path.join(appNodeModulesRoot, "@next"),
+    "root @next package scope superseded by copied standalone resource",
+    removedPaths,
+  );
 
   await removePathAndRecord(
     path.join(appNodeModulesRoot, "@readable-studio", "web", ".next", "standalone"),
@@ -874,14 +746,11 @@ async function auditNoBrokenSymlinks(root, label) {
 }
 
 async function runWebStandaloneAfterPack(context) {
-  if (context?.electronPlatformName != null && context.electronPlatformName !== "darwin" && context.electronPlatformName !== "win32") return;
+  if (context?.electronPlatformName != null && context.electronPlatformName !== "win32") return;
 
   const config = await readHookConfig();
   const appPath = resolveAppPath(context);
-  const resourcesRoot = resolveResourcesRoot(context, appPath);
-  if (context.electronPlatformName === "darwin" && !(await pathExists(appPath))) {
-    throw new Error(`[tools-pack web-standalone] app bundle not found: ${appPath}`);
-  }
+  const resourcesRoot = resolveResourcesRoot(context);
   if (!(await pathExists(resourcesRoot))) {
     throw new Error(`[tools-pack web-standalone] resources root not found: ${resourcesRoot}`);
   }
@@ -894,9 +763,10 @@ async function runWebStandaloneAfterPack(context) {
     installResult.destinationWebRoot,
     context.electronPlatformName,
   );
-  const copiedBuildResiduePrune = context.electronPlatformName === "win32"
-    ? await pruneSourceBuildResidue(installResult.destinationRoot, "copied standalone source/build residue")
-    : [];
+  const copiedBuildResiduePrune = await pruneSourceBuildResidue(
+    installResult.destinationRoot,
+    "copied standalone source/build residue",
+  );
   const brokenSymlinkPrune = await pruneBrokenSymlinks(
     installResult.destinationRoot,
     installResult.destinationRoot,
@@ -911,12 +781,11 @@ async function runWebStandaloneAfterPack(context) {
   const rootPrune = config.pruneRootNext ? await pruneRootNext(appNodeModulesRoot, context.electronPlatformName) : [];
   const rootSharpPrune = config.pruneRootSharp ? await pruneRootSharp(appNodeModulesRoot) : [];
   const rootWebPackagePrune = await pruneRootWebPackage(appNodeModulesRoot, context.electronPlatformName);
-  const rootBuildResiduePrune = context.electronPlatformName === "win32"
-    ? await pruneSourceBuildResidue(appNodeModulesRoot, "root app source/build residue")
-    : [];
-  const rootWebPackageAudit = context.electronPlatformName === "win32" && config.requireRootWebPackageAudit
-    ? await auditRootWebPackage(appNodeModulesRoot)
-    : null;
+  const rootBuildResiduePrune = await pruneSourceBuildResidue(
+    appNodeModulesRoot,
+    "root app source/build residue",
+  );
+  const rootWebPackageAudit = config.requireRootWebPackageAudit ? await auditRootWebPackage(appNodeModulesRoot) : null;
   const rootNextPruneAudit = await auditRootNextPruned(
     appNodeModulesRoot,
     context.electronPlatformName,
@@ -932,9 +801,6 @@ async function runWebStandaloneAfterPack(context) {
     appNodeModulesRoot,
     "root app node_modules",
   );
-  const macAdhocBundleSign = context.electronPlatformName === "darwin" && config.macAdhocBundleSign
-    ? await signMacAdhocBundle(appPath)
-    : [];
   const report = {
     appPath,
     brokenSymlinkPrune,
@@ -944,7 +810,6 @@ async function runWebStandaloneAfterPack(context) {
     copiedNextDedupeAudit,
     copiedPrune,
     generatedAt: new Date().toISOString(),
-    macAdhocBundleSign,
     platformName: context.electronPlatformName,
     resourcesRoot,
     rootBuildResiduePrune,

@@ -305,9 +305,8 @@ export type PackagedDaemonSpawnEnvOptions = {
   /**
    * PR #974 round-5 (lefarcen P2): only pin the daemon's import-folder
    * gate ON when the desktop runtime is actually being started in the
-   * same packaged process group. Headless packaged deployments
-   * (`tools-pack linux start --headless`) have no `shell.openPath`
-   * surface, so leaving the gate dormant avoids the impossible-auth
+   * same packaged process group. Headless packaged deployments have no
+   * `shell.openPath` surface, so leaving the gate dormant avoids the impossible-auth
    * state where the daemon waits forever for a registration that the
    * headless runtime can never deliver.
    */

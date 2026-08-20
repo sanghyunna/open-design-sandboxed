@@ -33,11 +33,7 @@ describe("desktop package runtime shape", () => {
     const packagedSource = readFileSync(packagedSourcePath, "utf8");
     expect(packagedSource).toContain('preloadPath: join(app.getAppPath(), "preload.cjs")');
 
-    for (const relativePath of [
-      "tools/pack/src/mac/app.ts",
-      "tools/pack/src/win/app.ts",
-      "tools/pack/src/linux.ts",
-    ]) {
+    for (const relativePath of ["tools/pack/src/win/app.ts"]) {
       const source = readFileSync(join(repoRoot, relativePath), "utf8");
       expect(source).toContain('"apps", "desktop", "dist", "main", "preload.cjs"');
       expect(source).toContain('join(paths.assembledAppRoot, "preload.cjs")');
@@ -47,13 +43,8 @@ describe("desktop package runtime shape", () => {
   it("stages the splash assets beside prebundled packaged app entrypoints", () => {
     // The standalone prebundle excludes the desktop tarball, so desktop main
     // resolves the splash page from `<appRoot>/assets/` (see
-    // resolveSplashHtmlPath in apps/desktop/src/main/runtime.ts). Win and mac
-    // stage the prebundle; linux installs desktop from its tarball, whose
-    // published files already include `assets`.
-    for (const relativePath of [
-      "tools/pack/src/mac/app.ts",
-      "tools/pack/src/win/app.ts",
-    ]) {
+    // resolveSplashHtmlPath in apps/desktop/src/main/runtime.ts).
+    for (const relativePath of ["tools/pack/src/win/app.ts"]) {
       const source = readFileSync(join(repoRoot, relativePath), "utf8");
       expect(source).toContain('join(config.workspaceRoot, "apps", "desktop", "assets")');
       expect(source).toContain('join(paths.assembledAppRoot, "assets")');

@@ -25,7 +25,7 @@ function logWinBuildProgress(message: string, fields: Record<string, unknown> = 
 }
 
 export function shouldMaterializeWinResourceTree(config: ToolPackConfig): boolean {
-  return config.to !== "dir" && !(config.portable && config.to === "zip");
+  return !config.portable;
 }
 
 export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
