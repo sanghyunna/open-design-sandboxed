@@ -7,7 +7,6 @@ import {
   SIDECAR_SOURCES,
   type SidecarStamp,
 } from "@readable-studio/sidecar-proto";
-import { parseLauncherAfterQuitArgs } from "@readable-studio/launcher-proto";
 import {
   bootstrapSidecarRuntime,
   createSidecarLaunchEnv,
@@ -25,12 +24,11 @@ import { app, dialog } from "electron";
 import { readPackagedConfig } from "./config.js";
 import { writePackagedDesktopIdentity } from "./identity.js";
 import { PackagedPathAccessError } from "./errors.js";
-import { inspectExistingDesktopForLauncher, waitForLauncherAfterQuit } from "./launcher-after-quit.js";
-import { confirmPackagedLauncherRuntime, resolvePackagedLauncherRuntime } from "./launcher-runtime.js";
 import {
   applyPackagedElectronPathOverrides,
   claimPackagedSingleInstanceLock,
   ensurePackagedNamespacePaths,
+  inspectExistingPackagedDesktop,
 } from "./launch.js";
 import {
   attachPackagedDesktopProcessLogging,
@@ -91,24 +89,19 @@ async function main(): Promise<void> {
 
   const config = await readPackagedConfig();
   startupTiming.mark("config-read-complete");
-  const afterQuit = parseLauncherAfterQuitArgs(process.argv.slice(1));
   const argvStamp = readProcessStamp(process.argv.slice(1), SIDECAR_CONTRACT);
   const namespace = argvStamp?.namespace ?? config.namespace;
-  const namespaceConfig = namespace === config.namespace ? config : { ...config, namespace };
-  const initialPaths = resolvePackagedNamespacePaths(namespaceConfig, namespace, process.env);
-  await waitForLauncherAfterQuit(afterQuit, initialPaths);
-  const existingDesktop = await inspectExistingDesktopForLauncher(namespace, {
+  const activeConfig = namespace === config.namespace ? config : { ...config, namespace };
+  const paths = resolvePackagedNamespacePaths(activeConfig, namespace, process.env);
+  const existingDesktop = await inspectExistingPackagedDesktop(namespace, {
     logger: console,
-    paths: initialPaths,
+    paths,
   });
   if (existingDesktop.action === "exit") {
     startupTiming.flush();
     flushStartupTimingOnFailure = null;
     return;
   }
-  const launcherRuntime = await resolvePackagedLauncherRuntime(namespaceConfig, initialPaths);
-  const activeConfig = launcherRuntime.config;
-  const paths = launcherRuntime.paths;
   startupTiming.mark("packaged-paths-resolved");
   const stamp = argvStamp ?? createPackagedDesktopStamp(namespace);
 
@@ -196,9 +189,6 @@ async function main(): Promise<void> {
       return sidecars.daemon.url;
     },
     onDesktopReady(controls) {
-      void confirmPackagedLauncherRuntime(launcherRuntime).catch((error: unknown) => {
-        packagedLogger?.warn("failed to confirm packaged launcher runtime", { error });
-      });
       showExistingDesktop = controls.show;
       if (!pendingSecondInstanceFocus) return;
       pendingSecondInstanceFocus = false;

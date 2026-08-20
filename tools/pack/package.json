@@ -15,7 +15,6 @@
     "hosted:pi:check": "node --experimental-strip-types ./src/hosted-pi-artifact.ts check"
   },
   "dependencies": {
-    "@readable-studio/launcher-proto": "workspace:*",
     "@readable-studio/platform": "workspace:*",
     "@readable-studio/sidecar": "workspace:*",
     "@readable-studio/sidecar-proto": "workspace:*",

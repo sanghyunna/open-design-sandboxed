@@ -41,11 +41,6 @@ export function shouldBuildWinPortableZip(to: ToolPackConfig["to"]): boolean {
   return resolveWinTargets(to).includes("zip");
 }
 
-export function shouldBuildWinLauncherPayload(to: ToolPackConfig["to"]): boolean {
-  resolveWinTargets(to);
-  return false;
-}
-
 export async function collectWinSizeReport(
   config: ToolPackConfig,
   paths: WinPaths,

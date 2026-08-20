@@ -24,7 +24,6 @@
     "@readable-studio/diagnostics": "workspace:*",
     "@readable-studio/download": "workspace:*",
     "@readable-studio/host": "workspace:*",
-    "@readable-studio/launcher-proto": "workspace:*",
     "@readable-studio/platform": "workspace:*",
     "@readable-studio/sidecar": "workspace:*",
     "@readable-studio/sidecar-proto": "workspace:*"

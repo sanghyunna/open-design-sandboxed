@@ -26,8 +26,6 @@ import {
 } from "@readable-studio/platform";
 
 import type { ToolPackConfig } from "../config.js";
-import { resolveToolPackLauncherLayout } from "../launcher-layout.js";
-import { readToolPackLauncherRuntimeSnapshot } from "../launcher-runtime-snapshot.js";
 import { DESKTOP_LOG_ECHO_ENV } from "./constants.js";
 import { listDirectories, pathExists, removeTree } from "./fs.js";
 import { readBuiltAppManifest } from "./manifest.js";
@@ -191,17 +189,13 @@ export async function readPackedWinLogs(config: ToolPackConfig) {
 }
 
 export async function cleanupPackedWinNamespace(config: ToolPackConfig): Promise<WinCleanupResult> {
-  const launcher = resolveToolPackLauncherLayout(config);
   const stop = await stopPackedWinApp(config);
   const removedOutputRoot = await pathExists(config.roots.output.namespaceRoot);
   const removedRuntimeNamespaceRoot = await pathExists(config.roots.runtime.namespaceRoot);
-  const removedLauncherNamespaceRoot = await pathExists(launcher.paths.namespaceRoot);
   await removeTree(config.roots.output.namespaceRoot);
   await removeTree(config.roots.runtime.namespaceRoot);
-  await removeTree(launcher.paths.namespaceRoot);
   return {
     namespace: config.namespace,
-    removedLauncherNamespaceRoot,
     removedOutputRoot,
     removedRuntimeNamespaceRoot,
     stop,
@@ -235,17 +229,10 @@ export async function inspectPackedWinApp(
     { type: SIDECAR_MESSAGES.STATUS },
     { timeoutMs: 2000 },
   ).catch(() => null);
-  const launcher = await readToolPackLauncherRuntimeSnapshot(config);
   return {
     ...(options.expr == null ? {} : {
       eval: await requestJsonIpc<DesktopEvalResult>(stamp.ipc, { input: { expression: options.expr }, type: SIDECAR_MESSAGES.EVAL }, { timeoutMs: 5000 }),
     }),
-    launcher,
-    launcherSource: {
-      kind: "tools-pack-runtime",
-      note: "launcher snapshot is read from the tools-pack runtime root",
-      root: launcher.root,
-    },
     ...(options.path == null ? {} : {
       screenshot: await requestJsonIpc<DesktopScreenshotResult>(stamp.ipc, { input: { path: options.path }, type: SIDECAR_MESSAGES.SCREENSHOT }, { timeoutMs: 10_000 }),
     }),

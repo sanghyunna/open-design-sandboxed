@@ -17,7 +17,6 @@ const buildTargets = [
   "packages/plugin-runtime",
   "packages/product-identity",
   "packages/sidecar-proto",
-  "packages/launcher-proto",
   "packages/sidecar",
   "packages/diagnostics",
   "apps/daemon",

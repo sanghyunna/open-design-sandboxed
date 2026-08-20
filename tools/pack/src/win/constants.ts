@@ -29,7 +29,6 @@ export const INTERNAL_PACKAGES = [
   { directory: "packages/contracts", name: "@readable-studio/contracts" },
   { directory: "packages/registry-protocol", name: "@readable-studio/registry-protocol" },
   { directory: "packages/sidecar-proto", name: "@readable-studio/sidecar-proto" },
-  { directory: "packages/launcher-proto", name: "@readable-studio/launcher-proto" },
   { directory: "packages/sidecar", name: "@readable-studio/sidecar" },
   { directory: "packages/platform", name: "@readable-studio/platform" },
   { directory: "packages/download", name: "@readable-studio/download" },

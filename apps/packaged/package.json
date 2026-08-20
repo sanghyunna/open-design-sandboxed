@@ -26,7 +26,6 @@
   "dependencies": {
     "@readable-studio/daemon": "workspace:*",
     "@readable-studio/desktop": "workspace:*",
-    "@readable-studio/launcher-proto": "workspace:*",
     "@readable-studio/platform": "workspace:*",
     "@readable-studio/sidecar": "workspace:*",
     "@readable-studio/sidecar-proto": "workspace:*",

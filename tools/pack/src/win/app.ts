@@ -104,7 +104,6 @@ const WORKSPACE_BUILD_FILTER_PACKAGES = [
   "@readable-studio/contracts",
   "@readable-studio/registry-protocol",
   "@readable-studio/sidecar-proto",
-  "@readable-studio/launcher-proto",
   "@readable-studio/sidecar",
   "@readable-studio/platform",
   "@readable-studio/agui-adapter",

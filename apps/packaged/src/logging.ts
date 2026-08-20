@@ -240,9 +240,8 @@ export function attachPackagedDesktopProcessLogging(options: {
     resourceRoot: paths.resourceRoot,
     runtimeRoot: paths.runtimeRoot,
     source: stamp.source,
-    // Wall-clock ms since this process actually started. The logger attaches
-    // only after the pre-logger config read + launcher-after-quit wait, so this
-    // anchors true cold-launch start for startup-timing analysis.
+    // Wall-clock ms since this process actually started. This anchors the
+    // pre-logger config and existing-instance check for startup analysis.
     uptimeMs: Math.round(process.uptime() * 1000),
   });
 

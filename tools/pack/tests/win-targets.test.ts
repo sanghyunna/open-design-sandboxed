@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   resolveElectronBuilderWinTargets,
   resolveWinTargets,
-  shouldBuildWinLauncherPayload,
   shouldBuildWinPortableZip,
 } from "../src/win/report.js";
 
@@ -15,6 +14,5 @@ describe("Windows portable build targets", () => {
 
   it("builds only the portable zip artifact", () => {
     expect(shouldBuildWinPortableZip("zip")).toBe(true);
-    expect(shouldBuildWinLauncherPayload("zip")).toBe(false);
   });
 });

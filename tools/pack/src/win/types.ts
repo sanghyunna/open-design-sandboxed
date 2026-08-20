@@ -1,5 +1,4 @@
 import type { DesktopEvalResult, DesktopScreenshotResult, DesktopStatusSnapshot } from "@readable-studio/sidecar-proto";
-import type { ToolPackLauncherRuntimeSnapshot } from "../launcher-runtime-snapshot.js";
 import type { CacheReport } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import type { INTERNAL_PACKAGES } from "./constants.js";
@@ -175,7 +174,6 @@ export type WinStopResult = {
 
 export type WinCleanupResult = {
   namespace: string;
-  removedLauncherNamespaceRoot: boolean;
   removedOutputRoot: boolean;
   removedRuntimeNamespaceRoot: boolean;
   stop: WinStopResult;
@@ -196,12 +194,6 @@ export type WinListResult = {
 
 export type WinInspectResult = {
   eval?: DesktopEvalResult;
-  launcher: ToolPackLauncherRuntimeSnapshot;
-  launcherSource: {
-    kind: "tools-pack-runtime";
-    note: string;
-    root: string;
-  };
   screenshot?: DesktopScreenshotResult;
   status: DesktopStatusSnapshot | null;
 };

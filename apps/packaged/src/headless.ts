@@ -19,7 +19,6 @@ import { addLoopbackNoProxyEnv } from "@readable-studio/platform";
 
 import { PACKAGED_NAMESPACE_ENV, type PackagedConfig } from "./config.js";
 import { writePackagedDesktopIdentity, writePackagedWebIdentity } from "./identity.js";
-import { confirmPackagedLauncherRuntime, resolvePackagedLauncherRuntime } from "./launcher-runtime.js";
 import { resolvePackagedNamespacePaths } from "./paths.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
@@ -106,10 +105,8 @@ async function main(): Promise<void> {
   addLoopbackNoProxyEnv(process.env);
   const config = resolveHeadlessConfig();
   startupTiming.mark("config-read-complete");
-  const initialPaths = resolvePackagedNamespacePaths(config);
-  const launcherRuntime = await resolvePackagedLauncherRuntime(config, initialPaths);
-  const activeConfig = launcherRuntime.config;
-  const paths = launcherRuntime.paths;
+  const activeConfig = config;
+  const paths = resolvePackagedNamespacePaths(config);
   startupTiming.mark("packaged-paths-resolved");
   const stamp = createHeadlessStamp(config.namespace);
 
@@ -195,8 +192,6 @@ async function main(): Promise<void> {
     pid: process.pid,
     url: webUrl,
   });
-  await confirmPackagedLauncherRuntime(launcherRuntime);
-
   process.stdout.write(`\n Readable Studio is running\n\n`);
   process.stdout.write(` ➜ ${colorize(webUrl)}\n\n`);
   process.stdout.write(` Press Ctrl+C to stop\n\n`);

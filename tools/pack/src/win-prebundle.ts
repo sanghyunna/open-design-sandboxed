@@ -21,7 +21,6 @@ export const WIN_PREBUNDLE_RUNTIME_DEPENDENCIES = {
 export const WIN_STANDALONE_PREBUNDLE_EXCLUDED_INTERNAL_PACKAGES = [
   "@readable-studio/daemon",
   "@readable-studio/desktop",
-  "@readable-studio/launcher-proto",
   "@readable-studio/packaged",
   "@readable-studio/sidecar",
   "@readable-studio/sidecar-proto",
