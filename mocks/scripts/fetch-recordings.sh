@@ -12,8 +12,8 @@
 #   bash mocks/scripts/fetch-recordings.sh --force          # re-download all
 #   bash mocks/scripts/fetch-recordings.sh --cache-dir <p>  # override cache location
 #
-# Default cache: mocks/recordings/. Override with OD_MOCKS_CACHE_DIR env
-# or --cache-dir flag — useful for sharing across multiple OD checkouts.
+# Default cache: mocks/recordings/. Override with READABLE_MOCKS_CACHE_DIR env
+# or --cache-dir flag — useful for sharing across multiple Readable Studio checkouts.
 
 set -euo pipefail
 
@@ -26,7 +26,7 @@ FILTER_OUTCOME=""
 FILTER_SKILL=""
 CONCURRENCY=8
 FORCE=0
-CACHE_DIR="${OD_MOCKS_CACHE_DIR:-$MOCKS_DIR/recordings}"
+CACHE_DIR="${READABLE_MOCKS_CACHE_DIR:-$MOCKS_DIR/recordings}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -90,12 +90,20 @@ echo
 #   ✓ <id>   (newly fetched)
 #   • <id>   (skipped — sha256 already matches)
 #   ✗ <id>   (failed — sha256 mismatch or download error)
+sha256_file() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1"
+  else
+    sha256sum "$1"
+  fi
+}
+
 fetch_one() {
   local id="$1" sha="$2" bytes="$3"
   local dest="$CACHE_DIR/$id.jsonl"
   if [ "$FORCE" -ne 1 ] && [ -f "$dest" ]; then
     local existing
-    existing=$(shasum -a 256 "$dest" 2>/dev/null | awk '{print $1}')
+    existing=$(sha256_file "$dest" 2>/dev/null | awk '{print $1}')
     if [ "$existing" = "$sha" ]; then
       echo "• $id"
       return 0
@@ -108,7 +116,7 @@ fetch_one() {
     return 1
   fi
   local got
-  got=$(shasum -a 256 "$dest.tmp" | awk '{print $1}')
+  got=$(sha256_file "$dest.tmp" | awk '{print $1}')
   if [ "$got" != "$sha" ]; then
     echo "✗ $id (sha256 mismatch: got $got expected $sha)"
     rm -f "$dest.tmp"
@@ -119,23 +127,23 @@ fetch_one() {
 }
 
 export PUBLIC_URL CACHE_DIR FORCE
-export -f fetch_one
+export -f fetch_one sha256_file
 
 printf '%s\n' "$ENTRIES_TSV" \
   | xargs -P "$CONCURRENCY" -L 1 bash -c 'fetch_one "$1" "$2" "$3"' _ \
-  > /tmp/od-mocks-fetch-progress.txt 2>&1
+  > /tmp/readable-mocks-fetch-progress.txt 2>&1
 
-new=$(grep -c "^✓"  /tmp/od-mocks-fetch-progress.txt || true)
-skip=$(grep -c "^•" /tmp/od-mocks-fetch-progress.txt || true)
-fail=$(grep -c "^✗" /tmp/od-mocks-fetch-progress.txt || true)
+new=$(grep -c "^✓"  /tmp/readable-mocks-fetch-progress.txt || true)
+skip=$(grep -c "^•" /tmp/readable-mocks-fetch-progress.txt || true)
+fail=$(grep -c "^✗" /tmp/readable-mocks-fetch-progress.txt || true)
 
 echo "  ✓ fetched: $new"
 echo "  • cached:  $skip"
 if [ "$fail" -gt 0 ]; then
   echo "  ✗ failed:  $fail"
   echo
-  grep "^✗" /tmp/od-mocks-fetch-progress.txt | head -5
-  echo "  …(full log /tmp/od-mocks-fetch-progress.txt)"
+  grep "^✗" /tmp/readable-mocks-fetch-progress.txt | head -5
+  echo "  …(full log /tmp/readable-mocks-fetch-progress.txt)"
   exit 1
 fi
 

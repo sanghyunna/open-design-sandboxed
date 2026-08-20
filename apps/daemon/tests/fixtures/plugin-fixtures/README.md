@@ -3,7 +3,7 @@
 Declarative plugin fixtures used by Phase 1 plugin-system tests
 (`docs/plans/plugins-implementation.md` Phase 1 e2e-1).
 
-Each subfolder is a self-contained Open Design plugin (per
+Each subfolder is a self-contained Readable Studio plugin (per
 `docs/plugins-spec.md` §5) ready to be passed to
 `readable plugin install --source <path>`.
 

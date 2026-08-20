@@ -1,4 +1,4 @@
-# `mocks/` — replay-based mock CLIs for OD's supported agents
+# `mocks/` — replay-based mock CLIs for Readable Studio's supported agents
 
 A drop-in replacement for the real agent CLIs (`claude`, `opencode`,
 `codex`, `gemini`, `cursor-agent`, `deepseek`, `qwen`, `grok`, the
@@ -19,8 +19,8 @@ Used by:
 - **Regression harness** — replay the same trace before and after a
   charter / parser change; diff the events the daemon surfaces.
 
-The recordings are anonymized exports from open-design's Langfuse
-project (179 traces across 9 agents and 5+ skills as of this commit).
+The recordings are anonymized exports from the legacy Langfuse
+project (177 traces across 9 agents and 5+ skills as of this commit).
 
 ---
 
@@ -35,10 +35,10 @@ bash mocks/scripts/fetch-recordings.sh
 export PATH="$PWD/mocks/bin:$PATH"
 
 # Pick any recording to play back (8-char prefix OK):
-export OD_MOCKS_TRACE=04097377
+export READABLE_MOCKS_TRACE=04097377
 
 # Speed up replay (skip inter-event sleeps):
-export OD_MOCKS_NO_DELAY=1
+export READABLE_MOCKS_NO_DELAY=1
 
 # Now anything that spawns opencode/claude/codex gets the recording:
 echo "any prompt body" | opencode run
@@ -53,8 +53,8 @@ mode below).
 
 ## Recordings live on R2, not in this repo
 
-The 179-recording corpus (~4.5 MB) is hosted on Cloudflare R2 at
-`open-design-mocks` and fetched **on demand** — `pnpm install` does NOT
+The 177-recording corpus (~4.5 MB) is hosted on Cloudflare R2 in the
+bucket recorded by the immutable manifest and fetched **on demand** — `pnpm install` does NOT
 pull them, and the repo stays small. Recordings only land in
 `mocks/recordings/` when:
 
@@ -78,8 +78,8 @@ bash mocks/scripts/fetch-recordings.sh --agent claude       # 57 claude traces
 bash mocks/scripts/fetch-recordings.sh --outcome failed     # 35 failed-path traces
 bash mocks/scripts/fetch-recordings.sh --skill agent-browser
 
-# Override cache location (e.g. share across multiple OD checkouts):
-OD_MOCKS_CACHE_DIR=~/.cache/od-mocks bash mocks/scripts/fetch-recordings.sh
+# Override cache location (e.g. share across multiple Readable Studio checkouts):
+READABLE_MOCKS_CACHE_DIR=~/.cache/readable-mocks bash mocks/scripts/fetch-recordings.sh
 ```
 
 Manifest at `mocks/manifest.json` is the committed source of truth —
@@ -100,7 +100,7 @@ is still meaningful as the real CLIs evolve:
 | `protocol_version` | Stream-format version (`"claude-stream-json/v1"`, `"opencode/json-event-stream"`) — populated by harvester |
 | `anonymization_version` | Which anonymizer pass scrubbed the recording — populated by harvester |
 
-For now most of these are null on the existing 179 — the harvester in
+For now most of these are null on the existing 177 — the harvester in
 [nexu-io/agent-pr-explore][harvester] is the next thing to teach to
 write them. Once a recording's `cli_version` falls behind the actual
 CLI by more than one minor version, treat it as a candidate for
@@ -109,7 +109,7 @@ re-harvest.
 ### Golden daemon-event snapshots
 
 `mocks/golden/<trace>.events.json` holds the exact event sequence the
-OD daemon emits when fed each (mock CLI → handler) pipeline. Diffed
+Readable Studio daemon emits when fed each (mock CLI → handler) pipeline. Diffed
 on every `pnpm --filter @readable-studio/daemon test` run by
 `apps/daemon/tests/mocks-golden.test.ts`.
 
@@ -143,10 +143,10 @@ release or before a parser refactor, not on a cron. Full doc:
 
 ## What gets emitted
 
-Each renderer matches the EXACT event shapes the OD daemon expects, as
+Each renderer matches the exact event shapes the Readable Studio daemon expects, as
 verified line-by-line against the parsers in `apps/daemon/src/`:
 
-| CLI | OD streamFormat | Parser source |
+| CLI | Readable Studio streamFormat | Parser source |
 |---|---|---|
 | `opencode`        | `json-event-stream` (opencode kind)     | `json-event-stream.ts:handleOpenCodeEvent`   |
 | `codex`           | `json-event-stream` (codex kind)        | `json-event-stream.ts:handleCodexEvent`      |
@@ -157,7 +157,7 @@ verified line-by-line against the parsers in `apps/daemon/src/`:
 | `devin` `hermes` `kilo` `kimi` `kiro` `vibe` | `acp-json-rpc` | `acp.ts:attachAcpSession`                       |
 | `vela` (AMR) | `acp-json-rpc` + `login` / `models` subcommands | `runtimes/defs/amr.ts` + `apps/daemon/tests/fixtures/fake-vela.mjs` (sibling stub) |
 
-> **Note on `cursor-agent`**: OD's parser does NOT recognize tool-call
+> **Note on `cursor-agent`**: Readable Studio's parser does NOT recognize tool-call
 > events — only init / assistant text / usage. The renderer therefore emits
 > only the final assistant text wrapped in the expected init/text/usage
 > envelope. Tool calls present in the source recording are silently dropped.
@@ -166,14 +166,14 @@ verified line-by-line against the parsers in `apps/daemon/src/`:
 
 > **Note on ACP agents** (`devin` / `hermes` / `kilo` / `kimi` / `kiro` /
 > `vibe`): These do NOT stream stdout — they speak JSON-RPC v2 over stdio.
-> OD's daemon sends `initialize` → `session/new` → (optional `session/set_model`)
+> Readable Studio's daemon sends `initialize` → `session/new` → (optional `session/set_model`)
 > → `session/prompt`; the mock responds in order, streams text via
 > `session/update` notifications carrying `agent_message_chunk` parts,
 > then responds to the prompt request with usage stats. Tool calls
 > aren't part of the ACP protocol on this path (tools surface via MCP or
 > other side channels), so they're dropped from playback.
 
-> **Note on `vela` (AMR)**: vela is the bin OD's AMR runtime spawns. It
+> **Note on `vela` (AMR)**: vela is the bin Readable Studio's AMR runtime spawns. It
 > extends the generic ACP shape with `agentCapabilities` + `models`
 > blocks in `initialize` / `session/new`, plus a **strict set_model gate**
 > — `session/prompt` is rejected with -32602 until `session/set_model`
@@ -183,7 +183,7 @@ verified line-by-line against the parsers in `apps/daemon/src/`:
 > vela also has two non-ACP subcommands:
 >
 > - `vela login` → writes `~/.amr/config.json` with a fake profile so
->   OD's daemon login route + `AmrLoginPill` poller see the same on-disk
+>   Readable Studio's daemon login route + `AmrLoginPill` poller see the same on-disk
 >   projection production produces.
 > - `vela models` → prints the production-shaped `public_model_*    vela`
 >   catalog.
@@ -206,12 +206,12 @@ Driven by env vars, in priority order:
 
 | Env | Behavior |
 |---|---|
-| `OD_MOCKS_TRACE=<id>` | Always play this trace. 8-char prefix OK. |
-| `OD_MOCKS_BY_PROMPT_HASH=1` + stdin prompt | Deterministic by `sha256(prompt) % len(all)`. Same prompt → same trace. Useful for "stable answer per question" tests. |
-| `OD_MOCKS_POOL=<tag>` | Random within the tag pool. Examples: `agent:claude`, `skill:agent-browser`, `outcome:failed`. |
-| `OD_MOCKS_SEED=<str>` | Makes "random" picks reproducible across runs. |
-| `OD_MOCKS_NO_DELAY=1` | Skip inter-event waits. |
-| `OD_MOCKS_RECORDINGS_DIR=<path>` | Override the recordings dir. |
+| `READABLE_MOCKS_TRACE=<id>` | Always play this trace. 8-char prefix OK. |
+| `READABLE_MOCKS_BY_PROMPT_HASH=1` + stdin prompt | Deterministic by `sha256(prompt) % len(all)`. Same prompt → same trace. Useful for "stable answer per question" tests. |
+| `READABLE_MOCKS_POOL=<tag>` | Random within the tag pool. Examples: `agent:claude`, `skill:agent-browser`, `outcome:failed`. |
+| `READABLE_MOCKS_SEED=<str>` | Makes "random" picks reproducible across runs. |
+| `READABLE_MOCKS_NO_DELAY=1` | Skip inter-event waits. |
+| `READABLE_MOCKS_RECORDINGS_DIR=<path>` | Override the recordings dir. |
 
 If none are set, a uniformly random recording is played each invocation.
 
@@ -221,7 +221,7 @@ The mock binary announces the picked trace id on stderr:
 [mock-opencode] picked 04097377… via fixed
 ```
 
-This line is invisible to OD's stdout parser but useful for "wait, why
+This line is invisible to Readable Studio's stdout parser but useful for "wait, why
 did my test get the FAQ-fix trace?" debugging.
 
 ---
@@ -242,7 +242,7 @@ The recordings live as one JSONL file per Langfuse trace under
   "tool_call_count": 17,
   "error_count": 0,
   "total_tokens": 12345,
-  "tags": ["agent:claude", "skill:agent-browser", "open-design", ...],
+  "tags": ["agent:claude", "skill:agent-browser", "readable-studio", ...],
   "user_input": "...",
   "session_id": "..."
 }
@@ -276,11 +276,10 @@ jq '[.entries[] | select(.skills | index("agent-browser"))] | sort_by(-.tool_cou
 
 | Dimension | Distribution |
 |---|---|
-| Agents | claude 57 · opencode 41 · codex 38 · gemini 25 · cursor-agent 11 · qwen/copilot/deepseek 2 each · antigravity 1 |
-| Outcomes | succeeded 144 · failed 35 |
-| Skills | default 71 · ad-creative 50 · algorithmic-art 30 · agent-browser 22 · video-hyperframes 2 · magazine-web-ppt / brainstorming / data-report / penpot-flutter 1 each |
-| Multi-turn | 124 traces tied to a session with ≥2 turns |
-| Artifact | 18 traces produce `<artifact>` output |
+| Agents | claude 57 · opencode 39 · codex 38 · gemini 25 · cursor-agent 11 · qwen/copilot/deepseek 2 each · antigravity 1 |
+| Outcomes | succeeded 142 · failed 35 |
+| Skills | default 71 · ad-creative 50 · algorithmic-art 30 · agent-browser 22 · magazine-web-ppt / brainstorming / data-report / penpot-flutter 1 each |
+| Multi-turn | 122 traces tied to a session with ≥2 turns |
 
 ---
 
@@ -355,21 +354,21 @@ etc. The .jsonl itself stays in R2.
 ```bash
 # 1. delete from R2
 export CLOUDFLARE_ACCOUNT_ID=64ad4569ffd912432d6b86d5656484c4
-wrangler r2 object delete open-design-mocks/recordings/v1/<trace-id>.jsonl --remote
+wrangler r2 object delete "$(node -p \"require('./mocks/manifest.json').storage.bucket\")/recordings/v1/<trace-id>.jsonl" --remote
 # 2. drop the entry from manifest.json (edit by hand, or use `jq`)
 # 3. re-upload manifest
-wrangler r2 object put open-design-mocks/recordings/v1/manifest.json \
+wrangler r2 object put "$(node -p \"require('./mocks/manifest.json').storage.bucket\")/recordings/v1/manifest.json" \
   --file mocks/manifest.json --remote
 # 4. git add mocks/manifest.json && git commit && git push
 ```
 
 There's no automation for delete because (a) it's rare and (b) you
 want a human to think about whether removing a recording would
-invalidate any test fixtures that pin it via `OD_MOCKS_TRACE=<id>`.
+invalidate any test fixtures that pin it via `READABLE_MOCKS_TRACE=<id>`.
 
 ---
 
-## Usage from OD's test code
+## Usage from Readable Studio's test code
 
 ### From a test (Vitest / Jest)
 
@@ -384,8 +383,8 @@ it('parses an opencode session with 4 tool calls into 4 UI events', async () => 
     env: {
       ...process.env,
       PATH: `${MOCK_BIN}:${process.env.PATH}`,
-      OD_MOCKS_TRACE: '06a9324a',   // 4-tool claude session
-      OD_MOCKS_NO_DELAY: '1',
+      READABLE_MOCKS_TRACE: '06a9324a',   // 4-tool claude session
+      READABLE_MOCKS_NO_DELAY: '1',
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -398,10 +397,10 @@ it('parses an opencode session with 4 tool calls into 4 UI events', async () => 
 ### From a manual playback
 
 ```bash
-# See what claude's 17-tool "delete v2" session emits to OD:
+# See what claude's 17-tool "delete v2" session emits to Readable Studio:
 export PATH=$(git rev-parse --show-toplevel)/mocks/bin:$PATH
-export OD_MOCKS_TRACE=04097377
-export OD_MOCKS_NO_DELAY=1
+export READABLE_MOCKS_TRACE=04097377
+export READABLE_MOCKS_NO_DELAY=1
 echo "anything" | claude -p --output-format=stream-json | jq .type | uniq -c
 ```
 
@@ -466,10 +465,12 @@ under any Node ≥18.
 
 ## Provenance / safety
 
-All recordings come from open-design's own Langfuse project (the
-`open-design` project under the `powerformer` org). Users opted into
-telemetry when they installed the desktop client. The anonymizer
-removed user-identifying paths and project UUIDs before checking in.
+All recordings come from the product's legacy Langfuse project under
+the `powerformer` org. Users opted into telemetry when they installed
+the desktop client. Original identity bytes remain only in the immutable
+manifest and replay goldens classified by
+`scripts/readable-fixture-classification.json`. The anonymizer removed
+user-identifying paths and project UUIDs before checking in.
 
 If you find a recording that includes content that should be redacted,
 follow the [Removing a recording](#removing-a-recording) flow above.

@@ -89,6 +89,25 @@ describe("readable identity audit", () => {
     assert.doesNotThrow(() => assertIdentityAuditPassed(accepted));
   });
 
+  test("classifies only exact raw fixture paths as immutable provenance", () => {
+    // Given: byte-true trace metadata/goldens and a lookalike active fixture.
+    const sources = [
+      { path: "mocks/manifest.json", source: "Open Design" },
+      { path: "mocks/golden/trace.events.json", source: "Open Design" },
+      { path: "mocks/golden/trace.events.json.bak", source: "Open Design" },
+    ];
+
+    // When: the all-scope classification seam audits the sources.
+    const report = auditIdentitySources({ baseline: emptyBaseline, scope: "all", sources });
+
+    // Then: only the exact raw provenance paths leave the active-product class.
+    assert.deepEqual(report.entries.map((entry) => [entry.path, entry.class]), [
+      ["mocks/golden/trace.events.json", "immutable history/provenance"],
+      ["mocks/golden/trace.events.json.bak", "active product"],
+      ["mocks/manifest.json", "immutable history/provenance"],
+    ]);
+  });
+
   test("hostile vendor text requires an exact ledger entry", () => {
     const sources = [{ path: "apps/example/vendor/runtime.ts", source: "export const endpoint = 'od://evil';" }];
     const report = auditIdentitySources({ baseline: emptyBaseline, scope: "all", sources });

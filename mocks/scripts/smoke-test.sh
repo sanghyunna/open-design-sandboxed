@@ -13,7 +13,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 MOCKS="$(cd "$HERE/.." && pwd -P)"
-TRACE_ID="${OD_MOCKS_SMOKE_TRACE:-04097377}"   # the 17-tool claude session
+TRACE_ID="${READABLE_MOCKS_SMOKE_TRACE:-04097377}"   # the 17-tool claude session
 
 # Ensure recordings are on disk — the corpus is hosted on R2 and fetched
 # on demand. If nothing's been pulled yet (or only a few are), run the
@@ -25,8 +25,8 @@ if ! ls "$MOCKS/recordings"/*.jsonl >/dev/null 2>&1; then
 fi
 
 export PATH="$MOCKS/bin:$PATH"
-export OD_MOCKS_TRACE="$TRACE_ID"
-export OD_MOCKS_NO_DELAY=1
+export READABLE_MOCKS_TRACE="$TRACE_ID"
+export READABLE_MOCKS_NO_DELAY=1
 
 failed=0
 pass()  { printf '  \033[32m✓\033[0m %s\n' "$1"; }
@@ -49,7 +49,7 @@ check_json_first_event() {
 echo "Smoke testing mock CLIs against trace $TRACE_ID"
 echo
 
-# opencode / opencode-cli (primary OD-facing bin) → step_start
+# opencode / opencode-cli (primary Readable Studio-facing bin) → step_start
 check_json_first_event opencode step_start
 check_json_first_event opencode-cli step_start
 
@@ -99,12 +99,12 @@ fi
 # ~/.amr config (which holds the production vela login state for anyone
 # using the real CLI). vela's login subcommand resolves ~/.amr from $HOME,
 # so override just for this one invocation.
-amr_sandbox="$(mktemp -d -t od-mocks-amr.XXXXXX)"
+amr_sandbox="$(mktemp -d -t readable-mocks-amr.XXXXXX)"
 trap 'rm -rf "$amr_sandbox"' EXIT
-if HOME="$amr_sandbox" FAKE_VELA_LOGIN_USER_EMAIL=smoke@od.local vela login >/dev/null 2>&1 \
+if HOME="$amr_sandbox" USERPROFILE="$amr_sandbox" FAKE_VELA_LOGIN_USER_EMAIL=smoke@readable.local vela login >/dev/null 2>&1 \
    && [ -f "$amr_sandbox/.amr/config.json" ]; then
-  email=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$amr_sandbox/.amr/config.json','utf-8')).profiles.prod.user.email)" 2>/dev/null || echo "")
-  if [ "$email" = "smoke@od.local" ]; then
+  email=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf-8')).profiles.prod.user.email)" "$amr_sandbox/.amr/config.json" 2>/dev/null || echo "")
+  if [ "$email" = "smoke@readable.local" ]; then
     pass "vela login wrote ~/.amr/config.json with profile.prod.user.email"
   else
     fail "vela login config.json missing expected email (got: $email)"
@@ -146,7 +146,7 @@ fi
 
 # ACP agents — JSON-RPC server. Send initialize+session/new+prompt and
 # verify the protocol responses come back in order.
-# kiro-cli and vibe-acp are the primary OD-facing bin names; test them
+# kiro-cli and vibe-acp are the primary Readable Studio-facing bin names; test them
 # alongside the fallback names (kiro, vibe).
 for agent in hermes kimi kilo kiro kiro-cli vibe vibe-acp devin; do
   out=$(cat <<EOF | "$agent" 2>/dev/null

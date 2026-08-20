@@ -11,7 +11,7 @@ readable:
 # Sample Plugin
 
 This is the SKILL.md half of the Phase 1 e2e fixture. The companion
-`readable-studio.json` sidecar carries the canonical Open Design plugin
+`readable-studio.json` sidecar carries the canonical Readable Studio plugin
 manifest fields; this file proves the SKILL-only adapter path stays
 honest when an install lacks an explicit sidecar (just delete
 `readable-studio.json` to test the legacy compat tier).

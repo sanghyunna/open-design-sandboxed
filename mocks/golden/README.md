@@ -1,7 +1,7 @@
 # `mocks/golden/` — daemon-event regression snapshots
 
 Each `<trace-id>.events.json` is a committed snapshot of the event
-sequence that flows out of the OD daemon's stream handler when fed the
+sequence that flows out of the Readable Studio daemon's stream handler when fed the
 matching mock CLI's output for that recording.
 
 The shape is:

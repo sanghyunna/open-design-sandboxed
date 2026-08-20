@@ -105,6 +105,7 @@ function isVendorOrLicensePath(repositoryPath: string): boolean {
 
 function isImmutableHistoryPath(repositoryPath: string): boolean {
   return repositoryPath === "CHANGELOG.md" || repositoryPath.startsWith("specs/change/") ||
+    repositoryPath === "mocks/manifest.json" || /^mocks\/golden\/[^/]+\.events\.json$/.test(repositoryPath) ||
     repositoryPath.startsWith("mocks/traces/") || /^v\d+\.\d+\.\d+_(?:implementation|plan)\.md$/.test(repositoryPath);
 }
 

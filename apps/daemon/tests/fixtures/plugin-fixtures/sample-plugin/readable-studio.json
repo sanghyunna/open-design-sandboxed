@@ -4,7 +4,7 @@
   "name": "sample-plugin",
   "title": "Sample Plugin",
   "version": "1.0.0",
-  "description": "Phase 1 e2e fixture used by od plugin install/apply walkthroughs.",
+  "description": "Phase 1 e2e fixture used by readable plugin install/apply walkthroughs.",
   "license": "MIT",
   "tags": [
     "sample",
@@ -19,7 +19,7 @@
     "context": {
       "skills": [
         {
-          "ref": "open-design-landing"
+          "ref": "readable-landing"
         }
       ],
       "atoms": [

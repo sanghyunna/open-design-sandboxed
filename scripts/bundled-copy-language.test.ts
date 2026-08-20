@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -130,6 +131,87 @@ test("bundled copy guard compares every shared copy's user-visible default conte
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("rejects stale generated identity even when canonical and derived copies agree", async () => {
+  // Given: an identically stale canonical preview and generated catalogue copy.
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
+  try {
+    await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
+    await mkdir(path.join(root, "design-templates/example"), { recursive: true });
+    const stale = '<html lang="en"><title>Open Design</title></html>\n';
+    await writeFile(path.join(root, "plugins/_official/examples/example/example.html"), stale);
+    await writeFile(path.join(root, "design-templates/example/example.html"), stale);
+
+    // When: the generated-copy guard audits both copies.
+    const accepted = await checkBundledCopyLanguage(root);
+
+    // Then: matching bytes cannot hide retired active identity.
+    assert.equal(accepted, false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects stale active fixture contracts", async () => {
+  // Given: every path explicitly classified as an active fixture contract.
+  const raw: unknown = JSON.parse(await readFile(
+    path.resolve(import.meta.dirname, "readable-fixture-classification.json"),
+    "utf8",
+  ));
+  assert.ok(typeof raw === "object" && raw !== null && !Array.isArray(raw));
+  const entries = Reflect.get(raw, "entries");
+  assert.ok(Array.isArray(entries));
+  const activePaths = entries.flatMap((entry: unknown) => {
+    if (typeof entry !== "object" || entry === null || Reflect.get(entry, "category") !== "active contract") return [];
+    const filePath = Reflect.get(entry, "path");
+    return typeof filePath === "string" ? [filePath] : [];
+  });
+
+  // When: active bytes are scanned for retired product contracts.
+  const stale: string[] = [];
+  const retired = /@open-design|Open Design|open-design|\bOD_|od:\/\/|__od__/u;
+  for (const filePath of activePaths) {
+    if (retired.test(await readFile(path.resolve(import.meta.dirname, "..", filePath), "utf8"))) stale.push(filePath);
+  }
+
+  // Then: no active path relies on the retired identity.
+  assert.deepEqual(stale, []);
+});
+
+test("preserves raw provenance through exact path and hash ownership", async () => {
+  // Given: the machine-consumed Task27 fixture classification.
+  const raw: unknown = JSON.parse(await readFile(
+    path.resolve(import.meta.dirname, "readable-fixture-classification.json"),
+    "utf8",
+  ));
+  assert.ok(typeof raw === "object" && raw !== null && !Array.isArray(raw));
+  const entries = Reflect.get(raw, "entries");
+  assert.ok(Array.isArray(entries));
+  const provenanceEntries = entries.filter((entry: unknown) => (
+    typeof entry === "object" && entry !== null && Reflect.get(entry, "category") === "immutable raw provenance"
+  ));
+  assert.equal(provenanceEntries.length, 4);
+
+  // When: every owned raw file is hashed without normalization.
+  const observed = await Promise.all(provenanceEntries.map(async (entry: unknown) => {
+    assert.ok(typeof entry === "object" && entry !== null);
+    const filePath = Reflect.get(entry, "path");
+    const expected = Reflect.get(entry, "sha256");
+    assert.equal(typeof filePath, "string");
+    assert.equal(typeof expected, "string");
+    const actual = createHash("sha256").update(await readFile(path.resolve(import.meta.dirname, "..", filePath))).digest("hex");
+    return [filePath, actual, expected];
+  }));
+
+  // Then: path ownership is exact and every byte remains unchanged.
+  assert.deepEqual(observed.map(([filePath]) => filePath), [
+    "mocks/golden/314d6833-0377-4ac4-ba11-2b8d7eca5511.events.json",
+    "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
+    "mocks/golden/dcdff3b3-cd39-4dcd-be83-372830a29639.events.json",
+    "mocks/manifest.json",
+  ]);
+  for (const [filePath, actual, expected] of observed) assert.equal(actual, expected, filePath);
 });
 
 test("every current shared catalogue file is classified, including intentionally independent copies", async () => {

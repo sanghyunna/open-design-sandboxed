@@ -61,7 +61,7 @@ function runMockAndCollectEvents(agent: string, trace: string): unknown[] {
     process.execPath,
     [MOCK_AGENT, '--as', agent, '--no-delay'],
     {
-      env: { ...process.env, OD_MOCKS_TRACE: trace, OD_MOCKS_NO_DELAY: '1' },
+      env: { ...process.env, READABLE_MOCKS_TRACE: trace, READABLE_MOCKS_NO_DELAY: '1' },
       input: 'golden-test-prompt',
       encoding: 'utf-8',
       timeout: 30_000,

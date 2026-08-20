@@ -63,6 +63,8 @@ const intentionalHanPaths = new Set([
   "design-templates/guizang-ppt/LICENSE",
 ]);
 const hanScriptPattern = /\p{Script=Han}/gu;
+const retiredIdentityPattern = /@open-design|Open Design|open-design|\bOD_|od:\/\/|__od__/gu;
+const immutableAssetLocatorPattern = /https:\/\/plugin-assets\.open-design\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
 const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
 const localeTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
@@ -309,6 +311,13 @@ function sourceWithoutExplicitLocalizedValues(repositoryPath: string, source: st
   return source;
 }
 
+function sourceWithoutImmutableIdentity(repositoryPath: string, source: string): string {
+  const withoutAssetLocators = source.replace(immutableAssetLocatorPattern, "");
+  if (!repositoryPath.startsWith(`${pluginExamplesRoot}/`)) return withoutAssetLocators;
+  const pluginId = repositoryPath.slice(pluginExamplesRoot.length + 1).split("/", 1)[0];
+  return pluginId ? withoutAssetLocators.replaceAll(pluginId, "") : withoutAssetLocators;
+}
+
 export function collectBundledCopyLanguageViolationsFromSource(
   repositoryPath: string,
   source: string,
@@ -316,11 +325,18 @@ export function collectBundledCopyLanguageViolationsFromSource(
   if (intentionalHanPaths.has(repositoryPath)) return [];
 
   const checkedSource = sourceWithoutExplicitLocalizedValues(repositoryPath, source);
-  return [...checkedSource.matchAll(hanScriptPattern)].map((match) => ({
+  const languageViolations = [...checkedSource.matchAll(hanScriptPattern)].map((match) => ({
     filePath: repositoryPath,
     lineNumber: lineNumberForIndex(source, match.index ?? 0),
     character: match[0],
   }));
+  const identitySource = sourceWithoutImmutableIdentity(repositoryPath, checkedSource);
+  const identityViolations = [...identitySource.matchAll(retiredIdentityPattern)].map((match) => ({
+    filePath: repositoryPath,
+    lineNumber: lineNumberForIndex(identitySource, match.index ?? 0),
+    character: match[0],
+  }));
+  return [...languageViolations, ...identityViolations];
 }
 
 export async function collectBundledCopyLanguageViolations(
