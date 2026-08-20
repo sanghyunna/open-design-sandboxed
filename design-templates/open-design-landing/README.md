@@ -115,5 +115,5 @@ This skill replaces the older `editorial-collage` folder:
 ## See also
 
 - [`design-systems/atelier-zero/DESIGN.md`](../../design-systems/atelier-zero/DESIGN.md) — colors, type, motion tokens.
-- [`apps/landing-page/`](../../apps/landing-page/) — Astro static site that mirrors this skill’s markup at deploy time.
+- [`the generated artifact/`](../../the generated artifact/) — static site that mirrors this skill’s markup at deploy time.
 - [`skills/open-design-landing-deck/`](../open-design-landing-deck/) — sibling skill that produces a slide deck in the same visual language.

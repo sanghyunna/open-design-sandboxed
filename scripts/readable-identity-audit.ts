@@ -109,7 +109,7 @@ function isImmutableHistoryPath(repositoryPath: string): boolean {
 }
 
 function isDeletionTargetPath(repositoryPath: string): boolean {
-  return repositoryPath.startsWith("apps/landing-page/") || repositoryPath === "flake.nix" || repositoryPath === "flake.lock" ||
+  return repositoryPath === "flake.nix" || repositoryPath === "flake.lock" ||
     repositoryPath.startsWith("nix/") ||
     /(?:^|\/)(?:updater|release-feed|nsis|custom-installer)(?:[./-]|$)/i.test(repositoryPath);
 }

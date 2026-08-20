@@ -15,8 +15,8 @@
  * skill's visual system. It is consumed by:
  *
  *   1. `scripts/compose.ts` — inlined into the standalone HTML output.
- *   2. `apps/landing-page/app/globals.css` — copied verbatim for the
- *      Astro static deployable counterpart.
+ *   2. `the generated artifact/app/globals.css` — copied verbatim for the
+ *      static deployable counterpart.
  *   3. `example.html` — the pre-rendered known-good demo.
  *
  * If you change tokens, layout, motion, or component styles, edit them
@@ -2942,7 +2942,7 @@ footer {
 
 <script>
   /*
-   * Scroll-reveal observer — mirrors apps/landing-page/app/_components/reveal-root.tsx.
+   * Scroll-reveal observer — mirrors the generated artifact/app/_components/reveal-root.tsx.
    * Watches every [data-reveal] element and flips data-revealed='true'
    * when it first enters the viewport, triggering the CSS transition.
    */
@@ -2964,7 +2964,7 @@ footer {
   })();
 
   /*
-   * Headroom-style sticky header — mirrors apps/landing-page/app/_components/header.tsx.
+   * Headroom-style sticky header — mirrors the generated artifact/app/_components/header.tsx.
    * Hides the nav on downward scroll, re-pins it on upward scroll, and
    * always keeps it visible near the top of the page.
    */
@@ -3020,7 +3020,7 @@ footer {
 <script>
   /*
    * Newsletter signup — mirrors the inline script in
-   * apps/landing-page/app/pages/index.astro. Wires both the in-page
+   * the generated artifact/app/pages/index.astro. Wires both the in-page
    * section form and the bottom-right popup to POST /subscribe, and
    * reveals the popup after 50% scroll or a 10s fallback (whichever is
    * first), suppressed once dismissed or subscribed.

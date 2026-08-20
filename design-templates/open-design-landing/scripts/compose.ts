@@ -667,13 +667,13 @@ function renderWire(i: EditorialCollageInputs): string {
 }
 
 /* ------------------------------------------------------------------ *
- * inline scripts (mirror apps/landing-page/app/_components/*)
+ * inline scripts (mirror the generated artifact/app/_components/*)
  * ------------------------------------------------------------------ */
 
 const REVEAL_AND_NAV_SCRIPT = `
 <script>
   /*
-   * Scroll-reveal observer — mirrors apps/landing-page/app/_components/reveal-root.tsx.
+   * Scroll-reveal observer — mirrors the generated artifact/app/_components/reveal-root.tsx.
    * Watches every [data-reveal] element and flips data-revealed='true'
    * when it first enters the viewport, triggering the CSS transition.
    */
@@ -695,7 +695,7 @@ const REVEAL_AND_NAV_SCRIPT = `
   })();
 
   /*
-   * Headroom-style sticky header — mirrors apps/landing-page/app/_components/header.tsx.
+   * Headroom-style sticky header — mirrors the generated artifact/app/_components/header.tsx.
    * Hides the nav on downward scroll, re-pins it on upward scroll, and
    * always keeps it visible near the top of the page.
    */

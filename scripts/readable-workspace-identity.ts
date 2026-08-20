@@ -10,7 +10,6 @@ const expectedManifestNames = new Map([
   ["package.json", "readable-studio"],
   ["apps/daemon/package.json", "@readable-studio/daemon"],
   ["apps/desktop/package.json", "@readable-studio/desktop"],
-  ["apps/landing-page/package.json", "@readable-studio/landing-page"],
   ["apps/packaged/package.json", "@readable-studio/packaged"],
   ["apps/web/package.json", "@readable-studio/web"],
   ["e2e/package.json", "@readable-studio/e2e"],

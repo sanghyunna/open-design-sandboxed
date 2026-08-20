@@ -4,7 +4,7 @@
 // here so they can never drift:
 //   - the web client's plugin Share menu (`apps/web` PluginShareMenu)
 //   - the landing site's statically generated detail routes
-//     (`apps/landing-page`)
+//     (`the generated artifact`)
 //
 // The detail route is single-segment — `/plugins/<slug>/` — where the slug is
 // the slugified LAST segment of the plugin id. Plugin ids are globally unique
