@@ -41,7 +41,6 @@ import { resolvePackagedNamespacePaths } from "./paths.js";
 import { packagedEntryUrl, registerOdProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
-import { syncWindowsUninstallDisplayVersion } from "./windows-lifecycle.js";
 
 let packagedLogger: PackagedDesktopLogger | null = null;
 let pendingSecondInstanceFocus = false;
@@ -207,13 +206,6 @@ async function main(): Promise<void> {
     onDesktopReady(controls) {
       void confirmPackagedLauncherRuntime(launcherRuntime).catch((error: unknown) => {
         packagedLogger?.warn("failed to confirm packaged launcher runtime", { error });
-      });
-      void syncWindowsUninstallDisplayVersion({
-        namespace,
-        portable: activeConfig.portable,
-        version: launcherRuntime.config.appVersion,
-      }).catch((error: unknown) => {
-        packagedLogger?.warn("failed to sync Windows uninstall registry version", { error });
       });
       showExistingDesktop = controls.show;
       if (!pendingSecondInstanceFocus) return;

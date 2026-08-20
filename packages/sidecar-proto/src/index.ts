@@ -102,17 +102,6 @@ export const STAMP_SOURCE_FLAG = SIDECAR_STAMP_FLAGS.source;
 // @dsp func-d79ee8a7
 export const SIDECAR_STAMP_FIELDS = ["app", "mode", "namespace", "ipc", "source"] as const;
 
-// @dsp func-018389a7
-export function resolveWindowsReleaseNamespaceToken(value: string): string {
-  return value.replace(/[^A-Za-z0-9._-]+/g, "-");
-}
-
-// @dsp func-5b66036b
-export function resolveWindowsUninstallRegistryKey(namespace: string): string {
-  const namespaceToken = resolveWindowsReleaseNamespaceToken(namespace);
-  return `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${PRODUCT_IDENTITY.productName}-${namespaceToken}`;
-}
-
 // @dsp func-f6bb5bc3
 export const SIDECAR_MESSAGES = Object.freeze({
   CLICK: "click",

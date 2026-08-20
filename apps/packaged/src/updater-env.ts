@@ -33,16 +33,11 @@ export type PackagedUpdaterEnvInput = {
 // metadata URL and the portable default.
 //
 // This is a private fork: it must NEVER auto-update from the upstream release
-// feed. The updater defaults ON for the upstream packaged source, and on Windows
-// it checks `https://releases.open-design.ai/<channel>/latest` and downloads the
-// published release. Previously the updater was forced off ONLY for portable
-// runs, so a non-portable (win-unpacked / NSIS) run kept it ON and pulled an
-// incompatible UPSTREAM release (e.g. 0.10.1), "promoting" a broken payload into
-// the launcher state and bricking startup (splash → hang → crash). So force the
-// updater OFF for EVERY packaged build of this fork — portable and installed
-// alike. An explicit user-set `OD_UPDATE_ENABLED` still wins for deliberate
-// internal testing. `input.portable` is retained on the input for callers but is
-// no longer a precondition for disabling.
+// feed. Force the updater off for every packaged build so an incompatible
+// upstream payload cannot enter launcher state and break startup. An explicit
+// user-set `OD_UPDATE_ENABLED` still wins for deliberate internal testing.
+// `input.portable` is retained on the input for callers but is no longer a
+// precondition for disabling.
 export function resolvePackagedUpdaterEnv(input: PackagedUpdaterEnvInput): Record<string, string> {
   const overrides: Record<string, string> = {};
 

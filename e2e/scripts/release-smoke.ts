@@ -6,14 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 import { createReport } from '../lib/report.ts';
 
-type Platform = 'mac' | 'win';
+type Platform = 'mac';
 
 const e2eRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = dirname(e2eRoot);
 
 async function main(): Promise<void> {
   const platform = parsePlatform(process.argv[2]);
-  const spec = process.argv[3] ?? defaultSpec(platform);
+  const spec = process.argv[3] ?? 'specs/mac.spec.ts';
   const namespace = process.env.OD_PACKAGED_E2E_NAMESPACE ?? defaultNamespace(platform);
   const reportRoot = resolveFromWorkspace(
     process.env.OD_PACKAGED_E2E_REPORT_DIR ?? join('.tmp', 'release-report', platform),
@@ -115,16 +115,12 @@ async function runVitest(spec: string): Promise<{ exitCode: number; log: string 
 }
 
 function parsePlatform(value: string | undefined): Platform {
-  if (value === 'mac' || value === 'win') return value;
-  throw new Error('usage: tsx scripts/release-smoke.ts <mac|win> [spec]');
+  if (value === 'mac') return value;
+  throw new Error('usage: tsx scripts/release-smoke.ts mac [spec]');
 }
 
-function defaultSpec(platform: Platform): string {
-  return platform === 'mac' ? 'specs/mac.spec.ts' : 'specs/win.spec.ts';
-}
-
-function defaultNamespace(platform: Platform): string {
-  return platform === 'mac' ? 'release-beta' : 'release-beta-win';
+function defaultNamespace(_platform: Platform): string {
+  return 'release-beta';
 }
 
 function resolveFromWorkspace(path: string): string {

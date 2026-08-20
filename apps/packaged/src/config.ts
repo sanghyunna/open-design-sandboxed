@@ -41,12 +41,11 @@ export type RawPackagedConfig = {
   namespace?: string;
   namespaceBaseRoot?: string;
   nodeCommandRelative?: string;
-  // True only in the portable Windows zip artifact. tools/pack injects this
-  // flag into the zip's copy of open-design-config.json AFTER the shared
-  // win-unpacked tree is built (see tools/pack/src/win/zip.ts), so it never
-  // leaks into the NSIS installer that ships from the same tree. When set, the
-  // runtime keeps all data beside the extracted exe and disables the updater
-  // (see readPackagedConfig and apps/packaged/src/index.ts).
+  // True only in the portable Windows ZIP artifact. tools/pack injects this
+  // flag into the archive's copy of open-design-config.json after the cached
+  // win-unpacked tree is built (see tools/pack/src/win/zip.ts). When set, the
+  // runtime keeps all data beside the extracted executable and disables the
+  // updater (see readPackagedConfig and apps/packaged/src/index.ts).
   portable?: boolean;
   resourceRoot?: string;
   updateMetadataUrl?: string;

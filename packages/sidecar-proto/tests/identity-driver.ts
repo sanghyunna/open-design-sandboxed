@@ -3,7 +3,6 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
-  resolveWindowsUninstallRegistryKey,
   SIDECAR_CONTRACT,
   SIDECAR_ENV,
   SIDECAR_STAMP_FIELDS,
@@ -25,7 +24,6 @@ if (values.output == null || values.output.length === 0) {
 const artifact = {
   defaults: SIDECAR_CONTRACT.defaults,
   env: SIDECAR_ENV,
-  registryKey: resolveWindowsUninstallRegistryKey("identity-driver"),
   stampFields: SIDECAR_STAMP_FIELDS,
   stampFlags: SIDECAR_STAMP_FLAGS,
 } as const;

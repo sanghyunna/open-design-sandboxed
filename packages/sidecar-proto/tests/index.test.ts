@@ -14,7 +14,6 @@ import {
   normalizeNamespace,
   normalizeSidecarStamp,
   createSidecarContract,
-  resolveWindowsUninstallRegistryKey,
   SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
   SIDECAR_DEFAULTS,
@@ -45,9 +44,6 @@ describe("sidecar contract", () => {
     });
     expect(SIDECAR_CONTRACT.defaults).toEqual(contract.defaults);
     expect(SIDECAR_DEFAULTS).toBe(SIDECAR_CONTRACT.defaults);
-    expect(resolveWindowsUninstallRegistryKey("alpha")).toBe(
-      "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Readable Studio-alpha",
-    );
   });
 
   it("rejects malformed identity before constructing a contract", () => {
