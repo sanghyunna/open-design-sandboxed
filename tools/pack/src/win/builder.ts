@@ -57,7 +57,7 @@ import type {
 
 const execFileAsync = promisify(execFile);
 const WIN_ARCHIVE_CACHE_VERSION = 3;
-const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 6;
+const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 8;
 // Versions the zip-only config injection LOGIC (tools/pack/src/win/zip.ts).
 // The portable-zip node key also embeds the injection's exact output text and
 // the electron-builder dir key (see buildWinPortableZipCacheKeyInput), so
@@ -67,14 +67,14 @@ const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 6;
 // v2: the patch also strips any baked namespaceBaseRoot, making the zip's
 // config — and therefore the zip — identical for --portable and non-portable
 // invocations even though their unpacked trees' baked configs differ.
-const WIN_PORTABLE_ZIP_CACHE_VERSION = 4;
+const WIN_PORTABLE_ZIP_CACHE_VERSION = 5;
 
 // Pure key-input assembly for the portable-zip cache node, exported for tests.
 // The zip's true inputs are the materialized unpacked tree and the exact
 // config text the injection pass writes into the archive. packagedAppKey and
 // packagedVersion alone cannot see resource-tree changes (those ride the
 // electron-builder dir key via resourceTreeKey) or baked-config-only changes
-// (updateMetadataUrl, telemetry, profile fields), so the key carries the dir
+// (telemetry and profile fields), so the key carries the dir
 // key and the post-injection config text directly — a cache hit can only ever
 // serve a zip whose bytes match what this invocation would produce.
 export function buildWinPortableZipCacheKeyInput(input: {
@@ -277,8 +277,8 @@ async function runElectronBuilderRaw(
       version: packageVersion,
     },
     extraResources: [
-      { from: paths.resourceRoot, to: "open-design" },
-      { from: paths.packagedConfigPath, to: "open-design-config.json" },
+      { from: paths.resourceRoot, to: "readable-studio" },
+      { from: paths.packagedConfigPath, to: "readable-studio-config.json" },
     ],
     files: [...ELECTRON_BUILDER_FILE_PATTERNS],
     forceCodeSigning: false,
@@ -286,7 +286,6 @@ async function runElectronBuilderRaw(
     nodeGypRebuild: ELECTRON_BUILDER_NODE_GYP_REBUILD,
     npmRebuild: ELECTRON_BUILDER_NPM_REBUILD,
     productName: PRODUCT_NAME,
-    publish: [{ provider: "generic", url: "https://updates.invalid/open-design" }],
     win: {
       artifactName: `${PRODUCT_NAME}-${namespaceToken}.\${ext}`,
       icon: paths.winIconPath,
@@ -385,7 +384,7 @@ async function assertMaterializedUnpackedVersionConsistency(
     );
   }
 
-  const packagedConfigPath = join(unpackedRoot, "resources", "open-design-config.json");
+  const packagedConfigPath = join(unpackedRoot, "resources", "readable-studio-config.json");
   const packagedConfig = JSON.parse(await readFile(packagedConfigPath, "utf8")) as { appVersion?: unknown };
   if (packagedConfig.appVersion !== packagedVersion) {
     throw new Error(
@@ -450,7 +449,7 @@ export async function materializeCachedUnpackedForPortableZip(
   }
   await mkdir(join(paths.unpackedRoot, "resources"), { recursive: true });
   await writeFile(
-    join(paths.unpackedRoot, "resources", "open-design-config.json"),
+    join(paths.unpackedRoot, "resources", "readable-studio-config.json"),
     await readFile(paths.packagedConfigPath),
   );
   if (packagedVersion != null) {
@@ -475,7 +474,7 @@ export async function runElectronBuilder(
   paths: WinPaths,
   cache: ToolPackCache,
   packagedAppKey: string,
-  getPackagedAppRoot: () => Promise<string>,
+  packagedAppRoot: string,
   resourceTree: ResourceTreeResult,
 ): Promise<WinPackTiming[]> {
   const segments: WinPackTiming[] = [];
@@ -528,7 +527,7 @@ export async function runElectronBuilder(
       const rawSegments = await runElectronBuilderRaw(
         { ...config, to: "zip" },
         { ...createCacheLocalWinPaths(paths, entryRoot), resourceRoot: resourceTree.resourceRoot },
-        await getPackagedAppRoot(),
+        packagedAppRoot,
       );
       segments.push(...rawSegments);
       return { packagedAppKey, packagedVersion };

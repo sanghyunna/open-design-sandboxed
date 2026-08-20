@@ -29,7 +29,6 @@ const expectedManifestNames = new Map([
   ["packages/sidecar/package.json", "@readable-studio/sidecar"],
   ["tools/dev/package.json", "@readable-studio/tools-dev"],
   ["tools/pack/package.json", "@readable-studio/tools-pack"],
-  ["tools/serve/package.json", "@readable-studio/tools-serve"],
 ]);
 const expectedBins = new Map<string, Readonly<Record<string, string>>>([
   ["package.json", { readable: "./apps/daemon/bin/readable.mjs" }],

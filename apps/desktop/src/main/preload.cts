@@ -10,14 +10,10 @@ import type {
   ReadableStudioHostProjectImportResult,
   ReadableStudioHostProjectReplaceWorkingDirResult,
   ReadableStudioHostPickWorkingDirResult,
-  ReadableStudioHostUpdaterActionOptions,
-  ReadableStudioHostUpdaterStatusListener,
-  ReadableStudioHostUpdaterStatusSnapshot,
 } from '@readable-studio/host';
 
 const READABLE_STUDIO_HOST_GLOBAL: typeof import('@readable-studio/host').READABLE_STUDIO_HOST_GLOBAL = '__readableStudio__';
 const READABLE_STUDIO_HOST_VERSION: typeof import('@readable-studio/host').READABLE_STUDIO_HOST_VERSION = 3;
-const UPDATER_STATUS_EVENT = 'readable-studio:update:status-changed';
 const APP_CONFIG_CHANGED_IPC_CHANNEL = 'readable-studio:app-config-changed';
 const APP_CONFIG_CHANGED_EVENT = 'readable-studio:app-config-changed';
 
@@ -239,40 +235,6 @@ const capture = {
   },
 };
 
-function invokeUpdater(
-  action: 'check' | 'download' | 'install' | 'status',
-  options?: ReadableStudioHostUpdaterActionOptions,
-): Promise<ReadableStudioHostUpdaterStatusSnapshot> {
-  return ipcRenderer.invoke(`readable-studio:update:${action}`, options ?? null);
-}
-
-const updater = {
-  check: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
-    invokeUpdater('check', options),
-  download: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
-    invokeUpdater('download', options),
-  install: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
-    invokeUpdater('install', options),
-  quit: async (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostActionResult> => {
-    try {
-      return await ipcRenderer.invoke('readable-studio:update:quit', options ?? null);
-    } catch (error) {
-      return actionFailure(reasonFromError(error));
-    }
-  },
-  status: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
-    invokeUpdater('status', options),
-  subscribe: (listener: ReadableStudioHostUpdaterStatusListener): (() => void) => {
-    const handler = (_event: unknown, status: ReadableStudioHostUpdaterStatusSnapshot): void => {
-      listener(status);
-    };
-    ipcRenderer.on(UPDATER_STATUS_EVENT, handler);
-    return () => {
-      ipcRenderer.removeListener(UPDATER_STATUS_EVENT, handler);
-    };
-  },
-};
-
 const osLocale = readOsLocaleFromArgv();
 
 ipcRenderer.on(APP_CONFIG_CHANGED_IPC_CHANNEL, () => {
@@ -304,7 +266,6 @@ const hostBridge = {
     setVisible: (visible: boolean): void =>
       ipcRenderer.send('desktop-pet:set-visible', Boolean(visible)),
   },
-  updater,
 } satisfies ReadableStudioHostBridge;
 
 contextBridge.exposeInMainWorld(READABLE_STUDIO_HOST_GLOBAL, hostBridge);

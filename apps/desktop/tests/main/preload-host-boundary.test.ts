@@ -20,16 +20,14 @@ describe("desktop preload host boundary", () => {
     expect(source).toContain("satisfies ReadableStudioHostBridge");
     expect(source).toContain("browser");
     expect(source).toContain("browser:clear-data");
-    expect(source).toContain("updater");
+    expect(source).not.toContain("updater");
     // OS locale forwarded from main via webPreferences.additionalArguments
     // is mirrored onto __readableStudio__.client.osLocale. Pin the literal prefix
     // here so it can't drift away from `applyOsLocaleSwitch`/runtime's
     // additionalArguments without the test going red.
     expect(source).toContain("'--readable-studio-os-locale='");
     expect(source).toContain("osLocale");
-    expect(source).toContain("invokeUpdater('install'");
-    expect(source).toContain("readable-studio:update:quit");
-    expect(source).toContain("readable-studio:update:status-changed");
+    expect(source).not.toContain("readable-studio:update:");
     expect(source).toContain("readable-studio:app-config-changed");
     expect(source).toContain("readable-studio:app-config-changed");
     expect(source).toContain("window.dispatchEvent(new CustomEvent(APP_CONFIG_CHANGED_EVENT))");

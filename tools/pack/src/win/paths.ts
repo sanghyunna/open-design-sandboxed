@@ -34,7 +34,7 @@ export function resolveWinPaths(config: ToolPackConfig): WinPaths {
     daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", WIN_PREBUNDLED_APP_DIR_NAME, "daemon"),
     daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, WIN_PREBUNDLE_ENTRYPOINTS_DIR_NAME, "daemon-sidecar.js"),
     daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", WIN_PREBUNDLED_DAEMON_SIDECAR_RELATIVE_PATH),
-    packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
+    packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, WIN_PREBUNDLE_META_DIR_NAME, "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", WIN_PREBUNDLED_PACKAGED_MAIN_RELATIVE_PATH),
     resourceRoot: join(namespaceRoot, "resources", "open-design"),

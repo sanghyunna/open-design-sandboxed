@@ -3,10 +3,9 @@ import {
   READABLE_STUDIO_HOST_VERSION,
   type ReadableStudioHostBridge,
   type ReadableStudioHostGlobalScope,
-  type ReadableStudioHostUpdaterStatusSnapshot,
 } from "./index.js";
 
-export type MockReadableStudioHost = Partial<Omit<ReadableStudioHostBridge, "capture" | "client" | "pdf" | "pet" | "project" | "shell" | "updater">> & {
+export type MockReadableStudioHost = Partial<Omit<ReadableStudioHostBridge, "capture" | "client" | "pdf" | "pet" | "project" | "shell">> & {
   browser?: Partial<ReadableStudioHostBridge["browser"]>;
   capture?: Partial<ReadableStudioHostBridge["capture"]>;
   client?: Partial<ReadableStudioHostBridge["client"]>;
@@ -14,7 +13,6 @@ export type MockReadableStudioHost = Partial<Omit<ReadableStudioHostBridge, "cap
   pet?: Partial<ReadableStudioHostBridge["pet"]>;
   project?: Partial<ReadableStudioHostBridge["project"]>;
   shell?: Partial<ReadableStudioHostBridge["shell"]>;
-  updater?: Partial<ReadableStudioHostBridge["updater"]>;
 };
 
 export type MockReadableStudioHostOptions = {
@@ -23,22 +21,6 @@ export type MockReadableStudioHostOptions = {
 };
 
 function defaultHost(): ReadableStudioHostBridge {
-  const updaterStatus: ReadableStudioHostUpdaterStatusSnapshot = {
-    arch: "arm64",
-    capabilities: {
-      canApplyInPlace: false,
-      canDownload: true,
-      canOpenInstaller: true,
-      requiresManualInstall: true,
-    },
-    channel: "beta",
-    currentVersion: "1.0.0-beta.0",
-    enabled: true,
-    mode: "package-launcher",
-    platform: "darwin",
-    state: "idle",
-    supported: true,
-  };
   return {
     version: READABLE_STUDIO_HOST_VERSION,
     browser: {
@@ -74,14 +56,6 @@ function defaultHost(): ReadableStudioHostBridge {
     pet: {
       setVisible: () => undefined,
     },
-    updater: {
-      check: async () => updaterStatus,
-      download: async () => updaterStatus,
-      install: async () => updaterStatus,
-      quit: async () => ({ ok: true }),
-      status: async () => updaterStatus,
-      subscribe: () => () => undefined,
-    },
   };
 }
 
@@ -97,7 +71,6 @@ export function createMockReadableStudioHost(overrides: MockReadableStudioHost =
     project: { ...base.project, ...overrides.project },
     pdf: { ...base.pdf, ...overrides.pdf },
     pet: { ...base.pet, ...overrides.pet },
-    updater: { ...base.updater, ...overrides.updater },
   };
 }
 

@@ -82,7 +82,7 @@ describe('resolveDaemonResourceRoot', () => {
       'Open Design Beta.app',
       'Contents',
       'Resources',
-      'open-design',
+      'readable-studio',
     );
 
     expect(resolveDaemonResourceRoot({ configured, safeBases: [installationRoot] })).toBe(configured);
@@ -101,8 +101,8 @@ describe('resolveDaemonResourceRoot', () => {
 describe('resolveDaemonPluginPreviewsDir', () => {
   it('resolves under the resource root in the packaged layout', () => {
     // Packaged: the prebundled daemon's PROJECT_ROOT is Resources/app (no data/),
-    // but the bundled manifest lives under OD_RESOURCE_ROOT (Resources/open-design).
-    const resourceRoot = '/Applications/Open Design.app/Contents/Resources/open-design';
+    // but the bundled manifest lives under OD_RESOURCE_ROOT (Resources/readable-studio).
+    const resourceRoot = '/Applications/Open Design.app/Contents/Resources/readable-studio';
     const projectRoot = '/Applications/Open Design.app/Contents/Resources/app';
 
     expect(

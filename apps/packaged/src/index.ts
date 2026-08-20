@@ -73,18 +73,6 @@ function applyLaunchEnv(base: string, stamp: SidecarStamp): void {
   }
 }
 
-async function applyPackagedUpdaterEnv(updateMetadataUrl: string | null, portable: boolean): Promise<void> {
-  const { resolvePackagedUpdaterEnv } = await import("./updater-env.js");
-  const overrides = resolvePackagedUpdaterEnv({
-    updateMetadataUrl,
-    portable,
-    env: process.env,
-  });
-  for (const [key, value] of Object.entries(overrides)) {
-    process.env[key] = value;
-  }
-}
-
 async function main(): Promise<void> {
   consumeDesktopApprovalToken(process.env);
   process.env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN] = randomBytes(32).toString("base64url");
@@ -135,7 +123,6 @@ async function main(): Promise<void> {
   startupTiming.flush();
   flushStartupTimingOnFailure = null;
   applyPackagedElectronPathOverrides(paths);
-  await applyPackagedUpdaterEnv(activeConfig.updateMetadataUrl, activeConfig.portable);
   if (!claimPackagedSingleInstanceLock(app, () => {
     if (showExistingDesktop == null) {
       pendingSecondInstanceFocus = true;
@@ -217,16 +204,8 @@ async function main(): Promise<void> {
       pendingSecondInstanceFocus = false;
       controls.show();
     },
+    appVersion: activeConfig.appVersion,
     preloadPath: join(app.getAppPath(), "preload.cjs"),
-    update: {
-      currentVersion: activeConfig.appVersion,
-      downloadRoot: paths.updateRoot,
-      installerObservationRoot: paths.installerObservationRoot,
-      launcherLaunchPath: launcherRuntime.installedLaunchPath,
-      launcherRoot: launcherRuntime.launcherPaths.root,
-      launcherPayloadExtractorPath: activeConfig.resourceRoot == null ? null : join(activeConfig.resourceRoot, "bin", "7z.exe"),
-      launcherRuntimePath: launcherRuntime.launcherPaths.runtimePath,
-    },
   });
 }
 

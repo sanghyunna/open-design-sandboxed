@@ -13,8 +13,7 @@ the repository's active product boundary; detailed work stays in
 - User-facing capabilities must be available through both the web UI and the
   `readable` CLI, backed by the same daemon HTTP contracts.
 - Local development runs through `pnpm tools-dev`; local packaged validation
-  runs through `pnpm tools-pack` and deterministic updater fixtures from
-  `pnpm tools-serve`.
+  runs through `pnpm tools-pack`.
 - This workspace does not own hosted deployment, container orchestration, or a
   release-publishing pipeline.
 

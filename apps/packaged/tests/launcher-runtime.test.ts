@@ -22,7 +22,6 @@ function fakeConfig(root: string, appVersion = "1.2.3-beta.4"): PackagedConfig {
     nodeCommand: null,
     portable: false,
     resourceRoot: join(root, "installed", "resources", "open-design"),
-    updateMetadataUrl: null,
     webOutputMode: "server",
     webSidecarEntry: null,
     webStandaloneRoot: null,

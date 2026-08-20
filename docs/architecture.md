@@ -342,9 +342,8 @@ Shared API contract types live in [`packages/contracts/src`](../packages/contrac
 ## 8. Local packaging and validation
 
 The repository's packaging boundary is local build and validation through
-`pnpm tools-pack`. Packaged updater tests consume deterministic fixture
-metadata from `pnpm tools-serve`. This workspace does not own hosted
-deployment, container orchestration, or release publication.
+`pnpm tools-pack`. This workspace does not own hosted deployment, container
+orchestration, or release publication.
 
 ## 9. Security model
 

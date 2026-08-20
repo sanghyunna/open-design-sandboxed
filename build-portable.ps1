@@ -13,14 +13,10 @@
     npm / Node / git installed — only the two external agent CLIs (codex,
     cursor-agent) need to be on PATH in the target environment.
 
-    What --portable guarantees (apps/packaged/src/config.ts + updater-env.ts +
+    What --portable guarantees (apps/packaged/src/config.ts +
     tools/pack/src/win/*):
       - all runtime data lands beside the extracted exe
         (<exeDir>\OpenDesignData\namespaces), never %APPDATA% or the registry
-      - the auto-updater defaults OFF: the baked `portable: true` flag makes the
-        runtime set OD_UPDATE_ENABLED=0 (apps/packaged/src/updater-env.ts), so
-        accepting an update can't silently convert the portable copy into an
-        NSIS / %LOCALAPPDATA% install. (An explicit OD_UPDATE_ENABLED still wins.)
 
     This machine's system Node is v22 (violates engines ~24), so the script
     forces the portable Node 24 toolchain onto PATH. better-sqlite3 must remain

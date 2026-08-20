@@ -8,11 +8,8 @@ import {
   READABLE_STUDIO_HOST_GLOBAL,
   READABLE_STUDIO_HOST_VERSION,
   clearHostBrowserData,
-  checkHostUpdater,
   detectReadableStudioHostClientType,
-  getHostUpdaterStatus,
   getReadableStudioHost,
-  installHostUpdater,
   isReadableStudioHostAvailable,
   isReadableStudioHostBridge,
   normalizeReadableStudioHostProjectImportResult,
@@ -20,9 +17,7 @@ import {
   pickAndImportHostProject,
   printHostPdf,
   openHostProjectPath,
-  quitHostAfterUpdaterInstallerOpen,
   setHostPetVisible,
-  subscribeHostUpdater,
 } from "../src/index.js";
 import { createMockReadableStudioHost, installMockReadableStudioHost } from "../src/testing.js";
 
@@ -82,7 +77,7 @@ describe("Readable Studio host contract", () => {
     })).toBe(false);
     expect(isReadableStudioHostBridge({
       ...createMockReadableStudioHost(),
-      updater: { status: async () => createMockReadableStudioHost().updater.status() },
+      project: {},
     })).toBe(false);
   });
 
@@ -245,75 +240,8 @@ describe("Readable Studio host contract", () => {
     expect(setVisible).toHaveBeenCalledWith(true);
   });
 
-  it("routes updater status, actions, and subscriptions through package-owned helpers", async () => {
-    const status = {
-      arch: "arm64",
-      availableVersion: "1.0.1-beta.1",
-      capabilities: {
-        canApplyInPlace: false,
-        canDownload: true,
-        canOpenInstaller: true,
-        requiresManualInstall: true,
-      },
-      channel: "beta" as const,
-      currentVersion: "1.0.0-beta.0",
-      downloadPath: "/tmp/Open Design Beta.dmg",
-      enabled: true,
-      mode: "package-launcher" as const,
-      platform: "darwin",
-      state: "downloaded" as const,
-      supported: true,
-    };
-    const check = vi.fn(async () => status);
-    const install = vi.fn(async () => status);
-    const quit = vi.fn(async () => ({ ok: true as const }));
-    const statusFn = vi.fn(async () => status);
-    const unsubscribe = vi.fn();
-    const subscribe = vi.fn(() => unsubscribe);
-    const scope: Record<string, unknown> = {};
-    scope[READABLE_STUDIO_HOST_GLOBAL] = createMockReadableStudioHost({
-      updater: { check, install, quit, status: statusFn, subscribe },
-    });
-
-    await expect(getHostUpdaterStatus({ payload: { source: "mount" } }, scope)).resolves.toEqual({
-      ok: true,
-      status,
-    });
-    await expect(checkHostUpdater({ payload: { source: "button" } }, scope)).resolves.toEqual({
-      ok: true,
-      status,
-    });
-    await expect(installHostUpdater({ payload: { source: "popup" } }, scope)).resolves.toEqual({
-      ok: true,
-      status,
-    });
-    await expect(quitHostAfterUpdaterInstallerOpen({ payload: { source: "opened-popup" } }, scope)).resolves.toEqual({
-      ok: true,
-    });
-
-    const listener = vi.fn();
-    expect(subscribeHostUpdater(listener, scope)).toBe(unsubscribe);
-    expect(statusFn).toHaveBeenCalledWith({ payload: { source: "mount" } });
-    expect(check).toHaveBeenCalledWith({ payload: { source: "button" } });
-    expect(install).toHaveBeenCalledWith({ payload: { source: "popup" } });
-    expect(quit).toHaveBeenCalledWith({ payload: { source: "opened-popup" } });
-    expect(subscribe).toHaveBeenCalledWith(listener);
-  });
-
-  it("wraps updater action throws into structured failures", async () => {
-    const scope: Record<string, unknown> = {};
-    scope[READABLE_STUDIO_HOST_GLOBAL] = createMockReadableStudioHost({
-      updater: {
-        check: vi.fn(async () => {
-          throw new Error("updater failed");
-        }),
-      },
-    });
-
-    await expect(checkHostUpdater(undefined, scope)).resolves.toEqual({
-      ok: false,
-      reason: "updater failed",
-    });
+  it("does not expose updater capability on the host bridge", () => {
+    expect(createMockReadableStudioHost()).not.toHaveProperty("updater");
   });
 
   it("installs and restores test hosts without exposing callers to the global key", () => {

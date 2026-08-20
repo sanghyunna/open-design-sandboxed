@@ -36,7 +36,6 @@ export type ToolPackCliOptions = {
   signed?: boolean;
   silent?: boolean;
   to?: string;
-  updateAction?: string;
 };
 
 export type ToolPackRoots = {
@@ -71,7 +70,6 @@ export type ToolPackConfig = {
   signed: boolean;
   silent: boolean;
   amrProfile?: ToolPackAmrProfile;
-  updateMetadataUrl?: string;
   to: ToolPackBuildOutput;
   webOutputMode: ToolPackWebOutputMode;
   workspaceRoot: string;
@@ -117,22 +115,6 @@ function resolveToolPackAmrProfile(value: string | undefined): ToolPackAmrProfil
   if (normalized.length === 0) return undefined;
   if (normalized === "prod" || normalized === "test" || normalized === "local") return normalized;
   throw new Error(`OPEN_DESIGN_AMR_PROFILE must be prod, test, or local: ${value}`);
-}
-
-function resolveToolPackUpdateMetadataUrl(value: string | undefined): string | undefined {
-  if (value == null) return undefined;
-  const normalized = value.trim();
-  if (normalized.length === 0) return undefined;
-  let parsed: URL;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    throw new Error(`OD_UPDATE_METADATA_URL must be an absolute URL: ${value}`);
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error(`OD_UPDATE_METADATA_URL must use http(s): ${value}`);
-  }
-  return normalized;
 }
 
 function resolveElectronVersion(workspaceRoot: string): string {
@@ -205,7 +187,6 @@ export function resolveToolPackConfig(
     signed: options.signed === true,
     silent: options.silent !== false,
     amrProfile: resolveToolPackAmrProfile(process.env.OPEN_DESIGN_AMR_PROFILE),
-    updateMetadataUrl: resolveToolPackUpdateMetadataUrl(process.env.OD_UPDATE_METADATA_URL),
     to: resolveToolPackBuildOutput(options.to),
     webOutputMode: resolveToolPackWebOutputMode(process.env.OD_WEB_OUTPUT_MODE),
     workspaceRoot: WORKSPACE_ROOT,

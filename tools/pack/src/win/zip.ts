@@ -15,7 +15,7 @@ export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as cons
 
 // Relative path of the packaged config inside both the unpacked tree and the
 // archive. The portable flag is injected ONLY into the zip's copy of this file.
-const PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH = "resources/open-design-config.json";
+const PACKAGED_CONFIG_ARCHIVE_RELATIVE_PATH = "resources/readable-studio-config.json";
 const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";
 
 export function shouldPruneWinPortableZipLocales(config: ToolPackConfig): boolean {
@@ -41,7 +41,7 @@ export async function resolveWinPortableZipLocalePruneEntries(input: {
     .map((entry) => `${CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR}/${entry}`);
 }
 
-// Adds the portable signal to a packaged `open-design-config.json` payload,
+// Adds the portable signal to a packaged `readable-studio-config.json` payload,
 // preserving every other (including unknown) field and re-serializing in the
 // exact shape tools/pack writes it everywhere else — `JSON.stringify(obj, null,
 // 2)` followed by a trailing newline (see writePackagedConfigFile in
@@ -199,11 +199,11 @@ export async function buildWinPortableZip(
     const sourceConfigPath = join(
       builtApp.unpackedRoot,
       "resources",
-      "open-design-config.json",
+      "readable-studio-config.json",
     );
     const stagingRoot = await mkdtemp(join(dirname(paths.setupZipPath), "portable-config-"));
     try {
-      const stagedConfigPath = join(stagingRoot, "resources", "open-design-config.json");
+      const stagedConfigPath = join(stagingRoot, "resources", "readable-studio-config.json");
       await mkdir(dirname(stagedConfigPath), { recursive: true });
       await writeFile(
         stagedConfigPath,

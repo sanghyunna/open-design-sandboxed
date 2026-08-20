@@ -8,10 +8,6 @@ import * as sidecarProto from "../src/index.js";
 import {
   APP_KEYS,
   createRuntimeDescriptor,
-  DESKTOP_UPDATE_ACTIONS,
-  DESKTOP_UPDATE_CHANNELS,
-  DESKTOP_UPDATE_MODES,
-  DESKTOP_UPDATE_STATES,
   normalizeDaemonSidecarMessage,
   normalizeDesktopSidecarMessage,
   normalizeRuntimeDescriptor,
@@ -77,11 +73,7 @@ describe("sidecar contract", () => {
       namespace: "--readable-studio-stamp-namespace",
       source: "--readable-studio-stamp-source",
     });
-    expect(SIDECAR_CONTRACT.updateActions).toBe(DESKTOP_UPDATE_ACTIONS);
-    expect(SIDECAR_CONTRACT.updateChannels).toBe(DESKTOP_UPDATE_CHANNELS);
-    expect(Object.values(DESKTOP_UPDATE_CHANNELS)).toEqual(["beta", "nightly", "preview", "stable"]);
-    expect(SIDECAR_CONTRACT.updateModes).toBe(DESKTOP_UPDATE_MODES);
-    expect(SIDECAR_CONTRACT.updateStates).toBe(DESKTOP_UPDATE_STATES);
+    expect(SIDECAR_CONTRACT).not.toHaveProperty("updateActions");
     expect(SIDECAR_ENV).toEqual({
       BASE: "READABLE_SIDECAR_BASE",
       DAEMON_CLI_PATH: "READABLE_DAEMON_CLI_PATH",
@@ -294,36 +286,12 @@ describe("sidecar contract", () => {
     ).toThrow();
   });
 
-  it("validates desktop update IPC message inputs", () => {
-    expect(
-      normalizeDesktopSidecarMessage({
-        input: { action: DESKTOP_UPDATE_ACTIONS.CHECK },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toEqual({
-      input: { action: "check" },
-      type: "update",
-    });
-    expect(
-      normalizeDesktopSidecarMessage({
-        input: { action: DESKTOP_UPDATE_ACTIONS.INSTALL },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toEqual({
-      input: { action: "install" },
-      type: "update",
-    });
+  it("rejects removed desktop update IPC messages", () => {
     expect(() =>
       normalizeDesktopSidecarMessage({
-        input: { action: "apply" },
-        type: SIDECAR_MESSAGES.UPDATE,
+        input: { action: "check" },
+        type: "update",
       }),
-    ).toThrow(/unsupported desktop update action/);
-    expect(() =>
-      normalizeDesktopSidecarMessage({
-        input: { action: "status", path: "/tmp/update.dmg" },
-        type: SIDECAR_MESSAGES.UPDATE,
-      }),
-    ).toThrow(/unsupported fields/);
+    ).toThrow(/unknown desktop sidecar message/);
   });
 });

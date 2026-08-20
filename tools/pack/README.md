@@ -24,7 +24,3 @@ the build machine's tools-pack runtime roots.
 
 Windows portable archives retain the shared bundled resource trees and generic
 sidecar/platform runtime primitives used by the packaged application.
-
-Builder-generated updater metadata is local scratch. Use
-`pnpm tools-serve start updater` for deterministic updater metadata and
-artifacts; tools-pack does not publish release feeds.

@@ -9,20 +9,15 @@ import { promisify } from "node:util";
 
 import { BrowserWindow, app, dialog, ipcMain, nativeImage, screen, session, shell } from "electron";
 import {
-  DESKTOP_UPDATE_CHANNELS,
-  DESKTOP_UPDATE_MODES,
-  DESKTOP_UPDATE_STATES,
   type DesktopExportPdfInput,
   type DesktopExportPdfResult,
-  type DesktopUpdateStatusSnapshot,
 } from "@readable-studio/sidecar-proto";
-import type { ReadableStudioHostActionResult, ReadableStudioHostCaptureResult, ReadableStudioHostUpdaterActionOptions } from "@readable-studio/host";
+import type { ReadableStudioHostActionResult, ReadableStudioHostCaptureResult } from "@readable-studio/host";
 
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
 import type { PrintReadyPdfOptions } from "./pdf-export.js";
 import { remainingSplashHoldMs, shouldFinishSplashPolling } from "./splash-reveal.js";
-import type { DesktopUpdater } from "./updater.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -246,15 +241,7 @@ const MAX_CONSOLE_ENTRIES = 200;
 const DESKTOP_PET_WINDOW_WIDTH = 360;
 const DESKTOP_PET_WINDOW_HEIGHT = 300;
 const DESKTOP_PET_WINDOW_MARGIN = 24;
-const UPDATER_STATUS_EVENT = "readable-studio:update:status-changed";
 const DESIGN_BROWSER_PARTITION = "persist:open-design-design-browser";
-const UPDATER_IPC_CHANNELS = [
-  "readable-studio:update:status",
-  "readable-studio:update:check",
-  "readable-studio:update:download",
-  "readable-studio:update:install",
-  "readable-studio:update:quit",
-] as const;
 
 export type DesktopEvalInput = {
   expression: string;
@@ -389,7 +376,6 @@ export type DesktopRuntimeOptions = {
    * `splashWindow` is omitted (the runtime stamps its own splash at creation).
    */
   splashStartedAt?: number;
-  updater?: DesktopUpdater;
 };
 
 const DESKTOP_IMPORT_TOKEN_HEADER = "X-Readable-Studio-Desktop-Import-Token";
@@ -1210,36 +1196,6 @@ function parseCaptureClip(value: unknown): Electron.Rectangle | undefined {
   };
 }
 
-function unavailableUpdaterStatus(): DesktopUpdateStatusSnapshot {
-  return {
-    arch: process.arch,
-    capabilities: {
-      canApplyInPlace: false,
-      canDownload: false,
-      canOpenInstaller: false,
-      requiresManualInstall: false,
-    },
-    channel: DESKTOP_UPDATE_CHANNELS.BETA,
-    currentVersion: "0.0.0",
-    enabled: false,
-    error: {
-      code: "updater-unavailable",
-      message: "Desktop updater is not available.",
-    },
-    mode: DESKTOP_UPDATE_MODES.PACKAGE_LAUNCHER,
-    platform: process.platform,
-    state: DESKTOP_UPDATE_STATES.UNSUPPORTED,
-    supported: false,
-  };
-}
-
-function checkOptionsFromHost(options: unknown): { autoDownload?: boolean } | undefined {
-  const input = options as ReadableStudioHostUpdaterActionOptions | null | undefined;
-  const payload = input?.payload;
-  if (payload == null || typeof payload.autoDownload !== "boolean") return undefined;
-  return { autoDownload: payload.autoDownload };
-}
-
 async function reportRendererCrash(
   options: DesktopRuntimeOptions,
   properties: { reason: string; exit_code: number | null },
@@ -1287,9 +1243,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   ipcMain.removeHandler("shell:open-external");
   ipcMain.removeHandler("shell:open-path");
   ipcMain.removeHandler("browser:clear-data");
-  for (const channel of UPDATER_IPC_CHANNELS) {
-    ipcMain.removeHandler(channel);
-  }
   ipcMain.handle("shell:open-external", async (_event, url: string) => {
     if (!isHttpUrl(url)) return false;
     try {
@@ -1519,11 +1472,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     });
   });
 
-  const sendUpdaterStatus = (status = options.updater?.snapshot() ?? unavailableUpdaterStatus()) => {
-    if (window.isDestroyed()) return;
-    window.webContents.send(UPDATER_STATUS_EVENT, status);
-  };
-  const unsubscribeUpdater = options.updater?.subscribe(() => sendUpdaterStatus()) ?? (() => undefined);
   const requireMainWindowSender = (event: Electron.IpcMainInvokeEvent): void => {
     if (event.sender !== window.webContents) {
       throw new Error("host IPC is only available to the main Open Design window");
@@ -1589,43 +1537,6 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       };
     }
   });
-  ipcMain.handle("readable-studio:update:status", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("readable-studio:update:check", async (event, updaterOptions: unknown) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.checkForUpdates(checkOptionsFromHost(updaterOptions)) ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("readable-studio:update:download", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.downloadUpdate() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("readable-studio:update:install", async (event) => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.installUpdate() ?? unavailableUpdaterStatus());
-    sendUpdaterStatus(status);
-    return status;
-  });
-  ipcMain.handle("readable-studio:update:quit", async (event): Promise<ReadableStudioHostActionResult> => {
-    requireMainWindowSender(event);
-    const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
-    if (status.installResult == null) {
-      return { ok: false, reason: "installer has not been opened" };
-    }
-    if (options.requestQuit == null) {
-      return { ok: false, reason: "desktop quit is not available" };
-    }
-    setTimeout(() => options.requestQuit?.(), 0);
-    return { ok: true };
-  });
-
   let currentUrl: string | null = null;
   let currentPetUrl: string | null = null;
   let pendingUrl: string | null = null;
@@ -1974,11 +1885,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         clearTimeout(timer);
         timer = null;
       }
-      unsubscribeUpdater();
       ipcMain.removeAllListeners("desktop-pet:set-visible");
-      for (const channel of UPDATER_IPC_CHANNELS) {
-        ipcMain.removeHandler(channel);
-      }
       ipcMain.removeHandler("browser:clear-data");
       if (splash != null && !splash.isDestroyed()) splash.close();
       if (petWindow != null && !petWindow.isDestroyed()) petWindow.close();

@@ -64,8 +64,7 @@ describe("withPortableConfigFlag", () => {
   it("keys the portable-zip cache on the materialized tree and the exact injected config", () => {
     // The zip's true inputs are the electron-builder dir tree (resourceTreeKey
     // rides its key) and the post-injection config text. Without both in the
-    // key, a resource-tree or baked-config-only change (updateMetadataUrl,
-    // telemetry fields) could serve a stale cached zip.
+    // key, a resource-tree or baked-config-only change could serve a stale cached zip.
     const base = {
       electronBuilderDirKey: "dir-key-1",
       injectedPackagedConfig: '{\n  "namespace": "rg",\n  "portable": true\n}\n',
@@ -88,7 +87,7 @@ describe("withPortableConfigFlag", () => {
     expect(
       buildWinPortableZipCacheKeyInput({
         ...base,
-        injectedPackagedConfig: '{\n  "namespace": "rg",\n  "portable": true,\n  "updateMetadataUrl": "https://example.test/latest"\n}\n',
+        injectedPackagedConfig: '{\n  "amrProfile": "test",\n  "namespace": "rg",\n  "portable": true\n}\n',
       }),
     ).not.toEqual(input);
     expect(buildWinPortableZipCacheKeyInput({ ...base, portableZipCompression: 1 })).not.toEqual(input);
@@ -202,7 +201,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
         namespaceBaseRoot: bakedNamespaceBaseRoot,
       };
       await writeFile(
-        join(unpackedRoot, "resources", "open-design-config.json"),
+        join(unpackedRoot, "resources", "readable-studio-config.json"),
         `${JSON.stringify(originalConfig, null, 2)}\n`,
         "utf8",
       );
@@ -220,7 +219,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       const builtApp: WinBuiltAppManifest = {
         appBuilderOutputRoot: paths.appBuilderOutputRoot,
         cacheEntryPath: null,
-        configPath: join(unpackedRoot, "resources", "open-design-config.json"),
+        configPath: join(unpackedRoot, "resources", "readable-studio-config.json"),
         executablePath: paths.unpackedExePath,
         source: "namespace",
         unpackedRoot,
@@ -235,7 +234,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       await execFileAsync(winResources.sevenZipExe, ["x", setupZipPath, `-o${extractRoot}`, "-y"]);
 
       const extractedConfig = JSON.parse(
-        await readFile(join(extractRoot, "resources", "open-design-config.json"), "utf8"),
+        await readFile(join(extractRoot, "resources", "readable-studio-config.json"), "utf8"),
       ) as Record<string, unknown>;
       const extractedChromiumLocales = (await readdir(join(extractRoot, "locales"))).sort();
       const extractedAppI18nLocales = (await readdir(join(extractRoot, "resources", "app", "i18n", "locales"))).sort();
@@ -269,7 +268,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
       daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
       daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-      packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
+      packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
       packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
       packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
       resourceRoot: join(namespaceRoot, "resources", "open-design"),

@@ -50,11 +50,9 @@ export type RawPackagedConfig = {
   // True only in the portable Windows ZIP artifact. tools/pack injects this
   // flag into the archive's copy of readable-studio-config.json after the cached
   // win-unpacked tree is built (see tools/pack/src/win/zip.ts). When set, the
-  // runtime keeps all data beside the extracted executable and disables the
-  // updater (see readPackagedConfig and apps/packaged/src/index.ts).
+  // runtime keeps all data beside the extracted executable.
   portable?: boolean;
   resourceRoot?: string;
-  updateMetadataUrl?: string;
   webSidecarEntryRelative?: string;
   webStandaloneRoot?: string;
   webOutputMode?: string;
@@ -71,7 +69,6 @@ export type PackagedConfig = {
   nodeCommand: string | null;
   portable: boolean;
   resourceRoot: string;
-  updateMetadataUrl: string | null;
   webSidecarEntry: string | null;
   webStandaloneRoot: string | null;
   webOutputMode: PackagedWebOutputMode;
@@ -187,7 +184,7 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   // %APPDATA% or the registry. In the win-unpacked/zip layout
   // `dirname(process.execPath)` IS the extraction root (resources/ sits beside
   // the exe), and everything else — daemon dataRoot, Chromium profile, logs,
-  // updates — derives from this single root (apps/packaged/src/paths.ts), so
+  // and runtime state — derives from this single root (apps/packaged/src/paths.ts), so
   // branching only the fallback here relocates the whole tree.
   //
   // An explicit `namespaceBaseRoot` ALWAYS wins, including in portable mode:
@@ -233,7 +230,6 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
     nodeCommand,
     portable,
     resourceRoot,
-    updateMetadataUrl: cleanOptionalString(raw.updateMetadataUrl),
     webSidecarEntry,
     webStandaloneRoot,
     webOutputMode,

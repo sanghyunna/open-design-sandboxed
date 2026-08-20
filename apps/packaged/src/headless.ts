@@ -76,7 +76,6 @@ function resolveHeadlessConfig(): PackagedConfig {
     // non-portable; the portable exe-adjacent fallback never applies here.
     portable: false,
     resourceRoot,
-    updateMetadataUrl: process.env.OD_UPDATE_METADATA_URL?.trim() || null,
     webSidecarEntry: null,
     webStandaloneRoot: null,
     webOutputMode: "server",

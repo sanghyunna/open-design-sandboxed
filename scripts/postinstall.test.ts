@@ -73,9 +73,25 @@ function postinstallBuildTargets(): Set<string> {
   const source = readFileSync(join(repoRoot, "scripts/postinstall.mjs"), "utf8");
   const targets = [...source.matchAll(/"([^"]+)"/g)]
     .map((match) => match[1])
-    .filter((value): value is string => value != null && /^(?:apps|packages|tools)\//.test(value));
+    .filter(
+      (value): value is string =>
+        value != null && /^(?:apps|packages|tools)\/[a-z0-9-]+$/.test(value),
+    );
   return new Set(targets);
 }
+
+test("postinstall references only existing workspace packages", () => {
+  // Given every package directory built by postinstall
+  const targets = postinstallBuildTargets();
+
+  // When missing package manifests are selected
+  const missingTargets = [...targets].filter(
+    (target) => !existsSync(join(repoRoot, target, "package.json")),
+  );
+
+  // Then a clean install cannot target a deleted workspace package
+  assert.deepEqual(missingTargets, []);
+});
 
 function workspacePackageDirectories(): string[] {
   const scopedPackageDirectories = ["apps", "packages", "tools"].flatMap((scope) =>

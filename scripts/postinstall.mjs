@@ -23,7 +23,6 @@ const buildTargets = [
   "apps/daemon",
   "tools/dev",
   "tools/pack",
-  "tools/serve",
 ];
 
 const jsExtensions = new Set([".js", ".cjs", ".mjs"]);

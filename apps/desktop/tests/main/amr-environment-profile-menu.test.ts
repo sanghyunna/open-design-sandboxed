@@ -165,9 +165,9 @@ describe("AMR Environment Profile desktop menu helpers", () => {
   });
 
   it("uses the active packaged runtime version for the native About panel", () => {
-    expect(resolveAboutPanelVersion({ update: { currentVersion: "0.10.0-beta.24" } })).toBe("0.10.0-beta.24");
-    expect(resolveAboutPanelVersion({ update: { currentVersion: " 0.10.0-beta.24 " } })).toBe("0.10.0-beta.24");
-    expect(resolveAboutPanelVersion({ update: { currentVersion: "" } })).toBeNull();
+    expect(resolveAboutPanelVersion({ appVersion: "0.10.0-beta.24" })).toBe("0.10.0-beta.24");
+    expect(resolveAboutPanelVersion({ appVersion: " 0.10.0-beta.24 " })).toBe("0.10.0-beta.24");
+    expect(resolveAboutPanelVersion({ appVersion: "" })).toBeNull();
     expect(resolveAboutPanelVersion({})).toBeNull();
   });
 });

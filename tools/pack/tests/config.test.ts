@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resolveToolPackConfig } from "../src/config.js";
 
 const savedAmrProfile = process.env.OPEN_DESIGN_AMR_PROFILE;
+const savedUpdateMetadataUrl = process.env.OD_UPDATE_METADATA_URL;
 
 afterEach(() => {
   if (savedAmrProfile == null) {
@@ -10,6 +11,24 @@ afterEach(() => {
   } else {
     process.env.OPEN_DESIGN_AMR_PROFILE = savedAmrProfile;
   }
+  if (savedUpdateMetadataUrl == null) {
+    delete process.env.OD_UPDATE_METADATA_URL;
+  } else {
+    process.env.OD_UPDATE_METADATA_URL = savedUpdateMetadataUrl;
+  }
+});
+
+describe("resolveToolPackConfig updater absence", () => {
+  it("does not expose release-feed configuration from a former updater environment key", () => {
+    // Given a legacy update metadata environment value
+    process.env.OD_UPDATE_METADATA_URL = "https://example.invalid/latest.json";
+
+    // When portable packager configuration is resolved
+    const config = resolveToolPackConfig("win", { namespace: "no-updater-config" });
+
+    // Then the environment key cannot create feed configuration
+    expect(config).not.toHaveProperty("updateMetadataUrl");
+  });
 });
 
 describe("resolveToolPackConfig AMR profile", () => {

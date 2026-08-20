@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -32,7 +33,7 @@ function createPaths(root: string): WinPaths {
     daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
     daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
     daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-    packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
+    packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
     resourceRoot: join(namespaceRoot, "resources", "open-design"),
@@ -48,6 +49,21 @@ function createPaths(root: string): WinPaths {
   };
 }
 
+describe("Windows portable builder update-feed absence", () => {
+  it("does not configure publish metadata or a generic feed", () => {
+    // Given the electron-builder configuration source
+    const builderSource = readFileSync(new URL("../src/win/builder.ts", import.meta.url), "utf8");
+
+    // When publish/feed configuration tokens are selected
+    const retainedTokens = ["publish:", 'provider: "generic"', "updates.invalid"].filter((token) =>
+      builderSource.includes(token),
+    );
+
+    // Then a portable build cannot emit updater feed metadata
+    expect(retainedTokens).toEqual([]);
+  });
+});
+
 describe("materializeCachedUnpackedForPortableZip", () => {
   it("overwrites cached packaged config and app package version", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-"));
@@ -58,7 +74,7 @@ describe("materializeCachedUnpackedForPortableZip", () => {
       await mkdir(join(cachedUnpackedRoot, "resources"), { recursive: true });
       await writeFile(join(cachedUnpackedRoot, "Open Design.exe"), await createVersionedExecutable("0.5.0-beta.1"));
       await writeFile(
-        join(cachedUnpackedRoot, "resources", "open-design-config.json"),
+        join(cachedUnpackedRoot, "resources", "readable-studio-config.json"),
         `${JSON.stringify({ namespace: "first", version: 1 })}\n`,
         "utf8",
       );
@@ -79,13 +95,13 @@ describe("materializeCachedUnpackedForPortableZip", () => {
 
       expect(manifest.source).toBe("namespace");
       expect(manifest.unpackedRoot).toBe(paths.unpackedRoot);
-      await expect(readFile(join(paths.unpackedRoot, "resources", "open-design-config.json"), "utf8")).resolves.toContain(
+      await expect(readFile(join(paths.unpackedRoot, "resources", "readable-studio-config.json"), "utf8")).resolves.toContain(
         '"namespace":"second"',
       );
       await expect(readFile(join(paths.unpackedRoot, "resources", "app", "package.json"), "utf8")).resolves.toContain(
         '"version": "0.5.0-beta.2"',
       );
-      await expect(readFile(join(paths.unpackedRoot, "resources", "open-design-config.json"), "utf8")).resolves.toContain(
+      await expect(readFile(join(paths.unpackedRoot, "resources", "readable-studio-config.json"), "utf8")).resolves.toContain(
         '"appVersion":"0.5.0-beta.2"',
       );
       await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Open Design.exe"))).resolves.toMatchObject({

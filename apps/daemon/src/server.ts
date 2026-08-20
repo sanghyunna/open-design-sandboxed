@@ -300,7 +300,6 @@ import {
   readAnalyticsContext,
   readPublicConfigResponse,
 } from './analytics.js';
-import { observePendingInstallerApplyAttempts } from './update-apply-observations.js';
 import {
   agentIdToTracking,
   deriveConfigureGlobals,
@@ -1067,7 +1066,7 @@ function resolveProcessResourcesPath() {
 
   const normalizedExecPath = process.execPath.toLowerCase();
   const windowsResourceBinMarker =
-    `${path.sep}resources${path.sep}open-design${path.sep}bin${path.sep}`.toLowerCase();
+    `${path.sep}resources${path.sep}readable-studio${path.sep}bin${path.sep}`.toLowerCase();
   const windowsMarkerIndex = normalizedExecPath.indexOf(
     windowsResourceBinMarker,
   );
@@ -1112,7 +1111,7 @@ function resolveDaemonResourceDir(resourceRoot, segment, fallback) {
 
 // Where the daemon reads the baked plugin-preview manifest from. In a packaged
 // build the bundled manifest lives under the resource root (OD_RESOURCE_ROOT,
-// Resources/open-design) like every other resource tree — NOT under PROJECT_ROOT,
+// Resources/readable-studio) like every other resource tree — NOT under PROJECT_ROOT,
 // which for the prebundled daemon resolves to Resources/app (two levels up from
 // the sidecar) and has no data/. An explicit OD_PLUGIN_PREVIEWS_DIR override and
 // the dev PROJECT_ROOT layout still win. Exported for regression coverage.
@@ -4912,7 +4911,7 @@ export async function startServer({
   // when a listener is present (the `--unhandled-rejections=throw` mode
   // only fires when nothing has subscribed). We bounded-flush posthog-
   // node and then call `process.exit(1)` explicitly so the supervisor
-  // (pm2, packaged updater, dev `tools-dev`) gets a fresh process and
+  // (pm2, packaged runtime, dev `tools-dev`) gets a fresh process and
   // we don't leave a half-broken daemon answering requests with state
   // corruption. See codex review on PR #2527 (Siri-Ray).
   const FATAL_FLUSH_TIMEOUT_MS = 1000;
@@ -4981,15 +4980,6 @@ export async function startServer({
   void (async () => {
     try {
       cachedAppVersion = await readCurrentAppVersionInfo();
-      await observePendingInstallerApplyAttempts({
-        analytics: analyticsService,
-        appVersion: cachedAppVersion.version,
-        currentChannel: cachedAppVersion.channel,
-        currentVersion: cachedAppVersion.version,
-        dataRoot: RUNTIME_DATA_DIR,
-        logger: console,
-        namespace: process.env[SIDECAR_ENV.NAMESPACE] ?? SIDECAR_DEFAULTS.namespace,
-      });
     } catch {
       // Telemetry is best-effort; appVersion is omitted when unavailable.
     }

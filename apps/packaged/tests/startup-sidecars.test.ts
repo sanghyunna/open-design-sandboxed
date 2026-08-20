@@ -119,12 +119,10 @@ function fixturePaths(root: string, namespace: string): PackagedNamespacePaths {
     electronUserDataRoot: join(namespaceRoot, "user-data"),
     headlessIdentityPath: join(namespaceRoot, "runtime", "headless-root.json"),
     installationRoot: root,
-    installerObservationRoot: join(namespaceRoot, "data", "observations", "installer"),
     logsRoot: join(namespaceRoot, "logs"),
     namespaceRoot,
     resourceRoot: join(root, "resources"),
     runtimeRoot: join(namespaceRoot, "runtime"),
-    updateRoot: join(namespaceRoot, "updates"),
     webIdentityPath: join(namespaceRoot, "runtime", "web-root.json"),
   };
 }

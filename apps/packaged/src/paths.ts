@@ -23,12 +23,10 @@ export type PackagedNamespacePaths = {
    * `apps/daemon/src/installation.ts`.
    */
   installationRoot: string;
-  installerObservationRoot: string;
   logsRoot: string;
   namespaceRoot: string;
   resourceRoot: string;
   runtimeRoot: string;
-  updateRoot: string;
   webIdentityPath: string;
 };
 
@@ -122,12 +120,10 @@ export function resolvePackagedNamespacePaths(
     electronUserDataRoot: join(namespaceRoot, "user-data"),
     headlessIdentityPath: join(namespaceRoot, "runtime", "headless-root.json"),
     installationRoot,
-    installerObservationRoot: join(dataRoot, "observations", "installer"),
     logsRoot: join(namespaceRoot, "logs"),
     namespaceRoot,
     resourceRoot: config.resourceRoot,
     runtimeRoot: join(namespaceRoot, "runtime"),
-    updateRoot: join(namespaceRoot, "updates"),
     webIdentityPath: join(namespaceRoot, "runtime", "web-root.json"),
   };
 }

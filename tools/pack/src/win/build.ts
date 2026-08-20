@@ -63,14 +63,18 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
   });
   const tarballs = await runPhase("workspace-tarballs", async () => collectWorkspaceTarballs(config, paths, cache));
   const packagedAppKey = await createWinPackagedAppCacheKey(config, tarballs.key, tarballs.tarballs);
-  let packagedAppRoot: string | null = null;
+  const packagedApp = await runPhase("packaged-app", async () =>
+    prepareWinPackagedApp(config, paths, tarballs, cache)
+  );
   await runPhase("electron-builder", async () => {
-    const builderSegments = await runElectronBuilder(config, paths, cache, packagedAppKey, async () => {
-      if (packagedAppRoot != null) return packagedAppRoot;
-      const packagedApp = await prepareWinPackagedApp(config, paths, tarballs, cache);
-      packagedAppRoot = packagedApp.appRoot;
-      return packagedAppRoot;
-    }, resourceTree);
+    const builderSegments = await runElectronBuilder(
+      config,
+      paths,
+      cache,
+      packagedAppKey,
+      packagedApp.appRoot,
+      resourceTree,
+    );
     segments.push(...builderSegments);
   });
   const builtApp = await readBuiltAppManifest(paths);
@@ -82,7 +86,7 @@ export async function packWin(config: ToolPackConfig): Promise<WinPackResult> {
   return {
     outputRoot: config.roots.output.namespaceRoot,
     portableZipPath: paths.setupZipPath,
-    resourceRoot: builtApp == null ? paths.resourceRoot : join(builtApp.unpackedRoot, "resources", "open-design"),
+    resourceRoot: builtApp == null ? paths.resourceRoot : join(builtApp.unpackedRoot, "resources", "readable-studio"),
     runtimeNamespaceRoot: config.roots.runtime.namespaceRoot,
     cacheReport: cache.report(),
     segments,

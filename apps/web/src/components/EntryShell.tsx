@@ -75,7 +75,6 @@ import { DesignsTab } from './DesignsTab';
 import { DesignSystemPreviewModal } from './DesignSystemPreviewModal';
 import { DesignSystemsTab } from './DesignSystemsTab';
 import { EntryNavRail, type EntryView as EntryViewKind } from './EntryNavRail';
-import { UpdaterPopup } from './UpdaterPopup';
 import { HomeView } from './HomeView';
 import {
   createPluginAuthoringHandoff,
@@ -632,7 +631,6 @@ export function EntryShell({
             <div className="entry-main__topbar-chips entry-main__topbar-chips--icon-only">
               {executionSwitcher}
             </div>
-            <UpdaterPopup />
             {avatarMenu}
           </div>
           <div

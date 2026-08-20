@@ -69,4 +69,21 @@ describe("supported packaged platforms", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`unsupported tools-pack platform: ${platform}`);
   });
+
+  it.each([
+    [["updater"], "unsupported tools-pack platform: updater"],
+    [["win", "updater"], "unsupported win action: updater"],
+  ] as const)("rejects the former updater action %j", (args, diagnostic) => {
+    // Given the TypeScript tools-pack entrypoint
+    const entrypoint = join(REPOSITORY_ROOT, "tools", "pack", "src", "index.ts");
+
+    // When a removed updater action is requested
+    const result = spawnSync(process.execPath, ["--import", "tsx", entrypoint, ...args], {
+      encoding: "utf8",
+    });
+
+    // Then the CLI rejects it nonzero with an explicit boundary diagnostic
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(diagnostic);
+  });
 });

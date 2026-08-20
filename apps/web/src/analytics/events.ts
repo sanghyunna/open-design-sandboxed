@@ -22,7 +22,6 @@ import type {
   ExecutionSettingsPopoverClickProps,
   SettingsPopoverClickProps,
   HomeChatComposerClickProps,
-  UpdateIndicatorClickProps,
   NewProjectModalTabClickProps,
   NewProjectModalElementClickProps,
   PluginReplacementModalClickProps,
@@ -110,9 +109,6 @@ import type {
   DesignSystemReviewResultProps,
   DesignSystemStatusResultProps,
   DesignSystemApplyResultProps,
-  UpdateIndicatorSurfaceViewProps,
-  UpdatePromptSurfaceViewProps,
-  UpdateInstallResultProps,
 } from '@readable-studio/contracts/analytics';
 
 type TrackOptions = { requestId?: string; insertId?: string };
@@ -269,13 +265,6 @@ export function trackSettingsPopoverClick(
 export function trackHomeChatComposerClick(
   track: Track,
   props: HomeChatComposerClickProps,
-): void {
-  send(track, 'ui_click', props);
-}
-
-export function trackUpdateIndicatorClick(
-  track: Track,
-  props: UpdateIndicatorClickProps,
 ): void {
   send(track, 'ui_click', props);
 }
@@ -898,27 +887,4 @@ export function trackDesignSystemApplyResult(
   options?: { requestId?: string },
 ): void {
   send(track, 'design_system_apply_result', props, options);
-}
-
-// ---- Update indicator / prompt ------------------------------------------
-
-export function trackUpdateIndicatorSurfaceView(
-  track: Track,
-  props: UpdateIndicatorSurfaceViewProps,
-): void {
-  send(track, 'surface_view', props);
-}
-
-export function trackUpdatePromptSurfaceView(
-  track: Track,
-  props: UpdatePromptSurfaceViewProps,
-): void {
-  send(track, 'surface_view', props);
-}
-
-export function trackUpdateInstallResult(
-  track: Track,
-  props: UpdateInstallResultProps,
-): void {
-  send(track, 'update_install_result', props);
 }

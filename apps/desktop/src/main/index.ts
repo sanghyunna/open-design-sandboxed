@@ -16,7 +16,6 @@ import {
   type DesktopEvalInput,
   type DesktopExportPdfInput,
   type DesktopScreenshotInput,
-  type DesktopUpdateInput,
   type DaemonStatusSnapshot,
   type RegisterDesktopAuthResult,
   type SidecarStamp,
@@ -43,7 +42,6 @@ import {
   type DesktopApprovalLoop,
 } from "./desktop-approval.js";
 import { attachDesktopProcessErrorFilter } from "./uncaught-exception.js";
-import { createDesktopUpdater, createDesktopUpdaterScheduler, type DesktopUpdaterScheduler } from "./updater.js";
 import {
   exportDiagnosticsToFile,
   registerDesktopDiagnosticsIpc,
@@ -155,15 +153,7 @@ export type DesktopMainOptions = {
   /** Creation time of `splashWindow` (from `createSplashWindow().startedAt`), so
    * the runtime measures the minimum splash hold from when it actually appeared. */
   splashStartedAt?: number;
-  update?: {
-    currentVersion?: string | null;
-    downloadRoot?: string | null;
-    installerObservationRoot?: string | null;
-    launcherLaunchPath?: string | null;
-    launcherRoot?: string | null;
-    launcherPayloadExtractorPath?: string | null;
-    launcherRuntimePath?: string | null;
-  };
+  appVersion?: string | null;
 };
 
 function isDirectEntry(): boolean {
@@ -290,7 +280,7 @@ export function createAmrEnvironmentProfileMenuItems(
 
 // @dsp func-5fd08ae0
 export function resolveAboutPanelVersion(options: DesktopMainOptions): string | null {
-  const version = options.update?.currentVersion?.trim();
+  const version = options.appVersion?.trim();
   return version == null || version.length === 0 ? null : version;
 }
 
@@ -604,21 +594,6 @@ export async function runDesktopMain(
     );
   }
 
-  const updater = createDesktopUpdater(
-    {
-      currentVersion: options.update?.currentVersion,
-      downloadRoot: options.update?.downloadRoot,
-      installerObservationRoot: options.update?.installerObservationRoot,
-      launcherLaunchPath: options.update?.launcherLaunchPath,
-      launcherRoot: options.update?.launcherRoot,
-      launcherPayloadExtractorPath: options.update?.launcherPayloadExtractorPath,
-      launcherRuntimePath: options.update?.launcherRuntimePath,
-      namespace: runtime.namespace,
-      runtimeBase: runtime.base,
-      source: runtime.source,
-    },
-    { openPath: (path) => shell.openPath(path) },
-  );
   // Resolve the namespace root the same way the diagnostics export does
   // (apps/desktop/src/main/diagnostics.ts). In packaged builds `runtime.base`
   // is `<namespaceRoot>/runtime`, so re-appending the namespace via
@@ -641,7 +616,6 @@ export async function runDesktopMain(
   let desktop: DesktopRuntime | null = null;
   let approvalLoop: DesktopApprovalLoop | null = null;
   let disposeMenu: () => void = () => undefined;
-  let updateScheduler: DesktopUpdaterScheduler | null = null;
   let removeDiagnosticsIpc: () => void = () => undefined;
   let ipcServer: JsonIpcServerHandle | null = null;
   let shuttingDown = false;
@@ -653,7 +627,6 @@ export async function runDesktopMain(
     await options.beforeShutdown?.().catch((error: unknown) => {
       console.error("desktop beforeShutdown failed", error);
     });
-    updateScheduler?.stop("shutdown");
     disposeMenu();
     removeDiagnosticsIpc();
     await ipcServer?.close().catch(() => undefined);
@@ -682,7 +655,6 @@ export async function runDesktopMain(
     requestQuit: shutdownAndExit,
     splashWindow: options.splashWindow,
     splashStartedAt: options.splashStartedAt,
-    updater,
   });
   if (desktopApprovalToken) {
     approvalLoop = startDesktopApprovalLoop({
@@ -695,14 +667,6 @@ export async function runDesktopMain(
   options.onDesktopReady?.({ show: () => desktop?.show() });
   disposeMenu = installDesktopMenu(runtime, options);
   removeDiagnosticsIpc = registerDesktopDiagnosticsIpc(runtime);
-  updateScheduler = createDesktopUpdaterScheduler(updater, {
-    backoffInitialMs: updater.config.checkBackoffInitialMs,
-    backoffMaxMs: updater.config.checkBackoffMaxMs,
-    initialDelayMs: updater.config.checkInitialDelayMs,
-    intervalMs: updater.config.checkIntervalMs,
-  });
-  if (updater.shouldAutoCheck()) updateScheduler.start();
-
   attachParentMonitor(shutdown);
 
   app.on("before-quit", (event) => {
@@ -723,8 +687,7 @@ export async function runDesktopMain(
         case SIDECAR_MESSAGES.STATUS:
           return {
             ...activeDesktop.status(),
-            descriptor: createRuntimeDescriptor(options.update?.currentVersion?.trim() || app.getVersion()),
-            update: await updater.status(),
+            descriptor: createRuntimeDescriptor(options.appVersion?.trim() || app.getVersion()),
           };
         case SIDECAR_MESSAGES.EVAL:
           return await activeDesktop.eval(request.input as DesktopEvalInput);
@@ -739,8 +702,6 @@ export async function runDesktopMain(
           return await activeDesktop.click(request.input as DesktopClickInput);
         case SIDECAR_MESSAGES.EXPORT_PDF:
           return await activeDesktop.exportPdf(request.input as DesktopExportPdfInput);
-        case SIDECAR_MESSAGES.UPDATE:
-          return await updater.handle((request.input as DesktopUpdateInput).action);
         case SIDECAR_MESSAGES.SHUTDOWN:
           setImmediate(() => {
             shutdownAndExit();
