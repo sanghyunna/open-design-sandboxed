@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   APP_KEYS,
+  createRuntimeDescriptor,
   SIDECAR_CONTRACT,
   SIDECAR_DEFAULTS,
   SIDECAR_MESSAGES,
@@ -60,9 +61,11 @@ function resolveHeadlessConfig(): PackagedConfig {
     process.env.OD_RESOURCE_ROOT ??
     join(__dirname, "..", "..", "..", "open-design");
 
+  const appVersion = process.env.OD_APP_VERSION?.trim() || "0.0.0";
   return {
     amrProfile: resolveHeadlessAmrProfile(),
-    appVersion: null,
+    appVersion,
+    descriptor: createRuntimeDescriptor(appVersion),
     daemonCliEntry: null,
     daemonSidecarEntry: null,
     namespace,
@@ -123,6 +126,7 @@ async function main(): Promise<void> {
   // can find this process without confusing it for a menu-launched
   // AppImage that owns desktop-root.json in the same namespace.
   const identity = await writePackagedDesktopIdentity({
+    descriptor: activeConfig.descriptor,
     identityPath: paths.headlessIdentityPath,
     paths,
     stamp,
@@ -171,7 +175,13 @@ async function main(): Promise<void> {
       const request = normalizeDesktopSidecarMessage(message);
       switch (request.type) {
         case SIDECAR_MESSAGES.STATUS:
-          return { pid: process.pid, state: "running", url: webUrl, updatedAt: new Date().toISOString() };
+          return {
+            descriptor: activeConfig.descriptor,
+            pid: process.pid,
+            state: "running",
+            url: webUrl,
+            updatedAt: new Date().toISOString(),
+          };
         case SIDECAR_MESSAGES.SHUTDOWN:
           setImmediate(() => {
             void shutdown().finally(() => process.exit(0));
@@ -182,6 +192,7 @@ async function main(): Promise<void> {
   });
 
   await writePackagedWebIdentity({
+    descriptor: activeConfig.descriptor,
     paths,
     pid: process.pid,
     url: webUrl,

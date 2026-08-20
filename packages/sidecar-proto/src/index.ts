@@ -1,5 +1,20 @@
 import { PRODUCT_IDENTITY, type ProductIdentity } from "@readable-studio/product-identity";
 
+export {
+  createRuntimeDescriptor,
+  normalizeRuntimeDescriptor,
+  PRODUCT_DESCRIPTOR_HASH,
+  PRODUCT_DESCRIPTOR_IDENTITY,
+  RUNTIME_APP_ID,
+  RUNTIME_DESCRIPTOR_PROTOCOL_VERSION,
+  RUNTIME_DESCRIPTOR_VERSION,
+  RUNTIME_PRODUCT_ID,
+  RuntimeDescriptorError,
+  serializeProductDescriptorIdentity,
+  serializeRuntimeDescriptor,
+  type RuntimeDescriptor,
+} from "./runtime-descriptor.js";
+
 // @dsp func-a62f84e4
 export const APP_KEYS = Object.freeze({
   DAEMON: "daemon",
@@ -182,6 +197,7 @@ export class SidecarContractError extends Error {
 export type ServiceRuntimeState = "idle" | "running" | "starting" | "stopped" | "unknown";
 
 export type DaemonStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: ServiceRuntimeState;
   trustedWebOriginPort?: number | null;
@@ -202,6 +218,7 @@ export type DaemonStatusSnapshot = {
 };
 
 export type WebStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: ServiceRuntimeState;
   updatedAt?: string;
@@ -211,6 +228,7 @@ export type WebStatusSnapshot = {
 export type DesktopRuntimeState = "idle" | "running" | "unknown";
 
 export type DesktopStatusSnapshot = {
+  descriptor?: import("./runtime-descriptor.js").RuntimeDescriptor;
   pid?: number | null;
   state: DesktopRuntimeState;
   title?: string | null;

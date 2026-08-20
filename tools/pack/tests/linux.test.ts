@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { requestJsonIpc, resolveAppIpcPath } from "@readable-studio/sidecar";
 import {
   APP_KEYS,
+  createRuntimeDescriptor,
   SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
@@ -459,6 +460,7 @@ describe("stopPackedLinuxHeadless", () => {
         markerPath,
         `${JSON.stringify({
           appPath: "/tmp/Open-Design.AppImage",
+          descriptor: createRuntimeDescriptor("1.2.3"),
           executablePath: "/tmp/.mount_od/AppRun",
           logPath: join(namespaceRoot, "logs", "desktop", "latest.log"),
           namespaceRoot,

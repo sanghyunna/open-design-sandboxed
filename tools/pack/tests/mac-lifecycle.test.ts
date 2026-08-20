@@ -4,12 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ChildProcess } from "node:child_process";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ToolPackConfig } from "../src/config.js";
 import { resolveMacPaths } from "../src/mac/paths.js";
 
-const requestJsonIpc = vi.fn(async () => ({ state: "running" }));
+const requestJsonIpc = vi.fn(async () => ({
+  descriptor: createRuntimeDescriptor("1.2.3"),
+  state: "running",
+}));
 const resolveAppIpcPath = vi.fn(() => "/tmp/readable-studio/ipc/test/desktop.sock");
 const createSidecarLaunchEnv = vi.fn(({ extraEnv }: { extraEnv: NodeJS.ProcessEnv }) => extraEnv);
 const spawnLoggedProcess = vi.fn(async ({ env }: { env: NodeJS.ProcessEnv }) => {
@@ -41,6 +45,7 @@ const { startPackedMacApp } = await import("../src/mac/lifecycle.js");
 
 function makeConfig(root: string, overrides: Partial<ToolPackConfig> = {}): ToolPackConfig {
   return {
+    appVersion: "1.2.3",
     containerized: false,
     electronBuilderCliPath: "/x/electron-builder/cli.js",
     electronDistPath: "/x/electron/dist",
@@ -79,7 +84,10 @@ function makeConfig(root: string, overrides: Partial<ToolPackConfig> = {}): Tool
 
 afterEach(() => {
   vi.clearAllMocks();
-  requestJsonIpc.mockResolvedValue({ state: "running" });
+  requestJsonIpc.mockResolvedValue({
+    descriptor: createRuntimeDescriptor("1.2.3"),
+    state: "running",
+  });
 });
 
 describe("startPackedMacApp", () => {
@@ -125,6 +133,7 @@ describe("startPackedMacApp", () => {
         bundledConfigPath,
         `${JSON.stringify({
           appVersion: "1.2.3",
+          descriptor: createRuntimeDescriptor("1.2.3"),
           daemonCliEntryRelative: "open-design/bin/od",
           namespace: config.namespace,
           nodeCommandRelative: "open-design/bin/node",

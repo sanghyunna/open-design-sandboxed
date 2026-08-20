@@ -1,12 +1,13 @@
 import { dirname } from "node:path";
 
 import { removeFile, writeJsonFile } from "@readable-studio/sidecar";
-import type { SidecarStamp } from "@readable-studio/sidecar-proto";
+import type { RuntimeDescriptor, SidecarStamp } from "@readable-studio/sidecar-proto";
 
 import type { PackagedNamespacePaths } from "./paths.js";
 
 export type PackagedDesktopRootIdentity = {
   appPath: string;
+  descriptor: RuntimeDescriptor;
   executablePath: string;
   logPath: string;
   namespaceRoot: string;
@@ -19,6 +20,7 @@ export type PackagedDesktopRootIdentity = {
 };
 
 export type PackagedWebRootIdentity = {
+  descriptor: RuntimeDescriptor;
   namespace: string;
   pid: number;
   url: string;
@@ -36,6 +38,7 @@ function resolveCurrentMacAppPath(executablePath: string): string {
 }
 
 function createPackagedDesktopRootIdentity(options: {
+  descriptor: RuntimeDescriptor;
   paths: PackagedNamespacePaths;
   stamp: SidecarStamp;
 }): PackagedDesktopRootIdentity {
@@ -44,6 +47,7 @@ function createPackagedDesktopRootIdentity(options: {
 
   return {
     appPath: resolveCurrentMacAppPath(executablePath),
+    descriptor: options.descriptor,
     executablePath,
     logPath: options.paths.desktopLogPath,
     namespaceRoot: options.paths.namespaceRoot,
@@ -58,6 +62,7 @@ function createPackagedDesktopRootIdentity(options: {
 
 // @dsp func-6dac2721
 export async function writePackagedDesktopIdentity(options: {
+  descriptor: RuntimeDescriptor;
   identityPath?: string;
   paths: PackagedNamespacePaths;
   stamp: SidecarStamp;
@@ -87,11 +92,13 @@ export async function writePackagedDesktopIdentity(options: {
 
 // @dsp func-fb14aa78
 export async function writePackagedWebIdentity(options: {
+  descriptor: RuntimeDescriptor;
   paths: PackagedNamespacePaths;
   pid: number;
   url: string;
 }): Promise<void> {
   const identity: PackagedWebRootIdentity = {
+    descriptor: options.descriptor,
     namespace: options.paths.namespaceRoot.split("/").pop() ?? "default",
     pid: options.pid,
     url: options.url,

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { LAUNCHER_SCHEMA_VERSION, resolveLauncherVersionPaths } from "@readable-studio/launcher-proto";
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { describe, expect, it } from "vitest";
 
 import type { PackagedConfig } from "../src/config.js";
@@ -15,6 +16,7 @@ function fakeConfig(root: string, appVersion = "1.2.3-beta.4"): PackagedConfig {
     appVersion,
     daemonCliEntry: null,
     daemonSidecarEntry: null,
+    descriptor: createRuntimeDescriptor(appVersion),
     namespace: "release-beta",
     namespaceBaseRoot: join(root, "namespaces"),
     nodeCommand: null,
@@ -82,6 +84,7 @@ describe("resolvePackagedLauncherRuntime", () => {
         join(resourcesPath, "open-design-config.json"),
         `${JSON.stringify({
           appVersion: "1.2.3-beta.5",
+          descriptor: createRuntimeDescriptor("1.2.3-beta.5"),
           daemonSidecarEntryRelative: "prebundled/daemon/daemon-sidecar.mjs",
           nodeCommandRelative: "open-design/bin/node",
           webOutputMode: "standalone",
@@ -130,6 +133,7 @@ describe("resolvePackagedLauncherRuntime", () => {
       expect(runtime.installedLaunchPath).toBe("/Applications/Open Design Beta.app");
       expect(runtime.targetVersion).toBe("1.2.3-beta.5");
       expect(runtime.config.appVersion).toBe("1.2.3-beta.5");
+      expect(runtime.config.descriptor).toEqual(createRuntimeDescriptor("1.2.3-beta.5"));
       expect(runtime.config.resourceRoot).toBe(join(resourcesPath, "open-design"));
       expect(runtime.config.daemonSidecarEntry).toBe(join(resourcesPath, "prebundled", "daemon", "daemon-sidecar.mjs"));
       expect(runtime.config.webSidecarEntry).toBe(join(resourcesPath, "prebundled", "web", "web-sidecar.mjs"));
@@ -149,6 +153,62 @@ describe("resolvePackagedLauncherRuntime", () => {
         active: { generation: 1, version: "1.2.3-beta.5" },
         lastSuccessful: { generation: 1, version: "1.2.3-beta.5" },
       });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects an active launcher payload whose descriptor version differs from its manifest", async () => {
+    const root = await mkdtemp(join(tmpdir(), "od-packaged-launcher-mismatch-"));
+    try {
+      const config = fakeConfig(root, "1.2.3-beta.4");
+      const paths = resolvePackagedNamespacePaths(config);
+      const versionPaths = resolveLauncherVersionPaths({
+        channel: "beta",
+        namespace: config.namespace,
+        root,
+        version: "1.2.3-beta.5",
+      });
+      const resourcesPath = join(versionPaths.payloadRoot, "Open Design Beta.app", "Contents", "Resources");
+      await mkdir(resourcesPath, { recursive: true });
+      await writeFile(
+        join(resourcesPath, "open-design-config.json"),
+        `${JSON.stringify({
+          appVersion: "1.2.3-beta.5",
+          descriptor: createRuntimeDescriptor("1.2.3-beta.4"),
+        })}\n`,
+      );
+      await writeFile(
+        versionPaths.manifestPath,
+        `${JSON.stringify({
+          channel: "beta",
+          entry: {
+            cwd: "payload/Open Design Beta.app",
+            executable: "payload/Open Design Beta.app/Contents/MacOS/Open Design Beta",
+          },
+          namespace: config.namespace,
+          payloadRoot: "payload",
+          platform: "darwin",
+          schemaVersion: LAUNCHER_SCHEMA_VERSION,
+          version: "1.2.3-beta.5",
+        })}\n`,
+      );
+      const namespaceRoot = join(paths.installationRoot, "launcher", "channels", "beta", "namespaces", config.namespace);
+      await mkdir(namespaceRoot, { recursive: true });
+      await writeFile(
+        join(namespaceRoot, "runtime.json"),
+        `${JSON.stringify({
+          active: { generation: 1, version: "1.2.3-beta.5" },
+          channel: "beta",
+          lastSuccessful: { generation: 0, version: "1.2.3-beta.4" },
+          namespace: config.namespace,
+          schemaVersion: LAUNCHER_SCHEMA_VERSION,
+        })}\n`,
+      );
+
+      await expect(resolvePackagedLauncherRuntime(config, paths)).rejects.toThrow(
+        /descriptor version does not match payload manifest/,
+      );
     } finally {
       await rm(root, { force: true, recursive: true });
     }

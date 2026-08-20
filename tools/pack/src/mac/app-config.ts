@@ -2,7 +2,10 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
+
 import type { ToolPackConfig } from "../config.js";
+import { readRuntimeAppVersion } from "../versions.js";
 import { pathExists } from "./fs.js";
 import type { SeededAppConfigPaths } from "./types.js";
 
@@ -41,9 +44,10 @@ export async function seedPackagedAppConfig(config: ToolPackConfig): Promise<voi
 
 export async function writeLaunchPackagedConfig(config: ToolPackConfig, appPath: string): Promise<string> {
   const embeddedConfigPath = join(appPath, "Contents", "Resources", "open-design-config.json");
+  const appVersion = await readRuntimeAppVersion(config);
   const raw = (await pathExists(embeddedConfigPath))
     ? JSON.parse(await readFile(embeddedConfigPath, "utf8")) as unknown
-    : {};
+    : { appVersion, descriptor: createRuntimeDescriptor(appVersion) };
   if (!isRecord(raw)) {
     throw new Error(`packaged launch config source must be a JSON object: ${embeddedConfigPath}`);
   }

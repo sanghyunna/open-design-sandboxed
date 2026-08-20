@@ -6,6 +6,10 @@ import { promisify } from "node:util";
 
 import {
   APP_KEYS,
+  createRuntimeDescriptor,
+  normalizeRuntimeDescriptor,
+  RUNTIME_APP_ID,
+  RuntimeDescriptorError,
   SIDECAR_CONTRACT,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
@@ -13,6 +17,7 @@ import {
   type DesktopEvalResult,
   type DesktopScreenshotResult,
   type DesktopStatusSnapshot,
+  type RuntimeDescriptor,
   type SidecarStamp,
 } from "@readable-studio/sidecar-proto";
 import { createSidecarLaunchEnv, requestJsonIpc, resolveAppIpcPath } from "@readable-studio/sidecar";
@@ -511,6 +516,7 @@ async function writeAssembledApp(
       {
         ...(config.amrProfile == null ? {} : { amrProfile: config.amrProfile }),
         appVersion: version,
+        descriptor: createRuntimeDescriptor(version),
         namespace: config.namespace,
         nodeCommandRelative: "open-design/bin/node",
         ...(config.portable ? {} : { namespaceBaseRoot: config.roots.runtime.namespaceBaseRoot }),
@@ -533,7 +539,7 @@ async function writeLinuxBuilderConfig(config: ToolPackConfig, paths: LinuxPaths
   const packageVersion = electronBuilderVersionForAppVersion(packagedVersion);
 
   const builderConfig: Record<string, unknown> = {
-    appId: "io.open-design.desktop",
+    appId: RUNTIME_APP_ID,
     artifactName: `${PRODUCT_NAME}-${namespaceToken}.\${ext}`,
     asar: false,
     buildDependenciesFromSource: false,
@@ -786,6 +792,7 @@ export function shouldRejectLinuxHeadlessInspectOptions(options: {
 
 type DesktopRootIdentityMarker = {
   appPath: string;
+  descriptor: RuntimeDescriptor;
   executablePath: string;
   logPath: string;
   namespaceRoot: string;
@@ -827,6 +834,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isDesktopRootIdentityMarker(value: unknown): value is DesktopRootIdentityMarker {
   if (!isRecord(value)) return false;
+  try {
+    normalizeRuntimeDescriptor(value.descriptor);
+  } catch (error) {
+    if (error instanceof RuntimeDescriptorError) return false;
+    throw error;
+  }
   return (
     value.version === 1 &&
     typeof value.pid === "number" &&
@@ -994,8 +1007,10 @@ async function fetchDesktopStatus(config: ToolPackConfig): Promise<DesktopStatus
     });
     const reply = await requestJsonIpc(ipc, { type: SIDECAR_MESSAGES.STATUS });
     if (reply == null || typeof reply !== "object") return null;
+    normalizeRuntimeDescriptor(Reflect.get(reply, "descriptor"));
     return reply as DesktopStatusSnapshot;
-  } catch {
+  } catch (error) {
+    if (error instanceof RuntimeDescriptorError) throw error;
     return null;
   }
 }

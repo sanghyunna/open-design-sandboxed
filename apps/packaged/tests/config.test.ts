@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const USER_DATA_DIR = join("C:", "Users", "Fred", "AppData", "Roaming", "Open Design");
@@ -68,7 +69,12 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
 
   function writeConfig(raw: Record<string, unknown>): void {
     const configPath = join(configDir, "open-design-config.json");
-    writeFileSync(configPath, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
+    const appVersion = typeof raw.appVersion === "string" ? raw.appVersion : "1.2.3";
+    writeFileSync(
+      configPath,
+      `${JSON.stringify({ appVersion, descriptor: createRuntimeDescriptor(appVersion), ...raw }, null, 2)}\n`,
+      "utf8",
+    );
     process.env[PACKAGED_CONFIG_PATH_ENV] = configPath;
   }
 
@@ -79,6 +85,31 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
       Object.defineProperty(process, "execPath", { value: previous, configurable: true });
     };
   }
+
+  it("rejects a missing or foreign product identity at the packaged config boundary", async () => {
+    const configPath = join(configDir, "open-design-config.json");
+    process.env[PACKAGED_CONFIG_PATH_ENV] = configPath;
+    writeFileSync(configPath, `${JSON.stringify({ appVersion: "1.2.3", namespace: "rg" }, null, 2)}\n`, "utf8");
+
+    await expect(readPackagedConfig()).rejects.toThrow(/runtime descriptor must be an object/);
+
+    writeFileSync(
+      configPath,
+      `${JSON.stringify({
+        appVersion: "1.2.3",
+        descriptor: { ...createRuntimeDescriptor("1.2.3"), productId: "open-design" },
+        namespace: "rg",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    await expect(readPackagedConfig()).rejects.toThrow(/productId must be "readable-studio"/);
+  });
+
+  it("rejects a descriptor whose app version differs from packaged config", async () => {
+    writeConfig({ appVersion: "2.0.0", descriptor: createRuntimeDescriptor("1.2.3"), namespace: "rg" });
+
+    await expect(readPackagedConfig()).rejects.toThrow(/appVersion does not match packaged config/);
+  });
 
   it("falls back to an exe-adjacent OpenDesignData root when portable and no explicit root", async () => {
     const exeDir = join("D:", "Portable", "Open Design");

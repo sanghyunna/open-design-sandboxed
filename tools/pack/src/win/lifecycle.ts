@@ -7,6 +7,8 @@ import {
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
+  normalizeRuntimeDescriptor,
+  RuntimeDescriptorError,
   type DesktopEvalResult,
   type DesktopScreenshotResult,
   type DesktopStatusSnapshot,
@@ -66,8 +68,15 @@ async function waitForDesktopStatus(config: ToolPackConfig, timeoutMs = 45_000):
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      return await requestJsonIpc<DesktopStatusSnapshot>(stamp.ipc, { type: SIDECAR_MESSAGES.STATUS }, { timeoutMs: 1000 });
-    } catch {
+      const snapshot = await requestJsonIpc<DesktopStatusSnapshot>(
+        stamp.ipc,
+        { type: SIDECAR_MESSAGES.STATUS },
+        { timeoutMs: 1000 },
+      );
+      normalizeRuntimeDescriptor(snapshot.descriptor);
+      return snapshot;
+    } catch (error) {
+      if (error instanceof RuntimeDescriptorError) throw error;
       await new Promise((resolveWait) => setTimeout(resolveWait, 200));
     }
   }

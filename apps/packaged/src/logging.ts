@@ -1,6 +1,6 @@
 import { appendFileSync } from "node:fs";
 
-import type { SidecarStamp } from "@readable-studio/sidecar-proto";
+import type { RuntimeDescriptor, SidecarStamp } from "@readable-studio/sidecar-proto";
 
 import type { PackagedNamespacePaths } from "./paths.js";
 
@@ -221,13 +221,15 @@ export function createPackagedDesktopLogger(paths: PackagedNamespacePaths): Pack
 }
 
 export function attachPackagedDesktopProcessLogging(options: {
+  descriptor: RuntimeDescriptor;
   logger: PackagedDesktopLogger;
   paths: PackagedNamespacePaths;
   stamp: SidecarStamp;
 }): void {
-  const { logger, paths, stamp } = options;
+  const { descriptor, logger, paths, stamp } = options;
 
   logger.info("packaged desktop starting", {
+    descriptor,
     daemonDataRoot: paths.dataRoot,
     electronUserDataRoot: paths.electronUserDataRoot,
     executablePath: process.execPath,

@@ -10,6 +10,7 @@ import {
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
+  createRuntimeDescriptor,
   normalizeDesktopSidecarMessage,
   type DesktopClickInput,
   type DesktopEvalInput,
@@ -720,7 +721,11 @@ export async function runDesktopMain(
       }
       switch (request.type) {
         case SIDECAR_MESSAGES.STATUS:
-          return { ...activeDesktop.status(), update: await updater.status() };
+          return {
+            ...activeDesktop.status(),
+            descriptor: createRuntimeDescriptor(options.update?.currentVersion?.trim() || app.getVersion()),
+            update: await updater.status(),
+          };
         case SIDECAR_MESSAGES.EVAL:
           return await activeDesktop.eval(request.input as DesktopEvalInput);
         case SIDECAR_MESSAGES.SCREENSHOT:

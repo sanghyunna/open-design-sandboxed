@@ -126,7 +126,12 @@ async function main(): Promise<void> {
 
   await ensurePackagedNamespacePaths(paths);
   packagedLogger = createPackagedDesktopLogger(paths);
-  attachPackagedDesktopProcessLogging({ logger: packagedLogger, paths, stamp });
+  attachPackagedDesktopProcessLogging({
+    descriptor: activeConfig.descriptor,
+    logger: packagedLogger,
+    paths,
+    stamp,
+  });
   startupTiming.flush();
   flushStartupTimingOnFailure = null;
   applyPackagedElectronPathOverrides(paths);
@@ -140,7 +145,7 @@ async function main(): Promise<void> {
   })) {
     return;
   }
-  const identity = await writePackagedDesktopIdentity({ paths, stamp });
+  const identity = await writePackagedDesktopIdentity({ descriptor: activeConfig.descriptor, paths, stamp });
   await app.whenReady();
 
   // Show the brand splash IMMEDIATELY, before we await the daemon/web sidecars

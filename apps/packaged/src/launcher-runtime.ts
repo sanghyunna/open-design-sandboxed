@@ -16,6 +16,7 @@ import {
   type LauncherAttemptDescriptor,
   type LauncherTargetSelection,
 } from "@readable-studio/launcher-proto";
+import { normalizeRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 
 import {
   resolveDefaultPackagedNodeCommandRelativePath,
@@ -191,6 +192,11 @@ async function resolvePayloadConfig(
   const packagedConfigPath = join(resourcesPath, "open-design-config.json");
   if (!(await pathExists(packagedConfigPath))) return null;
   const raw = await readJsonFile<RawPackagedConfig>(packagedConfigPath);
+  const descriptor = normalizeRuntimeDescriptor(raw.descriptor);
+  const appVersion = raw.appVersion?.trim() || manifest.version;
+  if (descriptor.appVersion !== appVersion || appVersion !== manifest.version) {
+    throw new Error("launcher payload product descriptor version does not match payload manifest");
+  }
   const webOutputMode = raw.webOutputMode === "standalone" || raw.webOutputMode === "server"
     ? raw.webOutputMode
     : config.webOutputMode;
@@ -204,8 +210,9 @@ async function resolvePayloadConfig(
   const nodeCommand = await resolveOptionalPayloadEntry(resourcesPath, relativeNodeCommand);
   return {
     ...config,
-    appVersion: raw.appVersion?.trim() || manifest.version,
+    appVersion,
     daemonSidecarEntry: await resolveOptionalPayloadEntry(resourcesPath, raw.daemonSidecarEntryRelative),
+    descriptor,
     nodeCommand,
     resourceRoot,
     webOutputMode: webOutputMode as PackagedWebOutputMode,

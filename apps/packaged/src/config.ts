@@ -1,7 +1,12 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
-import { SIDECAR_DEFAULTS, normalizeNamespace } from "@readable-studio/sidecar-proto";
+import {
+  SIDECAR_DEFAULTS,
+  normalizeNamespace,
+  normalizeRuntimeDescriptor,
+  type RuntimeDescriptor,
+} from "@readable-studio/sidecar-proto";
 
 // `electron` is loaded lazily so this module can also be imported from the
 // headless entry, which runs in a plain Node process without the electron
@@ -38,6 +43,7 @@ export type RawPackagedConfig = {
   appVersion?: string;
   daemonCliEntryRelative?: string;
   daemonSidecarEntryRelative?: string;
+  descriptor?: unknown;
   namespace?: string;
   namespaceBaseRoot?: string;
   nodeCommandRelative?: string;
@@ -59,6 +65,7 @@ export type PackagedConfig = {
   appVersion: string | null;
   daemonCliEntry: string | null;
   daemonSidecarEntry: string | null;
+  descriptor: RuntimeDescriptor;
   namespace: string;
   namespaceBaseRoot: string;
   nodeCommand: string | null;
@@ -165,6 +172,11 @@ async function resolvePackagedRelativeEntry(value: string | undefined): Promise<
 // @dsp func-6b11f489
 export async function readPackagedConfig(): Promise<PackagedConfig> {
   const raw = await readRawPackagedConfig();
+  const descriptor = normalizeRuntimeDescriptor(raw.descriptor);
+  const appVersion = cleanOptionalString(raw.appVersion);
+  if (appVersion !== descriptor.appVersion) {
+    throw new Error("runtime descriptor appVersion does not match packaged config appVersion");
+  }
   const namespace = normalizeNamespace(
     process.env[PACKAGED_NAMESPACE_ENV] ?? raw.namespace ?? SIDECAR_DEFAULTS.namespace,
   );
@@ -212,9 +224,10 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
 
   return {
     amrProfile: resolvePackagedAmrProfile(raw.amrProfile),
-    appVersion: cleanOptionalString(raw.appVersion),
+    appVersion,
     daemonCliEntry,
     daemonSidecarEntry,
+    descriptor,
     namespace,
     namespaceBaseRoot,
     nodeCommand,

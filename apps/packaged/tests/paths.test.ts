@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { PackagedConfig } from "../src/config.js";
@@ -20,6 +21,7 @@ function fakeConfig(): PackagedConfig {
     appVersion: null,
     daemonCliEntry: null,
     daemonSidecarEntry: null,
+    descriptor: createRuntimeDescriptor("0.0.0"),
     namespace: "release-stable-win",
     namespaceBaseRoot: join("C:", "Users", "Fred", "AppData", "Roaming", "Open Design", "namespaces"),
     nodeCommand: null,
@@ -59,6 +61,7 @@ describe("resolvePackagedNamespacePaths", () => {
       appVersion: "1.2.3",
       daemonCliEntry: null,
       daemonSidecarEntry: null,
+      descriptor: createRuntimeDescriptor("1.2.3"),
       namespace: "release",
       namespaceBaseRoot: "/tmp/open-design-packaged/namespaces",
       nodeCommand: null,

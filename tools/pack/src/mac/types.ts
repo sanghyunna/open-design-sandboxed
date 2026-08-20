@@ -1,4 +1,4 @@
-import type { DesktopEvalResult, DesktopScreenshotResult, DesktopStatusSnapshot, DesktopUpdateResult, SidecarStamp } from "@readable-studio/sidecar-proto";
+import type { DesktopEvalResult, DesktopScreenshotResult, DesktopStatusSnapshot, DesktopUpdateResult, RuntimeDescriptor, SidecarStamp } from "@readable-studio/sidecar-proto";
 import type { CacheReport } from "../cache.js";
 import type { ToolPackBuildOutput, ToolPackConfig } from "../config.js";
 import type { ToolPackLauncherRuntimeSnapshot } from "../launcher-runtime-snapshot.js";
@@ -92,6 +92,7 @@ export type MacInspectResult = {
 
 export type DesktopRootIdentityMarker = {
   appPath: string;
+  descriptor: RuntimeDescriptor;
   executablePath: string;
   logPath: string;
   namespaceRoot: string;

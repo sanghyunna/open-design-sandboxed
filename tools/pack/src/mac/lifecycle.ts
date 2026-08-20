@@ -9,6 +9,8 @@ import {
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
+  normalizeRuntimeDescriptor,
+  RuntimeDescriptorError,
   type DesktopEvalResult,
   type DesktopScreenshotResult,
   type DesktopStatusSnapshot,
@@ -59,6 +61,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isDesktopRootIdentityMarker(value: unknown): value is DesktopRootIdentityMarker {
   if (!isRecord(value)) return false;
+  try {
+    normalizeRuntimeDescriptor(value.descriptor);
+  } catch (error) {
+    if (error instanceof RuntimeDescriptorError) return false;
+    throw error;
+  }
   return (
     value.version === 1 &&
     typeof value.pid === "number" &&
@@ -79,6 +87,7 @@ function summarizeDesktopMarker(
   if (marker == null) return undefined;
   return {
     appPath: marker.appPath,
+    descriptor: marker.descriptor,
     executablePath: marker.executablePath,
     logPath: marker.logPath,
     namespaceRoot: marker.namespaceRoot,
@@ -225,8 +234,15 @@ async function waitForDesktopStatus(config: ToolPackConfig, timeoutMs = 45_000):
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      return await requestJsonIpc<DesktopStatusSnapshot>(stamp.ipc, { type: SIDECAR_MESSAGES.STATUS }, { timeoutMs: 1000 });
-    } catch {
+      const snapshot = await requestJsonIpc<DesktopStatusSnapshot>(
+        stamp.ipc,
+        { type: SIDECAR_MESSAGES.STATUS },
+        { timeoutMs: 1000 },
+      );
+      normalizeRuntimeDescriptor(snapshot.descriptor);
+      return snapshot;
+    } catch (error) {
+      if (error instanceof RuntimeDescriptorError) throw error;
       await new Promise((resolveWait) => setTimeout(resolveWait, 200));
     }
   }

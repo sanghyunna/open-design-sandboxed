@@ -10,6 +10,8 @@ import {
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
   SIDECAR_MODES,
+  normalizeRuntimeDescriptor,
+  RuntimeDescriptorError,
   type AppKey,
   type DaemonStatusSnapshot,
   type SidecarStamp,
@@ -211,7 +213,7 @@ export function resolveWebStatusTimeoutMs(
  * so the user can read the actual failure reason.
  */
 // @dsp func-35359063
-export async function waitForStatus<T>(
+export async function waitForStatus<T extends object>(
   ipcPath: string,
   isReady: (status: T) => boolean,
   timeoutMs = DAEMON_STATUS_TIMEOUT_MS,
@@ -246,8 +248,10 @@ export async function waitForStatus<T>(
           { type: SIDECAR_MESSAGES.STATUS },
           { timeoutMs: 800 },
         );
+        normalizeRuntimeDescriptor(Reflect.get(status, "descriptor"));
         if (isReady(status)) return status;
       } catch (error) {
+        if (error instanceof RuntimeDescriptorError) throw error;
         lastError = error;
       }
       await sleep(150);
@@ -551,6 +555,7 @@ export async function startPackagedSidecars(
         env: {
           [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort),
           [SIDECAR_ENV.WEB_PORT]: "0",
+          ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
           ...(options.webStandaloneRoot == null ? {} : { OD_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
           OD_WEB_OUTPUT_MODE: options.webOutputMode,
           PORT: "0",

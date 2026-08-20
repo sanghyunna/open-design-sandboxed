@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { DaemonStatusSnapshot } from '@readable-studio/sidecar-proto';
+import { createRuntimeDescriptor, type DaemonStatusSnapshot } from '@readable-studio/sidecar-proto';
 
 import { resetDesktopAuthForTests, setDesktopAuthSecret } from '../src/desktop-auth.js';
 import { withCurrentDesktopAuthGate } from '../src/sidecar/server.js';
@@ -28,6 +28,7 @@ describe('withCurrentDesktopAuthGate', () => {
   // than `desktopAuthGateActive` are arbitrary; the helper passes
   // them through verbatim, so we use stable fixtures.
   const baseSnapshot: DaemonStatusSnapshot = {
+    descriptor: createRuntimeDescriptor('1.2.3'),
     desktopAuthGateActive: false,
     pid: 12345,
     state: 'running',

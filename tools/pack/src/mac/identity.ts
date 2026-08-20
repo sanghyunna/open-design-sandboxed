@@ -1,4 +1,4 @@
-import { SIDECAR_DEFAULTS } from "@readable-studio/sidecar-proto";
+import { RUNTIME_APP_ID, SIDECAR_DEFAULTS } from "@readable-studio/sidecar-proto";
 
 import type { ToolPackConfig } from "../config.js";
 import { PRODUCT_NAME } from "./constants.js";
@@ -46,17 +46,17 @@ function productNameForChannel(channel: ReleaseChannelIdentity): string {
 }
 
 function appIdForChannel(channel: ReleaseChannelIdentity): string {
-  if (channel === "beta") return "io.open-design.desktop.beta";
-  if (channel === "nightly") return "io.open-design.desktop.nightly";
-  if (channel === "preview") return "io.open-design.desktop.preview";
-  return "io.open-design.desktop";
+  if (channel === "beta") return `${RUNTIME_APP_ID}.beta`;
+  if (channel === "nightly") return `${RUNTIME_APP_ID}.nightly`;
+  if (channel === "preview") return `${RUNTIME_APP_ID}.preview`;
+  return RUNTIME_APP_ID;
 }
 
 export function resolveMacInstallIdentity(config: Pick<ToolPackConfig, "namespace" | "appVersion">): MacInstallIdentity {
   const namespaceToken = sanitizeNamespace(config.namespace);
   const channel = channelFromVersion(config.appVersion) ?? channelFromNamespace(config.namespace);
   const channelIdentity = channel == null
-    ? { appId: "io.open-design.desktop", productName: PRODUCT_NAME }
+    ? { appId: RUNTIME_APP_ID, productName: PRODUCT_NAME }
     : { appId: appIdForChannel(channel), productName: productNameForChannel(channel) };
   const publicAppBundleName = `${channelIdentity.productName}.app`;
   const systemAppBundleName = channel != null

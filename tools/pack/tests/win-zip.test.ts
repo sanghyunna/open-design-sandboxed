@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
+import { createRuntimeDescriptor, type RuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { describe, expect, it } from "vitest";
 
 import type { ToolPackConfig } from "../src/config.js";
@@ -167,6 +168,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
     extractedConfig: Record<string, unknown>;
     originalConfig: {
       appVersion: string;
+      descriptor: RuntimeDescriptor;
       futureField: number;
       namespace: string;
       namespaceBaseRoot: string;
@@ -194,6 +196,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       const bakedNamespaceBaseRoot = join(root, "fake-tools-pack-runtime", "namespaces");
       const originalConfig = {
         appVersion: "1.2.3",
+        descriptor: createRuntimeDescriptor("1.2.3"),
         futureField: 7,
         namespace: "rg",
         namespaceBaseRoot: bakedNamespaceBaseRoot,

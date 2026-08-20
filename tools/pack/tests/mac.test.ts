@@ -3,6 +3,7 @@ import os, { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 
+import { createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ToolPackConfig } from "../src/config.js";
@@ -27,6 +28,7 @@ async function pathExists(path: string): Promise<boolean> {
 
 function makeConfig(root: string, overrides: Partial<ToolPackConfig> = {}): ToolPackConfig {
   return {
+    appVersion: "1.2.3",
     containerized: false,
     electronBuilderCliPath: "/x/electron-builder/cli.js",
     electronDistPath: "/x/electron/dist",
@@ -197,6 +199,7 @@ describe("renderMacPackagedConfig", () => {
         }),
       ) as Record<string, unknown>;
       expect(packagedConfig).not.toHaveProperty("nodeCommandRelative");
+      expect(packagedConfig.descriptor).toEqual(createRuntimeDescriptor("1.2.3"));
     } finally {
       await rm(root, { force: true, recursive: true });
     }

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import {
   APP_KEYS,
+  createRuntimeDescriptor,
   SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
@@ -61,7 +62,9 @@ describe("packaged identity markers", () => {
     };
 
     try {
+      const descriptor = createRuntimeDescriptor("1.2.3");
       const handle = await writePackagedDesktopIdentity({
+        descriptor,
         identityPath: paths.headlessIdentityPath,
         paths,
         stamp,
@@ -69,6 +72,7 @@ describe("packaged identity markers", () => {
 
       expect(await pathExists(paths.headlessIdentityPath)).toBe(true);
       expect(await pathExists(paths.desktopIdentityPath)).toBe(false);
+      expect(JSON.parse(await readFile(paths.headlessIdentityPath, "utf8"))).toMatchObject({ descriptor });
 
       await handle.close();
       expect(await pathExists(paths.headlessIdentityPath)).toBe(false);

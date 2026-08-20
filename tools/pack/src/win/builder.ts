@@ -3,6 +3,8 @@ import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { RUNTIME_APP_ID } from "@readable-studio/sidecar-proto";
+
 import { hashJson, hashPath, type CacheNode, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import { winResources } from "../resources.js";
@@ -254,7 +256,7 @@ async function runElectronBuilderRaw(
     )
     : null;
   const builderConfig = {
-    appId: "io.open-design.desktop",
+    appId: RUNTIME_APP_ID,
     afterPack: webStandaloneHookConfigPath == null ? undefined : winResources.webStandaloneAfterPackHook,
     asar: ELECTRON_BUILDER_ASAR,
     buildDependenciesFromSource: ELECTRON_BUILDER_BUILD_DEPENDENCIES_FROM_SOURCE,

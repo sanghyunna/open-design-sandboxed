@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
   APP_KEYS,
+  createRuntimeDescriptor,
   SIDECAR_CONTRACT,
   SIDECAR_MODES,
   SIDECAR_SOURCES,
@@ -24,6 +25,7 @@ function fixtureSource(
   behavior: FixtureBehavior,
 ): string {
   const peer = app === "daemon" ? "web" : "daemon";
+  const descriptor = createRuntimeDescriptor("1.2.3");
   return `
 import { appendFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -72,6 +74,7 @@ const server = createServer((socket) => {
       socket.end(JSON.stringify({
         ok: true,
         result: {
+          descriptor: ${JSON.stringify(descriptor)},
           pid: process.pid,
           state: "running",
           updatedAt: new Date().toISOString(),

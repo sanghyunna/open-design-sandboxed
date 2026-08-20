@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import {
   SIDECAR_ENV,
   SIDECAR_MESSAGES,
+  createRuntimeDescriptor,
   normalizeWebSidecarMessage,
   type SidecarStamp,
   type WebStatusSnapshot,
@@ -806,7 +807,11 @@ async function createWebSidecarHandle(
   isRuntimeRunning?: () => boolean,
 ): Promise<WebSidecarHandle> {
   const port = await listen(httpServer, parsePort(process.env[WEB_PORT_ENV]));
+  const packageMetadata = JSON.parse(readFileSync(join(resolveWebRoot(), "package.json"), "utf8")) as { version?: unknown };
+  const appVersion = process.env.OD_APP_VERSION?.trim()
+    || (typeof packageMetadata.version === "string" ? packageMetadata.version : "0.0.0");
   const state: WebStatusSnapshot = {
+    descriptor: createRuntimeDescriptor(appVersion),
     pid: process.pid,
     state: "running",
     updatedAt: new Date().toISOString(),

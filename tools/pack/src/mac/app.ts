@@ -2,7 +2,7 @@ import { cp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
 import { rebuild, type RebuildOptions } from "@electron/rebuild";
-import { SIDECAR_ENV } from "@readable-studio/sidecar-proto";
+import { SIDECAR_ENV, createRuntimeDescriptor } from "@readable-studio/sidecar-proto";
 
 import type { ToolPackConfig } from "../config.js";
 import {
@@ -156,6 +156,7 @@ export function renderMacPackagedConfig(options: {
     {
       ...(options.config.amrProfile == null ? {} : { amrProfile: options.config.amrProfile }),
       appVersion: options.appVersion,
+      descriptor: createRuntimeDescriptor(options.appVersion),
       ...(options.usePrebundledStandaloneWeb ? { daemonCliEntryRelative: MAC_PREBUNDLED_DAEMON_CLI_RELATIVE_PATH } : {}),
       ...(options.usePrebundledStandaloneWeb
         ? { daemonSidecarEntryRelative: MAC_PREBUNDLED_DAEMON_SIDECAR_RELATIVE_PATH }

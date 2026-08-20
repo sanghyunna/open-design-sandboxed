@@ -46,7 +46,7 @@ function makeConfig(root: string, namespace: string): ToolPackConfig {
 describe("resolveMacInstallIdentity", () => {
   it("keeps stable builds on the canonical mac identity", () => {
     expect(resolveMacInstallIdentity(makeConfig("/work", "release-stable"))).toMatchObject({
-      appId: "io.open-design.desktop",
+      appId: "studio.readable.desktop",
       installerTitle: "Open Design",
       productName: "Open Design",
       publicAppBundleName: "Open Design.app",
@@ -58,7 +58,7 @@ describe("resolveMacInstallIdentity", () => {
     const config = makeConfig("/work", "release-beta");
 
     expect(resolveMacInstallIdentity(config)).toEqual({
-      appId: "io.open-design.desktop.beta",
+      appId: "studio.readable.desktop.beta",
       executableName: "Open Design Beta",
       installerTitle: "Open Design Beta",
       productName: "Open Design Beta",
@@ -72,7 +72,7 @@ describe("resolveMacInstallIdentity", () => {
     const config = makeConfig("/work", "release-preview");
 
     expect(resolveMacInstallIdentity(config)).toEqual({
-      appId: "io.open-design.desktop.preview",
+      appId: "studio.readable.desktop.preview",
       executableName: "Open Design Preview",
       installerTitle: "Open Design Preview",
       productName: "Open Design Preview",
@@ -90,7 +90,7 @@ describe("resolveMacInstallIdentity", () => {
     const nightlyNamespaceConfig = makeConfig("/work", "release-nightly");
 
     expect(resolveMacInstallIdentity(nightlyVersionConfig)).toEqual({
-      appId: "io.open-design.desktop.nightly",
+      appId: "studio.readable.desktop.nightly",
       executableName: "Open Design Nightly",
       installerTitle: "Open Design Nightly",
       productName: "Open Design Nightly",

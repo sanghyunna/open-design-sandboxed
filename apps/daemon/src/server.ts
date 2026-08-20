@@ -53,7 +53,7 @@ import {
   probeIsolatedAgentSupport,
   spawnIsolatedAgent,
 } from '@readable-studio/platform';
-import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@readable-studio/sidecar-proto';
+import { SIDECAR_DEFAULTS, SIDECAR_ENV, createRuntimeDescriptor } from '@readable-studio/sidecar-proto';
 import {
   checkPromptArgvBudget,
   checkWindowsCmdShimCommandLineBudget,
@@ -4438,13 +4438,18 @@ export async function startServer({
 
   app.get('/api/health', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
-    res.json({ ok: true, version: versionInfo.version });
+    res.json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
+      ok: true,
+      version: versionInfo.version,
+    });
   });
 
   app.get('/api/ready', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
     const ready = !daemonShuttingDown;
     res.status(ready ? 200 : 503).json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
       ok: ready,
       ready,
       version: versionInfo.version,
@@ -4453,7 +4458,7 @@ export async function startServer({
 
   app.get('/api/version', async (_req, res) => {
     const version = await readCurrentAppVersionInfo();
-    res.json({ version });
+    res.json({ descriptor: createRuntimeDescriptor(version.version), version });
   });
 
   // Plan §3.F2 / spec §11.7 — daemon lifecycle status. Returns the
@@ -4463,6 +4468,7 @@ export async function startServer({
   app.get('/api/daemon/status', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
     res.json({
+      descriptor: createRuntimeDescriptor(versionInfo.version),
       ok: true,
       version: versionInfo.version,
       bindHost: host,
