@@ -321,7 +321,7 @@ corepack enable && pnpm install
 pnpm tools-dev run web
 ```
 
-Node `~24`, pnpm `10.33.x`. Windows-Nutzer, siehe [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Vollständiger Schnellstart, Umgebungsvariablen, Nix-Flake und der gepackte Build-Ablauf → [`QUICKSTART.de.md`](QUICKSTART.de.md).
+Node `~24`, pnpm `10.33.x`. Windows-Nutzer, siehe [`docs/windows-troubleshooting.md`](../../docs/windows-troubleshooting.md). Vollständiger Schnellstart, Umgebungsvariablen und der gepackte Build-Ablauf → [`QUICKSTART.de.md`](QUICKSTART.de.md).
 
 ### Ein vollständiger Workflow — vom Briefing zum Artefakt
 
