@@ -9423,66 +9423,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "03a9230a5b107660d36d696d1b36cdb60502adbdab4473f5add68881111d6a28",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/fake-vela.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3e0ed1b4de2ab287699800cb647bee5b8d91f4e752e9eb11a1a2827aed5bc964",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/fake-vela.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c2e91ecbe091313030f048fba40fcedd3dab0d0df3440d902ee8bb80707332dc",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/fake-vela.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d981b062cbaa608abebc2a970b9990022f01e11f2f854a0d7ccdc94e2a3d2850",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/plugin-fixtures/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "c6376bb8155227dc47bd584fee80964c364eef206e2d6468b073529a8aa1448a",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/readable-studio.json",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "51e654ffe9e7d3eff4c2a68211820f6632c94b4bcc8a1cfd0de9ff6571c3131e",
-      "location": "content",
-      "path": "apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/SKILL.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "15c9f396c065eab9786c6e027de62ca32e2dbc3e7509a6f9f7b7a4773c8b0b45",
@@ -11801,16 +11741,6 @@
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "13ae160724329a967f16ac6de1df46e8afd06128fe49358bbe4276c4d9fae681",
-      "location": "content",
-      "path": "apps/daemon/tests/mocks-golden.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
     },
     {
       "class": "machine contract to migrate",
@@ -47773,623 +47703,123 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/claude",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/codex",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/deepseek",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/grok",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/opencode",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2448c50e63fb72f93b4d4fcbcb989164e809f85bb56ae1b4b05fcd0ddd607a46",
-      "location": "content",
-      "path": "mocks/bin/qwen",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 2,
       "fingerprint": "050435856ae937c611e2aec93f8a2f550c89472753413ecffd735ba4bff6a5ed",
       "location": "content",
       "path": "mocks/golden/314d6833-0377-4ac4-ba11-2b8d7eca5511.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 2,
       "fingerprint": "48055eac6c4be697e3b08f1f85e49de5ccbd00afc05b9c7891df8ccfb0aa1413",
       "location": "content",
       "path": "mocks/golden/314d6833-0377-4ac4-ba11-2b8d7eca5511.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "d62056383467c6779e0045599dc274f4ec47104915ad8a0f27d9cdfcdc235055",
       "location": "content",
       "path": "mocks/golden/314d6833-0377-4ac4-ba11-2b8d7eca5511.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "4da92996cef2b7ca4760a375d8546bec8d3389137c7cbe1e58ebd84c3f0ea116",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "6947cfeeedbfece1af268be7b7986582cc42bf1eef548698e12e9a64c031da00",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "78ebdf8230b67b88d0b4d444a7a0707fbec842842862debcbb0871510c70214a",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "7ec07f4f4c95a8120fd2e6566da900609a33fa18abcb74f81fb81976ee4379f4",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "b13c0237f98fd1c29f35b6a59da2b9e3d629c9ea2da9a5610993fea196649f97",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "b7d4ab12601abd1c894a7f5ed3d45ec4e3c4b9a02bc0a5826b8f2f02bb18d580",
       "location": "content",
       "path": "mocks/golden/9a9522ec-575f-432f-aeed-efc491e900aa.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
-      "class": "active product",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "e8dedc2b762ab0ba9c62a6ba3230e66c4fa28fcf85bc4cb43d88aa7182eb609c",
       "location": "content",
       "path": "mocks/golden/dcdff3b3-cd39-4dcd-be83-372830a29639.events.json",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "Open Design"
     },
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "0b6f0e30c1df9269208badf4fd4396ed58a6abb1a48657477681b79f0d79acdb",
+      "fingerprint": "5e8e65e4aa6ad279bdd03a69bf2d75960701c8451e1fdb32b43f26f8ce498318",
       "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
+      "path": "mocks/lib/recording-picker.test.mjs",
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "191e4964582da5dbd94c6755dbb9bdb68e72faa171ce6df281995d28fb099d92",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2c98acc179b1ed39ec1073050c9a15930e3f9c413d793a8fcec8095624e843bc",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "54f0ae27ea636cdcd9d90524b25ba97181c7151a0c0b2008c85792a4417c7694",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6cc70dd4c5f91f9765f15be5e1a0c10cf48e573919e870a5865a975b0d7dd3d2",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "728ad95a08845df44f34cabeecaac2a489a9a72486cc63e5680735ab51f98168",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7475622bed0ab820f6c9fb615f53addbb344417e3a84fa47a385cbdf5bbc4bde",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "79bec56def197b25adfbe611edab3d35e7a73a53c8f6bfc41ff684c1a2d6ef8a",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7f681c2df95f7716d7a43985a55ac749f6f922049afd9503e32b0df08314bf75",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "890ce76d78da8f8293d05e3fdd577f2bbac2c40725e9cdc93392df1b7c5d6fca",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8a53c86fa9a296e131e5bccab980680541da604eda14f201c23647d0e9bb43bc",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "96a05c997c9e88343db3e164c30e4b933651bf19f89846eb39329170023afc66",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c785c219d0068d9c571eacc45d94ea1befeb0ae5aad55249b34666eb0c49079c",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e6ed689ee7b3e9981073addc251de387fe7623a1ad51c6803f14e3004997be3c",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fc4857d93bc19a0379247749059f15b6239829a9c586576a882fe7f0221dab25",
-      "location": "content",
-      "path": "mocks/lib/recording-picker.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
+      "class": "immutable history/provenance",
       "count": 1,
       "fingerprint": "9cfebe5f3a727cc48fb35623bdf92f7776000fe4f309140e7b6d53ac4c51df14",
       "location": "content",
       "path": "mocks/manifest.json",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b26070963a52d4aacc9ad00adbdbf84d4bb9f1717de3f6341e81bb8fe7850daf",
-      "location": "content",
-      "path": "mocks/mock-agent.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ce9bf6ba540d67ff2c0e4fcf818c85b63b566c8f986623f5ec0e534f7833cf5b",
-      "location": "content",
-      "path": "mocks/mock-agent.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fd9bca03c9e0444dbe64b4298f09eaa3f859216865631ad980ae3ee2748e1e9b",
-      "location": "content",
-      "path": "mocks/mock-agent.mjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "01ce1a1503b54c60d41b78f9f70e22b68ee8b2670f4284e79f8cab1aad1e336d",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "1544e932420611c45725e7e35678a6cc7957121c2ada1fc625b54fffeb958b5d",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "39fc315ac67aa8ceae8f64085699116e36175a6edc7a43d44aa40b22749d98e6",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "7074a8f1c0e58583a09a78cbb3fd4c295b0a5be583d2b1ea0dab45c013b3098e",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a46a3737ce3cdd792ab787d4f32a4ab9cdbb0894be73d7099da9289727081e26",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a78e4f60c16731cd4ce7edfd1604f686d4ccfcac856f719850b8c10b86fe6241",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b2ef52c6d503272bd9b0b057c667a55e4a93321d51449483a96da25e2f9cd2f0",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d00929fb59349f50a7cadd160e51bd3ae3c32c51f7a7a97a986b6fbcea632300",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d58fa51f58e4ee45d423f34df88c77674ca20ede5915e4b72c0ad3b114f29d5d",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "db1b33ef4f65c8bfcd56e26377887300ff9a34c476d0eece3fff94137a8b35ee",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e389e47bbee951c9818b917aa5605fdf8f62f6e3b32808bcf271de731db4b349",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fa7c07be5e87269339eaf22e046e314afa36cfd34999e8d3dfdd29ae7c9a607c",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0d758d3b0bbb6dbfc1134ed822a353db5c9ce6f28781afc04393ef0992c8e116",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "175e32db24e4108f4f3bd1faf89e7e22f9c128eeb20e4baadd195adfea10b976",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1b4715c1a31f97c65f1e9f88d1f9a328ad74cdc21c94c6a20ac4f58f467be642",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4bc9d315d1f528236f2e2ef1e6e51f126bd27bcd30f1006d62323cec81c119ab",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b293f2569c36813de3bf7eeab61cbc7fff8c6bdf9051dbefc2f448f98b124806",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dc4b2c4d34089bac043b4a004ba25a7bf9eb120ebdcc52bde0f2b593b4d2a33f",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f50bd5c70878426aa8522269ba27888573682a47f7858a1fe92a6894849654bc",
-      "location": "content",
-      "path": "mocks/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "99f909a7e8358b3453c77f50d497068e77bb4690831cfe3917a17ba42f51c592",
-      "location": "content",
-      "path": "mocks/scripts/contract-check.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "46fba6b553d8107f03cf589c168080b486cd8232ef7a89e97232d860fcf1de12",
-      "location": "content",
-      "path": "mocks/scripts/fetch-recordings.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f686b9e2d68c9a7d46af8452fbf78364364a787148d1fcf5b94fce037270ce78",
-      "location": "content",
-      "path": "mocks/scripts/fetch-recordings.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1544e932420611c45725e7e35678a6cc7957121c2ada1fc625b54fffeb958b5d",
-      "location": "content",
-      "path": "mocks/scripts/smoke-test.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d80caca4891b0ac4096e4fb6ddc42d753bae6ca3f0d3627d715b438e09cf2fd5",
-      "location": "content",
-      "path": "mocks/scripts/smoke-test.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dd8b9bd1c17ffc369b49b8fb4693728cbdae143bbf9120017652bcf50de42a31",
-      "location": "content",
-      "path": "mocks/scripts/smoke-test.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "01755f9ce2414a192a0fca94170905e7b3e2af672a2642228aeb5f4a8698f0e9",
-      "location": "content",
-      "path": "mocks/scripts/upload-recording.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7e741b1a846f7f34307b8f0152eb82584cfe0d91ca0a5e1130daf19a59c33ebc",
-      "location": "content",
-      "path": "mocks/scripts/upload-recording.sh",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
+      "reason": "Truthful immutable history or raw provenance retained without rewriting.",
+      "ruleId": "identity.immutable-history-provenance",
       "token": "open-design"
     },
     {
@@ -50475,16 +49905,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "4f8707cb35eb42db0c7375ab46899071c3abee18ea09fcf21c2f41070de54017",
-      "location": "content",
-      "path": "plugins/_official/examples/kami-landing/example.html",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "4362454016e2a339f2815e8d3d6c0f64935e1126289b3fd955343e615b3a4b6a",
       "location": "content",
       "path": "plugins/_official/examples/last30days/references/save-html-brief.md",
@@ -52415,7 +51835,87 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
+      "fingerprint": "90df7591fa10c8e52fd0676ba7baa51c873a6909e601a16ba8d8a48024cf1355",
+      "location": "content",
+      "path": "scripts/bundled-copy-language.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "__od__"
+    },
+    {
+      "class": "active product",
+      "count": 1,
+      "fingerprint": "85ba959d4d058caf07526b7f833e5503d34e479994089b23a04976822efa3420",
+      "location": "content",
+      "path": "scripts/bundled-copy-language.test.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "active product",
+      "count": 1,
+      "fingerprint": "90df7591fa10c8e52fd0676ba7baa51c873a6909e601a16ba8d8a48024cf1355",
+      "location": "content",
+      "path": "scripts/bundled-copy-language.test.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "90df7591fa10c8e52fd0676ba7baa51c873a6909e601a16ba8d8a48024cf1355",
+      "location": "content",
+      "path": "scripts/bundled-copy-language.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "open-design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "e1b155c9ff792323f951fa1ab708282c0cd0e6184d9ef67a569dd15c771cf796",
+      "location": "content",
+      "path": "scripts/check-bundled-copy-language.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "__od__"
+    },
+    {
+      "class": "active product",
+      "count": 1,
+      "fingerprint": "e1b155c9ff792323f951fa1ab708282c0cd0e6184d9ef67a569dd15c771cf796",
+      "location": "content",
+      "path": "scripts/check-bundled-copy-language.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
       "fingerprint": "5db87a20673747e0ab87da4396f265cd0c4363b011ce6b51e8ad4a1288e7f1f7",
+      "location": "content",
+      "path": "scripts/check-bundled-copy-language.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "open-design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "cc1009daa555128e3079cbe86ba47f8a1eb4600c1dc3b9a4c044102df7bf4496",
+      "location": "content",
+      "path": "scripts/check-bundled-copy-language.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "open-design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "e1b155c9ff792323f951fa1ab708282c0cd0e6184d9ef67a569dd15c771cf796",
       "location": "content",
       "path": "scripts/check-bundled-copy-language.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -52865,6 +52365,16 @@
     {
       "class": "active product",
       "count": 1,
+      "fingerprint": "810db5d78aadc377ac647b9b6a086b76443393c19fd15999c392d239a5d0c91c",
+      "location": "content",
+      "path": "scripts/readable-identity-audit.test.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "active product",
+      "count": 1,
       "fingerprint": "8838c3350b9098f0a3334d9ce0222bcaaa2ba00cbd4016068fd0550ee41a1dfb",
       "location": "content",
       "path": "scripts/readable-identity-audit.test.ts",
@@ -52875,7 +52385,27 @@
     {
       "class": "active product",
       "count": 1,
+      "fingerprint": "89085b7d6ac2f0f13b142a83ada8d5acdfd07f75e4184bc65a23e0f2b4a765fb",
+      "location": "content",
+      "path": "scripts/readable-identity-audit.test.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "active product",
+      "count": 1,
       "fingerprint": "983b524207db7c6189d0e4bf9935a566cb7ae16fcbe59c25c6cd5f12e603ca8c",
+      "location": "content",
+      "path": "scripts/readable-identity-audit.test.ts",
+      "reason": "Repository-owned product identity residue awaiting migration.",
+      "ruleId": "identity.active-product",
+      "token": "Open Design"
+    },
+    {
+      "class": "active product",
+      "count": 1,
+      "fingerprint": "c2833fec08e228f0f69d60de32f3bf3827d9e2ccbaff20f5b9cb8de05e205419",
       "location": "content",
       "path": "scripts/readable-identity-audit.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
