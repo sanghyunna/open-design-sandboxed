@@ -129,18 +129,22 @@ describe('derivePluginSourceLinks · url + local + bundled sources', () => {
     expect(out.sourceKindLabel).toBe('Local');
   });
 
-  it('routes bundled official sources to the Open Design repo', () => {
+  it('routes bundled official sources to the canonical repository', () => {
+    // Given: a bundled first-party plugin.
     const out = derivePluginSourceLinks(
       makeRecord({
         sourceKind: 'bundled',
         source:     'plugins/_official/scenarios/od-code-migration',
       }),
     );
-    expect(out.sourceUrl).toBe('https://github.com/nexu-io/open-design');
+
+    // When: its source links are derived.
+    // Then: every repository-bearing field uses the canonical repository contract.
+    expect(out.sourceUrl).toBe('https://github.com/sanghyunna/readable-studio');
     expect(out.sourceKindLabel).toBe('Official');
-    expect(out.sourceLabel).toBe('nexu-io/open-design');
-    expect(out.authorProfileUrl).toBe('https://github.com/nexu-io/open-design');
-    expect(out.homepageUrl).toBe('https://github.com/nexu-io/open-design');
+    expect(out.sourceLabel).toBe('sanghyunna/readable-studio');
+    expect(out.authorProfileUrl).toBe('https://github.com/sanghyunna/readable-studio');
+    expect(out.homepageUrl).toBe('https://github.com/sanghyunna/readable-studio');
   });
 });
 
@@ -199,9 +203,9 @@ describe('derivePluginSourceLinks · author + contribute', () => {
         } as InstalledPluginRecord['manifest'],
       }),
     );
-    expect(out.contributeUrl).toBe('https://github.com/nexu-io/open-design/issues/new');
+    expect(out.contributeUrl).toBe('https://github.com/sanghyunna/readable-studio/issues/new');
     expect(out.contributeOnGithub).toBe(true);
-    expect(out.homepageUrl).toBe('https://github.com/nexu-io/open-design');
+    expect(out.homepageUrl).toBe('https://github.com/sanghyunna/readable-studio');
   });
 
   it('drops malformed homepage values', () => {

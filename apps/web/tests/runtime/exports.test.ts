@@ -265,6 +265,18 @@ describe('buildDesignHandoffContent', () => {
     expect(content).toContain('Build product screens and domain-specific in-app modules');
   });
 
+  it('uses the canonical standalone title when an export title is empty', () => {
+    // Given: an export request without a user-provided title.
+    // When: the machine-readable manifest is generated.
+    const manifest = JSON.parse(buildDesignManifestContent({
+      title: '',
+      entryFile: 'index.html',
+    }));
+
+    // Then: the generated title carries the canonical product identity.
+    expect(manifest.title).toBe('Readable Studio artifact');
+  });
+
   it('builds a machine-readable design manifest for coding tools', () => {
     const manifest = JSON.parse(buildDesignManifestContent({
       title: 'Checkout Design',

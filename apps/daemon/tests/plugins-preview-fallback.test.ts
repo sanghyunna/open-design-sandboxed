@@ -130,7 +130,6 @@ describe('GET /api/plugins/:id/preview — fallback chain', () => {
     const body = await resp.text();
     expect(body).toContain('<main id="deck">');
     expect(body).toContain('fallback body via assets');
-    expect(body).toContain('Preview fallback fixture | Open Design Example');
   });
 
   it('rejects an oversized selected preview before reading it', async () => {

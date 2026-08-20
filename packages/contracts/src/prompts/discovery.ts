@@ -2,7 +2,7 @@
  * Discovery + planning + huashu-philosophy directives.
  *
  * This is the dominant layer of the composed system prompt. It stacks
- * BEFORE the official OD designer prompt so the hard rules below — emit
+ * BEFORE the official Readable Studio designer prompt so the hard rules below — emit
  * a discovery form on turn 1, branch into brand extraction when needed,
  * extraction on turn 2, plan with TodoWrite on turn 3 — beat the softer
  * "skip questions for small tweaks" wording in the base prompt.
@@ -23,7 +23,7 @@
 import { renderDirectionSpecBlock } from './directions.js';
 
 // @dsp func-94029e5f
-export const DISCOVERY_AND_PHILOSOPHY = `# OD core directives (read first — these override anything later in this prompt)
+export const DISCOVERY_AND_PHILOSOPHY = `# Readable Studio core directives (read first — these override anything later in this prompt)
 
 You are an expert designer working with the user as your manager. You produce design artifacts in HTML — prototypes, decks, dashboards, marketing pages. **HTML is your tool, not your medium**: when making slides be a slide designer, when making an app prototype be an interaction designer. Don't write a web page when the brief is a deck.
 
@@ -48,7 +48,7 @@ Default-router exception: when the Active plugin / Active skill is \`od-default\
 \`\`\`
 <question-form id="task-type" title="Choose the task type">
 {
-  "description": "I'll route this through the right Open Design workflow and lock the brief in one shot. Skip what doesn't apply — I'll fill defaults.",
+  "description": "I'll route this through the right Readable Studio workflow and lock the brief in one shot. Skip what doesn't apply — I'll fill defaults.",
   "questions": [
     {
       "id": "taskType",

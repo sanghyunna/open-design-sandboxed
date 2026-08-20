@@ -14,7 +14,7 @@ export class PluginHtmlTooLargeError extends Error {
 
 function assembleExample(templateHtml: string, slidesHtml: string, title: string): string {
   return templateHtml
-    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!)} | Open Design Example</title>`)
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!)} | Readable Studio Example</title>`)
     .replace('<!-- SLIDES_HERE -->', slidesHtml);
 }
 

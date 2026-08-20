@@ -10,7 +10,7 @@
 //     changed under their feet.
 //
 // Phase 1 returns a flat list of issues rather than a JSON-structured report;
-// the CLI renders them as `od plugin doctor <id>` output. Spec §11.5 promises
+// the CLI renders them as `readable plugin doctor <id>` output. Spec §11.5 promises
 // a richer report (severity / kind enum) which we'll layer in once Phase 4
 // adds the diagnostics endpoint.
 

@@ -1201,7 +1201,7 @@ const PLUGIN_REGISTRY_DIR = resolveDaemonResourceDir(
   path.join(PROJECT_ROOT, 'plugins', 'registry'),
 );
 const OFFICIAL_MARKETPLACE_ID = 'official';
-const OFFICIAL_PLUGIN_SOURCE_REPO = 'github:nexu-io/open-design@main';
+const OFFICIAL_PLUGIN_SOURCE_REPO = 'github:sanghyunna/readable-studio@main';
 
 // @dsp func-7529918d
 export function isStaticSpaFallbackRequest(req) {
@@ -1619,7 +1619,7 @@ export function createAgentRuntimeToolPrompt(
     return [
       '## Runtime tool environment',
       '',
-      '- Open Design tools are available only through the run-scoped broker.',
+      '- Readable Studio tools are available only through the run-scoped broker.',
       '- Run wrappers with `OD_NODE_BIN` + `OD_BIN`; the broker accepts only `tools ...` subcommands and does not expose the daemon URL or bearer tokens.',
       '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
     ].join('\n');
@@ -1633,7 +1633,7 @@ export function createAgentRuntimeToolPrompt(
     '',
     `- Daemon URL: \`${daemonUrl}\` (also available as \`OD_DAEMON_URL\`).`,
     '- `OD_NODE_BIN` is the absolute path to the Node-compatible runtime that started the daemon; packaged desktop installs provide this even when the user has no system `node` on PATH.',
-    '- `OD_BIN` is the absolute path to the Open Design CLI script. On POSIX shells run wrappers with `"$OD_NODE_BIN" "$OD_BIN" tools ...`; do not call bare `od`, which may resolve to the system octal-dump command on Unix-like systems.',
+    '- `OD_BIN` is the absolute path to the Readable Studio CLI script. On POSIX shells run wrappers with `"$OD_NODE_BIN" "$OD_BIN" tools ...`; do not call obsolete `od`, which is not an alias and may resolve to the system octal-dump command on Unix-like systems.',
     '- On PowerShell use `& $env:OD_NODE_BIN $env:OD_BIN tools ...`; on cmd.exe use `"%OD_NODE_BIN%" "%OD_BIN%" tools ...`.',
     tokenLine,
     '- Prefer project wrapper commands through `OD_NODE_BIN` + `OD_BIN` over raw HTTP. The wrappers read these environment values automatically.',
@@ -1820,7 +1820,7 @@ function renderRunContextPrompt(selection, metadata) {
   if (Array.isArray(context.workspaceItems) && context.workspaceItems.length > 0) {
     lines.push('### Active workspace context');
     lines.push(
-      'The user did not manually choose this context; Open Design selected the currently focused workspace tab. Use it as the default target for phrases like "this", "current", "the browser", "the terminal", or "that file" unless the user says otherwise. Use project-relative paths exactly when reading or editing project files.',
+      'The user did not manually choose this context; Readable Studio selected the currently focused workspace tab. Use it as the default target for phrases like "this", "current", "the browser", "the terminal", or "that file" unless the user says otherwise. Use project-relative paths exactly when reading or editing project files.',
     );
     lines.push(formatWorkspaceContextList(context.workspaceItems));
     const toolHints = renderWorkspaceContextToolHints(context.workspaceItems);
@@ -2111,7 +2111,7 @@ function githubRepoNameFromPluginName(name) {
 
 const PLUGIN_SHARE_ACTION_LABELS = {
   'publish-github': 'Publish to GitHub',
-  'contribute-open-design': 'Contribute to Open Design',
+  'contribute-open-design': 'Contribute to Readable Studio',
 };
 
 const USER_PLUGIN_SOURCE_KINDS = new Set([
@@ -2158,10 +2158,10 @@ function renderPluginSharePrompt({ action, sourcePlugin, stagedPath }) {
   const title = sourcePlugin.title || sourcePlugin.id;
   if (action === 'publish-github') {
     return [
-      `Publish the local Open Design plugin "${title}" as a new public GitHub repository.`,
+      `Publish the local Readable Studio plugin "${title}" as a new public GitHub repository.`,
       '',
       `The plugin source files have been copied into this project at \`${stagedPath}\`.`,
-      'Use the local daemon share endpoint so the publish flow runs through Open Design\'s validated GitHub path:',
+      'Use the local daemon share endpoint so the publish flow runs through Readable Studio\'s validated GitHub path:',
       '',
       '```bash',
       `curl -sS -X POST "$OD_DAEMON_URL/api/projects/$OD_PROJECT_ID/plugins/publish-github" \\`,
@@ -2175,10 +2175,10 @@ function renderPluginSharePrompt({ action, sourcePlugin, stagedPath }) {
     ].join('\n');
   }
   return [
-    `Open a pull request to add the local Open Design plugin "${title}" to the Open Design repository.`,
+    `Open a pull request to add the local Readable Studio plugin "${title}" to the Readable Studio repository.`,
     '',
     `The plugin source files have been copied into this project at \`${stagedPath}\`.`,
-    'Use the local daemon share endpoint so the contribution flow runs through Open Design\'s validated GitHub path:',
+    'Use the local daemon share endpoint so the contribution flow runs through Readable Studio\'s validated GitHub path:',
     '',
     '```bash',
     `curl -sS -X POST "$OD_DAEMON_URL/api/projects/$OD_PROJECT_ID/plugins/contribute-open-design" \\`,
@@ -3105,7 +3105,7 @@ function renderOAuthResultPage(opts) {
   const title = ok ? 'Connected' : 'Authorization failed';
   const heading = ok ? '✅ Connected' : '⚠️ Authorization failed';
   const body = ok
-    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Open Design.`
+    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Readable Studio.`
     : escapeHtml(opts.message ?? 'Authorization could not be completed.');
   const accent = ok ? '#1a7f37' : '#cf222e';
   const payload = ok
@@ -3115,7 +3115,7 @@ function renderOAuthResultPage(opts) {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${escapeHtml(title)} — Open Design</title>
+<title>${escapeHtml(title)} — Readable Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root { color-scheme: light dark; }
@@ -3162,7 +3162,7 @@ function renderOAuthResultPage(opts) {
         window.opener.postMessage(payload, '*');
       }
       if (window.BroadcastChannel) {
-        var bc = new BroadcastChannel('open-design-mcp-oauth');
+        var bc = new BroadcastChannel('readable-studio-mcp-oauth');
         bc.postMessage(payload);
         bc.close();
       }
@@ -3529,16 +3529,16 @@ function pluginShareActionToCli(action) {
     return {
       argv: ['plugin', 'publish-repo'],
       title: 'Publish repo',
-      command: 'od plugin publish-repo',
+      command: 'readable plugin publish-repo',
       successMessage: 'Published plugin to GitHub.',
       failureCode: 'publish-repo-failed',
     };
   }
   return {
     argv: ['plugin', 'open-design-pr'],
-    title: 'Open Design PR',
-    command: 'od plugin open-design-pr',
-    successMessage: 'Opened Open Design PR flow.',
+    title: 'Readable Studio PR',
+    command: 'readable plugin open-design-pr',
+    successMessage: 'Opened Readable Studio PR flow.',
     failureCode: 'open-design-pr-failed',
   };
 }
@@ -3553,7 +3553,7 @@ function pluginShareProgressPlan(action) {
     ];
   }
   return [
-    'Ensure the Open Design fork exists',
+    'Ensure the Readable Studio fork exists',
     'Clone the fork and prepare a branch',
     'Copy the plugin into plugins/community',
     'Push the branch and open the PR form',
@@ -3601,7 +3601,7 @@ async function runPluginShareTask(task, folder) {
     message: url
       ? (task.action === 'publish-github'
           ? `Published plugin to ${url}.`
-          : `Opened Open Design PR flow at ${url}.`)
+          : `Opened Readable Studio PR flow at ${url}.`)
       : share.successMessage,
     ...(url ? { url } : {}),
     log: stepLog,
@@ -4357,7 +4357,7 @@ export async function startServer({
   }
 
   if (process.env.OD_CODEX_DISABLE_PLUGINS === '1') {
-    console.log('[od] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1');
+    console.log('[readable] Codex plugins disabled via OD_CODEX_DISABLE_PLUGINS=1');
   }
 
   let bundledMarketplaceEntries = [];
@@ -4385,7 +4385,7 @@ export async function startServer({
       description_i18n: plugin.manifest.description_i18n,
       version:     plugin.version,
       source:      bundledPluginRegistrySource(plugin.source),
-      publisher:   { id: 'open-design', url: 'https://open-design.ai' },
+      publisher:   { id: 'open-design', url: 'https://github.com/sanghyunna/readable-studio' },
       homepage:    plugin.manifest.homepage,
       license:     plugin.manifest.license,
       tags:        plugin.manifest.tags,
@@ -4461,7 +4461,7 @@ export async function startServer({
 
   // Plan §3.F2 / spec §11.7 — daemon lifecycle status. Returns the
   // host / port the server is bound to plus the data dir,
-  // so `od daemon status --json` can render a one-shot health snapshot
+  // so `readable daemon status --json` can render a one-shot health snapshot
   // without depending on /api/version's content shape.
   app.get('/api/daemon/status', async (_req, res) => {
     const versionInfo = await readCurrentAppVersionInfo();
@@ -4489,7 +4489,7 @@ export async function startServer({
     });
   });
 
-  // Plan §3.GG1 — `od daemon db status`. Inventory of the SQLite
+  // Plan §3.GG1 — `readable daemon db status`. Inventory of the SQLite
   // backend: file path, size on disk (primary + WAL + SHM), schema
   // version (the user_version PRAGMA we use for migrations), and
   // per-table row counts. Useful for ops sanity-checking
@@ -4506,7 +4506,7 @@ export async function startServer({
   });
 
   // Plan §3.KK1 — non-SSE one-shot read of the event ring buffer.
-  // Useful for dashboards + the `od plugin events snapshot` CLI
+  // Useful for dashboards + the `readable plugin events snapshot` CLI
   // command that doesn't need a live tail.
   app.get('/api/plugins/events/snapshot', async (req, res) => {
     const since = Number(typeof req.query.since === 'string' ? req.query.since : 0);
@@ -4525,7 +4525,7 @@ export async function startServer({
     });
   });
 
-  // Plan §3.NN1 — `od plugin events purge`. Operator escape
+  // Plan §3.NN1 — `readable plugin events purge`. Operator escape
   // hatch for resetting the in-memory ring buffer. Loopback-only
   // because clearing the buffer drops audit history; an operator
   // with shell access to the daemon machine should be the only
@@ -4577,7 +4577,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.II1 — `od plugin events tail`. SSE-backed live event
+  // Plan §3.II1 — `readable plugin events tail`. SSE-backed live event
   // stream of plugin lifecycle events from the in-memory ring
   // buffer. On open: emits the buffered backlog as 'event: backlog'
   // entries (capped at the buffer's MAX), then forwards every
@@ -4604,7 +4604,7 @@ export async function startServer({
     req.on('close', () => { unsubscribe(); });
   });
 
-  // Plan §3.LL1 — `od daemon db verify`. Runs SQLite
+  // Plan §3.LL1 — `readable daemon db verify`. Runs SQLite
   // PRAGMA integrity_check (or quick_check when ?quick=1) +
   // PRAGMA foreign_key_check, returns a structured issues[]
   // report. Loopback-only via requireLocalDaemonRequest because
@@ -4620,7 +4620,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.HH2 — `od daemon db vacuum`. Runs SQLite VACUUM to
+  // Plan §3.HH2 — `readable daemon db vacuum`. Runs SQLite VACUUM to
   // reclaim space after large delete batches (snapshot prune,
   // plugin uninstall, etc.). Reports before / after sizes so the
   // operator sees the reclamation, plus elapsed ms so a slow
@@ -4649,7 +4649,7 @@ export async function startServer({
   });
 
   // Plan §3.F2 — graceful shutdown. The CLI calls this from
-  // `od daemon stop`; the actual close path goes through the same
+  // `readable daemon stop`; the actual close path goes through the same
   // SIGTERM-equivalent flow as a parent-process kill (the boot wrapper
   // in cli.ts wires the process listeners). 202 Accepted because the
   // shutdown completes after the response flush.
@@ -5725,7 +5725,7 @@ export async function startServer({
 
   // AMR (vela) login integration — see `apps/daemon/src/integrations/vela.ts`.
   // The vela CLI owns the device-authorization UX (URL + code + browser open);
-  // these routes only surface enough state for Open Design's Settings card to
+  // these routes only surface enough state for Readable Studio's Settings card to
   // show login status and trigger a login from a button.
   async function resolveAmrModelProbe() {
     const appConfig = await readAppConfig(RUNTIME_DATA_DIR);
@@ -6344,7 +6344,7 @@ export async function startServer({
         return res.status(404).json({
           error: {
             code: 'plugin-not-found',
-            message: `No marketplace plugin named "${source}". Add a marketplace via 'od marketplace add <url>' or pass a github: / https:// / local source.`,
+            message: `No marketplace plugin named "${source}". Add a marketplace via 'readable marketplace add <url>' or pass a github: / https:// / local source.`,
             data: { name: source },
           },
         });
@@ -6398,7 +6398,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.Z2 — `od plugin upgrade <id>` re-installs a plugin from
+  // Plan §3.Z2 — `readable plugin upgrade <id>` re-installs a plugin from
   // its recorded source. Streams the same SSE shape as
   // POST /api/plugins/install so CLIs and the web composer reuse
   // the existing event handler.
@@ -6449,7 +6449,7 @@ export async function startServer({
       return res.status(409).json({
         error: {
           code: 'missing-source',
-          message: `Plugin "${id}" has no recorded install source — cannot upgrade. Reinstall via 'od plugin install --source <...>' to set one.`,
+          message: `Plugin "${id}" has no recorded install source — cannot upgrade. Reinstall via 'readable plugin install --source <...>' to set one.`,
           data: { id },
         },
       });
@@ -6777,7 +6777,7 @@ export async function startServer({
     res.json({ atoms: FIRST_PARTY_ATOMS.map((a) => ({ ...a, taskKinds: a.taskKinds.slice() })) });
   });
 
-  // Plan §3.AA2 — `od atoms info <id>`. Returns the catalog row +
+  // Plan §3.AA2 — `readable atoms info <id>`. Returns the catalog row +
   // the bundled SKILL.md body (when one exists at
   // plugins/_official/atoms/<id>/SKILL.md) so the caller can render
   // a single page describing what the atom does + the prompt
@@ -7292,7 +7292,7 @@ export async function startServer({
 
   // Plan §3.H2 / spec §12.2 — craft list endpoint.
   // Mirrors the daemon's existing /api/skills + /api/design-systems
-  // discovery surface so `od craft list` is a thin wrapper over a
+  // discovery surface so `readable craft list` is a thin wrapper over a
   // single HTTP call. Each entry returns a slug + size + first
   // markdown header so a code agent can browse without a separate
   // /api/craft/:id read.
@@ -7362,7 +7362,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.DD1 — `od plugin stats`. Aggregates the installed-
+  // Plan §3.DD1 — `readable plugin stats`. Aggregates the installed-
   // plugin roster + the applied_plugin_snapshots roster into one
   // health/inventory report. Pure helpers in plugins/stats.ts;
   // the route wires the SQLite reads + merges on the way out.
@@ -7383,7 +7383,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.CC1 — `od plugin canon <snapshotId>`. Returns the
+  // Plan §3.CC1 — `readable plugin canon <snapshotId>`. Returns the
   // canonical `## Active plugin` block the agent will see when
   // this snapshot is spliced into the system prompt. Powered by
   // the same renderPluginBlock() composeSystemPrompt() uses, so
@@ -7410,7 +7410,7 @@ export async function startServer({
   });
 
   // Plan §3.B4 / spec §6: marketplace registry minimum verbs.
-  // Phase 3 layers in `od plugin install <name>` resolution + the trust
+  // Phase 3 layers in `readable plugin install <name>` resolution + the trust
   // UI on top; this route set is the storage half.
   app.get('/api/marketplaces', async (_req, res) => {
     try {
@@ -7472,7 +7472,7 @@ export async function startServer({
     }
   });
 
-  // Plan §3.A5: list all applied snapshots; useful for `od plugin
+  // Plan §3.A5: list all applied snapshots; useful for `readable plugin
   // snapshots list` and the audit dashboard.
   app.get('/api/applied-plugins', (_req, res) => {
     try {
@@ -7709,9 +7709,9 @@ export async function startServer({
       if (!surface) return res.status(404).json({ error: 'surface not found' });
       // Plan §6 Phase 2A.5 — enrich the response with the surface
       // spec (incl. schema, prompt, persist tier) pulled out of the
-      // pinned AppliedPluginSnapshot. This is what `od ui show`
+      // pinned AppliedPluginSnapshot. This is what `readable ui show`
       // returns to headless callers so a code agent can inspect the
-      // JSON Schema before responding via `od ui respond --value-json`.
+      // JSON Schema before responding via `readable ui respond --value-json`.
       // The store only persists `schemaDigest` (for the cross-conv
       // cache); the canonical schema lives on the snapshot.
       let spec = null;
@@ -8507,14 +8507,14 @@ export async function startServer({
         res.status(500).json({
           ok: false,
           code: payload?.error?.label || 'open-design-pr-failed',
-          message: payload?.error?.stderr || payload?.error?.stdout || 'Open Design PR creation failed.',
+          message: payload?.error?.stderr || payload?.error?.stdout || 'Readable Studio PR creation failed.',
           log: payload?.steps?.map((step) => step.stderr || step.stdout || step.command).filter(Boolean) ?? [result.stderr || result.stdout || 'open-design-pr failed'],
         });
         return;
       }
       res.json({
         ok: true,
-        message: payload.prUrl ? `Opened Open Design PR flow at ${payload.prUrl}.` : 'Opened Open Design PR flow.',
+        message: payload.prUrl ? `Opened Readable Studio PR flow at ${payload.prUrl}.` : 'Opened Readable Studio PR flow.',
         ...(payload.prUrl ? { url: payload.prUrl } : {}),
         log: payload.steps?.map((step) => step.stderr || step.stdout || step.command).filter(Boolean) ?? [],
       });
@@ -9971,7 +9971,7 @@ export async function startServer({
         );
         if (!result.staged) {
           console.warn(
-            `[od] skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to absolute paths`,
+            `[readable] skill-stage skipped: ${result.reason ?? 'unknown reason'}; falling back to absolute paths`,
           );
         }
       }
@@ -10472,7 +10472,7 @@ export async function startServer({
     const mcpServers: AcpMcpServer[] = [];
 
     // External MCP servers configured by the user in Settings → External MCP.
-    // Open Design relays them to the agent so the model can call those tools.
+    // Readable Studio relays them to the agent so the model can call those tools.
     // Two delivery shapes today:
     //   - Claude Code: write a `.mcp.json` into the project cwd. Claude Code
     //     auto-loads that file at spawn (same format the CLI accepts via
@@ -11788,7 +11788,7 @@ export async function startServer({
           'ROLE_MARKER_HALLUCINATION',
           `Run terminated: model emitted fabricated role marker (\`${marker}\`). ` +
             'No further tokens or tool calls accepted from this turn. ' +
-            'See https://github.com/nexu-io/open-design/issues/3247.',
+            'See https://github.com/sanghyunna/readable-studio/issues/3247.',
           { retryable: true },
         ),
       );
@@ -13894,7 +13894,7 @@ export async function startServer({
         if (!boundPort) {
           reject(
             new Error(
-              `[od] daemon failed to resolve listening port (address=${JSON.stringify(address)})`,
+              `[readable] daemon failed to resolve listening port (address=${JSON.stringify(address)})`,
             ),
           );
           return;
@@ -13906,7 +13906,7 @@ export async function startServer({
         const reportHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
         const url = `http://${reportHost}:${resolvedPort}`;
         if (!returnServer) {
-          console.log(`[od] daemon listening on ${url}`);
+          console.log(`[readable] daemon listening on ${url}`);
         }
         daemonUrl = url;
         resolve(returnServer ? { url, server, shutdown: shutdownDaemonRuns } : url);
@@ -13945,7 +13945,7 @@ function assembleExample(templateHtml, slidesHtml, title) {
     .replace('<!-- SLIDES_HERE -->', slidesHtml)
     .replace(
       /<title>.*?<\/title>/,
-      `<title>${title} | Open Design Example</title>`,
+      `<title>${title} | Readable Studio Example</title>`,
     );
 }
 

@@ -66,7 +66,7 @@ export function parseDaemonCliStartupArgs(
     } else if (a.startsWith('-')) {
       return { ok: false, kind: 'error', message: `unknown option: ${a}` };
     } else {
-      return { ok: false, kind: 'error', message: `unknown command: od ${a}` };
+      return { ok: false, kind: 'error', message: `unknown command: readable ${a}` };
     }
   }
 

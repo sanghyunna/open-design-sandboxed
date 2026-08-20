@@ -1,4 +1,4 @@
-// `od project handoff` — the CLI surface for the resume-conversation
+// `readable project handoff` — the CLI surface for the resume-conversation
 // handoff capability. Per AGENTS.md "Capability exposure (UI/CLI
 // dual-track)", every user-facing capability must be reachable through
 // the `od` CLI as well as the web UI; both drive the same
@@ -35,7 +35,7 @@ function isHandoffResponse(value: unknown): value is HandoffResponse {
 }
 
 const USAGE = `Usage:
-  od project handoff <projectId> --conversation <id> --api-key <key> --model <model>
+  readable project handoff <projectId> --conversation <id> --api-key <key> --model <model>
                      [--base-url <url>] [--max-tokens <n>] [--daemon-url <url>] [--json]
 
 Synthesizes a "resume conversation" handoff prompt from one conversation's

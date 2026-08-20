@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 
 import {
   assertIdentityAuditPassed,
   auditIdentitySources,
   formatIdentityAuditFailure,
+  identityTokens,
   validateIdentityBaseline,
   type IdentityBaseline,
   type IdentityBaselineEntry,
@@ -189,6 +191,34 @@ describe("readable identity audit", () => {
     assert.ok(report.summary.unclassified >= 2);
     assert.throws(() => assertIdentityAuditPassed(report));
     console.log(formatIdentityAuditFailure(report));
+  });
+
+  test("rejects Task 20 agent surfaces carrying retired active identity", () => {
+    // Given: the active agent-facing source files named by the Task 20 contract.
+    const repositoryPaths = [
+      "apps/daemon/src/mcp-config.ts",
+      "apps/web/src/api-attachment-context.ts",
+      "apps/web/src/design-system-auto-prompt.ts",
+      "apps/web/src/lib/build-clipboard-prompt.ts",
+      "apps/web/src/providers/daemon.ts",
+      "apps/web/src/runtime/exports.ts",
+      "apps/web/src/runtime/plugin-source.ts",
+    ];
+    const sources = repositoryPaths.map((repositoryPath) => ({
+      path: repositoryPath,
+      source: readFileSync(new URL(`../${repositoryPath}`, import.meta.url), "utf8"),
+    }));
+
+    // When: the machine identity policy audits those sources without legacy allowances.
+    const report = auditIdentitySources({ baseline: emptyBaseline, scope: "active", sources });
+    const retiredFindings = report.entries.filter((entry) =>
+      entry.token === identityTokens[0] ||
+      (entry.path === "apps/web/src/runtime/plugin-source.ts" && entry.token === identityTokens[1])
+    );
+
+    // Then: none of the task-owned active identity remains, including the retired hosted URL.
+    assert.deepEqual(retiredFindings, []);
+    assert.equal(sources[0]?.source.includes("opendesign.app"), false);
   });
 
   test("produces byte-stable reports for identical exact-ledger inputs", () => {

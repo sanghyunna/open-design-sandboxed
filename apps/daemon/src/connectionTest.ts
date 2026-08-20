@@ -607,7 +607,7 @@ function codexExecutableGuidance(
   ) {
     return '';
   }
-  return ` Configured Codex path failed: ${configuredOverridePath}. Open Design also detected a PATH Codex CLI at ${pathResolvedPath}. Update CODEX_BIN or clear the custom path to use the detected binary.`;
+  return ` Configured Codex path failed: ${configuredOverridePath}. Readable Studio also detected a PATH Codex CLI at ${pathResolvedPath}. Update CODEX_BIN or clear the custom path to use the detected binary.`;
 }
 
 function codexExecutableFallbackSuccessDetail(
@@ -1066,7 +1066,7 @@ function buildProviderCall(input: ProviderTestRequest): ProviderCallShape {
           authorization: `Bearer ${apiKey}`,
           ...(new URL(baseUrl).hostname === 'openrouter.ai' ? {
             'HTTP-Referer': 'https://opendesign.dev',
-            'X-Title': 'Open Design',
+            'X-Title': 'Readable Studio',
           } : {}),
         },
         body: {

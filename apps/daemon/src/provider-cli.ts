@@ -23,12 +23,12 @@ const ERROR_CODES = new Set<string>(API_ERROR_CODES);
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export const PROVIDER_CLI_USAGE = `Usage:
-  od provider status [--identity-token-file <path|->] [--json]
-  od provider set --provider anthropic|vercel-ai-gateway --key-file <path|->
+  readable provider status [--identity-token-file <path|->] [--json]
+  readable provider set --provider anthropic|vercel-ai-gateway --key-file <path|->
                   [--identity-token-file <path|->] [--json]
-  od provider test --provider anthropic|vercel-ai-gateway
+  readable provider test --provider anthropic|vercel-ai-gateway
                    [--identity-token-file <path|->] [--json]
-  od provider clear [--identity-token-file <path|->] [--json]
+  readable provider clear [--identity-token-file <path|->] [--json]
 
 Identity is read from --identity-token-file or OD_HOSTED_IDENTITY_TOKEN_FILE.
 Provider keys are read only from --key-file; use - for stdin.

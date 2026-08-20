@@ -1035,13 +1035,19 @@ describe('MCP_TEMPLATES', () => {
     expect(tpl?.envFields ?? []).toEqual([]);
   });
 
-  it('includes the QRMint styled-QR template (no auth, package = qr-mcp)', () => {
+  it('includes the QRMint styled-QR template with the canonical repository URL', () => {
+    // Given: the bundled QRMint template.
     const tpl = MCP_TEMPLATES.find((t) => t.id === 'qrmint');
+
+    // When: its machine-consumed example URL is parsed.
+    const exampleUrl = tpl?.example?.match(/https:\/\/[^,\s]+/)?.[0];
+
+    // Then: package metadata and the URL contract remain canonical.
     expect(tpl).toBeDefined();
     expect(tpl?.category).toBe('publishing');
-    // The npm package is `qr-mcp`, not `qrmint` (the brand name is QRMint).
     expect(tpl?.args).toEqual(['-y', 'qr-mcp']);
     expect(tpl?.envFields ?? []).toEqual([]);
+    expect(exampleUrl).toBe('https://github.com/sanghyunna/readable-studio');
   });
 
   it('includes the Slideshot HTML→PDF/PPTX template (no auth, package = slideshot-mcp)', () => {

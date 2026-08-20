@@ -66,8 +66,8 @@ describe('buildPublishLink', () => {
     // (plugins/community/<plugin-name>/), keeping contribution where stars and
     // PR traffic already are.
     const link = buildPublishLink({ catalog: 'open-design', meta: META });
-    expect(link.catalogLabel).toBe('nexu-io/open-design');
-    expect(link.url).toMatch(/^https:\/\/github\.com\/nexu-io\/open-design\/issues\/new\?/);
+    expect(link.catalogLabel).toBe('sanghyunna/readable-studio');
+    expect(link.url).toMatch(/^https:\/\/github\.com\/sanghyunna\/readable-studio\/issues\/new\?/);
     expect(link.prBody).toContain('plugins/community/<plugin-name>/readable-studio.json');
     expect(link.prBody).toContain('plugins/registry/community/readable-studio-marketplace.json');
   });

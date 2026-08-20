@@ -96,7 +96,8 @@ Output structure (Markdown, exactly these headings):
 - Context: 2-4 sentences naming what the session was about and where it left off.
 - Decisions made: bulleted list of choices the user committed to (one bullet each).
 - Open questions: bulleted list of unresolved questions the prior session surfaced.
-- Current focus: 1-2 sentences naming the artifact, file, or task in progress.
+- Current focus: 1-2 sentences naming the artifact, file, or task in progress. Preserve where the work sits in Readable Studio's Source Text -> AI Generation -> Direct Editing -> Standalone HTML workflow when the transcript supports it.
+- For office-worker or enterprise document work, retain the business audience, source-material constraints, direct-editing decisions, and standalone HTML delivery state instead of reframing the session as a generic web project.
 - Provenance bullets (plain "- Field: value", no Markdown emphasis on labels):
   - Project ID
   - Transcript message count

@@ -81,7 +81,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
       // prompt.
       const prompt = composeSystemPrompt({ streamFormat: 'plain' });
       const overrideIdx = prompt.search(/API mode — no tools available/i);
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(overrideIdx).toBeGreaterThanOrEqual(0);
       expect(discoveryIdx).toBeGreaterThanOrEqual(0);
       expect(overrideIdx).toBeLessThan(discoveryIdx);
@@ -146,7 +146,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
         metadata: { kind: 'prototype', skipDiscoveryBrief: true },
       });
       const skipIdx = prompt.indexOf(SKIP_DISCOVERY_BRIEF_OVERRIDE);
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(skipIdx).toBeGreaterThanOrEqual(0);
       expect(skipIdx).toBeLessThan(discoveryIdx);
       expect(prompt).toMatch(/do NOT emit `?<question-form id="discovery">`?/i);
@@ -189,7 +189,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
         metadata: { kind: 'prototype', examplePrompt: true },
       });
       const overrideIdx = prompt.indexOf('Example prompt mode — full-quality direct generation');
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('<question-form id="task-type"');
       expect(overrideIdx).toBeGreaterThanOrEqual(0);
       expect(overrideIdx).toBeLessThan(discoveryIdx);
     });

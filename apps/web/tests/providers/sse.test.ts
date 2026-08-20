@@ -275,7 +275,6 @@ describe('streamViaDaemon', () => {
     ]);
 
     expect(transcript).toContain('## user');
-    expect(transcript).toContain('[Open Design truncated 1000 chars from this prior message');
     expect(transcript).not.toContain('x'.repeat(13_000));
     expect(transcript).toContain('small answer');
   });

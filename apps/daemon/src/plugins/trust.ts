@@ -4,7 +4,7 @@
 //   - Local installs default to `trusted` (the user copied the folder
 //     here themselves).
 //   - Anything else (bundled / marketplace / github / url / project) defaults
-//     to `restricted` until an explicit `od plugin trust <id>` flips it. Phase
+//     to `restricted` until an explicit `readable plugin trust <id>` flips it. Phase
 //     2A wires the marketplace trust roll-up; we just expose the helpers now.
 //   - `restricted` plugins ship the prompt:inject capability only. Apply-time
 //     adds explicit grants (e.g. `mcp:<name>`) onto the
@@ -73,7 +73,7 @@ function stripOptionalSuffix(cap: string): string {
 }
 
 // Plan §3.A2 / spec §9.1. The capability vocabulary that a `restricted`
-// plugin can be promoted to via `od plugin trust`. Anything outside this
+// plugin can be promoted to via `readable plugin trust`. Anything outside this
 // set is rejected at the HTTP layer.
 const KNOWN_TOP_LEVEL_CAPABILITIES = new Set<string>([
   'prompt:inject',

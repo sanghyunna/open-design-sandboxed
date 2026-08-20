@@ -38,9 +38,9 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
     // The daemon was bootstrapped as a sidecar (tools-dev, packaged) iff
     // bootstrapSidecarRuntime stamped READABLE_SIDECAR_IPC_PATH into the env.
     // In sidecar mode the snippet omits --daemon-url and the spawned
-    // `od mcp` discovers the live URL via the concrete IPC endpoint on
+    // `readable mcp` discovers the live URL via the concrete IPC endpoint on
     // every spawn, so the client config survives ephemeral-port
-    // restarts. For direct `od` / `od --port X` launches there is no
+    // restarts. For direct `od` / `readable --port X` launches there is no
     // IPC socket; the helper bakes --daemon-url so custom ports keep
     // working.
     const sidecarIpcPath = process.env[SIDECAR_ENV.IPC_PATH];
@@ -50,7 +50,7 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
       sidecarEnv[SIDECAR_ENV.IPC_PATH] = sidecarIpcPath;
     }
     // tools-dev / packaged launchers export READABLE_WEB_PORT so the daemon
-    // knows where the browser-facing Open Design studio is running.
+    // knows where the browser-facing Readable Studio studio is running.
     // CLI-only / headless launches set neither and webBaseUrl falls
     // through as null — MCP clients then just omit the studio deep
     // link from their responses.
@@ -97,7 +97,7 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
   // so we shell out to it rather than rewriting ~/.codex/config.toml
   // ourselves — that way we inherit Codex's merge / validation rules
   // and only need to track its argv. See apps/daemon/src/codex-cli.ts.
-  const CODEX_MCP_NAME = 'open-design';
+  const CODEX_MCP_NAME = 'readable-studio';
 
   app.get('/api/mcp/install/codex/status', async (req, res) => {
     if (!isLocalSameOrigin(req, getResolvedPort())) {
@@ -144,7 +144,7 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
     }
   });
 
-  // External MCP server configuration. Open Design connects to these as a
+  // External MCP server configuration. Readable Studio connects to these as a
   // CLIENT and surfaces their tools to the underlying agent at spawn time.
   // GET returns user-saved entries plus the built-in template list so the UI
   // can render the "Add MCP server" picker without a second round-trip.
@@ -376,7 +376,7 @@ function renderOAuthResultPage(opts: any) {
   const title = ok ? 'Connected' : 'Authorization failed';
   const heading = ok ? '✅ Connected' : '⚠️ Authorization failed';
   const body = ok
-    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Open Design.`
+    ? `Your MCP server <code>${escapeHtml(opts.serverId ?? '')}</code> is now connected. You can close this tab and return to Readable Studio.`
     : escapeHtml(opts.message ?? 'Authorization could not be completed.');
   const accent = ok ? '#1a7f37' : '#cf222e';
   const payload = ok
@@ -386,7 +386,7 @@ function renderOAuthResultPage(opts: any) {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>${escapeHtml(title)} — Open Design</title>
+<title>${escapeHtml(title)} — Readable Studio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   :root { color-scheme: light dark; }
@@ -433,7 +433,7 @@ function renderOAuthResultPage(opts: any) {
         window.opener.postMessage(payload, '*');
       }
       if (window.BroadcastChannel) {
-        var bc = new BroadcastChannel('open-design-mcp-oauth');
+        var bc = new BroadcastChannel('readable-studio-mcp-oauth');
         bc.postMessage(payload);
         bc.close();
       }

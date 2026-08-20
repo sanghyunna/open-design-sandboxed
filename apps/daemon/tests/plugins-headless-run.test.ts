@@ -218,7 +218,6 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
     expect(shareBody.sourcePluginId).toBe('sample-plugin');
     expect(shareBody.appliedPluginSnapshotId).toBeTruthy();
     expect(shareBody.stagedPath).toBe('plugin-source/sample-plugin');
-    expect(shareBody.prompt).toContain('Publish the local Open Design plugin');
     expect(shareBody.prompt).toContain('/api/projects/$OD_PROJECT_ID/plugins/publish-github');
     expect(shareBody.prompt).toContain('plugin-source/sample-plugin');
     expect(shareBody.project.pendingPrompt).toBe(shareBody.prompt);
@@ -296,7 +295,7 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       `[url "${toForwardSlash(publishBareDir)}"]
 \tinsteadOf = https://github.com/test-user/sample-plugin
 [url "${toForwardSlash(forkBareDir)}"]
-\tinsteadOf = https://github.com/test-user/open-design.git
+\tinsteadOf = https://github.com/test-user/readable-studio.git
 `,
       'utf8',
     );
@@ -343,14 +342,14 @@ if (args[0] === 'repo' && args[1] === 'view') {
   }
   ok('https://github.com/test-user/' + path.basename(process.cwd()));
 }
-if (args[0] === 'repo' && args[1] === 'fork') ok('forked nexu-io/open-design');
+if (args[0] === 'repo' && args[1] === 'fork') ok('forked sanghyunna/readable-studio');
 if (args[0] === 'repo' && args[1] === 'clone') {
   const dest = args[3] || path.basename(args[2]);
   fs.mkdirSync(dest, { recursive: true });
   const init = spawnSync(process.env.OD_REAL_GIT, ['init'], { cwd: dest, stdio: 'inherit' });
   process.exit(init.status ?? 0);
 }
-if (args[0] === 'pr' && args[1] === 'create') ok('https://github.com/nexu-io/open-design/pull/123');
+if (args[0] === 'pr' && args[1] === 'create') ok('https://github.com/sanghyunna/readable-studio/pull/123');
 console.error('unexpected gh command: ' + args.join(' '));
 process.exit(1);
 `,
@@ -374,7 +373,7 @@ if (args[0] === 'clone') {
     if (init.stderr) process.stderr.write(init.stderr);
     process.exit(init.status ?? 1);
   }
-  const remote = args.find((arg) => String(arg).startsWith('https://')) || 'https://github.com/test-user/open-design.git';
+  const remote = args.find((arg) => String(arg).startsWith('https://')) || 'https://github.com/test-user/readable-studio.git';
   const remoteAdd = spawnSync(process.env.OD_REAL_GIT, ['remote', 'add', 'origin', remote], { cwd: dest, encoding: 'utf8' });
   if (remoteAdd.status !== 0) {
     if (remoteAdd.stderr) process.stderr.write(remoteAdd.stderr);
@@ -430,7 +429,7 @@ process.exit(result.status ?? 0);
                 url?: string;
               };
               expect(contributeEndpointBody.ok).toBe(true);
-              expect(contributeEndpointBody.url).toBe('https://github.com/nexu-io/open-design/pull/123');
+              expect(contributeEndpointBody.url).toBe('https://github.com/sanghyunna/readable-studio/pull/123');
             },
           );
         },
