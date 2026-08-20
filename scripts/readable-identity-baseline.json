@@ -14413,16 +14413,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6719bc27e3a5be1280937a0b241824c71abf7d918bcd02a61c1216ec3a0e7a6e",
-      "location": "content",
-      "path": "apps/desktop/src/main/desktop-approval.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "a74471b078ede28f19752f46456ebeff59d03dc341dadc5d4f8b7a5a854e3dc0",
@@ -14431,106 +14421,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6b8d416e82300fafb6d684ce8b35a64e59f5e2c0f5f1a490a6e52442b0c0be0e",
-      "location": "content",
-      "path": "apps/desktop/src/main/diagnostics.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6e7206db8d647438523623a6edcaf245a71f3b28220cea8435bcbea967603d8d",
-      "location": "content",
-      "path": "apps/desktop/src/main/diagnostics.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "9d5229e4492450ea0f32d0c1a716c0e22dc0bba46045ad4454c9ed1fc1bcb53f",
-      "location": "content",
-      "path": "apps/desktop/src/main/diagnostics.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "6e7206db8d647438523623a6edcaf245a71f3b28220cea8435bcbea967603d8d",
-      "location": "content",
-      "path": "apps/desktop/src/main/diagnostics.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "8eaeaf0eef9e6d7cbf30392572e5796e553f0daa72edcfd73bb561c56d33580c",
-      "location": "content",
-      "path": "apps/desktop/src/main/diagnostics.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "29fe7c6b41a382276ee91fbea95e763325018a6e843611037a1f017c4a95c4c8",
-      "location": "content",
-      "path": "apps/desktop/src/main/index.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1ac8b8a04a5986b3a6ceac172b1d65e7940dc7c8671bc8cb6a557e47121a5df4",
-      "location": "content",
-      "path": "apps/desktop/src/main/runtime.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1f66202c8b6fcf9049595d751a46b5104d07b92dc21c3d6193cdc2454cff877a",
-      "location": "content",
-      "path": "apps/desktop/src/main/runtime.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "80cb0a06d8e1a6f88eb65fa0ad23525a1a70608bafd0217008c4bbf5bf09a1c9",
-      "location": "content",
-      "path": "apps/desktop/src/main/runtime.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8f1d2cc184adedb4ef9b65eff626094f6381470fc1981641a5f644626b7b6d8c",
-      "location": "content",
-      "path": "apps/desktop/src/main/runtime.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -14571,16 +14461,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6719bc27e3a5be1280937a0b241824c71abf7d918bcd02a61c1216ec3a0e7a6e",
-      "location": "content",
-      "path": "apps/desktop/tests/main/desktop-approval.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -14635,16 +14515,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "8164ff3e3a0125695cfbcf838abd9eb1ddfa6dd9d530e2300198013723284550",
-      "location": "content",
-      "path": "apps/desktop/tests/main/window-chrome.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "205a1420e4caf576472d83413fcac7a77506cc6f63011bd6148923f192ebc70a",
       "location": "content",
       "path": "apps/packaged/AGENTS.md",
@@ -14661,16 +14531,6 @@
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "10d8107e4abdfcd399cd9c5b8312799d37c3eccffc88cd170a84b18fe21d6caf",
-      "location": "content",
-      "path": "apps/packaged/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -15011,56 +14871,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 8,
-      "fingerprint": "70e66e2997bb0feab4b34120f9abca5035be04fa8a1b9299c322bd4ae318c1ee",
-      "location": "content",
-      "path": "apps/packaged/tests/config.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "81160d118b64018d7a09798ac05496776fe297f280f64202d6f7370761e59191",
-      "location": "content",
-      "path": "apps/packaged/tests/config.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "850d497516f646a1d60468ec2d92deefd1f7dbd0a6516f0f4c1eb8a7d38fde8f",
-      "location": "content",
-      "path": "apps/packaged/tests/config.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "d2af6a7a12a48bbbbf19b18bd8ff18e989ebc953b0d54a50d4481160d2c5b112",
-      "location": "content",
-      "path": "apps/packaged/tests/config.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dc04f9af58997861c4efd9ee87b5c6837d0b855ad84f8f9d5eeb9ef0e62171a4",
-      "location": "content",
-      "path": "apps/packaged/tests/config.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -15513,69 +15323,9 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "04c686161971ef7012607e22896b5900ce7f87c16f662537fc79857b0c61a775",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "267ff4c385f3bad80aa41bc18d3a7dc80cb7bc1e552dcddcf909139473647d09",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3c0d7dcfd42d796ace266e21d7cff3ac81f95e362c127d0ba5c0f11ee05ecf35",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "566ce5186c1ea1ae626b909f7730a21dc297ccc5f11a3a2ba97f1219eb789af5",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "de22959ed955331bae1e0c1a232e818a05a5a425da1691e4b389613b49821896",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "e19d0dd50ba8fb1c4754df1247f7ded4efa94f4192f389c3458dd68dbc3b8c39",
-      "location": "content",
-      "path": "apps/packaged/tests/sidecars.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "566ce5186c1ea1ae626b909f7730a21dc297ccc5f11a3a2ba97f1219eb789af5",
+      "fingerprint": "ab04f984656c5c790a79bab5806e49cb9cb9e5c89060f5842d46ead67292d2b9",
       "location": "content",
       "path": "apps/packaged/tests/sidecars.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -15743,16 +15493,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "6e10b8f12a0c078513d4ee12462ea4015b79961aa298ef8e98b355bca76d6d7a",
-      "location": "content",
-      "path": "apps/web/app/[[...slug]]/client-app.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "271529911915fe54dab8239319f37c1708c7c996a3d78f1a64c29dbb3a70c00b",
@@ -15881,16 +15621,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e478f4c1b401867e4d4e3ada4019154804c77d86cf3aac22855923582c7e751b",
-      "location": "content",
-      "path": "apps/web/public/od-notifications-sw.js",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16093,16 +15823,6 @@
       "token": ".od"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4e91e7d5937c4cabd291e31328acc0424ee2edcc36f4a3a9cf966f84f27c1392",
-      "location": "content",
-      "path": "apps/web/src/App.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "13df0c848e833578ee1175134c9996212aefd8d1ea24a09ae7a381c8126939dd",
@@ -16133,26 +15853,6 @@
       "token": ".od"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0921743576dafdd000a66ae5c779d9e64a4184a7d66123eca39e27088045cc7c",
-      "location": "content",
-      "path": "apps/web/src/components/AssistantMessage.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e646410fdb45ed2715b2391d3c0be5f396c2749413f73f7fec460ccb05e1b8de",
-      "location": "content",
-      "path": "apps/web/src/components/AssistantMessage.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "0351c4ed688c854afbc87f9b12ec4dfb271aa8943a267dfaf52ccca558357ec3",
@@ -16161,16 +15861,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d42820818c51a2c3bf4692b5036efed004e9e6c44ff70a55e61b17798fc1f6fa",
-      "location": "content",
-      "path": "apps/web/src/components/AvatarMenu.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16201,16 +15891,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "9475679b59f99bd213daedd005ba3a6234d023b371e3e7c2c617be65a7d91302",
-      "location": "content",
-      "path": "apps/web/src/components/ChatPane.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16253,44 +15933,14 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "116bfe0bfe79c228ceb39fc1512bd018487f5f60e1f0675047d3729eba56fa5a",
-      "location": "content",
-      "path": "apps/web/src/components/design-files/pluginFolderActions.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "3275ed141dc89494803c1d52b85613c9817e5370658d7088025d9930c38e0dcb",
-      "location": "content",
-      "path": "apps/web/src/components/design-files/pluginFolderActions.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
+      "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "9b0a5244519e9a5db4bd6725dac615df3e3096fccefd6cfc5f13f38961deffb7",
+      "fingerprint": "01dc667b58f644fe09eedf9dc7dfa2723891c3924045ff44126eebaca54ebbfd",
       "location": "content",
       "path": "apps/web/src/components/design-files/pluginFolderActions.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "a6bede7a903a82af5034acd0ccb50e470f0e1ff778db2509dc1d09eb78bbc9d9",
-      "location": "content",
-      "path": "apps/web/src/components/design-files/pluginFolderActions.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "open-design"
     },
     {
       "class": "machine contract to migrate",
@@ -16335,46 +15985,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "a6bede7a903a82af5034acd0ccb50e470f0e1ff778db2509dc1d09eb78bbc9d9",
-      "location": "content",
-      "path": "apps/web/src/components/design-files/pluginFolderActions.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a89a7a98f48ac7dd19caff3f6a78d40696530ba36a11e69e744564253ae03d2a",
-      "location": "content",
-      "path": "apps/web/src/components/design-system-github-evidence.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5b5a6815854074fc4c96172e481265481f910fd6a3f2b82632807fe63380ef18",
-      "location": "content",
-      "path": "apps/web/src/components/DesignBrowserPanel.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6ff62df10e8a0465a336fbf1693bef998811cd4d960808b580b283a7157884bf",
-      "location": "content",
-      "path": "apps/web/src/components/DesignBrowserPanel.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "1e5515c362d7581a6b6627523e56c59b49ad2227104ac1b73ea60cfabc79b1bf",
       "location": "content",
       "path": "apps/web/src/components/DesignBrowserPanel.tsx",
@@ -16391,16 +16001,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": ".od"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "945f9b6a1bfc644799d3638869dca0c97f92c3701a6dd16b10c6885000c81b7b",
-      "location": "content",
-      "path": "apps/web/src/components/DesignFilesPanel.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16423,146 +16023,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "071a7c7f80ffa32663ea9456825b8320f63e21b2f8f713ce9d40a9b6d286ba3e",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "11e46a2f19a29c3950afc51760fb5eae4e81f1eb2624904646345e69c9b4674c",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "14119ac283bca840bf08e2df74c8263f83527401a37fb5dbda50ac0901983a9a",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2c4937a5219e9759aac43460513abc1d7d7345d8a41cf6c92c68f5b5c313eb6a",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2ec6e51f93b08d339b46549e0a340898af7789ac78c8563c02a5dbad2fb55df3",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3287b84f94ae8f24c41cd66bce41784f909bb1b7b1ee34f807b36c93c4bd9429",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "36c8cd816e3af952f83b21d2d145f3fde37254574a7de7ce0df1ed5aae34505d",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "38beaadd0f7e7c76a6970067ecfcd4dfc9114600f337ea6e2fc272be456a4e2c",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "44ab8fbf656a6f102fba8423cf1d949fad0559d5e29dafd2923a17cb1e19fdce",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4b2cd3e929c61fa54ccfb026cc576fc8e8654a518a93beb0c00ce60e326d9526",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5ee603c697938a304df58d4f4f1e46b970361a2f61bd6e73ac222f0f01133866",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c28296bec711920a6d7d9086658ac746f2a140a65eb8d0d351a45193b20c0537",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d1b5eae593368381ebf29ee5244fe47938e730405deb2d6624855f555892a63d",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "db0dd5d20a8ab95e4aab4d8682457fcbd5ef2cb142bcb400aa4902daef486129",
-      "location": "content",
-      "path": "apps/web/src/components/DesignSystemFlow.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "45d8457061a17910da085c764f3bec799c224634f8fa7e5a46188659670321f7",
@@ -16573,26 +16033,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6799ec02271a1dbbf91a13034bf3ac9711c5ca863f6e7f34f5ee4560c3cf0f52",
-      "location": "content",
-      "path": "apps/web/src/components/FileWorkspace.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a673351a6d3e73dc1e72caae0b62df8aa7eb48a91b515e87e4e2f94e884839ee",
-      "location": "content",
-      "path": "apps/web/src/components/home-hero/chips.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "42e744b7dc6502e096020c77d2c96e4ddc3f2eb1b14975ae6d7b90cf28f9e38c",
@@ -16601,26 +16041,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4a46a689c8d1362f8dd3ae4f46e0c39b0d33c66d90638b85e774b8e1dbc5e8f8",
-      "location": "content",
-      "path": "apps/web/src/components/home-hero/plugin-authoring.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c48a7fe84c9143ea0a9e6be671b96c541defbbdf46ba31ff6b2fe0c9b04b3faf",
-      "location": "content",
-      "path": "apps/web/src/components/home-hero/plugin-authoring.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16641,46 +16061,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8ae79cb4bf71d3635b9ae45352c904014b40404572b5a03e40bb5284e044bd30",
-      "location": "content",
-      "path": "apps/web/src/components/HomeHero.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "37b327c07aadeb3d73d187de00d5e829943fa71ee23793a8e7ee600ae236ac6b",
-      "location": "content",
-      "path": "apps/web/src/components/HomeView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "af042380a2da8bc3c6489588cc763e663ebd2b3e725133ccbf52fb02b43410fc",
-      "location": "content",
-      "path": "apps/web/src/components/HomeView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d808bb68ac6064a12194eec4049f25d79864b1ec9dace89f446cbeb31e76d941",
-      "location": "content",
-      "path": "apps/web/src/components/HomeView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16723,16 +16103,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d42820818c51a2c3bf4692b5036efed004e9e6c44ff70a55e61b17798fc1f6fa",
-      "location": "content",
-      "path": "apps/web/src/components/InlineModelSwitcher.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "21244d184972bc8c7524ac3c240d536aa5aaf10d799ea8259df37116898c570a",
@@ -16763,26 +16133,6 @@
       "token": ".od"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "cc8268c0cab4005b739013cb69eec522c6af49308dec3bb0b50adcc34b06bf17",
-      "location": "content",
-      "path": "apps/web/src/components/MissingBrandFontsBanner.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c24a93087e850feb7d7f5873c347ae802d3023f028cd576b935c39ca02c6fbb0",
-      "location": "content",
-      "path": "apps/web/src/components/NewProjectPanel.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "ec3d3e25f4bce4e89ff835f44b76e03fc8b15ad01ec2761ddda770f4e3d8bae3",
@@ -16801,56 +16151,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0f267d67665353bcb711a9c7580ed3c5878881103bc7d85e4f4f4eef785753f9",
-      "location": "content",
-      "path": "apps/web/src/components/pet/pets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6a3f9ec7283657ee5362b0a22e75670fbbc7cc355757205461c8fe416056c52a",
-      "location": "content",
-      "path": "apps/web/src/components/pet/PetSettings.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ae30e5a13d46539a27d8045411f3f9e31ec2bcba586e011148be12dd55a9437f",
-      "location": "content",
-      "path": "apps/web/src/components/pet/PetSettings.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0469548bd19288f4885ad82dbaeaa7bd66a464bec553e192945d9fcdef22fe3b",
-      "location": "content",
-      "path": "apps/web/src/components/plugin-details/PluginShareMenu.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dcfdbcb4bfd5e7fbac120213c0030d0b2bbc79628a2665ed5fc72776fda055a3",
-      "location": "content",
-      "path": "apps/web/src/components/plugin-details/PluginShareMenu.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -16881,166 +16181,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "197a37284b11dd8fdba7917964c7bca90d6ba88bb1957f6b7057cfe402d2ebb2",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "218ccc04b3deacb9ab5360c1f7562514e27590339d2856ef5dd6bf5ecf02a7ca",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "26b4b0b36a49bfa1a037fe912be910b4f6caf407eca0322a3d9cc8887a8937b6",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3b10450825398ba9dcc01edc114cff53388402c92a7a20fe79e6d6f950ad23be",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3cb93974357132a8d0a9e6f2a35284ca71570542b3bde36ab14d5b012b209366",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "433df4b30f0acd5374bc2e022f8960f560eed52ed66e4484356a4dfa38cb5f8a",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4c0bca7860bc36e522e0f67556690c4acc74cb6c9aeccfaf82e5d197c3d2a681",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "626f40a8dcf2abee3417a093fefbde487f0c86e3b6f4a965496ff6c66b70f6aa",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "98c29af989307370c8f2413b95a58664de7dcc8e0deb1a1126855d97fb34f712",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "9ca28dfc8734402c441c206a7bd560eb7a7113c308bb538489f26e67bf01b59d",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a53f2f61b1dc4afdbd1a7f8643eb0b8bcfb93b3ec38947327ee40f7290a09284",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d5ae892fdabc775e5d67b025c0129362a25ec948cea5e6243daa3c3daa7b2722",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ee3559479ab4469033faba83f7ab67975b6e5c5b8e6ac93a44b91566aedbf192",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ff3e9f1a6c6a5fc135fe2a2961288f225d91e7056e8776969128673ef49d4926",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/facets.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3e2027b7a7a8a6cb4ea2c0ee43e369e23b73359d2f06fcf81e95976607580e46",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/PluginCard.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "84954a91dd54924c63a824fa7080e6a4381f03635edf83ffcb33bf501eafbf85",
-      "location": "content",
-      "path": "apps/web/src/components/plugins-home/PluginCard.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -17113,76 +16253,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "256cbc281f483372d5991c0817a70074edd905b989ff81711ddc2cbae0c7ff82",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "54f5833803fe56654e22ad419ced458a99940f095f026895d711c622bd304e11",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "55c8df590d00038e81293cfb076a56cbab8b1826fc9480ffb43a793d272318e9",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5aef1b43606f73a4b6c9da89dd7355ebacf9283ff09de2eb4fb5ce3208fee3b8",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "772f107f66f5a73bda2b39925eb7ebaf3e674e3707b57a2ce64cf5f402a75a67",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "932861620a0d5552f183bc54bd0b6ee65daf79adb53140988fa76cd93ef227b9",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "94fc92e37185a3719202a6f9af1e2d1b10160d46de6a965cbecbc1f040eb4995",
-      "location": "content",
-      "path": "apps/web/src/components/PluginsView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "1f56a8419c71c3f5346cd082b152081eff48f4055a316cae4bb91a61d845fd7b",
@@ -17221,36 +16291,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3bea8583e9dacb04a8fbdb55efa4d773dc1b2d944f39f69714036c5c3e48a5b6",
-      "location": "content",
-      "path": "apps/web/src/components/ProjectView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4b2cdd6e0e29b1ec456cb63d073a86f33c13722dad7cdfe11dc50d6467e61153",
-      "location": "content",
-      "path": "apps/web/src/components/ProjectView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b6d5123629720655489d5d5f5576f8b468004daaa5da0ce9e80f32752afa8f78",
-      "location": "content",
-      "path": "apps/web/src/components/ProjectView.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -17311,26 +16351,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "05dccdc115b8a70dcf22d2dd2b3b60b7ed468df1074bdd84662af956ae3f6873",
-      "location": "content",
-      "path": "apps/web/src/components/SettingsDialog.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d42820818c51a2c3bf4692b5036efed004e9e6c44ff70a55e61b17798fc1f6fa",
-      "location": "content",
-      "path": "apps/web/src/components/SettingsDialog.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -17463,66 +16483,6 @@
       "token": ".od"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3396d7b718e2eeda8421992b80b4b8259926ded64f91acaac7b52886c15ef121",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5a93c69fd2143cd7a099c437540d4e68b37fc9e8bd08aa15b0195c36cd7e521a",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "7be28c27964ab96d691c4eb59cac0d9665620bd477fa60f2242a6abc126d6edb",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d63901ada87338a0deaa50fa563f6506d59aeadad640de3b5541f18223b23293",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f255d53c97247757c2919a1fbf23284aa4cd73d4e65d2124bf4080084d564a27",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fd74ffa67c6dc8bdab27f817eb6fed6f8ae7b19039fdcda9fd6ace07fc877a22",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/agent-guide.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "e065e5dd7a30d82ad0b7c8defb89de07707dabc5252dc5f72ed30c496a93b929",
@@ -17603,166 +16563,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0cef8afe8ee5e283e2abdeeeccc75d82e404a218d59db9ec551249348fac9ad5",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1130b96e48b7bd990152034cf7c725362a81d52a9bf37d4eb4fb5173d549de2e",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "12b97c8298bd820af11b85b3e1edc8403830a7e34573efd38ff5e3920d442c25",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "209c58b20c254a3865bf94746e241dc84bc2d3ba5f449b56395a0392c05ba919",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "299e1e0944118faf5d49541eb1b3dea52e22a8ce42f0cc079b17eca8e11da9f5",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3e663686aa4b841528ebad4175e54fc1beb64ffe6ec3460f54d08d3f305c668e",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "629da812900829705368d7ab03d76019ebe1a65c1ab97409638fed60fec0d73d",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6b6d620fe17a9e07ca1487ad334dab90c2cc9f7dfc121f59594b48d20da2cc12",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "84b7e902d1e7aa76e2468a04a19d2b7ad21ba375aa56a7b81b81a3ff7fd26732",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "92d416a173008643d31fdbc4c49c1e32d7ee4a1f2df39c554a26ec474992e2c9",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "94bbd14f0ded66a6d1f08239e56182816ccc7d2243eb1845ac0396ba7a722d54",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "960be6f4d2671711133848fbd08f5d200c3bf3183ec8ac385d2f127fc129a8ce",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a25e9a5a64eadcdbc9c00bd9b8d81af25153018330ce27fac357c782ec583a94",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c2c3f4452ef8a478f7ae75431a58479d88cd78c7c3b7233d63c47c702ac6e1b8",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "deb018760ef454aa89c74df45709e8fc48e5650e532eafe6c834ec9aa46f52a7",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e80dbb3a4510f08c138c28bd3b9e6c14ddcf8f59dadfb0cdc1d6341de9cdd900",
-      "location": "content",
-      "path": "apps/web/src/components/use-everywhere/sections.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "37b1effc55a7a40536383a364292101a27b32a92acf19acf1eba4f9674202221",
@@ -17793,26 +16593,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5d438b903f1026a52914cbe5e7b6f4ce184a0f2a42be7ef2680d22065dd7baf2",
-      "location": "content",
-      "path": "apps/web/src/components/UseEverywhereModal.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "8d260a58ad2d139cbb956bd35548b6a3ee4537bede2125c84e1f820a782c50e1",
-      "location": "content",
-      "path": "apps/web/src/components/UseEverywhereModal.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "5f71868b3ab0855ba92db1889f5e61b34b1422d0617309f4d7e2d643eed48a1a",
@@ -17841,196 +16621,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fe620ba718d9954ddd4f9cdd7bc7038cab5818a27464da184c9e92ad011f19e8",
-      "location": "content",
-      "path": "apps/web/src/hooks/useTerminalLaunch.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "01ff2602a3305f2c5d08f5f053f41717c9dffddeadd3e8c3c41fb9caacc8ee6f",
-      "location": "content",
-      "path": "apps/web/src/i18n/content.ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 3,
-      "fingerprint": "10bb30677a7258c0dec694483ec586cb97dfb41415c5bc2c186543f2dd4c74b1",
-      "location": "content",
-      "path": "apps/web/src/i18n/content.ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "81ff4f4f63494dd4ef83823f000a6b9174b1ddb2678ff67cd5833e56ff726cc9",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/ar.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "81d5cc2807f276865e7099bee69bba54eb1f8b9719c61b70924ece53bf83f364",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/de.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "80365a572d25860dc521a217a5889e88a188114ef1fce029b89295066499d8c7",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/es-ES.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "93ae25cdb44dcbc193c2a852ef4cfe20e29d6d65fd2f2f4f024b77a73151795e",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/fa.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6ddb4989cf98b1a039a8cf66e933089763b03de179fe76dda5605576158b4e61",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/fr.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "abe38d5040d25b61275f1681ac74ddba4e05a31e95c6b1c4f869f8f8169bfe96",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/hu.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8de0fe36f26b838e19fb5962ecde4e46228fc0337226927356ddb59817d105ba",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/id.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "17b3076815c6ba718d1b8c1a66ecf50a1cb235e62248c569cce996fff57c3446",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/ja.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e4eb676eb1c62603afbf950996bb901800f8a94162f46e4f174b59c14c5f0d29",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/pl.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7b8cf952c003e26f14047cf966a410828235a8508434fc49d1ef65d8ac802535",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/pt-BR.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "611e8a98960c49887e333d03f7d6d531b8fb8756a2a8bf291bd3e198ea58847f",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/ru.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "045f5f0532ff35e7f41c7de238845711bdcf40d413fd08ceae2ab93039526a5e",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/th.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4a6acbbe9e81a999fc3af7ef7fefd2afb186d3cabd9d4db90a3eb427f01893fe",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/tr.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4edbf987afcf508c70849e9afc1509cd0e02b65592318b88528064014346b3e8",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/uk.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2266dd29ca670b72ee32e2adb8dd0a6c5231402757f9c2f0b7abbaefe46b1aca",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/zh-CN.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b138b4fdf2a6c01b6f5b32c2319477619ab8c948f620e6fe7dc4db8cab339c1f",
-      "location": "content",
-      "path": "apps/web/src/i18n/hosted-locales/zh-TW.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -18083,556 +16673,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "01efd2dc3d1524d9bfb7965313711c5dfaed40615556e06e18a207df28887a62",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0325537ccf0eebf431736faea753baec9582da550c6952f44ff79071a8488181",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0653b86601ffb3d401e24b862179a31f8a241c39eeb07e76c48ccec4017c1a43",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "07485d93cc2433fd4de5cbebc80a2ab977fa90cde4c359b4d1715c993a0bc376",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "093914764dbef1b52e99fd244ecf3f22635921f336dd548f578686bb3af937c6",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0da6aac2e98c2bedd862f9d9ff35ca236630902de303651025cb7d1b84519216",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0f0e460e9e2bd38480f96235d405c87525ce420269d314c2706925d31d4d4173",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "13ce339c292fcb487ca400c1956f16343ddc8bdc31e01a35c80cfc1b9b9d2718",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1cce99995e37b3ac94eb0a076137fe8cc05600556aed424a6c295be3908d5884",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1da38256a42e96322f85ca04e1d4914876491b99f373c970380951f0e0229c02",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2519a2bf78ea426879cc06647f4e4ddd631b66ac5a81e9be49d9e810518435fe",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "28e5f99905ee8d9c963e9c08a58c9cd1aa0e2373ffb3e3bfc1d6114c5c95bdff",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2e5251dc210dcb46e9e7841490680c69652c8ea13cc6322663575e68c4ca0ad5",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3873e2caf9a0cbed1688ec19df2737ccffcf0fddc218fdc14f111253fe50b45f",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3b2ec4ce1101ed81340ceefcd622cb5060cbc9f4fffd0c394e5aadb02506864c",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "4a847cca5410f2ded912a25ca1aee3b22d9f2affb44da95fc3b52b5a573e18c0",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4e187b6bfc57de89bd14508ae7ce8c4a1a5e11a814116cb50a5efdd89c4fa228",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "54acfbffda5ce51ec595122b8b9203b77b27e1e9e482bf0d1406eab605624476",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "5c7a11ad96391c9503fac289d1bfbe59967d02c03c1124a93695ffe9b6664b6a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "60eb8e5c910ff4c37b07f21480c7d5b809f7d1752223cd1c9996461cdfa518da",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "61449601fe49952a836187e93f3d0a0e8dfe1ded889413f1a6305063baaea899",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6ced3a1bce297bffdba1665f272fe60fe3fc4b2b638e81059d6a5c0cb94e4130",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "7d71300ae6d1ed3e546c2504a98361c41354221031acf3c8f34ff9ec6da04fdb",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "81930ddcf9a0dc1de3dc45774a23757f7fb5aeb5dd67338887c2849c5b40423b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "82c84a3d13c336331510f025ba3013f1fe6a9393c5d646901ed7cd5ab2ad148b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "856ff0d3c8016c10b71a3476bf81c314af9b919e6652a465d45e7e96231f5dce",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "91612ea13c1766785cd53f8f715f29d043c42e8b6fbd619a1caa00a60e55e122",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "95ba670571d7e0ee75a64affe58a96452bf1956c2cd1e50385d847eadc4e7b0a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "98963a5db60da88d240f21aec40eece699485ad4e1a5849ee98ef40a24278e45",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a09af8e88dac6fc7ef7b43771fe6ec4ae99e0f5adf8997a7064001dcf3afc871",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a0cddae965e49c3bdd10268164c681a05a6c8aaae5a821a00d61983f4461fa5f",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a35bc374039f2329aeb011068c24532b4868c88bfe6a09fff3e9a6047a78066f",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a386064f0a251935d7fec413e203776ca2e958ed6d4eecbb53e2292e38eda1a3",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a86dd769ffe4f2a9ea4c3021c873ac3f6cc1fd8c12da78f7d3f3f5afc330960a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "aed30d747587387a7a4b2c87e4e381c819a30e24c66fedd310851e08d850d76d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b23887d6938996aa6324f8ce98b039530c5de46960b310ebe990e15d09525278",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b31e06a21d736c0ed0b8b58ec85b996f32c91c664146e81a0b8e0da5191ef192",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b9e7763adad9cab178d63059eaa7e0d2610d9c38a20bcdc2839d53b63eb1263e",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ba9960143d3034332db80b943542b169d0e321fd98acc01e7142024db36e94c2",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c13bc4de2caa6a6379f643bd14c025863e99ed6f3958f3b726d342d27cf0ac95",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c2e2a91eb78a62ae838a4c14c0ec7bb1903362f3b6eea59dca15eb5ee2fe748b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c8200d00a4bbd08ecbcd394444183e92c8574a290a3a14feb8feabee183b7d41",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "caf6c969b88ae8dbc0607687adb3ae666bc2bfb58fb597ae89ba8c1e5cf0b59e",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "cb7340d5275f44273593e97991d22878189d7e7f211cac16565a01a8b8703ab5",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ccc8f262d9d92d88dafe59c5846fcb8d06f0434e8cba1c567220c37569c1f965",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d3266bb1ebd88e24abe96936a7e0d8f4c80a98da8557f33ff4ee05404dc01f69",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d56f5dd89b265a4c06497ce5a1bc07fbf1d52f188f353df224f896a1341c45ee",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d8add814fb12805be1ba20bab6b1fcde15a5d31a61cd487eb39dc164485f06f6",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "db80d1484ceb7993470ee0f5be08ca6e3de0c547173900f710aaea6b28770e8e",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dfa548ce2c495cd67f858d6b6561345cb37f65828daedbe99c0439952ccf7fdb",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e3af20c98be4e3368cc81fa31d0193ac333bc3097e1ec28393711b1fb3fa427c",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e8434547270d7752e7110f475a659f751b7654b5d9eb1aff7cf04724c43efcc6",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ec4afebc0e2436826595d7ff76ae54bb52a5f8366f12a4ae5a2039cf242e13e3",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ee3b54c37174471c5f72bf0080b2433f6953455628eded4ccb93f86c166c2d94",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fb5da6654293edd92d62a9459da9d19679e18b03418e9e723d4f067fc7be1790",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "9aa8c650e331250fe2c8f30c7aaa2d0cc3e97e52c9ad8905c7a36f417ad96297",
@@ -18673,596 +16713,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "01efd2dc3d1524d9bfb7965313711c5dfaed40615556e06e18a207df28887a62",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "029e7144f74ce38fa5f00f7fbd2ef117511ac18ab33e2eef8f967721065793a2",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "05386ae5144b7c24f89f48f62ea37a639f801fc7d37af7655c248128452ef488",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0d5cc1a3978c97ba322fb369e9fd909fcba848153de77a11232c14aa0eeadf4f",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0da6aac2e98c2bedd862f9d9ff35ca236630902de303651025cb7d1b84519216",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "12e8f07595ddd57b0018cadce9b3f0c2ff7ad467ac6f393b853c03a931db3b9b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1755a78cf026e063196c48bb7606631d7bcbafab6c4c622539d21f3e69a0ad52",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1890d5cd8c4919a1796dab852032cb029bd11bdfa640be77e59a17d4ce19411e",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "2015ee858f67e30e7c4802b645b4c56ec78cd2d2edfe50c15f7a3719001effed",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "21386c134b25f0db95e616c44d1af66c2b96840ad4e79dad5992493a27b9eee3",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "22b927d2d9e1e53488f28742139f9386e4867c890f1ebca132349c75c9037783",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2a43012f3de0994df176d12eea9478e267ce09ba0d08fb09ca133f7b71b0a6a6",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2d6b66b5c9f89225cd882b02a98dbd54208c99f19c769e2f45cce20fde6d4217",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3419eb5c9c92b433b1bac6da520e0bc3ff8f0b13f4fce696370c3b3b9ac40802",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3547271f0a384c3a1e8bf4f04be6c5312d5208d63906b1faf109c2c479693b21",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3fc3f6d73334edc72c30867c17e3d58fb483535e90004e5a641f1f43e61afb11",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4178d81baba5c3d71082517204c37377e498a730f5846913e576bc60182b2c93",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "42bffe370c76000d1a55d80d3ebb1dee873264c70331fb9a3db6741bf8e6bb54",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "510ea2953b417acf9480a532f48ff297ab33226af9c331e7c3daa6ebaccdad0d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "54ccbb482711101bb4039a71600d7255abae6ac50f1529d02ed666a201782899",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "557135e2378f2b0be7a40c6ea4e451b24f0cf2cbf00611d2b74dc9539900aae9",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "55dd2608d24f1457672d49a2ffd1b98bdca6269634a3c97efb4670b28d2f097a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "55f6bf0d1e4891cb00d3c51c46b0fead7972e60708263def5293295a2280a083",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "570adeaa5cef34dce5a224b1c9eeb02ea8188f71cf388477874cd07c7238e7cf",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "57663e638c46b7c3b01d42966c41f5a0dc0466a63e5d14f59103bd52d2c03190",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6217c5c9cd1a34b8416b64e94ca83d4cfb1c0db1e544eccdebaa4973489bd3d5",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "63bb1c251572c89717b63de1974004d45447919015e10c5833583c46e1add3ef",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "68b831b97e2d43de45088dcbca13243be4cd81e428edd7a26286733388dac3c9",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6dfdb6c36e6e7bc1ac404519478581780f8928f2d0a8c16ceb408940ea6e2d28",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "75017e69f2c66e379475866792f5d5c10781dac53aa8f81b86a0c398e207e0c8",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "76b4952da3479ca091bb1f45ad7b5eac11df2c58e2db20fd0ee95a061c71798b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "85ebd31207ee614ae0e35bd0ede1f6d813590e577daf11b9b20a3f6155d2258d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8c8134d1f9e59dcf233d9feac3e701b0390cec3c3484fd375f60d09d2824eea6",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "974402e157701e7e51a34ee06ff84a563baef4a10d0cc4c424fbc926955ebe1d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "9a4b47c6697356a5f3e836eb845efb06d314af458d9f178c629d422a351c231c",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "9e03171d489da2653d8f78427fc4514e7cb25e23c9713c4adbb81f479e582d6d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a0a1a3915be2d0d73bd2ad2b8c1677f27775d16b7a9201bfc463fd4d23bb86e9",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a0ae2c9f5c7c60dc4ace655f6ad9530b45f510065316cea1c990fa7dc3e82793",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a486c96526b7248007fc5fc3d6dc3f777bc2d626c6e1de89d3444cf15a9583e4",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a8fd504b2bd16efee60f5409a5ce77df7c858c5704b6039da9c1b0afad2b0f51",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b2d70362581c88973ce6a5eb72f816064e587f7ca9cfc9f555f3327d1a47c6b1",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b6c38dd5a2f5b0872669603bb16506aa26022cec9e905b507ad7366dc64bf76b",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b83a85fb83fb14e42708ce8153ee53361e29a0ea124055e49ca002bf1d777536",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b94144cc177265c85db26eb1b27405762bcda2f38fc6ab6d46834999e400db38",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b95500fc094c62cc23119e33cc2de6ad7a623b10d94c1c105c63bfcfbea78f46",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c13bc4de2caa6a6379f643bd14c025863e99ed6f3958f3b726d342d27cf0ac95",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c529365ab452392547a535857c374872487d9b651da60bde620dacd26f8e18ce",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c684cbb09b38246244fe8e1f50b78b63c6f299feeadf3b070d0d8e6beb222892",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "cb211e1cd72fe03ad7ebd09ad0ebbcd1289639d723fc3f0fe60bc99d4eee2810",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d160a8d6368e362b04ab078ea22ac32c2d1f19ffc5ed3a448cae7228c34afb55",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d684a7350fecda5011e6852976c8a6a53b68dd175f3579b98b90fb79fbe7acb8",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d93b9f4b683341b71aacf6358ccc590ae257cda21c09ae2ef3ed65105e3bb305",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "da856f5627c1ca3add9261320685d0bb2c428f2f807e4776dbb980818a4e127c",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ddbb969f9d8689edccd205286e63daf6df3e07b004ce9e3d2b3287a4bef44d20",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e520cb7f928ad530076c084dbe37bb692745eb3e9f93bfbeef5dda16b9c00225",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f082025b89146023c5744dceb0a8c7bc759ad163bbb4cbebe5ecd153527359d4",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f13cd17b466e4bb10a56dcfef1375895ae5911cb4a7f4b467a72bd11505880c5",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "f221c504368432446c342b8cbae77a7ecc4ad260bb737abc8c92945e97102f5c",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "fba99594445734e08b0a0d996a615a9461611fada99339c77da35029c2359933",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "e80e5685fc9012e62cbce0468fd58c1588cc29aa4bcfe192a8eef647d740d079",
@@ -19271,16 +16721,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "a79761cbe48c00278d2ac7f115702be36a94fa04ca4811936ab9f3cafae5fc4f",
-      "location": "content",
-      "path": "apps/web/src/observability/white-screen.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -19301,16 +16741,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": ".od"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0374d730ae371146b5065ce6dfbf69610306980b69f54ce8677861eaf88560d3",
-      "location": "content",
-      "path": "apps/web/src/runtime/amr-guidance.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -19343,16 +16773,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4714647a1e3df419fe4309ded3ed3f15fe59de5b810700da18c4aec6e8ae1b9f",
-      "location": "content",
-      "path": "apps/web/src/runtime/srcdoc.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "ee18aee58af9db74b1149bc5cde38b8eea86dbe6bd68d92f7f91d2f4d37171c8",
@@ -19361,16 +16781,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "df46948bc89a7ab99675d404c2255724bc5a0936eefce887c805f6e9ed96533b",
-      "location": "content",
-      "path": "apps/web/src/state/projects.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -19421,16 +16831,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "559694c6b0646584693dfa76e03b9ea3f8d8b88f9a7cdec56f942c845e04ee19",
-      "location": "content",
-      "path": "apps/web/src/styles/base.css",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": ".od"
     },
     {
       "class": "active product",
@@ -19501,16 +16901,6 @@
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": ".od"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "75eee5a76c64854d5d4a0a091b1567ce8d796697dd57d3bd763268e32eb6bd91",
-      "location": "content",
-      "path": "apps/web/src/styles/home/use-everywhere.css",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -19775,26 +17165,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "945165a5aeb1d187f593346c0cb306ca50a8821c25dc029a9bfa8615477a606b",
-      "location": "content",
-      "path": "apps/web/src/styles/tokens.css",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ad4bd9755b11318491924729fa476776ae6180977380425b4d6c00dc44817c52",
-      "location": "content",
-      "path": "apps/web/src/styles/tokens.css",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "079165ec2744294bd59983bdc4ce9a7b26101d650d5d4ca439588c802335ae5e",
       "location": "content",
       "path": "apps/web/src/styles/viewer/core.css",
@@ -20055,16 +17425,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "b69bde38bf63fa4daa4ba4d7c3605faf72b1e1a9e4db1773f83179b049dcf172",
-      "location": "content",
-      "path": "apps/web/src/styles/workspace/artifacts.css",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "45899d5d089514945ef1c3e79ea5d622e00f6249a2c5e02c9ba364c88583c672",
       "location": "content",
       "path": "apps/web/src/styles/workspace/design-browser.css",
@@ -20101,16 +17461,6 @@
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "16581108fbfc731dc71ccc07d27479c168ab7e9e6532660966810383b2104a01",
-      "location": "content",
-      "path": "apps/web/src/utils/uuid.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -20403,16 +17753,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e83f47300df8e9cabb388609cc3a62e443868a6c4e47ff41bbb97b2a05e1e674",
-      "location": "content",
-      "path": "apps/web/tests/components/AvatarMenu.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 4,
       "fingerprint": "4c2a8d9a88d7c03e8660b65b76deaa25ec3d4a4aeb076898e96da3509e7f6515",
@@ -20441,16 +17781,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b70534b49061d6cd893640b146b41d61b106f079723aaa79e83914113382edbe",
-      "location": "content",
-      "path": "apps/web/tests/components/ChatComposer.search.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -20501,16 +17831,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4e56f192a0b5481535c858fd5021a21cbf2f6cf045f9b27a21c699361d689a0e",
-      "location": "content",
-      "path": "apps/web/tests/components/EntryShell.onboarding.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -20603,16 +17923,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "92a155756d6c2a90d5b8a46991fe27c482576542edf71ecaccef67b3a3507481",
-      "location": "content",
-      "path": "apps/web/tests/components/home-hero/plugin-authoring-prompt.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "1b73ee8083abf971b14ee3c9ddd3f14ff6066930a72b626bdca7ba32a3593bda",
@@ -20653,16 +17963,6 @@
       "token": "open-design"
     },
     {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "feb5e8652f07410273330c45fd0c860cccf977c06c38df7429ddc02bf00812d7",
-      "location": "content",
-      "path": "apps/web/tests/components/home-hero/plugin-authoring-prompt.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
       "class": "active product",
       "count": 1,
       "fingerprint": "37b327c07aadeb3d73d187de00d5e829943fa71ee23793a8e7ee600ae236ac6b",
@@ -20676,26 +17976,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "597e60960efa776b6755f33ab66cd201c91c01fcda997ce1f1b533e2383def6d",
-      "location": "content",
-      "path": "apps/web/tests/components/HomeView.prefill.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "912abe6f06356eac358ae95ac549aff2d72e3ff4260a3d6f469e52c1a44e3da8",
-      "location": "content",
-      "path": "apps/web/tests/components/HomeView.prefill.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "a3371d68bae4f4183c0a5c099ef217ce2a9ad0bd45472ae773a29c82997fe77d",
       "location": "content",
       "path": "apps/web/tests/components/HomeView.prefill.test.tsx",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -20718,26 +17998,6 @@
       "fingerprint": "d808bb68ac6064a12194eec4049f25d79864b1ec9dace89f446cbeb31e76d941",
       "location": "content",
       "path": "apps/web/tests/components/HomeView.prefill.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "ef88dfd40ef4db60e9b4549695980c2da0c789a57891461921f36239abb4c166",
-      "location": "content",
-      "path": "apps/web/tests/components/HomeView.prefill.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ec4b9bdca6dda3ac0860421e49bbb6a1447e0eacd6295b93f565ad95487f6979",
-      "location": "content",
-      "path": "apps/web/tests/components/InlineModelSwitcher.test.tsx",
       "reason": "Repository-owned product identity residue awaiting migration.",
       "ruleId": "identity.active-product",
       "token": "Open Design"
@@ -21243,36 +18503,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "3f7a56aba9c1f1ab871d0e09cc4835dbc8e64dab1ffe3719c2112964b9e3b9b4",
-      "location": "content",
-      "path": "apps/web/tests/components/preview-modal-unavailable-state.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6c0db6de65f0d7d1e0282fcd0d6b259b220e3ef28c41fea468b6e92f67eb6e2b",
-      "location": "content",
-      "path": "apps/web/tests/components/preview-modal-unavailable-state.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "ab51bccb28ce9cc0774b230bf26a7ab0d6dd257c906a7c362337a8ca43d5a092",
-      "location": "content",
-      "path": "apps/web/tests/components/preview-modal-unavailable-state.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "8bab9f107f162920d0ee36eec939fb0ccbd31c19f29071d27d10a459909dd902",
@@ -21345,16 +18575,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "0ca6bf64dcf3a06732fe9f6715e710fd2c53cb4b9f049d204a7a5e105296f0f2",
-      "location": "content",
-      "path": "apps/web/tests/components/SettingsDialog.execution.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "2177876a3f036c9476f0fb5fa6a4d58ccf659a7374db56b2702923a0f32f553d",
       "location": "content",
       "path": "apps/web/tests/components/SettingsDialog.execution.test.tsx",
@@ -21366,16 +18586,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "80a5456b16953407ae8c89e6be66aa511d84728fe8f7fc17598e02b5da050031",
-      "location": "content",
-      "path": "apps/web/tests/components/SettingsDialog.execution.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "8cb41f5724c1ca81d6163bae5ac5db7087e8c2fbb49cec93e20b5aa2004b3a28",
       "location": "content",
       "path": "apps/web/tests/components/SettingsDialog.execution.test.tsx",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -21631,36 +18841,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "3890487021ea28f23608b1cbc2321c60afd7dcaf2ca698e26bbe90cec62f49c1",
-      "location": "content",
-      "path": "apps/web/tests/observability/white-screen.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "54d55c710d5e227f6053dcb1507a2227807ab9cc6c3170b43021451523b26af4",
-      "location": "content",
-      "path": "apps/web/tests/observability/white-screen.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "626c8c8b5d32680af2af8be302a2dd57946129a0687ae37fd18d7ab614fe10fa",
-      "location": "content",
-      "path": "apps/web/tests/observability/white-screen.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -42093,16 +39273,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f5421b1b39c48b465a4b1fc4da9534b4bdd8e34b34054f7f91b0008cdab0e604",
-      "location": "content",
-      "path": "e2e/lib/fake-agents.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "684cb57ca6a3ec7b51ff7df3e75b1c8484ca634461a2463952f33a0c941825db",
@@ -42175,16 +39345,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/lib/playwright/amr.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "b261bc9c8e741111997beccf8d543346289cbc4aa4ef37878a493f2e887011e9",
       "location": "content",
       "path": "e2e/lib/playwright/amr.ts",
@@ -42221,26 +39381,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0f7ea9e77e5789620b71453471c9c6896735f9d0037a1b43ad9fb987b102b5b8",
-      "location": "content",
-      "path": "e2e/lib/playwright/visual.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "74a3cca05525cb5fd8e1c308b1cac17089b72df483e656ac1b1d1371c10434eb",
-      "location": "content",
-      "path": "e2e/lib/playwright/visual.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -42665,27 +39805,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "797991e3900ccd657863e890fd47e0a939d1e9e4476b25be7969b06fd60c44c6",
-      "location": "content",
-      "path": "e2e/tests/amr/turn.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "295eaa586fb708a540a36efad9d3045aa718948a58f496079f940e24bc252e69",
-      "location": "content",
-      "path": "e2e/tests/dialog/artifact-consistency.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "72b4e02fa45dd95bf14f9bacc2e6f5faa934199078e47df1421106eb24c66066",
       "location": "content",
       "path": "e2e/tests/dialog/artifact-consistency.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -42706,16 +39826,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "295eaa586fb708a540a36efad9d3045aa718948a58f496079f940e24bc252e69",
-      "location": "content",
-      "path": "e2e/tests/dialog/send-now-interrupt.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "72b4e02fa45dd95bf14f9bacc2e6f5faa934199078e47df1421106eb24c66066",
       "location": "content",
       "path": "e2e/tests/dialog/send-now-interrupt.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -42905,27 +40015,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/amr-login-pill.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
-      "location": "content",
-      "path": "e2e/ui/amr-login-pill.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b5891976f1fb86badbe0a29219da5b823dd56f27a2392175db14fef6e4164f1e",
       "location": "content",
       "path": "e2e/ui/amr-login-pill.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -42943,26 +40033,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2027909b3ed00be2abce194b98f57d1a4eb7d3499ca9468c60352d0334c3c9ba",
-      "location": "content",
-      "path": "e2e/ui/amr-logout-requires-relogin.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "e37f68264621cd4eaa8ebbf9f40848b12adf7056fcd2255136382836cf06ef42",
-      "location": "content",
-      "path": "e2e/ui/amr-logout-requires-relogin.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "1ac8a3ca2544f5b4934b5ca7d3bb4dd526e261ad84b3d7e90ee0eeb66c6cfd80",
@@ -42971,16 +40041,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "0c0f379a9002ce2baeb5e6ff89a0e9d46389e34a2535addb8d84a95d6a059f9d",
-      "location": "content",
-      "path": "e2e/ui/amr-onboarding.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -43023,16 +40083,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/api-empty-response.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43053,16 +40103,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/app-design-files.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43083,16 +40123,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/app-manual-edit.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43106,16 +40136,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
-      "location": "content",
-      "path": "e2e/ui/app-restoration.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
       "location": "content",
       "path": "e2e/ui/app-restoration.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -43143,16 +40163,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/app.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43161,16 +40171,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/automations-page.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -43201,16 +40201,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "72b4e02fa45dd95bf14f9bacc2e6f5faa934199078e47df1421106eb24c66066",
-      "location": "content",
-      "path": "e2e/ui/chat-todo-autoscroll.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -43253,16 +40243,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/critical-smoke.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43283,16 +40263,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fde787f390da7545b31ca3f9d46e05071bdea7c65f3a84018b39500856bdc5b0",
-      "location": "content",
-      "path": "e2e/ui/design-files-view-state-persist.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "7bac172ed9505f3089dbe010d72b7a50a5a365cbbd89880df02acd14a5c2dbcc",
@@ -43305,16 +40275,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/design-systems-manager.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
       "location": "content",
       "path": "e2e/ui/design-systems-manager.test.ts",
@@ -43331,16 +40291,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/diagnostics-export.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -43365,26 +40315,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "4bb2a23abcb9cb9c5c317448b6a13a6d435589ba43a18e68a591eec16fdcec05",
-      "location": "content",
-      "path": "e2e/ui/entry-chrome-flows.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "4be902883297a0b463b32f6cdd1c7785bcfeb8598d6cd19de939fd7c0ade88de",
-      "location": "content",
-      "path": "e2e/ui/entry-chrome-flows.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
       "location": "content",
       "path": "e2e/ui/entry-chrome-flows.test.ts",
@@ -43395,47 +40325,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "dfdccac4348bedca71c2eff3286982749b4daafd243307e4bdb53d5855aeace3",
-      "location": "content",
-      "path": "e2e/ui/entry-chrome-flows.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/entry-topbar.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "48f4a965276b5c1c0dfaca5f3e7e94d583006d93897660b7d591003b9ec97a00",
-      "location": "content",
-      "path": "e2e/ui/entry-topbar.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
-      "location": "content",
-      "path": "e2e/ui/entry-topbar.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "cae5a403ded270194a3e4a35a18404ff27fcee3a4c1ed6ec4fb999a5479b6b2e",
       "location": "content",
       "path": "e2e/ui/entry-topbar.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -43461,16 +40351,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/home-hero-rail.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -43501,16 +40381,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2fea8ec70d971383237cebf36708fe35a63b2de0cafc39846921934bdc3167bf",
-      "location": "content",
-      "path": "e2e/ui/project-file-link-routing.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "machine contract to migrate",
@@ -43553,26 +40423,6 @@
       "token": "Open Design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c6abb6a650f1ae8076ef2048d26812210126e34264d950b4c3c428d06ce0b857",
-      "location": "content",
-      "path": "e2e/ui/real-daemon-run.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceb5c14accc9e5409cee574f63f865a88ccaca8ab2a4fa02af8eb74243f3c77e",
-      "location": "content",
-      "path": "e2e/ui/real-daemon-run.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "582efcffa49938e2f30ff4e9c37bbc2ca529e7171aee15559bea8a1d87ffd713",
@@ -43581,16 +40431,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/settings-api-protocol.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -43611,16 +40451,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/settings-design-systems.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -43655,16 +40485,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/settings-local-cli-codex-fallback.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
       "location": "content",
       "path": "e2e/ui/settings-local-cli-codex-fallback.test.ts",
@@ -43695,37 +40515,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "125be6acc840bf0d79029af5f0efaba46d0dd47e069d387f51d2e19344a5b3cb",
-      "location": "content",
-      "path": "e2e/ui/settings-memory-routines.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "15ef9393f79cd525b5a8430be3e7e04bfda0e584dd37e455a0465662acccd225",
-      "location": "content",
-      "path": "e2e/ui/settings-memory-routines.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
-      "location": "content",
-      "path": "e2e/ui/settings-memory-routines.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "f35ab4ad42c0a39d52eed19de85c5236dec5febaf811c1dec485f363a1c25e95",
       "location": "content",
       "path": "e2e/ui/settings-memory-routines.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -43775,47 +40565,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "4f8c905b141aa5342a8c8a6ac6270486a4fda0c3994398df1fc43dfea80d99d8",
-      "location": "content",
-      "path": "e2e/ui/visual-home.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "fa1048b2751b89d1fa18274d814f2b1aa98177233778ccea3280e4ab898f21c0",
-      "location": "content",
-      "path": "e2e/ui/visual-home.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "74a3cca05525cb5fd8e1c308b1cac17089b72df483e656ac1b1d1371c10434eb",
-      "location": "content",
-      "path": "e2e/ui/workspace-keyboard-flows.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "a18f20ea976196c7bd69ce1e1b937176c197dc2c468f6612c67401c7bbfec45a",
-      "location": "content",
-      "path": "e2e/ui/workspace-keyboard-flows.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "df1d80664d40906f92e4ba2b9dd60b177272856cf744c7d7573b5cf9e1067cab",
       "location": "content",
       "path": "e2e/ui/workspace-keyboard-flows.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -52713,26 +49463,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "512558fe82ea9e8db2759b6a2f594c78fa1031f0568063b19d4814102e872558",
-      "location": "content",
-      "path": "tools/pack/resources/web-standalone-after-pack.cjs",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "f5066b98db9d5de5b5a8a77aa6e20f3508cb2373cb97529b424415c94a602c1c",
-      "location": "content",
-      "path": "tools/pack/resources/win/7zip/README.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "027e88be034e7f93ab6e45c034f8c1abbb8e6b3b036aedcd4f1ec506b3eeb942",
@@ -52813,46 +49543,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "abcaef3952805b0e9e5b4fbd8140688b117572f357205f6720291bbe259728e4",
-      "location": "content",
-      "path": "tools/pack/src/win/app.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "d93cf36b42b179cfb7599eff859462cd4a0acca1cc8531970f60d8e7269ee11b",
-      "location": "content",
-      "path": "tools/pack/src/win/app.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "330c12310df79d6797e820328f7baabf7c843ef3e994f969b70bf95958d011be",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "94038eb503343f1ecf91b91c9c92867e3cae0cfd786a52b29524600d55cdbbf4",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "2354ae816a7a4208893d8fb96e897bb6202388f2fb39e7166c6a36124e64a7fa",
@@ -52873,26 +49563,6 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "23dc54cbf12b28d6facfbcf4c1c561e62da39e68e95508d236c91049c1696ca4",
-      "location": "content",
-      "path": "tools/pack/src/win/constants.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "90bcb544df981be4bfc46eaae692639a879d8fb445419245fb52551be9b78560",
-      "location": "content",
-      "path": "tools/pack/src/win/constants.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "17410bf7f3471765b04560e5b3c3660742f2734711ec68c3685a7fb38a01faef",
@@ -52901,26 +49571,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "045e70619af6c801d7936cad3fa5b3e0e07075f27128d5d4e571584cef2870ab",
-      "location": "content",
-      "path": "tools/pack/src/win/paths.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e884a620f943da4a1170a26f700584c0bb073867de5b55c75ed33ff8f65eda8b",
-      "location": "content",
-      "path": "tools/pack/src/win/report.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
     },
     {
       "class": "machine contract to migrate",
@@ -53204,16 +49854,6 @@
     },
     {
       "class": "machine contract to migrate",
-      "count": 3,
-      "fingerprint": "4348365988e2ab65660da711a94c7a9571597d52e6f104d06b723deac9a3ecda",
-      "location": "content",
-      "path": "tools/pack/tests/resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "51b7bda505b532f067705faff04f038994f7061bb4022f1e5de070ac952501f8",
       "location": "content",
@@ -53253,131 +49893,11 @@
       "token": "OD_"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "577fc9e91504d95d0263ee01bbed177f4b6a4cd5360bce4d10720a6c88d7908f",
-      "location": "content",
-      "path": "tools/pack/tests/web-standalone-after-pack.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "517fb58d8d67d42326ba3252ef947753483b9bd00174e4eda0194a907dccba39",
-      "location": "content",
-      "path": "tools/pack/tests/web-standalone-after-pack.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "a97578f6cf965e1b12c019d09bd5fb8a9d7fe2d2fb23066bc99ab68d6a01b727",
-      "location": "content",
-      "path": "tools/pack/tests/web-standalone-after-pack.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "c0a5b6988ace9ac9792513c920194d33f24b0a9dd47ef9ce9c83b39f9f6daecf",
-      "location": "content",
-      "path": "tools/pack/tests/web-standalone-after-pack.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "f47cfe5aa5655ed16510c7f6534ebb6fa43976d94ef198afaa08c44b74e5c494",
-      "location": "content",
-      "path": "tools/pack/tests/web-standalone-after-pack.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "f399ecc08a29a7f9e6b928cf9aa53b248a71f8bb3b7caf2e379bd2e9e16b20db",
       "location": "content",
       "path": "tools/pack/tests/win-app.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "08a2bcb1ce2a80eea9a504bda6113e7d18d1212efe3428956ecdcb870671f72c",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2501f5d6de5f761493c378523e33daa2d543c314b7cea6ef3a0815fcecf907c1",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "60e0e5c9bb88ac21dd2a2baff0f282f90e5750db4e7ba16630aefe218357efb0",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "740bddce2c1c2994fe7bc28b312ece632c2c06dee4e29a946940726c53905893",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "adf871ef0145ecac16bd811c2f391b0b79f60260122ce5a74fb0e644137ae967",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "dd9105d1265a5271950d7c7dd7f1588ce3782170f3332e2ea19dde88765939f6",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "045e70619af6c801d7936cad3fa5b3e0e07075f27128d5d4e571584cef2870ab",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
@@ -53396,16 +49916,6 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "6ab810a54f293ea39486e01a9c2826b3de0cd36b80502ac595248adeb207251b",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b36b1b66729e7edf34074560152840300d4f6e99a320c76c21b8586d21d0bf63",
       "location": "content",
       "path": "tools/pack/tests/win-builder.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -53523,36 +50033,6 @@
       "token": "open-design"
     },
     {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "08a2bcb1ce2a80eea9a504bda6113e7d18d1212efe3428956ecdcb870671f72c",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "2501f5d6de5f761493c378523e33daa2d543c314b7cea6ef3a0815fcecf907c1",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "045e70619af6c801d7936cad3fa5b3e0e07075f27128d5d4e571584cef2870ab",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "1b8e56a4a4953cafab85b2d5228edb7caad033d4bbffd72a98938b01152d4df1",
@@ -53565,27 +50045,7 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "5f1289df8b950832c28f193b3058b1f0c88fc1d79702e9ccb37296f4e47ef887",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "8fdf25e00de378e9d47512daf7d1e3a6da136018ed93d25b40eebf749a5ddbd3",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "ac03e43ab1a172598dde72e1e66f33ec5d02080efd21687e9803dbea6dd5adb5",
       "location": "content",
       "path": "tools/pack/tests/win-size-index.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -53641,46 +50101,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1e48223d8e0a17c7ed7213a5c816c71005494d458b09105c21b6d69abb0ea9e0",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c19065a5c251b17bc3756ecaa6298227ab1a7b744426577bd360a356385859bc",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ffa2f5399c66f4ce520391bab5faf573e598bb88796b9eb837513ac2f5deec67",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "3823bd1118afc11cc61e2925f9c9d20eb458310897bd685d43d74775b74b41b7",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
     },
     {
       "class": "machine contract to migrate",
