@@ -7785,16 +7785,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "6ee30e8e60cc9f68d5135ca134e08d251e5dd98a30dad00b5fba45c81d8c61cb",
-      "location": "content",
-      "path": "apps/daemon/src/server.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "721cb0e5291c36ed7333ad55b926ce4eeb125bcd7911fb2c7ba28a1d311ac65c",
       "location": "content",
       "path": "apps/daemon/src/server.ts",
@@ -7896,16 +7886,6 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "cd16ce5c14d45152d13436515a85c627b400adec103e223c2632155a8f083bf3",
-      "location": "content",
-      "path": "apps/daemon/src/server.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "ef607b1c4add78ad20db96b33db5496091dbf506a52d442b50d647be3b4ada86",
       "location": "content",
       "path": "apps/daemon/src/server.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -8461,16 +8441,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": ".od"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "d9f2e449fe46cb37edf885098f57e56f55dc4765f6f6fa7c61c9c44de9404a08",
-      "location": "content",
-      "path": "apps/daemon/src/update-apply-observations.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
     },
     {
       "class": "active product",
@@ -17095,6 +17065,16 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
+      "fingerprint": "122a209e6ee5da9ff69080d145c2e79f26ee4999f29beab8c1482212c691034f",
+      "location": "content",
+      "path": "apps/daemon/tests/server-paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
       "fingerprint": "33ba05d750b21b9609dca2d997da55842235561177e5fdf1b33f5f7d9a9513b1",
       "location": "content",
       "path": "apps/daemon/tests/server-paths.test.ts",
@@ -17153,19 +17133,9 @@
       "token": "OD_"
     },
     {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "deb3b7c880b46d57050f261191e792b61b782ff56a9ce4489fc20a5abd253d94",
-      "location": "content",
-      "path": "apps/daemon/tests/server-paths.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
       "class": "active product",
       "count": 1,
-      "fingerprint": "15d69d46453e2f243ace1e86f96083163ae9e5ef0300791fe421489694300a58",
+      "fingerprint": "00a166bfd00831c3f282b7a7399451fb66acc801eb29fc72cb30eb1a268b039c",
       "location": "content",
       "path": "apps/daemon/tests/server-paths.test.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -17194,38 +17164,8 @@
     },
     {
       "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "049b940e711e49acf60adfc9e9d8a60283315282322fac87a6c2a9673a792c4a",
-      "location": "content",
-      "path": "apps/daemon/tests/server-paths.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "15d69d46453e2f243ace1e86f96083163ae9e5ef0300791fe421489694300a58",
-      "location": "content",
-      "path": "apps/daemon/tests/server-paths.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
       "count": 2,
       "fingerprint": "7b4f34156b07e7cd93e1f906b9a94983a2b54b68a3a45c81f2690e726a8cd89c",
-      "location": "content",
-      "path": "apps/daemon/tests/server-paths.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "deb3b7c880b46d57050f261191e792b61b782ff56a9ce4489fc20a5abd253d94",
       "location": "content",
       "path": "apps/daemon/tests/server-paths.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -17913,416 +17853,6 @@
       "token": "open-design"
     },
     {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "0f885a83e532df905b624b00b57925fe3d5dda0a07a9c6c420f5b6b72bb8167e",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "0fe5b96334eddb5661c1b81de6e11ee0ddddee2df6ca10ed8be97ed8173377e8",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "163ef8478a85f0174c0e6283268635ab83d002baa0246cd236e620043dd8aa34",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "19e051e0eff990c6c2837bb00a87d59bc5aa47ad2b1bbac5d703d7da3a0e4360",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2fac5dd3a3b249b13a7d4c5e0c404d32dff63897c696b3ea4710eed77c591d65",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "38bb832185f6f61a7ba74beceb3f854100a6ac48a5b2dcab12a89f79d4c4cf2b",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "5c899aa762d7311befad792abaa75072b45d1fd44d5f9e5afdae0c07b51cfe6d",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "7fe70074b015d5172fa7eacf49308f8f5cdc655a14a59b6e41085881ae4c9825",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "8411f7648dc7fb8ec78873bca4e21ba7992ca39f8b45784b0e195f644fe07e42",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "99e9ef80a8d7b220ac902dfe0842a28789ae4ecc51fa7b164ce7afe88af78370",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "bee5297743c57ad784b361f539c346b221b38d7dd3cef1e7232aafb395086770",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "cc25bb2d1b7f5f098d76c3fec47daf7fad9940146be2a4eae37398fa7d328ef6",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "d126826313d455a5f7a3f6def9318ba774a2573b7f2b03a1d087b0c15112a583",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ddc1e1e59af684f921921695561293a3a68de45dfc28d67995daa00493dcebaa",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "e2f9be7a2023d2c3bda5aeb6e9b2cb115113781833e2c3979da6dcdd121903eb",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "face85fd2f13784718f9124693a155c10d64ff335a23b3b83f0fbe6288cb4cf3",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "c454f4b33a0fd9814176542124b5b71eda62c9a3b35416b3ce3f9feae06545cc",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "0de50ce8f00e5ce39ff6be4329cd3fb5a8530b8ea87243c32d972958ef7ebcb0",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "0e9d4cd51dfca170c1a96246d96168fbf58aae7bbb74535e9a15e50c6ee7ed95",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "37afd3f103d8c47fffb51bab4f3358f2d4015432ac7fa928eb3c3cc70b691522",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "38bc4134a5168edd4a977c257a58376d2184511c04479d15e67d273ebef59be5",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "470d2e47a3251faabd56eab27f775073a1a42af6ca8c062848044eae5be6e545",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "5bd77de4dc6660b233e82cd3b194d8e926c369ad17004c84416a92f678c95b70",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "62d6df54ab4f28e116f1d7d187563437cda4e7143637840fd8407b0d12573c14",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "63417e1468772af7e2a6f982b7d39471e3d56c86276f407c45b26c33853ad852",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "63d9126c09058d47f90e18d25a7c3414f6ae577dd904192b313ef1cfa234958a",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "658606d54b855673663144765d5cacaca1d615e0e6b8492bf988a5f14ba0780d",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "68fc96bd9770af7862d29ad11f4bc35f29669bdd0b3201cfd0156b7be50ab858",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "6c078d4c1ed20748846011ec82798731c1225c59c9a7e8ec08f1a8b686b65619",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "6d5e1fbdba97ec85594b746abbcecd62ec8e1e6f913a6a4165b917cffd6cafe8",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "881b1e0b89f1238c2977d5bd9504262c8782c224a6511cd766b3a42c97f3790e",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "8a3836ae924e854ad1d3e2b1d51916e1d123a3e93b3da3ff4bdecea05514bf45",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "91a7aa0d5e53fd42ae30fc5ca66ea3f71eb8b980cbed7e049de1c636deef705f",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "a7883cb647d14fd3463a45e6c5c1b636b4f75a716b585c2c924981b881a3351f",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ac232eb803ee1385879a65512b63d83b5fbfb23a9a08a84945a44e65d0e8d586",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "c0853cb24e5cde81b06c8a4da7f384114c66a225ccdbd7df0b8ea344524e1fc8",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "c10c90f9b3c9b4eda477080ca640dbb2918343cc8b2ec488412910e1da281222",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "cd4fffb82cb75e4898d88824456465a87e69ade85edfe87c84ab0826d558a9cc",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "da17eea3a665af35351bd01e9eb5baa65774dbf00fae02bb27691b4100c10efe",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "df55e818a5bf6f906696c27b0a0b0c1214121deaafce3375fcb94734d1619199",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ed2ff7dd6a41d7d43f4bb53b45453f37021decf30288961608f0dd1759528199",
-      "location": "content",
-      "path": "apps/desktop/src/main/updater.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "3317ad9a9db4c5d80fb404262d77b778da167af29cd43aa586e94f6a725af690",
@@ -18384,360 +17914,20 @@
     },
     {
       "class": "deletion target",
-      "count": 5,
-      "fingerprint": "0fd5b5b299e108fc476e3b06d90038e73d9d4787b83f5d8ecbd10dee5aa3cee3",
+      "count": 1,
+      "fingerprint": "9ef346fa0f79ecebe272d3f5e6118bd415e438529311d781ab34b553c9a2ca1b",
       "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
+      "path": "apps/desktop/tests/main/updater-host-boundary.test.ts",
       "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
       "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "14fc8b541b2355c7e235d5ec5227bee35046fce1492182a733c75b8374efc08c",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
+      "token": "OD_"
     },
     {
       "class": "deletion target",
       "count": 1,
-      "fingerprint": "1a788ba001d90a30d3da55d4e38b754e63f8b0367b11dde103ab51cea59d3e32",
+      "fingerprint": "47d05663e5a1ec608d588676c67b67a2eade06f8fc8122e20c23966fd5518ef8",
       "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2887655d9d4628e4ecf5b3a65b684aa56f8c7f57ef52ef8498b1d551b2bdefdf",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 4,
-      "fingerprint": "3720bf01e005ca3ab858b3434b709b07bf3fcd4bf164c4bebb92615f08a40e6a",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 7,
-      "fingerprint": "5a883f85874cfe8033006bc6f8b6fbc2d6c8b107af5d7291e5a754907cc3aa54",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "7600bb94d822922b97fba34e54fb26bacb48feccabdddb6aaf3fce1e5638ac90",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "83dc2ff5827f6f871ef5288165388ebbc802f3b8a4ec8b87464ca62753887813",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "85f7e3baa5a3e03052f87d0f07d4f02e9145ce44ebabdd61aaa0861efab422e5",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 6,
-      "fingerprint": "87c98d7460084ebae8733a2fd24aff525e504566e8d9df7d964039f3117e8009",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 3,
-      "fingerprint": "a899fa5b7e6f8d112106af97285a6e837812695ee770beb72ed9d0852e6fe2ee",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "b3a17afb5eb6149f97c835a20a32596350854d18a62793bb53c10a2e1a0167e5",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "c3812e9109666184b6090b5cc3c966f49390c78c638320ef18524037ff5e48aa",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "c758606175cc28b69b5c50678760ba7fbf85f14a8282873997d6c219bd5a3f71",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "e0d0fae580994ab469e375a8b5cbd5d5564178c5012ad09fd5e4eadff8411452",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "eac8d93ac7435071760ad0b968bd1f24ee2370713b2c20e6074f6148bcb62fde",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ef55949401dfc090259e3bad15efa36e8f972f857fa94a054828f88e21d510ca",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "f5d5dd0c56a430d44e0978e1e7f0be2ee2be94ef08485963668aca8d88eae4ad",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "0e9d4cd51dfca170c1a96246d96168fbf58aae7bbb74535e9a15e50c6ee7ed95",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "1f94de94ea9e64af119e4e7febcf96256f16e1e772c25f05a4fa9b5c407a9c6e",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2380575cd2b591b05e78f384c1b4df5c99835185ecd562fb64e93dde35ec9c7c",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2d38d91fcbe9a30fea5d0d48520f945bd895fd64ea4fad342c43e49acbd4df74",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 2,
-      "fingerprint": "2fb44deb8d69f1b07722bc1a822a49181129eef82120c8a624c27228c6fbf917",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 5,
-      "fingerprint": "3bdac0813706a1d186d2493e68b4d1339d3352d3795864a5e79505d0412a48ef",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "6a844d54bac7409b58aa067c00f51579ddd53a4cdbc91d249e731e10519b1597",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "85f7e3baa5a3e03052f87d0f07d4f02e9145ce44ebabdd61aaa0861efab422e5",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "934d2da941c1ddafaaaddd5780c0af73485cad071f7b9a069628427277c04963",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "9605b0fda8b3cefeff46b79cca18febd849de6c816809442382267b8274c1e18",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "a263570983033e8917506f0bd01bf8323b5fbe14d56ed7fa8debab84b307ba02",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "abb5ab159edca413ea89bf9f5512b8bf406920ac18528a4911286f7eda7eb256",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "b3a17afb5eb6149f97c835a20a32596350854d18a62793bb53c10a2e1a0167e5",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "b3c7334d827cfcc8925bc93552dbb7c9a252812b03a771a22bff6e24d95ee702",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ca51b7d091e6b2254b626b7b9c39b1a9514fa73efbbda6f1f51c91211209c8e0",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 5,
-      "fingerprint": "dcc595cb77347a9734c00e42bb68661a2b7c9b9d59a590195bf7e4144d513d2c",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "e2f5b021ef1d12930b36cda8f0337002de11a211867f78c023bcd6d6b51c3269",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "fd712c81775ebdd00ade83aed015c4a350b61774a64bae0b8eb4dd6dd78140f9",
-      "location": "content",
-      "path": "apps/desktop/tests/main/updater.test.ts",
+      "path": "apps/desktop/tests/main/updater-host-boundary.test.ts",
       "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
       "ruleId": "identity.deletion-target",
       "token": "open-design"
@@ -18856,16 +18046,6 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "8e184e2fcf54b32011a31b5e50930fc89c258b4dd6cf6a0249c8e70a5219d98e",
-      "location": "content",
-      "path": "apps/packaged/src/headless.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b32f4682513564633730f4687d43598f18a2a9588a59b54c5105fba44eb2db1d",
       "location": "content",
       "path": "apps/packaged/src/headless.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -19151,56 +18331,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "27c2e142332599b2645831fc465f56dd44928bdd3d6895eb3881cf926b9e1012",
-      "location": "content",
-      "path": "apps/packaged/src/updater-env.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "3055722284860f86d18780b6834fe150470c11c93949eea3f33324be8e1ec67e",
-      "location": "content",
-      "path": "apps/packaged/src/updater-env.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "d587fb92f8df9efdb79fa420fbb17d61f74659bd00cb9cfc0b1d192ebed205d4",
-      "location": "content",
-      "path": "apps/packaged/src/updater-env.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ec78da34c9608dba60c8da8f9a9edac9461b6958eabf703dc4248f92b77148cc",
-      "location": "content",
-      "path": "apps/packaged/src/updater-env.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "f0a4e57e8c803772dc70293a8f427377209582cb5828bd62805f056874d81cb0",
-      "location": "content",
-      "path": "apps/packaged/src/updater-env.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
     },
     {
       "class": "machine contract to migrate",
@@ -19855,7 +18985,7 @@
     {
       "class": "deletion target",
       "count": 1,
-      "fingerprint": "2c3afd799a757804a7b1a1030370471dfae8bf376aa3e10106bc948184887ad0",
+      "fingerprint": "c5c42c5349d74599003f63a61e9e9ee967e03233d5b82211c95925c843359467",
       "location": "content",
       "path": "apps/packaged/tests/updater-env.test.ts",
       "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
@@ -19865,27 +18995,7 @@
     {
       "class": "deletion target",
       "count": 1,
-      "fingerprint": "631afbb8967ee65b7f138db1b94cac7f434f5f893ddae983b6e2d3a18b81ad6b",
-      "location": "content",
-      "path": "apps/packaged/tests/updater-env.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "9a87a82c9dd997fabaf5d9036886d633636c1e21320d2d337b01c56385ea4b07",
-      "location": "content",
-      "path": "apps/packaged/tests/updater-env.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "OD_"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "28ab5ffd6b36de183f9bf704b864957411e2d9a2e82af5b35b58b9463f957913",
+      "fingerprint": "2dbd12abff7023bd02ed047bec8b31d54834d1eb98f29e35ef325572f170cb48",
       "location": "content",
       "path": "apps/packaged/tests/updater-env.test.ts",
       "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
@@ -22565,16 +21675,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "097fd09da266a8298987fd769dbf55e6c50e080d08eb4773763c1daa783233dd",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "0da6aac2e98c2bedd862f9d9ff35ca236630902de303651025cb7d1b84519216",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
@@ -22646,16 +21746,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "2e5251dc210dcb46e9e7841490680c69652c8ea13cc6322663575e68c4ca0ad5",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "376d8511e92396c62c008571248fa44614db6adc2e5186f4253836c7846b6181",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -22755,16 +21845,6 @@
     {
       "class": "active product",
       "count": 2,
-      "fingerprint": "79962de627fb7086030e2cea13f4c68718b321421ed2ad74f01656b292ce5eaf",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
       "fingerprint": "7d71300ae6d1ed3e546c2504a98361c41354221031acf3c8f34ff9ec6da04fdb",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
@@ -22785,16 +21865,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "826fd00e2fdcf7864d8e1b2a7561903723bd29599307524bf0f173160369d8a8",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "82c84a3d13c336331510f025ba3013f1fe6a9393c5d646901ed7cd5ab2ad148b",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
@@ -22806,16 +21876,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "856ff0d3c8016c10b71a3476bf81c314af9b919e6652a465d45e7e96231f5dce",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "8dc4b2cb101f3be182bd0cdb3cc2875bd33045d1422977a1f9274bedfd5f9e30",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -23014,26 +22074,6 @@
     },
     {
       "class": "active product",
-      "count": 2,
-      "fingerprint": "cdb434730da15526fbe5bb61356fa961687541de16ec557613bef0431609fdcc",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "cecd2022511226ccf5b04495cf64aeb3a66a6ef9e316dee71e7f63c2eb0b8c6a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
       "count": 1,
       "fingerprint": "d3266bb1ebd88e24abe96936a7e0d8f4c80a98da8557f33ff4ee05404dc01f69",
       "location": "content",
@@ -23046,16 +22086,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "d56f5dd89b265a4c06497ce5a1bc07fbf1d52f188f353df224f896a1341c45ee",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/en.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "d82b652cf0cf161db67745c05931f4f58657bc11eec410d8c06e727c9b8042d3",
       "location": "content",
       "path": "apps/web/src/i18n/locales/en.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -23334,16 +22364,6 @@
     },
     {
       "class": "active product",
-      "count": 2,
-      "fingerprint": "385462dd2906b800412fe5ef31b35e77fd14e1d80e89991840112c13bbfde70e",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
       "count": 1,
       "fingerprint": "3fc3f6d73334edc72c30867c17e3d58fb483535e90004e5a641f1f43e61afb11",
       "location": "content",
@@ -23485,16 +22505,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "71c9ba07dc40bda3ac67f0467ed6a0dc777c1fd3558b6443982c1eed4b93aed7",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "75017e69f2c66e379475866792f5d5c10781dac53aa8f81b86a0c398e207e0c8",
       "location": "content",
       "path": "apps/web/src/i18n/locales/ko.ts",
@@ -23515,27 +22525,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "7dc9dc0b5e2471edf51d0a7057973fc57fa6a685f1bee3d5ac9b2d966a58cb7a",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "85ebd31207ee614ae0e35bd0ede1f6d813590e577daf11b9b20a3f6155d2258d",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "86169fbaa1c8c7b524eea77538d1435efd3055c9918a8ef99b2e8307ecb7440c",
       "location": "content",
       "path": "apps/web/src/i18n/locales/ko.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -23625,27 +22615,7 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "b212a8d07e8dfec451e8ac0dcf99ee7446450f3e8a383ba9b2990e711f941cc2",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "b2d70362581c88973ce6a5eb72f816064e587f7ca9cfc9f555f3327d1a47c6b1",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "b600eb239c8bece3199cf1b427c0e19207a9b63f55ef900dbbd4502c3387e719",
       "location": "content",
       "path": "apps/web/src/i18n/locales/ko.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -23726,26 +22696,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "cb211e1cd72fe03ad7ebd09ad0ebbcd1289639d723fc3f0fe60bc99d4eee2810",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "cdb434730da15526fbe5bb61356fa961687541de16ec557613bef0431609fdcc",
-      "location": "content",
-      "path": "apps/web/src/i18n/locales/ko.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "cecd2022511226ccf5b04495cf64aeb3a66a6ef9e316dee71e7f63c2eb0b8c6a",
       "location": "content",
       "path": "apps/web/src/i18n/locales/ko.ts",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -26205,96 +25155,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "0f745e47e4102c1b8c1b4b1e06e1263cc04e7a09cd4164cb175faf7c302d9907",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "2507708603de9980637faad87997ffbc67e40785f8a7220e61b4094ccfb0e752",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7d513dde7f8dc7e469b4c593452d257a4fb3994400ceb7665f138c55c7c4c099",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ae6a22e09c5a2c1be6b1f34a650ab4147cde26fce6a3f33f27c2bf092ef370ae",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "0f745e47e4102c1b8c1b4b1e06e1263cc04e7a09cd4164cb175faf7c302d9907",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "7d513dde7f8dc7e469b4c593452d257a4fb3994400ceb7665f138c55c7c4c099",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "ae6a22e09c5a2c1be6b1f34a650ab4147cde26fce6a3f33f27c2bf092ef370ae",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b27cb1dd87a4cae3220a0e09576a908e2c4877313c047fd408f3de0fb71be20d",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "c206406a4d1829b7554140b344596651534303790b34da1caebb0a448518c228",
-      "location": "content",
-      "path": "apps/web/tests/components/UpdaterPopup.test.tsx",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "430be64e9e5eded0605878ce43750739cdc1a6004c513e5f856ad14d14e74881",
       "location": "content",
       "path": "apps/web/tests/components/use-everywhere-agent-guide.test.ts",
@@ -26420,106 +25280,6 @@
       "path": "apps/web/tests/i18n/detect-initial-locale.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "1e9838fdb6a41b2c7ccee85f63a63b4282a3cf8d1dfb3761a8f0adf548f33816",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "5bbbd8e78b839b5bdb4adae0a19837bc84f2145c1e5b7d41b89b57fe985825ad",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "61b16a7a63e53ebcee827e186e287eaf25bb3fdc9cdad6e8534f007883d2111d",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "7d513dde7f8dc7e469b4c593452d257a4fb3994400ceb7665f138c55c7c4c099",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "8036d1fb4284d91abc2384f5fbc84bd510508c57601f0017ff7721ff47c88cb2",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "91a8940cb2a9e58ec056ceab72f4e20ee8e2cadf12dfc3b5cf1ab3154f89d2b2",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ae6a22e09c5a2c1be6b1f34a650ab4147cde26fce6a3f33f27c2bf092ef370ae",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "7d513dde7f8dc7e469b4c593452d257a4fb3994400ceb7665f138c55c7c4c099",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "91a8940cb2a9e58ec056ceab72f4e20ee8e2cadf12dfc3b5cf1ab3154f89d2b2",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "ae6a22e09c5a2c1be6b1f34a650ab4147cde26fce6a3f33f27c2bf092ef370ae",
-      "location": "content",
-      "path": "apps/web/tests/lib/updater.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
       "token": "open-design"
     },
     {
@@ -27276,26 +26036,6 @@
       "class": "active product",
       "count": 1,
       "fingerprint": "5a9825517e13df2ebbcb072a7ea323f799d2f5120e1e6cc5e8c59914c2a973cf",
-      "location": "content",
-      "path": "build-portable.ps1",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6270e571507a02a9ba729f1fc51abf087c1db79aa5ff53c6ca55085536e40eee",
-      "location": "content",
-      "path": "build-portable.ps1",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "64fdb18649cf49b994077dfb466d780347fe10ddaba31031e71f0f6c6bd147ac",
       "location": "content",
       "path": "build-portable.ps1",
       "reason": "Repository-owned product identity residue awaiting migration.",
@@ -49715,76 +48455,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "4530c6ed3cf8bd89be7879732b54c98f5bda4991d66d5e23492c9ec1de19c82c",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "5ea56567448b4238b6738fb448ec953895ee0d9749e97943ca596fea6c47b6dd",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "92725ca54747b41ce56b376cecf2091d84f268c5bd6997661b2f10f763f42aca",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b026c30c93ce210005cee430ccf116622d638d192ad7c62d8223526c43714882",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b1ce88647c387e81498d24e1ba81b60e0e9ad36dfa17ea382715d2ae1bb8a106",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "c7e310ab44df4aa1c939ec507a03f94c171b9b87b427441596bd8dd9ee4ba940",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "dd68dabba46c81b1e936f38840d36b05986ab96f05044bf08408d55215f3134e",
-      "location": "content",
-      "path": "e2e/lib/vitest/packaged-update-scenario.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "08a3c551a2ac36c945d8b001330e7912eeb8d495478745754ed47c632b6f219b",
       "location": "content",
       "path": "e2e/package.json",
@@ -50181,296 +48851,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "20b61550ba4be624c28ef4d41ee95da2a156c43f23ee8aa3604b5eb8af78ae63",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "26df40b457a78e71d9e14e459ff28cf0f379144178193c9695163a872741db2f",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "355c7bd93193344104ac19c3eeb601693e6a4ca5a9d321c3f355c395947ab9ae",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 2,
-      "fingerprint": "5f932a23de403b8020189267fa25b558b82ea3b8a509da616f37b9d0a90b2f69",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "6d3df5c42f8bf6aba2a6a8fba4928ec7d20328c244bbe1199490b287ecddac48",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7ca3ce7e4f1fb552a09ef03905b57d156875cfd97973351567f59d3dafa0eb55",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "c033ee02ef70431ae980b78e7ce238738b899291eee26435e2025fe772d12c03",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "ceeb7eebec3c15b7042bdd17b40f4bb8b8c61bd58b1deda461b5851b6a4482cb",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "0624426afe60546e9d15c326b1b5d346cfccc1ee3a631861b23beb737fa334bc",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "224b73ddb4b48c1fdbc5a0fbb9abdc786b77f5164b14681e4022942c61083db6",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "2cde65dd71cd03eb43ef05291a1cdde3106c3c54ac6816da51cb530b581faf7f",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "448d2c5e0f6803de615c72fb8f0b9a99eca331f8cc5a1d7fa14173b6832156f2",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "4ad3c4945589d087614d67513eb0999d9ef47be93c1ef0f7893756a68761c5a2",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "5d50bca2e63bf9a6f524b45ae9f494c2fbfa040f31d43b9de1bfd7941d5c58da",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "608cef157bd6a5262bfba98d2665d1659276de6c5a5bdabac45356e4c5084034",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "6ab4d4762972963f809a0eced83717db6db8706c4398d55fe525e706d8f95738",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "6d3075174c287ba200da3d67ee15b47c1e6167f3b1f12e7edcee69b8fd9a297c",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "6fcb87a8ab66444c5bd031575eda699cdc505134f886cb251fe1a7257d5f8a8d",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "7ca3ce7e4f1fb552a09ef03905b57d156875cfd97973351567f59d3dafa0eb55",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "98bd4a008609f5a50d1d5c501cb1836c8806e659d8100e1ec6f89183447ca1df",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "c1ec43a131d3a303acf9825abf058b015f3296ff96f8ae1fa21e607e59edccee",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "c3b8917ceb3a88b39030f0779732021dfd5cf191162e8bdf2f7641ff82ade4f1",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "ee5919f062a3e0ea4f67aa0e2bcfa49ef09cf65081fc8c5c3779d9c56e12afc1",
-      "location": "content",
-      "path": "e2e/tests/packaged-launcher-update-loop.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "267d61e8150c53ef090277f2c11cdfebafbb3667846eea53ee54a30eaea68346",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "65ac23cefc837a137de22a60a46c3245fea660b6f0f5909d409867d94356462f",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "7f6e20629099b56441969eefd0e5bb238e29419ee7e26823bc989a76af82b618",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "8b5761905d215f10e2cfc2ae05a218eb8497c51777cdc9fceeeea5735a589fd8",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e2ebfdf0804f6c49261b8919b9051cb75fc5769d05b55acaa67bda87d8871715",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "faa763989f9cad35d892061683b641e74e1622bdb2e2edd446b5507d6d1a0688",
-      "location": "content",
-      "path": "e2e/tests/packaged/update-scenario.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
     },
     {
       "class": "machine contract to migrate",
@@ -53181,16 +51561,6 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "__od__"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "1b94b3bd87fc58e44b4856fe5e4139c055a8479fa2b798b1764558edcbdb59b1",
-      "location": "content",
-      "path": "packages/host/tests/index.test.ts",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "Open Design"
     },
     {
       "class": "active product",
@@ -61165,86 +59535,6 @@
     {
       "class": "active product",
       "count": 1,
-      "fingerprint": "22d9bb812a35f72d4f13d452694340d1ac16075745158a7cfc0298519034561b",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "24db62ee1caf138165a0690f7eb21dff0ae8dc4ff28de45d815a7f3297096948",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "7bbcab455559fcf871fe5d6b4a552fa051a39b866cc0e67c8ed9e9d026929a13",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "803a98630b8d9a6aab1de1f00ef33dcaba6ecf7c7d1e6931a7cc92e3a907e720",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "91366678106cc6fabbef180e3e2cb10961b0282cb8e3e49a63511c49aab33721",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "98458a56493a9f85f3bf5f7203a55ede3b6a5bfc90b42d2f6355e6b6a37647a6",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "d7d046b84c272669fcf74d2b06bf3a44dca4800163bdbea009761a8644f30274",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "OD_"
-    },
-    {
-      "class": "active product",
-      "count": 1,
-      "fingerprint": "24db62ee1caf138165a0690f7eb21dff0ae8dc4ff28de45d815a7f3297096948",
-      "location": "content",
-      "path": "tools/pack/AGENTS.md",
-      "reason": "Repository-owned product identity residue awaiting migration.",
-      "ruleId": "identity.active-product",
-      "token": "open-design"
-    },
-    {
-      "class": "active product",
-      "count": 1,
       "fingerprint": "e47e6c9878af518d38fc8d373119d64e6644e4cbc269f00202387ae3982107fa",
       "location": "content",
       "path": "tools/pack/resources/web-standalone-after-pack.cjs",
@@ -61286,36 +59576,6 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "30fffa042aa544887109cd633a18ed39f1189ee83542a5ffde00ddc8d4a67796",
-      "location": "content",
-      "path": "tools/pack/src/config.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "85781d150619dea7d11db1396375b580215b8899b45530f49d9c1b2d57db8d08",
-      "location": "content",
-      "path": "tools/pack/src/config.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e4a582e73acdd9307cab7825ba10ec8aa81c5a3f6fca9e2d7ea6fbf390cf8f16",
-      "location": "content",
-      "path": "tools/pack/src/config.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e866bc684d12450c5451720b6fe7bd9e4316cb7fb1b8f046088330d681358acd",
       "location": "content",
       "path": "tools/pack/src/config.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -61415,27 +59675,7 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "76ffde5a6baddcc98119e55d71340f71ab6a54eb55b069cbaa70037b97c67e4e",
-      "location": "content",
-      "path": "tools/pack/src/win/build.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "330c12310df79d6797e820328f7baabf7c843ef3e994f969b70bf95958d011be",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "48107d2c42376d8445e9150e9d805c76570b82d2640314f278b7de170135585e",
       "location": "content",
       "path": "tools/pack/src/win/builder.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -61446,46 +59686,6 @@
       "class": "machine contract to migrate",
       "count": 2,
       "fingerprint": "94038eb503343f1ecf91b91c9c92867e3cae0cfd786a52b29524600d55cdbbf4",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "a39b506569bfa879b4046e4517ef023223a9ecf01873b04270d085b6cdfafe44",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "b9ada071f1758b7ad10f7f72ec4f2616a5f24d02dd01e2cea56821acfab6032a",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e625f89917554114c6618d51a0c74baabf6eb76294fdde44d6cbdc3d6044d339",
-      "location": "content",
-      "path": "tools/pack/src/win/builder.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "fb0e478b17ce11731753b6a2df4eb50f5719ba7750a83c079608336e1b6251cd",
       "location": "content",
       "path": "tools/pack/src/win/builder.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -61546,16 +59746,6 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "045e70619af6c801d7936cad3fa5b3e0e07075f27128d5d4e571584cef2870ab",
-      "location": "content",
-      "path": "tools/pack/src/win/paths.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "712ead6fc9074db3a9616d8307bbb1d745c6bd543009011e429e0036d3149540",
       "location": "content",
       "path": "tools/pack/src/win/paths.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -61695,46 +59885,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "3f0be5b1887f1449a38108c80d6d67f9737d963c9926a66d8d6bf38dc31524a6",
-      "location": "content",
-      "path": "tools/pack/src/win/zip.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "68854039073427fa57594f3225cba9ac1ff827a54dae8c9a366e0ca44c40ef70",
-      "location": "content",
-      "path": "tools/pack/src/win/zip.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "690e4e13a1ed14f3326c7dc88a5241352dc7dc6f3488fc71f4a9bd3f8709e04f",
-      "location": "content",
-      "path": "tools/pack/src/win/zip.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "7d39572240c9d719b18161818a653586a43796069b9bb15bfadebc81e84038f0",
-      "location": "content",
-      "path": "tools/pack/src/win/zip.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "12d4f6b9a64d224b7e78c141bc35464bc648429d795bd7d66ed20086399fb922",
       "location": "content",
       "path": "tools/pack/src/workspace-build.ts",
@@ -61801,6 +59951,46 @@
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "1f87ba70d62f5ef0bd2fe5361b544967c705bcfdc145c13e369e5fe94e4f3fc4",
+      "location": "content",
+      "path": "tools/pack/tests/config.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "222d6307201a2a0268707762a260485590e5078758620a8973e5212e788916b5",
+      "location": "content",
+      "path": "tools/pack/tests/config.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "75b9380b744cd52165c2e28a6aa3cc29e266178801c2d875847f3b3464b0b243",
+      "location": "content",
+      "path": "tools/pack/tests/config.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "bdc6b115b12772eb75a18193eb9bf57847de96eff2a36c88644a87d750cec5a0",
+      "location": "content",
+      "path": "tools/pack/tests/config.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
     },
     {
       "class": "active product",
@@ -62075,37 +60265,7 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "712ead6fc9074db3a9616d8307bbb1d745c6bd543009011e429e0036d3149540",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "aa0132ecce53746d66859f6fc5dd20115bac3d1dac460a59b2c342de2540cddc",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "b36b1b66729e7edf34074560152840300d4f6e99a320c76c21b8586d21d0bf63",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 2,
-      "fingerprint": "bc90a5fe17197a19fd2cffde2b76cdea9be288b9f441c30b9525c5694d15d331",
       "location": "content",
       "path": "tools/pack/tests/win-builder.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -62275,16 +60435,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "712ead6fc9074db3a9616d8307bbb1d745c6bd543009011e429e0036d3149540",
-      "location": "content",
-      "path": "tools/pack/tests/win-size-index.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "8fdf25e00de378e9d47512daf7d1e3a6da136018ed93d25b40eebf749a5ddbd3",
       "location": "content",
       "path": "tools/pack/tests/win-size-index.test.ts",
@@ -62395,46 +60545,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "7e50034e99f5cb58da61622aad2ea131d8f5ec6685be71b5ce70362419fa95fa",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "cbe43a7105d6e8f73b1cc19fc38cedc6ad30edb63f2e12672dede857a447afa1",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "d14c6c8793b1d7eb738aa5466a6e94cdb2ea67148588f1115cc86802b01579c8",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "fdeeb83df08b4dd25d66bbe7cecd49ce1c827b29865b1a1c42e3c2a05e06312b",
-      "location": "content",
-      "path": "tools/pack/tests/win-zip.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "73241a8246206c249d551663877c2640e0558e819d585b52efe1bb98f78dca1b",
       "location": "content",
       "path": "tools/pack/tests/workspace-build.test.ts",
@@ -62470,136 +60580,6 @@
       "path": "tools/pack/tests/workspace-build.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "138178ed2f74c99b70d655cde18461296489b145c12b5162e3c6ca26744ce665",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "95543bcaec8773a8aed3ef7a26b91ee713bd8ee2d32a7e36319078c02956f072",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2380575cd2b591b05e78f384c1b4df5c99835185ecd562fb64e93dde35ec9c7c",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "2d38d91fcbe9a30fea5d0d48520f945bd895fd64ea4fad342c43e49acbd4df74",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "d591c4e57691c0724431061f51360182351591bc89c5bd2114452bc7ceef3020",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "e2af2ff727019f3125d2fc327e5baeee42194f507f9c607e8a9e807febe93980",
-      "location": "content",
-      "path": "tools/serve/src/updater-fixture.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "3d623dcd11f550a310c70edf961ec224efc3863c56a2b2fe185159d2412e7a2f",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "591817dac2ca45e0689f226d89035cb97a679661445ab087a9cc9dbda5c4920e",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "a6b9e42d19a401dd86b57261198d3aee36d7a1ea70ca7cd35a6f2c5303a7282d",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "acd1b288f525369153a78c3109d141eb0e52527f7e70f83dfcd78f93039c4629",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "e0185b6756e8c54678eee3cad6febb96f31561e9d98553235b99ebe489b1fb53",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "Open Design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "42cbcbfbeec90715d7e4170fec7d77fa4893a6a58d7c563dd92353d80af02c63",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
-      "token": "open-design"
-    },
-    {
-      "class": "deletion target",
-      "count": 1,
-      "fingerprint": "c6336fa8171d9df56eb2febab360aebc36f32f4d1e353bf545479344c62a3d4a",
-      "location": "content",
-      "path": "tools/serve/tests/updater-fixture.test.ts",
-      "reason": "Identity-bearing surface explicitly scheduled for deletion by the cutover plan.",
-      "ruleId": "identity.deletion-target",
       "token": "open-design"
     },
     {
