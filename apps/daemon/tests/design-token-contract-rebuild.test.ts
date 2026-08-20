@@ -17,7 +17,7 @@ describe('prepareDesignTokenContractRebuild', () => {
     await writeFile(
       path.join(systemDir, 'manifest.json'),
       `${JSON.stringify({
-        schemaVersion: 'od-design-system-project/v1',
+        schemaVersion: 'readable.design-system-project/v1',
         id: 'imported-system',
         name: 'Imported System',
         category: 'Imported',

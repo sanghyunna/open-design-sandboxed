@@ -1,0 +1,3236 @@
+Task 26 preflight and completion context
+base=0d9f6f4b513a996e4110d3fba96eae6a816395f6
+branch=agent/readable-task26-design-systems
+initial_status=clean
+node=v24.16.0
+pnpm=10.33.2
+
+ M apps/daemon/src/design-system-import.ts
+ M apps/daemon/src/design-system-package-audit.ts
+ M apps/daemon/src/design-systems.ts
+ M apps/daemon/src/design-token-contract-rebuild.ts
+ M apps/daemon/tests/design-system-assets.test.ts
+ M apps/daemon/tests/design-system-github-import.test.ts
+ M apps/daemon/tests/design-system-import.test.ts
+ M apps/daemon/tests/design-system-shadcn-import.test.ts
+ M apps/daemon/tests/design-system-tool-routes.test.ts
+ M apps/daemon/tests/design-token-contract-rebuild.test.ts
+ M design-systems/README.md
+ M design-systems/_schema/manifest.schema.ts
+ M design-systems/agentic/USAGE.md
+ M design-systems/agentic/design-tokens.json
+ M design-systems/agentic/manifest.json
+ M design-systems/agentic/preview/typography.html
+ M design-systems/agentic/source/evidence.md
+ M design-systems/agentic/source/token-contract.report.json
+ M design-systems/agentic/source/tokens.source.json
+ M design-systems/airbnb/USAGE.md
+ M design-systems/airbnb/components.html
+ M design-systems/airbnb/design-tokens.json
+ M design-systems/airbnb/manifest.json
+ M design-systems/airbnb/preview/typography.html
+ M design-systems/airbnb/source/evidence.md
+ M design-systems/airbnb/source/token-contract.report.json
+ M design-systems/airbnb/source/tokens.source.json
+ M design-systems/airtable/USAGE.md
+ M design-systems/airtable/design-tokens.json
+ M design-systems/airtable/manifest.json
+ M design-systems/airtable/preview/typography.html
+ M design-systems/airtable/source/evidence.md
+ M design-systems/airtable/source/token-contract.report.json
+ M design-systems/airtable/source/tokens.source.json
+ M design-systems/ant/USAGE.md
+ M design-systems/ant/design-tokens.json
+ M design-systems/ant/manifest.json
+ M design-systems/ant/preview/typography.html
+ M design-systems/ant/source/evidence.md
+ M design-systems/ant/source/token-contract.report.json
+ M design-systems/ant/source/tokens.source.json
+ M design-systems/apple/USAGE.md
+ M design-systems/apple/design-tokens.json
+ M design-systems/apple/manifest.json
+ M design-systems/apple/preview/typography.html
+ M design-systems/apple/source/evidence.md
+ M design-systems/apple/source/token-contract.report.json
+ M design-systems/apple/source/tokens.source.json
+ M design-systems/application/USAGE.md
+ M design-systems/application/design-tokens.json
+ M design-systems/application/manifest.json
+ M design-systems/application/preview/typography.html
+ M design-systems/application/source/evidence.md
+ M design-systems/application/source/token-contract.report.json
+ M design-systems/application/source/tokens.source.json
+ M design-systems/arc/USAGE.md
+ M design-systems/arc/design-tokens.json
+ M design-systems/arc/manifest.json
+ M design-systems/arc/preview/typography.html
+ M design-systems/arc/source/evidence.md
+ M design-systems/arc/source/token-contract.report.json
+ M design-systems/arc/source/tokens.source.json
+ M design-systems/artistic/USAGE.md
+ M design-systems/artistic/design-tokens.json
+ M design-systems/artistic/manifest.json
+ M design-systems/artistic/preview/typography.html
+ M design-systems/artistic/source/evidence.md
+ M design-systems/artistic/source/token-contract.report.json
+ M design-systems/artistic/source/tokens.source.json
+ M design-systems/atelier-zero/DESIGN.md
+ M design-systems/atelier-zero/USAGE.md
+ M design-systems/atelier-zero/design-tokens.json
+ M design-systems/atelier-zero/manifest.json
+ M design-systems/atelier-zero/preview/typography.html
+ M design-systems/atelier-zero/source/evidence.md
+ M design-systems/atelier-zero/source/token-contract.report.json
+ M design-systems/atelier-zero/source/tokens.source.json
+ M design-systems/bento/USAGE.md
+ M design-systems/bento/design-tokens.json
+ M design-systems/bento/manifest.json
+ M design-systems/bento/preview/typography.html
+ M design-systems/bento/source/evidence.md
+ M design-systems/bento/source/token-contract.report.json
+ M design-systems/bento/source/tokens.source.json
+ M design-systems/binance/USAGE.md
+ M design-systems/binance/design-tokens.json
+ M design-systems/binance/manifest.json
+ M design-systems/binance/preview/typography.html
+ M design-systems/binance/source/evidence.md
+ M design-systems/binance/source/token-contract.report.json
+ M design-systems/binance/source/tokens.source.json
+ M design-systems/bmw-m/USAGE.md
+ M design-systems/bmw-m/design-tokens.json
+ M design-systems/bmw-m/manifest.json
+ M design-systems/bmw-m/preview/typography.html
+ M design-systems/bmw-m/source/evidence.md
+ M design-systems/bmw-m/source/token-contract.report.json
+ M design-systems/bmw-m/source/tokens.source.json
+ M design-systems/bmw/USAGE.md
+ M design-systems/bmw/design-tokens.json
+ M design-systems/bmw/manifest.json
+ M design-systems/bmw/preview/typography.html
+ M design-systems/bmw/source/evidence.md
+ M design-systems/bmw/source/token-contract.report.json
+ M design-systems/bmw/source/tokens.source.json
+ M design-systems/bold/USAGE.md
+ M design-systems/bold/design-tokens.json
+ M design-systems/bold/manifest.json
+ M design-systems/bold/preview/typography.html
+ M design-systems/bold/source/evidence.md
+ M design-systems/bold/source/token-contract.report.json
+ M design-systems/bold/source/tokens.source.json
+ M design-systems/brutalism/USAGE.md
+ M design-systems/brutalism/design-tokens.json
+ M design-systems/brutalism/manifest.json
+ M design-systems/brutalism/preview/typography.html
+ M design-systems/brutalism/source/evidence.md
+ M design-systems/brutalism/source/token-contract.report.json
+ M design-systems/brutalism/source/tokens.source.json
+ M design-systems/bugatti/USAGE.md
+ M design-systems/bugatti/design-tokens.json
+ M design-systems/bugatti/manifest.json
+ M design-systems/bugatti/preview/typography.html
+ M design-systems/bugatti/source/evidence.md
+ M design-systems/bugatti/source/token-contract.report.json
+ M design-systems/bugatti/source/tokens.source.json
+ M design-systems/cafe/USAGE.md
+ M design-systems/cafe/design-tokens.json
+ M design-systems/cafe/manifest.json
+ M design-systems/cafe/preview/typography.html
+ M design-systems/cafe/source/evidence.md
+ M design-systems/cafe/source/token-contract.report.json
+ M design-systems/cafe/source/tokens.source.json
+ M design-systems/cal/USAGE.md
+ M design-systems/cal/design-tokens.json
+ M design-systems/cal/manifest.json
+ M design-systems/cal/preview/typography.html
+ M design-systems/cal/source/evidence.md
+ M design-systems/cal/source/token-contract.report.json
+ M design-systems/cal/source/tokens.source.json
+ M design-systems/canva/USAGE.md
+ M design-systems/canva/design-tokens.json
+ M design-systems/canva/manifest.json
+ M design-systems/canva/preview/typography.html
+ M design-systems/canva/source/evidence.md
+ M design-systems/canva/source/token-contract.report.json
+ M design-systems/canva/source/tokens.source.json
+ M design-systems/cisco/USAGE.md
+ M design-systems/cisco/design-tokens.json
+ M design-systems/cisco/manifest.json
+ M design-systems/cisco/preview/typography.html
+ M design-systems/cisco/source/evidence.md
+ M design-systems/cisco/source/token-contract.report.json
+ M design-systems/cisco/source/tokens.source.json
+ M design-systems/claude/USAGE.md
+ M design-systems/claude/design-tokens.json
+ M design-systems/claude/manifest.json
+ M design-systems/claude/preview/typography.html
+ M design-systems/claude/source/evidence.md
+ M design-systems/claude/source/token-contract.report.json
+ M design-systems/claude/source/tokens.source.json
+ M design-systems/clay/USAGE.md
+ M design-systems/clay/design-tokens.json
+ M design-systems/clay/manifest.json
+ M design-systems/clay/preview/typography.html
+ M design-systems/clay/source/evidence.md
+ M design-systems/clay/source/token-contract.report.json
+ M design-systems/clay/source/tokens.source.json
+ M design-systems/claymorphism/USAGE.md
+ M design-systems/claymorphism/design-tokens.json
+ M design-systems/claymorphism/manifest.json
+ M design-systems/claymorphism/preview/typography.html
+ M design-systems/claymorphism/source/evidence.md
+ M design-systems/claymorphism/source/token-contract.report.json
+ M design-systems/claymorphism/source/tokens.source.json
+ M design-systems/clean/USAGE.md
+ M design-systems/clean/design-tokens.json
+ M design-systems/clean/manifest.json
+ M design-systems/clean/preview/typography.html
+ M design-systems/clean/source/evidence.md
+ M design-systems/clean/source/token-contract.report.json
+ M design-systems/clean/source/tokens.source.json
+ M design-systems/clickhouse/USAGE.md
+ M design-systems/clickhouse/design-tokens.json
+ M design-systems/clickhouse/manifest.json
+ M design-systems/clickhouse/preview/typography.html
+ M design-systems/clickhouse/source/evidence.md
+ M design-systems/clickhouse/source/token-contract.report.json
+ M design-systems/clickhouse/source/tokens.source.json
+ M design-systems/cohere/USAGE.md
+ M design-systems/cohere/design-tokens.json
+ M design-systems/cohere/manifest.json
+ M design-systems/cohere/preview/typography.html
+ M design-systems/cohere/source/evidence.md
+ M design-systems/cohere/source/token-contract.report.json
+ M design-systems/cohere/source/tokens.source.json
+ M design-systems/coinbase/USAGE.md
+ M design-systems/coinbase/design-tokens.json
+ M design-systems/coinbase/manifest.json
+ M design-systems/coinbase/preview/typography.html
+ M design-systems/coinbase/source/evidence.md
+ M design-systems/coinbase/source/token-contract.report.json
+ M design-systems/coinbase/source/tokens.source.json
+ M design-systems/colorful/USAGE.md
+ M design-systems/colorful/design-tokens.json
+ M design-systems/colorful/manifest.json
+ M design-systems/colorful/preview/typography.html
+ M design-systems/colorful/source/evidence.md
+ M design-systems/colorful/source/token-contract.report.json
+ M design-systems/colorful/source/tokens.source.json
+ M design-systems/composio/USAGE.md
+ M design-systems/composio/design-tokens.json
+ M design-systems/composio/manifest.json
+ M design-systems/composio/preview/typography.html
+ M design-systems/composio/source/evidence.md
+ M design-systems/composio/source/token-contract.report.json
+ M design-systems/composio/source/tokens.source.json
+ M design-systems/contemporary/USAGE.md
+ M design-systems/contemporary/design-tokens.json
+ M design-systems/contemporary/manifest.json
+ M design-systems/contemporary/preview/typography.html
+ M design-systems/contemporary/source/evidence.md
+ M design-systems/contemporary/source/token-contract.report.json
+ M design-systems/contemporary/source/tokens.source.json
+ M design-systems/corporate/USAGE.md
+ M design-systems/corporate/design-tokens.json
+ M design-systems/corporate/manifest.json
+ M design-systems/corporate/preview/typography.html
+ M design-systems/corporate/source/evidence.md
+ M design-systems/corporate/source/token-contract.report.json
+ M design-systems/corporate/source/tokens.source.json
+ M design-systems/cosmic/USAGE.md
+ M design-systems/cosmic/design-tokens.json
+ M design-systems/cosmic/manifest.json
+ M design-systems/cosmic/preview/typography.html
+ M design-systems/cosmic/source/evidence.md
+ M design-systems/cosmic/source/token-contract.report.json
+ M design-systems/cosmic/source/tokens.source.json
+ M design-systems/creative/USAGE.md
+ M design-systems/creative/design-tokens.json
+ M design-systems/creative/manifest.json
+ M design-systems/creative/preview/typography.html
+ M design-systems/creative/source/evidence.md
+ M design-systems/creative/source/token-contract.report.json
+ M design-systems/creative/source/tokens.source.json
+ M design-systems/cursor/USAGE.md
+ M design-systems/cursor/design-tokens.json
+ M design-systems/cursor/manifest.json
+ M design-systems/cursor/preview/typography.html
+ M design-systems/cursor/source/evidence.md
+ M design-systems/cursor/source/token-contract.report.json
+ M design-systems/cursor/source/tokens.source.json
+ M design-systems/dashboard/USAGE.md
+ M design-systems/dashboard/design-tokens.json
+ M design-systems/dashboard/manifest.json
+ M design-systems/dashboard/preview/typography.html
+ M design-systems/dashboard/source/evidence.md
+ M design-systems/dashboard/source/token-contract.report.json
+ M design-systems/dashboard/source/tokens.source.json
+ M design-systems/default/USAGE.md
+ M design-systems/default/design-tokens.json
+ M design-systems/default/manifest.json
+ M design-systems/default/preview/typography.html
+ M design-systems/default/source/evidence.md
+ M design-systems/default/source/token-contract.report.json
+ M design-systems/default/source/tokens.source.json
+ M design-systems/discord/USAGE.md
+ M design-systems/discord/design-tokens.json
+ M design-systems/discord/manifest.json
+ M design-systems/discord/preview/typography.html
+ M design-systems/discord/source/evidence.md
+ M design-systems/discord/source/token-contract.report.json
+ M design-systems/discord/source/tokens.source.json
+ M design-systems/dithered/USAGE.md
+ M design-systems/dithered/design-tokens.json
+ M design-systems/dithered/manifest.json
+ M design-systems/dithered/preview/typography.html
+ M design-systems/dithered/source/evidence.md
+ M design-systems/dithered/source/token-contract.report.json
+ M design-systems/dithered/source/tokens.source.json
+ M design-systems/doodle/USAGE.md
+ M design-systems/doodle/design-tokens.json
+ M design-systems/doodle/manifest.json
+ M design-systems/doodle/preview/typography.html
+ M design-systems/doodle/source/evidence.md
+ M design-systems/doodle/source/token-contract.report.json
+ M design-systems/doodle/source/tokens.source.json
+ M design-systems/dramatic/USAGE.md
+ M design-systems/dramatic/design-tokens.json
+ M design-systems/dramatic/manifest.json
+ M design-systems/dramatic/preview/typography.html
+ M design-systems/dramatic/source/evidence.md
+ M design-systems/dramatic/source/token-contract.report.json
+ M design-systems/dramatic/source/tokens.source.json
+ M design-systems/duolingo/USAGE.md
+ M design-systems/duolingo/design-tokens.json
+ M design-systems/duolingo/manifest.json
+ M design-systems/duolingo/preview/typography.html
+ M design-systems/duolingo/source/evidence.md
+ M design-systems/duolingo/source/token-contract.report.json
+ M design-systems/duolingo/source/tokens.source.json
+ M design-systems/editorial/USAGE.md
+ M design-systems/editorial/design-tokens.json
+ M design-systems/editorial/manifest.json
+ M design-systems/editorial/preview/typography.html
+ M design-systems/editorial/source/evidence.md
+ M design-systems/editorial/source/token-contract.report.json
+ M design-systems/editorial/source/tokens.source.json
+ M design-systems/elegant/USAGE.md
+ M design-systems/elegant/design-tokens.json
+ M design-systems/elegant/manifest.json
+ M design-systems/elegant/preview/typography.html
+ M design-systems/elegant/source/evidence.md
+ M design-systems/elegant/source/token-contract.report.json
+ M design-systems/elegant/source/tokens.source.json
+ M design-systems/elevenlabs/USAGE.md
+ M design-systems/elevenlabs/design-tokens.json
+ M design-systems/elevenlabs/manifest.json
+ M design-systems/elevenlabs/preview/typography.html
+ M design-systems/elevenlabs/source/evidence.md
+ M design-systems/elevenlabs/source/token-contract.report.json
+ M design-systems/elevenlabs/source/tokens.source.json
+ M design-systems/energetic/USAGE.md
+ M design-systems/energetic/design-tokens.json
+ M design-systems/energetic/manifest.json
+ M design-systems/energetic/preview/typography.html
+ M design-systems/energetic/source/evidence.md
+ M design-systems/energetic/source/token-contract.report.json
+ M design-systems/energetic/source/tokens.source.json
+ M design-systems/enterprise/USAGE.md
+ M design-systems/enterprise/design-tokens.json
+ M design-systems/enterprise/manifest.json
+ M design-systems/enterprise/preview/typography.html
+ M design-systems/enterprise/source/evidence.md
+ M design-systems/enterprise/source/token-contract.report.json
+ M design-systems/enterprise/source/tokens.source.json
+ M design-systems/expo/USAGE.md
+ M design-systems/expo/design-tokens.json
+ M design-systems/expo/manifest.json
+ M design-systems/expo/preview/typography.html
+ M design-systems/expo/source/evidence.md
+ M design-systems/expo/source/token-contract.report.json
+ M design-systems/expo/source/tokens.source.json
+ M design-systems/expressive/USAGE.md
+ M design-systems/expressive/design-tokens.json
+ M design-systems/expressive/manifest.json
+ M design-systems/expressive/preview/typography.html
+ M design-systems/expressive/source/evidence.md
+ M design-systems/expressive/source/token-contract.report.json
+ M design-systems/expressive/source/tokens.source.json
+ M design-systems/fantasy/USAGE.md
+ M design-systems/fantasy/design-tokens.json
+ M design-systems/fantasy/manifest.json
+ M design-systems/fantasy/preview/typography.html
+ M design-systems/fantasy/source/evidence.md
+ M design-systems/fantasy/source/token-contract.report.json
+ M design-systems/fantasy/source/tokens.source.json
+ M design-systems/ferrari/USAGE.md
+ M design-systems/ferrari/design-tokens.json
+ M design-systems/ferrari/manifest.json
+ M design-systems/ferrari/preview/typography.html
+ M design-systems/ferrari/source/evidence.md
+ M design-systems/ferrari/source/token-contract.report.json
+ M design-systems/ferrari/source/tokens.source.json
+ M design-systems/figma/USAGE.md
+ M design-systems/figma/design-tokens.json
+ M design-systems/figma/manifest.json
+ M design-systems/figma/preview/typography.html
+ M design-systems/figma/source/evidence.md
+ M design-systems/figma/source/token-contract.report.json
+ M design-systems/figma/source/tokens.source.json
+ M design-systems/flat/USAGE.md
+ M design-systems/flat/design-tokens.json
+ M design-systems/flat/manifest.json
+ M design-systems/flat/preview/typography.html
+ M design-systems/flat/source/evidence.md
+ M design-systems/flat/source/token-contract.report.json
+ M design-systems/flat/source/tokens.source.json
+ M design-systems/framer/USAGE.md
+ M design-systems/framer/design-tokens.json
+ M design-systems/framer/manifest.json
+ M design-systems/framer/preview/typography.html
+ M design-systems/framer/source/evidence.md
+ M design-systems/framer/source/token-contract.report.json
+ M design-systems/framer/source/tokens.source.json
+ M design-systems/friendly/USAGE.md
+ M design-systems/friendly/design-tokens.json
+ M design-systems/friendly/manifest.json
+ M design-systems/friendly/preview/typography.html
+ M design-systems/friendly/source/evidence.md
+ M design-systems/friendly/source/token-contract.report.json
+ M design-systems/friendly/source/tokens.source.json
+ M design-systems/futuristic/USAGE.md
+ M design-systems/futuristic/design-tokens.json
+ M design-systems/futuristic/manifest.json
+ M design-systems/futuristic/preview/typography.html
+ M design-systems/futuristic/source/evidence.md
+ M design-systems/futuristic/source/token-contract.report.json
+ M design-systems/futuristic/source/tokens.source.json
+ M design-systems/github/USAGE.md
+ M design-systems/github/components.html
+ M design-systems/github/design-tokens.json
+ M design-systems/github/manifest.json
+ M design-systems/github/preview/typography.html
+ M design-systems/github/source/evidence.md
+ M design-systems/github/source/token-contract.report.json
+ M design-systems/github/source/tokens.source.json
+ M design-systems/glassmorphism/USAGE.md
+ M design-systems/glassmorphism/design-tokens.json
+ M design-systems/glassmorphism/manifest.json
+ M design-systems/glassmorphism/preview/typography.html
+ M design-systems/glassmorphism/source/evidence.md
+ M design-systems/glassmorphism/source/token-contract.report.json
+ M design-systems/glassmorphism/source/tokens.source.json
+ M design-systems/gradient/USAGE.md
+ M design-systems/gradient/design-tokens.json
+ M design-systems/gradient/manifest.json
+ M design-systems/gradient/preview/typography.html
+ M design-systems/gradient/source/evidence.md
+ M design-systems/gradient/source/token-contract.report.json
+ M design-systems/gradient/source/tokens.source.json
+ M design-systems/hashicorp/USAGE.md
+ M design-systems/hashicorp/design-tokens.json
+ M design-systems/hashicorp/manifest.json
+ M design-systems/hashicorp/preview/typography.html
+ M design-systems/hashicorp/source/evidence.md
+ M design-systems/hashicorp/source/token-contract.report.json
+ M design-systems/hashicorp/source/tokens.source.json
+ M design-systems/hud/USAGE.md
+ M design-systems/hud/design-tokens.json
+ M design-systems/hud/manifest.json
+ M design-systems/hud/preview/typography.html
+ M design-systems/hud/source/evidence.md
+ M design-systems/hud/source/token-contract.report.json
+ M design-systems/hud/source/tokens.source.json
+ M design-systems/huggingface/USAGE.md
+ M design-systems/huggingface/design-tokens.json
+ M design-systems/huggingface/manifest.json
+ M design-systems/huggingface/preview/typography.html
+ M design-systems/huggingface/source/evidence.md
+ M design-systems/huggingface/source/token-contract.report.json
+ M design-systems/huggingface/source/tokens.source.json
+ M design-systems/ibm/USAGE.md
+ M design-systems/ibm/design-tokens.json
+ M design-systems/ibm/manifest.json
+ M design-systems/ibm/preview/typography.html
+ M design-systems/ibm/source/evidence.md
+ M design-systems/ibm/source/token-contract.report.json
+ M design-systems/ibm/source/tokens.source.json
+ M design-systems/intercom/USAGE.md
+ M design-systems/intercom/design-tokens.json
+ M design-systems/intercom/manifest.json
+ M design-systems/intercom/preview/typography.html
+ M design-systems/intercom/source/evidence.md
+ M design-systems/intercom/source/token-contract.report.json
+ M design-systems/intercom/source/tokens.source.json
+ M design-systems/kami/DESIGN.md
+ M design-systems/kami/USAGE.md
+ M design-systems/kami/design-tokens.json
+ M design-systems/kami/manifest.json
+ M design-systems/kami/preview/typography.html
+ M design-systems/kami/source/evidence.md
+ M design-systems/kami/source/token-contract.report.json
+ M design-systems/kami/source/tokens.source.json
+ M design-systems/kraken/USAGE.md
+ M design-systems/kraken/design-tokens.json
+ M design-systems/kraken/manifest.json
+ M design-systems/kraken/preview/typography.html
+ M design-systems/kraken/source/evidence.md
+ M design-systems/kraken/source/token-contract.report.json
+ M design-systems/kraken/source/tokens.source.json
+ M design-systems/lamborghini/USAGE.md
+ M design-systems/lamborghini/design-tokens.json
+ M design-systems/lamborghini/manifest.json
+ M design-systems/lamborghini/preview/typography.html
+ M design-systems/lamborghini/source/evidence.md
+ M design-systems/lamborghini/source/token-contract.report.json
+ M design-systems/lamborghini/source/tokens.source.json
+ M design-systems/levels/USAGE.md
+ M design-systems/levels/design-tokens.json
+ M design-systems/levels/manifest.json
+ M design-systems/levels/preview/typography.html
+ M design-systems/levels/source/evidence.md
+ M design-systems/levels/source/token-contract.report.json
+ M design-systems/levels/source/tokens.source.json
+ M design-systems/linear-app/USAGE.md
+ M design-systems/linear-app/design-tokens.json
+ M design-systems/linear-app/manifest.json
+ M design-systems/linear-app/preview/typography.html
+ M design-systems/linear-app/source/evidence.md
+ M design-systems/linear-app/source/token-contract.report.json
+ M design-systems/linear-app/source/tokens.source.json
+ M design-systems/lingo/USAGE.md
+ M design-systems/lingo/design-tokens.json
+ M design-systems/lingo/manifest.json
+ M design-systems/lingo/preview/typography.html
+ M design-systems/lingo/source/evidence.md
+ M design-systems/lingo/source/token-contract.report.json
+ M design-systems/lingo/source/tokens.source.json
+ M design-systems/loom/USAGE.md
+ M design-systems/loom/design-tokens.json
+ M design-systems/loom/manifest.json
+ M design-systems/loom/preview/typography.html
+ M design-systems/loom/source/evidence.md
+ M design-systems/loom/source/token-contract.report.json
+ M design-systems/loom/source/tokens.source.json
+ M design-systems/lovable/USAGE.md
+ M design-systems/lovable/design-tokens.json
+ M design-systems/lovable/manifest.json
+ M design-systems/lovable/preview/typography.html
+ M design-systems/lovable/source/evidence.md
+ M design-systems/lovable/source/token-contract.report.json
+ M design-systems/lovable/source/tokens.source.json
+ M design-systems/luxury/USAGE.md
+ M design-systems/luxury/design-tokens.json
+ M design-systems/luxury/manifest.json
+ M design-systems/luxury/preview/typography.html
+ M design-systems/luxury/source/evidence.md
+ M design-systems/luxury/source/token-contract.report.json
+ M design-systems/luxury/source/tokens.source.json
+ M design-systems/mastercard/USAGE.md
+ M design-systems/mastercard/design-tokens.json
+ M design-systems/mastercard/manifest.json
+ M design-systems/mastercard/preview/typography.html
+ M design-systems/mastercard/source/evidence.md
+ M design-systems/mastercard/source/token-contract.report.json
+ M design-systems/mastercard/source/tokens.source.json
+ M design-systems/material/USAGE.md
+ M design-systems/material/design-tokens.json
+ M design-systems/material/manifest.json
+ M design-systems/material/preview/typography.html
+ M design-systems/material/source/evidence.md
+ M design-systems/material/source/token-contract.report.json
+ M design-systems/material/source/tokens.source.json
+ M design-systems/meta/USAGE.md
+ M design-systems/meta/design-tokens.json
+ M design-systems/meta/manifest.json
+ M design-systems/meta/preview/typography.html
+ M design-systems/meta/source/evidence.md
+ M design-systems/meta/source/token-contract.report.json
+ M design-systems/meta/source/tokens.source.json
+ M design-systems/minimal/USAGE.md
+ M design-systems/minimal/design-tokens.json
+ M design-systems/minimal/manifest.json
+ M design-systems/minimal/preview/typography.html
+ M design-systems/minimal/source/evidence.md
+ M design-systems/minimal/source/token-contract.report.json
+ M design-systems/minimal/source/tokens.source.json
+ M design-systems/minimax/USAGE.md
+ M design-systems/minimax/design-tokens.json
+ M design-systems/minimax/manifest.json
+ M design-systems/minimax/preview/typography.html
+ M design-systems/minimax/source/evidence.md
+ M design-systems/minimax/source/token-contract.report.json
+ M design-systems/minimax/source/tokens.source.json
+ M design-systems/mintlify/USAGE.md
+ M design-systems/mintlify/design-tokens.json
+ M design-systems/mintlify/manifest.json
+ M design-systems/mintlify/preview/typography.html
+ M design-systems/mintlify/source/evidence.md
+ M design-systems/mintlify/source/token-contract.report.json
+ M design-systems/mintlify/source/tokens.source.json
+ M design-systems/miro/USAGE.md
+ M design-systems/miro/design-tokens.json
+ M design-systems/miro/manifest.json
+ M design-systems/miro/preview/typography.html
+ M design-systems/miro/source/evidence.md
+ M design-systems/miro/source/token-contract.report.json
+ M design-systems/miro/source/tokens.source.json
+ M design-systems/mission-control/USAGE.md
+ M design-systems/mission-control/design-tokens.json
+ M design-systems/mission-control/manifest.json
+ M design-systems/mission-control/preview/typography.html
+ M design-systems/mission-control/source/evidence.md
+ M design-systems/mission-control/source/token-contract.report.json
+ M design-systems/mission-control/source/tokens.source.json
+ M design-systems/mistral-ai/USAGE.md
+ M design-systems/mistral-ai/design-tokens.json
+ M design-systems/mistral-ai/manifest.json
+ M design-systems/mistral-ai/preview/typography.html
+ M design-systems/mistral-ai/source/evidence.md
+ M design-systems/mistral-ai/source/token-contract.report.json
+ M design-systems/mistral-ai/source/tokens.source.json
+ M design-systems/modern/USAGE.md
+ M design-systems/modern/design-tokens.json
+ M design-systems/modern/manifest.json
+ M design-systems/modern/preview/typography.html
+ M design-systems/modern/source/evidence.md
+ M design-systems/modern/source/token-contract.report.json
+ M design-systems/modern/source/tokens.source.json
+ M design-systems/mongodb/USAGE.md
+ M design-systems/mongodb/design-tokens.json
+ M design-systems/mongodb/manifest.json
+ M design-systems/mongodb/preview/typography.html
+ M design-systems/mongodb/source/evidence.md
+ M design-systems/mongodb/source/token-contract.report.json
+ M design-systems/mongodb/source/tokens.source.json
+ M design-systems/mono/USAGE.md
+ M design-systems/mono/design-tokens.json
+ M design-systems/mono/manifest.json
+ M design-systems/mono/preview/typography.html
+ M design-systems/mono/source/evidence.md
+ M design-systems/mono/source/token-contract.report.json
+ M design-systems/mono/source/tokens.source.json
+ M design-systems/neobrutalism/USAGE.md
+ M design-systems/neobrutalism/design-tokens.json
+ M design-systems/neobrutalism/manifest.json
+ M design-systems/neobrutalism/preview/typography.html
+ M design-systems/neobrutalism/source/evidence.md
+ M design-systems/neobrutalism/source/token-contract.report.json
+ M design-systems/neobrutalism/source/tokens.source.json
+ M design-systems/neon/USAGE.md
+ M design-systems/neon/design-tokens.json
+ M design-systems/neon/manifest.json
+ M design-systems/neon/preview/typography.html
+ M design-systems/neon/source/evidence.md
+ M design-systems/neon/source/token-contract.report.json
+ M design-systems/neon/source/tokens.source.json
+ M design-systems/neumorphism/USAGE.md
+ M design-systems/neumorphism/design-tokens.json
+ M design-systems/neumorphism/manifest.json
+ M design-systems/neumorphism/preview/typography.html
+ M design-systems/neumorphism/source/evidence.md
+ M design-systems/neumorphism/source/token-contract.report.json
+ M design-systems/neumorphism/source/tokens.source.json
+ M design-systems/nike/USAGE.md
+ M design-systems/nike/design-tokens.json
+ M design-systems/nike/manifest.json
+ M design-systems/nike/preview/typography.html
+ M design-systems/nike/source/evidence.md
+ M design-systems/nike/source/token-contract.report.json
+ M design-systems/nike/source/tokens.source.json
+ M design-systems/notion/USAGE.md
+ M design-systems/notion/design-tokens.json
+ M design-systems/notion/manifest.json
+ M design-systems/notion/preview/typography.html
+ M design-systems/notion/source/evidence.md
+ M design-systems/notion/source/token-contract.report.json
+ M design-systems/notion/source/tokens.source.json
+ M design-systems/nvidia/USAGE.md
+ M design-systems/nvidia/design-tokens.json
+ M design-systems/nvidia/manifest.json
+ M design-systems/nvidia/preview/typography.html
+ M design-systems/nvidia/source/evidence.md
+ M design-systems/nvidia/source/token-contract.report.json
+ M design-systems/nvidia/source/tokens.source.json
+ M design-systems/ollama/USAGE.md
+ M design-systems/ollama/design-tokens.json
+ M design-systems/ollama/manifest.json
+ M design-systems/ollama/preview/typography.html
+ M design-systems/ollama/source/evidence.md
+ M design-systems/ollama/source/token-contract.report.json
+ M design-systems/ollama/source/tokens.source.json
+ M design-systems/openai/USAGE.md
+ M design-systems/openai/design-tokens.json
+ M design-systems/openai/manifest.json
+ M design-systems/openai/preview/typography.html
+ M design-systems/openai/source/evidence.md
+ M design-systems/openai/source/token-contract.report.json
+ M design-systems/openai/source/tokens.source.json
+ M design-systems/opencode-ai/USAGE.md
+ M design-systems/opencode-ai/design-tokens.json
+ M design-systems/opencode-ai/manifest.json
+ M design-systems/opencode-ai/preview/typography.html
+ M design-systems/opencode-ai/source/evidence.md
+ M design-systems/opencode-ai/source/token-contract.report.json
+ M design-systems/opencode-ai/source/tokens.source.json
+ M design-systems/pacman/USAGE.md
+ M design-systems/pacman/design-tokens.json
+ M design-systems/pacman/manifest.json
+ M design-systems/pacman/preview/typography.html
+ M design-systems/pacman/source/evidence.md
+ M design-systems/pacman/source/token-contract.report.json
+ M design-systems/pacman/source/tokens.source.json
+ M design-systems/paper/USAGE.md
+ M design-systems/paper/design-tokens.json
+ M design-systems/paper/manifest.json
+ M design-systems/paper/preview/typography.html
+ M design-systems/paper/source/evidence.md
+ M design-systems/paper/source/token-contract.report.json
+ M design-systems/paper/source/tokens.source.json
+ M design-systems/perplexity/USAGE.md
+ M design-systems/perplexity/design-tokens.json
+ M design-systems/perplexity/manifest.json
+ M design-systems/perplexity/preview/typography.html
+ M design-systems/perplexity/source/evidence.md
+ M design-systems/perplexity/source/token-contract.report.json
+ M design-systems/perplexity/source/tokens.source.json
+ M design-systems/perspective/USAGE.md
+ M design-systems/perspective/design-tokens.json
+ M design-systems/perspective/manifest.json
+ M design-systems/perspective/preview/typography.html
+ M design-systems/perspective/source/evidence.md
+ M design-systems/perspective/source/token-contract.report.json
+ M design-systems/perspective/source/tokens.source.json
+ M design-systems/pinterest/USAGE.md
+ M design-systems/pinterest/design-tokens.json
+ M design-systems/pinterest/manifest.json
+ M design-systems/pinterest/preview/typography.html
+ M design-systems/pinterest/source/evidence.md
+ M design-systems/pinterest/source/token-contract.report.json
+ M design-systems/pinterest/source/tokens.source.json
+ M design-systems/playstation/USAGE.md
+ M design-systems/playstation/design-tokens.json
+ M design-systems/playstation/manifest.json
+ M design-systems/playstation/preview/typography.html
+ M design-systems/playstation/source/evidence.md
+ M design-systems/playstation/source/token-contract.report.json
+ M design-systems/playstation/source/tokens.source.json
+ M design-systems/posthog/USAGE.md
+ M design-systems/posthog/design-tokens.json
+ M design-systems/posthog/manifest.json
+ M design-systems/posthog/preview/typography.html
+ M design-systems/posthog/source/evidence.md
+ M design-systems/posthog/source/token-contract.report.json
+ M design-systems/posthog/source/tokens.source.json
+ M design-systems/premium/USAGE.md
+ M design-systems/premium/design-tokens.json
+ M design-systems/premium/manifest.json
+ M design-systems/premium/preview/typography.html
+ M design-systems/premium/source/evidence.md
+ M design-systems/premium/source/token-contract.report.json
+ M design-systems/premium/source/tokens.source.json
+ M design-systems/professional/USAGE.md
+ M design-systems/professional/design-tokens.json
+ M design-systems/professional/manifest.json
+ M design-systems/professional/preview/typography.html
+ M design-systems/professional/source/evidence.md
+ M design-systems/professional/source/token-contract.report.json
+ M design-systems/professional/source/tokens.source.json
+ M design-systems/publication/USAGE.md
+ M design-systems/publication/design-tokens.json
+ M design-systems/publication/manifest.json
+ M design-systems/publication/preview/typography.html
+ M design-systems/publication/source/evidence.md
+ M design-systems/publication/source/token-contract.report.json
+ M design-systems/publication/source/tokens.source.json
+ M design-systems/raycast/USAGE.md
+ M design-systems/raycast/design-tokens.json
+ M design-systems/raycast/manifest.json
+ M design-systems/raycast/preview/typography.html
+ M design-systems/raycast/source/evidence.md
+ M design-systems/raycast/source/token-contract.report.json
+ M design-systems/raycast/source/tokens.source.json
+ M design-systems/refined/USAGE.md
+ M design-systems/refined/design-tokens.json
+ M design-systems/refined/manifest.json
+ M design-systems/refined/preview/typography.html
+ M design-systems/refined/source/evidence.md
+ M design-systems/refined/source/token-contract.report.json
+ M design-systems/refined/source/tokens.source.json
+ M design-systems/renault/USAGE.md
+ M design-systems/renault/design-tokens.json
+ M design-systems/renault/manifest.json
+ M design-systems/renault/preview/typography.html
+ M design-systems/renault/source/evidence.md
+ M design-systems/renault/source/token-contract.report.json
+ M design-systems/renault/source/tokens.source.json
+ M design-systems/replicate/USAGE.md
+ M design-systems/replicate/design-tokens.json
+ M design-systems/replicate/manifest.json
+ M design-systems/replicate/preview/typography.html
+ M design-systems/replicate/source/evidence.md
+ M design-systems/replicate/source/token-contract.report.json
+ M design-systems/replicate/source/tokens.source.json
+ M design-systems/resend/USAGE.md
+ M design-systems/resend/design-tokens.json
+ M design-systems/resend/manifest.json
+ M design-systems/resend/preview/typography.html
+ M design-systems/resend/source/evidence.md
+ M design-systems/resend/source/token-contract.report.json
+ M design-systems/resend/source/tokens.source.json
+ M design-systems/retro/USAGE.md
+ M design-systems/retro/design-tokens.json
+ M design-systems/retro/manifest.json
+ M design-systems/retro/preview/typography.html
+ M design-systems/retro/source/evidence.md
+ M design-systems/retro/source/token-contract.report.json
+ M design-systems/retro/source/tokens.source.json
+ M design-systems/revolut/USAGE.md
+ M design-systems/revolut/design-tokens.json
+ M design-systems/revolut/manifest.json
+ M design-systems/revolut/preview/typography.html
+ M design-systems/revolut/source/evidence.md
+ M design-systems/revolut/source/token-contract.report.json
+ M design-systems/revolut/source/tokens.source.json
+ M design-systems/runwayml/USAGE.md
+ M design-systems/runwayml/design-tokens.json
+ M design-systems/runwayml/manifest.json
+ M design-systems/runwayml/preview/typography.html
+ M design-systems/runwayml/source/evidence.md
+ M design-systems/runwayml/source/token-contract.report.json
+ M design-systems/runwayml/source/tokens.source.json
+ M design-systems/sanity/USAGE.md
+ M design-systems/sanity/design-tokens.json
+ M design-systems/sanity/manifest.json
+ M design-systems/sanity/preview/typography.html
+ M design-systems/sanity/source/evidence.md
+ M design-systems/sanity/source/token-contract.report.json
+ M design-systems/sanity/source/tokens.source.json
+ M design-systems/sentry/USAGE.md
+ M design-systems/sentry/design-tokens.json
+ M design-systems/sentry/manifest.json
+ M design-systems/sentry/preview/typography.html
+ M design-systems/sentry/source/evidence.md
+ M design-systems/sentry/source/token-contract.report.json
+ M design-systems/sentry/source/tokens.source.json
+ M design-systems/shadcn/USAGE.md
+ M design-systems/shadcn/design-tokens.json
+ M design-systems/shadcn/manifest.json
+ M design-systems/shadcn/preview/typography.html
+ M design-systems/shadcn/source/evidence.md
+ M design-systems/shadcn/source/token-contract.report.json
+ M design-systems/shadcn/source/tokens.source.json
+ M design-systems/shopify/USAGE.md
+ M design-systems/shopify/design-tokens.json
+ M design-systems/shopify/manifest.json
+ M design-systems/shopify/preview/typography.html
+ M design-systems/shopify/source/evidence.md
+ M design-systems/shopify/source/token-contract.report.json
+ M design-systems/shopify/source/tokens.source.json
+ M design-systems/simple/USAGE.md
+ M design-systems/simple/design-tokens.json
+ M design-systems/simple/manifest.json
+ M design-systems/simple/preview/typography.html
+ M design-systems/simple/source/evidence.md
+ M design-systems/simple/source/token-contract.report.json
+ M design-systems/simple/source/tokens.source.json
+ M design-systems/skeumorphism/USAGE.md
+ M design-systems/skeumorphism/design-tokens.json
+ M design-systems/skeumorphism/manifest.json
+ M design-systems/skeumorphism/preview/typography.html
+ M design-systems/skeumorphism/source/evidence.md
+ M design-systems/skeumorphism/source/token-contract.report.json
+ M design-systems/skeumorphism/source/tokens.source.json
+ M design-systems/slack/USAGE.md
+ M design-systems/slack/components.html
+ M design-systems/slack/design-tokens.json
+ M design-systems/slack/manifest.json
+ M design-systems/slack/preview/typography.html
+ M design-systems/slack/source/evidence.md
+ M design-systems/slack/source/token-contract.report.json
+ M design-systems/slack/source/tokens.source.json
+ M design-systems/sleek/USAGE.md
+ M design-systems/sleek/design-tokens.json
+ M design-systems/sleek/manifest.json
+ M design-systems/sleek/preview/typography.html
+ M design-systems/sleek/source/evidence.md
+ M design-systems/sleek/source/token-contract.report.json
+ M design-systems/sleek/source/tokens.source.json
+ M design-systems/spacex/USAGE.md
+ M design-systems/spacex/design-tokens.json
+ M design-systems/spacex/manifest.json
+ M design-systems/spacex/preview/typography.html
+ M design-systems/spacex/source/evidence.md
+ M design-systems/spacex/source/token-contract.report.json
+ M design-systems/spacex/source/tokens.source.json
+ M design-systems/spacious/USAGE.md
+ M design-systems/spacious/design-tokens.json
+ M design-systems/spacious/manifest.json
+ M design-systems/spacious/preview/typography.html
+ M design-systems/spacious/source/evidence.md
+ M design-systems/spacious/source/token-contract.report.json
+ M design-systems/spacious/source/tokens.source.json
+ M design-systems/spotify/USAGE.md
+ M design-systems/spotify/components.html
+ M design-systems/spotify/design-tokens.json
+ M design-systems/spotify/manifest.json
+ M design-systems/spotify/preview/typography.html
+ M design-systems/spotify/source/evidence.md
+ M design-systems/spotify/source/token-contract.report.json
+ M design-systems/spotify/source/tokens.source.json
+ M design-systems/starbucks/USAGE.md
+ M design-systems/starbucks/design-tokens.json
+ M design-systems/starbucks/manifest.json
+ M design-systems/starbucks/preview/typography.html
+ M design-systems/starbucks/source/evidence.md
+ M design-systems/starbucks/source/token-contract.report.json
+ M design-systems/starbucks/source/tokens.source.json
+ M design-systems/storytelling/USAGE.md
+ M design-systems/storytelling/design-tokens.json
+ M design-systems/storytelling/manifest.json
+ M design-systems/storytelling/preview/typography.html
+ M design-systems/storytelling/source/evidence.md
+ M design-systems/storytelling/source/token-contract.report.json
+ M design-systems/storytelling/source/tokens.source.json
+ M design-systems/stripe/USAGE.md
+ M design-systems/stripe/design-tokens.json
+ M design-systems/stripe/manifest.json
+ M design-systems/stripe/preview/typography.html
+ M design-systems/stripe/source/evidence.md
+ M design-systems/stripe/source/token-contract.report.json
+ M design-systems/stripe/source/tokens.source.json
+ M design-systems/supabase/USAGE.md
+ M design-systems/supabase/design-tokens.json
+ M design-systems/supabase/manifest.json
+ M design-systems/supabase/preview/typography.html
+ M design-systems/supabase/source/evidence.md
+ M design-systems/supabase/source/token-contract.report.json
+ M design-systems/supabase/source/tokens.source.json
+ M design-systems/superhuman/USAGE.md
+ M design-systems/superhuman/design-tokens.json
+ M design-systems/superhuman/manifest.json
+ M design-systems/superhuman/preview/typography.html
+ M design-systems/superhuman/source/evidence.md
+ M design-systems/superhuman/source/token-contract.report.json
+ M design-systems/superhuman/source/tokens.source.json
+ M design-systems/tesla/USAGE.md
+ M design-systems/tesla/design-tokens.json
+ M design-systems/tesla/manifest.json
+ M design-systems/tesla/preview/typography.html
+ M design-systems/tesla/source/evidence.md
+ M design-systems/tesla/source/token-contract.report.json
+ M design-systems/tesla/source/tokens.source.json
+ M design-systems/tetris/USAGE.md
+ M design-systems/tetris/design-tokens.json
+ M design-systems/tetris/manifest.json
+ M design-systems/tetris/preview/typography.html
+ M design-systems/tetris/source/evidence.md
+ M design-systems/tetris/source/token-contract.report.json
+ M design-systems/tetris/source/tokens.source.json
+ M design-systems/theverge/USAGE.md
+ M design-systems/theverge/design-tokens.json
+ M design-systems/theverge/manifest.json
+ M design-systems/theverge/preview/typography.html
+ M design-systems/theverge/source/evidence.md
+ M design-systems/theverge/source/token-contract.report.json
+ M design-systems/theverge/source/tokens.source.json
+ M design-systems/together-ai/USAGE.md
+ M design-systems/together-ai/design-tokens.json
+ M design-systems/together-ai/manifest.json
+ M design-systems/together-ai/preview/typography.html
+ M design-systems/together-ai/source/evidence.md
+ M design-systems/together-ai/source/token-contract.report.json
+ M design-systems/together-ai/source/tokens.source.json
+ M design-systems/totality-festival/USAGE.md
+ M design-systems/totality-festival/design-tokens.json
+ M design-systems/totality-festival/manifest.json
+ M design-systems/totality-festival/preview/typography.html
+ M design-systems/totality-festival/source/evidence.md
+ M design-systems/totality-festival/source/token-contract.report.json
+ M design-systems/totality-festival/source/tokens.source.json
+ M design-systems/trading-terminal/USAGE.md
+ M design-systems/trading-terminal/design-tokens.json
+ M design-systems/trading-terminal/manifest.json
+ M design-systems/trading-terminal/preview/typography.html
+ M design-systems/trading-terminal/source/evidence.md
+ M design-systems/trading-terminal/source/token-contract.report.json
+ M design-systems/trading-terminal/source/tokens.source.json
+ M design-systems/uber/USAGE.md
+ M design-systems/uber/design-tokens.json
+ M design-systems/uber/manifest.json
+ M design-systems/uber/preview/typography.html
+ M design-systems/uber/source/evidence.md
+ M design-systems/uber/source/token-contract.report.json
+ M design-systems/uber/source/tokens.source.json
+ M design-systems/urdu/USAGE.md
+ M design-systems/urdu/design-tokens.json
+ M design-systems/urdu/manifest.json
+ M design-systems/urdu/preview/typography.html
+ M design-systems/urdu/source/evidence.md
+ M design-systems/urdu/source/token-contract.report.json
+ M design-systems/urdu/source/tokens.source.json
+ M design-systems/vercel/USAGE.md
+ M design-systems/vercel/design-tokens.json
+ M design-systems/vercel/manifest.json
+ M design-systems/vercel/preview/typography.html
+ M design-systems/vercel/source/evidence.md
+ M design-systems/vercel/source/token-contract.report.json
+ M design-systems/vercel/source/tokens.source.json
+ M design-systems/vibrant/USAGE.md
+ M design-systems/vibrant/design-tokens.json
+ M design-systems/vibrant/manifest.json
+ M design-systems/vibrant/preview/typography.html
+ M design-systems/vibrant/source/evidence.md
+ M design-systems/vibrant/source/token-contract.report.json
+ M design-systems/vibrant/source/tokens.source.json
+ M design-systems/vintage/USAGE.md
+ M design-systems/vintage/design-tokens.json
+ M design-systems/vintage/manifest.json
+ M design-systems/vintage/preview/typography.html
+ M design-systems/vintage/source/evidence.md
+ M design-systems/vintage/source/token-contract.report.json
+ M design-systems/vintage/source/tokens.source.json
+ M design-systems/vodafone/USAGE.md
+ M design-systems/vodafone/design-tokens.json
+ M design-systems/vodafone/manifest.json
+ M design-systems/vodafone/preview/typography.html
+ M design-systems/vodafone/source/evidence.md
+ M design-systems/vodafone/source/token-contract.report.json
+ M design-systems/vodafone/source/tokens.source.json
+ M design-systems/voltagent/USAGE.md
+ M design-systems/voltagent/design-tokens.json
+ M design-systems/voltagent/manifest.json
+ M design-systems/voltagent/preview/typography.html
+ M design-systems/voltagent/source/evidence.md
+ M design-systems/voltagent/source/token-contract.report.json
+ M design-systems/voltagent/source/tokens.source.json
+ M design-systems/warm-editorial/USAGE.md
+ M design-systems/warm-editorial/design-tokens.json
+ M design-systems/warm-editorial/manifest.json
+ M design-systems/warm-editorial/preview/typography.html
+ M design-systems/warm-editorial/source/evidence.md
+ M design-systems/warm-editorial/source/token-contract.report.json
+ M design-systems/warm-editorial/source/tokens.source.json
+ M design-systems/warp/USAGE.md
+ M design-systems/warp/design-tokens.json
+ M design-systems/warp/manifest.json
+ M design-systems/warp/preview/typography.html
+ M design-systems/warp/source/evidence.md
+ M design-systems/warp/source/token-contract.report.json
+ M design-systems/warp/source/tokens.source.json
+ M design-systems/webex/USAGE.md
+ M design-systems/webex/design-tokens.json
+ M design-systems/webex/manifest.json
+ M design-systems/webex/preview/typography.html
+ M design-systems/webex/source/evidence.md
+ M design-systems/webex/source/token-contract.report.json
+ M design-systems/webex/source/tokens.source.json
+ M design-systems/webflow/USAGE.md
+ M design-systems/webflow/design-tokens.json
+ M design-systems/webflow/manifest.json
+ M design-systems/webflow/preview/typography.html
+ M design-systems/webflow/source/evidence.md
+ M design-systems/webflow/source/token-contract.report.json
+ M design-systems/webflow/source/tokens.source.json
+ M design-systems/wechat/USAGE.md
+ M design-systems/wechat/design-tokens.json
+ M design-systems/wechat/manifest.json
+ M design-systems/wechat/preview/typography.html
+ M design-systems/wechat/source/evidence.md
+ M design-systems/wechat/source/token-contract.report.json
+ M design-systems/wechat/source/tokens.source.json
+ M design-systems/wired/USAGE.md
+ M design-systems/wired/design-tokens.json
+ M design-systems/wired/manifest.json
+ M design-systems/wired/preview/typography.html
+ M design-systems/wired/source/evidence.md
+ M design-systems/wired/source/token-contract.report.json
+ M design-systems/wired/source/tokens.source.json
+ M design-systems/wise/USAGE.md
+ M design-systems/wise/design-tokens.json
+ M design-systems/wise/manifest.json
+ M design-systems/wise/preview/typography.html
+ M design-systems/wise/source/evidence.md
+ M design-systems/wise/source/token-contract.report.json
+ M design-systems/wise/source/tokens.source.json
+ M design-systems/x-ai/USAGE.md
+ M design-systems/x-ai/design-tokens.json
+ M design-systems/x-ai/manifest.json
+ M design-systems/x-ai/preview/typography.html
+ M design-systems/x-ai/source/evidence.md
+ M design-systems/x-ai/source/token-contract.report.json
+ M design-systems/x-ai/source/tokens.source.json
+ M design-systems/xiaohongshu/USAGE.md
+ M design-systems/xiaohongshu/design-tokens.json
+ M design-systems/xiaohongshu/manifest.json
+ M design-systems/xiaohongshu/preview/typography.html
+ M design-systems/xiaohongshu/source/evidence.md
+ M design-systems/xiaohongshu/source/token-contract.report.json
+ M design-systems/xiaohongshu/source/tokens.source.json
+ M design-systems/zapier/USAGE.md
+ M design-systems/zapier/design-tokens.json
+ M design-systems/zapier/manifest.json
+ M design-systems/zapier/preview/typography.html
+ M design-systems/zapier/source/evidence.md
+ M design-systems/zapier/source/token-contract.report.json
+ M design-systems/zapier/source/tokens.source.json
+ M packages/contracts/src/design-systems/derived-token-outputs.ts
+ M packages/contracts/src/design-systems/token-schema.ts
+ M scripts/check-design-system-manifests.ts
+ M scripts/guard.ts
+ M scripts/readable-identity-baseline.json
+ M scripts/readable-parity.test.ts
+ M scripts/style-policy.test.ts
+?? scripts/regenerate-design-system-metadata.ts
+
+ apps/daemon/src/design-system-import.ts            |    10 +-
+ apps/daemon/src/design-system-package-audit.ts     |     2 +-
+ apps/daemon/src/design-systems.ts                  |     4 +-
+ apps/daemon/src/design-token-contract-rebuild.ts   |     2 +-
+ apps/daemon/tests/design-system-assets.test.ts     |    18 +-
+ .../tests/design-system-github-import.test.ts      |     2 +-
+ apps/daemon/tests/design-system-import.test.ts     |     6 +-
+ .../tests/design-system-shadcn-import.test.ts      |     2 +-
+ .../daemon/tests/design-system-tool-routes.test.ts |     6 +-
+ .../tests/design-token-contract-rebuild.test.ts    |     2 +-
+ design-systems/README.md                           |     4 +-
+ design-systems/_schema/manifest.schema.ts          |     4 +-
+ design-systems/agentic/USAGE.md                    |     2 +-
+ design-systems/agentic/design-tokens.json          |     2 +-
+ design-systems/agentic/manifest.json               |     6 +-
+ design-systems/agentic/preview/typography.html     |     2 +-
+ design-systems/agentic/source/evidence.md          |     2 +-
+ .../agentic/source/token-contract.report.json      |     2 +-
+ design-systems/agentic/source/tokens.source.json   |     2 +-
+ design-systems/airbnb/USAGE.md                     |     2 +-
+ design-systems/airbnb/components.html              |     2 +-
+ design-systems/airbnb/design-tokens.json           |     2 +-
+ design-systems/airbnb/manifest.json                |     6 +-
+ design-systems/airbnb/preview/typography.html      |     2 +-
+ design-systems/airbnb/source/evidence.md           |     2 +-
+ .../airbnb/source/token-contract.report.json       |     2 +-
+ design-systems/airbnb/source/tokens.source.json    |     2 +-
+ design-systems/airtable/USAGE.md                   |     2 +-
+ design-systems/airtable/design-tokens.json         |     2 +-
+ design-systems/airtable/manifest.json              |     6 +-
+ design-systems/airtable/preview/typography.html    |     2 +-
+ design-systems/airtable/source/evidence.md         |     2 +-
+ .../airtable/source/token-contract.report.json     |     2 +-
+ design-systems/airtable/source/tokens.source.json  |     2 +-
+ design-systems/ant/USAGE.md                        |     2 +-
+ design-systems/ant/design-tokens.json              |     2 +-
+ design-systems/ant/manifest.json                   |     6 +-
+ design-systems/ant/preview/typography.html         |     2 +-
+ design-systems/ant/source/evidence.md              |     2 +-
+ .../ant/source/token-contract.report.json          |     2 +-
+ design-systems/ant/source/tokens.source.json       |     2 +-
+ design-systems/apple/USAGE.md                      |     2 +-
+ design-systems/apple/design-tokens.json            |     2 +-
+ design-systems/apple/manifest.json                 |     6 +-
+ design-systems/apple/preview/typography.html       |     2 +-
+ design-systems/apple/source/evidence.md            |     2 +-
+ .../apple/source/token-contract.report.json        |     2 +-
+ design-systems/apple/source/tokens.source.json     |     2 +-
+ design-systems/application/USAGE.md                |     2 +-
+ design-systems/application/design-tokens.json      |     2 +-
+ design-systems/application/manifest.json           |     6 +-
+ design-systems/application/preview/typography.html |     2 +-
+ design-systems/application/source/evidence.md      |     2 +-
+ .../application/source/token-contract.report.json  |     2 +-
+ .../application/source/tokens.source.json          |     2 +-
+ design-systems/arc/USAGE.md                        |     2 +-
+ design-systems/arc/design-tokens.json              |     2 +-
+ design-systems/arc/manifest.json                   |     6 +-
+ design-systems/arc/preview/typography.html         |     2 +-
+ design-systems/arc/source/evidence.md              |     2 +-
+ .../arc/source/token-contract.report.json          |     2 +-
+ design-systems/arc/source/tokens.source.json       |     2 +-
+ design-systems/artistic/USAGE.md                   |     2 +-
+ design-systems/artistic/design-tokens.json         |     2 +-
+ design-systems/artistic/manifest.json              |     6 +-
+ design-systems/artistic/preview/typography.html    |     2 +-
+ design-systems/artistic/source/evidence.md         |     2 +-
+ .../artistic/source/token-contract.report.json     |     2 +-
+ design-systems/artistic/source/tokens.source.json  |     2 +-
+ design-systems/atelier-zero/DESIGN.md              |     2 +-
+ design-systems/atelier-zero/USAGE.md               |     2 +-
+ design-systems/atelier-zero/design-tokens.json     |     2 +-
+ design-systems/atelier-zero/manifest.json          |     6 +-
+ .../atelier-zero/preview/typography.html           |     2 +-
+ design-systems/atelier-zero/source/evidence.md     |     2 +-
+ .../atelier-zero/source/token-contract.report.json |     2 +-
+ .../atelier-zero/source/tokens.source.json         |     2 +-
+ design-systems/bento/USAGE.md                      |     2 +-
+ design-systems/bento/design-tokens.json            |     2 +-
+ design-systems/bento/manifest.json                 |     6 +-
+ design-systems/bento/preview/typography.html       |     2 +-
+ design-systems/bento/source/evidence.md            |     2 +-
+ .../bento/source/token-contract.report.json        |     2 +-
+ design-systems/bento/source/tokens.source.json     |     2 +-
+ design-systems/binance/USAGE.md                    |     2 +-
+ design-systems/binance/design-tokens.json          |     2 +-
+ design-systems/binance/manifest.json               |     6 +-
+ design-systems/binance/preview/typography.html     |     2 +-
+ design-systems/binance/source/evidence.md          |     2 +-
+ .../binance/source/token-contract.report.json      |     2 +-
+ design-systems/binance/source/tokens.source.json   |     2 +-
+ design-systems/bmw-m/USAGE.md                      |     2 +-
+ design-systems/bmw-m/design-tokens.json            |     2 +-
+ design-systems/bmw-m/manifest.json                 |     6 +-
+ design-systems/bmw-m/preview/typography.html       |     2 +-
+ design-systems/bmw-m/source/evidence.md            |     2 +-
+ .../bmw-m/source/token-contract.report.json        |     2 +-
+ design-systems/bmw-m/source/tokens.source.json     |     2 +-
+ design-systems/bmw/USAGE.md                        |     2 +-
+ design-systems/bmw/design-tokens.json              |     2 +-
+ design-systems/bmw/manifest.json                   |     6 +-
+ design-systems/bmw/preview/typography.html         |     2 +-
+ design-systems/bmw/source/evidence.md              |     2 +-
+ .../bmw/source/token-contract.report.json          |     2 +-
+ design-systems/bmw/source/tokens.source.json       |     2 +-
+ design-systems/bold/USAGE.md                       |     2 +-
+ design-systems/bold/design-tokens.json             |     2 +-
+ design-systems/bold/manifest.json                  |     6 +-
+ design-systems/bold/preview/typography.html        |     2 +-
+ design-systems/bold/source/evidence.md             |     2 +-
+ .../bold/source/token-contract.report.json         |     2 +-
+ design-systems/bold/source/tokens.source.json      |     2 +-
+ design-systems/brutalism/USAGE.md                  |     2 +-
+ design-systems/brutalism/design-tokens.json        |     2 +-
+ design-systems/brutalism/manifest.json             |     6 +-
+ design-systems/brutalism/preview/typography.html   |     2 +-
+ design-systems/brutalism/source/evidence.md        |     2 +-
+ .../brutalism/source/token-contract.report.json    |     2 +-
+ design-systems/brutalism/source/tokens.source.json |     2 +-
+ design-systems/bugatti/USAGE.md                    |     2 +-
+ design-systems/bugatti/design-tokens.json          |     2 +-
+ design-systems/bugatti/manifest.json               |     6 +-
+ design-systems/bugatti/preview/typography.html     |     2 +-
+ design-systems/bugatti/source/evidence.md          |     2 +-
+ .../bugatti/source/token-contract.report.json      |     2 +-
+ design-systems/bugatti/source/tokens.source.json   |     2 +-
+ design-systems/cafe/USAGE.md                       |     2 +-
+ design-systems/cafe/design-tokens.json             |     2 +-
+ design-systems/cafe/manifest.json                  |     6 +-
+ design-systems/cafe/preview/typography.html        |     2 +-
+ design-systems/cafe/source/evidence.md             |     2 +-
+ .../cafe/source/token-contract.report.json         |     2 +-
+ design-systems/cafe/source/tokens.source.json      |     2 +-
+ design-systems/cal/USAGE.md                        |     2 +-
+ design-systems/cal/design-tokens.json              |     2 +-
+ design-systems/cal/manifest.json                   |     6 +-
+ design-systems/cal/preview/typography.html         |     2 +-
+ design-systems/cal/source/evidence.md              |     2 +-
+ .../cal/source/token-contract.report.json          |     2 +-
+ design-systems/cal/source/tokens.source.json       |     2 +-
+ design-systems/canva/USAGE.md                      |     2 +-
+ design-systems/canva/design-tokens.json            |     2 +-
+ design-systems/canva/manifest.json                 |     6 +-
+ design-systems/canva/preview/typography.html       |     2 +-
+ design-systems/canva/source/evidence.md            |     2 +-
+ .../canva/source/token-contract.report.json        |     2 +-
+ design-systems/canva/source/tokens.source.json     |     2 +-
+ design-systems/cisco/USAGE.md                      |     2 +-
+ design-systems/cisco/design-tokens.json            |     2 +-
+ design-systems/cisco/manifest.json                 |     6 +-
+ design-systems/cisco/preview/typography.html       |     2 +-
+ design-systems/cisco/source/evidence.md            |     2 +-
+ .../cisco/source/token-contract.report.json        |     2 +-
+ design-systems/cisco/source/tokens.source.json     |     2 +-
+ design-systems/claude/USAGE.md                     |     2 +-
+ design-systems/claude/design-tokens.json           |     2 +-
+ design-systems/claude/manifest.json                |     6 +-
+ design-systems/claude/preview/typography.html      |     2 +-
+ design-systems/claude/source/evidence.md           |     2 +-
+ .../claude/source/token-contract.report.json       |     2 +-
+ design-systems/claude/source/tokens.source.json    |     2 +-
+ design-systems/clay/USAGE.md                       |     2 +-
+ design-systems/clay/design-tokens.json             |     2 +-
+ design-systems/clay/manifest.json                  |     6 +-
+ design-systems/clay/preview/typography.html        |     2 +-
+ design-systems/clay/source/evidence.md             |     2 +-
+ .../clay/source/token-contract.report.json         |     2 +-
+ design-systems/clay/source/tokens.source.json      |     2 +-
+ design-systems/claymorphism/USAGE.md               |     2 +-
+ design-systems/claymorphism/design-tokens.json     |     2 +-
+ design-systems/claymorphism/manifest.json          |     6 +-
+ .../claymorphism/preview/typography.html           |     2 +-
+ design-systems/claymorphism/source/evidence.md     |     2 +-
+ .../claymorphism/source/token-contract.report.json |     2 +-
+ .../claymorphism/source/tokens.source.json         |     2 +-
+ design-systems/clean/USAGE.md                      |     2 +-
+ design-systems/clean/design-tokens.json            |     2 +-
+ design-systems/clean/manifest.json                 |     6 +-
+ design-systems/clean/preview/typography.html       |     2 +-
+ design-systems/clean/source/evidence.md            |     2 +-
+ .../clean/source/token-contract.report.json        |     2 +-
+ design-systems/clean/source/tokens.source.json     |     2 +-
+ design-systems/clickhouse/USAGE.md                 |     2 +-
+ design-systems/clickhouse/design-tokens.json       |     2 +-
+ design-systems/clickhouse/manifest.json            |     6 +-
+ design-systems/clickhouse/preview/typography.html  |     2 +-
+ design-systems/clickhouse/source/evidence.md       |     2 +-
+ .../clickhouse/source/token-contract.report.json   |     2 +-
+ .../clickhouse/source/tokens.source.json           |     2 +-
+ design-systems/cohere/USAGE.md                     |     2 +-
+ design-systems/cohere/design-tokens.json           |     2 +-
+ design-systems/cohere/manifest.json                |     6 +-
+ design-systems/cohere/preview/typography.html      |     2 +-
+ design-systems/cohere/source/evidence.md           |     2 +-
+ .../cohere/source/token-contract.report.json       |     2 +-
+ design-systems/cohere/source/tokens.source.json    |     2 +-
+ design-systems/coinbase/USAGE.md                   |     2 +-
+ design-systems/coinbase/design-tokens.json         |     2 +-
+ design-systems/coinbase/manifest.json              |     6 +-
+ design-systems/coinbase/preview/typography.html    |     2 +-
+ design-systems/coinbase/source/evidence.md         |     2 +-
+ .../coinbase/source/token-contract.report.json     |     2 +-
+ design-systems/coinbase/source/tokens.source.json  |     2 +-
+ design-systems/colorful/USAGE.md                   |     2 +-
+ design-systems/colorful/design-tokens.json         |     2 +-
+ design-systems/colorful/manifest.json              |     6 +-
+ design-systems/colorful/preview/typography.html    |     2 +-
+ design-systems/colorful/source/evidence.md         |     2 +-
+ .../colorful/source/token-contract.report.json     |     2 +-
+ design-systems/colorful/source/tokens.source.json  |     2 +-
+ design-systems/composio/USAGE.md                   |     2 +-
+ design-systems/composio/design-tokens.json         |     2 +-
+ design-systems/composio/manifest.json              |     6 +-
+ design-systems/composio/preview/typography.html    |     2 +-
+ design-systems/composio/source/evidence.md         |     2 +-
+ .../composio/source/token-contract.report.json     |     2 +-
+ design-systems/composio/source/tokens.source.json  |     2 +-
+ design-systems/contemporary/USAGE.md               |     2 +-
+ design-systems/contemporary/design-tokens.json     |     2 +-
+ design-systems/contemporary/manifest.json          |     6 +-
+ .../contemporary/preview/typography.html           |     2 +-
+ design-systems/contemporary/source/evidence.md     |     2 +-
+ .../contemporary/source/token-contract.report.json |     2 +-
+ .../contemporary/source/tokens.source.json         |     2 +-
+ design-systems/corporate/USAGE.md                  |     2 +-
+ design-systems/corporate/design-tokens.json        |     2 +-
+ design-systems/corporate/manifest.json             |     6 +-
+ design-systems/corporate/preview/typography.html   |     2 +-
+ design-systems/corporate/source/evidence.md        |     2 +-
+ .../corporate/source/token-contract.report.json    |     2 +-
+ design-systems/corporate/source/tokens.source.json |     2 +-
+ design-systems/cosmic/USAGE.md                     |     2 +-
+ design-systems/cosmic/design-tokens.json           |     2 +-
+ design-systems/cosmic/manifest.json                |     6 +-
+ design-systems/cosmic/preview/typography.html      |     2 +-
+ design-systems/cosmic/source/evidence.md           |     2 +-
+ .../cosmic/source/token-contract.report.json       |     2 +-
+ design-systems/cosmic/source/tokens.source.json    |     2 +-
+ design-systems/creative/USAGE.md                   |     2 +-
+ design-systems/creative/design-tokens.json         |     2 +-
+ design-systems/creative/manifest.json              |     6 +-
+ design-systems/creative/preview/typography.html    |     2 +-
+ design-systems/creative/source/evidence.md         |     2 +-
+ .../creative/source/token-contract.report.json     |     2 +-
+ design-systems/creative/source/tokens.source.json  |     2 +-
+ design-systems/cursor/USAGE.md                     |     2 +-
+ design-systems/cursor/design-tokens.json           |     2 +-
+ design-systems/cursor/manifest.json                |     6 +-
+ design-systems/cursor/preview/typography.html      |     2 +-
+ design-systems/cursor/source/evidence.md           |     2 +-
+ .../cursor/source/token-contract.report.json       |     2 +-
+ design-systems/cursor/source/tokens.source.json    |     2 +-
+ design-systems/dashboard/USAGE.md                  |     2 +-
+ design-systems/dashboard/design-tokens.json        |     2 +-
+ design-systems/dashboard/manifest.json             |     6 +-
+ design-systems/dashboard/preview/typography.html   |     2 +-
+ design-systems/dashboard/source/evidence.md        |     2 +-
+ .../dashboard/source/token-contract.report.json    |     2 +-
+ design-systems/dashboard/source/tokens.source.json |     2 +-
+ design-systems/default/USAGE.md                    |     2 +-
+ design-systems/default/design-tokens.json          |     2 +-
+ design-systems/default/manifest.json               |     6 +-
+ design-systems/default/preview/typography.html     |     2 +-
+ design-systems/default/source/evidence.md          |     2 +-
+ .../default/source/token-contract.report.json      |     2 +-
+ design-systems/default/source/tokens.source.json   |     2 +-
+ design-systems/discord/USAGE.md                    |     2 +-
+ design-systems/discord/design-tokens.json          |     2 +-
+ design-systems/discord/manifest.json               |     6 +-
+ design-systems/discord/preview/typography.html     |     2 +-
+ design-systems/discord/source/evidence.md          |     2 +-
+ .../discord/source/token-contract.report.json      |     2 +-
+ design-systems/discord/source/tokens.source.json   |     2 +-
+ design-systems/dithered/USAGE.md                   |     2 +-
+ design-systems/dithered/design-tokens.json         |     2 +-
+ design-systems/dithered/manifest.json              |     6 +-
+ design-systems/dithered/preview/typography.html    |     2 +-
+ design-systems/dithered/source/evidence.md         |     2 +-
+ .../dithered/source/token-contract.report.json     |     2 +-
+ design-systems/dithered/source/tokens.source.json  |     2 +-
+ design-systems/doodle/USAGE.md                     |     2 +-
+ design-systems/doodle/design-tokens.json           |     2 +-
+ design-systems/doodle/manifest.json                |     6 +-
+ design-systems/doodle/preview/typography.html      |     2 +-
+ design-systems/doodle/source/evidence.md           |     2 +-
+ .../doodle/source/token-contract.report.json       |     2 +-
+ design-systems/doodle/source/tokens.source.json    |     2 +-
+ design-systems/dramatic/USAGE.md                   |     2 +-
+ design-systems/dramatic/design-tokens.json         |     2 +-
+ design-systems/dramatic/manifest.json              |     6 +-
+ design-systems/dramatic/preview/typography.html    |     2 +-
+ design-systems/dramatic/source/evidence.md         |     2 +-
+ .../dramatic/source/token-contract.report.json     |     2 +-
+ design-systems/dramatic/source/tokens.source.json  |     2 +-
+ design-systems/duolingo/USAGE.md                   |     2 +-
+ design-systems/duolingo/design-tokens.json         |     2 +-
+ design-systems/duolingo/manifest.json              |     6 +-
+ design-systems/duolingo/preview/typography.html    |     2 +-
+ design-systems/duolingo/source/evidence.md         |     2 +-
+ .../duolingo/source/token-contract.report.json     |     2 +-
+ design-systems/duolingo/source/tokens.source.json  |     2 +-
+ design-systems/editorial/USAGE.md                  |     2 +-
+ design-systems/editorial/design-tokens.json        |     2 +-
+ design-systems/editorial/manifest.json             |     6 +-
+ design-systems/editorial/preview/typography.html   |     2 +-
+ design-systems/editorial/source/evidence.md        |     2 +-
+ .../editorial/source/token-contract.report.json    |     2 +-
+ design-systems/editorial/source/tokens.source.json |     2 +-
+ design-systems/elegant/USAGE.md                    |     2 +-
+ design-systems/elegant/design-tokens.json          |     2 +-
+ design-systems/elegant/manifest.json               |     6 +-
+ design-systems/elegant/preview/typography.html     |     2 +-
+ design-systems/elegant/source/evidence.md          |     2 +-
+ .../elegant/source/token-contract.report.json      |     2 +-
+ design-systems/elegant/source/tokens.source.json   |     2 +-
+ design-systems/elevenlabs/USAGE.md                 |     2 +-
+ design-systems/elevenlabs/design-tokens.json       |     2 +-
+ design-systems/elevenlabs/manifest.json            |     6 +-
+ design-systems/elevenlabs/preview/typography.html  |     2 +-
+ design-systems/elevenlabs/source/evidence.md       |     2 +-
+ .../elevenlabs/source/token-contract.report.json   |     2 +-
+ .../elevenlabs/source/tokens.source.json           |     2 +-
+ design-systems/energetic/USAGE.md                  |     2 +-
+ design-systems/energetic/design-tokens.json        |     2 +-
+ design-systems/energetic/manifest.json             |     6 +-
+ design-systems/energetic/preview/typography.html   |     2 +-
+ design-systems/energetic/source/evidence.md        |     2 +-
+ .../energetic/source/token-contract.report.json    |     2 +-
+ design-systems/energetic/source/tokens.source.json |     2 +-
+ design-systems/enterprise/USAGE.md                 |     2 +-
+ design-systems/enterprise/design-tokens.json       |     2 +-
+ design-systems/enterprise/manifest.json            |     6 +-
+ design-systems/enterprise/preview/typography.html  |     2 +-
+ design-systems/enterprise/source/evidence.md       |     2 +-
+ .../enterprise/source/token-contract.report.json   |     2 +-
+ .../enterprise/source/tokens.source.json           |     2 +-
+ design-systems/expo/USAGE.md                       |     2 +-
+ design-systems/expo/design-tokens.json             |     2 +-
+ design-systems/expo/manifest.json                  |     6 +-
+ design-systems/expo/preview/typography.html        |     2 +-
+ design-systems/expo/source/evidence.md             |     2 +-
+ .../expo/source/token-contract.report.json         |     2 +-
+ design-systems/expo/source/tokens.source.json      |     2 +-
+ design-systems/expressive/USAGE.md                 |     2 +-
+ design-systems/expressive/design-tokens.json       |     2 +-
+ design-systems/expressive/manifest.json            |     6 +-
+ design-systems/expressive/preview/typography.html  |     2 +-
+ design-systems/expressive/source/evidence.md       |     2 +-
+ .../expressive/source/token-contract.report.json   |     2 +-
+ .../expressive/source/tokens.source.json           |     2 +-
+ design-systems/fantasy/USAGE.md                    |     2 +-
+ design-systems/fantasy/design-tokens.json          |     2 +-
+ design-systems/fantasy/manifest.json               |     6 +-
+ design-systems/fantasy/preview/typography.html     |     2 +-
+ design-systems/fantasy/source/evidence.md          |     2 +-
+ .../fantasy/source/token-contract.report.json      |     2 +-
+ design-systems/fantasy/source/tokens.source.json   |     2 +-
+ design-systems/ferrari/USAGE.md                    |     2 +-
+ design-systems/ferrari/design-tokens.json          |     2 +-
+ design-systems/ferrari/manifest.json               |     6 +-
+ design-systems/ferrari/preview/typography.html     |     2 +-
+ design-systems/ferrari/source/evidence.md          |     2 +-
+ .../ferrari/source/token-contract.report.json      |     2 +-
+ design-systems/ferrari/source/tokens.source.json   |     2 +-
+ design-systems/figma/USAGE.md                      |     2 +-
+ design-systems/figma/design-tokens.json            |     2 +-
+ design-systems/figma/manifest.json                 |     6 +-
+ design-systems/figma/preview/typography.html       |     2 +-
+ design-systems/figma/source/evidence.md            |     2 +-
+ .../figma/source/token-contract.report.json        |     2 +-
+ design-systems/figma/source/tokens.source.json     |     2 +-
+ design-systems/flat/USAGE.md                       |     2 +-
+ design-systems/flat/design-tokens.json             |     2 +-
+ design-systems/flat/manifest.json                  |     6 +-
+ design-systems/flat/preview/typography.html        |     2 +-
+ design-systems/flat/source/evidence.md             |     2 +-
+ .../flat/source/token-contract.report.json         |     2 +-
+ design-systems/flat/source/tokens.source.json      |     2 +-
+ design-systems/framer/USAGE.md                     |     2 +-
+ design-systems/framer/design-tokens.json           |     2 +-
+ design-systems/framer/manifest.json                |     6 +-
+ design-systems/framer/preview/typography.html      |     2 +-
+ design-systems/framer/source/evidence.md           |     2 +-
+ .../framer/source/token-contract.report.json       |     2 +-
+ design-systems/framer/source/tokens.source.json    |     2 +-
+ design-systems/friendly/USAGE.md                   |     2 +-
+ design-systems/friendly/design-tokens.json         |     2 +-
+ design-systems/friendly/manifest.json              |     6 +-
+ design-systems/friendly/preview/typography.html    |     2 +-
+ design-systems/friendly/source/evidence.md         |     2 +-
+ .../friendly/source/token-contract.report.json     |     2 +-
+ design-systems/friendly/source/tokens.source.json  |     2 +-
+ design-systems/futuristic/USAGE.md                 |     2 +-
+ design-systems/futuristic/design-tokens.json       |     2 +-
+ design-systems/futuristic/manifest.json            |     6 +-
+ design-systems/futuristic/preview/typography.html  |     2 +-
+ design-systems/futuristic/source/evidence.md       |     2 +-
+ .../futuristic/source/token-contract.report.json   |     2 +-
+ .../futuristic/source/tokens.source.json           |     2 +-
+ design-systems/github/USAGE.md                     |     2 +-
+ design-systems/github/components.html              |     2 +-
+ design-systems/github/design-tokens.json           |     2 +-
+ design-systems/github/manifest.json                |     6 +-
+ design-systems/github/preview/typography.html      |     2 +-
+ design-systems/github/source/evidence.md           |     2 +-
+ .../github/source/token-contract.report.json       |     2 +-
+ design-systems/github/source/tokens.source.json    |     2 +-
+ design-systems/glassmorphism/USAGE.md              |     2 +-
+ design-systems/glassmorphism/design-tokens.json    |     2 +-
+ design-systems/glassmorphism/manifest.json         |     6 +-
+ .../glassmorphism/preview/typography.html          |     2 +-
+ design-systems/glassmorphism/source/evidence.md    |     2 +-
+ .../source/token-contract.report.json              |     2 +-
+ .../glassmorphism/source/tokens.source.json        |     2 +-
+ design-systems/gradient/USAGE.md                   |     2 +-
+ design-systems/gradient/design-tokens.json         |     2 +-
+ design-systems/gradient/manifest.json              |     6 +-
+ design-systems/gradient/preview/typography.html    |     2 +-
+ design-systems/gradient/source/evidence.md         |     2 +-
+ .../gradient/source/token-contract.report.json     |     2 +-
+ design-systems/gradient/source/tokens.source.json  |     2 +-
+ design-systems/hashicorp/USAGE.md                  |     2 +-
+ design-systems/hashicorp/design-tokens.json        |     2 +-
+ design-systems/hashicorp/manifest.json             |     6 +-
+ design-systems/hashicorp/preview/typography.html   |     2 +-
+ design-systems/hashicorp/source/evidence.md        |     2 +-
+ .../hashicorp/source/token-contract.report.json    |     2 +-
+ design-systems/hashicorp/source/tokens.source.json |     2 +-
+ design-systems/hud/USAGE.md                        |     2 +-
+ design-systems/hud/design-tokens.json              |     2 +-
+ design-systems/hud/manifest.json                   |     6 +-
+ design-systems/hud/preview/typography.html         |     2 +-
+ design-systems/hud/source/evidence.md              |     2 +-
+ .../hud/source/token-contract.report.json          |     2 +-
+ design-systems/hud/source/tokens.source.json       |     2 +-
+ design-systems/huggingface/USAGE.md                |     2 +-
+ design-systems/huggingface/design-tokens.json      |     2 +-
+ design-systems/huggingface/manifest.json           |     6 +-
+ design-systems/huggingface/preview/typography.html |     2 +-
+ design-systems/huggingface/source/evidence.md      |     2 +-
+ .../huggingface/source/token-contract.report.json  |     2 +-
+ .../huggingface/source/tokens.source.json          |     2 +-
+ design-systems/ibm/USAGE.md                        |     2 +-
+ design-systems/ibm/design-tokens.json              |     2 +-
+ design-systems/ibm/manifest.json                   |     6 +-
+ design-systems/ibm/preview/typography.html         |     2 +-
+ design-systems/ibm/source/evidence.md              |     2 +-
+ .../ibm/source/token-contract.report.json          |     2 +-
+ design-systems/ibm/source/tokens.source.json       |     2 +-
+ design-systems/intercom/USAGE.md                   |     2 +-
+ design-systems/intercom/design-tokens.json         |     2 +-
+ design-systems/intercom/manifest.json              |     6 +-
+ design-systems/intercom/preview/typography.html    |     2 +-
+ design-systems/intercom/source/evidence.md         |     2 +-
+ .../intercom/source/token-contract.report.json     |     2 +-
+ design-systems/intercom/source/tokens.source.json  |     2 +-
+ design-systems/kami/DESIGN.md                      |     2 +-
+ design-systems/kami/USAGE.md                       |     2 +-
+ design-systems/kami/design-tokens.json             |     2 +-
+ design-systems/kami/manifest.json                  |     6 +-
+ design-systems/kami/preview/typography.html        |     2 +-
+ design-systems/kami/source/evidence.md             |     2 +-
+ .../kami/source/token-contract.report.json         |     2 +-
+ design-systems/kami/source/tokens.source.json      |     2 +-
+ design-systems/kraken/USAGE.md                     |     2 +-
+ design-systems/kraken/design-tokens.json           |     2 +-
+ design-systems/kraken/manifest.json                |     6 +-
+ design-systems/kraken/preview/typography.html      |     2 +-
+ design-systems/kraken/source/evidence.md           |     2 +-
+ .../kraken/source/token-contract.report.json       |     2 +-
+ design-systems/kraken/source/tokens.source.json    |     2 +-
+ design-systems/lamborghini/USAGE.md                |     2 +-
+ design-systems/lamborghini/design-tokens.json      |     2 +-
+ design-systems/lamborghini/manifest.json           |     6 +-
+ design-systems/lamborghini/preview/typography.html |     2 +-
+ design-systems/lamborghini/source/evidence.md      |     2 +-
+ .../lamborghini/source/token-contract.report.json  |     2 +-
+ .../lamborghini/source/tokens.source.json          |     2 +-
+ design-systems/levels/USAGE.md                     |     2 +-
+ design-systems/levels/design-tokens.json           |     2 +-
+ design-systems/levels/manifest.json                |     6 +-
+ design-systems/levels/preview/typography.html      |     2 +-
+ design-systems/levels/source/evidence.md           |     2 +-
+ .../levels/source/token-contract.report.json       |     2 +-
+ design-systems/levels/source/tokens.source.json    |     2 +-
+ design-systems/linear-app/USAGE.md                 |     2 +-
+ design-systems/linear-app/design-tokens.json       |     2 +-
+ design-systems/linear-app/manifest.json            |     6 +-
+ design-systems/linear-app/preview/typography.html  |     2 +-
+ design-systems/linear-app/source/evidence.md       |     2 +-
+ .../linear-app/source/token-contract.report.json   |     2 +-
+ .../linear-app/source/tokens.source.json           |     2 +-
+ design-systems/lingo/USAGE.md                      |     2 +-
+ design-systems/lingo/design-tokens.json            |     2 +-
+ design-systems/lingo/manifest.json                 |     6 +-
+ design-systems/lingo/preview/typography.html       |     2 +-
+ design-systems/lingo/source/evidence.md            |     2 +-
+ .../lingo/source/token-contract.report.json        |     2 +-
+ design-systems/lingo/source/tokens.source.json     |     2 +-
+ design-systems/loom/USAGE.md                       |     2 +-
+ design-systems/loom/design-tokens.json             |     2 +-
+ design-systems/loom/manifest.json                  |     6 +-
+ design-systems/loom/preview/typography.html        |     2 +-
+ design-systems/loom/source/evidence.md             |     2 +-
+ .../loom/source/token-contract.report.json         |     2 +-
+ design-systems/loom/source/tokens.source.json      |     2 +-
+ design-systems/lovable/USAGE.md                    |     2 +-
+ design-systems/lovable/design-tokens.json          |     2 +-
+ design-systems/lovable/manifest.json               |     6 +-
+ design-systems/lovable/preview/typography.html     |     2 +-
+ design-systems/lovable/source/evidence.md          |     2 +-
+ .../lovable/source/token-contract.report.json      |     2 +-
+ design-systems/lovable/source/tokens.source.json   |     2 +-
+ design-systems/luxury/USAGE.md                     |     2 +-
+ design-systems/luxury/design-tokens.json           |     2 +-
+ design-systems/luxury/manifest.json                |     6 +-
+ design-systems/luxury/preview/typography.html      |     2 +-
+ design-systems/luxury/source/evidence.md           |     2 +-
+ .../luxury/source/token-contract.report.json       |     2 +-
+ design-systems/luxury/source/tokens.source.json    |     2 +-
+ design-systems/mastercard/USAGE.md                 |     2 +-
+ design-systems/mastercard/design-tokens.json       |     2 +-
+ design-systems/mastercard/manifest.json            |     6 +-
+ design-systems/mastercard/preview/typography.html  |     2 +-
+ design-systems/mastercard/source/evidence.md       |     2 +-
+ .../mastercard/source/token-contract.report.json   |     2 +-
+ .../mastercard/source/tokens.source.json           |     2 +-
+ design-systems/material/USAGE.md                   |     2 +-
+ design-systems/material/design-tokens.json         |     2 +-
+ design-systems/material/manifest.json              |     6 +-
+ design-systems/material/preview/typography.html    |     2 +-
+ design-systems/material/source/evidence.md         |     2 +-
+ .../material/source/token-contract.report.json     |     2 +-
+ design-systems/material/source/tokens.source.json  |     2 +-
+ design-systems/meta/USAGE.md                       |     2 +-
+ design-systems/meta/design-tokens.json             |     2 +-
+ design-systems/meta/manifest.json                  |     6 +-
+ design-systems/meta/preview/typography.html        |     2 +-
+ design-systems/meta/source/evidence.md             |     2 +-
+ .../meta/source/token-contract.report.json         |     2 +-
+ design-systems/meta/source/tokens.source.json      |     2 +-
+ design-systems/minimal/USAGE.md                    |     2 +-
+ design-systems/minimal/design-tokens.json          |     2 +-
+ design-systems/minimal/manifest.json               |     6 +-
+ design-systems/minimal/preview/typography.html     |     2 +-
+ design-systems/minimal/source/evidence.md          |     2 +-
+ .../minimal/source/token-contract.report.json      |     2 +-
+ design-systems/minimal/source/tokens.source.json   |     2 +-
+ design-systems/minimax/USAGE.md                    |     2 +-
+ design-systems/minimax/design-tokens.json          |     2 +-
+ design-systems/minimax/manifest.json               |     6 +-
+ design-systems/minimax/preview/typography.html     |     2 +-
+ design-systems/minimax/source/evidence.md          |     2 +-
+ .../minimax/source/token-contract.report.json      |     2 +-
+ design-systems/minimax/source/tokens.source.json   |     2 +-
+ design-systems/mintlify/USAGE.md                   |     2 +-
+ design-systems/mintlify/design-tokens.json         |     2 +-
+ design-systems/mintlify/manifest.json              |     6 +-
+ design-systems/mintlify/preview/typography.html    |     2 +-
+ design-systems/mintlify/source/evidence.md         |     2 +-
+ .../mintlify/source/token-contract.report.json     |     2 +-
+ design-systems/mintlify/source/tokens.source.json  |     2 +-
+ design-systems/miro/USAGE.md                       |     2 +-
+ design-systems/miro/design-tokens.json             |     2 +-
+ design-systems/miro/manifest.json                  |     6 +-
+ design-systems/miro/preview/typography.html        |     2 +-
+ design-systems/miro/source/evidence.md             |     2 +-
+ .../miro/source/token-contract.report.json         |     2 +-
+ design-systems/miro/source/tokens.source.json      |     2 +-
+ design-systems/mission-control/USAGE.md            |     2 +-
+ design-systems/mission-control/design-tokens.json  |     2 +-
+ design-systems/mission-control/manifest.json       |     6 +-
+ .../mission-control/preview/typography.html        |     2 +-
+ design-systems/mission-control/source/evidence.md  |     2 +-
+ .../source/token-contract.report.json              |     2 +-
+ .../mission-control/source/tokens.source.json      |     2 +-
+ design-systems/mistral-ai/USAGE.md                 |     2 +-
+ design-systems/mistral-ai/design-tokens.json       |     2 +-
+ design-systems/mistral-ai/manifest.json            |     6 +-
+ design-systems/mistral-ai/preview/typography.html  |     2 +-
+ design-systems/mistral-ai/source/evidence.md       |     2 +-
+ .../mistral-ai/source/token-contract.report.json   |     2 +-
+ .../mistral-ai/source/tokens.source.json           |     2 +-
+ design-systems/modern/USAGE.md                     |     2 +-
+ design-systems/modern/design-tokens.json           |     2 +-
+ design-systems/modern/manifest.json                |     6 +-
+ design-systems/modern/preview/typography.html      |     2 +-
+ design-systems/modern/source/evidence.md           |     2 +-
+ .../modern/source/token-contract.report.json       |     2 +-
+ design-systems/modern/source/tokens.source.json    |     2 +-
+ design-systems/mongodb/USAGE.md                    |     2 +-
+ design-systems/mongodb/design-tokens.json          |     2 +-
+ design-systems/mongodb/manifest.json               |     6 +-
+ design-systems/mongodb/preview/typography.html     |     2 +-
+ design-systems/mongodb/source/evidence.md          |     2 +-
+ .../mongodb/source/token-contract.report.json      |     2 +-
+ design-systems/mongodb/source/tokens.source.json   |     2 +-
+ design-systems/mono/USAGE.md                       |     2 +-
+ design-systems/mono/design-tokens.json             |     2 +-
+ design-systems/mono/manifest.json                  |     6 +-
+ design-systems/mono/preview/typography.html        |     2 +-
+ design-systems/mono/source/evidence.md             |     2 +-
+ .../mono/source/token-contract.report.json         |     2 +-
+ design-systems/mono/source/tokens.source.json      |     2 +-
+ design-systems/neobrutalism/USAGE.md               |     2 +-
+ design-systems/neobrutalism/design-tokens.json     |     2 +-
+ design-systems/neobrutalism/manifest.json          |     6 +-
+ .../neobrutalism/preview/typography.html           |     2 +-
+ design-systems/neobrutalism/source/evidence.md     |     2 +-
+ .../neobrutalism/source/token-contract.report.json |     2 +-
+ .../neobrutalism/source/tokens.source.json         |     2 +-
+ design-systems/neon/USAGE.md                       |     2 +-
+ design-systems/neon/design-tokens.json             |     2 +-
+ design-systems/neon/manifest.json                  |     6 +-
+ design-systems/neon/preview/typography.html        |     2 +-
+ design-systems/neon/source/evidence.md             |     2 +-
+ .../neon/source/token-contract.report.json         |     2 +-
+ design-systems/neon/source/tokens.source.json      |     2 +-
+ design-systems/neumorphism/USAGE.md                |     2 +-
+ design-systems/neumorphism/design-tokens.json      |     2 +-
+ design-systems/neumorphism/manifest.json           |     6 +-
+ design-systems/neumorphism/preview/typography.html |     2 +-
+ design-systems/neumorphism/source/evidence.md      |     2 +-
+ .../neumorphism/source/token-contract.report.json  |     2 +-
+ .../neumorphism/source/tokens.source.json          |     2 +-
+ design-systems/nike/USAGE.md                       |     2 +-
+ design-systems/nike/design-tokens.json             |     2 +-
+ design-systems/nike/manifest.json                  |     6 +-
+ design-systems/nike/preview/typography.html        |     2 +-
+ design-systems/nike/source/evidence.md             |     2 +-
+ .../nike/source/token-contract.report.json         |     2 +-
+ design-systems/nike/source/tokens.source.json      |     2 +-
+ design-systems/notion/USAGE.md                     |     2 +-
+ design-systems/notion/design-tokens.json           |     2 +-
+ design-systems/notion/manifest.json                |     6 +-
+ design-systems/notion/preview/typography.html      |     2 +-
+ design-systems/notion/source/evidence.md           |     2 +-
+ .../notion/source/token-contract.report.json       |     2 +-
+ design-systems/notion/source/tokens.source.json    |     2 +-
+ design-systems/nvidia/USAGE.md                     |     2 +-
+ design-systems/nvidia/design-tokens.json           |     2 +-
+ design-systems/nvidia/manifest.json                |     6 +-
+ design-systems/nvidia/preview/typography.html      |     2 +-
+ design-systems/nvidia/source/evidence.md           |     2 +-
+ .../nvidia/source/token-contract.report.json       |     2 +-
+ design-systems/nvidia/source/tokens.source.json    |     2 +-
+ design-systems/ollama/USAGE.md                     |     2 +-
+ design-systems/ollama/design-tokens.json           |     2 +-
+ design-systems/ollama/manifest.json                |     6 +-
+ design-systems/ollama/preview/typography.html      |     2 +-
+ design-systems/ollama/source/evidence.md           |     2 +-
+ .../ollama/source/token-contract.report.json       |     2 +-
+ design-systems/ollama/source/tokens.source.json    |     2 +-
+ design-systems/openai/USAGE.md                     |     2 +-
+ design-systems/openai/design-tokens.json           |     2 +-
+ design-systems/openai/manifest.json                |     6 +-
+ design-systems/openai/preview/typography.html      |     2 +-
+ design-systems/openai/source/evidence.md           |     2 +-
+ .../openai/source/token-contract.report.json       |     2 +-
+ design-systems/openai/source/tokens.source.json    |     2 +-
+ design-systems/opencode-ai/USAGE.md                |     2 +-
+ design-systems/opencode-ai/design-tokens.json      |     2 +-
+ design-systems/opencode-ai/manifest.json           |     6 +-
+ design-systems/opencode-ai/preview/typography.html |     2 +-
+ design-systems/opencode-ai/source/evidence.md      |     2 +-
+ .../opencode-ai/source/token-contract.report.json  |     2 +-
+ .../opencode-ai/source/tokens.source.json          |     2 +-
+ design-systems/pacman/USAGE.md                     |     2 +-
+ design-systems/pacman/design-tokens.json           |     2 +-
+ design-systems/pacman/manifest.json                |     6 +-
+ design-systems/pacman/preview/typography.html      |     2 +-
+ design-systems/pacman/source/evidence.md           |     2 +-
+ .../pacman/source/token-contract.report.json       |     2 +-
+ design-systems/pacman/source/tokens.source.json    |     2 +-
+ design-systems/paper/USAGE.md                      |     2 +-
+ design-systems/paper/design-tokens.json            |     2 +-
+ design-systems/paper/manifest.json                 |     6 +-
+ design-systems/paper/preview/typography.html       |     2 +-
+ design-systems/paper/source/evidence.md            |     2 +-
+ .../paper/source/token-contract.report.json        |     2 +-
+ design-systems/paper/source/tokens.source.json     |     2 +-
+ design-systems/perplexity/USAGE.md                 |     2 +-
+ design-systems/perplexity/design-tokens.json       |     2 +-
+ design-systems/perplexity/manifest.json            |     6 +-
+ design-systems/perplexity/preview/typography.html  |     2 +-
+ design-systems/perplexity/source/evidence.md       |     2 +-
+ .../perplexity/source/token-contract.report.json   |     2 +-
+ .../perplexity/source/tokens.source.json           |     2 +-
+ design-systems/perspective/USAGE.md                |     2 +-
+ design-systems/perspective/design-tokens.json      |     2 +-
+ design-systems/perspective/manifest.json           |     6 +-
+ design-systems/perspective/preview/typography.html |     2 +-
+ design-systems/perspective/source/evidence.md      |     2 +-
+ .../perspective/source/token-contract.report.json  |     2 +-
+ .../perspective/source/tokens.source.json          |     2 +-
+ design-systems/pinterest/USAGE.md                  |     2 +-
+ design-systems/pinterest/design-tokens.json        |     2 +-
+ design-systems/pinterest/manifest.json             |     6 +-
+ design-systems/pinterest/preview/typography.html   |     2 +-
+ design-systems/pinterest/source/evidence.md        |     2 +-
+ .../pinterest/source/token-contract.report.json    |     2 +-
+ design-systems/pinterest/source/tokens.source.json |     2 +-
+ design-systems/playstation/USAGE.md                |     2 +-
+ design-systems/playstation/design-tokens.json      |     2 +-
+ design-systems/playstation/manifest.json           |     6 +-
+ design-systems/playstation/preview/typography.html |     2 +-
+ design-systems/playstation/source/evidence.md      |     2 +-
+ .../playstation/source/token-contract.report.json  |     2 +-
+ .../playstation/source/tokens.source.json          |     2 +-
+ design-systems/posthog/USAGE.md                    |     2 +-
+ design-systems/posthog/design-tokens.json          |     2 +-
+ design-systems/posthog/manifest.json               |     6 +-
+ design-systems/posthog/preview/typography.html     |     2 +-
+ design-systems/posthog/source/evidence.md          |     2 +-
+ .../posthog/source/token-contract.report.json      |     2 +-
+ design-systems/posthog/source/tokens.source.json   |     2 +-
+ design-systems/premium/USAGE.md                    |     2 +-
+ design-systems/premium/design-tokens.json          |     2 +-
+ design-systems/premium/manifest.json               |     6 +-
+ design-systems/premium/preview/typography.html     |     2 +-
+ design-systems/premium/source/evidence.md          |     2 +-
+ .../premium/source/token-contract.report.json      |     2 +-
+ design-systems/premium/source/tokens.source.json   |     2 +-
+ design-systems/professional/USAGE.md               |     2 +-
+ design-systems/professional/design-tokens.json     |     2 +-
+ design-systems/professional/manifest.json          |     6 +-
+ .../professional/preview/typography.html           |     2 +-
+ design-systems/professional/source/evidence.md     |     2 +-
+ .../professional/source/token-contract.report.json |     2 +-
+ .../professional/source/tokens.source.json         |     2 +-
+ design-systems/publication/USAGE.md                |     2 +-
+ design-systems/publication/design-tokens.json      |     2 +-
+ design-systems/publication/manifest.json           |     6 +-
+ design-systems/publication/preview/typography.html |     2 +-
+ design-systems/publication/source/evidence.md      |     2 +-
+ .../publication/source/token-contract.report.json  |     2 +-
+ .../publication/source/tokens.source.json          |     2 +-
+ design-systems/raycast/USAGE.md                    |     2 +-
+ design-systems/raycast/design-tokens.json          |     2 +-
+ design-systems/raycast/manifest.json               |     6 +-
+ design-systems/raycast/preview/typography.html     |     2 +-
+ design-systems/raycast/source/evidence.md          |     2 +-
+ .../raycast/source/token-contract.report.json      |     2 +-
+ design-systems/raycast/source/tokens.source.json   |     2 +-
+ design-systems/refined/USAGE.md                    |     2 +-
+ design-systems/refined/design-tokens.json          |     2 +-
+ design-systems/refined/manifest.json               |     6 +-
+ design-systems/refined/preview/typography.html     |     2 +-
+ design-systems/refined/source/evidence.md          |     2 +-
+ .../refined/source/token-contract.report.json      |     2 +-
+ design-systems/refined/source/tokens.source.json   |     2 +-
+ design-systems/renault/USAGE.md                    |     2 +-
+ design-systems/renault/design-tokens.json          |     2 +-
+ design-systems/renault/manifest.json               |     6 +-
+ design-systems/renault/preview/typography.html     |     2 +-
+ design-systems/renault/source/evidence.md          |     2 +-
+ .../renault/source/token-contract.report.json      |     2 +-
+ design-systems/renault/source/tokens.source.json   |     2 +-
+ design-systems/replicate/USAGE.md                  |     2 +-
+ design-systems/replicate/design-tokens.json        |     2 +-
+ design-systems/replicate/manifest.json             |     6 +-
+ design-systems/replicate/preview/typography.html   |     2 +-
+ design-systems/replicate/source/evidence.md        |     2 +-
+ .../replicate/source/token-contract.report.json    |     2 +-
+ design-systems/replicate/source/tokens.source.json |     2 +-
+ design-systems/resend/USAGE.md                     |     2 +-
+ design-systems/resend/design-tokens.json           |     2 +-
+ design-systems/resend/manifest.json                |     6 +-
+ design-systems/resend/preview/typography.html      |     2 +-
+ design-systems/resend/source/evidence.md           |     2 +-
+ .../resend/source/token-contract.report.json       |     2 +-
+ design-systems/resend/source/tokens.source.json    |     2 +-
+ design-systems/retro/USAGE.md                      |     2 +-
+ design-systems/retro/design-tokens.json            |     2 +-
+ design-systems/retro/manifest.json                 |     6 +-
+ design-systems/retro/preview/typography.html       |     2 +-
+ design-systems/retro/source/evidence.md            |     2 +-
+ .../retro/source/token-contract.report.json        |     2 +-
+ design-systems/retro/source/tokens.source.json     |     2 +-
+ design-systems/revolut/USAGE.md                    |     2 +-
+ design-systems/revolut/design-tokens.json          |     2 +-
+ design-systems/revolut/manifest.json               |     6 +-
+ design-systems/revolut/preview/typography.html     |     2 +-
+ design-systems/revolut/source/evidence.md          |     2 +-
+ .../revolut/source/token-contract.report.json      |     2 +-
+ design-systems/revolut/source/tokens.source.json   |     2 +-
+ design-systems/runwayml/USAGE.md                   |     2 +-
+ design-systems/runwayml/design-tokens.json         |     2 +-
+ design-systems/runwayml/manifest.json              |     6 +-
+ design-systems/runwayml/preview/typography.html    |     2 +-
+ design-systems/runwayml/source/evidence.md         |     2 +-
+ .../runwayml/source/token-contract.report.json     |     2 +-
+ design-systems/runwayml/source/tokens.source.json  |     2 +-
+ design-systems/sanity/USAGE.md                     |     2 +-
+ design-systems/sanity/design-tokens.json           |     2 +-
+ design-systems/sanity/manifest.json                |     6 +-
+ design-systems/sanity/preview/typography.html      |     2 +-
+ design-systems/sanity/source/evidence.md           |     2 +-
+ .../sanity/source/token-contract.report.json       |     2 +-
+ design-systems/sanity/source/tokens.source.json    |     2 +-
+ design-systems/sentry/USAGE.md                     |     2 +-
+ design-systems/sentry/design-tokens.json           |     2 +-
+ design-systems/sentry/manifest.json                |     6 +-
+ design-systems/sentry/preview/typography.html      |     2 +-
+ design-systems/sentry/source/evidence.md           |     2 +-
+ .../sentry/source/token-contract.report.json       |     2 +-
+ design-systems/sentry/source/tokens.source.json    |     2 +-
+ design-systems/shadcn/USAGE.md                     |     2 +-
+ design-systems/shadcn/design-tokens.json           |     2 +-
+ design-systems/shadcn/manifest.json                |     6 +-
+ design-systems/shadcn/preview/typography.html      |     2 +-
+ design-systems/shadcn/source/evidence.md           |     2 +-
+ .../shadcn/source/token-contract.report.json       |     2 +-
+ design-systems/shadcn/source/tokens.source.json    |     2 +-
+ design-systems/shopify/USAGE.md                    |     2 +-
+ design-systems/shopify/design-tokens.json          |     2 +-
+ design-systems/shopify/manifest.json               |     6 +-
+ design-systems/shopify/preview/typography.html     |     2 +-
+ design-systems/shopify/source/evidence.md          |     2 +-
+ .../shopify/source/token-contract.report.json      |     2 +-
+ design-systems/shopify/source/tokens.source.json   |     2 +-
+ design-systems/simple/USAGE.md                     |     2 +-
+ design-systems/simple/design-tokens.json           |     2 +-
+ design-systems/simple/manifest.json                |     6 +-
+ design-systems/simple/preview/typography.html      |     2 +-
+ design-systems/simple/source/evidence.md           |     2 +-
+ .../simple/source/token-contract.report.json       |     2 +-
+ design-systems/simple/source/tokens.source.json    |     2 +-
+ design-systems/skeumorphism/USAGE.md               |     2 +-
+ design-systems/skeumorphism/design-tokens.json     |     2 +-
+ design-systems/skeumorphism/manifest.json          |     6 +-
+ .../skeumorphism/preview/typography.html           |     2 +-
+ design-systems/skeumorphism/source/evidence.md     |     2 +-
+ .../skeumorphism/source/token-contract.report.json |     2 +-
+ .../skeumorphism/source/tokens.source.json         |     2 +-
+ design-systems/slack/USAGE.md                      |     2 +-
+ design-systems/slack/components.html               |     2 +-
+ design-systems/slack/design-tokens.json            |     2 +-
+ design-systems/slack/manifest.json                 |     6 +-
+ design-systems/slack/preview/typography.html       |     2 +-
+ design-systems/slack/source/evidence.md            |     2 +-
+ .../slack/source/token-contract.report.json        |     2 +-
+ design-systems/slack/source/tokens.source.json     |     2 +-
+ design-systems/sleek/USAGE.md                      |     2 +-
+ design-systems/sleek/design-tokens.json            |     2 +-
+ design-systems/sleek/manifest.json                 |     6 +-
+ design-systems/sleek/preview/typography.html       |     2 +-
+ design-systems/sleek/source/evidence.md            |     2 +-
+ .../sleek/source/token-contract.report.json        |     2 +-
+ design-systems/sleek/source/tokens.source.json     |     2 +-
+ design-systems/spacex/USAGE.md                     |     2 +-
+ design-systems/spacex/design-tokens.json           |     2 +-
+ design-systems/spacex/manifest.json                |     6 +-
+ design-systems/spacex/preview/typography.html      |     2 +-
+ design-systems/spacex/source/evidence.md           |     2 +-
+ .../spacex/source/token-contract.report.json       |     2 +-
+ design-systems/spacex/source/tokens.source.json    |     2 +-
+ design-systems/spacious/USAGE.md                   |     2 +-
+ design-systems/spacious/design-tokens.json         |     2 +-
+ design-systems/spacious/manifest.json              |     6 +-
+ design-systems/spacious/preview/typography.html    |     2 +-
+ design-systems/spacious/source/evidence.md         |     2 +-
+ .../spacious/source/token-contract.report.json     |     2 +-
+ design-systems/spacious/source/tokens.source.json  |     2 +-
+ design-systems/spotify/USAGE.md                    |     2 +-
+ design-systems/spotify/components.html             |     2 +-
+ design-systems/spotify/design-tokens.json          |     2 +-
+ design-systems/spotify/manifest.json               |     6 +-
+ design-systems/spotify/preview/typography.html     |     2 +-
+ design-systems/spotify/source/evidence.md          |     2 +-
+ .../spotify/source/token-contract.report.json      |     2 +-
+ design-systems/spotify/source/tokens.source.json   |     2 +-
+ design-systems/starbucks/USAGE.md                  |     2 +-
+ design-systems/starbucks/design-tokens.json        |     2 +-
+ design-systems/starbucks/manifest.json             |     6 +-
+ design-systems/starbucks/preview/typography.html   |     2 +-
+ design-systems/starbucks/source/evidence.md        |     2 +-
+ .../starbucks/source/token-contract.report.json    |     2 +-
+ design-systems/starbucks/source/tokens.source.json |     2 +-
+ design-systems/storytelling/USAGE.md               |     2 +-
+ design-systems/storytelling/design-tokens.json     |     2 +-
+ design-systems/storytelling/manifest.json          |     6 +-
+ .../storytelling/preview/typography.html           |     2 +-
+ design-systems/storytelling/source/evidence.md     |     2 +-
+ .../storytelling/source/token-contract.report.json |     2 +-
+ .../storytelling/source/tokens.source.json         |     2 +-
+ design-systems/stripe/USAGE.md                     |     2 +-
+ design-systems/stripe/design-tokens.json           |     2 +-
+ design-systems/stripe/manifest.json                |     6 +-
+ design-systems/stripe/preview/typography.html      |     2 +-
+ design-systems/stripe/source/evidence.md           |     2 +-
+ .../stripe/source/token-contract.report.json       |     2 +-
+ design-systems/stripe/source/tokens.source.json    |     2 +-
+ design-systems/supabase/USAGE.md                   |     2 +-
+ design-systems/supabase/design-tokens.json         |     2 +-
+ design-systems/supabase/manifest.json              |     6 +-
+ design-systems/supabase/preview/typography.html    |     2 +-
+ design-systems/supabase/source/evidence.md         |     2 +-
+ .../supabase/source/token-contract.report.json     |     2 +-
+ design-systems/supabase/source/tokens.source.json  |     2 +-
+ design-systems/superhuman/USAGE.md                 |     2 +-
+ design-systems/superhuman/design-tokens.json       |     2 +-
+ design-systems/superhuman/manifest.json            |     6 +-
+ design-systems/superhuman/preview/typography.html  |     2 +-
+ design-systems/superhuman/source/evidence.md       |     2 +-
+ .../superhuman/source/token-contract.report.json   |     2 +-
+ .../superhuman/source/tokens.source.json           |     2 +-
+ design-systems/tesla/USAGE.md                      |     2 +-
+ design-systems/tesla/design-tokens.json            |     2 +-
+ design-systems/tesla/manifest.json                 |     6 +-
+ design-systems/tesla/preview/typography.html       |     2 +-
+ design-systems/tesla/source/evidence.md            |     2 +-
+ .../tesla/source/token-contract.report.json        |     2 +-
+ design-systems/tesla/source/tokens.source.json     |     2 +-
+ design-systems/tetris/USAGE.md                     |     2 +-
+ design-systems/tetris/design-tokens.json           |     2 +-
+ design-systems/tetris/manifest.json                |     6 +-
+ design-systems/tetris/preview/typography.html      |     2 +-
+ design-systems/tetris/source/evidence.md           |     2 +-
+ .../tetris/source/token-contract.report.json       |     2 +-
+ design-systems/tetris/source/tokens.source.json    |     2 +-
+ design-systems/theverge/USAGE.md                   |     2 +-
+ design-systems/theverge/design-tokens.json         |     2 +-
+ design-systems/theverge/manifest.json              |     6 +-
+ design-systems/theverge/preview/typography.html    |     2 +-
+ design-systems/theverge/source/evidence.md         |     2 +-
+ .../theverge/source/token-contract.report.json     |     2 +-
+ design-systems/theverge/source/tokens.source.json  |     2 +-
+ design-systems/together-ai/USAGE.md                |     2 +-
+ design-systems/together-ai/design-tokens.json      |     2 +-
+ design-systems/together-ai/manifest.json           |     6 +-
+ design-systems/together-ai/preview/typography.html |     2 +-
+ design-systems/together-ai/source/evidence.md      |     2 +-
+ .../together-ai/source/token-contract.report.json  |     2 +-
+ .../together-ai/source/tokens.source.json          |     2 +-
+ design-systems/totality-festival/USAGE.md          |     2 +-
+ .../totality-festival/design-tokens.json           |     2 +-
+ design-systems/totality-festival/manifest.json     |     6 +-
+ .../totality-festival/preview/typography.html      |     2 +-
+ .../totality-festival/source/evidence.md           |     2 +-
+ .../source/token-contract.report.json              |     2 +-
+ .../totality-festival/source/tokens.source.json    |     2 +-
+ design-systems/trading-terminal/USAGE.md           |     2 +-
+ design-systems/trading-terminal/design-tokens.json |     2 +-
+ design-systems/trading-terminal/manifest.json      |     6 +-
+ .../trading-terminal/preview/typography.html       |     2 +-
+ design-systems/trading-terminal/source/evidence.md |     2 +-
+ .../source/token-contract.report.json              |     2 +-
+ .../trading-terminal/source/tokens.source.json     |     2 +-
+ design-systems/uber/USAGE.md                       |     2 +-
+ design-systems/uber/design-tokens.json             |     2 +-
+ design-systems/uber/manifest.json                  |     6 +-
+ design-systems/uber/preview/typography.html        |     2 +-
+ design-systems/uber/source/evidence.md             |     2 +-
+ .../uber/source/token-contract.report.json         |     2 +-
+ design-systems/uber/source/tokens.source.json      |     2 +-
+ design-systems/urdu/USAGE.md                       |     2 +-
+ design-systems/urdu/design-tokens.json             |     2 +-
+ design-systems/urdu/manifest.json                  |     6 +-
+ design-systems/urdu/preview/typography.html        |     2 +-
+ design-systems/urdu/source/evidence.md             |     2 +-
+ .../urdu/source/token-contract.report.json         |     2 +-
+ design-systems/urdu/source/tokens.source.json      |     2 +-
+ design-systems/vercel/USAGE.md                     |     2 +-
+ design-systems/vercel/design-tokens.json           |     2 +-
+ design-systems/vercel/manifest.json                |     6 +-
+ design-systems/vercel/preview/typography.html      |     2 +-
+ design-systems/vercel/source/evidence.md           |     2 +-
+ .../vercel/source/token-contract.report.json       |     2 +-
+ design-systems/vercel/source/tokens.source.json    |     2 +-
+ design-systems/vibrant/USAGE.md                    |     2 +-
+ design-systems/vibrant/design-tokens.json          |     2 +-
+ design-systems/vibrant/manifest.json               |     6 +-
+ design-systems/vibrant/preview/typography.html     |     2 +-
+ design-systems/vibrant/source/evidence.md          |     2 +-
+ .../vibrant/source/token-contract.report.json      |     2 +-
+ design-systems/vibrant/source/tokens.source.json   |     2 +-
+ design-systems/vintage/USAGE.md                    |     2 +-
+ design-systems/vintage/design-tokens.json          |     2 +-
+ design-systems/vintage/manifest.json               |     6 +-
+ design-systems/vintage/preview/typography.html     |     2 +-
+ design-systems/vintage/source/evidence.md          |     2 +-
+ .../vintage/source/token-contract.report.json      |     2 +-
+ design-systems/vintage/source/tokens.source.json   |     2 +-
+ design-systems/vodafone/USAGE.md                   |     2 +-
+ design-systems/vodafone/design-tokens.json         |     2 +-
+ design-systems/vodafone/manifest.json              |     6 +-
+ design-systems/vodafone/preview/typography.html    |     2 +-
+ design-systems/vodafone/source/evidence.md         |     2 +-
+ .../vodafone/source/token-contract.report.json     |     2 +-
+ design-systems/vodafone/source/tokens.source.json  |     2 +-
+ design-systems/voltagent/USAGE.md                  |     2 +-
+ design-systems/voltagent/design-tokens.json        |     2 +-
+ design-systems/voltagent/manifest.json             |     6 +-
+ design-systems/voltagent/preview/typography.html   |     2 +-
+ design-systems/voltagent/source/evidence.md        |     2 +-
+ .../voltagent/source/token-contract.report.json    |     2 +-
+ design-systems/voltagent/source/tokens.source.json |     2 +-
+ design-systems/warm-editorial/USAGE.md             |     2 +-
+ design-systems/warm-editorial/design-tokens.json   |     2 +-
+ design-systems/warm-editorial/manifest.json        |     6 +-
+ .../warm-editorial/preview/typography.html         |     2 +-
+ design-systems/warm-editorial/source/evidence.md   |     2 +-
+ .../source/token-contract.report.json              |     2 +-
+ .../warm-editorial/source/tokens.source.json       |     2 +-
+ design-systems/warp/USAGE.md                       |     2 +-
+ design-systems/warp/design-tokens.json             |     2 +-
+ design-systems/warp/manifest.json                  |     6 +-
+ design-systems/warp/preview/typography.html        |     2 +-
+ design-systems/warp/source/evidence.md             |     2 +-
+ .../warp/source/token-contract.report.json         |     2 +-
+ design-systems/warp/source/tokens.source.json      |     2 +-
+ design-systems/webex/USAGE.md                      |     2 +-
+ design-systems/webex/design-tokens.json            |     2 +-
+ design-systems/webex/manifest.json                 |     6 +-
+ design-systems/webex/preview/typography.html       |     2 +-
+ design-systems/webex/source/evidence.md            |     2 +-
+ .../webex/source/token-contract.report.json        |     2 +-
+ design-systems/webex/source/tokens.source.json     |     2 +-
+ design-systems/webflow/USAGE.md                    |     2 +-
+ design-systems/webflow/design-tokens.json          |     2 +-
+ design-systems/webflow/manifest.json               |     6 +-
+ design-systems/webflow/preview/typography.html     |     2 +-
+ design-systems/webflow/source/evidence.md          |     2 +-
+ .../webflow/source/token-contract.report.json      |     2 +-
+ design-systems/webflow/source/tokens.source.json   |     2 +-
+ design-systems/wechat/USAGE.md                     |     2 +-
+ design-systems/wechat/design-tokens.json           |     2 +-
+ design-systems/wechat/manifest.json                |     6 +-
+ design-systems/wechat/preview/typography.html      |     2 +-
+ design-systems/wechat/source/evidence.md           |     2 +-
+ .../wechat/source/token-contract.report.json       |     2 +-
+ design-systems/wechat/source/tokens.source.json    |     2 +-
+ design-systems/wired/USAGE.md                      |     2 +-
+ design-systems/wired/design-tokens.json            |     2 +-
+ design-systems/wired/manifest.json                 |     6 +-
+ design-systems/wired/preview/typography.html       |     2 +-
+ design-systems/wired/source/evidence.md            |     2 +-
+ .../wired/source/token-contract.report.json        |     2 +-
+ design-systems/wired/source/tokens.source.json     |     2 +-
+ design-systems/wise/USAGE.md                       |     2 +-
+ design-systems/wise/design-tokens.json             |     2 +-
+ design-systems/wise/manifest.json                  |     6 +-
+ design-systems/wise/preview/typography.html        |     2 +-
+ design-systems/wise/source/evidence.md             |     2 +-
+ .../wise/source/token-contract.report.json         |     2 +-
+ design-systems/wise/source/tokens.source.json      |     2 +-
+ design-systems/x-ai/USAGE.md                       |     2 +-
+ design-systems/x-ai/design-tokens.json             |     2 +-
+ design-systems/x-ai/manifest.json                  |     6 +-
+ design-systems/x-ai/preview/typography.html        |     2 +-
+ design-systems/x-ai/source/evidence.md             |     2 +-
+ .../x-ai/source/token-contract.report.json         |     2 +-
+ design-systems/x-ai/source/tokens.source.json      |     2 +-
+ design-systems/xiaohongshu/USAGE.md                |     2 +-
+ design-systems/xiaohongshu/design-tokens.json      |     2 +-
+ design-systems/xiaohongshu/manifest.json           |     6 +-
+ design-systems/xiaohongshu/preview/typography.html |     2 +-
+ design-systems/xiaohongshu/source/evidence.md      |     2 +-
+ .../xiaohongshu/source/token-contract.report.json  |     2 +-
+ .../xiaohongshu/source/tokens.source.json          |     2 +-
+ design-systems/zapier/USAGE.md                     |     2 +-
+ design-systems/zapier/design-tokens.json           |     2 +-
+ design-systems/zapier/manifest.json                |     6 +-
+ design-systems/zapier/preview/typography.html      |     2 +-
+ design-systems/zapier/source/evidence.md           |     2 +-
+ .../zapier/source/token-contract.report.json       |     2 +-
+ design-systems/zapier/source/tokens.source.json    |     2 +-
+ .../src/design-systems/derived-token-outputs.ts    |     4 +-
+ .../contracts/src/design-systems/token-schema.ts   |     2 +-
+ scripts/check-design-system-manifests.ts           |     4 +-
+ scripts/guard.ts                                   |    27 +-
+ scripts/readable-identity-baseline.json            | 11870 +------------------
+ scripts/readable-parity.test.ts                    |     2 +-
+ scripts/style-policy.test.ts                       |    21 +
+ 1075 files changed, 2063 insertions(+), 12641 deletions(-)
+
+apps/daemon/src/design-system-import.ts
+apps/daemon/src/design-system-package-audit.ts
+apps/daemon/src/design-systems.ts
+apps/daemon/src/design-token-contract-rebuild.ts
+apps/daemon/tests/design-system-assets.test.ts
+apps/daemon/tests/design-system-github-import.test.ts
+apps/daemon/tests/design-system-import.test.ts
+apps/daemon/tests/design-system-shadcn-import.test.ts
+apps/daemon/tests/design-system-tool-routes.test.ts
+apps/daemon/tests/design-token-contract-rebuild.test.ts
+design-systems/README.md
+design-systems/_schema/manifest.schema.ts
+design-systems/agentic/USAGE.md
+design-systems/agentic/design-tokens.json
+design-systems/agentic/manifest.json
+design-systems/agentic/preview/typography.html
+design-systems/agentic/source/evidence.md
+design-systems/agentic/source/token-contract.report.json
+design-systems/agentic/source/tokens.source.json
+design-systems/airbnb/USAGE.md
+design-systems/airbnb/components.html
+design-systems/airbnb/design-tokens.json
+design-systems/airbnb/manifest.json
+design-systems/airbnb/preview/typography.html
+design-systems/airbnb/source/evidence.md
+design-systems/airbnb/source/token-contract.report.json
+design-systems/airbnb/source/tokens.source.json
+design-systems/airtable/USAGE.md
+design-systems/airtable/design-tokens.json
+design-systems/airtable/manifest.json
+design-systems/airtable/preview/typography.html
+design-systems/airtable/source/evidence.md
+design-systems/airtable/source/token-contract.report.json
+design-systems/airtable/source/tokens.source.json
+design-systems/ant/USAGE.md
+design-systems/ant/design-tokens.json
+design-systems/ant/manifest.json
+design-systems/ant/preview/typography.html
+design-systems/ant/source/evidence.md
+design-systems/ant/source/token-contract.report.json
+design-systems/ant/source/tokens.source.json
+design-systems/apple/USAGE.md
+design-systems/apple/design-tokens.json
+design-systems/apple/manifest.json
+design-systems/apple/preview/typography.html
+design-systems/apple/source/evidence.md
+design-systems/apple/source/token-contract.report.json
+design-systems/apple/source/tokens.source.json
+design-systems/application/USAGE.md
+design-systems/application/design-tokens.json
+design-systems/application/manifest.json
+design-systems/application/preview/typography.html
+design-systems/application/source/evidence.md
+design-systems/application/source/token-contract.report.json
+design-systems/application/source/tokens.source.json
+design-systems/arc/USAGE.md
+design-systems/arc/design-tokens.json
+design-systems/arc/manifest.json
+design-systems/arc/preview/typography.html
+design-systems/arc/source/evidence.md
+design-systems/arc/source/token-contract.report.json
+design-systems/arc/source/tokens.source.json
+design-systems/artistic/USAGE.md
+design-systems/artistic/design-tokens.json
+design-systems/artistic/manifest.json
+design-systems/artistic/preview/typography.html
+design-systems/artistic/source/evidence.md
+design-systems/artistic/source/token-contract.report.json
+design-systems/artistic/source/tokens.source.json
+design-systems/atelier-zero/DESIGN.md
+design-systems/atelier-zero/USAGE.md
+design-systems/atelier-zero/design-tokens.json
+design-systems/atelier-zero/manifest.json
+design-systems/atelier-zero/preview/typography.html
+design-systems/atelier-zero/source/evidence.md
+design-systems/atelier-zero/source/token-contract.report.json
+design-systems/atelier-zero/source/tokens.source.json
+design-systems/bento/USAGE.md
+design-systems/bento/design-tokens.json
+design-systems/bento/manifest.json
+design-systems/bento/preview/typography.html
+design-systems/bento/source/evidence.md
+design-systems/bento/source/token-contract.report.json
+design-systems/bento/source/tokens.source.json
+design-systems/binance/USAGE.md
+design-systems/binance/design-tokens.json
+design-systems/binance/manifest.json
+design-systems/binance/preview/typography.html
+design-systems/binance/source/evidence.md
+design-systems/binance/source/token-contract.report.json
+design-systems/binance/source/tokens.source.json
+design-systems/bmw-m/USAGE.md
+design-systems/bmw-m/design-tokens.json
+design-systems/bmw-m/manifest.json
+design-systems/bmw-m/preview/typography.html
+design-systems/bmw-m/source/evidence.md
+design-systems/bmw-m/source/token-contract.report.json
+design-systems/bmw-m/source/tokens.source.json
+design-systems/bmw/USAGE.md
+design-systems/bmw/design-tokens.json
+design-systems/bmw/manifest.json
+design-systems/bmw/preview/typography.html
+design-systems/bmw/source/evidence.md
+design-systems/bmw/source/token-contract.report.json
+design-systems/bmw/source/tokens.source.json
+design-systems/bold/USAGE.md
+design-systems/bold/design-tokens.json
+design-systems/bold/manifest.json
+design-systems/bold/preview/typography.html
+design-systems/bold/source/evidence.md
+design-systems/bold/source/token-contract.report.json
+design-systems/bold/source/tokens.source.json
+design-systems/brutalism/USAGE.md
+design-systems/brutalism/design-tokens.json
+design-systems/brutalism/manifest.json
+design-systems/brutalism/preview/typography.html
+design-systems/brutalism/source/evidence.md
+design-systems/brutalism/source/token-contract.report.json
+design-systems/brutalism/source/tokens.source.json
+design-systems/bugatti/USAGE.md
+design-systems/bugatti/design-tokens.json
+design-systems/bugatti/manifest.json
+design-systems/bugatti/preview/typography.html
+design-systems/bugatti/source/evidence.md
+design-systems/bugatti/source/token-contract.report.json
+design-systems/bugatti/source/tokens.source.json
+design-systems/cafe/USAGE.md
+design-systems/cafe/design-tokens.json
+design-systems/cafe/manifest.json
+design-systems/cafe/preview/typography.html
+design-systems/cafe/source/evidence.md
+design-systems/cafe/source/token-contract.report.json
+design-systems/cafe/source/tokens.source.json
+design-systems/cal/USAGE.md
+design-systems/cal/design-tokens.json
+design-systems/cal/manifest.json
+design-systems/cal/preview/typography.html
+design-systems/cal/source/evidence.md
+design-systems/cal/source/token-contract.report.json
+design-systems/cal/source/tokens.source.json
+design-systems/canva/USAGE.md
+design-systems/canva/design-tokens.json
+design-systems/canva/manifest.json
+design-systems/canva/preview/typography.html
+design-systems/canva/source/evidence.md
+design-systems/canva/source/token-contract.report.json
+design-systems/canva/source/tokens.source.json
+design-systems/cisco/USAGE.md
+design-systems/cisco/design-tokens.json
+design-systems/cisco/manifest.json
+design-systems/cisco/preview/typography.html
+design-systems/cisco/source/evidence.md
+design-systems/cisco/source/token-contract.report.json
+design-systems/cisco/source/tokens.source.json
+design-systems/claude/USAGE.md
+design-systems/claude/design-tokens.json
+design-systems/claude/manifest.json
+design-systems/claude/preview/typography.html
+design-systems/claude/source/evidence.md
+design-systems/claude/source/token-contract.report.json
+design-systems/claude/source/tokens.source.json
+design-systems/clay/USAGE.md
+design-systems/clay/design-tokens.json
+design-systems/clay/manifest.json
+design-systems/clay/preview/typography.html
+design-systems/clay/source/evidence.md
+design-systems/clay/source/token-contract.report.json
+design-systems/clay/source/tokens.source.json
+design-systems/claymorphism/USAGE.md
+design-systems/claymorphism/design-tokens.json
+design-systems/claymorphism/manifest.json
+design-systems/claymorphism/preview/typography.html
+design-systems/claymorphism/source/evidence.md
+design-systems/claymorphism/source/token-contract.report.json
+design-systems/claymorphism/source/tokens.source.json
+design-systems/clean/USAGE.md
+design-systems/clean/design-tokens.json
+design-systems/clean/manifest.json
+design-systems/clean/preview/typography.html
+design-systems/clean/source/evidence.md
+design-systems/clean/source/token-contract.report.json
+design-systems/clean/source/tokens.source.json
+design-systems/clickhouse/USAGE.md
+design-systems/clickhouse/design-tokens.json
+design-systems/clickhouse/manifest.json
+design-systems/clickhouse/preview/typography.html
+design-systems/clickhouse/source/evidence.md
+design-systems/clickhouse/source/token-contract.report.json
+design-systems/clickhouse/source/tokens.source.json
+design-systems/cohere/USAGE.md
+design-systems/cohere/design-tokens.json
+design-systems/cohere/manifest.json
+design-systems/cohere/preview/typography.html
+design-systems/cohere/source/evidence.md
+design-systems/cohere/source/token-contract.report.json
+design-systems/cohere/source/tokens.source.json
+design-systems/coinbase/USAGE.md
+design-systems/coinbase/design-tokens.json
+design-systems/coinbase/manifest.json
+design-systems/coinbase/preview/typography.html
+design-systems/coinbase/source/evidence.md
+design-systems/coinbase/source/token-contract.report.json
+design-systems/coinbase/source/tokens.source.json
+design-systems/colorful/USAGE.md
+design-systems/colorful/design-tokens.json
+design-systems/colorful/manifest.json
+design-systems/colorful/preview/typography.html
+design-systems/colorful/source/evidence.md
+design-systems/colorful/source/token-contract.report.json
+design-systems/colorful/source/tokens.source.json
+design-systems/composio/USAGE.md
+design-systems/composio/design-tokens.json
+design-systems/composio/manifest.json
+design-systems/composio/preview/typography.html
+design-systems/composio/source/evidence.md
+design-systems/composio/source/token-contract.report.json
+design-systems/composio/source/tokens.source.json
+design-systems/contemporary/USAGE.md
+design-systems/contemporary/design-tokens.json
+design-systems/contemporary/manifest.json
+design-systems/contemporary/preview/typography.html
+design-systems/contemporary/source/evidence.md
+design-systems/contemporary/source/token-contract.report.json
+design-systems/contemporary/source/tokens.source.json
+design-systems/corporate/USAGE.md
+design-systems/corporate/design-tokens.json
+design-systems/corporate/manifest.json
+design-systems/corporate/preview/typography.html
+design-systems/corporate/source/evidence.md
+design-systems/corporate/source/token-contract.report.json
+design-systems/corporate/source/tokens.source.json
+design-systems/cosmic/USAGE.md
+design-systems/cosmic/design-tokens.json
+design-systems/cosmic/manifest.json
+design-systems/cosmic/preview/typography.html
+design-systems/cosmic/source/evidence.md
+design-systems/cosmic/source/token-contract.report.json
+design-systems/cosmic/source/tokens.source.json
+design-systems/creative/USAGE.md
+design-systems/creative/design-tokens.json
+design-systems/creative/manifest.json
+design-systems/creative/preview/typography.html
+design-systems/creative/source/evidence.md
+design-systems/creative/source/token-contract.report.json
+design-systems/creative/source/tokens.source.json
+design-systems/cursor/USAGE.md
+design-systems/cursor/design-tokens.json
+design-systems/cursor/manifest.json
+design-systems/cursor/preview/typography.html
+design-systems/cursor/source/evidence.md
+design-systems/cursor/source/token-contract.report.json
+design-systems/cursor/source/tokens.source.json
+design-systems/dashboard/USAGE.md
+design-systems/dashboard/design-tokens.json
+design-systems/dashboard/manifest.json
+design-systems/dashboard/preview/typography.html
+design-systems/dashboard/source/evidence.md
+design-systems/dashboard/source/token-contract.report.json
+design-systems/dashboard/source/tokens.source.json
+design-systems/default/USAGE.md
+design-systems/default/design-tokens.json
+design-systems/default/manifest.json
+design-systems/default/preview/typography.html
+design-systems/default/source/evidence.md
+design-systems/default/source/token-contract.report.json
+design-systems/default/source/tokens.source.json
+design-systems/discord/USAGE.md
+design-systems/discord/design-tokens.json
+design-systems/discord/manifest.json
+design-systems/discord/preview/typography.html
+design-systems/discord/source/evidence.md
+design-systems/discord/source/token-contract.report.json
+design-systems/discord/source/tokens.source.json
+design-systems/dithered/USAGE.md
+design-systems/dithered/design-tokens.json
+design-systems/dithered/manifest.json
+design-systems/dithered/preview/typography.html
+design-systems/dithered/source/evidence.md
+design-systems/dithered/source/token-contract.report.json
+design-systems/dithered/source/tokens.source.json
+design-systems/doodle/USAGE.md
+design-systems/doodle/design-tokens.json
+design-systems/doodle/manifest.json
+design-systems/doodle/preview/typography.html
+design-systems/doodle/source/evidence.md
+design-systems/doodle/source/token-contract.report.json
+design-systems/doodle/source/tokens.source.json
+design-systems/dramatic/USAGE.md
+design-systems/dramatic/design-tokens.json
+design-systems/dramatic/manifest.json
+design-systems/dramatic/preview/typography.html
+design-systems/dramatic/source/evidence.md
+design-systems/dramatic/source/token-contract.report.json
+design-systems/dramatic/source/tokens.source.json
+design-systems/duolingo/USAGE.md
+design-systems/duolingo/design-tokens.json
+design-systems/duolingo/manifest.json
+design-systems/duolingo/preview/typography.html
+design-systems/duolingo/source/evidence.md
+design-systems/duolingo/source/token-contract.report.json
+design-systems/duolingo/source/tokens.source.json
+design-systems/editorial/USAGE.md
+design-systems/editorial/design-tokens.json
+design-systems/editorial/manifest.json
+design-systems/editorial/preview/typography.html
+design-systems/editorial/source/evidence.md
+design-systems/editorial/source/token-contract.report.json
+design-systems/editorial/source/tokens.source.json
+design-systems/elegant/USAGE.md
+design-systems/elegant/design-tokens.json
+design-systems/elegant/manifest.json
+design-systems/elegant/preview/typography.html
+design-systems/elegant/source/evidence.md
+design-systems/elegant/source/token-contract.report.json
+design-systems/elegant/source/tokens.source.json
+design-systems/elevenlabs/USAGE.md
+design-systems/elevenlabs/design-tokens.json
+design-systems/elevenlabs/manifest.json
+design-systems/elevenlabs/preview/typography.html
+design-systems/elevenlabs/source/evidence.md
+design-systems/elevenlabs/source/token-contract.report.json
+design-systems/elevenlabs/source/tokens.source.json
+design-systems/energetic/USAGE.md
+design-systems/energetic/design-tokens.json
+design-systems/energetic/manifest.json
+design-systems/energetic/preview/typography.html
+design-systems/energetic/source/evidence.md
+design-systems/energetic/source/token-contract.report.json
+design-systems/energetic/source/tokens.source.json
+design-systems/enterprise/USAGE.md
+design-systems/enterprise/design-tokens.json
+design-systems/enterprise/manifest.json
+design-systems/enterprise/preview/typography.html
+design-systems/enterprise/source/evidence.md
+design-systems/enterprise/source/token-contract.report.json
+design-systems/enterprise/source/tokens.source.json
+design-systems/expo/USAGE.md
+design-systems/expo/design-tokens.json
+design-systems/expo/manifest.json
+design-systems/expo/preview/typography.html
+design-systems/expo/source/evidence.md
+design-systems/expo/source/token-contract.report.json
+design-systems/expo/source/tokens.source.json
+design-systems/expressive/USAGE.md
+design-systems/expressive/design-tokens.json
+design-systems/expressive/manifest.json
+design-systems/expressive/preview/typography.html
+design-systems/expressive/source/evidence.md
+design-systems/expressive/source/token-contract.report.json
+design-systems/expressive/source/tokens.source.json
+design-systems/fantasy/USAGE.md
+design-systems/fantasy/design-tokens.json
+design-systems/fantasy/manifest.json
+design-systems/fantasy/preview/typography.html
+design-systems/fantasy/source/evidence.md
+design-systems/fantasy/source/token-contract.report.json
+design-systems/fantasy/source/tokens.source.json
+design-systems/ferrari/USAGE.md
+design-systems/ferrari/design-tokens.json
+design-systems/ferrari/manifest.json
+design-systems/ferrari/preview/typography.html
+design-systems/ferrari/source/evidence.md
+design-systems/ferrari/source/token-contract.report.json
+design-systems/ferrari/source/tokens.source.json
+design-systems/figma/USAGE.md
+design-systems/figma/design-tokens.json
+design-systems/figma/manifest.json
+design-systems/figma/preview/typography.html
+design-systems/figma/source/evidence.md
+design-systems/figma/source/token-contract.report.json
+design-systems/figma/source/tokens.source.json
+design-systems/flat/USAGE.md
+design-systems/flat/design-tokens.json
+design-systems/flat/manifest.json
+design-systems/flat/preview/typography.html
+design-systems/flat/source/evidence.md
+design-systems/flat/source/token-contract.report.json
+design-systems/flat/source/tokens.source.json
+design-systems/framer/USAGE.md
+design-systems/framer/design-tokens.json
+design-systems/framer/manifest.json
+design-systems/framer/preview/typography.html
+design-systems/framer/source/evidence.md
+design-systems/framer/source/token-contract.report.json
+design-systems/framer/source/tokens.source.json
+design-systems/friendly/USAGE.md
+design-systems/friendly/design-tokens.json
+design-systems/friendly/manifest.json
+design-systems/friendly/preview/typography.html
+design-systems/friendly/source/evidence.md
+design-systems/friendly/source/token-contract.report.json
+design-systems/friendly/source/tokens.source.json
+design-systems/futuristic/USAGE.md
+design-systems/futuristic/design-tokens.json
+design-systems/futuristic/manifest.json
+design-systems/futuristic/preview/typography.html
+design-systems/futuristic/source/evidence.md
+design-systems/futuristic/source/token-contract.report.json
+design-systems/futuristic/source/tokens.source.json
+design-systems/github/USAGE.md
+design-systems/github/components.html
+design-systems/github/design-tokens.json
+design-systems/github/manifest.json
+design-systems/github/preview/typography.html
+design-systems/github/source/evidence.md
+design-systems/github/source/token-contract.report.json
+design-systems/github/source/tokens.source.json
+design-systems/glassmorphism/USAGE.md
+design-systems/glassmorphism/design-tokens.json
+design-systems/glassmorphism/manifest.json
+design-systems/glassmorphism/preview/typography.html
+design-systems/glassmorphism/source/evidence.md
+design-systems/glassmorphism/source/token-contract.report.json
+design-systems/glassmorphism/source/tokens.source.json
+design-systems/gradient/USAGE.md
+design-systems/gradient/design-tokens.json
+design-systems/gradient/manifest.json
+design-systems/gradient/preview/typography.html
+design-systems/gradient/source/evidence.md
+design-systems/gradient/source/token-contract.report.json
+design-systems/gradient/source/tokens.source.json
+design-systems/hashicorp/USAGE.md
+design-systems/hashicorp/design-tokens.json
+design-systems/hashicorp/manifest.json
+design-systems/hashicorp/preview/typography.html
+design-systems/hashicorp/source/evidence.md
+design-systems/hashicorp/source/token-contract.report.json
+design-systems/hashicorp/source/tokens.source.json
+design-systems/hud/USAGE.md
+design-systems/hud/design-tokens.json
+design-systems/hud/manifest.json
+design-systems/hud/preview/typography.html
+design-systems/hud/source/evidence.md
+design-systems/hud/source/token-contract.report.json
+design-systems/hud/source/tokens.source.json
+design-systems/huggingface/USAGE.md
+design-systems/huggingface/design-tokens.json
+design-systems/huggingface/manifest.json
+design-systems/huggingface/preview/typography.html
+design-systems/huggingface/source/evidence.md
+design-systems/huggingface/source/token-contract.report.json
+design-systems/huggingface/source/tokens.source.json
+design-systems/ibm/USAGE.md
+design-systems/ibm/design-tokens.json
+design-systems/ibm/manifest.json
+design-systems/ibm/preview/typography.html
+design-systems/ibm/source/evidence.md
+design-systems/ibm/source/token-contract.report.json
+design-systems/ibm/source/tokens.source.json
+design-systems/intercom/USAGE.md
+design-systems/intercom/design-tokens.json
+design-systems/intercom/manifest.json
+design-systems/intercom/preview/typography.html
+design-systems/intercom/source/evidence.md
+design-systems/intercom/source/token-contract.report.json
+design-systems/intercom/source/tokens.source.json
+design-systems/kami/DESIGN.md
+design-systems/kami/USAGE.md
+design-systems/kami/design-tokens.json
+design-systems/kami/manifest.json
+design-systems/kami/preview/typography.html
+design-systems/kami/source/evidence.md
+design-systems/kami/source/token-contract.report.json
+design-systems/kami/source/tokens.source.json
+design-systems/kraken/USAGE.md
+design-systems/kraken/design-tokens.json
+design-systems/kraken/manifest.json
+design-systems/kraken/preview/typography.html
+design-systems/kraken/source/evidence.md
+design-systems/kraken/source/token-contract.report.json
+design-systems/kraken/source/tokens.source.json
+design-systems/lamborghini/USAGE.md
+design-systems/lamborghini/design-tokens.json
+design-systems/lamborghini/manifest.json
+design-systems/lamborghini/preview/typography.html
+design-systems/lamborghini/source/evidence.md
+design-systems/lamborghini/source/token-contract.report.json
+design-systems/lamborghini/source/tokens.source.json
+design-systems/levels/USAGE.md
+design-systems/levels/design-tokens.json
+design-systems/levels/manifest.json
+design-systems/levels/preview/typography.html
+design-systems/levels/source/evidence.md
+design-systems/levels/source/token-contract.report.json
+design-systems/levels/source/tokens.source.json
+design-systems/linear-app/USAGE.md
+design-systems/linear-app/design-tokens.json
+design-systems/linear-app/manifest.json
+design-systems/linear-app/preview/typography.html
+design-systems/linear-app/source/evidence.md
+design-systems/linear-app/source/token-contract.report.json
+design-systems/linear-app/source/tokens.source.json
+design-systems/lingo/USAGE.md
+design-systems/lingo/design-tokens.json
+design-systems/lingo/manifest.json
+design-systems/lingo/preview/typography.html
+design-systems/lingo/source/evidence.md
+design-systems/lingo/source/token-contract.report.json
+design-systems/lingo/source/tokens.source.json
+design-systems/loom/USAGE.md
+design-systems/loom/design-tokens.json
+design-systems/loom/manifest.json
+design-systems/loom/preview/typography.html
+design-systems/loom/source/evidence.md
+design-systems/loom/source/token-contract.report.json
+design-systems/loom/source/tokens.source.json
+design-systems/lovable/USAGE.md
+design-systems/lovable/design-tokens.json
+design-systems/lovable/manifest.json
+design-systems/lovable/preview/typography.html
+design-systems/lovable/source/evidence.md
+design-systems/lovable/source/token-contract.report.json
+design-systems/lovable/source/tokens.source.json
+design-systems/luxury/USAGE.md
+design-systems/luxury/design-tokens.json
+design-systems/luxury/manifest.json
+design-systems/luxury/preview/typography.html
+design-systems/luxury/source/evidence.md
+design-systems/luxury/source/token-contract.report.json
+design-systems/luxury/source/tokens.source.json
+design-systems/mastercard/USAGE.md
+design-systems/mastercard/design-tokens.json
+design-systems/mastercard/manifest.json
+design-systems/mastercard/preview/typography.html
+design-systems/mastercard/source/evidence.md
+design-systems/mastercard/source/token-contract.report.json
+design-systems/mastercard/source/tokens.source.json
+design-systems/material/USAGE.md
+design-systems/material/design-tokens.json
+design-systems/material/manifest.json
+design-systems/material/preview/typography.html
+design-systems/material/source/evidence.md
+design-systems/material/source/token-contract.report.json
+design-systems/material/source/tokens.source.json
+design-systems/meta/USAGE.md
+design-systems/meta/design-tokens.json
+design-systems/meta/manifest.json
+design-systems/meta/preview/typography.html
+design-systems/meta/source/evidence.md
+design-systems/meta/source/token-contract.report.json
+design-systems/meta/source/tokens.source.json
+design-systems/minimal/USAGE.md
+design-systems/minimal/design-tokens.json
+design-systems/minimal/manifest.json
+design-systems/minimal/preview/typography.html
+design-systems/minimal/source/evidence.md
+design-systems/minimal/source/token-contract.report.json
+design-systems/minimal/source/tokens.source.json
+design-systems/minimax/USAGE.md
+design-systems/minimax/design-tokens.json
+design-systems/minimax/manifest.json
+design-systems/minimax/preview/typography.html
+design-systems/minimax/source/evidence.md
+design-systems/minimax/source/token-contract.report.json
+design-systems/minimax/source/tokens.source.json
+design-systems/mintlify/USAGE.md
+design-systems/mintlify/design-tokens.json
+design-systems/mintlify/manifest.json
+design-systems/mintlify/preview/typography.html
+design-systems/mintlify/source/evidence.md
+design-systems/mintlify/source/token-contract.report.json
+design-systems/mintlify/source/tokens.source.json
+design-systems/miro/USAGE.md
+design-systems/miro/design-tokens.json
+design-systems/miro/manifest.json
+design-systems/miro/preview/typography.html
+design-systems/miro/source/evidence.md
+design-systems/miro/source/token-contract.report.json
+design-systems/miro/source/tokens.source.json
+design-systems/mission-control/USAGE.md
+design-systems/mission-control/design-tokens.json
+design-systems/mission-control/manifest.json
+design-systems/mission-control/preview/typography.html
+design-systems/mission-control/source/evidence.md
+design-systems/mission-control/source/token-contract.report.json
+design-systems/mission-control/source/tokens.source.json
+design-systems/mistral-ai/USAGE.md
+design-systems/mistral-ai/design-tokens.json
+design-systems/mistral-ai/manifest.json
+design-systems/mistral-ai/preview/typography.html
+design-systems/mistral-ai/source/evidence.md
+design-systems/mistral-ai/source/token-contract.report.json
+design-systems/mistral-ai/source/tokens.source.json
+design-systems/modern/USAGE.md
+design-systems/modern/design-tokens.json
+design-systems/modern/manifest.json
+design-systems/modern/preview/typography.html
+design-systems/modern/source/evidence.md
+design-systems/modern/source/token-contract.report.json
+design-systems/modern/source/tokens.source.json
+design-systems/mongodb/USAGE.md
+design-systems/mongodb/design-tokens.json
+design-systems/mongodb/manifest.json
+design-systems/mongodb/preview/typography.html
+design-systems/mongodb/source/evidence.md
+design-systems/mongodb/source/token-contract.report.json
+design-systems/mongodb/source/tokens.source.json
+design-systems/mono/USAGE.md
+design-systems/mono/design-tokens.json
+design-systems/mono/manifest.json
+design-systems/mono/preview/typography.html
+design-systems/mono/source/evidence.md
+design-systems/mono/source/token-contract.report.json
+design-systems/mono/source/tokens.source.json
+design-systems/neobrutalism/USAGE.md
+design-systems/neobrutalism/design-tokens.json
+design-systems/neobrutalism/manifest.json
+design-systems/neobrutalism/preview/typography.html
+design-systems/neobrutalism/source/evidence.md
+design-systems/neobrutalism/source/token-contract.report.json
+design-systems/neobrutalism/source/tokens.source.json
+design-systems/neon/USAGE.md
+design-systems/neon/design-tokens.json
+design-systems/neon/manifest.json
+design-systems/neon/preview/typography.html
+design-systems/neon/source/evidence.md
+design-systems/neon/source/token-contract.report.json
+design-systems/neon/source/tokens.source.json
+design-systems/neumorphism/USAGE.md
+design-systems/neumorphism/design-tokens.json
+design-systems/neumorphism/manifest.json
+design-systems/neumorphism/preview/typography.html
+design-systems/neumorphism/source/evidence.md
+design-systems/neumorphism/source/token-contract.report.json
+design-systems/neumorphism/source/tokens.source.json
+design-systems/nike/USAGE.md
+design-systems/nike/design-tokens.json
+design-systems/nike/manifest.json
+design-systems/nike/preview/typography.html
+design-systems/nike/source/evidence.md
+design-systems/nike/source/token-contract.report.json
+design-systems/nike/source/tokens.source.json
+design-systems/notion/USAGE.md
+design-systems/notion/design-tokens.json
+design-systems/notion/manifest.json
+design-systems/notion/preview/typography.html
+design-systems/notion/source/evidence.md
+design-systems/notion/source/token-contract.report.json
+design-systems/notion/source/tokens.source.json
+design-systems/nvidia/USAGE.md
+design-systems/nvidia/design-tokens.json
+design-systems/nvidia/manifest.json
+design-systems/nvidia/preview/typography.html
+design-systems/nvidia/source/evidence.md
+design-systems/nvidia/source/token-contract.report.json
+design-systems/nvidia/source/tokens.source.json
+design-systems/ollama/USAGE.md
+design-systems/ollama/design-tokens.json
+design-systems/ollama/manifest.json
+design-systems/ollama/preview/typography.html
+design-systems/ollama/source/evidence.md
+design-systems/ollama/source/token-contract.report.json
+design-systems/ollama/source/tokens.source.json
+design-systems/openai/USAGE.md
+design-systems/openai/design-tokens.json
+design-systems/openai/manifest.json
+design-systems/openai/preview/typography.html
+design-systems/openai/source/evidence.md
+design-systems/openai/source/token-contract.report.json
+design-systems/openai/source/tokens.source.json
+design-systems/opencode-ai/USAGE.md
+design-systems/opencode-ai/design-tokens.json
+design-systems/opencode-ai/manifest.json
+design-systems/opencode-ai/preview/typography.html
+design-systems/opencode-ai/source/evidence.md
+design-systems/opencode-ai/source/token-contract.report.json
+design-systems/opencode-ai/source/tokens.source.json
+design-systems/pacman/USAGE.md
+design-systems/pacman/design-tokens.json
+design-systems/pacman/manifest.json
+design-systems/pacman/preview/typography.html
+design-systems/pacman/source/evidence.md
+design-systems/pacman/source/token-contract.report.json
+design-systems/pacman/source/tokens.source.json
+design-systems/paper/USAGE.md
+design-systems/paper/design-tokens.json
+design-systems/paper/manifest.json
+design-systems/paper/preview/typography.html
+design-systems/paper/source/evidence.md
+design-systems/paper/source/token-contract.report.json
+design-systems/paper/source/tokens.source.json
+design-systems/perplexity/USAGE.md
+design-systems/perplexity/design-tokens.json
+design-systems/perplexity/manifest.json
+design-systems/perplexity/preview/typography.html
+design-systems/perplexity/source/evidence.md
+design-systems/perplexity/source/token-contract.report.json
+design-systems/perplexity/source/tokens.source.json
+design-systems/perspective/USAGE.md
+design-systems/perspective/design-tokens.json
+design-systems/perspective/manifest.json
+design-systems/perspective/preview/typography.html
+design-systems/perspective/source/evidence.md
+design-systems/perspective/source/token-contract.report.json
+design-systems/perspective/source/tokens.source.json
+design-systems/pinterest/USAGE.md
+design-systems/pinterest/design-tokens.json
+design-systems/pinterest/manifest.json
+design-systems/pinterest/preview/typography.html
+design-systems/pinterest/source/evidence.md
+design-systems/pinterest/source/token-contract.report.json
+design-systems/pinterest/source/tokens.source.json
+design-systems/playstation/USAGE.md
+design-systems/playstation/design-tokens.json
+design-systems/playstation/manifest.json
+design-systems/playstation/preview/typography.html
+design-systems/playstation/source/evidence.md
+design-systems/playstation/source/token-contract.report.json
+design-systems/playstation/source/tokens.source.json
+design-systems/posthog/USAGE.md
+design-systems/posthog/design-tokens.json
+design-systems/posthog/manifest.json
+design-systems/posthog/preview/typography.html
+design-systems/posthog/source/evidence.md
+design-systems/posthog/source/token-contract.report.json
+design-systems/posthog/source/tokens.source.json
+design-systems/premium/USAGE.md
+design-systems/premium/design-tokens.json
+design-systems/premium/manifest.json
+design-systems/premium/preview/typography.html
+design-systems/premium/source/evidence.md
+design-systems/premium/source/token-contract.report.json
+design-systems/premium/source/tokens.source.json
+design-systems/professional/USAGE.md
+design-systems/professional/design-tokens.json
+design-systems/professional/manifest.json
+design-systems/professional/preview/typography.html
+design-systems/professional/source/evidence.md
+design-systems/professional/source/token-contract.report.json
+design-systems/professional/source/tokens.source.json
+design-systems/publication/USAGE.md
+design-systems/publication/design-tokens.json
+design-systems/publication/manifest.json
+design-systems/publication/preview/typography.html
+design-systems/publication/source/evidence.md
+design-systems/publication/source/token-contract.report.json
+design-systems/publication/source/tokens.source.json
+design-systems/raycast/USAGE.md
+design-systems/raycast/design-tokens.json
+design-systems/raycast/manifest.json
+design-systems/raycast/preview/typography.html
+design-systems/raycast/source/evidence.md
+design-systems/raycast/source/token-contract.report.json
+design-systems/raycast/source/tokens.source.json
+design-systems/refined/USAGE.md
+design-systems/refined/design-tokens.json
+design-systems/refined/manifest.json
+design-systems/refined/preview/typography.html
+design-systems/refined/source/evidence.md
+design-systems/refined/source/token-contract.report.json
+design-systems/refined/source/tokens.source.json
+design-systems/renault/USAGE.md
+design-systems/renault/design-tokens.json
+design-systems/renault/manifest.json
+design-systems/renault/preview/typography.html
+design-systems/renault/source/evidence.md
+design-systems/renault/source/token-contract.report.json
+design-systems/renault/source/tokens.source.json
+design-systems/replicate/USAGE.md
+design-systems/replicate/design-tokens.json
+design-systems/replicate/manifest.json
+design-systems/replicate/preview/typography.html
+design-systems/replicate/source/evidence.md
+design-systems/replicate/source/token-contract.report.json
+design-systems/replicate/source/tokens.source.json
+design-systems/resend/USAGE.md
+design-systems/resend/design-tokens.json
+design-systems/resend/manifest.json
+design-systems/resend/preview/typography.html
+design-systems/resend/source/evidence.md
+design-systems/resend/source/token-contract.report.json
+design-systems/resend/source/tokens.source.json
+design-systems/retro/USAGE.md
+design-systems/retro/design-tokens.json
+design-systems/retro/manifest.json
+design-systems/retro/preview/typography.html
+design-systems/retro/source/evidence.md
+design-systems/retro/source/token-contract.report.json
+design-systems/retro/source/tokens.source.json
+design-systems/revolut/USAGE.md
+design-systems/revolut/design-tokens.json
+design-systems/revolut/manifest.json
+design-systems/revolut/preview/typography.html
+design-systems/revolut/source/evidence.md
+design-systems/revolut/source/token-contract.report.json
+design-systems/revolut/source/tokens.source.json
+design-systems/runwayml/USAGE.md
+design-systems/runwayml/design-tokens.json
+design-systems/runwayml/manifest.json
+design-systems/runwayml/preview/typography.html
+design-systems/runwayml/source/evidence.md
+design-systems/runwayml/source/token-contract.report.json
+design-systems/runwayml/source/tokens.source.json
+design-systems/sanity/USAGE.md
+design-systems/sanity/design-tokens.json
+design-systems/sanity/manifest.json
+design-systems/sanity/preview/typography.html
+design-systems/sanity/source/evidence.md
+design-systems/sanity/source/token-contract.report.json
+design-systems/sanity/source/tokens.source.json
+design-systems/sentry/USAGE.md
+design-systems/sentry/design-tokens.json
+design-systems/sentry/manifest.json
+design-systems/sentry/preview/typography.html
+design-systems/sentry/source/evidence.md
+design-systems/sentry/source/token-contract.report.json
+design-systems/sentry/source/tokens.source.json
+design-systems/shadcn/USAGE.md
+design-systems/shadcn/design-tokens.json
+design-systems/shadcn/manifest.json
+design-systems/shadcn/preview/typography.html
+design-systems/shadcn/source/evidence.md
+design-systems/shadcn/source/token-contract.report.json
+design-systems/shadcn/source/tokens.source.json
+design-systems/shopify/USAGE.md
+design-systems/shopify/design-tokens.json
+design-systems/shopify/manifest.json
+design-systems/shopify/preview/typography.html
+design-systems/shopify/source/evidence.md
+design-systems/shopify/source/token-contract.report.json
+design-systems/shopify/source/tokens.source.json
+design-systems/simple/USAGE.md
+design-systems/simple/design-tokens.json
+design-systems/simple/manifest.json
+design-systems/simple/preview/typography.html
+design-systems/simple/source/evidence.md
+design-systems/simple/source/token-contract.report.json
+design-systems/simple/source/tokens.source.json
+design-systems/skeumorphism/USAGE.md
+design-systems/skeumorphism/design-tokens.json
+design-systems/skeumorphism/manifest.json
+design-systems/skeumorphism/preview/typography.html
+design-systems/skeumorphism/source/evidence.md
+design-systems/skeumorphism/source/token-contract.report.json
+design-systems/skeumorphism/source/tokens.source.json
+design-systems/slack/USAGE.md
+design-systems/slack/components.html
+design-systems/slack/design-tokens.json
+design-systems/slack/manifest.json
+design-systems/slack/preview/typography.html
+design-systems/slack/source/evidence.md
+design-systems/slack/source/token-contract.report.json
+design-systems/slack/source/tokens.source.json
+design-systems/sleek/USAGE.md
+design-systems/sleek/design-tokens.json
+design-systems/sleek/manifest.json
+design-systems/sleek/preview/typography.html
+design-systems/sleek/source/evidence.md
+design-systems/sleek/source/token-contract.report.json
+design-systems/sleek/source/tokens.source.json
+design-systems/spacex/USAGE.md
+design-systems/spacex/design-tokens.json
+design-systems/spacex/manifest.json
+design-systems/spacex/preview/typography.html
+design-systems/spacex/source/evidence.md
+design-systems/spacex/source/token-contract.report.json
+design-systems/spacex/source/tokens.source.json
+design-systems/spacious/USAGE.md
+design-systems/spacious/design-tokens.json
+design-systems/spacious/manifest.json
+design-systems/spacious/preview/typography.html
+design-systems/spacious/source/evidence.md
+design-systems/spacious/source/token-contract.report.json
+design-systems/spacious/source/tokens.source.json
+design-systems/spotify/USAGE.md
+design-systems/spotify/components.html
+design-systems/spotify/design-tokens.json
+design-systems/spotify/manifest.json
+design-systems/spotify/preview/typography.html
+design-systems/spotify/source/evidence.md
+design-systems/spotify/source/token-contract.report.json
+design-systems/spotify/source/tokens.source.json
+design-systems/starbucks/USAGE.md
+design-systems/starbucks/design-tokens.json
+design-systems/starbucks/manifest.json
+design-systems/starbucks/preview/typography.html
+design-systems/starbucks/source/evidence.md
+design-systems/starbucks/source/token-contract.report.json
+design-systems/starbucks/source/tokens.source.json
+design-systems/storytelling/USAGE.md
+design-systems/storytelling/design-tokens.json
+design-systems/storytelling/manifest.json
+design-systems/storytelling/preview/typography.html
+design-systems/storytelling/source/evidence.md
+design-systems/storytelling/source/token-contract.report.json
+design-systems/storytelling/source/tokens.source.json
+design-systems/stripe/USAGE.md
+design-systems/stripe/design-tokens.json
+design-systems/stripe/manifest.json
+design-systems/stripe/preview/typography.html
+design-systems/stripe/source/evidence.md
+design-systems/stripe/source/token-contract.report.json
+design-systems/stripe/source/tokens.source.json
+design-systems/supabase/USAGE.md
+design-systems/supabase/design-tokens.json
+design-systems/supabase/manifest.json
+design-systems/supabase/preview/typography.html
+design-systems/supabase/source/evidence.md
+design-systems/supabase/source/token-contract.report.json
+design-systems/supabase/source/tokens.source.json
+design-systems/superhuman/USAGE.md
+design-systems/superhuman/design-tokens.json
+design-systems/superhuman/manifest.json
+design-systems/superhuman/preview/typography.html
+design-systems/superhuman/source/evidence.md
+design-systems/superhuman/source/token-contract.report.json
+design-systems/superhuman/source/tokens.source.json
+design-systems/tesla/USAGE.md
+design-systems/tesla/design-tokens.json
+design-systems/tesla/manifest.json
+design-systems/tesla/preview/typography.html
+design-systems/tesla/source/evidence.md
+design-systems/tesla/source/token-contract.report.json
+design-systems/tesla/source/tokens.source.json
+design-systems/tetris/USAGE.md
+design-systems/tetris/design-tokens.json
+design-systems/tetris/manifest.json
+design-systems/tetris/preview/typography.html
+design-systems/tetris/source/evidence.md
+design-systems/tetris/source/token-contract.report.json
+design-systems/tetris/source/tokens.source.json
+design-systems/theverge/USAGE.md
+design-systems/theverge/design-tokens.json
+design-systems/theverge/manifest.json
+design-systems/theverge/preview/typography.html
+design-systems/theverge/source/evidence.md
+design-systems/theverge/source/token-contract.report.json
+design-systems/theverge/source/tokens.source.json
+design-systems/together-ai/USAGE.md
+design-systems/together-ai/design-tokens.json
+design-systems/together-ai/manifest.json
+design-systems/together-ai/preview/typography.html
+design-systems/together-ai/source/evidence.md
+design-systems/together-ai/source/token-contract.report.json
+design-systems/together-ai/source/tokens.source.json
+design-systems/totality-festival/USAGE.md
+design-systems/totality-festival/design-tokens.json
+design-systems/totality-festival/manifest.json
+design-systems/totality-festival/preview/typography.html
+design-systems/totality-festival/source/evidence.md
+design-systems/totality-festival/source/token-contract.report.json
+design-systems/totality-festival/source/tokens.source.json
+design-systems/trading-terminal/USAGE.md
+design-systems/trading-terminal/design-tokens.json
+design-systems/trading-terminal/manifest.json
+design-systems/trading-terminal/preview/typography.html
+design-systems/trading-terminal/source/evidence.md
+design-systems/trading-terminal/source/token-contract.report.json
+design-systems/trading-terminal/source/tokens.source.json
+design-systems/uber/USAGE.md
+design-systems/uber/design-tokens.json
+design-systems/uber/manifest.json
+design-systems/uber/preview/typography.html
+design-systems/uber/source/evidence.md
+design-systems/uber/source/token-contract.report.json
+design-systems/uber/source/tokens.source.json
+design-systems/urdu/USAGE.md
+design-systems/urdu/design-tokens.json
+design-systems/urdu/manifest.json
+design-systems/urdu/preview/typography.html
+design-systems/urdu/source/evidence.md
+design-systems/urdu/source/token-contract.report.json
+design-systems/urdu/source/tokens.source.json
+design-systems/vercel/USAGE.md
+design-systems/vercel/design-tokens.json
+design-systems/vercel/manifest.json
+design-systems/vercel/preview/typography.html
+design-systems/vercel/source/evidence.md
+design-systems/vercel/source/token-contract.report.json
+design-systems/vercel/source/tokens.source.json
+design-systems/vibrant/USAGE.md
+design-systems/vibrant/design-tokens.json
+design-systems/vibrant/manifest.json
+design-systems/vibrant/preview/typography.html
+design-systems/vibrant/source/evidence.md
+design-systems/vibrant/source/token-contract.report.json
+design-systems/vibrant/source/tokens.source.json
+design-systems/vintage/USAGE.md
+design-systems/vintage/design-tokens.json
+design-systems/vintage/manifest.json
+design-systems/vintage/preview/typography.html
+design-systems/vintage/source/evidence.md
+design-systems/vintage/source/token-contract.report.json
+design-systems/vintage/source/tokens.source.json
+design-systems/vodafone/USAGE.md
+design-systems/vodafone/design-tokens.json
+design-systems/vodafone/manifest.json
+design-systems/vodafone/preview/typography.html
+design-systems/vodafone/source/evidence.md
+design-systems/vodafone/source/token-contract.report.json
+design-systems/vodafone/source/tokens.source.json
+design-systems/voltagent/USAGE.md
+design-systems/voltagent/design-tokens.json
+design-systems/voltagent/manifest.json
+design-systems/voltagent/preview/typography.html
+design-systems/voltagent/source/evidence.md
+design-systems/voltagent/source/token-contract.report.json
+design-systems/voltagent/source/tokens.source.json
+design-systems/warm-editorial/USAGE.md
+design-systems/warm-editorial/design-tokens.json
+design-systems/warm-editorial/manifest.json
+design-systems/warm-editorial/preview/typography.html
+design-systems/warm-editorial/source/evidence.md
+design-systems/warm-editorial/source/token-contract.report.json
+design-systems/warm-editorial/source/tokens.source.json
+design-systems/warp/USAGE.md
+design-systems/warp/design-tokens.json
+design-systems/warp/manifest.json
+design-systems/warp/preview/typography.html
+design-systems/warp/source/evidence.md
+design-systems/warp/source/token-contract.report.json
+design-systems/warp/source/tokens.source.json
+design-systems/webex/USAGE.md
+design-systems/webex/design-tokens.json
+design-systems/webex/manifest.json
+design-systems/webex/preview/typography.html
+design-systems/webex/source/evidence.md
+design-systems/webex/source/token-contract.report.json
+design-systems/webex/source/tokens.source.json
+design-systems/webflow/USAGE.md
+design-systems/webflow/design-tokens.json
+design-systems/webflow/manifest.json
+design-systems/webflow/preview/typography.html
+design-systems/webflow/source/evidence.md
+design-systems/webflow/source/token-contract.report.json
+design-systems/webflow/source/tokens.source.json
+design-systems/wechat/USAGE.md
+design-systems/wechat/design-tokens.json
+design-systems/wechat/manifest.json
+design-systems/wechat/preview/typography.html
+design-systems/wechat/source/evidence.md
+design-systems/wechat/source/token-contract.report.json
+design-systems/wechat/source/tokens.source.json
+design-systems/wired/USAGE.md
+design-systems/wired/design-tokens.json
+design-systems/wired/manifest.json
+design-systems/wired/preview/typography.html
+design-systems/wired/source/evidence.md
+design-systems/wired/source/token-contract.report.json
+design-systems/wired/source/tokens.source.json
+design-systems/wise/USAGE.md
+design-systems/wise/design-tokens.json
+design-systems/wise/manifest.json
+design-systems/wise/preview/typography.html
+design-systems/wise/source/evidence.md
+design-systems/wise/source/token-contract.report.json
+design-systems/wise/source/tokens.source.json
+design-systems/x-ai/USAGE.md
+design-systems/x-ai/design-tokens.json
+design-systems/x-ai/manifest.json
+design-systems/x-ai/preview/typography.html
+design-systems/x-ai/source/evidence.md
+design-systems/x-ai/source/token-contract.report.json
+design-systems/x-ai/source/tokens.source.json
+design-systems/xiaohongshu/USAGE.md
+design-systems/xiaohongshu/design-tokens.json
+design-systems/xiaohongshu/manifest.json
+design-systems/xiaohongshu/preview/typography.html
+design-systems/xiaohongshu/source/evidence.md
+design-systems/xiaohongshu/source/token-contract.report.json
+design-systems/xiaohongshu/source/tokens.source.json
+design-systems/zapier/USAGE.md
+design-systems/zapier/design-tokens.json
+design-systems/zapier/manifest.json
+design-systems/zapier/preview/typography.html
+design-systems/zapier/source/evidence.md
+design-systems/zapier/source/token-contract.report.json
+design-systems/zapier/source/tokens.source.json
+packages/contracts/src/design-systems/derived-token-outputs.ts
+packages/contracts/src/design-systems/token-schema.ts
+scripts/check-design-system-manifests.ts
+scripts/guard.ts
+scripts/readable-identity-baseline.json
+scripts/readable-parity.test.ts
+scripts/style-policy.test.ts

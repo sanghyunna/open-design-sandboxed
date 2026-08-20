@@ -1,0 +1,8 @@
+
+ RUN  v4.1.6 D:/dev/open_design_port/readable-task26-design-systems/apps/daemon
+
+
+ Test Files  5 passed (5)
+      Tests  62 passed (62)
+   Start at  15:41:22
+   Duration  5.98s (transform 882ms, setup 141ms, import 1.83s, tests 1.25s, environment 2ms)

@@ -1,0 +1,35 @@
+✔ design-system project manifest schema accepts the v1 minimum shape (1.57ms)
+✔ design-system project manifest schema keeps components.html optional but fixed when declared (0.4808ms)
+✔ design-system project manifest schema rejects path drift and unknown keys (0.2696ms)
+✔ design-system project manifest schema accepts import-project optional indexes (0.7049ms)
+✔ design-system design tokens guard rejects stale derived JSON (38.5586ms)
+✔ design-system design tokens guard rejects stale token source line references (15.2922ms)
+✔ design-system design tokens guard rejects prefix token source line references (13.6384ms)
+✔ design-system tailwind v4 guard rejects swapped canonical mappings (34.8855ms)
+✔ design-system components manifest guard rejects undeclared token references (29.089ms)
+✔ design-system project manifest schema requires craft slug format (0.442ms)
+✔ design-system manifest semantics connect craft and importMode declarations to known evidence (0.5732ms)
+✔ design-system project manifest schema rejects unsafe import-project paths (0.3535ms)
+✔ collectCssNamedColorMatches finds named colors inside CSS shorthands and functions (3.4783ms)
+✔ collectCssNamedColorMatches covers mixed-case and full CSS named colors (0.4837ms)
+✔ collectCssNamedColorMatches keeps CSS-wide special keywords exempt (0.2824ms)
+✔ collectCssNamedColorMatches skips strings, comments, urls, and var references (0.8272ms)
+✔ collectCssHardcodedColorMatches scans CSS var fallbacks (0.4015ms)
+✔ collectCssHardcodedColorMatches finds CSS colors in declaration values (0.3019ms)
+✔ collectCssEmptyVarFunctionMatches finds invalid empty CSS var functions (0.6021ms)
+✔ collectCssEmptyVarFunctionMatches ignores comments, strings, and valid var references (0.3618ms)
+✔ collectCssEncodedHexColorMatches ignores comments and strings (0.5501ms)
+✔ style policy flags encoded hex only outside CSS comments and strings (1.1953ms)
+✔ style policy keeps SettingsDialog legacy fallbacks narrow (5.1104ms)
+✔ style policy catches quoted named colors in enforced TSX paths (0.8408ms)
+✔ style policy ignores TS comments and non-style named color strings (0.4172ms)
+✔ rejects stale design-system identity (0.493ms)
+✔ theme parity requires the theme selector to match the file theme id (1.3525ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1816.5232

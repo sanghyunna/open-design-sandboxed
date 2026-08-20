@@ -1,0 +1,3 @@
+initial regeneration: packages=150 filesChanged=1050
+Design-system metadata regeneration complete: packages=150 filesChanged=0
+Design-system metadata regeneration complete: packages=150 filesChanged=0

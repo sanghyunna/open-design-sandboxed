@@ -968,6 +968,8 @@ const stylePolicySkippedDirectories = new Set([
 
 const stylePolicySourcePrefixes = ["apps/web/app/", "apps/web/src/", "packages/components/src/"];
 const stylePolicyHardcodedColorEnforcedPrefixes = ["scripts/guard-style-policy-fixtures/"];
+const designSystemMetadataPathPattern = /^design-systems\/[^/]+\/(?:manifest\.json|USAGE\.md|design-tokens\.json|source\/(?:evidence\.md|tokens\.source\.json|token-contract\.report\.json)|preview\/typography\.html)$/u;
+const staleDesignSystemIdentityPattern = /@open[-]design|Open[ ]Design|open[-]design|od[-]design-(?:system-project|tokens)/gu;
 const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
   "apps/web/src/components/AgentIcon.tsx",
   "apps/web/src/components/FileViewer.tsx",
@@ -987,9 +989,9 @@ const stylePolicyHardcodedColorEnforcedExactPaths = new Set([
   "apps/web/src/state/themes.ts",
 ]);
 const stylePolicyCheckedDirectoryPrefixes = [
-  ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes]),
+  ...new Set([...stylePolicySourcePrefixes, ...stylePolicyHardcodedColorEnforcedPrefixes, "design-systems/"]),
 ];
-const stylePolicyExtensions = new Set([".css", ".ts", ".tsx"]);
+const stylePolicyExtensions = new Set([".css", ".html", ".json", ".md", ".ts", ".tsx"]);
 const tailwindDefaultColorNames = [
   "slate",
   "gray",
@@ -1187,13 +1189,26 @@ function isLikelyTsInlineStyleNamedColor(source: string, index: number): boolean
 export function collectStylePolicyViolationsFromSource(repositoryPath: string, source: string): StylePolicyViolation[] {
   const violations: StylePolicyViolation[] = [];
 
+  if (designSystemMetadataPathPattern.test(repositoryPath)) {
+    for (const match of source.matchAll(staleDesignSystemIdentityPattern)) {
+      addStylePolicyViolation(
+        violations,
+        repositoryPath,
+        source,
+        match.index ?? 0,
+        match[0],
+        "design-system product attribution must use Readable Studio metadata",
+      );
+    }
+  }
+
   if (isStylePolicySource(repositoryPath)) {
     for (const match of source.matchAll(defaultTailwindPaletteClassPattern)) {
       violations.push({
         filePath: repositoryPath,
         lineNumber: lineNumberForIndex(source, match.index ?? 0),
         match: match[0],
-        reason: "default Tailwind palette classes must use Open Design token utilities instead",
+        reason: "default Tailwind palette classes must use Readable Studio token utilities instead",
       });
     }
   }
@@ -1408,7 +1423,11 @@ async function collectStylePolicyViolations(directory: string): Promise<StylePol
     if (!entry.isFile() || !stylePolicyExtensions.has(path.extname(entry.name))) continue;
 
     const repositoryPath = toRepositoryPath(fullPath);
-    if (!isStylePolicySource(repositoryPath) && !isHardcodedColorEnforcedPath(repositoryPath)) continue;
+    if (
+      !isStylePolicySource(repositoryPath)
+      && !isHardcodedColorEnforcedPath(repositoryPath)
+      && !designSystemMetadataPathPattern.test(repositoryPath)
+    ) continue;
 
     violations.push(...collectStylePolicyViolationsFromSource(repositoryPath, await readFile(fullPath, "utf8")));
   }

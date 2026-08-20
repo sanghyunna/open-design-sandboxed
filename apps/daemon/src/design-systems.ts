@@ -121,7 +121,7 @@ export type DesignSystemRevisionFileChange = {
 type ColorToken = { name: string; value: string };
 type SwatchRow = { values: string[]; filledAllSlots: boolean };
 type DesignSystemProjectManifest = {
-  schemaVersion: 'od-design-system-project/v1';
+  schemaVersion: 'readable.design-system-project/v1';
   id: string;
   name: string;
   category: string;
@@ -3006,7 +3006,7 @@ async function readProjectManifest(
 function isProjectManifest(value: unknown, expectedId: string): value is DesignSystemProjectManifest {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  if (record.schemaVersion !== 'od-design-system-project/v1') return false;
+  if (record.schemaVersion !== 'readable.design-system-project/v1') return false;
   if (record.id !== expectedId) return false;
   if (typeof record.name !== 'string' || record.name.trim().length === 0) return false;
   if (typeof record.category !== 'string' || record.category.trim().length === 0) return false;

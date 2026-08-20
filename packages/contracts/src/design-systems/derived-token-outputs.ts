@@ -1,3 +1,5 @@
+export const DESIGN_TOKENS_FORMAT = "readable.design-tokens/v1" as const;
+
 export type DerivedDesignTokenBinding = {
   name: string;
   layer: string;
@@ -19,7 +21,7 @@ export function renderDesignTokensJson(input: {
 }): string {
   return `${JSON.stringify({
     schemaVersion: 1,
-    format: 'od-design-tokens/v1',
+    format: DESIGN_TOKENS_FORMAT,
     contract: 'TOKEN_SCHEMA',
     generatedAt: input.report.generatedAt,
     source: {

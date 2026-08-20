@@ -6,7 +6,7 @@ will read it as part of its system prompt.
 
 ## What's bundled
 
-- **`default/`** — Neutral Modern. Hand-authored starter for the OD spec.
+- **`default/`** — Neutral Modern. Hand-authored starter for the Readable Studio spec.
 - **`warm-editorial/`** — Warm Editorial. Hand-authored serif starter.
 - **`atelier-zero/`** — Atelier Zero. Hand-authored magazine-grade
   collage system: warm paper canvas, plaster-and-architecture imagery,
@@ -75,7 +75,7 @@ Minimum v1 manifest:
 
 ```json
 {
-  "schemaVersion": "od-design-system-project/v1",
+  "schemaVersion": "readable.design-system-project/v1",
   "id": "default",
   "name": "Neutral Modern",
   "category": "Starter",

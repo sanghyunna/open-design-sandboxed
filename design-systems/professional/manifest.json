@@ -1,12 +1,12 @@
 {
-  "schemaVersion": "od-design-system-project/v1",
+  "schemaVersion": "readable.design-system-project/v1",
   "id": "professional",
   "name": "Professional",
   "category": "Professional & Corporate",
-  "description": "Bundled Open Design package for Professional, derived from curated DESIGN.md, tokens.css, and components.html fixtures.",
+  "description": "Bundled Readable Studio package for Professional, derived from curated DESIGN.md, tokens.css, and components.html fixtures.",
   "source": {
     "type": "bundled",
-    "origin": "Open Design curated bundled fixture"
+    "origin": "Readable Studio curated bundled fixture"
   },
   "files": {
     "design": "DESIGN.md",

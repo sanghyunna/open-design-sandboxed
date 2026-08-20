@@ -190,7 +190,7 @@ describe('importShadcnDesignSystemProject', () => {
       fs.readFileSync(path.join(result.dir, 'manifest.json'), 'utf8'),
     ) as Record<string, unknown>;
     expect(manifest).toMatchObject({
-      schemaVersion: 'od-design-system-project/v1',
+      schemaVersion: 'readable.design-system-project/v1',
       id: 'theme-test',
       source: {
         type: 'shadcn',

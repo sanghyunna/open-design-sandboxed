@@ -46,7 +46,7 @@ test("each inventory family has an independent structured validator seam", () =>
   assert.equal(parseSkillId("---\nname: html-ppt\ndescription: fixture\n---\n# Body", "template fixture"), "html-ppt");
   assert.equal(
     parseDesignSystemId(JSON.stringify({
-      schemaVersion: "od-design-system-project/v1",
+      schemaVersion: "readable.design-system-project/v1",
       id: "default",
       name: "Default",
       category: "Starter",

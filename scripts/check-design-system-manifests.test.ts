@@ -238,7 +238,7 @@ test("design-system project manifest schema accepts import-project optional inde
 });
 
 test("design-system design tokens guard rejects stale derived JSON", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-design-tokens-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-design-tokens-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const okViolations: string[] = [];
@@ -290,7 +290,7 @@ test("design-system design tokens guard rejects stale token source line referenc
 });
 
 test("design-system design tokens guard rejects prefix token source line references", async () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "od-design-tokens-prefix-guard-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "readable-design-tokens-prefix-guard-"));
   try {
     writeDerivedTokenFixture(root);
     const report = JSON.parse(readFileSync(path.join(root, REPORT_PATH), "utf8")) as {

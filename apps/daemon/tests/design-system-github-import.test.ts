@@ -107,7 +107,7 @@ exit 1
     expect(result.id).toBe('github-design-kit');
     const manifest = JSON.parse(fs.readFileSync(path.join(result.dir, 'manifest.json'), 'utf8')) as Record<string, unknown>;
     expect(manifest).toMatchObject({
-      schemaVersion: 'od-design-system-project/v1',
+      schemaVersion: 'readable.design-system-project/v1',
       id: 'github-design-kit',
       source: {
         type: 'github',

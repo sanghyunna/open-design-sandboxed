@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * design-systems/_schema/manifest.schema.ts
  *
- * Canonical contract for an Open Design Design System Project.
+ * Canonical contract for a Readable Studio Design System Project.
  *
  * `DESIGN.md` remains the prose source that agents read. The project
  * manifest is the stable discovery layer around it: picker / daemon /
@@ -20,7 +20,7 @@
  * enforced only for folders that choose to ship `manifest.json`.
  * ─────────────────────────────────────────────────────────────────── */
 
-export const DESIGN_SYSTEM_PROJECT_SCHEMA_VERSION = "od-design-system-project/v1" as const;
+export const DESIGN_SYSTEM_PROJECT_SCHEMA_VERSION = "readable.design-system-project/v1" as const;
 
 export type DesignSystemProjectSource =
   | {

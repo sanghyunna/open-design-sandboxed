@@ -1,0 +1,4 @@
+Readable parity matched: cliSubcommands=30 mcpTools=18 httpCapabilities=261 bundledPlugins=315 skills=154 templates=104 designSystems=150 editingControlFamilies=10 standaloneHtmlExport=4
+Readable parity matched: cliSubcommands=30 mcpTools=18 httpCapabilities=261 bundledPlugins=315 skills=154 templates=104 designSystems=150 editingControlFamilies=10 standaloneHtmlExport=4
+1 150 200f5969ac9656b283e6285c57d90f25ed885750d9c7fa910a596269d940353b
+2 150 200f5969ac9656b283e6285c57d90f25ed885750d9c7fa910a596269d940353b
