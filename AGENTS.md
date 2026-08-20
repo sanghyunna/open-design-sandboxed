@@ -35,8 +35,11 @@ This file is the single source of truth for agents entering this repository. Rea
 
 ## Repository discovery
 
-- Use `fd` for filename and path discovery. Do not use POSIX `find`, PowerShell `Get-ChildItem -Recurse`, or custom recursive filesystem walkers when `fd` can express the query.
-- Keep discovery bounded with `fd` path/glob filters before reading or searching file contents.
+- **Hard rule: use `fd` for every repository filename or path discovery command.**
+- POSIX `find`, `find.exe`, recursive PowerShell `Get-ChildItem`, `dir /s`, and custom recursive filesystem walkers are forbidden for repository discovery, even when several bounded `fd` calls are needed.
+- If `fd` is unavailable or cannot express the query, stop and report the blocker; never silently fall back to a forbidden recursive command.
+- Every delegated coding-agent prompt must repeat this `fd`-only rule. An agent that invokes a forbidden discovery command must stop it, disclose the violation, and replace it with a bounded `fd` query before continuing.
+- Bound discovery with `fd` roots, extensions, globs, and excludes before reading or searching file contents.
 
 ## Environment baseline
 
