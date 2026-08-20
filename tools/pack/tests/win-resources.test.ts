@@ -123,12 +123,9 @@ describe("prepareResourceTree", () => {
     }
   });
 
-  it("only skips namespace resource materialization for pure portable zip", () => {
+  it("skips namespace resource materialization for a portable ZIP", () => {
     expect(shouldMaterializeWinResourceTree({ portable: true, to: "zip" } as ToolPackConfig)).toBe(false);
     expect(shouldMaterializeWinResourceTree({ portable: false, to: "zip" } as ToolPackConfig)).toBe(true);
-    expect(shouldMaterializeWinResourceTree({ portable: true, to: "all" } as ToolPackConfig)).toBe(true);
-    expect(shouldMaterializeWinResourceTree({ portable: true, to: "nsis" } as ToolPackConfig)).toBe(true);
-    expect(shouldMaterializeWinResourceTree({ portable: true, to: "dir" } as ToolPackConfig)).toBe(false);
   });
 
   it("invalidates the Windows resource tree cache when design templates change", async () => {

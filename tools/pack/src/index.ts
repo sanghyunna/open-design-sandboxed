@@ -14,15 +14,12 @@ import {
 } from "./mac/index.js";
 import {
   cleanupPackedWinNamespace,
-  installPackedWinApp,
   inspectPackedWinApp,
   listPackedWinNamespaces,
   packWin,
   readPackedWinLogs,
-  resetPackedWinNamespaces,
   startPackedWinApp,
   stopPackedWinApp,
-  uninstallPackedWinApp,
 } from "./win/index.js";
 import {
   cleanupPackedLinuxNamespace,
@@ -77,7 +74,7 @@ function addSharedOptions(command: CacCommand) {
 const TO_HELP_BY_PLATFORM: Record<ToolPackPlatform, string> = {
   linux: "build target: all|appimage|dir (default: all)",
   mac: "build target: all|app|dmg|zip (default: all)",
-  win: "build target: all|dir|nsis|zip (default: nsis). `zip` produces a portable zip from the unpacked build; `all` produces dir+nsis+zip.",
+  win: "build target: zip (default: zip)",
 };
 
 function addBuildOptions(command: CacCommand, platform: ToolPackPlatform) {
@@ -93,15 +90,6 @@ function addBuildOptions(command: CacCommand, platform: ToolPackPlatform) {
 function addMacBuildOptions(command: CacCommand) {
   return addBuildOptions(command, "mac")
     .option("--mac-compression <mode>", "mac artifact compression: normal|maximum|store (default: normal)");
-}
-
-function addWinLifecycleOptions(command: CacCommand) {
-  return command
-    .option("--remove-data", "remove packaged data during uninstall/reset/cleanup")
-    .option("--remove-logs", "remove packaged logs during uninstall/reset/cleanup")
-    .option("--remove-product-user-data", "remove the public Electron app userData root during Windows uninstall/reset/cleanup")
-    .option("--remove-sidecars", "remove packaged sidecar runtime during uninstall/reset/cleanup")
-    .option("--silent", "run installer/uninstaller silently", { default: true });
 }
 
 const cli = cac("tools-pack");
@@ -140,16 +128,14 @@ addMacBuildOptions(addSharedOptions(cli.command("mac <action>", "Mac packaging c
   },
 );
 
-addWinLifecycleOptions(
-  addBuildOptions(
-    addSharedOptions(
-      cli.command(
-        "win <action>",
-        "Windows packaging commands: build|install|start|stop|logs|uninstall|cleanup|list|reset|inspect",
-      ),
+addBuildOptions(
+  addSharedOptions(
+    cli.command(
+      "win <action>",
+      "Windows portable commands: build|start|stop|logs|cleanup|list|inspect",
     ),
-    "win",
   ),
+  "win",
 ).action(async (action: string, options: CliOptions) => {
   const config = resolveToolPackConfig("win", options);
   switch (action) {
@@ -157,8 +143,9 @@ addWinLifecycleOptions(
       printJson(await packWin(config));
       return;
     case "install":
-      printJson(await installPackedWinApp(config));
-      return;
+    case "uninstall":
+    case "reset":
+      throw new Error(`unsupported Windows installed-product action: ${action}`);
     case "start":
       printJson(await startPackedWinApp(config));
       return;
@@ -168,17 +155,11 @@ addWinLifecycleOptions(
     case "logs":
       printLogs(await readPackedWinLogs(config), options);
       return;
-    case "uninstall":
-      printJson(await uninstallPackedWinApp(config));
-      return;
     case "cleanup":
       printJson(await cleanupPackedWinNamespace(config));
       return;
     case "list":
       printJson(await listPackedWinNamespaces(config));
-      return;
-    case "reset":
-      printJson(await resetPackedWinNamespaces(config));
       return;
     case "inspect":
       printJson(await inspectPackedWinApp(config, options));

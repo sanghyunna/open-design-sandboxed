@@ -132,11 +132,9 @@ describe("Windows portable zip locale pruning", () => {
     expect(WIN_PORTABLE_CHROMIUM_LOCALE_PAKS).toEqual(["en-US.pak", "ko.pak"]);
   });
 
-  it("is guarded to unsigned portable zip-only builds", () => {
+  it("is guarded to unsigned portable ZIP builds", () => {
     expect(shouldPruneWinPortableZipLocales({ portable: true, signed: false, to: "zip" } as ToolPackConfig)).toBe(true);
     expect(shouldPruneWinPortableZipLocales({ portable: false, signed: false, to: "zip" } as ToolPackConfig)).toBe(false);
-    expect(shouldPruneWinPortableZipLocales({ portable: true, signed: false, to: "all" } as ToolPackConfig)).toBe(false);
-    expect(shouldPruneWinPortableZipLocales({ portable: true, signed: false, to: "nsis" } as ToolPackConfig)).toBe(false);
     expect(shouldPruneWinPortableZipLocales({ portable: true, signed: true, to: "zip" } as ToolPackConfig)).toBe(false);
   });
 
@@ -155,12 +153,6 @@ describe("Windows portable zip locale pruning", () => {
           unpackedRoot: root,
         }),
       ).resolves.toEqual(["locales/ja.pak"]);
-      await expect(
-        resolveWinPortableZipLocalePruneEntries({
-          config: { portable: true, signed: false, to: "all" } as ToolPackConfig,
-          unpackedRoot: root,
-        }),
-      ).resolves.toEqual([]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -169,8 +161,7 @@ describe("Windows portable zip locale pruning", () => {
 
 // Integration: drives the real bundled 7z twice (archive, then the portable
 // patch pass) and verifies the second pass replaced the config entry in place
-// while leaving the rest of the tree intact. Win32-only and tiny, mirroring the
-// existing launcher-payload 7z specs; it completes well under 2s.
+// while leaving the rest of the tree intact. Win32-only and tiny.
 describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable injection", () => {
   async function buildPortableZipFixture(compression: string | undefined): Promise<{
     extractedConfig: Record<string, unknown>;
@@ -268,7 +259,6 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       assembledMainEntryPath: join(namespaceRoot, "assembled", "app", "main.cjs"),
       assembledPackageJsonPath: join(namespaceRoot, "assembled", "app", "package.json"),
       assembledPrebundledRoot: join(namespaceRoot, "assembled", "app", "prebundled"),
-      blockmapPath: join(namespaceRoot, "builder", "Open Design-rg-setup.exe.blockmap"),
       builtManifestPath: join(namespaceRoot, "built-app.json"),
       daemonCliPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-cli.js"),
       daemonCliPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-cli.mjs"),
@@ -276,31 +266,12 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
       daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
       daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-      exePath: join(namespaceRoot, "builder", "Open Design-rg.exe"),
-      installDir: join(namespaceRoot, "runtime", "install", "Open Design"),
-      installedExePath: join(namespaceRoot, "runtime", "install", "Open Design", "Open Design.exe"),
-      installerBasePayloadPath: join(namespaceRoot, "installer", "payload-base.7z"),
-      installerOverlayPayloadPath: join(namespaceRoot, "installer", "payload-overlay.7z"),
-      installerScriptPath: join(namespaceRoot, "installer", "installer.nsi"),
-      launcherPayloadPath: join(namespaceRoot, "payload", "Open Design-rg-payload.7z"),
-      publicDesktopShortcutPath: join(namespaceRoot, "desktop", "public.lnk"),
-      latestYmlPath: join(namespaceRoot, "builder", "latest.yml"),
-      installMarkerPath: join(namespaceRoot, "logs", "install.marker.json"),
-      installTimingPath: join(namespaceRoot, "logs", "install.timing.json"),
-      nsisLogPath: join(namespaceRoot, "logs", "nsis.log"),
-      nsisIncludePath: join(namespaceRoot, "nsis", "installer.nsh"),
       packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
       packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
       packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
       resourceRoot: join(namespaceRoot, "resources", "open-design"),
-      setupPath: join(namespaceRoot, "builder", "Open Design-rg-setup.exe"),
       setupZipPath,
-      startMenuShortcutPath: join(namespaceRoot, "start-menu", "Open Design.lnk"),
       tarballsRoot: join(namespaceRoot, "tarballs"),
-      userDesktopShortcutPath: join(namespaceRoot, "desktop", "user.lnk"),
-      uninstallMarkerPath: join(namespaceRoot, "logs", "uninstall.marker.json"),
-      uninstallTimingPath: join(namespaceRoot, "logs", "uninstall.timing.json"),
-      uninstallerPath: join(namespaceRoot, "runtime", "install", "Open Design", "Uninstall Open Design.exe"),
       webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
       webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
       webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),

@@ -26,48 +26,24 @@ function isBetterSqlite3SourceResidue(path: string): boolean {
   );
 }
 
-export function resolveWinTargets(to: ToolPackConfig["to"]): Array<"dir" | "nsis" | "zip"> {
-  switch (to) {
-    case "dir":
-      return ["dir"];
-    case "all":
-      return ["dir", "nsis", "zip"];
-    case "nsis":
-      return ["nsis"];
-    case "zip":
-      return ["zip"];
-    default:
-      throw new Error(`unsupported win target: ${to}`);
-  }
+export function resolveWinTargets(to: ToolPackConfig["to"]): ["zip"] {
+  if (to !== "zip") throw new Error(`unsupported win target: ${to}`);
+  return ["zip"];
 }
 
-// electron-builder only knows how to produce the unpacked `dir` and the NSIS
-// installer; the portable zip is assembled afterwards from the same unpacked
-// content using bundled 7z, so we filter the zip target out before handing the
-// list to electron-builder. When the user asks for `zip` alone we still need
-// the unpacked dir, so the helper substitutes `dir` in its place.
-export function resolveElectronBuilderWinTargets(to: ToolPackConfig["to"]): Array<"dir" | "nsis"> {
-  const filtered = resolveWinTargets(to).filter((target): target is "dir" | "nsis" => target !== "zip");
-  if (filtered.length === 0) return ["dir"];
-  return filtered;
-}
-
-export function shouldBuildWinNsisInstaller(to: ToolPackConfig["to"]): boolean {
-  return resolveWinTargets(to).includes("nsis");
+// The portable archive is assembled from electron-builder's unpacked directory.
+export function resolveElectronBuilderWinTargets(to: ToolPackConfig["to"]): ["dir"] {
+  resolveWinTargets(to);
+  return ["dir"];
 }
 
 export function shouldBuildWinPortableZip(to: ToolPackConfig["to"]): boolean {
   return resolveWinTargets(to).includes("zip");
 }
 
-// The `.od://` launcher delivery archive (`payload.7z`) is consumed only by the
-// launcher/auto-update channel published to the release feed. It is NOT used by
-// the self-contained portable zip (which also ships with the updater disabled),
-// the NSIS installer (which carries its own base/overlay payloads), or
-// `win start`. So a pure `--to zip` build skips it; every other target still
-// builds it. Skipping it removes a full second compression of the ~600MB app.
 export function shouldBuildWinLauncherPayload(to: ToolPackConfig["to"]): boolean {
-  return to !== "zip";
+  resolveWinTargets(to);
+  return false;
 }
 
 export async function collectWinSizeReport(
@@ -93,14 +69,12 @@ export async function collectWinSizeReport(
     webOutputMode: config.webOutputMode,
   };
   const generatedAt = new Date().toISOString();
-  const installerBytes = await sizeExistingFileBytes(paths.setupPath);
   const portableZipBytes = await sizeExistingFileBytes(paths.setupZipPath);
 
   if (!detailed) {
     return {
       builder,
       generatedAt,
-      installerBytes,
       mode: "fast",
       outputRootBytes: 0,
       portableZipBytes,
@@ -161,7 +135,6 @@ export async function collectWinSizeReport(
       ...builder,
     },
     generatedAt,
-    installerBytes,
     mode: "detailed",
     outputRootBytes: namespaceSizeIndex.sizePathBytes(config.roots.output.namespaceRoot),
     portableZipBytes,

@@ -10,7 +10,7 @@ import type { ToolPackConfig } from "../src/config.js";
 import {
   buildWinPortableZipCacheKeyInput,
   materializeCachedPurePortableZip,
-  materializeCachedUnpackedForInstaller,
+  materializeCachedUnpackedForPortableZip,
 } from "../src/win/builder.js";
 import { withPortableConfigFlag } from "../src/win/zip.js";
 import type { WinPaths } from "../src/win/types.js";
@@ -25,7 +25,6 @@ function createPaths(root: string): WinPaths {
     assembledMainEntryPath: join(namespaceRoot, "assembled", "app", "main.cjs"),
     assembledPackageJsonPath: join(namespaceRoot, "assembled", "app", "package.json"),
     assembledPrebundledRoot: join(namespaceRoot, "assembled", "app", "prebundled"),
-    blockmapPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe.blockmap"),
     builtManifestPath: join(namespaceRoot, "built-app.json"),
     daemonCliPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-cli.js"),
     daemonCliPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-cli.mjs"),
@@ -33,31 +32,12 @@ function createPaths(root: string): WinPaths {
     daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
     daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
     daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-    exePath: join(namespaceRoot, "builder", "Open Design-second.exe"),
-    installDir: join(namespaceRoot, "runtime", "install", "Open Design"),
-    installedExePath: join(namespaceRoot, "runtime", "install", "Open Design", "Open Design.exe"),
-    installerBasePayloadPath: join(namespaceRoot, "installer", "payload-base.7z"),
-    installerOverlayPayloadPath: join(namespaceRoot, "installer", "payload-overlay.7z"),
-    installerScriptPath: join(namespaceRoot, "installer", "installer.nsi"),
-    launcherPayloadPath: join(namespaceRoot, "payload", "Open Design-second-payload.7z"),
-    publicDesktopShortcutPath: join(namespaceRoot, "desktop", "public.lnk"),
-    latestYmlPath: join(namespaceRoot, "builder", "latest.yml"),
-    installMarkerPath: join(namespaceRoot, "logs", "install.marker.json"),
-    installTimingPath: join(namespaceRoot, "logs", "install.timing.json"),
-    nsisLogPath: join(namespaceRoot, "logs", "nsis.log"),
-    nsisIncludePath: join(namespaceRoot, "nsis", "installer.nsh"),
     packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
     resourceRoot: join(namespaceRoot, "resources", "open-design"),
-    setupPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe"),
     setupZipPath: join(namespaceRoot, "builder", "Open Design-second-portable.zip"),
-    startMenuShortcutPath: join(namespaceRoot, "start-menu.lnk"),
     tarballsRoot: join(namespaceRoot, "tarballs"),
-    userDesktopShortcutPath: join(namespaceRoot, "desktop", "user.lnk"),
-    uninstallMarkerPath: join(namespaceRoot, "logs", "uninstall.marker.json"),
-    uninstallTimingPath: join(namespaceRoot, "logs", "uninstall.timing.json"),
-    uninstallerPath: join(namespaceRoot, "runtime", "install", "Open Design", "Uninstall.exe"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
     webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
@@ -68,7 +48,7 @@ function createPaths(root: string): WinPaths {
   };
 }
 
-describe("materializeCachedUnpackedForInstaller", () => {
+describe("materializeCachedUnpackedForPortableZip", () => {
   it("overwrites cached packaged config and app package version", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-"));
     const cachedUnpackedRoot = join(root, "cache", "builder", "win-unpacked");
@@ -95,7 +75,7 @@ describe("materializeCachedUnpackedForInstaller", () => {
         "utf8",
       );
 
-      const manifest = await materializeCachedUnpackedForInstaller(cachedUnpackedRoot, paths, "0.5.0-beta.2");
+      const manifest = await materializeCachedUnpackedForPortableZip(cachedUnpackedRoot, paths, "0.5.0-beta.2");
 
       expect(manifest.source).toBe("namespace");
       expect(manifest.unpackedRoot).toBe(paths.unpackedRoot);

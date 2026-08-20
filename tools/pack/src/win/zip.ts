@@ -49,11 +49,9 @@ export async function resolveWinPortableZipLocalePruneEntries(input: {
 // builder.ts:430). `portable` is appended after the existing keys (insertion
 // order), so a clean round-trip is deterministic and stable across rebuilds.
 //
-// Zip-only injection (Trap 1, refactor_ideas.md §3.4): the portable zip and the
-// NSIS installer are assembled from the SAME cached win-unpacked tree. Baking
-// `portable: true` into that shared tree would flip NSIS installs to portable
-// too. So this patch is applied to a STAGING copy and added to the zip with a
-// second `7z a` pass; the shared win-unpacked tree is never written.
+// ZIP-only injection: the archive is assembled from a cached win-unpacked
+// tree. This patch is applied to a staging copy and added with a second `7z a`
+// pass so the reusable unpacked tree is never modified.
 //
 // The patch must also DROP any baked `namespaceBaseRoot`: a non-`--portable`
 // build bakes the build machine's tools-pack runtime root into the shared
@@ -93,24 +91,10 @@ function logWinZipProgress(message: string, fields: Record<string, unknown> = {}
   process.stderr.write(`[tools-pack win] ${message}${suffix.length === 0 ? "" : ` ${suffix}`}\n`);
 }
 
-// Produces a portable zip from the unpacked Electron build using the same 7z
-// binary that ships with tools-pack for the NSIS payload. The zip lays files
-// flat at the archive root so that users can extract it anywhere on Windows
-// and run `Open Design.exe` without going through the NSIS installer.
-//
-// We deliberately do not delegate this to electron-builder's native `zip`
-// target: the existing tools-pack flow forces electron-builder to `to: "dir"`
-// so the cached `win-unpacked` output can be shared across cache hits and
-// post-processed into the custom NSIS installer. Producing the zip from that
-// same cached unpacked tree keeps the build deterministic and avoids a
-// second electron-builder pass.
-//
-// The zip IS the portable artifact (its filename is `-portable.zip`), so it
-// always carries `portable: true`. Because the unpacked tree is shared with the
-// NSIS installer, we inject that flag zip-only: after the main archive pass we
-// add a patched `open-design-config.json` from a staging dir with a second
-// `7z a` pass (`a` replaces the matching entry already in the archive). See
-// withPortableConfigFlag and Trap 1 in refactor_ideas.md §3.4.
+// Produces a portable ZIP from the cached unpacked Electron build. Files are
+// flat at the archive root so users can extract it anywhere and run the app.
+// The ZIP always carries `portable: true`; a second 7z pass replaces only its
+// packaged config without modifying the cached source tree.
 export async function buildWinPortableZip(
   config: ToolPackConfig,
   paths: WinPaths,
@@ -210,7 +194,7 @@ export async function buildWinPortableZip(
   });
   // Inject the portable flag zip-only. Patch a staging copy of the config and
   // replace the archive entry with a second `7z a` pass; the shared
-  // win-unpacked tree (also consumed by the NSIS installer) stays untouched.
+  // cached win-unpacked tree stays untouched.
   await runSegment("portable-zip:portable-flag", async () => {
     const sourceConfigPath = join(
       builtApp.unpackedRoot,

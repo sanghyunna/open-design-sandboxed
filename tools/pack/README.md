@@ -50,9 +50,8 @@ namespace paths, and the packaged sidecar launcher passes daemon managed paths v
 own default fallback for non-packaged launches, but packaged runtime must not rely on fallback inference from Electron
 `userData`, app bundle names, or ports.
 
-Packaged desktop can check the release metadata feed, download a verified mac DMG or Windows installer, and expose
-update actions through desktop IPC. This runtime updater phase still opens the downloaded installer for manual
-replacement instead of applying an in-place update.
+Packaged desktop can check the release metadata feed, download a verified release artifact, and expose update actions
+through desktop IPC. Applying an update remains separate from the local tools-pack lifecycle.
 
 Electron-builder resources live under `tools/pack/resources/mac/`. The current logo is staged there as the mac icon/DMG
 placeholder so future design-provided assets can replace the resource files without changing packaging code.
@@ -68,24 +67,19 @@ from the user's Electron `userData` root instead of the build machine's `.tmp` p
 
 ## Windows
 
-Local lifecycle commands:
+Windows packaging is portable ZIP-only:
 
-- `tools-pack win build --to dir` for fast unpacked smoke builds.
-- `tools-pack win build --to nsis` for installer builds.
-- `tools-pack win build --to all` for both outputs.
-- `tools-pack win install`
+- `tools-pack win build --to zip`
 - `tools-pack win start`
 - `tools-pack win inspect --expr "document.title"`
 - `tools-pack win logs`
 - `tools-pack win stop`
 - `tools-pack win cleanup`
 - `tools-pack win list`
-- `tools-pack win reset`
 
 Build artifacts are namespace-scoped under `.tmp/tools-pack/out/win/namespaces/<namespace>/`.
 Packaged runtime state is namespace-scoped under `.tmp/tools-pack/runtime/win/namespaces/<namespace>/`.
-`--to dir` may point `built-app.json` at an immutable cached `win-unpacked` executable while keeping
-namespace-local config and runtime paths outside that cache entry.
+Extract the portable ZIP anywhere on Windows and run the executable directly; tools-pack does not create an installed product.
 
 ## Linux
 

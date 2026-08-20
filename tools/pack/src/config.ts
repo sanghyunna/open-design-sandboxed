@@ -14,7 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const WORKSPACE_ROOT = resolve(__dirname, "../../..");
 
 export type ToolPackPlatform = "mac" | "win" | "linux";
-export type ToolPackBuildOutput = "all" | "app" | "appimage" | "dir" | "dmg" | "nsis" | "zip";
+export type ToolPackBuildOutput = "all" | "app" | "appimage" | "dir" | "dmg" | "zip";
 export type ToolPackMacCompression = "store" | "normal" | "maximum";
 export type ToolPackWebOutputMode = "server" | "standalone";
 export type ToolPackAmrProfile = "prod" | "test" | "local";
@@ -76,8 +76,8 @@ export type ToolPackConfig = {
   removeSidecars: boolean;
   requireVelaCli: boolean;
   roots: ToolPackRoots;
-  silent: boolean;
   signed: boolean;
+  silent: boolean;
   amrProfile?: ToolPackAmrProfile;
   updateMetadataUrl?: string;
   to: ToolPackBuildOutput;
@@ -86,9 +86,9 @@ export type ToolPackConfig = {
 };
 
 function resolveToolPackBuildOutput(platform: ToolPackPlatform, value: string | undefined): ToolPackBuildOutput {
-  if (value == null || value.length === 0) return platform === "win" ? "nsis" : "all";
+  if (value == null || value.length === 0) return platform === "win" ? "zip" : "all";
   if (platform === "mac" && (value === "all" || value === "app" || value === "dmg" || value === "zip")) return value;
-  if (platform === "win" && (value === "all" || value === "dir" || value === "nsis" || value === "zip")) return value;
+  if (platform === "win" && value === "zip") return value;
   if (platform === "linux" && (value === "all" || value === "appimage" || value === "dir")) return value;
   throw new Error(`unsupported ${platform} --to target: ${value}`);
 }
@@ -226,8 +226,8 @@ export function resolveToolPackConfig(
     removeProductUserData: options.removeProductUserData === true,
     removeSidecars: options.removeSidecars === true,
     requireVelaCli: options.requireVelaCli === true,
-    silent: options.silent !== false,
     signed: options.signed === true,
+    silent: options.silent !== false,
     amrProfile: resolveToolPackAmrProfile(process.env.OPEN_DESIGN_AMR_PROFILE),
     updateMetadataUrl: resolveToolPackUpdateMetadataUrl(process.env.OD_UPDATE_METADATA_URL),
     to: resolveToolPackBuildOutput(platform, options.to),

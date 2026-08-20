@@ -47,7 +47,7 @@ function makeConfig(root: string, platform: ToolPackPlatform, namespace: string,
     },
     signed: false,
     silent: true,
-    to: platform === "win" ? "nsis" : "app",
+    to: platform === "win" ? "zip" : "app",
     webOutputMode: "standalone",
     workspaceRoot: root,
   };
@@ -74,7 +74,7 @@ describe("tools-pack launcher layout", () => {
     expect(layout.paths.versionsRoot).toBe(join(layout.paths.namespaceRoot, "versions"));
   });
 
-  it("resolves platform payload archive and extraction paths without changing installed app paths", () => {
+  it("resolves platform payload archive and extraction paths", () => {
     const mac = makeConfig(TEST_WORKSPACE_ROOT, "mac", "release-beta", "0.8.1-beta.2");
     const win = makeConfig(TEST_WORKSPACE_ROOT, "win", "release-beta-win", "0.8.1-beta.2");
     const macPayload = resolveToolPackLauncherPayloadLayout(mac, "0.8.1-beta.2");
@@ -96,12 +96,10 @@ describe("tools-pack launcher layout", () => {
     expect(paths.zipPath).toBe(join(config.roots.output.namespaceRoot, "zip", "Open Design-release-beta.zip"));
   });
 
-  it("exposes a stable Windows payload 7z path next to existing Windows artifacts", () => {
+  it("exposes a stable Windows portable ZIP path", () => {
     const config = makeConfig(TEST_WORKSPACE_ROOT, "win", "release-beta-win", "0.8.1-beta.2");
     const paths = resolveWinPaths(config);
 
-    expect(paths.launcherPayloadPath).toBe(join(config.roots.output.namespaceRoot, "payload", "Open Design-release-beta-win-payload.7z"));
-    expect(paths.setupPath).toBe(join(config.roots.output.namespaceRoot, "builder", "Open Design-release-beta-win-setup.exe"));
     expect(paths.setupZipPath).toBe(join(config.roots.output.namespaceRoot, "builder", "Open Design-release-beta-win-portable.zip"));
   });
 

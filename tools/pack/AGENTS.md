@@ -6,9 +6,7 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 - Local packaging orchestration for packaged Open Design artifacts.
 - mac build/install/start/stop/logs/uninstall/cleanup smoke commands.
-- Windows NSIS build/install/start/stop/logs/uninstall/cleanup/list/reset smoke commands.
-- Windows registry observation/cleanup must go through `reg.exe` and stay scoped to entries matching the namespace install/uninstaller paths.
-- Windows lifecycle logs must expose NSIS automation logs/markers/timings in addition to app runtime logs.
+- Windows portable ZIP build/start/stop/logs/cleanup/list/inspect smoke commands.
 - Linux AppImage build/install/start/stop/logs/uninstall/cleanup smoke commands.
 - Linux headless (no-Electron) install/start/stop via `--headless` flag on `install`, `start`, and `stop`.
 - Linux containerized builds via `electronuserland/builder` Docker image for distro-agnostic glibc compat.
@@ -28,7 +26,6 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 - Do not let namespace-named `.app` installs change data/log/runtime/cache path conventions.
 - Use `--portable` for artifacts that leave the local build workspace so packaged config does not bake local tools-pack runtime roots from the build machine.
 - Pack resource files used by electron-builder belong under `tools/pack/resources/`; do not point pack logic at Downloads, web public assets, docs assets, or other app-owned resource paths.
-- For ordinary Windows NSIS smoke tests, use short namespaces such as `rg`, `smoke`, or `nsis-a`. NSIS extracts deeply nested Next.js standalone files under the namespace-scoped install directory; long namespaces can push installed paths past the traditional Windows 260-character limit even when builder `win-unpacked` output is correct. During merge regression, namespace `regression-merge-nsis` produced an installed path length of 264 characters and missed `next/dist/server/route-matcher-providers/helpers/cached-route-matcher-provider.js` in the installed directory, while the same NSIS smoke passed with namespace `rg`. Use long namespaces only when intentionally testing installer path-length behavior.
 
 ## Packaged auto-update architecture and harness
 
@@ -43,7 +40,7 @@ Read this section before changing packaged auto-update behavior. The updater cro
 - `apps/web/src/components/UpdaterPopup.tsx` is the visible updater surface in the left rail. All visible copy must go through `apps/web/src/i18n`.
 - `apps/packaged/src/index.ts` passes packaged `appVersion` and namespace-scoped `updateRoot` into desktop main.
 - `tools/serve` owns deterministic local updater fixtures only. It must not contain product updater runtime logic.
-- `tools/pack` owns packaged build/install/start/inspect/logs/uninstall/cleanup and the platform installer harness, including Windows NSIS registry observation and cleanup.
+- `tools/pack` owns packaged build/start/inspect/logs/cleanup and the Windows portable ZIP harness.
 
 ### Release metadata shape
 
@@ -53,15 +50,6 @@ The runtime updater reads `https://releases.open-design.ai/<channel>/latest/meta
 - Windows selects `platforms.win.artifacts.installer`.
 - The artifact must have a checksum, preferably `sha256Url`; the updater verifies bytes before exposing an install action.
 - `OD_UPDATE_CURRENT_VERSION` may override the packaged version for tests, but user-flow package validation should prefer building the package with the intended `--app-version`.
-
-### Channel identity rules
-
-Channel identity must be stable across install, update install, shortcuts, registry entries, and app data:
-
-- Stable: `Open Design`, namespace `default` or stable release namespace.
-- Beta Windows: `Open Design Beta`, namespace `release-beta-win`, uninstall key `Open Design-release-beta-win`.
-- Preview Windows: `Open Design Preview`, namespace `release-preview-win`, uninstall key `Open Design-release-preview-win`.
-- Beta-like ad hoc namespaces such as `beta-local-flow` are test namespaces, not the beta channel. They must not be used for user-flow beta validation because they create a different registry key while sharing a confusing display name/path.
 
 ### Deterministic fixture harness
 
@@ -91,7 +79,7 @@ Run the narrow tests that match the surface you touched, then the repo checks:
 pnpm --filter @readable-studio/desktop test -- tests/main/updater.test.ts tests/main/updater-host-boundary.test.ts tests/main/preload-host-boundary.test.ts
 pnpm --filter @readable-studio/web test -- tests/components/UpdaterPopup.test.tsx tests/lib/updater.test.ts
 pnpm --filter @readable-studio/tools-serve test
-pnpm --filter @readable-studio/tools-pack test -- tests/win-identity.test.ts tests/win-app.test.ts tests/win-builder.test.ts
+pnpm --filter @readable-studio/tools-pack test -- tests/win-app.test.ts tests/win-builder.test.ts tests/win-targets.test.ts tests/win-zip.test.ts
 pnpm --filter @readable-studio/desktop typecheck
 pnpm --filter @readable-studio/web typecheck
 pnpm --filter @readable-studio/tools-pack typecheck

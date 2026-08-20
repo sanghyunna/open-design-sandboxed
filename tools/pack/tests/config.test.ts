@@ -43,11 +43,15 @@ describe("resolveToolPackConfig Vela CLI requirement", () => {
 });
 
 describe("resolveToolPackConfig win build target", () => {
-  it("accepts the portable zip target and rejects unsupported values", () => {
+  it("defaults to the portable zip target", () => {
+    expect(resolveToolPackConfig("win").to).toBe("zip");
+  });
+
+  it("accepts only the portable zip target", () => {
     expect(resolveToolPackConfig("win", { to: "zip" }).to).toBe("zip");
-    expect(resolveToolPackConfig("win", { to: "all" }).to).toBe("all");
-    expect(resolveToolPackConfig("win", { to: "nsis" }).to).toBe("nsis");
-    expect(() => resolveToolPackConfig("win", { to: "dmg" })).toThrow(/unsupported win --to target: dmg/);
+    expect(() => resolveToolPackConfig("win", { to: "all" })).toThrow(/unsupported win --to target: all/);
+    expect(() => resolveToolPackConfig("win", { to: "dir" })).toThrow(/unsupported win --to target: dir/);
+    expect(() => resolveToolPackConfig("win", { to: "nsis" })).toThrow(/unsupported win --to target: nsis/);
   });
 });
 

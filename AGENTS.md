@@ -22,7 +22,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - `packages/contracts` is the pure TypeScript web/daemon app contract layer.
 - `packages/sidecar-proto` owns the Open Design sidecar business protocol; `packages/sidecar` owns the generic sidecar runtime; `packages/platform` owns generic OS process primitives.
 - `tools/dev` is the local development lifecycle control plane.
-- `tools/pack` is the local packaged build/start/stop/logs control plane, packaged updater harness, and installer identity/registry validation surface.
+- `tools/pack` is the local packaged build/start/stop/logs control plane and packaged updater harness; Windows packaging is portable ZIP-only.
 - `tools/serve` is the local fixture-service control plane; first service is `tools-serve start updater` for deterministic updater metadata and artifacts.
 - `e2e` owns user-level end-to-end smoke tests and Playwright UI automation; read `e2e/AGENTS.md` before editing its tests or commands.
 
@@ -240,7 +240,7 @@ pnpm --filter @readable-studio/daemon test
 powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 pnpm tools-pack mac install
 pnpm tools-pack mac cleanup
-pnpm tools-pack win install
+pnpm tools-pack win build --to zip
 pnpm tools-pack win cleanup
 pnpm tools-pack linux install
 ```

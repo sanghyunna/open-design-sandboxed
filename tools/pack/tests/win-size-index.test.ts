@@ -18,7 +18,6 @@ function createPaths(root: string): WinPaths {
     assembledMainEntryPath: join(namespaceRoot, "assembled", "app", "main.cjs"),
     assembledPackageJsonPath: join(namespaceRoot, "assembled", "app", "package.json"),
     assembledPrebundledRoot: join(namespaceRoot, "assembled", "app", "prebundled"),
-    blockmapPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe.blockmap"),
     builtManifestPath: join(namespaceRoot, "built-app.json"),
     daemonCliPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-cli.js"),
     daemonCliPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-cli.mjs"),
@@ -26,31 +25,12 @@ function createPaths(root: string): WinPaths {
     daemonPrebundleRoot: join(namespaceRoot, "assembled", "app", "prebundled", "daemon"),
     daemonSidecarPrebundleEntrypointPath: join(namespaceRoot, "prebundle-entrypoints", "daemon-sidecar.js"),
     daemonSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "daemon", "daemon-sidecar.mjs"),
-    exePath: join(namespaceRoot, "builder", "Open Design-second.exe"),
-    installDir: join(namespaceRoot, "runtime", "install", "Open Design"),
-    installedExePath: join(namespaceRoot, "runtime", "install", "Open Design", "Open Design.exe"),
-    installerBasePayloadPath: join(namespaceRoot, "installer", "payload-base.7z"),
-    installerOverlayPayloadPath: join(namespaceRoot, "installer", "payload-overlay.7z"),
-    installerScriptPath: join(namespaceRoot, "installer", "installer.nsi"),
-    launcherPayloadPath: join(namespaceRoot, "payload", "Open Design-second-payload.7z"),
-    publicDesktopShortcutPath: join(namespaceRoot, "desktop", "public.lnk"),
-    latestYmlPath: join(namespaceRoot, "builder", "latest.yml"),
-    installMarkerPath: join(namespaceRoot, "logs", "install.marker.json"),
-    installTimingPath: join(namespaceRoot, "logs", "install.timing.json"),
-    nsisLogPath: join(namespaceRoot, "logs", "nsis.log"),
-    nsisIncludePath: join(namespaceRoot, "nsis", "installer.nsh"),
     packagedConfigPath: join(namespaceRoot, "open-design-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
     resourceRoot: join(namespaceRoot, "resources", "open-design"),
-    setupPath: join(namespaceRoot, "builder", "Open Design-second-setup.exe"),
     setupZipPath: join(namespaceRoot, "builder", "Open Design-second-portable.zip"),
-    startMenuShortcutPath: join(namespaceRoot, "start-menu.lnk"),
     tarballsRoot: join(namespaceRoot, "tarballs"),
-    userDesktopShortcutPath: join(namespaceRoot, "desktop", "user.lnk"),
-    uninstallMarkerPath: join(namespaceRoot, "logs", "uninstall.marker.json"),
-    uninstallTimingPath: join(namespaceRoot, "logs", "uninstall.timing.json"),
-    uninstallerPath: join(namespaceRoot, "runtime", "install", "Open Design", "Uninstall.exe"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
     webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
@@ -152,12 +132,10 @@ describe("collectWinSizeReport", () => {
     const config = createConfig(root);
     const builtApp = createBuiltApp(paths);
     const portableZipBytes = Buffer.byteLength("portable zip bytes\n");
-    const installerBytes = Buffer.byteLength("installer bytes\n");
 
     try {
       await mkdir(join(paths.setupZipPath, ".."), { recursive: true });
       await writeFile(paths.setupZipPath, "portable zip bytes\n", "utf8");
-      await writeFile(paths.setupPath, "installer bytes\n", "utf8");
       await mkdir(join(paths.unpackedRoot, "resources", "app", "node_modules", "better-sqlite3"), { recursive: true });
       await mkdir(join(paths.unpackedRoot, "resources", "open-design"), { recursive: true });
       await mkdir(join(paths.unpackedRoot, "locales"), { recursive: true });
@@ -173,7 +151,6 @@ describe("collectWinSizeReport", () => {
       expect(fastSpy).not.toHaveBeenCalled();
       expect(fastReport.mode).toBe("fast");
       expect(fastReport.portableZipBytes).toBe(portableZipBytes);
-      expect(fastReport.installerBytes).toBe(installerBytes);
       expect(fastReport.outputRootBytes).toBe(0);
       expect(fastReport.tracked.betterSqlite3Bytes).toBe(0);
 
@@ -185,7 +162,6 @@ describe("collectWinSizeReport", () => {
       expect(detailedSpy).toHaveBeenCalledTimes(2);
       expect(detailedReport.mode).toBe("detailed");
       expect(detailedReport.portableZipBytes).toBe(portableZipBytes);
-      expect(detailedReport.installerBytes).toBe(installerBytes);
       expect(detailedReport.outputRootBytes).toBeGreaterThan(0);
       expect(detailedReport.tracked.betterSqlite3Bytes).toBe(Buffer.byteLength("sqlite\n"));
       expect(detailedReport.resourceRootBytes).toBeGreaterThan(0);
