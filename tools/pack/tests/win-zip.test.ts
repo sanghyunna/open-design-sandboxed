@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -202,6 +203,42 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
     expect(extractedConfig).toEqual(originalConfig);
     expect(extractedChromiumLocales).toEqual(["en-US.pak", "ko.pak"]);
     expect(extractedAppI18nLocales).toEqual(["ja.ts"]);
+  }, 20_000);
+
+  it("produces identical bytes after source timestamps change", async () => {
+    const root = await mkdtemp(join(tmpdir(), "readable-tools-pack-deterministic-"));
+    const unpackedRoot = join(root, "win-unpacked");
+    const setupZipPath = join(root, "builder", "Readable Studio-rg-portable.zip");
+    const paths = fakePaths(root, setupZipPath, unpackedRoot);
+    const builtApp: WinBuiltAppManifest = {
+      appBuilderOutputRoot: paths.appBuilderOutputRoot,
+      cacheEntryPath: null,
+      configPath: join(unpackedRoot, "resources", "readable-studio-config.json"),
+      executablePath: paths.unpackedExePath,
+      source: "namespace",
+      unpackedRoot,
+      version: 1,
+      webStandaloneHookAuditPath: null,
+    };
+    const digest = async () => createHash("sha256").update(await readFile(setupZipPath)).digest("hex");
+
+    try {
+      await mkdir(join(unpackedRoot, "resources", "nested"), { recursive: true });
+      await writeFile(paths.unpackedExePath, "exe", "utf8");
+      await writeFile(builtApp.configPath, "{}\n", "utf8");
+      await writeFile(join(unpackedRoot, "resources", "nested", "asset.txt"), "asset\n", "utf8");
+
+      await buildWinPortableZip({ signed: false } as ToolPackConfig, paths, builtApp);
+      const first = await digest();
+      const changed = new Date("2035-06-07T08:09:10.000Z");
+      await utimes(paths.unpackedExePath, changed, changed);
+      await utimes(join(unpackedRoot, "resources", "nested", "asset.txt"), changed, changed);
+      await buildWinPortableZip({ signed: false } as ToolPackConfig, paths, builtApp);
+
+      expect(await digest()).toBe(first);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
   }, 20_000);
 
   it("uses a faster local compression level override", async () => {

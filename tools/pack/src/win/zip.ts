@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, readdir, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -13,6 +13,29 @@ const PORTABLE_ZIP_COMPRESSION_ENV = "OD_PORTABLE_ZIP_COMPRESSION";
 export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as const;
 
 const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";
+const PORTABLE_ZIP_METADATA_ARGS = ["-mtc=off", "-mta=off", "-mtm=off"] as const;
+
+async function collectPortableArchiveFiles(
+  root: string,
+  excludedEntries: ReadonlySet<string>,
+  relativeRoot = "",
+): Promise<string[]> {
+  const entries = await readdir(join(root, relativeRoot), { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const relativePath = relativeRoot.length === 0 ? entry.name : `${relativeRoot}/${entry.name}`;
+    if (excludedEntries.has(relativePath)) continue;
+    if (entry.isDirectory()) {
+      files.push(...await collectPortableArchiveFiles(root, excludedEntries, relativePath));
+      continue;
+    }
+    if (relativePath.includes("\n") || relativePath.includes("\r")) {
+      throw new Error(`portable ZIP paths must not contain newlines: ${JSON.stringify(relativePath)}`);
+    }
+    files.push(relativePath);
+  }
+  return files.sort((left, right) => left < right ? -1 : left > right ? 1 : 0);
+}
 
 export function shouldPruneWinPortableZipLocales(config: ToolPackConfig): boolean {
   return config.signed !== true;
@@ -131,34 +154,37 @@ export async function buildWinPortableZip(
     }
   };
 
+  const archiveListPath = `${paths.setupZipPath}.files.txt`;
   await runSegment("portable-zip:prepare", async () => {
     await mkdir(dirname(paths.setupZipPath), { recursive: true });
     await rm(paths.setupZipPath, { force: true });
-  });
-  await runSegment("portable-zip:7z", async () => {
-    await runExecSegment(
-      "portable-zip:7z:process",
-      winResources.sevenZipExe,
-      ["a", "-tzip", `-mx=${portableZipCompression}`, paths.setupZipPath, ".\\*"],
-      {
-        cwd: builtApp.unpackedRoot,
-        outputPath: paths.setupZipPath,
-      },
-    );
-  });
-  await runSegment("portable-zip:locales", async () => {
     const pruneEntries = await resolveWinPortableZipLocalePruneEntries({ config, unpackedRoot: builtApp.unpackedRoot });
-    if (pruneEntries.length === 0) return;
-    await runExecSegment(
-      "portable-zip:locales:process",
-      winResources.sevenZipExe,
-      ["d", paths.setupZipPath, ...pruneEntries],
-      {
-        cwd: builtApp.unpackedRoot,
-        outputPath: paths.setupZipPath,
-      },
-    );
+    const files = await collectPortableArchiveFiles(builtApp.unpackedRoot, new Set(pruneEntries));
+    await writeFile(archiveListPath, `${files.join("\n")}\n`, "utf8");
   });
+  try {
+    await runSegment("portable-zip:7z", async () => {
+      await runExecSegment(
+        "portable-zip:7z:process",
+        winResources.sevenZipExe,
+        [
+          "a",
+          "-tzip",
+          `-mx=${portableZipCompression}`,
+          ...PORTABLE_ZIP_METADATA_ARGS,
+          "-scsUTF-8",
+          paths.setupZipPath,
+          `@${archiveListPath}`,
+        ],
+        {
+          cwd: builtApp.unpackedRoot,
+          outputPath: paths.setupZipPath,
+        },
+      );
+    });
+  } finally {
+    await rm(archiveListPath, { force: true });
+  }
   await runSegment("portable-zip:stat", async () => {
     await stat(paths.setupZipPath);
   });

@@ -19,9 +19,9 @@ import {
 } from "@readable-studio/desktop/main";
 import { addLoopbackNoProxyEnv, readProcessStamp } from "@readable-studio/platform";
 import { join } from "node:path";
-import { app, dialog } from "electron";
+import { app, dialog, session } from "electron";
 
-import { readPackagedConfig } from "./config.js";
+import { readPackagedConfig, resolveEarlyPackagedElectronPaths } from "./config.js";
 import { writePackagedDesktopIdentity } from "./identity.js";
 import { PackagedPathAccessError } from "./errors.js";
 import {
@@ -29,6 +29,7 @@ import {
   claimPackagedSingleInstanceLock,
   ensurePackagedNamespacePaths,
   inspectExistingPackagedDesktop,
+  releasePackagedElectronNetworking,
 } from "./launch.js";
 import {
   attachPackagedDesktopProcessLogging,
@@ -39,6 +40,10 @@ import { resolvePackagedNamespacePaths } from "./paths.js";
 import { packagedEntryUrl, registerReadableStudioProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
+
+const startupArgvStamp = readProcessStamp(process.argv.slice(1), SIDECAR_CONTRACT);
+const earlyElectronPaths = resolveEarlyPackagedElectronPaths(startupArgvStamp?.namespace);
+if (earlyElectronPaths != null) applyPackagedElectronPathOverrides(earlyElectronPaths);
 
 let packagedLogger: PackagedDesktopLogger | null = null;
 let pendingSecondInstanceFocus = false;
@@ -90,10 +95,11 @@ async function main(): Promise<void> {
 
   const config = await readPackagedConfig();
   startupTiming.mark("config-read-complete");
-  const argvStamp = readProcessStamp(process.argv.slice(1), SIDECAR_CONTRACT);
+  const argvStamp = startupArgvStamp;
   const namespace = argvStamp?.namespace ?? config.namespace;
   const activeConfig = namespace === config.namespace ? config : { ...config, namespace };
   const paths = resolvePackagedNamespacePaths(activeConfig, namespace, process.env);
+  if (earlyElectronPaths == null) applyPackagedElectronPathOverrides(paths);
   await ensurePackagedNamespacePaths(paths);
   const existingDesktop = await inspectExistingPackagedDesktop(namespace, {
     logger: console,
@@ -116,7 +122,6 @@ async function main(): Promise<void> {
   });
   startupTiming.flush();
   flushStartupTimingOnFailure = null;
-  applyPackagedElectronPathOverrides(paths);
   if (!claimPackagedSingleInstanceLock(app, () => {
     if (showExistingDesktop == null) {
       pendingSecondInstanceFocus = true;
@@ -190,6 +195,9 @@ async function main(): Promise<void> {
       return sidecars.daemon.url;
     },
     onDesktopReady(controls) {
+      void releasePackagedElectronNetworking(session.defaultSession).catch((error) => {
+        packagedLogger?.warn("failed to restore desktop networking", { error });
+      });
       showExistingDesktop = controls.show;
       if (!pendingSecondInstanceFocus) return;
       pendingSecondInstanceFocus = false;

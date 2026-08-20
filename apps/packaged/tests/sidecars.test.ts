@@ -283,6 +283,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
     expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
     expect(env.OD_APP_VERSION).toBe('1.2.3');
+    expect(env.OD_AGENT_DISCOVERY_OFFLINE).toBe('1');
     expect(env[SIDECAR_ENV.DAEMON_PORT]).toBe('7456');
   });
 

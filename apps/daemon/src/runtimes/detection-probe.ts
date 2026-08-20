@@ -110,6 +110,12 @@ function stripFns(
   return rest;
 }
 
+export function shouldRunAgentNetworkDiscovery(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return env.OD_AGENT_DISCOVERY_OFFLINE !== '1';
+}
+
 async function probe(
   def: RuntimeAgentDef,
   configuredEnv: Record<string, string> = {},
@@ -137,11 +143,13 @@ async function probe(
       buildNotInvocableDiagnostic(def, launch, outcome.cause),
     ]);
   }
-  const [caps, modelResult, auth] = await Promise.all([
-    probeCapabilities(def, launch.launchPath, probeEnv),
-    fetchModels(def, launch.launchPath, probeEnv),
-    probeAgentAuthStatus(def, launch.launchPath, probeEnv),
-  ]);
+  const [caps, modelResult, auth] = shouldRunAgentNetworkDiscovery(probeEnv)
+    ? await Promise.all([
+        probeCapabilities(def, launch.launchPath, probeEnv),
+        fetchModels(def, launch.launchPath, probeEnv),
+        probeAgentAuthStatus(def, launch.launchPath, probeEnv),
+      ])
+    : [null, { models: def.fallbackModels, source: 'fallback' as const }, null] as const;
   const surfacedModelResult = withRememberedAmrModels(def, probeEnv, modelResult);
   if (caps) {
     agentCapabilities.set(def.id, caps);

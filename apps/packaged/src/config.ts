@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
@@ -60,6 +61,13 @@ export type RawPackagedConfig = {
   webOutputMode?: string;
 };
 
+export type EarlyPackagedElectronPaths = {
+  cacheRoot: string;
+  desktopLogsRoot: string;
+  electronSessionDataRoot: string;
+  electronUserDataRoot: string;
+};
+
 export type PackagedConfig = {
   amrProfile: PackagedAmrProfile | null;
   appVersion: string | null;
@@ -78,6 +86,38 @@ export type PackagedConfig = {
   webStandaloneRoot: string | null;
   webOutputMode: PackagedWebOutputMode;
 };
+
+export function resolveEarlyPackagedElectronPaths(
+  namespaceOverride?: string,
+): EarlyPackagedElectronPaths | null {
+  const explicit = process.env[PACKAGED_CONFIG_PATH_ENV];
+  const candidates = [
+    ...(explicit == null || explicit.length === 0 ? [] : [resolve(explicit)]),
+    join(process.resourcesPath, "readable-studio-config.json"),
+  ];
+  for (const configPath of candidates) {
+    try {
+      const raw = JSON.parse(readFileSync(configPath, "utf8")) as RawPackagedConfig;
+      if (raw.portable !== true) continue;
+      const namespace = normalizeNamespace(
+        namespaceOverride ?? process.env[PACKAGED_NAMESPACE_ENV] ?? raw.namespace ?? SIDECAR_DEFAULTS.namespace,
+      );
+      const namespaceBaseRoot = typeof raw.namespaceBaseRoot === "string" && raw.namespaceBaseRoot.trim().length > 0
+        ? resolve(raw.namespaceBaseRoot)
+        : join(dirname(process.execPath), "ReadableStudioData", "namespaces");
+      const namespaceRoot = join(namespaceBaseRoot, namespace);
+      return {
+        cacheRoot: join(namespaceRoot, "cache"),
+        desktopLogsRoot: join(namespaceRoot, "logs", "desktop"),
+        electronSessionDataRoot: join(namespaceRoot, "user-data", "session"),
+        electronUserDataRoot: join(namespaceRoot, "user-data"),
+      };
+    } catch {
+      // Full async config loading below owns user-facing validation errors.
+    }
+  }
+  return null;
+}
 
 async function pathExists(filePath: string): Promise<boolean> {
   try {

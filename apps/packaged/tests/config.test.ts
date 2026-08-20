@@ -22,6 +22,7 @@ import {
   PACKAGED_CONFIG_PATH_ENV,
   readPackagedConfig,
   resolveDefaultPackagedNodeCommandRelativePath,
+  resolveEarlyPackagedElectronPaths,
 } from "../src/config.js";
 
 describe("resolveDefaultPackagedNodeCommandRelativePath", () => {
@@ -135,6 +136,19 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
     writeConfig({ arch: "arm64", namespace: "rg", portable: true });
 
     await expect(readPackagedConfig()).rejects.toThrow(/portable config arch must be "x64"/);
+  });
+
+  it("resolves Chromium paths synchronously before Electron can spawn children", () => {
+    const exeDir = join("D:", "Portable", "Readable Studio");
+    stubExecPath(join(exeDir, "Readable Studio.exe"));
+    writeConfig({ namespace: "rg", portable: true });
+
+    expect(resolveEarlyPackagedElectronPaths()).toEqual({
+      cacheRoot: join(exeDir, "ReadableStudioData", "namespaces", "rg", "cache"),
+      desktopLogsRoot: join(exeDir, "ReadableStudioData", "namespaces", "rg", "logs", "desktop"),
+      electronSessionDataRoot: join(exeDir, "ReadableStudioData", "namespaces", "rg", "user-data", "session"),
+      electronUserDataRoot: join(exeDir, "ReadableStudioData", "namespaces", "rg", "user-data"),
+    });
   });
 
   it("falls back to an exe-adjacent ReadableStudioData root when portable and no explicit root", async () => {

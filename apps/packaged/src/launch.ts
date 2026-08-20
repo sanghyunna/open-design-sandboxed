@@ -169,11 +169,51 @@ export async function inspectExistingPackagedDesktop(
 }
 
 export function applyPackagedElectronPathOverrides(
-  paths: PackagedNamespacePaths,
+  paths: Pick<PackagedNamespacePaths, "cacheRoot" | "desktopLogsRoot" | "electronSessionDataRoot" | "electronUserDataRoot">,
 ): void {
   app.setPath("userData", paths.electronUserDataRoot);
   app.setPath("sessionData", paths.electronSessionDataRoot);
   app.setPath("logs", paths.desktopLogsRoot);
+
+  // Chromium child processes do not reliably expose Electron's setPath values
+  // in their launch contract. Pin both profile and cache explicitly so GPU and
+  // network-service children can never fall back to the OS user profile.
+  app.commandLine.appendSwitch("user-data-dir", paths.electronUserDataRoot);
+  app.commandLine.appendSwitch("disk-cache-dir", paths.cacheRoot);
+  // Hold Chromium behind a local discard endpoint until the desktop is ready.
+  // releasePackagedElectronNetworking restores the system proxy at that point.
+  app.commandLine.appendSwitch("proxy-server", "127.0.0.1:9");
+
+  // Suppress Chromium-owned background traffic while leaving the network
+  // service available for explicit user actions and product API requests.
+  for (const commandSwitch of [
+    "disable-background-networking",
+    "disable-breakpad",
+    "disable-client-side-phishing-detection",
+    "disable-component-extensions-with-background-pages",
+    "disable-component-update",
+    "disable-default-apps",
+    "disable-domain-reliability",
+    "disable-sync",
+    "disable-spell-checking",
+    "metrics-recording-only",
+    "no-first-run",
+    "no-pings",
+  ]) {
+    app.commandLine.appendSwitch(commandSwitch);
+  }
+  app.commandLine.appendSwitch(
+    "disable-features",
+    "AutofillServerCommunication,CertificateTransparencyComponentUpdater,MediaRouter,OptimizationHints,Translate",
+  );
+}
+
+export async function releasePackagedElectronNetworking(electronSession: {
+  setProxy: (config: { mode: "system" }) => Promise<unknown>;
+  setSpellCheckerEnabled: (enabled: boolean) => void;
+}): Promise<void> {
+  electronSession.setSpellCheckerEnabled(false);
+  await electronSession.setProxy({ mode: "system" });
 }
 
 // @dsp func-a5f43a0f

@@ -61,7 +61,7 @@ const WIN_ELECTRON_BUILDER_DIR_CACHE_VERSION = 8;
 // input-driven changes — resource tree, baked config fields, version — re-key
 // automatically; this constant covers logic changes whose output happens to be
 // byte-identical for the current config.
-const WIN_PORTABLE_ZIP_CACHE_VERSION = 5;
+const WIN_PORTABLE_ZIP_CACHE_VERSION = 6;
 
 // Pure key-input assembly for the portable-zip cache node, exported for tests.
 // The zip's true inputs are the materialized unpacked tree and the exact

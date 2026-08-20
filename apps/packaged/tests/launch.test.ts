@@ -6,15 +6,20 @@ import { join } from "node:path";
 import { SIDECAR_MESSAGES } from "@readable-studio/sidecar-proto";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("electron", () => ({
-  app: {},
+const electronApp = vi.hoisted(() => ({
+  commandLine: { appendSwitch: vi.fn() },
+  setPath: vi.fn(),
 }));
+
+vi.mock("electron", () => ({ app: electronApp }));
 
 import { PackagedPathAccessError } from "../src/errors.js";
 import {
+  applyPackagedElectronPathOverrides,
   claimPackagedSingleInstanceLock,
   ensurePackagedNamespacePaths,
   inspectExistingPackagedDesktop,
+  releasePackagedElectronNetworking,
   verifyPackagedDataRootWritable,
 } from "../src/launch.js";
 
@@ -36,6 +41,43 @@ function fakePaths(root: string) {
     webIdentityPath: join(root, "runtime", "web-root.json"),
   };
 }
+
+describe("applyPackagedElectronPathOverrides", () => {
+  it("pins Chromium children to portable roots and disables only background networking", () => {
+    const paths = fakePaths("D:\\Portable\\Readable Studio\\ReadableStudioData\\namespaces\\rg");
+
+    applyPackagedElectronPathOverrides(paths);
+
+    expect(electronApp.setPath.mock.calls).toEqual([
+      ["userData", paths.electronUserDataRoot],
+      ["sessionData", paths.electronSessionDataRoot],
+      ["logs", paths.desktopLogsRoot],
+    ]);
+    expect(electronApp.commandLine.appendSwitch.mock.calls).toEqual(expect.arrayContaining([
+      ["user-data-dir", paths.electronUserDataRoot],
+      ["disk-cache-dir", paths.cacheRoot],
+      ["proxy-server", "127.0.0.1:9"],
+      ["disable-background-networking"],
+      ["disable-component-update"],
+      ["disable-domain-reliability"],
+      ["disable-sync"],
+      ["no-pings"],
+    ]));
+    expect(electronApp.commandLine.appendSwitch).not.toHaveBeenCalledWith("disable-network-service");
+  });
+
+  it("restores user-invoked networking when the desktop becomes ready", async () => {
+    const electronSession = {
+      setProxy: vi.fn(async () => undefined),
+      setSpellCheckerEnabled: vi.fn(),
+    };
+
+    await releasePackagedElectronNetworking(electronSession);
+
+    expect(electronSession.setSpellCheckerEnabled).toHaveBeenCalledWith(false);
+    expect(electronSession.setProxy).toHaveBeenCalledWith({ mode: "system" });
+  });
+});
 
 describe("verifyPackagedDataRootWritable", () => {
   it("accepts a writable dataRoot", async () => {
