@@ -17,7 +17,7 @@ triggers:
   - "hand-drawn prototype"
   - "sketch"
   - "wireframe diagram"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design

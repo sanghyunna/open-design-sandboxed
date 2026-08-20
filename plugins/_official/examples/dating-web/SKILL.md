@@ -16,7 +16,7 @@ triggers:
   - "consumer dashboard"
 - "Dating App"
   - "Love and Marriage"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: personal

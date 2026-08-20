@@ -497,7 +497,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
   // deck/image plugin that merely carries a "brand" tag is not pulled in.
   const filteredExamplePlugins = useMemo(() => {
     if (!selectedSubcategory || !isSubChipParent(activeChipId)) return activeExamplePlugins;
-    const pool = pluginOptions.filter((plugin) => plugin.manifest?.od?.kind !== 'atom');
+    const pool = pluginOptions.filter((plugin) => plugin.manifest?.readable?.kind !== 'atom');
     return sortByVisualAppeal(
       applyFacetSelection(pool, { category: activeChipId, subcategory: selectedSubcategory }),
     );
@@ -1241,7 +1241,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                     <p>{localizePluginDescription(locale, hoveredPlugin) || hoveredPlugin.id}</p>
                   </div>
                   <div className="home-hero__plugin-hover-meta">
-                    <span>{t('homeHero.parameters', { n: (hoveredPlugin.manifest?.od?.inputs ?? []).length })}</span>
+                    <span>{t('homeHero.parameters', { n: (hoveredPlugin.manifest?.readable?.inputs ?? []).length })}</span>
                     {getPluginQueryPreview(hoveredPlugin) ? (
                       <span>{getPluginQueryPreview(hoveredPlugin)}</span>
                     ) : null}
@@ -2356,7 +2356,7 @@ function getPluginSourceLabel(plugin: InstalledPluginRecord): string {
 }
 
 function getPluginQueryPreview(plugin: InstalledPluginRecord): string {
-  const raw = plugin.manifest?.od?.useCase?.query;
+  const raw = plugin.manifest?.readable?.useCase?.query;
   const value =
     typeof raw === 'string'
       ? raw
@@ -2710,12 +2710,12 @@ function pluginPresetRank(record: InstalledPluginRecord, chipId: string): number
   if (record.id.includes('template')) score += 8;
   if (inferPluginPreview(record).kind !== 'text') score += 6;
   if (slugs.has(chipId)) score += 4;
-  if (record.manifest?.od?.preview) score += 3;
+  if (record.manifest?.readable?.preview) score += 3;
   return score;
 }
 
 function pluginRecordSlugs(record: InstalledPluginRecord): Set<string> {
-  const od = record.manifest?.od ?? {};
+  const od = record.manifest?.readable ?? {};
   const rawValues = [
     record.id,
     record.title,
@@ -2948,7 +2948,7 @@ function briefForChipId(chipId: string): Record<string, string> {
 
 function briefForPluginPreset(record: InstalledPluginRecord, chipId: string): Record<string, string> {
   const brief: Record<string, string> = { ...briefForChipId(chipId) };
-  const fields = record.manifest?.od?.inputs ?? [];
+  const fields = record.manifest?.readable?.inputs ?? [];
   for (const field of fields) {
     const value = field.default ?? field.placeholder;
     if (value != null && typeof value === 'string' && value.trim()) {

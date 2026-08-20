@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **Чому MCP?** Експорт і повторне приєднання zip-архіву на кожній ітерації порушує потік. MCP відкриває джерело дизайну безпосередньо — агент завжди бачить живий файл.
 
-**Для агента, що починає з нуля,** інсталятор розміщує `~/.config/<agent>/open-design.json` (або платформенний еквівалент) плюс готовий до вставлення фрагмент MCP. Cursor отримує deeplink в один клік; Claude Code отримує однорядкову команду `claude mcp add-json`; кожен інший агент отримує JSON у схемі, якої очікує його конфігурація. Повний процес для кожного агента → **Settings → MCP server** у десктопному застосунку або [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
+**Для агента, що починає з нуля,** інсталятор розміщує `~/.config/<agent>/readable-studio.json` (або платформенний еквівалент) плюс готовий до вставлення фрагмент MCP. Cursor отримує deeplink в один клік; Claude Code отримує однорядкову команду `claude mcp add-json`; кожен інший агент отримує JSON у схемі, якої очікує його конфігурація. Повний процес для кожного агента → **Settings → MCP server** у десктопному застосунку або [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
 
 **Модель безпеки.** За замовчуванням лише для читання, демон прив'язується до `127.0.0.1`, а SSRF блокується на межі проксі. Доступ із LAN вимагає явного `OD_BIND_HOST` плюс `OD_ALLOWED_ORIGINS`. Облікові дані конекторів та маршрути попереднього перегляду живих артефактів залишаються лише на петлевому інтерфейсі незалежно від цього.
 
@@ -427,7 +427,7 @@ readable skill list --scenario marketing
 
 ## Плагіни
 
-**261 офіційний плагін** міститься в [`plugins/_official/`](../../plugins/_official/). Кожен плагін — це **портативна тека agent-skill** — `SKILL.md` (зчитувана будь-яким агентом, що підтримує Agent Skills), плюс опціональний маніфест `open-design.json`, який надає Open Design метадані маркетплейсу, входи, попередні перегляди, конвеєри та декларації можливостей. Перейдіть одразу до категорії:
+**261 офіційний плагін** міститься в [`plugins/_official/`](../../plugins/_official/). Кожен плагін — це **портативна тека agent-skill** — `SKILL.md` (зчитувана будь-яким агентом, що підтримує Agent Skills), плюс опціональний маніфест `readable-studio.json`, який надає Open Design метадані маркетплейсу, входи, попередні перегляди, конвеєри та декларації можливостей. Перейдіть одразу до категорії:
 
 | Категорія | Кількість | Вміст |
 |---|---|---|
@@ -469,18 +469,18 @@ readable plugin uninstall od-default       # uninstall
 
 ### Створення плагіна
 
-Плагіну **щонайменше потрібен лише `SKILL.md`**; щоб помістити його в маркетплейс Open Design, додайте `open-design.json`:
+Плагіну **щонайменше потрібен лише `SKILL.md`**; щоб помістити його в маркетплейс Open Design, додайте `readable-studio.json`:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-Основні поля `open-design.json`: `specVersion` (наразі `1.0.0`), `name` (стабільний ID), `version` (semver), `compat.agentSkills[].path` (вказує на `./SKILL.md`), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (поверхня виведення, наприклад `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**декларуйте мінімум** — обмежене встановлення за замовчуванням надає лише `prompt:inject`), `od.inputs[]` (параметри часу застосування).
+Основні поля `readable-studio.json`: `specVersion` (наразі `1.0.0`), `name` (стабільний ID), `version` (semver), `compat.agentSkills[].path` (вказує на `./SKILL.md`), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (поверхня виведення, наприклад `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**декларуйте мінімум** — обмежене встановлення за замовчуванням надає лише `prompt:inject`), `od.inputs[]` (параметри часу застосування).
 
 Каркасування + валідація локально:
 
@@ -593,7 +593,7 @@ Open Design продовжує рухатися, бо контриб'ютори 
 |---|---|---|
 | Нову **навичку** | Покладіть теку з `SKILL.md` + `assets/` + `references/` | [`skills/`](../../skills/) · специфікація в [`docs/skills-protocol.md`](../../docs/skills-protocol.md) |
 | Нову **дизайн-систему** | Покладіть `DESIGN.md` за схемою з 9 розділів | [`design-systems/<brand>/`](../../design-systems/) |
-| Новий **плагін** | Покладіть `open-design.json` + маніфест під текою категорії | [`plugins/community/`](../../plugins/community/) · специфікація в [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · посібник із розробки агентом у [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
+| Новий **плагін** | Покладіть `readable-studio.json` + маніфест під текою категорії | [`plugins/community/`](../../plugins/community/) · специфікація в [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · посібник із розробки агентом у [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | Підтримку нового **CLI кодувального агента** | Один запис адаптера + парсер потоку | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | Виправити баг або відполірувати UI | Перегляньте мітку [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Перекласти документацію | Оновіть файли `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

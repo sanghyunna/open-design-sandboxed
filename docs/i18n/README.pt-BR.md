@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **Por que MCP?** Exportar e reanexar um zip a cada iteração quebra o fluxo. O MCP expõe a fonte de design diretamente — o agente sempre vê o arquivo ao vivo.
 
-**Para um agente começando do zero,** o instalador coloca `~/.config/<agent>/open-design.json` (ou o equivalente da plataforma) além de um snippet MCP de copiar e colar. O Cursor recebe um deeplink de um clique; o Claude Code recebe um one-liner `claude mcp add-json`; todo outro agente recebe JSON no schema que sua configuração espera. Fluxo completo por agente → **Settings → MCP server** no app de desktop, ou [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
+**Para um agente começando do zero,** o instalador coloca `~/.config/<agent>/readable-studio.json` (ou o equivalente da plataforma) além de um snippet MCP de copiar e colar. O Cursor recebe um deeplink de um clique; o Claude Code recebe um one-liner `claude mcp add-json`; todo outro agente recebe JSON no schema que sua configuração espera. Fluxo completo por agente → **Settings → MCP server** no app de desktop, ou [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
 
 **Modelo de segurança.** Somente leitura por padrão, o daemon faz bind em `127.0.0.1` e o SSRF é bloqueado na borda do proxy. A exposição na LAN exige um `OD_BIND_HOST` explícito mais `OD_ALLOWED_ORIGINS`. Credenciais de conector e rotas de preview de artefatos ao vivo permanecem somente em loopback, independentemente disso.
 
@@ -427,7 +427,7 @@ Reimporte a biblioteca via [`scripts/sync-design-systems.ts`](../../scripts/sync
 
 ## Plugins
 
-**261 plugins oficiais** ficam em [`plugins/_official/`](../../plugins/_official/). Cada plugin é uma **pasta portátil de agent-skill** — um `SKILL.md` (legível por qualquer agente que suporte Agent Skills), além de um manifesto opcional `open-design.json` que dá ao Open Design metadados de marketplace, inputs, prévias, pipelines e declarações de capacidades. Vá direto para uma categoria:
+**261 plugins oficiais** ficam em [`plugins/_official/`](../../plugins/_official/). Cada plugin é uma **pasta portátil de agent-skill** — um `SKILL.md` (legível por qualquer agente que suporte Agent Skills), além de um manifesto opcional `readable-studio.json` que dá ao Open Design metadados de marketplace, inputs, prévias, pipelines e declarações de capacidades. Vá direto para uma categoria:
 
 | Categoria | Quantidade | Conteúdo |
 |---|---|---|
@@ -469,18 +469,18 @@ Todo comando suporta `--json`, então você pode encadeá-lo com `jq` / `xargs` 
 
 ### Construindo um plugin
 
-Um plugin **precisa apenas de um `SKILL.md` no mínimo**; para listá-lo no marketplace do Open Design, adicione um `open-design.json`:
+Um plugin **precisa apenas de um `SKILL.md` no mínimo**; para listá-lo no marketplace do Open Design, adicione um `readable-studio.json`:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-Campos principais do `open-design.json`: `specVersion` (atualmente `1.0.0`), `name` (ID estável), `version` (semver), `compat.agentSkills[].path` (aponta para `./SKILL.md`), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (a superfície de saída, ex.: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**declare o mínimo** — uma instalação restrita concede apenas `prompt:inject` por padrão), `od.inputs[]` (parâmetros no momento de aplicar).
+Campos principais do `readable-studio.json`: `specVersion` (atualmente `1.0.0`), `name` (ID estável), `version` (semver), `compat.agentSkills[].path` (aponta para `./SKILL.md`), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (a superfície de saída, ex.: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**declare o mínimo** — uma instalação restrita concede apenas `prompt:inject` por padrão), `od.inputs[]` (parâmetros no momento de aplicar).
 
 Faça o scaffold + valide localmente:
 
@@ -593,7 +593,7 @@ O Open Design continua avançando porque os contribuidores — designers, engenh
 |---|---|---|
 | Uma nova **skill** | Solte uma pasta com `SKILL.md` + `assets/` + `references/` | [`skills/`](../../skills/) · spec em [`docs/skills-protocol.md`](../../docs/skills-protocol.md) |
 | Um novo **design system** | Solte um `DESIGN.md` usando o schema de 9 seções | [`design-systems/<brand>/`](../../design-systems/) |
-| Um novo **plugin** | Solte `open-design.json` + manifesto numa pasta de categoria | [`plugins/community/`](../../plugins/community/) · spec em [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · guia de dev por agente em [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
+| Um novo **plugin** | Solte `readable-studio.json` + manifesto numa pasta de categoria | [`plugins/community/`](../../plugins/community/) · spec em [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · guia de dev por agente em [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | Suportar uma nova **CLI de coding agent** | Uma entrada de adaptador + parser de stream | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | Corrigir um bug ou polir a UI | Explore a label [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Traduzir a documentação | Atualize os arquivos `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

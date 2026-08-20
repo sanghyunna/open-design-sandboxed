@@ -821,7 +821,7 @@ export const ko: Dict = {
   'useEverywhere.section.http.footer': '모든 요청/응답에 대한 순수 TypeScript 타입은 `@readable-studio/contracts`에 있습니다 — 생성기를 연결하지 않고도 완전한 자동 완성을 위해 스크립트에서 가져오세요.',
   'useEverywhere.section.skills.tab': '스킬 & 헤드리스',
   'useEverywhere.section.skills.heading': '어떤 Agent를 위한 드롭인 Skills — Open Design이 실행되고 있지 않아도',
-  'useEverywhere.section.skills.intro': 'Skill은 Claude 호환 `SKILL.md`(YAML 프런트 매터 + 본문)를 포함하는 디렉터리입니다. Open Design은 `od:` 네임스페이스(`mode`, `preview`, `design_system`, `inputs`, …)로 형식을 확장하므로 동일한 아티팩트를 Open Design 내부와 Claude Code, Codex, openclaw, hermes 같은 일반 Agent 양쪽에서 사용할 수 있습니다. 발견은 우선순위 체인을 따르므로 프로젝트가 자체 skills를 재정의할 수 있습니다.',
+  'useEverywhere.section.skills.intro': 'Skill은 Claude 호환 `SKILL.md`(YAML 프런트 매터 + 본문)를 포함하는 디렉터리입니다. Open Design은 `readable:` 네임스페이스(`mode`, `preview`, `design_system`, `inputs`, …)로 형식을 확장하므로 동일한 아티팩트를 Open Design 내부와 Claude Code, Codex, openclaw, hermes 같은 일반 Agent 양쪽에서 사용할 수 있습니다. 발견은 우선순위 체인을 따르므로 프로젝트가 자체 skills를 재정의할 수 있습니다.',
   'useEverywhere.section.skills.bullet1': '발견: `./.claude/skills/` → `./skills/` → `~/.claude/skills/` (프로젝트 우선).',
   'useEverywhere.section.skills.bullet2': '하나의 스킬을 여러 프로젝트에 심볼릭 링크로 연결하여 복사 없이 공유하세요.',
   'useEverywhere.section.skills.bullet3': '각 스킬은 아톰, 디자인 시스템 요구 사항, 그리고 갤러리용 `preview` 예시 출력을 선언할 수 있습니다.',

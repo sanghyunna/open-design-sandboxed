@@ -1,8 +1,8 @@
-# Open Design 插件规范
+# Readable Studio 插件规范
 
 语言：[English](SPEC.md) | 简体中文
 
-这是可移植 Open Design 插件的精简契约。完整产品规范仍以 `docs/plugins-spec.zh-CN.md` 为准；本文档面向贡献者和外部编码 agent。
+这是可移植 Readable Studio 插件的精简契约。完整产品规范仍以 `docs/plugins-spec.zh-CN.md` 为准；本文档面向贡献者和外部编码 agent。
 
 ## 1. 最小插件
 
@@ -24,14 +24,14 @@ description: Use this plugin when the user wants...
 
 文件夹名、`name` 和 manifest `name` 应保持一致。使用小写字母、数字和连字符。
 
-## 2. 增强版 Open Design 插件
+## 2. 增强版 Readable Studio 插件
 
-当插件需要出现在 Open Design marketplace 卡片或 starter 中时，添加 `open-design.json`：
+当插件需要出现在 Readable Studio marketplace 卡片或 starter 中时，添加 `readable-studio.json`：
 
 ```text
 my-plugin/
   SKILL.md
-  open-design.json
+  readable-studio.json
   README.md
   preview/
   examples/
@@ -40,11 +40,11 @@ my-plugin/
   evals/
 ```
 
-`open-design.json` 指向 skill，并声明产品表面：
+`readable-studio.json` 指向 skill，并声明产品表面：
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-manifest:v1",
   "specVersion": "1.0.0",
   "name": "my-plugin",
   "title": "My Plugin",
@@ -55,7 +55,7 @@ my-plugin/
   "compat": {
     "agentSkills": [{ "path": "./SKILL.md" }]
   },
-  "od": {
+  "readable": {
     "kind": "skill",
     "taskKind": "new-generation",
     "mode": "prototype",
@@ -87,7 +87,7 @@ my-plugin/
 
 ## 3. 工作流分类
 
-每个插件使用一个主类。把主类放进 `tags`、`od.scenario` 或 `od.mode`，便于搜索和 facet 分类。
+每个插件使用一个主类。把主类放进 `tags`、`readable.scenario` 或 `readable.mode`，便于搜索和 facet 分类。
 
 | 主类 | 适用场景 | 常见 `taskKind` | 常用 atoms |
 | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ my-plugin/
 
 ## 4. Create 模式
 
-使用 `od.mode` 表示主要输出表面：
+使用 `readable.mode` 表示主要输出表面：
 
 | Mode | 输出 |
 | --- | --- |
@@ -127,14 +127,14 @@ my-plugin/
 ## 6. Manifest 规则
 
 - `name` 是稳定插件 id。
-- `specVersion` 是此 manifest 遵循的 Open Design 插件规范版本。除非 schema 升级，否则使用当前规范包的值（`1.0.0`）。
+- `specVersion` 是此 manifest 遵循的 Readable Studio 插件规范版本。除非 schema 升级，否则使用当前规范包的值（`1.0.0`）。
 - `version` 必填。尽量使用 semver。
 - `version` 是插件包自身版本，独立于 `specVersion`。
 - `compat.agentSkills[0].path` 应指向 `./SKILL.md`。
-- `od.taskKind` 必须是 `new-generation`、`figma-migration`、`code-migration` 或 `tune-collab`。
-- `od.pipeline.stages[].atoms[]` 应使用已知一方 atoms，除非插件明确面向未来 OD 版本。
+- `readable.taskKind` 必须是 `new-generation`、`figma-migration`、`code-migration` 或 `tune-collab`。
+- `readable.pipeline.stages[].atoms[]` 应使用已知一方 atoms，除非插件明确面向未来 OD 版本。
 - `repeat` stage 必须包含 `until`。
-- `od.capabilities` 应从小集合开始。restricted install 默认只有 `prompt:inject`。
+- `readable.capabilities` 应从小集合开始。restricted install 默认只有 `prompt:inject`。
 
 已知 v1 capabilities：
 
@@ -148,7 +148,7 @@ my-plugin/
 
 ## 7. Inputs 与 GenUI
 
-简单 apply-time 值使用 `od.inputs`。当 agent 在 run 中需要受控的人类输入时，使用 `od.genui.surfaces[]`。
+简单 apply-time 值使用 `readable.inputs`。当 agent 在 run 中需要受控的人类输入时，使用 `readable.genui.surfaces[]`。
 
 内置 GenUI surface 类型：
 
@@ -204,11 +204,11 @@ preview 应展示真实输出形态，而不是装饰性的 splash screen。
 打开 PR 前：
 
 1. 校验 JSON 语法。
-2. 确认 `open-design.json` 包含 `specVersion`，并在行为变化时 bump 插件 `version`。
+2. 确认 `readable-studio.json` 包含 `specVersion`，并在行为变化时 bump 插件 `version`。
 3. 运行 `pnpm guard`。
 4. 运行 `pnpm --filter @readable-studio/plugin-runtime typecheck`。
 5. 如果可用，运行 `readable plugin validate ./path/to/plugin`。
 6. 视觉类插件包含一张截图、渲染 preview 或示例输出。
 7. 在 PR body 里说明 trust 和 capabilities。
 
-外部 registry 分发策略见 [`PUBLISHING-REGISTRIES.zh-CN.md`](PUBLISHING-REGISTRIES.zh-CN.md)。简言之：把 GitHub 或 Open Design PR 作为 source of truth，让文件夹能作为通用 `SKILL.md` skill 安装；本地验证通过后，再发布或登记到 skills.sh、ClawHub 或其他 registry。
+外部 registry 分发策略见 [`PUBLISHING-REGISTRIES.zh-CN.md`](PUBLISHING-REGISTRIES.zh-CN.md)。简言之：把 GitHub 或 Readable Studio PR 作为 source of truth，让文件夹能作为通用 `SKILL.md` skill 安装；本地验证通过后，再发布或登记到 skills.sh、ClawHub 或其他 registry。

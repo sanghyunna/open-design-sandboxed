@@ -2,7 +2,7 @@
 name: mindloop-landing
 description: "Use this plugin when the user wants a dark, pure-monochrome newsletter / content-platform landing page (Mindloop): fullscreen video hero, Instrument-Serif italic accent words, liquid-glass controls, scroll-driven word-by-word mission reveal, and an HLS-video CTA. Invoke for 'Mindloop landing', 'black monochrome newsletter landing page', 'video hero content platform', or when the user references the Mindloop template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

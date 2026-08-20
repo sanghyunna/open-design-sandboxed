@@ -48,7 +48,7 @@ interface MediaPreview {
 }
 
 function readMedia(record: InstalledPluginRecord): MediaPreview {
-  const preview = record.manifest?.od?.preview as
+  const preview = record.manifest?.readable?.preview as
     | {
         type?: unknown;
         poster?: unknown;
@@ -94,7 +94,7 @@ export function PluginMediaDetail({
   const [copied, setCopied] = useState(false);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.od ?? {};
+  const od = manifest.readable ?? {};
   const description = manifest.description ?? '';
   const query = resolvePluginQueryFallback(od.useCase?.query);
   const media = useMemo(() => readMedia(record), [record]);

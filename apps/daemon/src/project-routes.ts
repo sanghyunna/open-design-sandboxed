@@ -840,14 +840,14 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
     type ScenarioEntry = {
       id: string;
       taskKind: 'new-generation' | 'figma-migration' | 'code-migration' | 'tune-collab';
-      pipeline: NonNullable<NonNullable<PluginManifest['od']>['pipeline']>;
+      pipeline: NonNullable<NonNullable<PluginManifest['readable']>['pipeline']>;
     };
     const byTaskKind = new Map<ScenarioEntry['taskKind'], ScenarioEntry>();
     try {
       const all = listInstalledPlugins(db);
       for (const row of all) {
         if (row.sourceKind !== 'bundled') continue;
-        const od = row.manifest.od;
+        const od = row.manifest.readable;
         if (!od || od.kind !== 'scenario') continue;
         if (!od.pipeline || !Array.isArray(od.pipeline.stages) || od.pipeline.stages.length === 0) continue;
         const taskKind = (od.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];

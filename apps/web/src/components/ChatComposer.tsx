@@ -551,7 +551,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, Props>(
     const pluginsForComposer = useMemo<InstalledPluginRecord[]>(() => {
       const allowedKinds = new Set(['skill', 'scenario', 'bundle']);
       return installedPlugins.filter((p) => {
-        const k = p.manifest?.od?.kind;
+        const k = p.manifest?.readable?.kind;
         return !k || allowedKinds.has(k);
       });
     }, [installedPlugins]);
@@ -3426,7 +3426,7 @@ function buildDesignToolboxResources({
       id: plugin.id,
       title: localizePluginTitle(locale, plugin),
       subtitle,
-      badge: plugin.manifest?.od?.kind ?? 'plugin',
+      badge: plugin.manifest?.readable?.kind ?? 'plugin',
       icon: 'sparkles',
       searchText: [
         'plugin',
@@ -3436,9 +3436,9 @@ function buildDesignToolboxResources({
         plugin.source,
         subtitle,
         ...(plugin.manifest?.tags ?? []),
-        plugin.manifest?.od?.kind ?? '',
-        plugin.manifest?.od?.scenario ?? '',
-        plugin.manifest?.od?.mode ?? '',
+        plugin.manifest?.readable?.kind ?? '',
+        plugin.manifest?.readable?.scenario ?? '',
+        plugin.manifest?.readable?.mode ?? '',
       ].join(' '),
       plugin,
     });

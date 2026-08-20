@@ -29,7 +29,7 @@ export interface PreviewView {
   // at the loading state forever. Issue #860.
   error?: string | null;
   // Set when the underlying surface ships no HTML preview at all (its
-  // `od.preview.type` is `image`, `markdown`, etc.). The modal renders
+  // `readable.preview.type` is `image`, `markdown`, etc.). The modal renders
   // a calm "no shipped preview" placeholder instead of the loading or
   // error states — fetching `/api/skills/:id/example` (or the symmetric
   // plugin route) returns 404 today and the resulting "Couldn't load

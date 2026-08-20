@@ -1,4 +1,9 @@
-import { PluginManifestSchema, type PluginManifest } from '@readable-studio/contracts';
+import {
+  PluginManifestSchema,
+  UNSUPPORTED_OPEN_DESIGN_V1,
+  type PluginManifest,
+} from '@readable-studio/contracts';
+import { isUnsupportedOpenDesignV1 } from './parsers/manifest.js';
 
 export interface ValidateResult {
   ok: boolean;
@@ -30,6 +35,10 @@ const KNOWN_CAPABILITIES = new Set([
 
 // @dsp func-30ea3892
 export function validateManifest(value: unknown): ValidateResult {
+  if (isUnsupportedOpenDesignV1(value)) {
+    return { ok: false, warnings: [], errors: [UNSUPPORTED_OPEN_DESIGN_V1] };
+  }
+
   const parsed = PluginManifestSchema.safeParse(value);
   if (!parsed.success) {
     return {
@@ -46,7 +55,7 @@ export function validateSafe(manifest: PluginManifest): ValidateResult {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  const od = manifest.od;
+  const od = manifest.readable;
   if (od) {
     const stages = od.pipeline?.stages ?? [];
     for (const stage of stages) {

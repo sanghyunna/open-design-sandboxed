@@ -1042,7 +1042,7 @@ async function runPlugin(args) {
 
 // Phase 4 / spec §14.1 — `readable plugin scaffold` interactive starter.
 //
-// Side-effect: writes a SKILL.md + open-design.json starter under
+// Side-effect: writes a SKILL.md + readable-studio.json starter under
 // `<targetDir>/<id>/`. Default targetDir is process.cwd() so a code
 // agent can drop the scaffold into the current repo root.
 async function runPluginScaffold(rest) {
@@ -1059,7 +1059,7 @@ async function runPluginScaffold(rest) {
                      [--mode <mode>] [--scenario <scenario>]
                      [--out <dir>] [--with-claude-plugin]
 
-Writes <out|cwd>/<id>/{SKILL.md,open-design.json,README.md}.`);
+Writes <out|cwd>/<id>/{SKILL.md,readable-studio.json,README.md}.`);
     process.exit(rest.length === 0 ? 2 : 0);
   }
   const id = typeof flags.id === 'string' && flags.id.length > 0
@@ -1219,7 +1219,7 @@ rejection at install).
 Exit codes:
   0  archive written
   2  CLI usage error
-  4  pack-time error (missing open-design.json, invalid JSON, etc)`);
+  4  pack-time error (missing readable-studio.json, invalid JSON, etc)`);
     process.exit(rest.length === 0 ? 2 : 0);
   }
   const folder = rest[0];
@@ -1430,8 +1430,8 @@ async function runPluginExport(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  readable plugin export <projectId> --as od|claude-plugin|agent-skill --out <dir>
-  readable plugin export --snapshot-id <id> --as od|claude-plugin|agent-skill --out <dir>
+  readable plugin export <projectId> --as readable-studio|claude-plugin|agent-skill --out <dir>
+  readable plugin export --snapshot-id <id> --as readable-studio|claude-plugin|agent-skill --out <dir>
 
 The export resolves through the daemon HTTP \`POST /api/applied-plugins/export\`
 endpoint so the running daemon's installed_plugins / applied_plugin_snapshots
@@ -1446,8 +1446,8 @@ view is the single source of truth.`);
     process.exit(2);
   }
   const target = String(flags.as ?? 'od');
-  if (target !== 'od' && target !== 'claude-plugin' && target !== 'agent-skill') {
-    console.error(`--as must be one of: od, claude-plugin, agent-skill (got "${target}")`);
+  if (target !== 'readable-studio' && target !== 'claude-plugin' && target !== 'agent-skill') {
+    console.error(`--as must be one of: readable-studio, claude-plugin, agent-skill (got "${target}")`);
     process.exit(2);
   }
   const out = typeof flags.out === 'string' && flags.out.length > 0
@@ -2191,7 +2191,7 @@ function resolveCliEntryVersion(entry, range) {
 
 // Plan §3.MM1 — `readable plugin manifest <id>`. Prints just the parsed
 // manifest JSON, no wrapper. Useful for plugin authors who want to
-// compare the daemon's view to their on-disk open-design.json
+// compare the daemon's view to their on-disk readable-studio.json
 // without scrolling past the registry record fields (sourceKind /
 // fsPath / installedAt etc).
 async function runPluginManifest(rest) {
@@ -3139,7 +3139,7 @@ async function runPluginPublish(rest) {
     console.log(`Usage:
   readable plugin publish <pluginId> --to open-design|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
                     [--repo <github-url>] [--snapshot-id <id>] [--open] [--json]
-  readable plugin publish <pluginId> --to marketplace-json --catalog ./open-design-marketplace.json --repo <github-url>
+  readable plugin publish <pluginId> --to marketplace-json --catalog ./readable-studio-marketplace.json --repo <github-url>
 
 The CLI prints the catalog's submission URL + a pre-filled PR body.
 Pass --open to auto-launch the system browser. Use --snapshot-id to
@@ -3276,7 +3276,7 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
     import('node:os'),
   ]);
   const absFolder = resolve(process.cwd(), folder);
-  const manifestPath = resolve(absFolder, 'open-design.json');
+  const manifestPath = resolve(absFolder, 'readable-studio.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
   const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'publish-repo' });
@@ -3434,7 +3434,7 @@ fork of nexu-io/open-design, pushes a branch, and opens the PR form with --web.`
     import('node:os'),
   ]);
   const absFolder = resolve(process.cwd(), folder);
-  const manifestPath = resolve(absFolder, 'open-design.json');
+  const manifestPath = resolve(absFolder, 'readable-studio.json');
   const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8'));
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
   const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'open-design-pr' });

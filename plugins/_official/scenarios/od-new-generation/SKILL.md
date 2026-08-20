@@ -1,7 +1,7 @@
 ---
 name: od-new-generation
 description: Default reference pipeline for the new-generation taskKind — discovery → plan → generate → critique with a critique-theater devloop.
-od:
+readable:
   scenario: new-generation
   mode: scenario
 ---

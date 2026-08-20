@@ -42,7 +42,7 @@ function makePlugin(overrides: {
       ...(overrides.description ? { description: overrides.description } : {}),
       ...(overrides.descriptionI18n ? { description_i18n: overrides.descriptionI18n } : {}),
       ...(overrides.tags ? { tags: overrides.tags } : {}),
-      od: {
+      readable: {
         kind: overrides.kind ?? 'scenario',
         ...(overrides.mode ? { mode: overrides.mode } : {}),
         ...(overrides.featured ? { featured: true } : {}),

@@ -8,7 +8,7 @@ const adapter: PluginManifest = {
   version: '0.0.0',
   description: 'adapter desc',
   compat: { agentSkills: [{ path: './SKILL.md' }] },
-  od: {
+  readable: {
     kind: 'skill',
     taskKind: 'new-generation',
     mode: 'prototype',
@@ -21,7 +21,7 @@ const sidecar: PluginManifest = {
   title: 'From Sidecar',
   version: '1.0.0',
   description: 'sidecar desc',
-  od: {
+  readable: {
     taskKind: 'tune-collab',
     inputs: [{ name: 'audience', type: 'select', options: ['VC'] }],
   },
@@ -33,19 +33,19 @@ describe('mergeManifests', () => {
     expect(merged.title).toBe('From Sidecar');
     expect(merged.version).toBe('1.0.0');
     expect(merged.description).toBe('sidecar desc');
-    expect(merged.od?.taskKind).toBe('tune-collab');
+    expect(merged.readable?.taskKind).toBe('tune-collab');
   });
 
   it('falls back to adapter values when sidecar omits them', () => {
     const merged = mergeManifests({ sidecar, adapters: [adapter] });
-    expect(merged.od?.mode).toBe('prototype');
-    expect(merged.od?.kind).toBe('skill');
+    expect(merged.readable?.mode).toBe('prototype');
+    expect(merged.readable?.kind).toBe('skill');
   });
 
   it('keeps the sidecar inputs array intact, not deep-merged', () => {
     const merged = mergeManifests({ sidecar, adapters: [adapter] });
-    expect(merged.od?.inputs?.length).toBe(1);
-    expect(merged.od?.inputs?.[0]?.name).toBe('audience');
+    expect(merged.readable?.inputs?.length).toBe(1);
+    expect(merged.readable?.inputs?.[0]?.name).toBe('audience');
   });
 
   it('unions compat lists across layers', () => {

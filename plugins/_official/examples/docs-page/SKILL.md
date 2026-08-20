@@ -10,7 +10,7 @@ triggers:
   - "guide"
   - "tutorial"
   - "api reference"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: engineering

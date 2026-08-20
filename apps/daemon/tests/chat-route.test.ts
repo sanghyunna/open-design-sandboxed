@@ -51,18 +51,18 @@ describe('/api/chat', () => {
       'sample-plugin',
     );
     await fsp.cp(baseFixtureDir, fixtureDir, { recursive: true });
-    const manifestPath = resolve(fixtureDir, 'open-design.json');
+    const manifestPath = resolve(fixtureDir, 'readable-studio.json');
     const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8')) as {
       name: string;
       title: string;
-      od?: { context?: { skills?: Array<{ ref?: string; path?: string }> } };
+      readable?: { context?: { skills?: Array<{ ref?: string; path?: string }> } };
     };
     manifest.name = args.pluginId;
     manifest.title = args.pluginId;
     if (args.localSkillPath) {
-      manifest.od ??= {};
-      manifest.od.context ??= {};
-      manifest.od.context.skills = [{ path: args.localSkillPath }];
+      manifest.readable ??= {};
+      manifest.readable.context ??= {};
+      manifest.readable.context.skills = [{ path: args.localSkillPath }];
     }
     await fsp.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
     return fixtureDir;
@@ -474,7 +474,7 @@ process.stdin.resume();
 process.stdin.on('end', () => {
   const pluginDir = path.join(process.cwd(), 'generated-plugin');
   fs.mkdirSync(pluginDir, { recursive: true });
-  fs.writeFileSync(path.join(pluginDir, 'open-design.json'), JSON.stringify({ name: 'generated-plugin' }, null, 2));
+  fs.writeFileSync(path.join(pluginDir, 'readable-studio.json'), JSON.stringify({ name: 'generated-plugin' }, null, 2));
   fs.writeFileSync(path.join(pluginDir, 'SKILL.md'), '# Generated plugin\\n');
   console.log(JSON.stringify({ type: 'step_start' }));
   console.log(JSON.stringify({ type: 'text', part: { text: '我来帮你创建一个通用的 Open Design 插件脚手架。先读取文档规范，再生成插件文件。' } }));
@@ -507,7 +507,7 @@ process.stdin.on('end', () => {
         const filesResponse = await fetch(`${baseUrl}/api/projects/${projectId}/files`);
         expect(filesResponse.status).toBe(200);
         const filesBody = await filesResponse.json() as { files: Array<{ name: string }> };
-        expect(filesBody.files.some((file) => file.name === 'generated-plugin/open-design.json')).toBe(true);
+        expect(filesBody.files.some((file) => file.name === 'generated-plugin/readable-studio.json')).toBe(true);
         expect(filesBody.files.some((file) => file.name === 'generated-plugin/SKILL.md')).toBe(true);
       },
     );
@@ -1120,7 +1120,7 @@ process.stdin.on('end', () => {
       `---
 name: ${skillId}
 description: Ad-hoc critique opt-out regression fixture.
-od:
+readable:
   critique:
     policy: opt-out
 ---

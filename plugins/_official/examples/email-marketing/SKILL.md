@@ -15,7 +15,7 @@ triggers:
   - "mjml"
 - "Email Marketing"
   - "Email Template"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

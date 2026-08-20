@@ -473,7 +473,7 @@ export function HomeView({
     activePluginApplyRequestRef.current = applyRequestId;
     setActiveSkill(null);
     const shouldResolveImmediately = options?.deferApply !== true;
-    const inputFields = options?.inputFields ?? record.manifest?.od?.inputs ?? [];
+    const inputFields = options?.inputFields ?? record.manifest?.readable?.inputs ?? [];
     const optimisticInputs = hydratePluginInputs(
       inputFields,
       withHomeDesignSystemDefault(options?.inputs, inputFields, defaultDesignSystemTitle),
@@ -484,7 +484,7 @@ export function HomeView({
         ? options.queryTemplate
         : nextPrompt !== undefined && nextPrompt !== null
         ? null
-        : resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale) || null;
+        : resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale) || null;
     const suppressPromptUpdate = options?.suppressPromptUpdate === true;
     const optimisticPrompt =
       nextPrompt !== undefined && nextPrompt !== null
@@ -591,7 +591,7 @@ export function HomeView({
       const reconciledQuery =
         options?.queryTemplate !== undefined
           ? options.queryTemplate
-          : result.query || resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale);
+          : result.query || resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale);
       if (reconciledQuery) {
         const reconciledPrompt = renderPluginBriefTemplate(reconciledQuery, reconciledInputs);
         if (reconciledPrompt !== optimisticPrompt) {
@@ -643,7 +643,7 @@ export function HomeView({
     },
   ) {
     const replacement = previewPluginReplacement(record, nextPrompt, {
-      inputs: withHomeDesignSystemDefault(options?.inputs, options?.inputFields ?? record.manifest?.od?.inputs ?? [], defaultDesignSystemTitle),
+      inputs: withHomeDesignSystemDefault(options?.inputs, options?.inputFields ?? record.manifest?.readable?.inputs ?? [], defaultDesignSystemTitle),
       inputFields: options?.inputFields,
       queryTemplate: options?.queryTemplate,
     });
@@ -688,7 +688,7 @@ export function HomeView({
     if (action === 'use-with-query') {
       // "Replicate this content" seeds the composer with the SAME human-friendly
       // text the Home example-prompt cards use (examplePresetSeedPrompt), NOT the
-      // raw `od.useCase.query` — which for many plugins is a generator-facing
+      // raw `readable.useCase.query` — which for many plugins is a generator-facing
       // meta-instruction ("follow the en field verbatim; start from example.html")
       // that reads as gibberish in the textarea. Fallback: plugin description /
       // title (the Home cards inject their richer structured-preview fallback).
@@ -713,7 +713,7 @@ export function HomeView({
       // meta-instruction seed there are no placeholders to extract, so null the
       // template (mirrors the example-prompt card path).
       const rawQueryTemplate = seed.fromRenderedQuery
-        ? resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale) || null
+        ? resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale) || null
         : null;
       const hasTemplate = Boolean(rawQueryTemplate && trimmedSeed);
       const submittable = await usePlugin(record, combined, {
@@ -785,9 +785,9 @@ export function HomeView({
     const query =
       options?.queryTemplate !== undefined
         ? options.queryTemplate
-        : resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale);
+        : resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale);
     if (!query) return null;
-    const fields = options?.inputFields ?? record.manifest?.od?.inputs ?? [];
+    const fields = options?.inputFields ?? record.manifest?.readable?.inputs ?? [];
     return renderPluginBriefTemplate(query, hydratePluginInputs(fields, options?.inputs));
   }
 
@@ -1681,7 +1681,7 @@ function homeDesignSystemSelectionForInputs(
 function estimatePluginContextItemCount(
   record: InstalledPluginRecord,
 ): number {
-  const context = record.manifest?.od?.context;
+  const context = record.manifest?.readable?.context;
   if (!context) return 0;
   const assetCount = context.assets?.length ?? 0;
   const mcpCount = context.mcp?.length ?? 0;

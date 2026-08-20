@@ -18,7 +18,7 @@ example_tagline: "HTML-in-Canvas Device Showcase"
 example_desc: "iPhone screen and MacBook screen both embed real UI content, with glass-lens refraction"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · vfx-iphone-device"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

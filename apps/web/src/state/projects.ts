@@ -819,7 +819,7 @@ export async function listPlugins(
 }
 
 export function isVisiblePlugin(plugin: InstalledPluginRecord): boolean {
-  const od = (plugin.manifest?.od ?? {}) as Record<string, unknown>;
+  const od = (plugin.manifest?.readable ?? {}) as Record<string, unknown>;
   return od.hidden !== true;
 }
 

@@ -15,7 +15,7 @@ triggers:
   - "creator dashboard"
   - "creator analytics"
   - "social media analytics"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: creator

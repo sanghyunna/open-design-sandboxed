@@ -9,7 +9,7 @@ Open Design registry v1 复用 GitHub 作为后端。CLI 是 canonical workflow�
 readable plugin scaffold --id vendor/plugin-name --title "Plugin name" --out ./plugins/community
 ```
 
-公开 registry ID 必须是 `vendor/plugin-name`。生成的 `open-design.json`
+公开 registry ID 必须是 `vendor/plugin-name`。生成的 `readable-studio.json`
 需要包含 `plugin.repo`，指向插件的源码仓库或源码子目录。
 
 ## 2. 校验和打包
@@ -20,7 +20,7 @@ readable plugin pack ./plugins/community/plugin-name --out ./dist
 ```
 
 registry 接受任何能通过 validate 和 pack 的插件。源码仓库不需要特殊结构，
-只需要 `SKILL.md` 和 `open-design.json`。
+只需要 `SKILL.md` 和 `readable-studio.json`。
 
 ## 3. 登录
 
@@ -44,7 +44,7 @@ v1 会打开 GitHub registry review flow。发布 payload 包含插件 ID、版�
 
 ```bash
 readable plugin publish vendor/plugin-name --to marketplace-json \
-  --catalog plugins/registry/community/open-design-marketplace.json \
+  --catalog plugins/registry/community/readable-studio-marketplace.json \
   --repo https://github.com/vendor/plugin-name
 ```
 

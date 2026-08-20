@@ -1,5 +1,5 @@
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
   type PluginManifest,
 } from '@readable-studio/contracts';
 
@@ -58,13 +58,13 @@ export function adaptClaudePlugin(
     warnings.push(`claude-plugin declares ${commands} command(s); v1 OD apply does not auto-register hooks. Add them via od.context.claudePlugins[].`);
   }
   const manifest: PluginManifest = {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
     name: safeName,
     title: typeof obj['title'] === 'string' ? obj['title'] : safeName,
     version,
     description: description ?? undefined,
     compat: { claudePlugins: [{ path: compatPath }] },
-    od: {
+    readable: {
       kind: 'skill',
       taskKind: 'new-generation',
     },
@@ -74,11 +74,11 @@ export function adaptClaudePlugin(
 
 function synthesizeFallback(folderId: string, compatPath: string): PluginManifest {
   return {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
     name: folderId,
     title: folderId,
     version: '0.0.0',
     compat: { claudePlugins: [{ path: compatPath }] },
-    od: { kind: 'skill', taskKind: 'new-generation' },
+    readable: { kind: 'skill', taskKind: 'new-generation' },
   };
 }

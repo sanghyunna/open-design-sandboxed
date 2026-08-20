@@ -24,7 +24,7 @@ test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file co
     await writeFile(path.join(root, "design-templates/example/example.html"), "<p>\u9884\u89c8\u6587\u6848</p>\n");
     await writeFile(path.join(root, "design-templates/example/references/guide.md"), "\u5d4c\u5957\u6587\u6848\n");
     await writeFile(
-      path.join(root, "plugins/_official/examples/example/open-design.json"),
+      path.join(root, "plugins/_official/examples/example/readable-studio.json"),
       '{"title_i18n":{"zh-CN":"\u4e2d\u6587\u672c\u5730\u5316","ja":"\u65e5\u672c\u8a9e"},"title":"\u9ed8\u8ba4\u6587\u6848"}',
     );
 
@@ -34,7 +34,7 @@ test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file co
         "skills/example/SKILL.md",
         "design-templates/example/example.html",
         "design-templates/example/references/guide.md",
-        "plugins/_official/examples/example/open-design.json",
+        "plugins/_official/examples/example/readable-studio.json",
       ]),
     );
     assert.equal(await checkBundledCopyLanguage(root), false);
@@ -61,8 +61,8 @@ test("bundled copy guard permits explicit translations in manifests and reviewed
     await writeFile(path.join(root, "plugins/_official/examples/sprite-animation/example.html"), "<p>\u65e5\u672c\u8a9e</p>\n");
     await writeFile(path.join(root, "plugins/_official/examples/wireframe-sketch/example.html"), "<p>\u65e5\u672c\u8a9e</p>\n");
     await writeFile(
-      path.join(root, "plugins/_official/examples/example/open-design.json"),
-      '{"title_i18n":{"zh-CN":"\u4e2d\u6587","zh-TW":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"description_i18n":{"ja-JP":"\u65e5\u672c\u8a9e"},"od":{"useCase":{"query":{"zh-CN":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"path":"./example.html","title_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
+      path.join(root, "plugins/_official/examples/example/readable-studio.json"),
+      '{"title_i18n":{"zh-CN":"\u4e2d\u6587","zh-TW":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"description_i18n":{"ja-JP":"\u65e5\u672c\u8a9e"},"readable":{"useCase":{"query":{"zh-CN":"\u4e2d\u6587","ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"path":"./example.html","title_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
     );
 
     assert.equal(await checkBundledCopyLanguage(root), true);
@@ -76,14 +76,14 @@ test("bundled copy guard rejects arbitrary Japanese/Han manifest properties", as
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await writeFile(
-      path.join(root, "plugins/_official/examples/example/open-design.json"),
-      '{"ja":"\u65e5\u672c\u8a9e","label_i18n":{"ja":"\u65e5\u672c\u8a9e"},"od":{"title_i18n":{"ja":"\u65e5\u672c\u8a9e"},"useCase":{"query":{"ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"label_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
+      path.join(root, "plugins/_official/examples/example/readable-studio.json"),
+      '{"ja":"\u65e5\u672c\u8a9e","label_i18n":{"ja":"\u65e5\u672c\u8a9e"},"readable":{"title_i18n":{"ja":"\u65e5\u672c\u8a9e"},"useCase":{"query":{"ja":"\u65e5\u672c\u8a9e"},"exampleOutputs":[{"label_i18n":{"ja":"\u65e5\u672c\u8a9e"}}]}}}',
     );
 
     const violations = await collectBundledCopyLanguageViolations(root);
     assert.deepEqual(
       new Set(violations.map((violation) => violation.filePath)),
-      new Set(["plugins/_official/examples/example/open-design.json"]),
+      new Set(["plugins/_official/examples/example/readable-studio.json"]),
     );
     assert.equal(await checkBundledCopyLanguage(root), false);
   } finally {
@@ -96,14 +96,14 @@ test("bundled copy guard rejects Han defaults beside localized manifest maps", a
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await writeFile(
-      path.join(root, "plugins/_official/examples/example/open-design.json"),
+      path.join(root, "plugins/_official/examples/example/readable-studio.json"),
       '{"title":"\u4e2d\u6587 fallback","description_i18n":{"zh-CN":"\u4e2d\u6587\u63cf\u8ff0","ja":"\u65e5\u672c\u8a9e"}}',
     );
 
     const violations = await collectBundledCopyLanguageViolations(root);
     assert.deepEqual(
       new Set(violations.map((violation) => violation.filePath)),
-      new Set(["plugins/_official/examples/example/open-design.json"]),
+      new Set(["plugins/_official/examples/example/readable-studio.json"]),
     );
     assert.equal(await checkBundledCopyLanguage(root), false);
   } finally {

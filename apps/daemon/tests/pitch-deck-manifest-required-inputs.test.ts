@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
 const manifestPath = path.join(
   repoRoot,
-  'plugins/_official/examples/html-ppt-pitch-deck/open-design.json',
+  'plugins/_official/examples/html-ppt-pitch-deck/readable-studio.json',
 );
 
 describe('html-ppt-pitch-deck manifest inputs', () => {
@@ -27,7 +27,7 @@ describe('html-ppt-pitch-deck manifest inputs', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
 
-    const inputs = parsed.manifest.od?.inputs ?? [];
+    const inputs = parsed.manifest.readable?.inputs ?? [];
     const requiredNames = inputs
       .filter((input) => input.required === true)
       .map((input) => input.name);

@@ -2,7 +2,7 @@
 name: liquid-glass-agency
 description: "Use this plugin when the user wants a dark, luxury single-page landing for an AI web-design agency: cinematic video backgrounds, editorial Instrument Serif italic headings, liquid-glass (glassmorphism) cards and CTAs, BlurText word-by-word reveals, and section-by-section storytelling. Invoke for 'liquid glass agency', 'glass landing page', 'AI agency site', or when the user references the Liquid Glass Agency template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

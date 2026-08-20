@@ -12,7 +12,7 @@ triggers:
   - "what people are saying"
   - "trend scan"
   - "social research"
-od:
+readable:
   mode: prototype
   preview:
     type: markdown

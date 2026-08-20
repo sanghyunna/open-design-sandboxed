@@ -40,7 +40,7 @@ export function PluginScenarioDetail({
   const closeRef = useRef<HTMLButtonElement | null>(null);
   // The text/scenario fallback modal gets the same split "Use plugin /
   // Replicate this content" affordance as the HTML/design/media variants, so a
-  // scenario plugin with an `od.useCase.query` still offers use-with-query.
+  // scenario plugin with an `readable.useCase.query` still offers use-with-query.
   const useMenu = buildPluginUseMenu(record, onUse, t);
   const [useMenuOpen, setUseMenuOpen] = useState(false);
   const useMenuRef = useRef<HTMLDivElement | null>(null);
@@ -77,7 +77,7 @@ export function PluginScenarioDetail({
   }, []);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.od ?? {};
+  const od = manifest.readable ?? {};
   const examples = useMemo(
     () => (od.useCase?.exampleOutputs ?? []) as Array<{ path: string; title?: string }>,
     [od.useCase?.exampleOutputs],

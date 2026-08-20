@@ -2,7 +2,7 @@
 name: ai-designer-portfolio
 description: "Use this plugin when the user wants a premium single-page creative-studio / designer portfolio landing page on a white background: serif-accented hero, an infinite GIF marquee, parallax testimonial, two-card pricing, an auto-scrolling testimonial carousel, vertical project showcase, a mouse-trail partner CTA, and a fixed floating bottom nav. Invoke for 'designer portfolio', 'creative studio landing page', 'agency one-pager', or when the user references the Viktor Oddy / AI Designer Portfolio template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

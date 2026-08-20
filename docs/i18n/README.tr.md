@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **Neden MCP?** Her yinelemede bir zip dosyasını dışa aktarıp yeniden eklemek akışı bozar. MCP, tasarım kaynağını doğrudan ortaya çıkarır — ajan her zaman canlı dosyayı görür.
 
-**Sıfırdan başlayan bir ajan için,** yükleyici `~/.config/<agent>/open-design.json` dosyasını (veya platform eşdeğerini) artı kopyala-yapıştır bir MCP parçacığını yerleştirir. Cursor tek tıklık bir deeplink alır; Claude Code bir `claude mcp add-json` tek satırlık komut alır; diğer her ajan, yapılandırmasının beklediği şemada JSON alır. Ajan başına tam akış → masaüstü uygulamasında **Settings → MCP server** veya [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
+**Sıfırdan başlayan bir ajan için,** yükleyici `~/.config/<agent>/readable-studio.json` dosyasını (veya platform eşdeğerini) artı kopyala-yapıştır bir MCP parçacığını yerleştirir. Cursor tek tıklık bir deeplink alır; Claude Code bir `claude mcp add-json` tek satırlık komut alır; diğer her ajan, yapılandırmasının beklediği şemada JSON alır. Ajan başına tam akış → masaüstü uygulamasında **Settings → MCP server** veya [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
 
 **Güvenlik modeli.** Varsayılan olarak salt okunur, daemon `127.0.0.1` adresine bağlanır ve SSRF, proxy kenarında engellenir. LAN erişimi açık bir `OD_BIND_HOST` artı `OD_ALLOWED_ORIGINS` gerektirir. Bağlayıcı kimlik bilgileri ve canlı artifact önizleme rotaları ne olursa olsun yalnızca loopback'te kalır.
 
@@ -427,7 +427,7 @@ Kütüphaneyi [`scripts/sync-design-systems.ts`](../../scripts/sync-design-syste
 
 ## Eklentiler
 
-**261 resmî eklenti** [`plugins/_official/`](../../plugins/_official/) içinde yer alır. Her eklenti **taşınabilir bir ajan-beceri klasörüdür** — bir `SKILL.md` (Agent Skills'i destekleyen herhangi bir ajan tarafından okunabilir), artı Open Design'a pazar yeri meta verisi, girdiler, önizlemeler, işlem hatları ve yetenek bildirimleri veren isteğe bağlı bir `open-design.json` manifesti. Doğrudan bir kategoriye atlayın:
+**261 resmî eklenti** [`plugins/_official/`](../../plugins/_official/) içinde yer alır. Her eklenti **taşınabilir bir ajan-beceri klasörüdür** — bir `SKILL.md` (Agent Skills'i destekleyen herhangi bir ajan tarafından okunabilir), artı Open Design'a pazar yeri meta verisi, girdiler, önizlemeler, işlem hatları ve yetenek bildirimleri veren isteğe bağlı bir `readable-studio.json` manifesti. Doğrudan bir kategoriye atlayın:
 
 | Kategori | Sayı | İçerik |
 |---|---|---|
@@ -469,18 +469,18 @@ Her komut `--json` destekler, böylece onu `jq` / `xargs` aracılığıyla otoma
 
 ### Bir eklenti oluşturma
 
-Bir eklenti **en az bir `SKILL.md` gerektirir**; onu Open Design pazar yerinde listelemek için bir `open-design.json` ekleyin:
+Bir eklenti **en az bir `SKILL.md` gerektirir**; onu Open Design pazar yerinde listelemek için bir `readable-studio.json` ekleyin:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-Temel `open-design.json` alanları: `specVersion` (şu anda `1.0.0`), `name` (kararlı kimlik), `version` (semver), `compat.agentSkills[].path` (`./SKILL.md` dosyasını işaret eder), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (çıktı yüzeyi, örn. `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**minimumu bildirin** — kısıtlı bir kurulum varsayılan olarak yalnızca `prompt:inject` verir), `od.inputs[]` (uygulama zamanı parametreleri).
+Temel `readable-studio.json` alanları: `specVersion` (şu anda `1.0.0`), `name` (kararlı kimlik), `version` (semver), `compat.agentSkills[].path` (`./SKILL.md` dosyasını işaret eder), `od.kind` (`skill` / `scenario` / `atom` / `bundle`), `od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode` (çıktı yüzeyi, örn. `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]` (**minimumu bildirin** — kısıtlı bir kurulum varsayılan olarak yalnızca `prompt:inject` verir), `od.inputs[]` (uygulama zamanı parametreleri).
 
 Yerel olarak iskeletle + doğrula:
 
@@ -593,7 +593,7 @@ Open Design, katkıda bulunanlar — tasarımcılar, mühendisler, komut yazarla
 |---|---|---|
 | Yeni bir **beceri** | `SKILL.md` + `assets/` + `references/` içeren bir klasör bırakın | [`skills/`](../../skills/) · spesifikasyon [`docs/skills-protocol.md`](../../docs/skills-protocol.md) içinde |
 | Yeni bir **tasarım sistemi** | 9 bölümlük şemayı kullanan bir `DESIGN.md` bırakın | [`design-systems/<brand>/`](../../design-systems/) |
-| Yeni bir **eklenti** | Bir kategori klasörü altına `open-design.json` + manifest bırakın | [`plugins/community/`](../../plugins/community/) · spesifikasyon [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) içinde · ajan geliştirme kılavuzu [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) içinde |
+| Yeni bir **eklenti** | Bir kategori klasörü altına `readable-studio.json` + manifest bırakın | [`plugins/community/`](../../plugins/community/) · spesifikasyon [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) içinde · ajan geliştirme kılavuzu [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) içinde |
 | Yeni bir **kodlama ajanı CLI'si** destekleyin | Bir adaptör girdisi + akış ayrıştırıcı | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | Bir hatayı düzeltin veya UI'yi cilalayın | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) etiketine göz atın | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | Belgeleri çevirin | `README.<lang>.md` dosyalarını güncelleyin | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

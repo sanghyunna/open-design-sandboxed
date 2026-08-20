@@ -1,7 +1,7 @@
 ---
 name: od-tune-collab
 description: Default reference pipeline for the tune-collab taskKind — pick a direction, patch-edit the existing artifact, critique, hand off.
-od:
+readable:
   scenario: tune-collab
   mode: scenario
 ---

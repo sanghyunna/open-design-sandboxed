@@ -5,7 +5,7 @@ triggers:
   - contribute plugin
   - open design pr
   - github pull request
-od:
+readable:
   mode: utility
   platform: desktop
   scenario: plugin-sharing

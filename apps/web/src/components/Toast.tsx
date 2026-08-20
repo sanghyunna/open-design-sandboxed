@@ -36,7 +36,7 @@ export interface ToastProps {
 }
 
 const DEFAULT_TTL = 4000;
-// Exit fade duration — kept in sync with the .od-toast.leaving CSS animation.
+// Exit fade duration — kept in sync with the .readable-toast.leaving CSS animation.
 // The fade plays inside the TTL window (it begins at ttlMs - EXIT_MS) so the
 // toast unmounts at exactly ttlMs. Auto-dismiss timing therefore matches the
 // pre-fade contract: callers that rely on the toast being gone by ttlMs keep

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const READABLE_STUDIO_REGISTRY_MANIFEST_NAME = 'readable-studio-marketplace.json';
+export const READABLE_STUDIO_OFFICIAL_REGISTRY_ID = 'readable-studio-official';
+
 export const RegistryBackendKindSchema = z.enum(['github', 'http', 'local', 'db']);
 export type RegistryBackendKind = z.infer<typeof RegistryBackendKindSchema>;
 

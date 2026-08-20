@@ -1573,7 +1573,7 @@ export interface Dict {
   'examples.shareTitle': string;
   'examples.shareLoadFirst': string;
   // Card placeholder + share-button hint for skills whose
-  // `od.preview.type` is not `html` (image / markdown / …) so the
+  // `readable.preview.type` is not `html` (image / markdown / …) so the
   // gallery doesn't sit on a forever "Loading preview…" shimmer for
   // skills that ship no fetchable artifact. Issue #897.
   'examples.unavailablePlaceholder': string;
@@ -2032,11 +2032,11 @@ export interface Dict {
   'preview.errorTitle': string;
   'preview.errorBody': string;
   'preview.retry': string;
-  // Friendly placeholder copy for surfaces whose `od.preview.type` is
+  // Friendly placeholder copy for surfaces whose `readable.preview.type` is
   // not `html`, or whose manifest declares a preview entry that doesn't
   // ship on disk — they have no fetchable example artifact, so the
   // loading / error states are misleading. Issues #897, #2840, #3216.
-  // Body uses the `{kind}` placeholder (raw `od.preview.type` token,
+  // Body uses the `{kind}` placeholder (raw `readable.preview.type` token,
   // e.g. "markdown" or "image"); both keys use the `{noun}` placeholder
   // so the same wording reads correctly on skills, plugins, and design
   // templates (filled from one of the `preview.noun.*` keys below).

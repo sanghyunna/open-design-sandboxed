@@ -281,10 +281,10 @@ for (const bucket of BUNDLED_BUCKETS_WITH_EXAMPLE) {
   if (!existsSync(bucketDir)) continue;
   for (const slug of listDirs(bucketDir)) {
     const slugDir = path.join(bucketDir, slug);
-    const manifestPath = path.join(slugDir, 'open-design.json');
+    const manifestPath = path.join(slugDir, 'readable-studio.json');
     if (!existsSync(manifestPath)) continue;
 
-    let manifest: { name?: unknown; od?: { preview?: { entry?: unknown } } };
+    let manifest: { name?: unknown; readable?: { preview?: { entry?: unknown } } };
     try {
       manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
     } catch {
@@ -292,8 +292,8 @@ for (const bucket of BUNDLED_BUCKETS_WITH_EXAMPLE) {
     }
     const manifestId = typeof manifest.name === 'string' ? manifest.name : null;
     const entryRel =
-      typeof manifest.od?.preview?.entry === 'string'
-        ? manifest.od.preview.entry
+      typeof manifest.readable?.preview?.entry === 'string'
+        ? manifest.readable.preview.entry
         : null;
     if (!manifestId || !entryRel) continue;
 

@@ -2,7 +2,7 @@
 name: innovation
 description: "Use this plugin when the user wants a premium dark editorial landing page with an Instrument-Serif headline, liquid-glass nav/cards, a crossfading fullscreen hero video, and scroll-revealed about / featured-video / philosophy / services sections. Invoke for 'innovation landing', 'agency landing page', 'dark serif hero with glass', 'Asme template', or when the user references the Innovation / motionsites Innovation template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

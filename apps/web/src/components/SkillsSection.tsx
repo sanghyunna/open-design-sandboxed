@@ -148,7 +148,7 @@ export function SkillsSection({ cfg, setCfg, onSkillsRefresh, onSkillsChanged }:
     return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [skills]);
 
-  // Categories are optional per-skill metadata (`od.category` in the
+  // Categories are optional per-skill metadata (`readable.category` in the
   // SKILL.md frontmatter). The pill row only renders when at least one
   // skill in the listing carries one, so a project that ships only the
   // baseline functional skills doesn't see an empty filter row.

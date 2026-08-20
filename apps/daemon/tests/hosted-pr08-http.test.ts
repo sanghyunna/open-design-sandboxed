@@ -336,7 +336,7 @@ describe('hosted PR08 HTTP content boundary', () => {
         files: Array<{ name: string }>;
       };
       expect(manifest).toMatchObject({
-        schema: 'open-design.project-export-manifest.v1',
+        schema: 'readable-studio.project-export-manifest.v1',
         projectId: projectA.id,
         projectName: user === USER_A ? 'A archive' : 'B archive',
       });

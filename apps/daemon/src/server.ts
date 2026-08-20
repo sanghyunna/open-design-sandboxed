@@ -29,6 +29,10 @@ import {
   PLUGIN_SHARE_ACTION_PLUGIN_IDS,
 } from '@readable-studio/contracts';
 import {
+  parseManifest,
+  UNSUPPORTED_OPEN_DESIGN_V1,
+} from '@readable-studio/plugin-runtime';
+import {
   composeSystemPrompt,
 } from './prompts/system.js';
 import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
@@ -1270,7 +1274,7 @@ function mergeMarketplaceEntries(manifestText, entries) {
 }
 
 async function marketplaceSeedManifestText(id, bundledMarketplaceEntries) {
-  const manifestPath = path.join(PLUGIN_REGISTRY_DIR, id, 'open-design-marketplace.json');
+  const manifestPath = path.join(PLUGIN_REGISTRY_DIR, id, 'readable-studio-marketplace.json');
   if (!fs.existsSync(manifestPath)) return null;
   let manifestText = await fs.promises.readFile(manifestPath, 'utf8');
   if (id === OFFICIAL_MARKETPLACE_ID && bundledMarketplaceEntries.length > 0) {
@@ -1980,20 +1984,25 @@ function execCommandViaLoginShell(command, args, opts = {}) {
 }
 
 async function readProjectPluginManifest(folder) {
-  const raw = await fs.promises.readFile(path.join(folder, 'open-design.json'), 'utf8');
-  const manifest = JSON.parse(raw);
-  const name = typeof manifest.name === 'string' && manifest.name.trim()
-    ? manifest.name.trim()
-    : path.basename(folder);
+  if (fs.existsSync(path.join(folder, 'open-design.json'))) {
+    throw Object.assign(new Error(UNSUPPORTED_OPEN_DESIGN_V1), { code: UNSUPPORTED_OPEN_DESIGN_V1 });
+  }
+  const raw = await fs.promises.readFile(path.join(folder, 'readable-studio.json'), 'utf8');
+  const parsed = parseManifest(raw);
+  if (!parsed.ok) {
+    throw Object.assign(new Error(parsed.errors.join('; ')), { code: parsed.code });
+  }
+  const manifest = parsed.manifest;
+  const name = manifest.name.trim();
   if (/[/\\]/.test(name) || /^\.+$/.test(name)) {
     throw new Error(
-      `open-design.json in ${folder}: name "${name}" must not contain path separators or consist only of dots`,
+      `readable-studio.json in ${folder}: name "${name}" must not contain path separators or consist only of dots`,
     );
   }
   return {
     name,
-    title: typeof manifest.title === 'string' ? manifest.title : name,
-    version: typeof manifest.version === 'string' ? manifest.version : '0.1.0',
+    title: manifest.title ?? name,
+    version: manifest.version,
     manifest,
   };
 }
@@ -2325,7 +2334,7 @@ function isPluginAuthoringRun(db, run) {
 async function hasGeneratedPluginArtifacts(projectRoot) {
   if (!projectRoot || typeof projectRoot !== 'string') return false;
   const required = [
-    path.join(projectRoot, 'generated-plugin', 'open-design.json'),
+    path.join(projectRoot, 'generated-plugin', 'readable-studio.json'),
     path.join(projectRoot, 'generated-plugin', 'SKILL.md'),
   ];
   try {
@@ -6189,7 +6198,7 @@ export async function startServer({
   }
 
   async function folderLooksLikePlugin(folder) {
-    const names = ['open-design.json', 'SKILL.md', path.join('.claude-plugin', 'plugin.json')];
+    const names = ['readable-studio.json', 'SKILL.md', path.join('.claude-plugin', 'plugin.json')];
     for (const name of names) {
       if (fs.existsSync(path.join(folder, name))) return true;
     }
@@ -7508,11 +7517,11 @@ export async function startServer({
   app.post('/api/applied-plugins/export', requireLocalDaemonRequest, async (req, res) => {
     try {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const target = body.target === 'od' || body.target === 'claude-plugin' || body.target === 'agent-skill'
+      const target = body.target === 'readable-studio' || body.target === 'claude-plugin' || body.target === 'agent-skill'
         ? body.target
         : null;
       if (!target) {
-        return res.status(400).json({ error: 'target must be one of: od, claude-plugin, agent-skill' });
+        return res.status(400).json({ error: 'target must be one of: readable-studio, claude-plugin, agent-skill' });
       }
       const outDir = typeof body.outDir === 'string' && body.outDir.length > 0
         ? body.outDir

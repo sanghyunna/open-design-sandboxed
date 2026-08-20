@@ -187,12 +187,12 @@ describe('listPlugins', () => {
     const visible = {
       id: 'od-new-generation',
       title: 'New generation',
-      manifest: { od: { kind: 'scenario' } },
+      manifest: { readable: { kind: 'scenario' } },
     };
     const hidden = {
       id: 'od-default',
       title: 'Default design router',
-      manifest: { od: { kind: 'scenario', hidden: true } },
+      manifest: { readable: { kind: 'scenario', hidden: true } },
     };
     vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(
       JSON.stringify({ plugins: [hidden, visible] }),
@@ -208,12 +208,12 @@ describe('listPlugins', () => {
     const visible = {
       id: 'od-new-generation',
       title: 'New generation',
-      manifest: { od: { kind: 'scenario' } },
+      manifest: { readable: { kind: 'scenario' } },
     };
     const hidden = {
       id: 'od-default',
       title: 'Default design router',
-      manifest: { od: { kind: 'scenario', hidden: true } },
+      manifest: { readable: { kind: 'scenario', hidden: true } },
     };
     vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(
       JSON.stringify({ plugins: [hidden, visible] }),
@@ -263,7 +263,7 @@ describe('installGeneratedPluginFolder', () => {
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(
       JSON.stringify({
         ok: false,
-        warnings: ['Missing open-design.json'],
+        warnings: ['Missing readable-studio.json'],
         message: 'Plugin validation failed.',
         log: ['Validating generated-plugin'],
       }),
@@ -275,7 +275,7 @@ describe('installGeneratedPluginFolder', () => {
 
     expect(outcome).toMatchObject({
       ok: false,
-      warnings: ['Missing open-design.json'],
+      warnings: ['Missing readable-studio.json'],
       message: 'Plugin validation failed.',
       log: ['Validating generated-plugin'],
     });

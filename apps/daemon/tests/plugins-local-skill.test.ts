@@ -27,7 +27,7 @@ function manifestWithSkills(skills: Array<{ ref?: string; path?: string }>): Plu
     title: 'Fixture Plugin',
     version: '0.1.0',
     description: 'Stage A test fixture.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: { query: 'Generate a {{topic}} brief.' },

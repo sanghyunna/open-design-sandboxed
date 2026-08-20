@@ -6,7 +6,7 @@ describe('validateManifest', () => {
     const result = validateManifest({
       name: 'x',
       version: '1.0.0',
-      od: {
+      readable: {
         pipeline: { stages: [{ id: 'critique', atoms: ['critique-theater'], repeat: true }] },
       },
     });
@@ -18,7 +18,7 @@ describe('validateManifest', () => {
     const result = validateManifest({
       name: 'x',
       version: '1.0.0',
-      od: { capabilities: ['prompt:inject', 'made-up'] },
+      readable: { capabilities: ['prompt:inject', 'made-up'] },
     });
     expect(result.ok).toBe(true);
     expect(result.warnings.some((w) => w.includes('made-up'))).toBe(true);

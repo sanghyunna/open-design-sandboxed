@@ -10,7 +10,7 @@ triggers:
   - "pre-launch landing page"
   - "email capture page"
   - "launch page"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

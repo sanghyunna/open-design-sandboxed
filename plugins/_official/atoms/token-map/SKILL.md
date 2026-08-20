@@ -1,7 +1,7 @@
 ---
 name: token-map
 description: Map an extracted Figma / source-code token bag onto the active OD design system, producing a deterministic mapping the generate stage can consume.
-od:
+readable:
   scenario: figma-migration
   mode: token-map
 ---

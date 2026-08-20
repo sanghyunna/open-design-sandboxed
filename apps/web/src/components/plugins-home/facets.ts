@@ -59,7 +59,7 @@ function slugify(value: string): string {
 }
 
 function manifestField(record: InstalledPluginRecord, key: string): string | undefined {
-  const od = (record.manifest?.od ?? {}) as Record<string, unknown>;
+  const od = (record.manifest?.readable ?? {}) as Record<string, unknown>;
   const v = od[key];
   return typeof v === 'string' ? v : undefined;
 }
@@ -74,7 +74,7 @@ function manifestTagSlugs(record: InstalledPluginRecord): string[] {
 }
 
 function pipelineAtomSlugs(record: InstalledPluginRecord): string[] {
-  const stages = record.manifest?.od?.pipeline?.stages ?? [];
+  const stages = record.manifest?.readable?.pipeline?.stages ?? [];
   return stages.flatMap((stage) => stage.atoms.map(slugify));
 }
 
@@ -474,7 +474,7 @@ export function applyFacetSelection(
 }
 
 export function isFeaturedPlugin(record: InstalledPluginRecord): boolean {
-  const od = (record.manifest?.od ?? {}) as Record<string, unknown>;
+  const od = (record.manifest?.readable ?? {}) as Record<string, unknown>;
   return (
     od.featured === true ||
     (typeof od.featured === 'number' && Number.isFinite(od.featured))

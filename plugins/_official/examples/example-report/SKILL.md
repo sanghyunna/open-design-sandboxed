@@ -11,7 +11,7 @@ triggers:
   - "research report"
   - "status report"
   - "market analysis"
-od:
+readable:
   mode: prototype
   scenario: report
   preview:

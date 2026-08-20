@@ -68,8 +68,8 @@ describe('buildPublishLink', () => {
     const link = buildPublishLink({ catalog: 'open-design', meta: META });
     expect(link.catalogLabel).toBe('nexu-io/open-design');
     expect(link.url).toMatch(/^https:\/\/github\.com\/nexu-io\/open-design\/issues\/new\?/);
-    expect(link.prBody).toContain('plugins/community/<plugin-name>/open-design.json');
-    expect(link.prBody).toContain('plugins/registry/community/open-design-marketplace.json');
+    expect(link.prBody).toContain('plugins/community/<plugin-name>/readable-studio.json');
+    expect(link.prBody).toContain('plugins/registry/community/readable-studio-marketplace.json');
   });
 
   it('falls back to owner/repo placeholder when repoUrl is missing for skills-sh', () => {

@@ -16,7 +16,7 @@ example_name: "Keynote PPT · Product Intro"
 example_format: markdown
 example_tagline: "7 slides, product story, clear"
 example_desc: "Apple Keynote-style product intro, ←/→ to switch"
-od:
+readable:
   mode: deck
   surface: web
   scenario: marketing

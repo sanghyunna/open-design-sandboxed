@@ -49,7 +49,7 @@ function make(args: MakeArgs): InstalledPluginRecord {
       title: args.title ?? args.id,
       ...(args.description ? { description: args.description } : {}),
       ...(args.tags ? { tags: args.tags } : {}),
-      od: {
+      readable: {
         kind: 'scenario',
         ...(args.mode ? { mode: args.mode } : {}),
         ...(args.preview ? { preview: args.preview } : {}),
@@ -227,7 +227,7 @@ describe('PluginDetailsModal dispatch', () => {
   });
 
   it('offers the use/use-with-query split menu in the scenario fallback when the plugin has a query', () => {
-    // Regression (#3997 review): a text/scenario plugin with `od.useCase.query`
+    // Regression (#3997 review): a text/scenario plugin with `readable.useCase.query`
     // must still offer "Use plugin only" vs "Replicate this content", same as the
     // html/design/media variants — not a single plain `use` button.
     const html = render(

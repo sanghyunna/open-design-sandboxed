@@ -250,9 +250,9 @@ function maskNamedManifestLocalizedMaps(source: string, manifestStart: number): 
 }
 
 function maskManifestUseCaseQuery(source: string, masked: string, manifestStart: number): string {
-  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
-  if (odStart === undefined || source[odStart] !== "{") return masked;
-  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  const readableStart = directJsonObjectValueStart(source, manifestStart, "readable");
+  if (readableStart === undefined || source[readableStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, readableStart, "useCase");
   if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
   const queryStart = directJsonObjectValueStart(source, useCaseStart, "query");
   return queryStart !== undefined && source[queryStart] === "{"
@@ -261,9 +261,9 @@ function maskManifestUseCaseQuery(source: string, masked: string, manifestStart:
 }
 
 function maskManifestExampleOutputTitles(source: string, masked: string, manifestStart: number): string {
-  const odStart = directJsonObjectValueStart(source, manifestStart, "od");
-  if (odStart === undefined || source[odStart] !== "{") return masked;
-  const useCaseStart = directJsonObjectValueStart(source, odStart, "useCase");
+  const readableStart = directJsonObjectValueStart(source, manifestStart, "readable");
+  if (readableStart === undefined || source[readableStart] !== "{") return masked;
+  const useCaseStart = directJsonObjectValueStart(source, readableStart, "useCase");
   if (useCaseStart === undefined || source[useCaseStart] !== "{") return masked;
   const outputsStart = directJsonObjectValueStart(source, useCaseStart, "exampleOutputs");
   if (outputsStart === undefined || source[outputsStart] !== "[") return masked;
@@ -305,7 +305,7 @@ function maskExplicitJsonLocaleValues(source: string): string {
 
 function sourceWithoutExplicitLocalizedValues(repositoryPath: string, source: string): string {
   if (path.basename(repositoryPath) === "SKILL.md") return maskExplicitYamlLocaleValues(source);
-  if (path.basename(repositoryPath) === "open-design.json") return maskExplicitJsonLocaleValues(source);
+  if (path.basename(repositoryPath) === "readable-studio.json") return maskExplicitJsonLocaleValues(source);
   return source;
 }
 

@@ -63,9 +63,9 @@ export function searchInstalledPlugins(input: SearchInstalledPluginsInput): Sear
     const matched: SearchInstalledPluginsResultEntry['matched'] = [];
 
     // Structural filters first (cheap; short-circuit on miss).
-    if (taskKind && (manifest.od?.taskKind ?? '').toLowerCase() !== taskKind) continue;
+    if (taskKind && (manifest.readable?.taskKind ?? '').toLowerCase() !== taskKind) continue;
     if (taskKind) matched.push('taskKind');
-    if (mode && (manifest.od?.mode ?? '').toLowerCase() !== mode) continue;
+    if (mode && (manifest.readable?.mode ?? '').toLowerCase() !== mode) continue;
     if (mode) matched.push('mode');
     if (trust && plugin.trust !== trust) continue;
     if (trust) matched.push('trust');

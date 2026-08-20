@@ -50,7 +50,7 @@ interface ContextRef {
 }
 
 function designSystemRef(record: InstalledPluginRecord): string | null {
-  const ds = (record.manifest?.od?.context as { designSystem?: ContextRef } | undefined)
+  const ds = (record.manifest?.readable?.context as { designSystem?: ContextRef } | undefined)
     ?.designSystem;
   if (!ds) return null;
   if (typeof ds.ref === 'string' && ds.ref.length > 0) return ds.ref;
@@ -59,11 +59,11 @@ function designSystemRef(record: InstalledPluginRecord): string | null {
 
 function specAssetPath(record: InstalledPluginRecord): string {
   // Most design-system plugins ship `DESIGN.md` at the bundle root,
-  // but `od.context.assets[0]` may point at a different relpath when
+  // but `readable.context.assets[0]` may point at a different relpath when
   // the bundle has co-located docs. Prefer the assets entry when it
   // smells like a markdown spec; otherwise fall back to the canonical
   // filename so the sidebar still has something to load.
-  const assets = (record.manifest?.od?.context?.assets ?? []) as string[];
+  const assets = (record.manifest?.readable?.context?.assets ?? []) as string[];
   const md = assets.find((a) => /\.md$/i.test(a));
   return md ?? './DESIGN.md';
 }

@@ -2,7 +2,7 @@
 name: luxury-botanical
 description: "Use this plugin when the user wants a cinematic luxury-fragrance / botanical landing page: a fullscreen video hero, a scroll-driven elliptical clip-path reveal, an orbiting carousel of perfume bottles that scales up at a focal point, plus a 'Stay in the collection' newsletter section and a warm parchment footer. Invoke for 'luxury botanical', 'perfume landing page', 'fragrance hero', 'orbit carousel', or when the user references the Bentley — Beyond The Collection template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

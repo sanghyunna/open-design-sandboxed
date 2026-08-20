@@ -17,7 +17,7 @@ triggers:
   - editorial document
   - print-grade page
   - kami landing
-od:
+readable:
   category: brand-page
   surface: web
   mode: prototype

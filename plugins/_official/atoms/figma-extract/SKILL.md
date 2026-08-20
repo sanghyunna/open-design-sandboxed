@@ -1,7 +1,7 @@
 ---
 name: figma-extract
 description: Pull a Figma file's node tree, design tokens, and embedded assets into the project cwd as a structured snapshot.
-od:
+readable:
   scenario: figma-migration
   mode: extract
 ---

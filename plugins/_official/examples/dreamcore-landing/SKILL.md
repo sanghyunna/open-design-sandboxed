@@ -2,7 +2,7 @@
 name: dreamcore-landing
 description: "Use this plugin when the user wants a single-page immersive parallax landing page with a scroll-driven portal/curtain entrance and a curved arc card slider — a 'dreamcore' / 'reverie' hero that scales a portal image toward the viewer as the user scrolls into a second dream-world scene. Invoke for 'parallax landing', 'scroll cinematic hero', 'portal zoom landing', 'arc card slider', or when the user references the Dreamcore Landing template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

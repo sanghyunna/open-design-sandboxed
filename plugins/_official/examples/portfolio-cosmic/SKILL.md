@@ -2,7 +2,7 @@
 name: portfolio-cosmic
 description: "Use this plugin when the user wants a premium dark single-page portfolio landing: cinematic HLS hero video, Instrument-Serif italic display type, a loading screen counter, a bento works grid, a scroll-pinned parallax exploration gallery, and a marquee contact footer. Invoke for 'cosmic portfolio', 'dark portfolio landing', 'designer portfolio with video hero', or when the user references the Portfolio Cosmic template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

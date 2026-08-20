@@ -11,7 +11,7 @@ triggers:
   - "slides"
   - "ppt"
   - "presentation"
-od:
+readable:
   mode: deck
   scenario: product
   preview:

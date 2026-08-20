@@ -29,7 +29,7 @@ export function buildReactComponentSrcdoc(
         color: #111827;
       }
       #root { min-height: 100vh; }
-      .od-react-error {
+      .readable-react-error {
         margin: 16px;
         padding: 14px 16px;
         border: 1px solid #fecaca;

@@ -821,7 +821,7 @@ export const en: Dict = {
   'useEverywhere.section.http.footer': 'Pure TypeScript types for every request/response live in `@readable-studio/contracts` — import them in your script for full autocomplete without wiring a generator.',
   'useEverywhere.section.skills.tab': 'Skills & headless',
   'useEverywhere.section.skills.heading': 'Drop-in Skills for any agent — even without Open Design running',
-  'useEverywhere.section.skills.intro': 'A Skill is a directory with a Claude-compatible `SKILL.md` (YAML front-matter + body). Open Design extends the format with the `od:` namespace (`mode`, `preview`, `design_system`, `inputs`, …) so the same artifact can be used both inside Open Design and by a vanilla agent like Claude Code, Codex, openclaw, or hermes. Discovery follows a precedence chain so projects can override their own skills.',
+  'useEverywhere.section.skills.intro': 'A Skill is a directory with a Claude-compatible `SKILL.md` (YAML front-matter + body). Open Design extends the format with the `readable:` namespace (`mode`, `preview`, `design_system`, `inputs`, …) so the same artifact can be used both inside Open Design and by a vanilla agent like Claude Code, Codex, openclaw, or hermes. Discovery follows a precedence chain so projects can override their own skills.',
   'useEverywhere.section.skills.bullet1': 'Discovery: `./.claude/skills/` → `./skills/` → `~/.claude/skills/` (project wins).',
   'useEverywhere.section.skills.bullet2': 'Symlink one skill into multiple projects to share it without copying.',
   'useEverywhere.section.skills.bullet3': 'Each skill can declare atoms, design-system requirements, and a `preview` example output for the gallery.',

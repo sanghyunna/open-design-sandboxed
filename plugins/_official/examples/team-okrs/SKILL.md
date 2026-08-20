@@ -11,7 +11,7 @@ triggers:
   - "key results"
   - "objectives"
   - "goals"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: product

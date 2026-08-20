@@ -21,7 +21,7 @@ readable plugin apply plugin-id --input artifact=prototype --input audience=foun
 ## Files
 
 - `SKILL.md` - portable agent instructions.
-- `open-design.json` - versioned Open Design marketplace and apply metadata.
+- `readable-studio.json` - versioned Readable Studio marketplace and apply metadata.
 - `examples/` - sample output or fixture prompts.
 - `evals/` - repeatable quality checks.
 

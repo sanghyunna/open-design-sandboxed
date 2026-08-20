@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: Push the run's accepted artifact to a downstream collaboration surface (cli, other code agents, cloud, desktop) and stamp the artifact manifest with the export target.
-od:
+readable:
   scenario: tune-collab
   mode: handoff
 ---

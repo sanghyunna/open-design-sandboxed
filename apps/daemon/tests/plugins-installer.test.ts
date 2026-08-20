@@ -25,12 +25,12 @@ beforeEach(async () => {
   sourceFolder = path.join(tmpRoot, 'source-plugin');
   await mkdir(sourceFolder, { recursive: true });
   await writeFile(
-    path.join(sourceFolder, 'open-design.json'),
+    path.join(sourceFolder, 'readable-studio.json'),
     JSON.stringify({
       name: 'sample-plugin',
       version: '1.0.0',
       title: 'Sample Plugin',
-      od: {
+      readable: {
         kind: 'skill',
         taskKind: 'new-generation',
         useCase: { query: 'Make a {{topic}} brief.' },
@@ -127,7 +127,7 @@ describe('installFromLocalFolder', () => {
       ],
     });
     const added = await addMarketplace(db, {
-      url: 'https://example.com/open-design-marketplace.json',
+      url: 'https://example.com/readable-studio-marketplace.json',
       trust: 'official',
       fetcher: async () => ({
         ok: true,

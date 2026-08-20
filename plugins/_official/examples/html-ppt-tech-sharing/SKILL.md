@@ -8,7 +8,7 @@ triggers:
   - "engineering talk"
   - "conference talk"
   - "dev talk"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 22

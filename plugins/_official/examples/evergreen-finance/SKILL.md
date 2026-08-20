@@ -2,7 +2,7 @@
 name: evergreen-finance
 description: "Use this plugin when the user wants a premium 'Kova' fintech / banking landing page: a full-screen hero with a boomerang (forward/reverse) video background, animated FadeUp reveals, floating dashboard cards (savings line chart, spend bar charts), a split testimonial section with a square autoplay video, and a 4-up features grid with image cards and a donut spend chart. Invoke for 'fintech landing', 'banking app landing', 'Kova', 'finance hero with video', or when the user references the Evergreen Finance template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

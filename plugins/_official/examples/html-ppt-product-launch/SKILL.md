@@ -8,7 +8,7 @@ triggers:
   - "feature reveal"
   - "launch slides"
 - "press conference"
-od:
+readable:
   mode: deck
   scenario: marketing
   featured: 21

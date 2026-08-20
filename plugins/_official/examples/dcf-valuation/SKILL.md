@@ -13,7 +13,7 @@ triggers:
   - "price target"
   - "undervalued"
   - "overvalued"
-od:
+readable:
   mode: prototype
   preview:
     type: markdown

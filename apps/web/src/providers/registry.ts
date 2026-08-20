@@ -806,7 +806,7 @@ export type SkillExampleResult =
   // and the daemon's `/example` endpoint only ships HTML, so calling it
   // would 404 into a misleading "failed to fetch" state. The modal
   // renders a calm "no shipped preview" affordance instead. The `kind`
-  // is the raw `od.preview.type` from SKILL.md so future preview kinds
+  // is the raw `readable.preview.type` from SKILL.md so future preview kinds
   // can be picked up by name without a registry change. Issue #897.
   | { unavailable: true; kind: string }
   | { error: string };
@@ -817,7 +817,7 @@ export type SkillExampleResult =
 // every failure into `null`, which left the example preview modal stuck
 // at its loading state with no recovery affordance. Issue #860.
 //
-// `previewType` is the skill's `od.preview.type` (defaults to `'html'`
+// `previewType` is the skill's `readable.preview.type` (defaults to `'html'`
 // daemon-side). Anything other than `'html'` short-circuits to an
 // `unavailable` result so we don't fire a network call against a
 // daemon endpoint that only resolves HTML files. Issue #897.
@@ -1513,7 +1513,7 @@ export async function fetchPluginPreviewHtml(
 }
 
 // Fetch a single example output by stem (matches the basename of the
-// `od.useCase.exampleOutputs[].path` minus its extension). 404 is
+// `readable.useCase.exampleOutputs[].path` minus its extension). 404 is
 // mapped to `unavailable` for the same reason as fetchPluginPreviewHtml.
 export async function fetchPluginExampleHtml(
   pluginId: string,

@@ -163,9 +163,9 @@ describe('figma-migration pipeline — full atom chain', () => {
     // for the resolver lives in plugins-scenario-fallback; this
     // case just locks the scenario folder still ships the canonical
     // stage list so the resolver has something to copy.
-    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'od-figma-migration', 'open-design.json');
+    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'od-figma-migration', 'readable-studio.json');
     const manifest = JSON.parse(await readFile(scenariosRoot, 'utf8'));
-    expect(manifest.od.pipeline.stages.map((s: { id: string }) => s.id)).toEqual([
+    expect(manifest.readable.pipeline.stages.map((s: { id: string }) => s.id)).toEqual([
       'extract', 'tokens', 'generate', 'critique',
     ]);
   });

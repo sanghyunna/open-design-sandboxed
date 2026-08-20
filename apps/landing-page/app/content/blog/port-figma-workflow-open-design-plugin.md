@@ -27,11 +27,11 @@ Good first plugin candidates:
 
 The unit is not the whole design department. The unit is one workflow someone already repeats twice a week.
 
-That is why Open Design's [skill layer](/blog/why-we-built-open-design-as-a-skill-layer/) matters. A plugin is not an opaque runtime extension. It is a folder of files: a `SKILL.md` contract, optional design systems, optional examples, and an `open-design.json` sidecar that tells Open Design how to display and apply the workflow.
+That is why Open Design's [skill layer](/blog/why-we-built-open-design-as-a-skill-layer/) matters. A plugin is not an opaque runtime extension. It is a folder of files: a `SKILL.md` contract, optional design systems, optional examples, and an `readable-studio.json` sidecar that tells Open Design how to display and apply the workflow.
 
 ## The Open Design angle is portability
 
-The plugin spec states the contract plainly: `SKILL.md` stays the executable agent contract, while `open-design.json` adds marketplace metadata, input fields, defaults, previews, and context wiring.
+The plugin spec states the contract plainly: `SKILL.md` stays the executable agent contract, while `readable-studio.json` adds marketplace metadata, input fields, defaults, previews, and context wiring.
 
 That gives one workflow two lives. In Open Design, it appears as a plugin with a preview, inputs, provenance, and a one-click "use" path. In Claude Code, Cursor, Codex, Gemini CLI, OpenClaw, or another skill catalog, the same folder still works as a plain agent skill because the core behavior lives in Markdown.
 
@@ -42,7 +42,7 @@ For a Figma-to-code workflow, the surfaces usually look like this:
 | Surface | Concrete file |
 |---|---|
 | Agent behavior | `SKILL.md` |
-| Open Design metadata | `open-design.json` |
+| Open Design metadata | `readable-studio.json` |
 | Brand or visual contract | `design-systems/{brand}/DESIGN.md` |
 | Example output | `example.html` or `examples/{plugin-id}/example.html` inside the plugin folder |
 | Preview media | `preview/poster.png` or `preview/index.html` inside the plugin folder |
@@ -55,7 +55,7 @@ Here is the minimum path for a plugin that ports one Figma landing-page workflow
 
 1. **Name the repeatable job.** Example: "Turn one Figma marketing frame into a responsive Astro page."
 2. **Write the skill contract.** Create `SKILL.md` with the input shape, output path, constraints, and review checklist.
-3. **Add the Open Design sidecar.** Create `open-design.json` so the marketplace can show the title, description, required inputs, preview, and source repo.
+3. **Add the Open Design sidecar.** Create `readable-studio.json` so the marketplace can show the title, description, required inputs, preview, and source repo.
 4. **Attach the design system.** If the workflow depends on brand rules, add a `DESIGN.md` file instead of burying color and typography in prose.
 5. **Include one real example.** Save a generated artifact under `examples/` so reviewers can judge the output, not just the promise.
 6. **Validate and pack.** Run the plugin commands before opening a PR.
@@ -96,7 +96,7 @@ The team still needs taste. The plugin just stops making them re-explain the sam
 
 ## What to do next
 
-If your team has a Figma export, token sync, brand kit, or deck template that keeps coming back, port the smallest repeatable slice first. Start with a `SKILL.md`, add `open-design.json`, validate it, and open the PR before the workflow grows into a private tool nobody else can reuse. The screenshot-to-prototype example shows the plugin-shaped version: a portable skill plus an Open Design sidecar.
+If your team has a Figma export, token sync, brand kit, or deck template that keeps coming back, port the smallest repeatable slice first. Start with a `SKILL.md`, add `readable-studio.json`, validate it, and open the PR before the workflow grows into a private tool nobody else can reuse. The screenshot-to-prototype example shows the plugin-shaped version: a portable skill plus an Open Design sidecar.
 
 [Try this workflow](https://github.com/nexu-io/open-design/tree/main/plugins/spec/examples/import-screenshot-to-prototype).
 

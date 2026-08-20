@@ -6,7 +6,7 @@
 
 **Plugin（插件）** 是 Open Design 的分发单元。[Skill](skills-protocol.md) 描述的是 agent 可以执行的一项能力，而 Plugin 是围绕这项能力形成的可发布包：一个或多个 skills、可选 design system 引用、可选 craft 规则、可选 Claude-plugin 资产、预览、use-case query、资产文件夹，以及一个用于驱动 OD marketplace 表面的轻量机器可读 sidecar。插件始终以可移植的 `SKILL.md` 为锚点，因此可以不经修改地发布到现有 agent skill 生态。
 
-> **兼容性承诺（扩展 [`skills-protocol.md`](skills-protocol.md)）：** 任何包含 `SKILL.md` 的插件文件夹，都可以作为普通 agent skill 在 Claude Code、Cursor、Codex、Gemini CLI、OpenClaw、Hermes 等工具中运行。添加 `open-design.json` 只是纯增量能力：它会解锁 OD 的 marketplace 卡片、预览、一键「使用」流程、类型化 context-chip strip，但不会改变底层 skill 的运行方式。**一个 repo，两种消费模式。**
+> **兼容性承诺（扩展 [`skills-protocol.md`](skills-protocol.md)）：** 任何包含 `SKILL.md` 的插件文件夹，都可以作为普通 agent skill 在 Claude Code、Cursor、Codex、Gemini CLI、OpenClaw、Hermes 等工具中运行。添加 `readable-studio.json` 只是纯增量能力：它会解锁 OD 的 marketplace 卡片、预览、一键「使用」流程、类型化 context-chip strip，但不会改变底层 skill 的运行方式。**一个 repo，两种消费模式。**
 
 ## 给读者的全局梳理
 
@@ -14,7 +14,7 @@
 
 最短心智模型：
 
-1. **插件作者发布可移植能力。** `SKILL.md` 仍然是可执行的 agent contract；`open-design.json` 增加 OD marketplace 元数据、输入字段、默认值、预览和上下文 wiring。
+1. **插件作者发布可移植能力。** `SKILL.md` 仍然是可执行的 agent contract；`readable-studio.json` 增加 OD marketplace 元数据、输入字段、默认值、预览和上下文 wiring。
 2. **用户或 agent 选择一个工作流。** 选择入口可以是 marketplace、首页输入框、已有 project chat、CLI，或者 CI。
 3. **OD apply 插件，但插件不是 UI 进程。** Apply 返回 hydrated brief、类型化 context chips、assets 和 capability requirements；它不会启动隐藏的插件 runtime。
 4. **agent 驱动生成。** daemon 创建或更新 project，启动 run，通过 SSE / CLI ND-JSON streaming events 输出过程，并记录 artifacts。
@@ -37,7 +37,7 @@ sequenceDiagram
   participant U as 用户或 Agent
   participant S as OD 表面<br/>(Web, Desktop, CLI, CI)
   participant D as OD Daemon
-  participant P as Plugin Manifest<br/>(SKILL.md + open-design.json)
+  participant P as Plugin Manifest<br/>(SKILL.md + readable-studio.json)
   participant A as Code Agent
   participant R as Project Runtime<br/>(files + artifacts)
 
@@ -102,8 +102,8 @@ OD 的核心不是「一次 prompt 一次输出」，而是 **long-running desig
 2. [目标与非目标](#2-目标与非目标)
 3. [兼容性矩阵](#3-兼容性矩阵--什么样的文件夹对哪些系统是合法插件)
 4. [插件文件夹形态](#4-插件文件夹形态)
-5. [`open-design.json` schema](#5-open-designjson--schema-v1)
-6. [`open-design-marketplace.json` schema](#6-open-design-marketplacejson--联邦目录)
+5. [`readable-studio.json` schema](#5-open-designjson--schema-v1)
+6. [`readable-studio-marketplace.json` schema](#6-open-design-marketplacejson--联邦目录)
 7. [发现与安装](#7-发现与安装)
 8. [Apply pipeline](#8-apply-pipeline)
 9. [信任与能力](#9-信任与能力)
@@ -128,7 +128,7 @@ OD 的核心不是「一次 prompt 一次输出」，而是 **long-running desig
 
 - 写作阶段：草稿，等待评审。
 - 规划阶段锁定的默认选择（评审时可覆盖）：
-  - **兼容性 = wrap-then-extend。** 现有 `SKILL.md` 与 `.claude-plugin/plugin.json` repo 原样可运行；`open-design.json` 是增量 sidecar。
+  - **兼容性 = wrap-then-extend。** 现有 `SKILL.md` 与 `.claude-plugin/plugin.json` repo 原样可运行；`readable-studio.json` 是增量 sidecar。
   - **信任 = 分层且来源敏感。** 内置插件与官方 marketplace 插件默认 `trusted`；用户添加的第三方 marketplace、任意 GitHub / URL / local 插件默认 `restricted`，除非 marketplace 或插件被显式 trust。
 
 ## 1. 愿景
@@ -141,7 +141,7 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 - [`openclaw/clawhub`](https://github.com/openclaw/clawhub)
 - [`skills.sh`](https://skills.sh/)
 
-不同目录的收录格式不同，但它们都索引 `SKILL.md` 形态的文件夹。只要保持 `SKILL.md` 作为 canonical，`open-design.json` 作为严格 sidecar，一个 repo 就可以不做目标目录专用改写而进入所有生态目录。
+不同目录的收录格式不同，但它们都索引 `SKILL.md` 形态的文件夹。只要保持 `SKILL.md` 作为 canonical，`readable-studio.json` 作为严格 sidecar，一个 repo 就可以不做目标目录专用改写而进入所有生态目录。
 
 同一愿景的第二条轴线：**CLI 是 Open Design 面向 agent 的 canonical API。** 代码 agent（Claude Code、Cursor、Codex、OpenClaw、Hermes、企业内部 orchestrator）通过 shell 调用 `readable …` 驱动 OD，而不是直接请求 `/api/*`。CLI 用稳定的子命令 contract 包装所有 server 能力：project 创建、conversation/run 生命周期、plugin apply、project 文件系统操作、design library introspection、daemon control。HTTP server 是 desktop UI 与 CLI 自身的实现细节；agent 如果直接访问 HTTP，就绕过了 contract。
 
@@ -156,8 +156,8 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 **目标**
 
 1. 每个可运行、可分发的 OD 插件都是合法 agent skill（以 `SKILL.md` 或 `.claude-plugin/plugin.json` 为锚点）。不 fork skill spec。
-2. 一个普通 skill 或 claude-plugin repo，只要添加可选 `open-design.json` sidecar，就成为 OD 插件；不改名、不改 body。
-3. 支持四类安装源：本地文件夹、GitHub repo（可带 ref/subpath）、任意 HTTPS archive，以及联邦 `open-design-marketplace.json` index。
+2. 一个普通 skill 或 claude-plugin repo，只要添加可选 `readable-studio.json` sidecar，就成为 OD 插件；不改名、不改 body。
+3. 支持四类安装源：本地文件夹、GitHub repo（可带 ref/subpath）、任意 HTTPS archive，以及联邦 `readable-studio-marketplace.json` index。
 4. 一键「使用」会自动填充 brief 输入框，并在上方填充 `ContextItem` chips（skills、design-system、craft、assets、MCP、claude-plugin、atom）。
 5. 默认分层信任；能力 scope 是声明式、可选的。
 6. OD core engine、atomic capabilities、plugin runtime 全部可以通过 CLI 访问，因此任何 code agent 都能 headless 地驱动 Open Design。
@@ -179,14 +179,14 @@ Open Design 变成一套 **server + CLI + atomic core engine + plugin/marketplac
 | --- | --- | --- | --- | --- | --- | --- |
 | 仅 `SKILL.md` | yes | yes | yes | yes | yes | yes |
 | 仅 `.claude-plugin/plugin.json` | yes | yes (claude) | partial | listable | listable | listable |
-| 仅 `open-design.json` | metadata-only | no | no | no | no | no |
-| `SKILL.md` + `open-design.json` | enriched | yes | yes | yes | yes | yes |
-| `.claude-plugin/...` + `open-design.json` | enriched | yes (claude) | partial | listable | listable | listable |
-| `SKILL.md` + `.claude-plugin/...` + `open-design.json` | fully enriched | yes | yes | yes | yes | yes |
+| 仅 `readable-studio.json` | metadata-only | no | no | no | no | no |
+| `SKILL.md` + `readable-studio.json` | enriched | yes | yes | yes | yes | yes |
+| `.claude-plugin/...` + `readable-studio.json` | enriched | yes (claude) | partial | listable | listable | listable |
+| `SKILL.md` + `.claude-plugin/...` + `readable-studio.json` | fully enriched | yes | yes | yes | yes | yes |
 
-结论：**`SKILL.md` 是最低共同分母**。任何推荐用于分发的插件都应该包含 `SKILL.md`，这样它可以进入所有主流目录；再添加 `open-design.json` 来获得 OD 的产品表面。
+结论：**`SKILL.md` 是最低共同分母**。任何推荐用于分发的插件都应该包含 `SKILL.md`，这样它可以进入所有主流目录；再添加 `readable-studio.json` 来获得 OD 的产品表面。
 
-仅包含 `open-design.json` 的文件夹在 v1 中不是可运行插件，而是 **metadata-only preset**：OD 可以读取它来展示市场卡片、聚合远端引用或作为未来 install stub，但它不能触发 agent run，也不能进入跨 agent catalog。`readable plugin doctor` 必须把这种形态标记为 `metadata-only`，并提示作者补充 `SKILL.md` 或 `.claude-plugin/plugin.json` 才能发布为 runnable plugin。
+仅包含 `readable-studio.json` 的文件夹在 v1 中不是可运行插件，而是 **metadata-only preset**：OD 可以读取它来展示市场卡片、聚合远端引用或作为未来 install stub，但它不能触发 agent run，也不能进入跨 agent catalog。`readable plugin doctor` 必须把这种形态标记为 `metadata-only`，并提示作者补充 `SKILL.md` 或 `.claude-plugin/plugin.json` 才能发布为 runnable plugin。
 
 ## 4. 插件文件夹形态
 
@@ -195,7 +195,7 @@ my-plugin/
 ├── SKILL.md                          # required for portability; anchors agent behavior
 ├── .claude-plugin/                   # optional: claude-plugin compat (commands/agents/hooks/.mcp.json)
 │   └── plugin.json
-├── open-design.json                  # optional sidecar — unlocks OD product surface
+├── readable-studio.json                  # optional sidecar — unlocks OD product surface
 ├── README.md                         # standard catalog readme
 ├── preview/                          # OD preview assets
 │   ├── index.html
@@ -213,15 +213,15 @@ my-plugin/
 作者规则：
 
 - `SKILL.md` body 不承载 OD 专属元数据；它保持干净、可移植。
-- `open-design.json` 只**指向** SKILL.md / DESIGN.md / craft 文件；永不复制它们的正文。
-- 当前 SKILL.md frontmatter 上已有的 OD 专属 `od:` namespace（已在 [`skills-protocol.md`](skills-protocol.md) 中描述，并在 [`skills/blog-post/SKILL.md`](../skills/blog-post/SKILL.md) 中使用）继续作为没有 `open-design.json` 的插件的 fallback。我们不废弃它，只在其上叠加。
-- v1 的 runnable plugin 必须至少包含 `SKILL.md` 或 `.claude-plugin/plugin.json` 之一。`open-design.json` 本身不定义 agent 行为，只定义 OD 如何展示、解析和应用这些行为。
+- `readable-studio.json` 只**指向** SKILL.md / DESIGN.md / craft 文件；永不复制它们的正文。
+- 当前 SKILL.md frontmatter 上已有的 OD 专属 `od:` namespace（已在 [`skills-protocol.md`](skills-protocol.md) 中描述，并在 [`skills/blog-post/SKILL.md`](../skills/blog-post/SKILL.md) 中使用）继续作为没有 `readable-studio.json` 的插件的 fallback。我们不废弃它，只在其上叠加。
+- v1 的 runnable plugin 必须至少包含 `SKILL.md` 或 `.claude-plugin/plugin.json` 之一。`readable-studio.json` 本身不定义 agent 行为，只定义 OD 如何展示、解析和应用这些行为。
 
-## 5. `open-design.json` — schema v1
+## 5. `readable-studio.json` — schema v1
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-manifest:v1",
   "specVersion": "1.0.0",
   "name": "make-a-deck",
   "title": "Make a deck",
@@ -389,7 +389,7 @@ export type ContextItem =
 
 ### 5.4 `SKILL.md` frontmatter 到 `PluginManifest` 的映射
 
-当插件没有 `open-design.json`，但 `SKILL.md` 已经包含 [`skills-protocol.md`](skills-protocol.md) 中定义的 `od:` frontmatter 时，`adapters/agent-skill.ts` 会合成一个最小 `PluginManifest`。映射规则必须稳定，避免旧 skill 与新 plugin schema 出现两套语义：
+当插件没有 `readable-studio.json`，但 `SKILL.md` 已经包含 [`skills-protocol.md`](skills-protocol.md) 中定义的 `od:` frontmatter 时，`adapters/agent-skill.ts` 会合成一个最小 `PluginManifest`。映射规则必须稳定，避免旧 skill 与新 plugin schema 出现两套语义：
 
 | `SKILL.md` 字段 | Plugin manifest 字段 | 规则 |
 | --- | --- | --- |
@@ -404,15 +404,15 @@ export type ContextItem =
 | `od.outputs` | `projectMetadata` hints | 用于 artifact bookkeeping 和 preview default，不作为用户可编辑 input |
 | `od.capabilities_required` | `od.capabilities` | 只映射能表达的能力；未知 capability 保留为 `compatWarnings[]`，`readable plugin doctor` 必须提示 |
 
-如果 `open-design.json` 与 `SKILL.md` frontmatter 同时存在，`open-design.json` 优先，但 loader 必须保留 adapter 产生的 warnings。这样作者可以渐进迁移：先让旧 skill 原样可用，再逐步增加 OD marketplace 信息。
+如果 `readable-studio.json` 与 `SKILL.md` frontmatter 同时存在，`readable-studio.json` 优先，但 loader 必须保留 adapter 产生的 warnings。这样作者可以渐进迁移：先让旧 skill 原样可用，再逐步增加 OD marketplace 信息。
 
-## 6. `open-design-marketplace.json` — 联邦目录
+## 6. `readable-studio-marketplace.json` — 联邦目录
 
 它镜像 [`anthropics/skills/.claude-plugin/marketplace.json`](https://raw.githubusercontent.com/anthropics/skills/main/.claude-plugin/marketplace.json) 的形态，因此现有社区 catalog 只需要重命名即可复用。
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/marketplace.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-marketplace:v1",
   "specVersion": "1.0.0",
   "name": "open-design-official",
   "version": "1.0.0",
@@ -425,7 +425,7 @@ export type ContextItem =
 }
 ```
 
-Marketplace 顶层 `version` 是 catalog snapshot 版本；每个 `plugins[]` entry 也声明被列入的插件版本。Installer 抓取后仍会校验目标文件夹自己的 `open-design.json`，但 registry search、审计日志和 marketplace refresh events 可以在安装前就理解 catalog 与插件版本。
+Marketplace 顶层 `version` 是 catalog snapshot 版本；每个 `plugins[]` entry 也声明被列入的插件版本。Installer 抓取后仍会校验目标文件夹自己的 `readable-studio.json`，但 registry search、审计日志和 marketplace refresh events 可以在安装前就理解 catalog 与插件版本。
 
 可以同时存在多个 marketplaces。用户通过 `readable marketplace add <url>` 注册额外 index（Vercel 的、OpenClaw 的 clawhub、企业私有 catalog）。默认情况下，用户添加的 marketplace 只是 discovery source，它里面的插件仍然以 `restricted` 安装；只有官方内置 marketplace 或用户显式执行 `readable marketplace add <url> --trust` / `readable marketplace trust <id>` 后，来自该 marketplace 的插件才可以默认继承 `trusted`。
 
@@ -453,7 +453,7 @@ readable plugin install github:owner/repo@v1.2.0
 readable plugin install github:owner/repo/path/to/subfolder
 readable plugin install https://example.com/plugin.tar.gz
 readable plugin install make-a-deck                   # via configured marketplaces
-readable marketplace add https://.../open-design-marketplace.json
+readable marketplace add https://.../readable-studio-marketplace.json
 ```
 
 GitHub install 使用 `https://codeload.github.com/owner/repo/tar.gz/<ref>`，不需要 git binary，同时包含 path-traversal guard 和可配置 size cap。
@@ -913,10 +913,10 @@ Adapter 是互操作表面，不是内部 UI 的 source of truth。除非另有�
 
 纯 TypeScript，不依赖 Next/Express/SQLite/browser：
 
-- `parsers/manifest.ts`：读取 `open-design.json` → `PluginManifest`（Zod-validated）。
+- `parsers/manifest.ts`：读取 `readable-studio.json` → `PluginManifest`（Zod-validated）。
 - `adapters/agent-skill.ts`：读取 `SKILL.md` → 基于 [`skills-protocol.md`](skills-protocol.md) 里的 `od:` frontmatter 合成 `PluginManifest`。
 - `adapters/claude-plugin.ts`：读取 `.claude-plugin/plugin.json` → 合成 `PluginManifest`。
-- `merge.ts`：合并 sidecar + adapters，`open-design.json` 优先；foreign content 落到 `compat.*`。
+- `merge.ts`：合并 sidecar + adapters，`readable-studio.json` 优先；foreign content 落到 `compat.*`。
 - `resolve.ts`：针对 registry 解析 `od.context.*` refs → `ResolvedContext`。
 - `validate.ts`：JSON Schema（同时驱动 runtime checks 和 `readable plugin doctor`）。
 
@@ -955,7 +955,7 @@ CREATE TABLE installed_plugins (
   source_digest        TEXT,
   trust                TEXT NOT NULL,    -- trusted | restricted
   capabilities_granted TEXT NOT NULL,    -- JSON array
-  manifest_json        TEXT NOT NULL,    -- cached open-design.json (or synthesized)
+  manifest_json        TEXT NOT NULL,    -- cached readable-studio.json (or synthesized)
   fs_path              TEXT NOT NULL,
   installed_at         INTEGER NOT NULL,
   updated_at           INTEGER NOT NULL
@@ -1431,13 +1431,13 @@ readable files read "$PID" index.html > out.html
 
 ## 13. 公网 Web 表面（open-design.ai/marketplace）
 
-产品网站已经是 [open-design.ai](https://open-design.ai)。公网 marketplace 作为同一站点下的路径发布：`open-design.ai/marketplace`（canonical），并把 `open-design.ai/plugins` 作为 alias；不是单独域名。它是一个从官方 `open-design-marketplace.json` index 渲染出的 static-rendered catalog，插件详情页由每个 listed repo 内的同一份 `open-design.json` 支撑。视觉上它类似 [`skills.sh`](https://skills.sh/) 对 skills 的处理，但详情页会渲染 OD 专属 previews（`od.preview.entry` HTML、sample outputs、use-case query、chip preview）。
+产品网站已经是 [open-design.ai](https://open-design.ai)。公网 marketplace 作为同一站点下的路径发布：`open-design.ai/marketplace`（canonical），并把 `open-design.ai/plugins` 作为 alias；不是单独域名。它是一个从官方 `readable-studio-marketplace.json` index 渲染出的 static-rendered catalog，插件详情页由每个 listed repo 内的同一份 `readable-studio.json` 支撑。视觉上它类似 [`skills.sh`](https://skills.sh/) 对 skills 的处理，但详情页会渲染 OD 专属 previews（`od.preview.entry` HTML、sample outputs、use-case query、chip preview）。
 
 这个站点与 in-app marketplace 共享一个 source of truth：
 
-- 同一组 JSON Schemas（`https://open-design.ai/schemas/plugin.v1.json`、`https://open-design.ai/schemas/marketplace.v1.json`）。
-- 同一套联邦 listing format（`open-design-marketplace.json`）。
-- 同一份 plugin manifests（每个 repo 内的 `open-design.json`）。
+- 同一组 JSON Schemas（`urn:readable-studio:schema:plugin-manifest:v1`、`urn:readable-studio:schema:plugin-marketplace:v1`）。
+- 同一套联邦 listing format（`readable-studio-marketplace.json`）。
+- 同一份 plugin manifests（每个 repo 内的 `readable-studio.json`）。
 
 两个消费表面，一个 substrate：
 
@@ -1467,11 +1467,11 @@ desktop app 注册 `od://` URL scheme；点击 `open-design.ai/marketplace` 上�
 | [`VoltAgent/awesome-agent-skills`](https://github.com/VoltAgent/awesome-agent-skills) | PR 增加一行指向 repo URL | repo URL，§14.1 中的 automation 辅助 |
 | [`openclaw/clawhub`](https://github.com/openclaw/clawhub) | 通过 clawhub web app 或 PR 提交 | repo URL |
 | [`skills.sh`](https://skills.sh/) | 一旦观察到 `npx skills add owner/repo` 即可被索引 | repo URL |
-| `open-design-marketplace.json` | entry 指向 `github:owner/repo` | `open-design.json` 丰富 listing |
+| `readable-studio-marketplace.json` | entry 指向 `github:owner/repo` | `readable-studio.json` 丰富 listing |
 
 ### 14.1 作者工具
 
-- `readable plugin scaffold`：写入 starter folder，包含 `SKILL.md`（行业标准，带 `od:` frontmatter 以向后兼容）和 `open-design.json`（OD enrichment，`compat.agentSkills` 指向 SKILL.md）。
+- `readable plugin scaffold`：写入 starter folder，包含 `SKILL.md`（行业标准，带 `od:` frontmatter 以向后兼容）和 `readable-studio.json`（OD enrichment，`compat.agentSkills` 指向 SKILL.md）。
 - `readable plugin doctor`：运行 JSON Schema、SKILL.md frontmatter parser，以及「它看起来是否能被 awesome-agent-skills / clawhub / skills.sh 收录？」lint，检查 README、license file、frontmatter 完整性。
 - `readable plugin publish --to <catalog>`（Phase 4）：打开浏览器进入 catalog PR template，预填 row。
 
@@ -1479,7 +1479,7 @@ desktop app 注册 `od://` URL scheme；点击 `open-design.ai/marketplace` 上�
 
 任何通过 `SKILL.md` 消费文件夹的 code agent，都可以在没有 OD 的情况下运行。插件是一个 repo，有三种合法消费模式：
 
-1. **Skill-only consumption（完全没有 OD）。** Cursor 用户执行 `npx skills add open-design/make-a-deck`。Cursor 读取 `SKILL.md` 并运行 workflow。没有 OD CLI、没有 OD daemon。插件的 marketplace polish（`open-design.json`）被忽略，Cursor 看到的是普通 skill。
+1. **Skill-only consumption（完全没有 OD）。** Cursor 用户执行 `npx skills add open-design/make-a-deck`。Cursor 读取 `SKILL.md` 并运行 workflow。没有 OD CLI、没有 OD daemon。插件的 marketplace polish（`readable-studio.json`）被忽略，Cursor 看到的是普通 skill。
 2. **Headless OD（CLI + code agent，无 OD UI）。** 高阶用户继续使用自己偏好的 code agent：Claude Code、Cursor、Codex 等，但把 OD 作为 side service 加进来，获得 plugin context resolution、project bookkeeping、design library injection、artifact tracking。无 browser、无 electron。具体 pipeline 见 §14.3。
 3. **Full OD（CLI + code agent + OD UI）。** 与 (2) 相同，但加上 desktop 或 web UI，用于 live preview、marketplace browsing、chat/canvas split-view 等。
 
@@ -1542,7 +1542,7 @@ open slides.html      # or however the user wants to view the file
 | Headless agent CLI | `cursor-agent`（驱动 agent loop） | `readable run start --agent claude --follow` + `readable plugin run` |
 | Local services / db | Cursor 的 background indexing / state | OD daemon、SQLite、`.od/projects/<id>/` |
 | GUI productivity layer | Cursor IDE | OD desktop / web UI（`apps/web` + `apps/desktop`） |
-| Plugin / skill format | `.cursor/rules/`、MCP servers | `SKILL.md` + `open-design.json` + atoms |
+| Plugin / skill format | `.cursor/rules/`、MCP servers | `SKILL.md` + `readable-studio.json` + atoms |
 
 两者以相同方式解耦：terminal flow 已经足够；IDE/desktop 是生产力倍增器。**插件作者不需要做选择**：他们写一个 SKILL.md 加可选 sidecar，就能覆盖三种消费模式。
 
@@ -1562,7 +1562,7 @@ open slides.html      # or however the user wants to view the file
 ### Phase 0 — Spec freeze（1–2 天）
 
 - 本文档落地为 `docs/plugins-spec.md`（当前）。
-- JSON Schemas：`docs/schemas/open-design.plugin.v1.json` 与 `open-design.marketplace.v1.json`。
+- JSON Schemas：`docs/schemas/readable-studio.plugin.v1.json` 与 `readable-studio.marketplace.v1.json`。
 - Pure-TS contracts：`packages/contracts/src/plugins/{manifest,context,apply,marketplace,installed}.ts`。
 - Migration note：现有 `skills/`、`design-systems/`、`craft/` 100% 向后兼容。SKILL.md frontmatter 不变。
 
@@ -1584,7 +1584,7 @@ Phase 1 内容（合并原 Phase 1 + Phase 2C 的最小子集）：
 
 Validation：
 
-- `pnpm --filter @readable-studio/plugin-runtime test`（parser fixtures：pure SKILL.md、pure claude plugin、metadata-only open-design.json、三者组合、SKILL frontmatter mapping）。
+- `pnpm --filter @readable-studio/plugin-runtime test`（parser fixtures：pure SKILL.md、pure claude plugin、metadata-only readable-studio.json、三者组合、SKILL frontmatter mapping）。
 - `pnpm --filter @readable-studio/daemon test`。`pnpm guard`、`pnpm typecheck`。
 - **End-to-end headless smoke**（与 §12.5 walkthrough 等价）：`readable plugin install ./fixtures/sample-plugin` → `readable project create --plugin <id> --json` → `readable run start --project <pid> --plugin <id> --follow` → `readable files read <pid> <artifact>`。要求 produced artifact bytes 与同一插件在 Phase 2A UI 流程下产出**完全相同**。
 - **Apply 纯净性 smoke：** 仅 `readable plugin apply <id>` 后取消 send，project cwd 无 staged assets、无 `.mcp.json`、`applied_plugin_snapshots` 行存在但未被任何 run/project 引用。
@@ -1678,7 +1678,7 @@ Validation：
 
 ### 17.1 最小可行插件（只有 SKILL.md）
 
-OD 通过 [`skills-protocol.md`](skills-protocol.md) 中现有 `od:` frontmatter loader 把它当作插件读取。不需要 `open-design.json`：这个插件缺少 marketplace polish，但完全可运行。
+OD 通过 [`skills-protocol.md`](skills-protocol.md) 中现有 `od:` frontmatter loader 把它当作插件读取。不需要 `readable-studio.json`：这个插件缺少 marketplace polish，但完全可运行。
 
 ```
 my-plugin/
@@ -1703,7 +1703,7 @@ Workflow steps...
 my-plugin/
 ├── SKILL.md
 ├── README.md
-├── open-design.json
+├── readable-studio.json
 ├── preview/
 │   ├── index.html
 │   ├── poster.png
@@ -1712,14 +1712,14 @@ my-plugin/
     └── b2b-saas/index.html
 ```
 
-`SKILL.md` 保持可移植：Cursor / Codex / OpenClaw 可直接读取。`open-design.json` 增加 preview、query、chip strip、capabilities。这个 repo 可以不经修改地列入 §14 的所有 catalog。
+`SKILL.md` 保持可移植：Cursor / Codex / OpenClaw 可直接读取。`readable-studio.json` 增加 preview、query、chip strip、capabilities。这个 repo 可以不经修改地列入 §14 的所有 catalog。
 
 ### 17.3 Bundle plugin（一个 repo 中包含多个 skills + DS + craft）
 
 ```
 my-bundle/
 ├── SKILL.md                          # bundle-level overview (catalog uses this)
-├── open-design.json                  # kind: 'bundle'; lists nested skills
+├── readable-studio.json                  # kind: 'bundle'; lists nested skills
 ├── skills/
 │   ├── deck-skeleton/SKILL.md
 │   └── deck-finalize/SKILL.md
@@ -1733,7 +1733,7 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 
 | Risk | Mitigation |
 | --- | --- |
-| OD plugin schema 与更广义 skill spec 发生 drift | `open-design.json` 仅为 sidecar；永不修改 SKILL.md。Package-scoped compatibility fixtures 覆盖 public skill shape。 |
+| OD plugin schema 与更广义 skill spec 发生 drift | `readable-studio.json` 仅为 sidecar；永不修改 SKILL.md。Package-scoped compatibility fixtures 覆盖 public skill shape。 |
 | 任意 GitHub install = supply-chain risk | 默认 `restricted`；bash/hooks/MCP 前必须 capability prompt；记录 pinned-ref。 |
 | `composeSystemPrompt()` 已经超过 200 行 | `## Active plugin` block 追加在现有位置；不重排 layers。 |
 | ExamplesTab 与 Marketplace overlap | Phase 2 保持 ExamplesTab；Phase 3 折叠为 Marketplace 的「Local skills」tab。 |
@@ -1770,7 +1770,7 @@ installer 会把 nested skills/design-systems/craft fan out 到 registry 的 nam
 
 ## 19. 为什么这是 Open Design 的重要一步
 
-- **继承供给。** `anthropics/skills`、`awesome-agent-skills`、`clawhub`、`skills.sh` 上的每个 public agent skill，只需一个可选 `open-design.json` 就能成为 OD 插件；反过来，每个 OD 插件也能不经修改发布到这些 catalog。
+- **继承供给。** `anthropics/skills`、`awesome-agent-skills`、`clawhub`、`skills.sh` 上的每个 public agent skill，只需一个可选 `readable-studio.json` 就能成为 OD 插件；反过来，每个 OD 插件也能不经修改发布到这些 catalog。
 - **边界干净。** 新代码落在两个 pure-TS packages（`packages/plugin-runtime`、`packages/contracts/src/plugins/*`）和一个 daemon module group（`apps/daemon/src/plugins/`）；无跨 app coupling，无 contracts package leaks，无 SKILL.md fork。遵守根 [`AGENTS.md`](../AGENTS.md) 的约束。
 - **可逆重构。** 现有 loaders（[`apps/daemon/src/skills.ts`](../apps/daemon/src/skills.ts) 等）与 `composeSystemPrompt()` 保持 public shape；Phase 1 是 drop-in delegate，Phase 2 只**追加** prompt block。
 - **CLI 从 day 1 存在。** 每个新 endpoint 都有对应 `readable plugin …` subcommand，因此同一 surface 可被任何 code agent 访问，不依赖 desktop app。
@@ -2137,7 +2137,7 @@ C 类是 v1 已交付的那一半；A 类的第一批也已经移动。截至本
 
 §5 的 `od.kind` 枚举里有 `'atom'`，但从未定义 atom plugin 的形态。这条 patch：
 
-- atom plugin 是带 `open-design.json`（`od.kind: 'atom'`）+ `SKILL.md` 的目录。
+- atom plugin 是带 `readable-studio.json`（`od.kind: 'atom'`）+ `SKILL.md` 的目录。
 - `SKILL.md` 正文就是该 atom 的 prompt fragment；当某个 stage 用 id 引用了该 atom，daemon assembler 把它注入。
 - 可选的 `od.context.mcp[]` 声明该 atom 用到的 MCP tool（如 `research-search`）。
 - 可选的 `od.atom.untilSignals[]` 声明该 atom 发出的命名信号变量，贡献到 §10.1 的 `until` 词汇表。这正是 patch 1 同时放开 §22.4 limit 1 的方式：每个 atom 自带信号（例如 `build-test` 声明 `build.passing` 和 `tests.passing`），`until` 求值器对照当前 stage 的 atoms 而非硬编码列表来查表。
@@ -2153,10 +2153,10 @@ Atom SKILL.md fragments 与 active-stage block renderer 现在已经存在，但
 
 Bundled scenario plugins 与 pipeline fallback resolver 现在已经存在。剩余工作是移除任何仍然手写 default stage list 的产品入口，让它们改为选择 scenario plugin。目标仍然是：当 `od.pipeline` 缺省时，daemon / product code 根据 `taskKind` 或显式入口 route 解析一个 bundled scenario plugin，然后使用该 scenario 的 `od.pipeline`。
 
-- `plugins/_official/scenarios/od-new-generation/open-design.json`
-- `plugins/_official/scenarios/od-figma-migration/open-design.json`（Phase 6 后）
-- `plugins/_official/scenarios/od-code-migration/open-design.json`（Phase 7 后）
-- `plugins/_official/scenarios/od-tune-collab/open-design.json`
+- `plugins/_official/scenarios/od-new-generation/readable-studio.json`
+- `plugins/_official/scenarios/od-figma-migration/readable-studio.json`（Phase 6 后）
+- `plugins/_official/scenarios/od-code-migration/readable-studio.json`（Phase 7 后）
+- `plugins/_official/scenarios/od-tune-collab/readable-studio.json`
 
 每个 plugin 只 ship 一个 `od.pipeline` 加（可选）一些 scenario 默认的 `od.genui.surfaces[]`。daemon 解析变成："没传 `od.pipeline` + 有 `taskKind` → 查匹配 `taskKind` 的 bundled scenario plugin → 用它的 `od.pipeline`"。
 

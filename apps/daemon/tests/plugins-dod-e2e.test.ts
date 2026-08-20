@@ -42,13 +42,13 @@ let projectCwd: string;
 async function freshFixture(targetPath: string, version = '1.0.0') {
   await mkdir(targetPath, { recursive: true });
   const manifest = {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: 'sample-plugin',
     title: 'Sample Plugin',
     version,
     description: 'Phase 1 fixture',
     license: 'MIT',
-    od: {
+    readable: {
       kind: 'skill',
       taskKind: 'new-generation',
       useCase: { query: 'Make a {{topic}} brief.' },
@@ -56,7 +56,7 @@ async function freshFixture(targetPath: string, version = '1.0.0') {
       capabilities: ['prompt:inject'],
     },
   };
-  await writeFile(path.join(targetPath, 'open-design.json'), JSON.stringify(manifest, null, 2));
+  await writeFile(path.join(targetPath, 'readable-studio.json'), JSON.stringify(manifest, null, 2));
   await writeFile(
     path.join(targetPath, 'SKILL.md'),
     '---\nname: sample-plugin\ndescription: fixture\n---\n# Sample\n',

@@ -20,7 +20,7 @@ triggers:
 - "investment banking pitch"
   - "M&A Materials"
   - "Strategic Options"
-od:
+readable:
   mode: deck
   scenario: finance
   featured: 15

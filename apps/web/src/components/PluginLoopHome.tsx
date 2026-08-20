@@ -88,11 +88,11 @@ export function PluginLoopHome({ onSubmit }: Props) {
 
   const sortedPlugins = useMemo(() => {
     return [...plugins].sort((a, b) => {
-      const aHasQuery = Boolean(a.manifest?.od?.useCase?.query);
-      const bHasQuery = Boolean(b.manifest?.od?.useCase?.query);
+      const aHasQuery = Boolean(a.manifest?.readable?.useCase?.query);
+      const bHasQuery = Boolean(b.manifest?.readable?.useCase?.query);
       if (aHasQuery !== bHasQuery) return aHasQuery ? -1 : 1;
-      const aScenario = a.manifest?.od?.kind === 'scenario';
-      const bScenario = b.manifest?.od?.kind === 'scenario';
+      const aScenario = a.manifest?.readable?.kind === 'scenario';
+      const bScenario = b.manifest?.readable?.kind === 'scenario';
       if (aScenario !== bScenario) return aScenario ? -1 : 1;
       return a.title.localeCompare(b.title);
     });
@@ -112,7 +112,7 @@ export function PluginLoopHome({ onSubmit }: Props) {
       if (field.default !== undefined) inputs[field.name] = field.default;
     }
     setActive({ record, result, inputs });
-    const query = result.query || resolvePluginQueryFallback(record.manifest?.od?.useCase?.query, locale);
+    const query = result.query || resolvePluginQueryFallback(record.manifest?.readable?.useCase?.query, locale);
     if (query) {
       setPrompt(renderPluginBriefTemplate(query, inputs));
     }
@@ -240,7 +240,7 @@ export function PluginLoopHome({ onSubmit }: Props) {
           </div>
         ) : (
           sortedPlugins.map((p) => {
-            const hasQuery = Boolean(p.manifest?.od?.useCase?.query);
+            const hasQuery = Boolean(p.manifest?.readable?.useCase?.query);
             const isActive = active?.record.id === p.id;
             const isPending = pendingApplyId === p.id;
             const links = derivePluginSourceLinks(p);
@@ -263,10 +263,10 @@ export function PluginLoopHome({ onSubmit }: Props) {
                   </div>
                 ) : null}
                 <div className="plugin-loop-home__card-meta">
-                  {p.manifest?.od?.taskKind ? (
-                    <span>{p.manifest.od.taskKind}</span>
+                  {p.manifest?.readable?.taskKind ? (
+                    <span>{p.manifest.readable.taskKind}</span>
                   ) : null}
-                  {p.manifest?.od?.kind ? <span>· {p.manifest.od.kind}</span> : null}
+                  {p.manifest?.readable?.kind ? <span>· {p.manifest.readable.kind}</span> : null}
                 </div>
                 {links.authorName || links.sourceUrl ? (
                   <div

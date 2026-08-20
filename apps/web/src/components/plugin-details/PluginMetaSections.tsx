@@ -84,7 +84,7 @@ export function PluginMetaSections({ record, omit, compact, heading, variant = '
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
   const specVersion = typeof manifest.specVersion === 'string' ? manifest.specVersion : '';
-  const od = manifest.od ?? {};
+  const od = manifest.readable ?? {};
   const description = localizePluginDescription(locale, record);
   const query = resolvePluginQueryFallback(od.useCase?.query);
   const inputs = (od.inputs ?? []) as InputField[];

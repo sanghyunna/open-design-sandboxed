@@ -189,7 +189,7 @@ const sourceUrlFromSource = (source: string): string | undefined => {
 };
 
 const registryUrlFor = (registryId: string) =>
-  `${RAW_REPO}/plugins/registry/${registryId}/open-design-marketplace.json`;
+  `${RAW_REPO}/plugins/registry/${registryId}/readable-studio-marketplace.json`;
 
 const previewLabelFor = (
   type: string | undefined,
@@ -357,7 +357,7 @@ const findManifestFiles = (dir: string): string[] => {
     const entryPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...findManifestFiles(entryPath));
-    } else if (entry.isFile() && entry.name === 'open-design.json') {
+    } else if (entry.isFile() && entry.name === 'readable-studio.json') {
       files.push(entryPath);
     }
   }
@@ -484,7 +484,7 @@ const loadRegistryEntries = (
     }
 
     const registryId = dirent.name;
-    const manifestPath = path.join(REGISTRY_ROOT, registryId, 'open-design-marketplace.json');
+    const manifestPath = path.join(REGISTRY_ROOT, registryId, 'readable-studio-marketplace.json');
     const manifest = readJson<RawMarketplace>(manifestPath);
     const rawPlugins = Array.isArray(manifest?.plugins) ? manifest.plugins : [];
     const registryName =

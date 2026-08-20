@@ -1,7 +1,7 @@
 ---
 name: patch-edit
 description: Apply one rewrite-plan step at a time as small reviewable file edits, never rewriting whole files when a localised change suffices.
-od:
+readable:
   scenario: code-migration
   mode: edit
 ---

@@ -6,7 +6,7 @@ import { diffPlugins } from '../src/plugins/diff.js';
 
 const make = (
   id: string,
-  manifest: NonNullable<PluginManifest['od']> | undefined = undefined,
+  manifest: NonNullable<PluginManifest['readable']> | undefined = undefined,
   over: Partial<InstalledPluginRecord> = {},
 ): InstalledPluginRecord => ({
   id,
@@ -20,11 +20,11 @@ const make = (
   installedAt: 1,
   updatedAt: 1,
   manifest: {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: id,
     version: '0.1.0',
     title: `Title for ${id}`,
-    ...(manifest ? { od: manifest } : {}),
+    ...(manifest ? { readable: manifest } : {}),
   } as PluginManifest,
   ...over,
 });
@@ -77,7 +77,7 @@ describe('diffPlugins — manifest body', () => {
     const a = make('p', { taskKind: 'new-generation' });
     const b = make('p', { taskKind: 'code-migration' });
     const r = diffPlugins({ a, b });
-    const e = r.entries.find((x) => x.field === 'od.taskKind');
+    const e = r.entries.find((x) => x.field === 'readable.taskKind');
     expect(e?.kind).toBe('changed');
     expect(e?.before).toBe('new-generation');
     expect(e?.after).toBe('code-migration');
@@ -87,7 +87,7 @@ describe('diffPlugins — manifest body', () => {
     const a = make('p', { taskKind: 'new-generation', inputs: [{ name: 'topic', type: 'string' }] });
     const b = make('p', { taskKind: 'new-generation', inputs: [{ name: 'topic', type: 'string' }, { name: 'tone', type: 'string' }] });
     const r = diffPlugins({ a, b });
-    const e = r.entries.find((x) => x.field === 'od.inputs[]');
+    const e = r.entries.find((x) => x.field === 'readable.inputs[]');
     expect(e?.summary).toMatch(/1 added/);
     expect(e?.after).toContain('tone');
   });
@@ -107,9 +107,9 @@ describe('diffPlugins — manifest body', () => {
     });
     const r = diffPlugins({ a, b });
     // Stage-id roster differs.
-    expect(r.entries.find((e) => e.field === 'od.pipeline.stages')?.kind).toBe('changed');
+    expect(r.entries.find((e) => e.field === 'readable.pipeline.stages')?.kind).toBe('changed');
     // Per-stage atoms diff for the surviving stage 'plan'.
-    const planAtoms = r.entries.find((e) => e.field === 'od.pipeline.stages[plan].atoms');
+    const planAtoms = r.entries.find((e) => e.field === 'readable.pipeline.stages[plan].atoms');
     expect(planAtoms?.summary).toMatch(/1 added/);
   });
 
@@ -117,7 +117,7 @@ describe('diffPlugins — manifest body', () => {
     const a = make('p', { taskKind: 'new-generation' });
     const b = make('p', { taskKind: 'new-generation', pipeline: { stages: [{ id: 'x', atoms: ['todo-write'] }] } });
     const r = diffPlugins({ a, b });
-    const e = r.entries.find((x) => x.field === 'od.pipeline');
+    const e = r.entries.find((x) => x.field === 'readable.pipeline');
     expect(e?.kind).toBe('added');
     expect(e?.after).toContain('x');
   });

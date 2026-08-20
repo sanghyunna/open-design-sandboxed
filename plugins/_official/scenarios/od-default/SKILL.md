@@ -1,7 +1,7 @@
 ---
 name: od-default
 description: Hidden fallback scenario for free-form Home prompts. Ask the task type first, then continue through the matching Open Design flow.
-od:
+readable:
   scenario: default-router
   mode: scenario
 ---

@@ -4,6 +4,8 @@ import type {
   ProjectContextPluginRef,
 } from './context.js';
 
+export const READABLE_STUDIO_PROJECT_LOCATION_ID = 'readable-studio-default';
+
 export type ProjectKind =
   | 'prototype'
   | 'deck'

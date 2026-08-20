@@ -28,11 +28,11 @@ function previewCandidates(plugin: InstalledPluginRecord): string[] {
     seen.add(normalized);
     candidates.push(normalized);
   };
-  push(plugin.manifest.od?.preview?.entry);
-  for (const asset of plugin.manifest.od?.context?.assets ?? []) {
+  push(plugin.manifest.readable?.preview?.entry);
+  for (const asset of plugin.manifest.readable?.context?.assets ?? []) {
     if (typeof asset === 'string' && /\.html?$/i.test(asset)) push(asset);
   }
-  for (const example of plugin.manifest.od?.useCase?.exampleOutputs ?? []) {
+  for (const example of plugin.manifest.readable?.useCase?.exampleOutputs ?? []) {
     if (typeof example.path === 'string' && /\.html?$/i.test(example.path)) push(example.path);
   }
   for (const fallback of ['preview/index.html', 'index.html', 'examples/index.html', 'assets/index.html', 'assets/preview.html', 'assets/example.html', 'assets/example-slides.html', 'assets/template.html', 'public/index.html', 'dist/index.html']) push(fallback);
@@ -40,7 +40,7 @@ function previewCandidates(plugin: InstalledPluginRecord): string[] {
 }
 
 function exampleCandidates(plugin: InstalledPluginRecord, name: string): string[] {
-  const examples = plugin.manifest.od?.useCase?.exampleOutputs ?? [];
+  const examples = plugin.manifest.readable?.useCase?.exampleOutputs ?? [];
   const match = examples.find((example) => {
     if (typeof example.path !== 'string') return false;
     const segments = example.path.split(/[\\/]/).filter(Boolean);

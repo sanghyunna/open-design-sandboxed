@@ -5,7 +5,7 @@ export function getPluginContextCraft(plugin: InstalledPluginRecord): string[] {
 }
 
 export function getManifestContextCraft(manifest: PluginManifest): string[] {
-  return normalizeCraftRequires(manifest.od?.context?.craft);
+  return normalizeCraftRequires(manifest.readable?.context?.craft);
 }
 
 export function getSnapshotContextCraft(snapshot: AppliedPluginSnapshot): string[] {

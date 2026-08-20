@@ -57,7 +57,7 @@ function makePlugin(
       version: '1.0.0',
       title: id,
       description,
-      od: {
+      readable: {
         kind: 'scenario',
         mode: 'prototype',
       },
@@ -94,7 +94,7 @@ beforeEach(() => {
   mockedListMarketplaces.mockResolvedValue([
     {
       id: 'catalog-1',
-      url: 'https://example.com/open-design-marketplace.json',
+      url: 'https://example.com/readable-studio-marketplace.json',
       trust: 'official',
       manifest: {
         name: 'Example Catalog',
@@ -225,7 +225,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+        url: 'https://open-design.ai/marketplace/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Open Design Official',
@@ -271,7 +271,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'team-catalog',
-        url: 'https://team.example.com/open-design-marketplace.json',
+        url: 'https://team.example.com/readable-studio-marketplace.json',
         trust: 'restricted',
         manifest: {
           name: 'Team Catalog',
@@ -308,7 +308,7 @@ describe('PluginsView', () => {
   it('shows all installed plugins by default on the Plugins page', async () => {
     const createPlugin = makePlugin('create-plugin', 'github', 'restricted', 'Create Plugin');
     const importPlugin = makePlugin('import-plugin', 'github', 'restricted', 'Import Plugin');
-    importPlugin.manifest.od = {
+    importPlugin.manifest.readable = {
       kind: 'scenario',
       mode: 'scenario',
       taskKind: 'figma-migration',
@@ -346,8 +346,8 @@ describe('PluginsView', () => {
   it('hands Use with query actions to the host shell', async () => {
     const onUsePlugin = vi.fn();
     const user = makePlugin('query-plugin', 'github', 'restricted', 'Query Plugin');
-    user.manifest.od = {
-      ...user.manifest.od,
+    user.manifest.readable = {
+      ...user.manifest.readable,
       useCase: { query: 'Make a query-backed artifact.' },
     };
     mockedListPlugins.mockResolvedValue([user]);
@@ -432,7 +432,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Official Registry',
@@ -502,7 +502,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Official Registry',
@@ -550,7 +550,7 @@ describe('PluginsView', () => {
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'catalog-1',
-        url: 'https://example.com/open-design-marketplace.json',
+        url: 'https://example.com/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Example Catalog',
@@ -567,7 +567,7 @@ describe('PluginsView', () => {
       },
       {
         id: 'catalog-2',
-        url: 'https://team.example.com/open-design-marketplace.json',
+        url: 'https://team.example.com/readable-studio-marketplace.json',
         trust: 'restricted',
         manifest: {
           name: 'Team Catalog',
@@ -620,14 +620,14 @@ describe('PluginsView', () => {
     marketplacePlugin.sourceMarketplaceEntryName = 'open-design/official-plugin';
     marketplacePlugin.sourceMarketplaceEntryVersion = '1.0.0';
     marketplacePlugin.marketplaceTrust = 'official';
-    marketplacePlugin.manifest.od = { ...marketplacePlugin.manifest.od, hidden: true };
+    marketplacePlugin.manifest.readable = { ...marketplacePlugin.manifest.readable, hidden: true };
     mockedListPlugins.mockImplementation(async (options?: { includeHidden?: boolean }) =>
       options?.includeHidden ? [marketplacePlugin] : [],
     );
     mockedListMarketplaces.mockResolvedValue([
       {
         id: 'official',
-        url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+        url: 'https://open-design.ai/marketplace/readable-studio-marketplace.json',
         trust: 'official',
         manifest: {
           name: 'Open Design Official',
@@ -658,7 +658,7 @@ describe('PluginsView', () => {
     render(<PluginsView />);
 
     const sourceUrl =
-      'https://raw.githubusercontent.com/nexu-io/open-design/main/plugins/registry/community/open-design-marketplace.json';
+      'https://raw.githubusercontent.com/nexu-io/open-design/main/plugins/registry/community/readable-studio-marketplace.json';
     fireEvent.click(await screen.findByTestId('plugins-tab-sources'));
     fireEvent.change(screen.getByLabelText('Source URL'), {
       target: { value: sourceUrl },
@@ -702,7 +702,7 @@ describe('PluginsView', () => {
 
     fireEvent.click(await screen.findByTestId('plugins-import-button'));
     fireEvent.click(screen.getByRole('button', { name: /upload folder/i }));
-    const folderFile = new File(['{}'], 'open-design.json', { type: 'application/json' });
+    const folderFile = new File(['{}'], 'readable-studio.json', { type: 'application/json' });
     fireEvent.change(screen.getByTestId('plugins-folder-input'), {
       target: { files: [folderFile] },
     });

@@ -355,7 +355,7 @@ readable skill list --scenario marketing
 
 **لماذا MCP؟** تصدير ملف مضغوط وإعادة إرفاقه في كل دورة يكسر الانسياب. يكشف MCP مصدر التصميم مباشرة — فيرى الوكيل دائمًا الملف الحي.
 
-**بالنسبة لوكيل يبدأ من الصفر،** يضع المثبِّت `~/.config/<agent>/open-design.json` (أو ما يكافئه على المنصة) إضافة إلى مقتطف MCP جاهز للصق. يحصل Cursor على رابط عميق بنقرة واحدة؛ ويحصل Claude Code على سطر `claude mcp add-json` واحد؛ ويحصل كل وكيل آخر على JSON بالمخطط الذي تتوقعه إعداداته. سير العمل الكامل لكل وكيل ← **Settings → MCP server** في تطبيق سطح المكتب، أو [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
+**بالنسبة لوكيل يبدأ من الصفر،** يضع المثبِّت `~/.config/<agent>/readable-studio.json` (أو ما يكافئه على المنصة) إضافة إلى مقتطف MCP جاهز للصق. يحصل Cursor على رابط عميق بنقرة واحدة؛ ويحصل Claude Code على سطر `claude mcp add-json` واحد؛ ويحصل كل وكيل آخر على JSON بالمخطط الذي تتوقعه إعداداته. سير العمل الكامل لكل وكيل ← **Settings → MCP server** في تطبيق سطح المكتب، أو [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
 
 **نموذج الأمان.** للقراءة فقط افتراضيًا، ويرتبط الـ daemon بـ `127.0.0.1`، ويُمنع SSRF عند حافة الوكيل. يتطلب الكشف على الشبكة المحلية تعيين `OD_BIND_HOST` صريح إضافة إلى `OD_ALLOWED_ORIGINS`. تبقى بيانات اعتماد الموصِّلات ومسارات معاينة المخرجات الحية على loopback فقط أيًا كان.
 
@@ -429,7 +429,7 @@ readable skill list --scenario marketing
 
 ## الإضافات
 
-**261 إضافة رسمية** تقيم في [`plugins/_official/`](../../plugins/_official/). كل إضافة هي **مجلد مهارة-وكيل قابل للنقل** — ملف `SKILL.md` (قابل للقراءة من أي وكيل يدعم Agent Skills)، إضافة إلى بيان `open-design.json` اختياري يمنح Open Design بيانات وصفية للسوق، ومدخلات، ومعاينات، وخطوط أنابيب، وتصريحات قدرات. انتقل مباشرة إلى فئة:
+**261 إضافة رسمية** تقيم في [`plugins/_official/`](../../plugins/_official/). كل إضافة هي **مجلد مهارة-وكيل قابل للنقل** — ملف `SKILL.md` (قابل للقراءة من أي وكيل يدعم Agent Skills)، إضافة إلى بيان `readable-studio.json` اختياري يمنح Open Design بيانات وصفية للسوق، ومدخلات، ومعاينات، وخطوط أنابيب، وتصريحات قدرات. انتقل مباشرة إلى فئة:
 
 | الفئة | العدد | المحتويات |
 |---|---|---|
@@ -471,18 +471,18 @@ readable plugin uninstall od-default       # uninstall
 
 ### بناء إضافة
 
-تحتاج الإضافة **إلى ملف `SKILL.md` كحد أدنى فقط**؛ ولإدراجها في سوق Open Design، أضف ملف `open-design.json`:
+تحتاج الإضافة **إلى ملف `SKILL.md` كحد أدنى فقط**؛ ولإدراجها في سوق Open Design، أضف ملف `readable-studio.json`:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-حقول `open-design.json` الأساسية: `specVersion` (حاليًا `1.0.0`)، و`name` (معرّف ثابت)، و`version` (semver)، و`compat.agentSkills[].path` (يشير إلى `./SKILL.md`)، و`od.kind` (`skill` / `scenario` / `atom` / `bundle`)، و`od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`)، و`od.mode` (سطح المخرجات، مثل `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`)، و`od.capabilities[]` (**صرّح بالحد الأدنى** — التثبيت المقيَّد يمنح فقط `prompt:inject` افتراضيًا)، و`od.inputs[]` (معاملات وقت التطبيق).
+حقول `readable-studio.json` الأساسية: `specVersion` (حاليًا `1.0.0`)، و`name` (معرّف ثابت)، و`version` (semver)، و`compat.agentSkills[].path` (يشير إلى `./SKILL.md`)، و`od.kind` (`skill` / `scenario` / `atom` / `bundle`)، و`od.taskKind` (`new-generation` / `figma-migration` / `code-migration` / `tune-collab`)، و`od.mode` (سطح المخرجات، مثل `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`)، و`od.capabilities[]` (**صرّح بالحد الأدنى** — التثبيت المقيَّد يمنح فقط `prompt:inject` افتراضيًا)، و`od.inputs[]` (معاملات وقت التطبيق).
 
 التهيئة والتحقق محليًا:
 
@@ -595,7 +595,7 @@ pnpm guard && pnpm --filter @readable-studio/plugin-runtime typecheck
 |---|---|---|
 | **مهارة** جديدة | أسقِط مجلدًا يحوي `SKILL.md` + `assets/` + `references/` | [`skills/`](../../skills/) · المواصفة في [`docs/skills-protocol.md`](../../docs/skills-protocol.md) |
 | **نظام تصميم** جديد | أسقِط ملف `DESIGN.md` باستخدام مخطط الأقسام التسعة | [`design-systems/<brand>/`](../../design-systems/) |
-| **إضافة** جديدة | أسقِط `open-design.json` + بيانًا ضمن مجلد فئة | [`plugins/community/`](../../plugins/community/) · المواصفة في [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · دليل تطوير الوكيل في [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
+| **إضافة** جديدة | أسقِط `readable-studio.json` + بيانًا ضمن مجلد فئة | [`plugins/community/`](../../plugins/community/) · المواصفة في [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · دليل تطوير الوكيل في [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | دعم **واجهة CLI** جديدة لوكيل برمجة | مدخل محوّل واحد + محلّل بثّ | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | إصلاح خطأ أو تحسين الواجهة | تصفّح تصنيف [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) | [Issues ←](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | ترجمة الوثائق | حدّث ملفات `README.<lang>.md` | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

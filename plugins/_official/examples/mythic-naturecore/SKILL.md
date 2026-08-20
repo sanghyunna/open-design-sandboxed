@@ -2,7 +2,7 @@
 name: mythic-naturecore
 description: "Use this plugin when the user wants a cinematic mythic-naturecore landing page — the 'Reverie' template: a scroll-linked zoom-through-a-portal hero with mirrored opening curtains, a layered world background, mouse-parallax 3D depth, and an elegant Viaoda-Libre/Imprima serif+sans pairing. Invoke for 'naturecore landing', 'portal scroll page', 'Reverie', 'cinematic parallax hero', or when the user references the Mythic Naturecore template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

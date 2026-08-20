@@ -14,7 +14,7 @@ triggers:
   - "newsletter"
 - "Blog"
   - "article"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

@@ -33,7 +33,7 @@ const COMMUNITY_PLUGIN = {
     name: 'community-deck',
     title: 'Community Deck',
     description: 'Official deck starter',
-    od: { kind: 'skill' },
+    readable: { kind: 'skill' },
   },
   fsPath: '/plugins/community-deck',
   installedAt: 0,

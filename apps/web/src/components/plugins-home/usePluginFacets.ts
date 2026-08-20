@@ -78,7 +78,7 @@ export function usePluginFacets({
   const visiblePlugins = useMemo(
     () =>
       sortByVisualAppeal(
-        plugins.filter((p) => p.manifest?.od?.kind !== 'atom'),
+        plugins.filter((p) => p.manifest?.readable?.kind !== 'atom'),
       ),
     [plugins],
   );

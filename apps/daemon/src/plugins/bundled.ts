@@ -2,7 +2,7 @@
 //
 // On daemon startup, scan `<repo-root>/plugins/_official/**` for
 // folders that look like installable plugin manifests (a SKILL.md
-// + open-design.json pair) and register every match into the
+// + readable-studio.json pair) and register every match into the
 // `installed_plugins` table under `source_kind='bundled'` /
 // `trust='bundled'`. Bundled plugins are the preinstalled cache of the
 // official registry source: they can carry marketplace provenance while
@@ -90,9 +90,9 @@ export async function registerBundledPlugins(
     // We try the direct shape first, then recurse one level if the
     // tier directory itself isn't a manifest folder.
     const tierAbs = path.join(input.bundledRoot, tier.name);
-    const tierManifest = path.join(tierAbs, 'open-design.json');
+    const tierManifest = path.join(tierAbs, 'readable-studio.json');
     if (await pathExists(tierManifest)) {
-      // Direct: <bundledRoot>/<plugin-id>/open-design.json
+      // Direct: <bundledRoot>/<plugin-id>/readable-studio.json
       await registerOne({ folder: tierAbs, folderId: tier.name, out, warnings, seenFolderIds, input });
       continue;
     }
@@ -105,7 +105,7 @@ export async function registerBundledPlugins(
     for (const entry of inner) {
       if (!entry.isDirectory()) continue;
       const folder = path.join(tierAbs, entry.name);
-      const manifest = path.join(folder, 'open-design.json');
+      const manifest = path.join(folder, 'readable-studio.json');
       if (!(await pathExists(manifest))) continue;
       await registerOne({ folder, folderId: entry.name, out, warnings, seenFolderIds, input });
     }

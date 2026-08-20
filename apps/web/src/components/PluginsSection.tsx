@@ -50,7 +50,7 @@ interface Props {
   // Inline rail layout: 'wide' on Home, 'strip' inside ChatComposer.
   variant?: 'wide' | 'strip';
   // Filter the rail (Phase 2B). When unspecified the daemon-wide list
-  // is shown. `kinds` whitelists `od.kind` values — used by the
+  // is shown. `kinds` whitelists `readable.kind` values — used by the
   // ChatComposer mount to exclude bundled atoms from the in-project
   // strip (atoms are pipeline-side, not user-applicable). `pluginIds`
   // is a hard id whitelist — ChatComposer uses it when the project is

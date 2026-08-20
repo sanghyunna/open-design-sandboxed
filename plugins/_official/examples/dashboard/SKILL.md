@@ -10,7 +10,7 @@ triggers:
   - "admin panel"
   - "analytics"
   - "control panel"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operations

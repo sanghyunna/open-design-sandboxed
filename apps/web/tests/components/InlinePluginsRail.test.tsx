@@ -23,7 +23,7 @@ const PLUGIN_ROW = {
     name: 'sample-plugin',
     title: 'Sample Plugin',
     description: 'A fixture',
-    od: { taskKind: 'new-generation', mode: 'deck' },
+    readable: { taskKind: 'new-generation', mode: 'deck' },
   },
 };
 
@@ -101,7 +101,7 @@ describe('InlinePluginsRail', () => {
         JSON.stringify({
           plugins: [
             PLUGIN_ROW,
-            { ...PLUGIN_ROW, id: 'other', title: 'Other', manifest: { ...PLUGIN_ROW.manifest, od: { taskKind: 'tune-collab' } } },
+            { ...PLUGIN_ROW, id: 'other', title: 'Other', manifest: { ...PLUGIN_ROW.manifest, readable: { taskKind: 'tune-collab' } } },
           ],
         }),
         { status: 200, headers: { 'content-type': 'application/json' } },

@@ -52,13 +52,13 @@ const NOISE_TAGS = new Set<string>([
 ]);
 
 function readPreview(record: InstalledPluginRecord): PreviewBlock | null {
-  const od = record.manifest?.od as { preview?: unknown } | undefined;
+  const od = record.manifest?.readable as { preview?: unknown } | undefined;
   if (!od || typeof od.preview !== 'object' || od.preview === null) return null;
   return od.preview as PreviewBlock;
 }
 
 function exampleOutputCount(record: InstalledPluginRecord): number {
-  const od = record.manifest?.od as
+  const od = record.manifest?.readable as
     | { useCase?: { exampleOutputs?: unknown } }
     | undefined;
   const list = od?.useCase?.exampleOutputs;
@@ -66,22 +66,22 @@ function exampleOutputCount(record: InstalledPluginRecord): number {
 }
 
 function modeOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { mode?: unknown } | undefined;
+  const od = record.manifest?.readable as { mode?: unknown } | undefined;
   return typeof od?.mode === 'string' ? od.mode.toLowerCase() : '';
 }
 
 function surfaceOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { surface?: unknown } | undefined;
+  const od = record.manifest?.readable as { surface?: unknown } | undefined;
   return typeof od?.surface === 'string' ? od.surface.toLowerCase() : '';
 }
 
 function kindOf(record: InstalledPluginRecord): string {
-  const od = record.manifest?.od as { kind?: unknown } | undefined;
+  const od = record.manifest?.readable as { kind?: unknown } | undefined;
   return typeof od?.kind === 'string' ? od.kind.toLowerCase() : '';
 }
 
 function featuredRank(record: InstalledPluginRecord): number | null {
-  const od = (record.manifest?.od ?? {}) as Record<string, unknown>;
+  const od = (record.manifest?.readable ?? {}) as Record<string, unknown>;
   if (od.featured === true) return 0;
   if (typeof od.featured !== 'number' || !Number.isFinite(od.featured)) return null;
   return Math.max(0, od.featured);

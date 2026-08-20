@@ -27,7 +27,7 @@ const PLUGIN_ROW = {
     name: 'sample-plugin',
     title: 'Sample Plugin',
     description: 'A fixture',
-    od: { taskKind: 'new-generation', mode: 'deck' },
+    readable: { taskKind: 'new-generation', mode: 'deck' },
   },
 };
 

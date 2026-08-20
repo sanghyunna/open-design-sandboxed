@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { GenUISurfaceSpec } from '@readable-studio/contracts';
 
 export interface PendingSurface {
-  // The surface descriptor as declared in `od.genui.surfaces[]`.
+  // The surface descriptor as declared in `readable.genui.surfaces[]`.
   surface: GenUISurfaceSpec;
   // The runId the surface was raised on. The respond endpoint is
   // POST /api/runs/:runId/genui/:surfaceId/respond.

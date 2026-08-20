@@ -10,7 +10,7 @@ triggers:
   - "product spec"
   - "feature brief"
   - "feature doc"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: product

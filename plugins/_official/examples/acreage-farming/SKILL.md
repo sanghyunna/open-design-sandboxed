@@ -2,7 +2,7 @@
 name: acreage-farming
 description: "Use this plugin when the user wants a premium precision-farming / agritech landing page: dark/light alternating sections, a fullscreen hero video background, an animated stats grid, an infinite logo marquee, and image-backed service cards. Invoke for 'farming landing page', 'agritech marketing site', 'precision agriculture site', or when the user references the Acreage Farming template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

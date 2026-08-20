@@ -19,7 +19,7 @@ triggers:
   - "review my landing page"
   - "review"
   - "retrospective"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design

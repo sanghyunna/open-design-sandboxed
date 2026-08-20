@@ -16,7 +16,7 @@ triggers:
   - "pitch deck"
   - "tech sharing"
   - "technical presentation"
-od:
+readable:
   mode: deck
   scenario: marketing
   featured: 19

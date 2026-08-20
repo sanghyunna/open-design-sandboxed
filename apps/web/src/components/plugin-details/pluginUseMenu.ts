@@ -1,6 +1,6 @@
 // Shared builder for the plugin detail modal's "Use plugin" split-button
 // menu. Mirrors the home plugin-card use-menu (`plugins-home/PluginCard`):
-// when a plugin ships an `od.useCase.query`, the primary CTA grows a caret
+// when a plugin ships an `readable.useCase.query`, the primary CTA grows a caret
 // that offers two variants (replicate-content first) —
 //   • "Use with query"  → attach the chip AND load the example prompt into
 //                          the composer (action 'use-with-query')
@@ -29,7 +29,7 @@ export function pluginUsePrimaryAction(
   record: InstalledPluginRecord,
   t: TranslateUseMenu,
 ): { label: string; action: PluginUseAction } {
-  const hasQuery = Boolean(record.manifest?.od?.useCase?.query);
+  const hasQuery = Boolean(record.manifest?.readable?.useCase?.query);
   return hasQuery
     ? { label: t('preview.replicateContent'), action: 'use-with-query' }
     : { label: t('preview.usePlugin'), action: 'use' };
@@ -40,7 +40,7 @@ export function buildPluginUseMenu(
   onUse: (record: InstalledPluginRecord, action: PluginUseAction) => void,
   t: TranslateUseMenu,
 ): PreviewPrimaryActionMenuItem[] | undefined {
-  const hasQuery = Boolean(record.manifest?.od?.useCase?.query);
+  const hasQuery = Boolean(record.manifest?.readable?.useCase?.query);
   if (!hasQuery) return undefined;
   // Replicate-content leads: the menu only exists when the plugin ships an
   // example query, and reproducing the previewed result is what most users

@@ -12,7 +12,7 @@ readable plugin scaffold --id figma-workflow --title "Figma workflow" --out ./pl
 The scaffold command creates `./plugins/community/figma-workflow/`. Plugin IDs
 must be lowercase, start with a letter, and use only `[a-z0-9._-]`; slash-
 separated registry paths are used by catalogs, not by `readable plugin scaffold`.
-The generated `open-design.json` is the Open Design sidecar next to `SKILL.md`.
+The generated `readable-studio.json` is the Open Design sidecar next to `SKILL.md`.
 
 ## 2. Validate And Pack
 
@@ -22,7 +22,7 @@ readable plugin pack ./plugins/community/figma-workflow
 ```
 
 The registry accepts anything that validates and packs. The source repository
-does not need a special layout beyond `SKILL.md` plus `open-design.json`.
+does not need a special layout beyond `SKILL.md` plus `readable-studio.json`.
 `readable plugin pack` writes the archive next to the plugin folder by default.
 
 ## 3. Authenticate
@@ -47,7 +47,7 @@ As part of the registry change, maintainers update the catalog explicitly:
 
 ```bash
 readable plugin publish acme/figma-workflow --to marketplace-json \
-  --catalog plugins/registry/community/open-design-marketplace.json \
+  --catalog plugins/registry/community/readable-studio-marketplace.json \
   --repo https://github.com/acme/figma-workflow
 ```
 

@@ -8,7 +8,7 @@ triggers:
   - "white editorial"
   - "Little Red Book with White Background"
   - "editorial deck"
-od:
+readable:
   mode: deck
   scenario: marketing
   featured: 27

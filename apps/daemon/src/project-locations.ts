@@ -1,24 +1,35 @@
 import { lstat, mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
 import type { ProjectLocationPrefs } from './app-config.js';
 import { expandHomePrefix } from './home-expansion.js';
 import { isSafeId } from './projects.js';
 
-export const BUILT_IN_PROJECT_LOCATION_ID = 'default';
+export const BUILT_IN_PROJECT_LOCATION_ID = READABLE_STUDIO_PROJECT_LOCATION_ID;
 export const PROJECT_MANIFEST_RELATIVE_PATH = path.join('.readable-studio', 'project.json');
+const LEGACY_PROJECT_MANIFEST_RELATIVE_PATH = path.join('.open-design', 'project.json');
+
+export class UnsupportedOpenDesignV1Error extends Error {
+  readonly name = 'UnsupportedOpenDesignV1Error';
+  readonly code = 'UNSUPPORTED_OPEN_DESIGN_V1';
+
+  constructor() {
+    super('UNSUPPORTED_OPEN_DESIGN_V1');
+  }
+}
 
 export interface ProjectLocation extends ProjectLocationPrefs {
   builtIn?: boolean;
 }
 
 export interface ProjectManifest {
-  schemaVersion: 1;
-  id: string;
-  name: string;
-  createdAt: number;
-  updatedAt: number;
-  skillId?: string | null;
-  designSystemId?: string | null;
+  readonly schemaVersion: 1;
+  readonly id: string;
+  readonly name: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly skillId?: string | null;
+  readonly designSystemId?: string | null;
 }
 
 export function builtInProjectLocation(projectsDir: string): ProjectLocation {
@@ -87,6 +98,14 @@ export async function writeProjectManifest(projectDir: string, manifest: Project
 
 export async function readProjectManifest(projectDir: string): Promise<ProjectManifest | null> {
   try {
+    await readFile(path.join(projectDir, LEGACY_PROJECT_MANIFEST_RELATIVE_PATH), 'utf8');
+    throw new UnsupportedOpenDesignV1Error();
+  } catch (error: unknown) {
+    if (error instanceof UnsupportedOpenDesignV1Error) throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+
+  try {
     const raw = await readFile(manifestPath(projectDir), 'utf8');
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
@@ -97,6 +116,7 @@ export async function readProjectManifest(projectDir: string): Promise<ProjectMa
     const createdAt = typeof obj.createdAt === 'number' && Number.isFinite(obj.createdAt) ? obj.createdAt : Date.now();
     const updatedAt = typeof obj.updatedAt === 'number' && Number.isFinite(obj.updatedAt) ? obj.updatedAt : createdAt;
     return {
+      ...obj,
       schemaVersion: 1,
       id: obj.id,
       name: obj.name.trim(),

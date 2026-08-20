@@ -32,7 +32,7 @@ function pluginFixture(extra: Partial<InstalledPluginRecord> = {}): InstalledPlu
       title: 'Sample Plugin',
       version: '1.0.0',
       description: 'Fixture for apply tests.',
-      od: {
+      readable: {
         kind: 'skill',
         taskKind: 'new-generation',
         useCase: { query: 'Generate a {{topic}} brief.' },
@@ -83,8 +83,8 @@ describe('applyPlugin', () => {
         ...base,
         manifest: {
           ...base.manifest,
-          od: {
-            ...base.manifest.od,
+          readable: {
+            ...base.manifest.readable,
             useCase: {
               query: {
                 en: 'Generate a {{topic}} brief.',

@@ -36,7 +36,7 @@ const PLUGIN: InstalledPluginRecord = {
     version: '1.0.0',
     title: 'Sample Plugin',
     description: 'Sample',
-    od: { kind: 'skill' },
+    readable: { kind: 'skill' },
   },
   fsPath: '/plugins/sample',
   installedAt: 0,

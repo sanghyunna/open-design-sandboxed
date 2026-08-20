@@ -15,7 +15,7 @@ example_name: "Marketing Poster · Product Launch"
 example_format: markdown
 example_tagline: "9:16 Moments share image"
 example_desc: "High-contrast launch poster with QR code placeholder + gradient mesh + noise texture"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

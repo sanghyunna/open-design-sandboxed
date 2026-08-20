@@ -2,7 +2,7 @@
 name: stellar-launch
 description: "Use this plugin when the user wants a premium awards / venture-prize landing page in the Launchex Awards style: an inset white card shell with rounded corners, a fullscreen video hero with chamfered (clip-path) CTA, a three-column submissions section with angular nomination cards flanking a square video, and an about-the-founders stats grid with plus-darker image cards. Invoke for 'awards landing page', 'launch / prize landing', 'Stellar Launch', 'Launchex awards', or any geometric chamfered-corner editorial hero."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

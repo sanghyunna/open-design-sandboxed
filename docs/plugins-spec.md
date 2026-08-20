@@ -6,7 +6,7 @@
 
 A **Plugin** is the unit of distribution for Open Design. Where a [Skill](skills-protocol.md) describes a single capability that an agent can run, a Plugin is the shippable bundle around it: one or more skills, an optional design system reference, optional craft rules, optional Claude-plugin assets, a preview, a use-case query, an asset folder, and a small machine-readable sidecar that powers OD's marketplace surface. A plugin is always anchored to a portable `SKILL.md` so it is publishable to every existing skill catalog without modification.
 
-> **Compatibility promise (extends [`skills-protocol.md`](skills-protocol.md)):** Any plugin folder that ships a `SKILL.md` works as a plain agent skill in Claude Code, Cursor, Codex, Gemini CLI, OpenClaw, Hermes, etc. Adding `open-design.json` is purely additive — it unlocks OD's marketplace card, preview, one-click "use" flow, and typed context-chip strip, but it never changes how the underlying skill runs. **One repo, two consumption modes.**
+> **Compatibility promise (extends [`skills-protocol.md`](skills-protocol.md)):** Any plugin folder that ships a `SKILL.md` works as a plain agent skill in Claude Code, Cursor, Codex, Gemini CLI, OpenClaw, Hermes, etc. Adding `readable-studio.json` is purely additive — it unlocks OD's marketplace card, preview, one-click "use" flow, and typed context-chip strip, but it never changes how the underlying skill runs. **One repo, two consumption modes.**
 
 ## Executive map for readers
 
@@ -14,7 +14,7 @@ This is an **agent-era plugin system**, not a Figma-era UI extension system. A p
 
 The shortest mental model:
 
-1. **Plugin author ships portable capability.** `SKILL.md` remains the executable agent contract; `open-design.json` adds OD marketplace metadata, input fields, defaults, previews, and context wiring.
+1. **Plugin author ships portable capability.** `SKILL.md` remains the executable agent contract; `readable-studio.json` adds OD marketplace metadata, input fields, defaults, previews, and context wiring.
 2. **User or agent picks a workflow.** The selection can happen from the marketplace, inline in the home input, inside an existing project chat, from CLI, or from CI.
 3. **OD applies the plugin without making the plugin a UI process.** Apply returns a hydrated brief, typed context chips, assets, and capability requirements. It does not start a hidden plugin runtime.
 4. **Agent drives generation.** The daemon creates or updates a project, starts a run, streams events over SSE / CLI ND-JSON, and records artifacts.
@@ -37,7 +37,7 @@ sequenceDiagram
   participant U as User or Agent
   participant S as OD Surface<br/>(Web, Desktop, CLI, CI)
   participant D as OD Daemon
-  participant P as Plugin Manifest<br/>(SKILL.md + open-design.json)
+  participant P as Plugin Manifest<br/>(SKILL.md + readable-studio.json)
   participant A as Code Agent
   participant R as Project Runtime<br/>(files + artifacts)
 
@@ -102,8 +102,8 @@ All four scenarios share the same `ApplyResult`, the same run pipeline, and the 
 2. [Goals and non-goals](#2-goals-and-non-goals)
 3. [Compatibility matrix](#3-compatibility-matrix--what-makes-a-folder-a-valid-plugin-for-whom)
 4. [Plugin folder shape](#4-plugin-folder-shape)
-5. [`open-design.json` schema](#5-open-designjson--schema-v1)
-6. [`open-design-marketplace.json` schema](#6-open-design-marketplacejson--federated-catalog)
+5. [`readable-studio.json` schema](#5-open-designjson--schema-v1)
+6. [`readable-studio-marketplace.json` schema](#6-open-design-marketplacejson--federated-catalog)
 7. [Discovery and install](#7-discovery-and-install)
 8. [The Apply pipeline](#8-the-apply-pipeline)
 9. [Trust and capabilities](#9-trust-and-capabilities)
@@ -128,7 +128,7 @@ All four scenarios share the same `ApplyResult`, the same run pipeline, and the 
 
 - Authoring stage: draft, awaiting review.
 - Defaults locked from the planning round (overridable in review):
-  - **Compatibility = wrap-then-extend.** Existing `SKILL.md` and `.claude-plugin/plugin.json` repos run as-is; `open-design.json` is an additive sidecar.
+  - **Compatibility = wrap-then-extend.** Existing `SKILL.md` and `.claude-plugin/plugin.json` repos run as-is; `readable-studio.json` is an additive sidecar.
   - **Trust = tiered and provenance-aware.** Bundled plugins and official-marketplace plugins are `trusted` by default; user-added third-party marketplaces, arbitrary GitHub / URL / local plugins start `restricted` unless the marketplace or plugin is explicitly trusted.
 
 ## 1. Vision
@@ -141,7 +141,7 @@ Open Design becomes a **server + CLI + atomic core engine + plugin/marketplace s
 - [`openclaw/clawhub`](https://github.com/openclaw/clawhub)
 - [`skills.sh`](https://skills.sh/)
 
-Each catalog needs a different listing format, but all of them index `SKILL.md`-shaped folders. By keeping `SKILL.md` canonical and `open-design.json` strictly sidecar, a single repo lands in every catalog without per-target rewrites.
+Each catalog needs a different listing format, but all of them index `SKILL.md`-shaped folders. By keeping `SKILL.md` canonical and `readable-studio.json` strictly sidecar, a single repo lands in every catalog without per-target rewrites.
 
 A second axis of the same vision: **the CLI is the canonical agent-facing API for Open Design.** Code agents (Claude Code, Cursor, Codex, OpenClaw, Hermes, in-house orchestrators) drive OD by shelling out `readable …`, not by hitting `/api/*` directly. The CLI wraps every server capability — project creation, conversation/run lifecycle, plugin apply, file system operations on a project, design library introspection, daemon control — behind a stable subcommand contract. The HTTP server is an implementation detail that backs the desktop UI and the CLI itself; agents that talk HTTP are bypassing the contract.
 
@@ -156,8 +156,8 @@ A fifth axis is the product-shape co-evolution with the agent: **UI is requested
 **Goals**
 
 1. Every runnable, distributable OD plugin is a valid agent skill (`SKILL.md`- or `.claude-plugin/plugin.json`-anchored). No fork of the skill spec.
-2. A vanilla skill or claude-plugin repo becomes an OD plugin by adding an optional `open-design.json` sidecar — no rename, no body changes.
-3. Three install sources: local folder, GitHub repo (with optional ref/subpath), arbitrary HTTPS archive, plus federated `open-design-marketplace.json` indexes.
+2. A vanilla skill or claude-plugin repo becomes an OD plugin by adding an optional `readable-studio.json` sidecar — no rename, no body changes.
+3. Three install sources: local folder, GitHub repo (with optional ref/subpath), arbitrary HTTPS archive, plus federated `readable-studio-marketplace.json` indexes.
 4. One-click "use" auto-fills the brief input and a strip of `ContextItem` chips above it (skills, design-system, craft, assets, MCP, claude-plugin, atom).
 5. Tiered trust by default; capability scoping is declarative and optional.
 6. The OD core engine, atomic capabilities, and plugin runtime are all reachable from CLI so any code agent can drive Open Design headlessly.
@@ -179,14 +179,14 @@ A fifth axis is the product-shape co-evolution with the agent: **UI is requested
 | ------------------------------------------------------------------ | -------------- | ----------------------------------------- | ----------------- | -------------------- | ------- | --------- |
 | `SKILL.md` only                                                    | yes            | yes                                       | yes               | yes                  | yes     | yes       |
 | `.claude-plugin/plugin.json` only                                  | yes            | yes (claude)                              | partial           | listable             | listable| listable  |
-| `open-design.json` only                                            | metadata-only  | no                                        | no                | no                   | no      | no        |
-| `SKILL.md` + `open-design.json`                                    | enriched       | yes                                       | yes               | yes                  | yes     | yes       |
-| `.claude-plugin/...` + `open-design.json`                          | enriched       | yes (claude)                              | partial           | listable             | listable| listable  |
-| `SKILL.md` + `.claude-plugin/...` + `open-design.json`             | fully enriched | yes                                       | yes               | yes                  | yes     | yes       |
+| `readable-studio.json` only                                            | metadata-only  | no                                        | no                | no                   | no      | no        |
+| `SKILL.md` + `readable-studio.json`                                    | enriched       | yes                                       | yes               | yes                  | yes     | yes       |
+| `.claude-plugin/...` + `readable-studio.json`                          | enriched       | yes (claude)                              | partial           | listable             | listable| listable  |
+| `SKILL.md` + `.claude-plugin/...` + `readable-studio.json`             | fully enriched | yes                                       | yes               | yes                  | yes     | yes       |
 
-The takeaway: **`SKILL.md` is the lowest common denominator**. Every plugin recommended for distribution should ship a `SKILL.md` so it lands cleanly in every major catalog, then add `open-design.json` to gain OD's product surface.
+The takeaway: **`SKILL.md` is the lowest common denominator**. Every plugin recommended for distribution should ship a `SKILL.md` so it lands cleanly in every major catalog, then add `readable-studio.json` to gain OD's product surface.
 
-A folder that contains only `open-design.json` is not a runnable plugin in v1; it is a **metadata-only preset**. OD may read it to show a marketplace card, aggregate remote references, or act as a future install stub, but it cannot trigger an agent run and cannot be listed in cross-agent catalogs. `readable plugin doctor` must mark this shape as `metadata-only` and prompt the author to add `SKILL.md` or `.claude-plugin/plugin.json` before publishing it as a runnable plugin.
+A folder that contains only `readable-studio.json` is not a runnable plugin in v1; it is a **metadata-only preset**. OD may read it to show a marketplace card, aggregate remote references, or act as a future install stub, but it cannot trigger an agent run and cannot be listed in cross-agent catalogs. `readable plugin doctor` must mark this shape as `metadata-only` and prompt the author to add `SKILL.md` or `.claude-plugin/plugin.json` before publishing it as a runnable plugin.
 
 ## 4. Plugin folder shape
 
@@ -195,7 +195,7 @@ my-plugin/
 ├── SKILL.md                          # required for portability; anchors agent behavior
 ├── .claude-plugin/                   # optional: claude-plugin compat (commands/agents/hooks/.mcp.json)
 │   └── plugin.json
-├── open-design.json                  # optional sidecar — unlocks OD product surface
+├── readable-studio.json                  # optional sidecar — unlocks OD product surface
 ├── README.md                         # standard catalog readme
 ├── preview/                          # OD preview assets
 │   ├── index.html
@@ -213,15 +213,15 @@ my-plugin/
 Rules of authorship:
 
 - `SKILL.md` body never carries OD-specific metadata; it stays clean and portable.
-- `open-design.json` only ever **points** at SKILL.md / DESIGN.md / craft files; it never duplicates their bodies.
-- Existing OD-specific frontmatter on SKILL.md (the `od:` namespace already documented in [`skills-protocol.md`](skills-protocol.md) and used in [`skills/blog-post/SKILL.md`](../skills/blog-post/SKILL.md)) is honored as a fallback for plugins without `open-design.json`. We do not deprecate it; we layer over it.
-- A runnable v1 plugin must contain at least one of `SKILL.md` or `.claude-plugin/plugin.json`. `open-design.json` does not define agent behavior by itself; it only tells OD how to display, resolve, and apply that behavior.
+- `readable-studio.json` only ever **points** at SKILL.md / DESIGN.md / craft files; it never duplicates their bodies.
+- Existing OD-specific frontmatter on SKILL.md (the `od:` namespace already documented in [`skills-protocol.md`](skills-protocol.md) and used in [`skills/blog-post/SKILL.md`](../skills/blog-post/SKILL.md)) is honored as a fallback for plugins without `readable-studio.json`. We do not deprecate it; we layer over it.
+- A runnable v1 plugin must contain at least one of `SKILL.md` or `.claude-plugin/plugin.json`. `readable-studio.json` does not define agent behavior by itself; it only tells OD how to display, resolve, and apply that behavior.
 
-## 5. `open-design.json` — schema v1
+## 5. `readable-studio.json` — schema v1
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/plugin.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-manifest:v1",
   "specVersion": "1.0.0",
   "name": "make-a-deck",
   "title": "Make a deck",
@@ -387,7 +387,7 @@ Capabilities are not isolated strings; the resolver must compute **implied capab
 
 ### 5.4 `SKILL.md` frontmatter to `PluginManifest` mapping
 
-When a plugin has no `open-design.json`, but its `SKILL.md` already contains the `od:` frontmatter defined in [`skills-protocol.md`](skills-protocol.md), `adapters/agent-skill.ts` synthesizes a minimal `PluginManifest`. The mapping must be stable so the legacy skill protocol and the new plugin schema do not drift into two semantics:
+When a plugin has no `readable-studio.json`, but its `SKILL.md` already contains the `od:` frontmatter defined in [`skills-protocol.md`](skills-protocol.md), `adapters/agent-skill.ts` synthesizes a minimal `PluginManifest`. The mapping must be stable so the legacy skill protocol and the new plugin schema do not drift into two semantics:
 
 | `SKILL.md` field | Plugin manifest field | Rule |
 | --- | --- | --- |
@@ -402,15 +402,15 @@ When a plugin has no `open-design.json`, but its `SKILL.md` already contains the
 | `od.outputs` | `projectMetadata` hints | Used for artifact bookkeeping and preview defaults, not surfaced as user-editable inputs |
 | `od.capabilities_required` | `od.capabilities` | Map only capabilities that can be expressed; unknown capabilities are kept in `compatWarnings[]`, and `readable plugin doctor` must surface them |
 
-If `open-design.json` and `SKILL.md` frontmatter both exist, `open-design.json` wins, but the loader must preserve adapter warnings. Authors can migrate incrementally: first keep the old skill runnable as-is, then add OD marketplace metadata.
+If `readable-studio.json` and `SKILL.md` frontmatter both exist, `readable-studio.json` wins, but the loader must preserve adapter warnings. Authors can migrate incrementally: first keep the old skill runnable as-is, then add OD marketplace metadata.
 
-## 6. `open-design-marketplace.json` — federated catalog
+## 6. `readable-studio-marketplace.json` — federated catalog
 
 Mirrors [`anthropics/skills/.claude-plugin/marketplace.json`](https://raw.githubusercontent.com/anthropics/skills/main/.claude-plugin/marketplace.json) so existing community catalogs need only a rename to be reusable.
 
 ```json
 {
-  "$schema": "https://open-design.ai/schemas/marketplace.v1.json",
+  "$schema": "urn:readable-studio:schema:plugin-marketplace:v1",
   "specVersion": "1.0.0",
   "name": "open-design-official",
   "version": "1.0.0",
@@ -423,7 +423,7 @@ Mirrors [`anthropics/skills/.claude-plugin/marketplace.json`](https://raw.github
 }
 ```
 
-The marketplace top-level `version` is the catalog snapshot version; every `plugins[]` entry also declares the listed plugin version. Installers still verify the target folder's own `open-design.json` after fetching, but registry search, audit logs, and marketplace refresh events can now reason about catalog and plugin versions before install.
+The marketplace top-level `version` is the catalog snapshot version; every `plugins[]` entry also declares the listed plugin version. Installers still verify the target folder's own `readable-studio.json` after fetching, but registry search, audit logs, and marketplace refresh events can now reason about catalog and plugin versions before install.
 
 Multiple marketplaces coexist — the user runs `readable marketplace add <url>` to register additional indexes (Vercel's, OpenClaw's clawhub, an enterprise team's private catalog). By default, a user-added marketplace is only a discovery source and plugins from it still install as `restricted`; only the built-in official marketplace or a marketplace explicitly trusted through `readable marketplace add <url> --trust` / `readable marketplace trust <id>` can pass through default `trusted` status.
 
@@ -451,7 +451,7 @@ readable plugin install github:owner/repo@v1.2.0
 readable plugin install github:owner/repo/path/to/subfolder
 readable plugin install https://example.com/plugin.tar.gz
 readable plugin install make-a-deck                   # via configured marketplaces
-readable marketplace add https://.../open-design-marketplace.json
+readable marketplace add https://.../readable-studio-marketplace.json
 ```
 
 GitHub install path uses `https://codeload.github.com/owner/repo/tar.gz/<ref>`, no git binary required, with path-traversal guards and a configurable size cap.
@@ -914,10 +914,10 @@ The adapter is an interoperability surface, not the internal UI source of truth.
 
 Pure TypeScript, no Next/Express/SQLite/browser deps:
 
-- `parsers/manifest.ts` — read `open-design.json` → `PluginManifest` (Zod-validated).
+- `parsers/manifest.ts` — read `readable-studio.json` → `PluginManifest` (Zod-validated).
 - `adapters/agent-skill.ts` — read `SKILL.md` → synthesize a `PluginManifest` from the `od:` frontmatter documented in [`skills-protocol.md`](skills-protocol.md).
 - `adapters/claude-plugin.ts` — read `.claude-plugin/plugin.json` → synthesize a `PluginManifest`.
-- `merge.ts` — merge sidecar + adapters with `open-design.json` winning; foreign content lands in `compat.*`.
+- `merge.ts` — merge sidecar + adapters with `readable-studio.json` winning; foreign content lands in `compat.*`.
 - `resolve.ts` — resolve `od.context.*` refs against the registry → `ResolvedContext`.
 - `validate.ts` — JSON Schema (drives both runtime checks and `readable plugin doctor`).
 
@@ -954,7 +954,7 @@ CREATE TABLE installed_plugins (
   source_digest        TEXT,
   trust                TEXT NOT NULL,    -- trusted | restricted
   capabilities_granted TEXT NOT NULL,    -- JSON array
-  manifest_json        TEXT NOT NULL,    -- cached open-design.json (or synthesized)
+  manifest_json        TEXT NOT NULL,    -- cached readable-studio.json (or synthesized)
   fs_path              TEXT NOT NULL,
   installed_at         INTEGER NOT NULL,
   updated_at           INTEGER NOT NULL
@@ -1433,13 +1433,13 @@ Every group above is additive to [`apps/daemon/src/cli.ts`](../apps/daemon/src/c
 
 ## 13. Public web surface (open-design.ai/marketplace)
 
-The product site already lives at [open-design.ai](https://open-design.ai). The public marketplace ships as a path on that same site — `open-design.ai/marketplace` (canonical) with `open-design.ai/plugins` as an alias — not as a separate domain. It is a static-rendered catalog rendered from the official `open-design-marketplace.json` index, with plugin detail pages backed by the same `open-design.json` files inside each listed repo. Visually it mirrors what [`skills.sh`](https://skills.sh/) does for skills, but its detail pages render OD-specific previews (the `od.preview.entry` HTML, sample outputs, the use-case query, the chip preview).
+The product site already lives at [open-design.ai](https://open-design.ai). The public marketplace ships as a path on that same site — `open-design.ai/marketplace` (canonical) with `open-design.ai/plugins` as an alias — not as a separate domain. It is a static-rendered catalog rendered from the official `readable-studio-marketplace.json` index, with plugin detail pages backed by the same `readable-studio.json` files inside each listed repo. Visually it mirrors what [`skills.sh`](https://skills.sh/) does for skills, but its detail pages render OD-specific previews (the `od.preview.entry` HTML, sample outputs, the use-case query, the chip preview).
 
 The site shares one source of truth with the in-app marketplace:
 
-- Same JSON Schemas (`https://open-design.ai/schemas/plugin.v1.json`, `https://open-design.ai/schemas/marketplace.v1.json`).
-- Same federated listing format (`open-design-marketplace.json`).
-- Same plugin manifests (`open-design.json` inside each repo).
+- Same JSON Schemas (`urn:readable-studio:schema:plugin-manifest:v1`, `urn:readable-studio:schema:plugin-marketplace:v1`).
+- Same federated listing format (`readable-studio-marketplace.json`).
+- Same plugin manifests (`readable-studio.json` inside each repo).
 
 Two consumption surfaces, one substrate:
 
@@ -1469,11 +1469,11 @@ A single GitHub repo per plugin, simultaneously usable across every catalog the 
 | [`VoltAgent/awesome-agent-skills`](https://github.com/VoltAgent/awesome-agent-skills)            | PR adds a row pointing at the repo URL                                     | repo URL — automation in §14.1                         |
 | [`openclaw/clawhub`](https://github.com/openclaw/clawhub)                                        | submission via clawhub web app or PR                                       | repo URL                                                |
 | [`skills.sh`](https://skills.sh/)                                                                | indexed automatically once `npx skills add owner/repo` is observed         | repo URL                                                |
-| `open-design-marketplace.json`                                                                   | entry referencing `github:owner/repo`                                      | `open-design.json` enriches the listing                |
+| `readable-studio-marketplace.json`                                                                   | entry referencing `github:owner/repo`                                      | `readable-studio.json` enriches the listing                |
 
 ### 14.1 Author tooling
 
-- `readable plugin scaffold` — writes a starter folder containing both `SKILL.md` (industry-standard, with `od:` frontmatter for backward compat) and `open-design.json` (OD enrichment with `compat.agentSkills` pointing at the SKILL.md).
+- `readable plugin scaffold` — writes a starter folder containing both `SKILL.md` (industry-standard, with `od:` frontmatter for backward compat) and `readable-studio.json` (OD enrichment with `compat.agentSkills` pointing at the SKILL.md).
 - `readable plugin doctor` — runs the JSON Schema, the SKILL.md frontmatter parser, and a "does this look listable on awesome-agent-skills / clawhub / skills.sh?" lint that checks for README presence, license file, and frontmatter completeness.
 - `readable plugin publish --to <catalog>` (Phase 4) — opens a browser to the catalog's PR template with a pre-filled row.
 
@@ -1481,7 +1481,7 @@ A single GitHub repo per plugin, simultaneously usable across every catalog the 
 
 Any code agent that consumes a folder via `SKILL.md` works without OD installed. The plugin is one repo with three valid consumption modes:
 
-1. **Skill-only consumption (no OD).** A Cursor user runs `npx skills add open-design/make-a-deck`. Cursor reads `SKILL.md` and runs the workflow. No OD CLI, no OD daemon. The plugin's marketplace polish (`open-design.json`) is ignored — Cursor sees a vanilla skill.
+1. **Skill-only consumption (no OD).** A Cursor user runs `npx skills add open-design/make-a-deck`. Cursor reads `SKILL.md` and runs the workflow. No OD CLI, no OD daemon. The plugin's marketplace polish (`readable-studio.json`) is ignored — Cursor sees a vanilla skill.
 2. **Headless OD (CLI + code agent, no OD UI).** A power user keeps using their preferred code agent — Claude Code, Cursor, Codex, etc. — but adds OD as a side service to gain plugin context resolution, project bookkeeping, design library injection, and artifact tracking. No browser, no electron. See §14.3 below for the concrete pipeline.
 3. **Full OD (CLI + code agent + OD UI).** Same as (2) plus the desktop or web UI for live preview, marketplace browsing, chat/canvas split-view, etc.
 
@@ -1544,7 +1544,7 @@ The mental model:
 | Headless agent CLI    | `cursor-agent` (drives the agent loop)       | `readable run start --agent claude --follow` + `readable plugin run` |
 | Local services / db   | Cursor's background indexing / state         | OD daemon, SQLite, `.od/projects/<id>/`              |
 | GUI productivity layer| Cursor IDE                                   | OD desktop / web UI (`apps/web` + `apps/desktop`)    |
-| Plugin / skill format | `.cursor/rules/`, MCP servers                | `SKILL.md` + `open-design.json` + atoms              |
+| Plugin / skill format | `.cursor/rules/`, MCP servers                | `SKILL.md` + `readable-studio.json` + atoms              |
 
 Both products are decoupled the same way: the terminal flow is sufficient; the IDE/desktop is the productivity multiplier. **Plugin authors never have to choose** — they write one SKILL.md plus optional sidecar, and reach all three consumption modes.
 
@@ -1564,7 +1564,7 @@ Product-owned runtime boundaries remain here:
 ### Phase 0 — Spec freeze (1–2 days)
 
 - This document lands as `docs/plugins-spec.md` (current).
-- JSON Schemas at `docs/schemas/open-design.plugin.v1.json` and `open-design.marketplace.v1.json`.
+- JSON Schemas at `docs/schemas/readable-studio.plugin.v1.json` and `readable-studio.marketplace.v1.json`.
 - Pure-TS contracts at `packages/contracts/src/plugins/{manifest,context,apply,marketplace,installed}.ts`.
 - Migration note: existing `skills/`, `design-systems/`, `craft/` are 100% backward compatible. SKILL.md frontmatter unchanged.
 
@@ -1586,7 +1586,7 @@ Phase 1 contents (merges the original Phase 1 with the minimum subset of the ori
 
 Validation:
 
-- `pnpm --filter @readable-studio/plugin-runtime test` (parser fixtures: pure SKILL.md, pure claude plugin, metadata-only open-design.json, all three combined, SKILL frontmatter mapping).
+- `pnpm --filter @readable-studio/plugin-runtime test` (parser fixtures: pure SKILL.md, pure claude plugin, metadata-only readable-studio.json, all three combined, SKILL frontmatter mapping).
 - `pnpm --filter @readable-studio/daemon test`. `pnpm guard`, `pnpm typecheck`.
 - **End-to-end headless smoke** (equivalent to the §12.5 walkthrough): `readable plugin install ./fixtures/sample-plugin` → `readable project create --plugin <id> --json` → `readable run start --project <pid> --plugin <id> --follow` → `readable files read <pid> <artifact>`. The produced artifact bytes must match exactly what the same plugin produces under the Phase 2A UI flow.
 - **Apply purity smoke:** after `readable plugin apply <id>` followed by cancel-before-send, the project cwd is empty of staged assets, no `.mcp.json` is generated, but the `applied_plugin_snapshots` row exists (unreferenced from any run/project).
@@ -1679,7 +1679,7 @@ Validation uses the package-scoped storage, auth, and retention tests documented
 
 ### 17.1 Minimum-viable plugin (just SKILL.md)
 
-OD reads it as a plugin via the existing `od:` frontmatter loader documented in [`skills-protocol.md`](skills-protocol.md). No `open-design.json` needed — the plugin lacks marketplace polish but is fully runnable.
+OD reads it as a plugin via the existing `od:` frontmatter loader documented in [`skills-protocol.md`](skills-protocol.md). No `readable-studio.json` needed — the plugin lacks marketplace polish but is fully runnable.
 
 ```
 my-plugin/
@@ -1704,7 +1704,7 @@ Workflow steps...
 my-plugin/
 ├── SKILL.md
 ├── README.md
-├── open-design.json
+├── readable-studio.json
 ├── preview/
 │   ├── index.html
 │   ├── poster.png
@@ -1713,14 +1713,14 @@ my-plugin/
     └── b2b-saas/index.html
 ```
 
-`SKILL.md` stays portable — Cursor / Codex / OpenClaw read it directly. `open-design.json` adds preview, query, chip strip, capabilities. The repo lists cleanly on every catalog in §14 without modification.
+`SKILL.md` stays portable — Cursor / Codex / OpenClaw read it directly. `readable-studio.json` adds preview, query, chip strip, capabilities. The repo lists cleanly on every catalog in §14 without modification.
 
 ### 17.3 Bundle plugin (multiple skills + DS + craft in one repo)
 
 ```
 my-bundle/
 ├── SKILL.md                          # bundle-level overview (catalog uses this)
-├── open-design.json                  # kind: 'bundle'; lists nested skills
+├── readable-studio.json                  # kind: 'bundle'; lists nested skills
 ├── skills/
 │   ├── deck-skeleton/SKILL.md
 │   └── deck-finalize/SKILL.md
@@ -1734,7 +1734,7 @@ The installer fans out nested skills/design-systems/craft into the registry unde
 
 | Risk                                                        | Mitigation                                                                                          |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Schema drift between OD plugin and the broader skill spec   | `open-design.json` is sidecar-only; it never modifies SKILL.md. Package-scoped compatibility fixtures cover the public skill shape. |
+| Schema drift between OD plugin and the broader skill spec   | `readable-studio.json` is sidecar-only; it never modifies SKILL.md. Package-scoped compatibility fixtures cover the public skill shape. |
 | Arbitrary GitHub install = supply-chain risk                | `restricted` default; capability prompt mandatory before bash/hooks/MCP; pinned-ref recording.       |
 | `composeSystemPrompt()` is already 200+ lines               | The `## Active plugin` block is appended in the existing place; no reordering of layers.             |
 | ExamplesTab vs Marketplace overlap                          | Phase 2 keeps ExamplesTab as is; Phase 3 folds it into Marketplace as a "Local skills" tab.         |
@@ -1771,7 +1771,7 @@ Open questions worth confirming before code lands:
 
 ## 19. Why this is a meaningful step for Open Design
 
-- **Inherited supply.** Every public agent skill on `anthropics/skills`, `awesome-agent-skills`, `clawhub`, and `skills.sh` is one optional `open-design.json` away from being an OD plugin — and reciprocally, every OD plugin is publishable to all four catalogs without modification.
+- **Inherited supply.** Every public agent skill on `anthropics/skills`, `awesome-agent-skills`, `clawhub`, and `skills.sh` is one optional `readable-studio.json` away from being an OD plugin — and reciprocally, every OD plugin is publishable to all four catalogs without modification.
 - **Boundary-clean.** New code lives in two pure-TS packages (`packages/plugin-runtime`, `packages/contracts/src/plugins/*`) and one daemon module group (`apps/daemon/src/plugins/`); no cross-app coupling, no contracts package leaks, no SKILL.md fork. Honors every constraint in the root [`AGENTS.md`](../AGENTS.md).
 - **Reversible refactors.** Existing loaders ([`apps/daemon/src/skills.ts`](../apps/daemon/src/skills.ts) etc.) and `composeSystemPrompt()` keep their public shape; Phase 1 is a drop-in delegate, Phase 2 only **appends** a prompt block.
 - **CLI from day 1.** Every new endpoint has a matching `readable plugin …` subcommand, so the same surface is reachable from any code agent without the desktop app.
@@ -2141,7 +2141,7 @@ The following patches finish lifting category A out of the daemon. Some have par
 
 Today §5's `od.kind` enum lists `'atom'` but never defines an atom plugin's shape. The patch:
 
-- An atom plugin is a folder with `open-design.json` (`od.kind: 'atom'`) plus `SKILL.md`.
+- An atom plugin is a folder with `readable-studio.json` (`od.kind: 'atom'`) plus `SKILL.md`.
 - The `SKILL.md` body is the atom's prompt fragment, injected by the daemon assembler when a stage references the atom by id.
 - Optional `od.context.mcp[]` declares MCP tools the atom uses.
 - Optional `od.atom.untilSignals[]` declares the named signal variables this atom emits, contributing to the `until` vocabulary in §10.1. This is how patch 1 also lifts §22.4's limit 1: each atom owns its own signals (e.g. `build-test` declares `build.passing` and `tests.passing`), and the `until` evaluator looks them up against the active stage's atoms instead of a hard-coded list.
@@ -2157,10 +2157,10 @@ The migration is mechanical: every prose constant in `system.ts` has a one-to-on
 
 Bundled scenario plugins and the pipeline fallback resolver now exist. The remaining work is to remove any product entrypoint that still hand-builds a default stage list instead of selecting a scenario plugin. The target remains: when `od.pipeline` is omitted, daemon/product code resolves a bundled scenario plugin per `taskKind` or explicit entrypoint route, then uses that scenario's `od.pipeline`.
 
-- `plugins/_official/scenarios/od-new-generation/open-design.json`
-- `plugins/_official/scenarios/od-figma-migration/open-design.json` (after Phase 6)
-- `plugins/_official/scenarios/od-code-migration/open-design.json` (after Phase 7)
-- `plugins/_official/scenarios/od-tune-collab/open-design.json`
+- `plugins/_official/scenarios/od-new-generation/readable-studio.json`
+- `plugins/_official/scenarios/od-figma-migration/readable-studio.json` (after Phase 6)
+- `plugins/_official/scenarios/od-code-migration/readable-studio.json` (after Phase 7)
+- `plugins/_official/scenarios/od-tune-collab/readable-studio.json`
 
 Each ships only an `od.pipeline` and (optionally) some default `od.genui.surfaces[]` for that scenario. Daemon resolution becomes: "no `od.pipeline` provided + has `taskKind` → look up the bundled scenario plugin matching that `taskKind` → use its `od.pipeline`."
 

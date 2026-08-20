@@ -8,7 +8,7 @@ triggers:
   - "one idea per slide"
   - "public talk"
   - "launch keynote"
-od:
+readable:
   mode: deck
   scenario: personal
   featured: 34

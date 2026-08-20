@@ -2,7 +2,7 @@
 name: aerocore
 description: "Use this plugin when the user wants a premium dark-to-light aerospace / propulsion marketing site: a scroll-driven gradient hero with parallax wordmark and an engine still, a film-card that grows from a mission thumbnail into a fullscreen sticky video, a pinned tabbed showcase, a bento capabilities grid with looping video cards and a tool marquee, an animated dark stats chart with category tabs, a horizontal video-story rail, and a starfield footer. Invoke for 'aerospace landing', 'engine / propulsion site', 'EngineTech', 'scroll-cinematic hero', or when the user references the AeroCore template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

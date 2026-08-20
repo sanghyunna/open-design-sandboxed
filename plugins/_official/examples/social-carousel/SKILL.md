@@ -17,7 +17,7 @@ triggers:
   - "social series"
 - "Three consecutive shots"
   - "Carousel"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

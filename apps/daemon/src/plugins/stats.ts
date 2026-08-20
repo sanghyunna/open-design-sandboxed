@@ -61,10 +61,10 @@ export function pluginInventoryStats(plugins: ReadonlyArray<InstalledPluginRecor
     const trust = plugin.trust ?? 'unknown';
     stats.byTrust[trust] = (stats.byTrust[trust] ?? 0) + 1;
 
-    const taskKind = plugin.manifest.od?.taskKind ?? 'unknown';
+    const taskKind = plugin.manifest.readable?.taskKind ?? 'unknown';
     stats.byTaskKind[taskKind] = (stats.byTaskKind[taskKind] ?? 0) + 1;
 
-    const declared = plugin.manifest.od?.capabilities ?? [];
+    const declared = plugin.manifest.readable?.capabilities ?? [];
     if (Array.isArray(declared) && declared.some((c) => ELEVATED_CAPABILITIES.has(c))) {
       stats.withElevatedCapabilities++;
     }

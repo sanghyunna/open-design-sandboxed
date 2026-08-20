@@ -16,7 +16,7 @@ triggers:
   - editorial deck
   - print-style slides
   - kami slides
-od:
+readable:
   category: brand-deck
   surface: web
   mode: deck

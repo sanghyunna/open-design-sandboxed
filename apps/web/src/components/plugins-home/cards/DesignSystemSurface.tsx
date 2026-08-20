@@ -1,7 +1,7 @@
 // Design-system preview surface — showcase thumbnail with a brand-patch fallback.
 //
 // Most design-system plugins reference an upstream design system in
-// `od.context.designSystem.ref`. When available, reuse the same
+// `readable.context.designSystem.ref`. When available, reuse the same
 // showcase route as the detail modal so the home grid reads like real
 // website thumbnails rather than synthetic color swatches. The iframe
 // uses native lazy loading so off-screen cards do not eagerly render.

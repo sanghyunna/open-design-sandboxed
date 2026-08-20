@@ -8,7 +8,7 @@
 // would download.
 //
 // What we put in the archive:
-//   - open-design.json (required; this is what the installer
+//   - readable-studio.json (required; this is what the installer
 //     resolves first)
 //   - SKILL.md / .claude-plugin/plugin.json when present
 //   - Any other plain files under the folder
@@ -28,9 +28,13 @@
 import path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import { c as tarCreate } from 'tar';
+import {
+  isUnsupportedOpenDesignV1,
+  UNSUPPORTED_OPEN_DESIGN_V1,
+} from '@readable-studio/plugin-runtime';
 
 export interface PackPluginInput {
-  // Path to the plugin folder. Must contain open-design.json.
+  // Path to the plugin folder. Must contain readable-studio.json.
   folder: string;
   // Absolute path of the output archive. Default:
   // `<folder>/../<folder-basename>-<version>.tgz` when the manifest
@@ -67,25 +71,35 @@ export class PackPluginError extends Error {
 export async function packPlugin(input: PackPluginInput): Promise<PackPluginResult> {
   const folder = path.resolve(input.folder);
 
-  // Confirm the folder shape — open-design.json must exist + parse.
+  // Confirm the folder shape — readable-studio.json must exist + parse.
+  if (await fsp.access(path.join(folder, 'open-design.json')).then(() => true, () => false)) {
+    throw new PackPluginError(UNSUPPORTED_OPEN_DESIGN_V1);
+  }
   let manifestRaw: string;
   try {
-    manifestRaw = await fsp.readFile(path.join(folder, 'open-design.json'), 'utf8');
+    manifestRaw = await fsp.readFile(path.join(folder, 'readable-studio.json'), 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new PackPluginError(`folder ${folder} does not contain open-design.json`);
+      throw new PackPluginError(`folder ${folder} does not contain readable-studio.json`);
     }
-    throw new PackPluginError(`failed to read open-design.json: ${(err as Error).message}`);
+    throw new PackPluginError(`failed to read readable-studio.json: ${(err as Error).message}`);
   }
-  let pluginId: string | undefined;
-  let pluginVersion: string | undefined;
+  let manifest: unknown;
   try {
-    const parsed = JSON.parse(manifestRaw) as { name?: string; version?: string };
-    if (typeof parsed.name === 'string'    && parsed.name.length    > 0) pluginId      = parsed.name;
-    if (typeof parsed.version === 'string' && parsed.version.length > 0) pluginVersion = parsed.version;
-  } catch (err) {
-    throw new PackPluginError(`open-design.json failed to parse as JSON: ${(err as Error).message}`);
+    manifest = JSON.parse(manifestRaw);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new PackPluginError(`readable-studio.json failed to parse as JSON: ${message}`);
   }
+  if (isUnsupportedOpenDesignV1(manifest)) {
+    throw new PackPluginError(UNSUPPORTED_OPEN_DESIGN_V1);
+  }
+  const pluginId = typeof Reflect.get(Object(manifest), 'name') === 'string'
+    ? String(Reflect.get(Object(manifest), 'name'))
+    : undefined;
+  const pluginVersion = typeof Reflect.get(Object(manifest), 'version') === 'string'
+    ? String(Reflect.get(Object(manifest), 'version'))
+    : undefined;
 
   const folderBase = path.basename(folder);
   const defaultOut = pluginVersion

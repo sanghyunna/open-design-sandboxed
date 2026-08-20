@@ -19,7 +19,7 @@ example_tagline: "Klein Blue IKB + 16-Column Grid"
 example_desc: "S01 Cover + S06 KPI Tower two-page preview, IKB full-bleed title + 4-bar KPI"
 example_source_url: "https://github.com/op7418/guizang-ppt-skill"
 example_source_label: "op7418/guizang-ppt-skill"
-od:
+readable:
   mode: deck
   surface: web
   scenario: marketing

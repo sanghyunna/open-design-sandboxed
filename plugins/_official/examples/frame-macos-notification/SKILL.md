@@ -18,7 +18,7 @@ example_tagline: "Big Sur frosted-glass banner"
 example_desc: "App icon + title + two-line body, for video corner overlay"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · macos-notification"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

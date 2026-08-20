@@ -20,7 +20,7 @@ triggers:
   - "sprite sheet"
   - "pixel animation"
   - "retro animation"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

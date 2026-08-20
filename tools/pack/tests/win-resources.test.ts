@@ -40,7 +40,7 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
     recursive: true,
   });
   await writeFile(
-    join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"),
+    join(workspaceRoot, "plugins", "_official", "sample", "readable-studio.json"),
     "{\"id\":\"sample\"}\n",
     "utf8",
   );
@@ -48,7 +48,7 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
     recursive: true,
   });
   await writeFile(
-    join(workspaceRoot, "plugins", "registry", "community", "open-design-marketplace.json"),
+    join(workspaceRoot, "plugins", "registry", "community", "readable-studio-marketplace.json"),
     "{\"plugins\":[]}\n",
     "utf8",
   );

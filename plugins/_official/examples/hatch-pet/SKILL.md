@@ -9,7 +9,7 @@ triggers:
   - "animated pet"
   - "hatch a digital pet"
   - "digital pet"
-od:
+readable:
   mode: image
   surface: image
   scenario: personal

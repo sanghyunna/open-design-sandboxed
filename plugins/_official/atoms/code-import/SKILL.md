@@ -1,7 +1,7 @@
 ---
 name: code-import
 description: Read an existing repository's structure into the project cwd as a normalised snapshot the agent can analyse without re-walking the tree on every turn.
-od:
+readable:
   scenario: code-migration
   mode: import
 ---

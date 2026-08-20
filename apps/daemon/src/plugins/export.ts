@@ -7,13 +7,13 @@
 // can re-publish to anthropics/skills, awesome-agent-skills, clawhub,
 // or skills.sh. Three targets:
 //
-//   - `od`            → SKILL.md + open-design.json (canonical OD shape).
+//   - `od`            → SKILL.md + readable-studio.json (canonical OD shape).
 //   - `claude-plugin` → SKILL.md + .claude-plugin/plugin.json (Claude
 //                       Code listing format).
 //   - `agent-skill`   → SKILL.md only (every catalog accepts this).
 //
 // The export is best-effort: it pulls SKILL.md straight off the
-// installed plugin's fs_path, and reconstructs open-design.json from
+// installed plugin's fs_path, and reconstructs readable-studio.json from
 // the cached `manifest_json` so a publishable snapshot is reproducible
 // even after an `od plugin update` rotates the live source.
 
@@ -26,7 +26,7 @@ import { getSnapshot } from './snapshots.js';
 
 type SqliteDb = Database.Database;
 
-export type ExportTarget = 'od' | 'claude-plugin' | 'agent-skill';
+export type ExportTarget = 'readable-studio' | 'claude-plugin' | 'agent-skill';
 
 export interface ExportInput {
   db: SqliteDb;
@@ -73,21 +73,21 @@ export async function exportPlugin(input: ExportInput): Promise<ExportResult> {
   // SKILL.md — copy from the installed plugin if available, otherwise
   // synthesize from the snapshot's plugin title + description.
   const skillBody = await readSkillBody(plugin?.fsPath, snapshot);
-  if (input.target !== 'od') {
+  if (input.target !== 'readable-studio') {
     const skillPath = path.join(folder, 'SKILL.md');
     await fsp.writeFile(skillPath, skillBody, 'utf8');
     written.push(skillPath);
   } else {
-    // 'od' target: still ship SKILL.md as the portable anchor (per
+    // 'readable-studio' target: still ship SKILL.md as the portable anchor (per
     // spec §3 the canonical floor).
     const skillPath = path.join(folder, 'SKILL.md');
     await fsp.writeFile(skillPath, skillBody, 'utf8');
     written.push(skillPath);
   }
 
-  if (input.target === 'od') {
+  if (input.target === 'readable-studio') {
     const manifest = buildPortableManifest(snapshot);
-    const manifestPath = path.join(folder, 'open-design.json');
+    const manifestPath = path.join(folder, 'readable-studio.json');
     await fsp.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
     written.push(manifestPath);
   }
@@ -160,7 +160,7 @@ async function readSkillBody(
     '---',
     `name: ${snapshot.pluginId}`,
     `description: ${snapshot.pluginDescription ?? snapshot.pluginTitle ?? snapshot.pluginId}`,
-    `od:`,
+    `readable:`,
     `  scenario: general`,
     '---',
     '',
@@ -176,14 +176,14 @@ async function readSkillBody(
 
 function buildPortableManifest(snapshot: AppliedPluginSnapshot): Record<string, unknown> {
   return {
-    $schema:     'https://open-design.ai/schemas/plugin.v1.json',
+    $schema:     'urn:readable-studio:schema:plugin-manifest:v1',
     specVersion: snapshot.pluginSpecVersion ?? '1.0.0',
     name:        snapshot.pluginId,
     title:       snapshot.pluginTitle ?? snapshot.pluginId,
     version:     snapshot.pluginVersion,
     description: snapshot.pluginDescription ?? '',
     license:     'MIT',
-    od: {
+    readable: {
       kind:     'skill',
       taskKind: snapshot.taskKind,
       ...(snapshot.query ? { useCase: { query: snapshot.query } } : {}),

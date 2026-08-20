@@ -2,7 +2,7 @@
 
 A small community plugin for exercising the Open Design import UI. It is meant
 to be boring in exactly the useful way: the folder has the portable `SKILL.md`
-floor, the enriched `open-design.json` sidecar, and a minimal Claude-compatible
+floor, the enriched `readable-studio.json` sidecar, and a minimal Claude-compatible
 plugin manifest.
 
 ## Test Paths

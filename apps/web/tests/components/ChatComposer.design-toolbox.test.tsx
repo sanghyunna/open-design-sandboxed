@@ -68,7 +68,7 @@ const RESEARCH_PLUGIN = {
     version: '1.0.0',
     description: 'Pulls proof points and market references into design work.',
     tags: ['research', 'proof', 'design'],
-    od: { kind: 'scenario', mode: 'research' },
+    readable: { kind: 'scenario', mode: 'research' },
   },
   fsPath: '/tmp/research-assets',
   installedAt: 0,

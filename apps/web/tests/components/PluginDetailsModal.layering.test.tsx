@@ -23,7 +23,7 @@ function makePlugin(
       name: id,
       version: '0.1.0',
       title: id,
-      od: {
+      readable: {
         kind: 'scenario',
         ...(preview ? { preview } : {}),
         useCase: {

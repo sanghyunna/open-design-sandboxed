@@ -16,7 +16,7 @@ const baseRegistry = (scenarios: any[] = []) => ({
   scenarios,
 });
 
-const consumer = (od: NonNullable<PluginManifest['od']>): InstalledPluginRecord => ({
+const consumer = (readable: NonNullable<PluginManifest['readable']>): InstalledPluginRecord => ({
   id: 'fixture',
   title: 'Fixture',
   version: '0.1.0',
@@ -28,11 +28,11 @@ const consumer = (od: NonNullable<PluginManifest['od']>): InstalledPluginRecord 
   installedAt: Date.now(),
   updatedAt: Date.now(),
   manifest: {
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: 'fixture',
     title: 'Fixture',
     version: '0.1.0',
-    od,
+    readable,
   } as PluginManifest,
 });
 

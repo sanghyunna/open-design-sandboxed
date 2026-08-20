@@ -16,7 +16,7 @@ example_name: "Xiaohongshu Card · AI Tool Habits"
 example_format: markdown
 example_tagline: "7 cards in a row, Morandi gradient"
 example_desc: "A collection of practical tip cards, great for screenshotting to Xiaohongshu / Moments"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

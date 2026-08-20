@@ -1,7 +1,7 @@
 ---
 name: build-test
 description: Run the project's build / typecheck / lint / test commands and emit the build.passing + tests.passing signals devloop convergence reads.
-od:
+readable:
   scenario: code-migration
   mode: critique
 ---

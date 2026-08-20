@@ -70,7 +70,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         label: 'Ingest standard artifacts before boot',
         language: 'bash',
         body:
-          'pnpm seed:test-projects --offline --data-dir ./.od \\\n' +
+          'pnpm seed:test-projects --offline --data-dir ./.readable \\\n' +
           '  --decks 2 --webs 2 --default-plugins 3 --community-plugins 3\n' +
           '# Then start Open Design in the shell you normally use for dev:\n' +
           'pnpm tools-dev',
@@ -280,7 +280,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     intro:
       'A Skill is a directory with a Claude-compatible `SKILL.md` ' +
       '(YAML front-matter + body). Open Design extends the format with the ' +
-      '`od:` namespace (`mode`, `preview`, `design_system`, `inputs`, …) so ' +
+      '`readable:` namespace (`mode`, `preview`, `design_system`, `inputs`, …) so ' +
       'the same artifact can be used both inside Open Design and by a vanilla ' +
       'agent like Claude Code, Codex, openclaw, or hermes. Discovery follows ' +
       'a precedence chain so projects can override their own skills.',
@@ -299,7 +299,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           '---\n' +
           'name: editorial-pitch-deck\n' +
           'description: A 10-slide editorial pitch deck — Swiss grid + serif headlines\n' +
-          'od:\n' +
+          'readable:\n' +
           '  mode: deck\n' +
           '  preview: ./example.html\n' +
           '  design_system: editorial-mono\n' +
@@ -330,7 +330,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         label: 'Headless artifact fixture bundle',
         language: 'bash',
         body:
-          'pnpm seed:test-projects --offline --data-dir ./.od \\\n' +
+          'pnpm seed:test-projects --offline --data-dir ./.readable \\\n' +
           '  --decks 2 --webs 2 \\\n' +
           '  --default-plugins 3 --community-plugins 3\n' +
           '# Shell 1: start Open Design after ingesting.\n' +

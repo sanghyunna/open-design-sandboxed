@@ -12,7 +12,7 @@ triggers:
   - "single page"
   - "marketing page"
   - "homepage"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design

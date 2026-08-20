@@ -141,7 +141,7 @@ describe('marketplaces', () => {
   it('normalizes public marketplace urls to the canonical raw registry', async () => {
     const seenUrls: string[] = [];
     const result = await addMarketplace(db, {
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/community/readable-studio-marketplace.json',
       fetcher: async (url) => {
         seenUrls.push(url);
         return {
@@ -158,13 +158,19 @@ describe('marketplaces', () => {
     expect(result.row.url).toBe(expectedUrl);
   });
 
-  it('normalizes legacy branch raw urls to the canonical raw registry', () => {
-    expect(resolveMarketplaceFetchUrl(
-      'https://raw.githubusercontent.com/nexu-io/open-design/garnet-hemisphere/plugins/registry/community/open-design-marketplace.json',
-    )).toBe(marketplaceManifestUrlForRegistry('community'));
+  it('rejects an external Open Design v1 registry without normalization', async () => {
+    const result = await addMarketplace(db, {
+      url: 'https://raw.githubusercontent.com/nexu-io/open-design/garnet-hemisphere/plugins/registry/community/open-design-marketplace.json',
+      fetcher: fixtureFetcher(VALID_MANIFEST),
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      errors: ['UNSUPPORTED_OPEN_DESIGN_V1'],
+    });
   });
 
-  it('requires a raw open-design-marketplace.json document, not a GitHub tree page', async () => {
+  it('requires a raw readable-studio-marketplace.json document, not a GitHub tree page', async () => {
     const result = await addMarketplace(db, {
       url: 'https://github.com/nexu-io/open-design/tree/garnet-hemisphere/plugins/registry/community',
       fetcher: fixtureFetcher('<!doctype html><html><body>GitHub tree page</body></html>'),
@@ -204,7 +210,7 @@ describe('marketplaces', () => {
   it('refresh normalizes legacy public urls before fetching', async () => {
     const seeded = ensureMarketplaceManifest(db, {
       id: 'community',
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/community/readable-studio-marketplace.json',
       trust: 'restricted',
       manifestText: VALID_MANIFEST,
     });
@@ -248,7 +254,7 @@ describe('marketplaces', () => {
   it('upserts a fixed built-in marketplace manifest', () => {
     const result = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/readable-studio-marketplace.json',
       trust: 'official',
       manifestText: VALID_MANIFEST,
       now: 123,
@@ -265,7 +271,7 @@ describe('marketplaces', () => {
     });
     const updated = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/readable-studio-marketplace.json',
       trust: 'official',
       manifestText: updatedManifest,
       now: 456,
@@ -279,13 +285,13 @@ describe('marketplaces', () => {
 
   it('seeds the checked-in default community registry as restricted and resolvable', async () => {
     const communityManifest = await readFile(
-      new URL('../../../plugins/registry/community/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/community/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     );
 
     const seeded = ensureMarketplaceManifest(db, {
       id: 'community',
-      url: 'https://open-design.ai/marketplace/community/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/community/readable-studio-marketplace.json',
       trust: 'restricted',
       manifestText: communityManifest,
       now: 123,
@@ -303,7 +309,7 @@ describe('marketplaces', () => {
 
   it('keeps the checked-in official registry populated from bundled plugins', async () => {
     const officialManifestText = await readFile(
-      new URL('../../../plugins/registry/official/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/official/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     );
     const officialManifest = JSON.parse(officialManifestText) as {
@@ -324,7 +330,7 @@ describe('marketplaces', () => {
 
     const seeded = ensureMarketplaceManifest(db, {
       id: 'official',
-      url: 'https://open-design.ai/marketplace/open-design-marketplace.json',
+      url: 'https://open-design.ai/marketplace/readable-studio-marketplace.json',
       trust: 'official',
       manifestText: officialManifestText,
       now: 123,
@@ -338,7 +344,7 @@ describe('marketplaces', () => {
 
   it('keeps checked-in community registry entries pointed at source folders that can pack', async () => {
     const communityManifest = JSON.parse(await readFile(
-      new URL('../../../plugins/registry/community/open-design-marketplace.json', import.meta.url),
+      new URL('../../../plugins/registry/community/readable-studio-marketplace.json', import.meta.url),
       'utf8',
     )) as {
       plugins?: Array<{ name?: string; source?: string }>;
@@ -350,7 +356,7 @@ describe('marketplaces', () => {
     expect(sourceSubpath).toBe('plugins/community/registry-starter');
 
     const sourceManifest = await readFile(
-      new URL(`../../../${sourceSubpath}/open-design.json`, import.meta.url),
+      new URL(`../../../${sourceSubpath}/readable-studio.json`, import.meta.url),
       'utf8',
     );
     expect(JSON.parse(sourceManifest)).toMatchObject({

@@ -16,7 +16,7 @@ triggers:
   - "atlas chapter"
   - "bluehouse"
   - "bevel campaign"
-od:
+readable:
   mode: deck
   scenario: product
   preview:

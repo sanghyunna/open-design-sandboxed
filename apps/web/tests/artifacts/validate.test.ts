@@ -77,7 +77,7 @@ describe('validateHtmlArtifact', () => {
   });
 
   it('accepts plain text mentions of reserved directory names', () => {
-    const html = '<!doctype html><html><body><p>The .od folder and .tmp files are mentioned as documentation text only, not linked paths.</p></body></html>';
+    const html = '<!doctype html><html><body><p>The .readable folder and .tmp files are mentioned as documentation text only, not linked paths.</p></body></html>';
     const result = validateHtmlArtifact(html);
     expect(result.ok).toBe(true);
   });

@@ -116,8 +116,8 @@ Deferred to a follow-up:
 ## File map
 
 **New (planned across stages)**
-- `plugins/_official/scenarios/od-media-generation/{open-design.json,SKILL.md}`
-- `plugins/_official/atoms/media-generate/{open-design.json,SKILL.md}`
+- `plugins/_official/scenarios/od-media-generation/{readable-studio.json,SKILL.md}`
+- `plugins/_official/atoms/media-generate/{readable-studio.json,SKILL.md}`
 - `apps/daemon/src/plugins/atoms/media-generate.ts`
 - `apps/daemon/src/plugins/atoms/registry.ts`
 - `apps/web/src/components/home-hero/chips.ts`

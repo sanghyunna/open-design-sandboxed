@@ -229,7 +229,7 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
     expect(filesResp.status).toBe(200);
     const filesBody = (await filesResp.json()) as { files: Array<{ name: string }> };
     const fileNames = filesBody.files.map((file) => file.name).sort();
-    expect(fileNames).toContain('plugin-source/sample-plugin/open-design.json');
+    expect(fileNames).toContain('plugin-source/sample-plugin/readable-studio.json');
     expect(fileNames).toContain('plugin-source/sample-plugin/SKILL.md');
 
     const snapshotResp = await fetch(
@@ -479,15 +479,15 @@ process.exit(result.status ?? 0);
     const fixture = path.join(pluginRoot, pluginId);
     await mkdir(fixture, { recursive: true });
     await writeFile(
-      path.join(fixture, 'open-design.json'),
+      path.join(fixture, 'readable-studio.json'),
       JSON.stringify({
-        $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+        $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
         name: pluginId,
         title: 'Headless CLI Plugin',
         version: '1.0.0',
         description: 'Fixture that binds a local SKILL.md for headless CLI tests.',
         license: 'MIT',
-        od: {
+        readable: {
           kind: 'skill',
           taskKind: 'new-generation',
           useCase: { query: 'Generate a {{topic}} brief for {{audience}}.' },
@@ -604,7 +604,7 @@ process.stdin.on('end', () => {
   // Full §8 e2e-3 contract — once the pipeline runner fires on a run
   // with a declared pipeline, the first ND-JSON event should be
   // `pipeline_stage_started`. Plan §3.I1 wires firePipelineForRun into
-  // POST /api/runs so any plugin run with `od.pipeline.stages[*]`
+  // POST /api/runs so any plugin run with `readable.pipeline.stages[*]`
   // emits the stage timeline before the agent's message_chunk stream.
   it('first SSE event on a plugin run with od.pipeline is pipeline_stage_started', async () => {
     // Install a fixture plugin with a 2-stage pipeline. We use a
@@ -616,15 +616,15 @@ process.stdin.on('end', () => {
     const fixture = path.join(tmpRoot, 'pipeline-plugin');
     await fs.mkdir(fixture, { recursive: true });
     await fs.writeFile(
-      path.join(fixture, 'open-design.json'),
+      path.join(fixture, 'readable-studio.json'),
       JSON.stringify({
-        $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+        $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
         name: 'pipeline-plugin',
         title: 'Pipeline Plugin',
         version: '1.0.0',
         description: 'fixture with a declared pipeline',
         license: 'MIT',
-        od: {
+        readable: {
           kind: 'skill',
           taskKind: 'new-generation',
           useCase: { query: 'Make a {{topic}} brief.' },

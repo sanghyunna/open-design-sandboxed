@@ -43,7 +43,7 @@ function makePlugin(
       title,
       description: 'Plugin preset fixture',
       tags: [mode, ...extraTags],
-      od: {
+      readable: {
         mode,
         useCase: {
           ...(options.query !== null

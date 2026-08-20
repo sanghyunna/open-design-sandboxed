@@ -35,7 +35,7 @@ const AUTHORING_PLUGIN = {
     title: 'Plugin authoring',
     version: '0.1.0',
     description: 'Create plugins',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: { query: 'Create an Open Design plugin for {{pluginGoal}}.' },
@@ -63,7 +63,7 @@ const DEFAULT_PLUGIN = {
     name: 'od-new-generation',
     title: 'New generation',
     description: 'Create new design artifacts',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: { query: 'Create a plugin.' },
@@ -81,8 +81,8 @@ const HIDDEN_DEFAULT_PLUGIN = {
     ...DEFAULT_PLUGIN.manifest,
     name: 'od-default',
     title: 'Default design router',
-    od: {
-      ...DEFAULT_PLUGIN.manifest.od,
+    readable: {
+      ...DEFAULT_PLUGIN.manifest.readable,
       hidden: true,
     },
   },
@@ -104,7 +104,7 @@ const WEB_PROTOTYPE_PLUGIN = {
     name: 'example-web-prototype',
     title: 'Web Prototype',
     description: 'General-purpose desktop web prototype.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -161,7 +161,7 @@ const SIMPLE_DECK_PLUGIN = {
     name: 'example-simple-deck',
     title: 'Simple Deck',
     description: 'Single-file horizontal-swipe HTML deck.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -235,7 +235,7 @@ const REFLY_DESIGN_SYSTEM = {
 const AUTHORING_APPLY_RESULT = {
   query: 'Create a plugin.',
   contextItems: [],
-  inputs: AUTHORING_PLUGIN.manifest.od.inputs,
+  inputs: AUTHORING_PLUGIN.manifest.readable.inputs,
   assets: [],
   mcpServers: [],
   trust: 'trusted',
@@ -272,8 +272,8 @@ const DEFAULT_APPLY_RESULT = {
 
 const WEB_PROTOTYPE_APPLY_RESULT = {
   ...AUTHORING_APPLY_RESULT,
-  query: WEB_PROTOTYPE_PLUGIN.manifest.od.useCase.query,
-  inputs: WEB_PROTOTYPE_PLUGIN.manifest.od.inputs,
+  query: WEB_PROTOTYPE_PLUGIN.manifest.readable.useCase.query,
+  inputs: WEB_PROTOTYPE_PLUGIN.manifest.readable.inputs,
   appliedPlugin: {
     ...AUTHORING_APPLY_RESULT.appliedPlugin,
     snapshotId: 'snap-web-prototype',
@@ -302,7 +302,7 @@ const META_INSTRUCTION_PLUGIN = {
     name: 'example-meta-landing',
     title: 'Meta Landing',
     description: 'Cinematic parallax landing page.',
-    od: {
+    readable: {
       kind: 'scenario',
       taskKind: 'new-generation',
       useCase: {
@@ -314,7 +314,7 @@ const META_INSTRUCTION_PLUGIN = {
 
 const META_INSTRUCTION_APPLY_RESULT = {
   ...WEB_PROTOTYPE_APPLY_RESULT,
-  query: META_INSTRUCTION_PLUGIN.manifest.od.useCase.query,
+  query: META_INSTRUCTION_PLUGIN.manifest.readable.useCase.query,
   inputs: [],
   appliedPlugin: {
     ...WEB_PROTOTYPE_APPLY_RESULT.appliedPlugin,
@@ -326,8 +326,8 @@ const META_INSTRUCTION_APPLY_RESULT = {
 
 const SIMPLE_DECK_APPLY_RESULT = {
   ...AUTHORING_APPLY_RESULT,
-  query: SIMPLE_DECK_PLUGIN.manifest.od.useCase.query,
-  inputs: SIMPLE_DECK_PLUGIN.manifest.od.inputs,
+  query: SIMPLE_DECK_PLUGIN.manifest.readable.useCase.query,
+  inputs: SIMPLE_DECK_PLUGIN.manifest.readable.inputs,
   appliedPlugin: {
     ...AUTHORING_APPLY_RESULT.appliedPlugin,
     snapshotId: 'snap-simple-deck',

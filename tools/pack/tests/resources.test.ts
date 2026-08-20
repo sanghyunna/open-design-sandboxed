@@ -47,7 +47,7 @@ describe("copyBundledResourceTrees", () => {
         "plugins",
         "registry",
         "community",
-        "open-design-marketplace.json",
+        "readable-studio-marketplace.json",
       );
       await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
       // The skills/design-templates split (see specs/current/
@@ -91,7 +91,7 @@ describe("copyBundledResourceTrees", () => {
       await writeFile(darioPetPath, "{\"name\":\"dario\"}\n", "utf8");
       await writeFile(clippitPetPath, "{\"name\":\"clippit\"}\n", "utf8");
       await writeFile(
-        join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"),
+        join(workspaceRoot, "plugins", "_official", "sample", "readable-studio.json"),
         "{\"id\":\"sample\"}\n",
         "utf8",
       );
@@ -128,7 +128,7 @@ describe("copyBundledResourceTrees", () => {
       ).resolves.toBe("{\"name\":\"clippit\"}\n");
       await expect(
         readFile(
-          join(resourceRoot, "plugins", "_official", "sample", "open-design.json"),
+          join(resourceRoot, "plugins", "_official", "sample", "readable-studio.json"),
           "utf8",
         ),
       ).resolves.toBe("{\"id\":\"sample\"}\n");
@@ -139,7 +139,7 @@ describe("copyBundledResourceTrees", () => {
             "plugins",
             "registry",
             "community",
-            "open-design-marketplace.json",
+            "readable-studio-marketplace.json",
           ),
           "utf8",
         ),
@@ -180,8 +180,8 @@ describe("copyBundledResourceTrees", () => {
       );
       await writeFile(join(workspaceRoot, "data", "plugin-previews", "manifest.json"), "{\"previews\":{}}\n", "utf8");
       await writeFile(join(workspaceRoot, "design-templates", "orbit-general", "SKILL.md"), "# Orbit General\n", "utf8");
-      await writeFile(join(workspaceRoot, "plugins", "_official", "sample", "open-design.json"), "{\"id\":\"sample\"}\n", "utf8");
-      await writeFile(join(workspaceRoot, "plugins", "registry", "community", "open-design-marketplace.json"), "{\"plugins\":[]}\n", "utf8");
+      await writeFile(join(workspaceRoot, "plugins", "_official", "sample", "readable-studio.json"), "{\"id\":\"sample\"}\n", "utf8");
+      await writeFile(join(workspaceRoot, "plugins", "registry", "community", "readable-studio-marketplace.json"), "{\"plugins\":[]}\n", "utf8");
 
       await copyBundledResourceTrees({
         workspaceRoot,

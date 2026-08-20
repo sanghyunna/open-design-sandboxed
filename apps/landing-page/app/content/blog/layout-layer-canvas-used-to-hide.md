@@ -22,7 +22,7 @@ This is the part of the #DeFigma argument that needs care. The canvas may be the
 
 ## Open Design already has the right primitives
 
-The reason this proposal fits Open Design is that the project is already built around explicit contracts. A skill is a `SKILL.md` file. A design system is a `DESIGN.md` file. A plugin adds an `open-design.json` sidecar. The mechanics are covered in [31 skills, 72 systems: how the Open Design library works](/blog/31-skills-72-systems-how-the-library-works/), and the product argument is in [Why we built Open Design as a skill layer, not a product](/blog/why-we-built-open-design-as-a-skill-layer/).
+The reason this proposal fits Open Design is that the project is already built around explicit contracts. A skill is a `SKILL.md` file. A design system is a `DESIGN.md` file. A plugin adds an `readable-studio.json` sidecar. The mechanics are covered in [31 skills, 72 systems: how the Open Design library works](/blog/31-skills-72-systems-how-the-library-works/), and the product argument is in [Why we built Open Design as a skill layer, not a product](/blog/why-we-built-open-design-as-a-skill-layer/).
 
 The layout layer should follow the same pattern. It should be text the agent can read, state the UI can render, and metadata another agent can reuse.
 

@@ -2,7 +2,7 @@
 name: orbis-nft
 description: "Use this plugin when the user wants a dark, space-themed NFT collection landing page (\"Orbis.Nft\") with full-bleed CloudFront video backgrounds, a liquid-glass UI, Anton + Condiment fonts, and a neon-green accent. Invoke for 'NFT landing page', 'space NFT site', 'crypto collection page', or when the user references the Orbis NFT template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

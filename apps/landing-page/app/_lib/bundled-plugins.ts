@@ -1,4 +1,4 @@
-// Loader for `plugins/_official/<bucket>/<slug>/open-design.json` —
+// Loader for `plugins/_official/<bucket>/<slug>/readable-studio.json` —
 // the bundled-plugin catalogue the daemon registers on startup and
 // the in-app Plugins home displays. Authoritative source of truth for
 // the marketing site's `/plugins/...` routes; mirroring it keeps the
@@ -7,7 +7,7 @@
 //
 // Why a parallel loader instead of extending `catalog.ts`:
 //   - Catalog reads SKILL.md frontmatter through Astro Content
-//     Collections; bundled plugins ship `open-design.json` (a
+//     Collections; bundled plugins ship `readable-studio.json` (a
 //     manifest, not Markdown), so the data shape is different and
 //     forcing one loader to handle both invites schema confusion.
 //   - The manifest's `od.preview.poster` is already a CDN URL — no
@@ -138,7 +138,7 @@ interface BundledManifestRaw {
   tags?: unknown;
   author?: { name?: unknown; url?: unknown };
   homepage?: unknown;
-  od?: {
+  readable?: {
     kind?: unknown;
     mode?: unknown;
     scenario?: unknown;
@@ -317,7 +317,7 @@ function loadOne(opts: {
   // Whichever exists first wins; the catalog row sees a single
   // `previewPoster` URL and doesn't have to know which path it came
   // from.
-  const remotePoster = asString(raw.od?.preview?.poster);
+  const remotePoster = asString(raw.readable?.preview?.poster);
   const previewPoster =
     remotePoster ??
     (hasLocalPreview(manifestId) ? `/previews/plugins/${manifestId}.png` : undefined);
@@ -334,17 +334,17 @@ function loadOne(opts: {
     authorName: asString(raw.author?.name),
     authorUrl: asString(raw.author?.url),
     homepage: asString(raw.homepage),
-    mode: asString(raw.od?.mode),
-    scenario: asString(raw.od?.scenario),
-    platform: asString(raw.od?.platform),
-    surface: asString(raw.od?.surface),
-    kind: asString(raw.od?.kind),
+    mode: asString(raw.readable?.mode),
+    scenario: asString(raw.readable?.scenario),
+    platform: asString(raw.readable?.platform),
+    surface: asString(raw.readable?.surface),
+    kind: asString(raw.readable?.kind),
     previewPoster,
-    previewType: asString(raw.od?.preview?.type),
-    previewVideo: asString(raw.od?.preview?.video),
+    previewType: asString(raw.readable?.preview?.type),
+    previewVideo: asString(raw.readable?.preview?.video),
     previewEntryUrl:
-      asString(raw.od?.preview?.type) === 'html'
-        ? entryRelativeUrl(manifestId, asString(raw.od?.preview?.entry), slugDir)
+      asString(raw.readable?.preview?.type) === 'html'
+        ? entryRelativeUrl(manifestId, asString(raw.readable?.preview?.entry), slugDir)
         : undefined,
     detailSlug: pluginDetailSlug(slugBasis),
     detailHref: pluginDetailPath(slugBasis),
@@ -377,7 +377,7 @@ export function getBundledPlugins(): ReadonlyArray<BundledPluginRecord> {
       const full = path.join(dir, name);
       if (!statSync(full).isDirectory()) continue;
       const record = loadOne({
-        manifestPath: path.join(root, bucket, name, 'open-design.json'),
+        manifestPath: path.join(root, bucket, name, 'readable-studio.json'),
         slugDir: path.join(root, bucket, name),
         slug: name,
         bucket,
@@ -422,7 +422,7 @@ export function getDetailPlugins(): ReadonlyArray<BundledPluginRecord> {
         if (name.startsWith('_') || name.startsWith('.')) continue;
         if (!statSync(path.join(dir, name)).isDirectory()) continue;
         const record = loadOne({
-          manifestPath: path.join(dir, name, 'open-design.json'),
+          manifestPath: path.join(dir, name, 'readable-studio.json'),
           slugDir: path.join(dir, name),
           slug: name,
           bucket,
@@ -440,7 +440,7 @@ export function getDetailPlugins(): ReadonlyArray<BundledPluginRecord> {
       const dir = path.join(community, name);
       if (!statSync(dir).isDirectory()) continue;
       const record = loadOne({
-        manifestPath: path.join(dir, 'open-design.json'),
+        manifestPath: path.join(dir, 'readable-studio.json'),
         slugDir: dir,
         slug: name,
         bucket: 'community',

@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **為什麼用 MCP？** 每次迭代都匯出再重新附上一個 zip 會打斷心流。MCP 直接揭露設計來源——agent 看到的永遠是即時檔案。
 
-**對於從零開始的 agent，** 安裝程式會放置 `~/.config/<agent>/open-design.json`（或對應平台的等價檔案），外加一段可複製貼上的 MCP 片段。Cursor 會得到一鍵 deeplink；Claude Code 會得到一行 `claude mcp add-json`；其餘每一個 agent 都會得到符合其設定所需 schema 的 JSON。完整的各 agent 流程 → 桌面應用程式中的 **Settings → MCP server**，或 [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
+**對於從零開始的 agent，** 安裝程式會放置 `~/.config/<agent>/readable-studio.json`（或對應平台的等價檔案），外加一段可複製貼上的 MCP 片段。Cursor 會得到一鍵 deeplink；Claude Code 會得到一行 `claude mcp add-json`；其餘每一個 agent 都會得到符合其設定所需 schema 的 JSON。完整的各 agent 流程 → 桌面應用程式中的 **Settings → MCP server**，或 [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
 
 **安全模型。** 預設唯讀，daemon 綁定於 `127.0.0.1`，SSRF 在代理邊界被阻擋。要在區域網路曝露，需明確設定 `OD_BIND_HOST` 加上 `OD_ALLOWED_ORIGINS`。連接器憑證與即時 artifact 預覽路由無論如何都僅限 loopback。
 
@@ -427,7 +427,7 @@ readable skill list --scenario marketing
 
 ## 外掛
 
-**261 個官方外掛** 位於 [`plugins/_official/`](../../plugins/_official/)。每個外掛都是一個 **可攜的 agent-skill 資料夾**——含一份 `SKILL.md`（任何支援 Agent Skills 的 agent 都能讀取），外加一份選用的 `open-design.json` manifest，為 Open Design 提供市集中繼資料、輸入、預覽、pipeline 與能力宣告。直接跳到某個分類：
+**261 個官方外掛** 位於 [`plugins/_official/`](../../plugins/_official/)。每個外掛都是一個 **可攜的 agent-skill 資料夾**——含一份 `SKILL.md`（任何支援 Agent Skills 的 agent 都能讀取），外加一份選用的 `readable-studio.json` manifest，為 Open Design 提供市集中繼資料、輸入、預覽、pipeline 與能力宣告。直接跳到某個分類：
 
 | 分類 | 數量 | 內容 |
 |---|---|---|
@@ -469,18 +469,18 @@ readable plugin uninstall od-default       # uninstall
 
 ### 建立外掛
 
-一個外掛 **至少只需要一份 `SKILL.md`**；若要把它列入 Open Design 市集，再加上一份 `open-design.json`：
+一個外掛 **至少只需要一份 `SKILL.md`**；若要把它列入 Open Design 市集，再加上一份 `readable-studio.json`：
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-`open-design.json` 的核心欄位：`specVersion`（目前為 `1.0.0`）、`name`（穩定 ID）、`version`（semver）、`compat.agentSkills[].path`（指向 `./SKILL.md`）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（輸出介面，例如 `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**宣告最小集合**——受限安裝預設只授予 `prompt:inject`）、`od.inputs[]`（套用時的參數）。
+`readable-studio.json` 的核心欄位：`specVersion`（目前為 `1.0.0`）、`name`（穩定 ID）、`version`（semver）、`compat.agentSkills[].path`（指向 `./SKILL.md`）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（輸出介面，例如 `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**宣告最小集合**——受限安裝預設只授予 `prompt:inject`）、`od.inputs[]`（套用時的參數）。
 
 在本地搭建骨架並驗證：
 
@@ -593,7 +593,7 @@ Open Design 之所以能持續前進，是因為貢獻者——設計師、工�
 |---|---|---|
 | 一個新的 **skill** | 放進一個含 `SKILL.md` + `assets/` + `references/` 的資料夾 | [`skills/`](../../skills/) · 規格見 [`docs/skills-protocol.md`](../../docs/skills-protocol.md) |
 | 一套新的 **設計系統** | 放進一份採 9 段式 schema 的 `DESIGN.md` | [`design-systems/<brand>/`](../../design-systems/) |
-| 一個新的 **外掛** | 在某個分類資料夾下放進 `open-design.json` + manifest | [`plugins/community/`](../../plugins/community/) · 規格見 [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · agent 開發指南見 [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
+| 一個新的 **外掛** | 在某個分類資料夾下放進 `readable-studio.json` + manifest | [`plugins/community/`](../../plugins/community/) · 規格見 [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · agent 開發指南見 [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | 支援一個新的 **編碼 agent CLI** | 一筆 adapter 設定 + stream parser | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | 修錯誤或打磨 UI | 瀏覽 [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 標籤 | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | 翻譯文件 | 更新 `README.<lang>.md` 檔案 | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

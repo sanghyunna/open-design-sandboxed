@@ -17,7 +17,7 @@ Update protocol — read first
 
 These are the five rules that decide every downstream design decision. They sit above phases and are checked by reviewers on every plugin-related PR.
 
-- [x] **I1. `SKILL.md` is the floor; `open-design.json` is a sidecar; never bidirectionally couple.** `packages/plugin-runtime/adapters/agent-skill.ts` synthesizes a schema-valid `PluginManifest` from `SKILL.md` `od:` frontmatter (verified via `packages/plugin-runtime/tests/adapter-agent-skill.test.ts`). The bundled e2e fixture under `apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/` ships both halves and `apps/daemon/tests/plugins-e2e-fixture.test.ts` exercises the merger.
+- [x] **I1. `SKILL.md` is the floor; `readable-studio.json` is a sidecar; never bidirectionally couple.** `packages/plugin-runtime/adapters/agent-skill.ts` synthesizes a schema-valid `PluginManifest` from `SKILL.md` `od:` frontmatter (verified via `packages/plugin-runtime/tests/adapter-agent-skill.test.ts`). The bundled e2e fixture under `apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/` ships both halves and `apps/daemon/tests/plugins-e2e-fixture.test.ts` exercises the merger.
 - [x] **I2. Apply is a pure function; side effects only after `POST /api/projects` / `POST /api/runs`.** `apps/daemon/src/plugins/apply.ts` is FS- and DB-free; the snapshot writer (`snapshots.ts`) and installer are the only modules that mutate persistent state. `apps/daemon/tests/plugins-apply.test.ts` asserts deterministic snapshots from the same inputs and refuses to touch the registry / FS.
 - [x] **I3. `AppliedPluginSnapshot` is the only contract between "plugin" and "run".** `composeSystemPrompt()` now accepts a `pluginBlock` derived from the snapshot via `pluginPromptBlock(snapshot)` (`apps/daemon/src/plugins/apply.ts`); the run reads context through the snapshot. Plugin runs in web API-fallback mode are rejected at the HTTP layer (Phase 2A wires the 409); the snapshot table is the only writable surface for the contract.
 - [ ] **I4. CLI is the canonical agent-facing API; UI mirrors CLI, not the other way round.** Phase 1: `readable plugin install/list/info/uninstall/apply/doctor` and the matching `/api/plugins/*` HTTP routes ship in the same PR. Remaining `readable project/run/files/conversation/marketplace` subcommands roll in over Phase 1 / 2C / 3 PRs.
@@ -41,7 +41,7 @@ packages/contracts/src/plugins/      ← pure types + Zod schemas, no runtime de
 packages/plugin-runtime/             ← pure TS; reusable in web / daemon / automation
   ├── parsers/{manifest,marketplace,frontmatter}.ts
   ├── adapters/{agent-skill,claude-plugin}.ts
-  ├── merge.ts                       ← sidecar + adapter merge; open-design.json wins
+  ├── merge.ts                       ← sidecar + adapter merge; readable-studio.json wins
   ├── resolve.ts                     ← ContextItem ref resolution (pure; no FS reads)
   ├── validate.ts                    ← JSON Schema validation
   └── digest.ts                      ← manifestSourceDigest (frozen algorithm; validation fixtures)
@@ -142,8 +142,8 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/storage/db-inspect.ts` | shipped | Phase 5 — `inspectSqliteDatabase` helper backing `readable daemon db status` |
 | `apps/daemon/src/plugins/events.ts` | shipped | Phase 4 — in-memory plugin event ring buffer + SSE feed backing `readable plugin events tail` |
 | `packages/plugin-runtime/src/pipeline-fallback.ts` | shipped | spec §23.3.3 — resolveAppliedPipeline falls back to a bundled scenario when od.pipeline is absent |
-| `plugins/_official/atoms/<atom>/{SKILL.md,open-design.json}` | shipped | Phase 4 / 6 / 7 / 8 — 13 first-party atom plugins (4 implemented + 9 reserved fragments) |
-| `plugins/_official/scenarios/<id>/{SKILL.md,open-design.json}` | shipped | Phase 4 (§23.3.3) — bundled scenario/router/export plugins, including the four taskKind defaults plus `od-default` Home free-form routing |
+| `plugins/_official/atoms/<atom>/{SKILL.md,readable-studio.json}` | shipped | Phase 4 / 6 / 7 / 8 — 13 first-party atom plugins (4 implemented + 9 reserved fragments) |
+| `plugins/_official/scenarios/<id>/{SKILL.md,readable-studio.json}` | shipped | Phase 4 (§23.3.3) — bundled scenario/router/export plugins, including the four taskKind defaults plus `od-default` Home free-form routing |
 | `packages/agui-adapter/` | shipped | Phase 4 — pure-TS AG-UI canonical event encoder |
 | `packages/contracts/src/prompts/atom-block.ts` | shipped | Phase 4 — `renderActiveStageBlock(stageId, bodies)` pure renderer |
 | `apps/daemon/src/storage/project-storage.ts` | shipped | Phase 5 — ProjectStorage interface + Local impl + S3 stub |
@@ -306,8 +306,8 @@ The spec §16 ordering is reader-facing; this is the build order. Each phase has
 
 Deliverables
 
-- [x] `docs/schemas/open-design.plugin.v1.json` — JSON Schema v1.
-- [x] `docs/schemas/open-design.marketplace.v1.json` — JSON Schema v1.
+- [x] `docs/schemas/readable-studio.plugin.v1.json` — JSON Schema v1.
+- [x] `docs/schemas/readable-studio.marketplace.v1.json` — JSON Schema v1.
 - [x] `packages/contracts/src/plugins/{manifest,context,apply,marketplace,installed,events}.ts` (types + Zod schemas; no logic).
 - [x] Re-export from `packages/contracts/src/index.ts`.
 - [x] `packages/plugin-runtime/src/digest.ts` with frozen sha256 algorithm + fixture cases (`packages/plugin-runtime/tests/digest.test.ts`).

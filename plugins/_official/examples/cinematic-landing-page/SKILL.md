@@ -2,7 +2,7 @@
 name: cinematic-landing-page
 description: "Use this plugin when the user wants a premium, GSAP-driven cinematic B2B landing page: a scroll-driven full-screen video slider hero with clip-path ellipse transitions, SplitText char-reveal headlines, a masonry product gallery, scroll-reveal about text, a partner marquee, Lottie-style feature cards, and a multi-office footer. Invoke for 'cinematic landing page', 'video hero landing', 'bakery / food-service landing', 'GSAP scroll site', or when the user references the Cinematic Landing Page template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

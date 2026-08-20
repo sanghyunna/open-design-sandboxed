@@ -17,7 +17,7 @@ triggers:
   - "long-form poster"
 - "Magazine Poster"
   - "Newspaper layout"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

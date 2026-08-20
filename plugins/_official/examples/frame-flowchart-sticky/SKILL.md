@@ -18,7 +18,7 @@ example_tagline: "SVG curves + 4-color sticky notes"
 example_desc: "6-node onboarding flow, handwriting font + whiteboard paper background"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · flowchart"
-od:
+readable:
   mode: video
   surface: video
   scenario: operations

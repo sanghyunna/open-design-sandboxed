@@ -18,7 +18,7 @@ triggers:
   - "life management app"
 - "Gamification"
   - "Get used to clocking in"
-od:
+readable:
   mode: prototype
   platform: mobile
   scenario: personal

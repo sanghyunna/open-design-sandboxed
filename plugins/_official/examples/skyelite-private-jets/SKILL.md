@@ -2,7 +2,7 @@
 name: skyelite-private-jets
 description: "Use this plugin when the user wants a premium private-jet landing page hero: a fullscreen autoplay CloudFront video background, a max-w-7xl nav with a Lucide hamburger mobile dropdown, and a centered overlapping two-line headline (Premium. / Accessible.) with Discover + Book Now pill CTAs. Invoke for 'private jet landing', 'aviation hero', 'luxury travel hero', or when the user references the SkyElite template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

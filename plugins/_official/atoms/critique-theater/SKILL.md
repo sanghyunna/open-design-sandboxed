@@ -1,7 +1,7 @@
 ---
 name: critique-theater
 description: 5-dimension critique panel; emits the critique.score signal that drives devloop convergence.
-od:
+readable:
   scenario: general
   mode: critique
 ---

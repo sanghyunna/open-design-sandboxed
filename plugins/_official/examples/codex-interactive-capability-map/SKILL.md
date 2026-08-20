@@ -14,7 +14,7 @@ example_name: "Codex Interactive Capability Map · Operating Model"
 example_format: html
 example_tagline: "Long text → clickable operating model"
 example_desc: "A long post transformed into a concise visual map with linked concepts, use cases, and detail cards."
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

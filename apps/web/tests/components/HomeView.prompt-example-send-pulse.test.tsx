@@ -33,7 +33,7 @@ const WEB_PROTOTYPE_PLUGIN = {
     title: 'Web Prototype',
     version: '0.1.0',
     description: 'General-purpose desktop web prototype.',
-    od: { kind: 'scenario', taskKind: 'new-generation' },
+    readable: { kind: 'scenario', taskKind: 'new-generation' },
   },
 };
 
@@ -45,8 +45,8 @@ const REQUIRED_INPUT_PLUGIN = {
     ...WEB_PROTOTYPE_PLUGIN.manifest,
     name: 'needs-input',
     title: 'Needs input',
-    od: {
-      ...WEB_PROTOTYPE_PLUGIN.manifest.od,
+    readable: {
+      ...WEB_PROTOTYPE_PLUGIN.manifest.readable,
       useCase: { query: 'Create {{topic}}' },
       inputs: [{ name: 'topic', type: 'string', required: true, label: 'Topic' }],
     },
@@ -56,7 +56,7 @@ const REQUIRED_INPUT_PLUGIN = {
 const REQUIRED_INPUT_APPLY_RESULT = {
   query: 'Create {{topic}}',
   contextItems: [],
-  inputs: REQUIRED_INPUT_PLUGIN.manifest.od.inputs,
+  inputs: REQUIRED_INPUT_PLUGIN.manifest.readable.inputs,
   assets: [],
   mcpServers: [],
   trust: 'trusted',

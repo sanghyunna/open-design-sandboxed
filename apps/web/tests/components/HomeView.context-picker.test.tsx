@@ -82,7 +82,7 @@ function makePlugin(id: string, title: string): InstalledPluginRecord {
       version: '1.0.0',
       description: `${title} fixture`,
       tags: ['fixture'],
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: 'new-generation',
         useCase: {

@@ -61,17 +61,17 @@ function persistSampleSnapshot() {
 }
 
 describe('exportPlugin', () => {
-  it('target=od writes SKILL.md + open-design.json + README.md', async () => {
+  it('target=od writes SKILL.md + readable-studio.json + README.md', async () => {
     const snap = persistSampleSnapshot();
-    const result = await exportPlugin({ db, snapshotId: snap.snapshotId, target: 'od', outDir: tmpDir });
+    const result = await exportPlugin({ db, snapshotId: snap.snapshotId, target: 'readable-studio', outDir: tmpDir });
     expect(result.snapshotId).toBe(snap.snapshotId);
     expect(result.files.map((f) => path.basename(f)).sort()).toEqual([
       'README.md',
       'SKILL.md',
-      'open-design.json',
+      'readable-studio.json',
     ]);
     const manifest = JSON.parse(
-      await readFile(path.join(result.folder, 'open-design.json'), 'utf8'),
+      await readFile(path.join(result.folder, 'readable-studio.json'), 'utf8'),
     );
     expect(manifest.provenance.snapshotId).toBe(snap.snapshotId);
     expect(manifest.provenance.manifestSourceDigest).toBe('a'.repeat(64));
@@ -80,7 +80,7 @@ describe('exportPlugin', () => {
   it('target=claude-plugin writes SKILL.md + .claude-plugin/plugin.json', async () => {
     const snap = persistSampleSnapshot();
     const result = await exportPlugin({ db, snapshotId: snap.snapshotId, target: 'claude-plugin', outDir: tmpDir });
-    expect(result.files.some((f) => f.endsWith('.claude-plugin/plugin.json'))).toBe(true);
+    expect(result.files).toContain(path.join(result.folder, '.claude-plugin', 'plugin.json'));
     const cpRaw = await readFile(path.join(result.folder, '.claude-plugin', 'plugin.json'), 'utf8');
     const cp = JSON.parse(cpRaw);
     expect(cp.name).toBe('sample-plugin');
@@ -105,16 +105,16 @@ describe('exportPlugin', () => {
     const b = persistSampleSnapshot();
     db.prepare('UPDATE applied_plugin_snapshots SET applied_at = applied_at + 100 WHERE id = ?')
       .run(b.snapshotId);
-    const result = await exportPlugin({ db, projectId: 'project-1', target: 'od', outDir: tmpDir });
+    const result = await exportPlugin({ db, projectId: 'project-1', target: 'readable-studio', outDir: tmpDir });
     expect(result.snapshotId).toBe(b.snapshotId);
   });
 
   it('throws ExportError when neither snapshot nor project resolves', async () => {
     await expect(
-      exportPlugin({ db, snapshotId: 'missing', target: 'od', outDir: tmpDir }),
+      exportPlugin({ db, snapshotId: 'missing', target: 'readable-studio', outDir: tmpDir }),
     ).rejects.toBeInstanceOf(ExportError);
     await expect(
-      exportPlugin({ db, projectId: 'no-such-project', target: 'od', outDir: tmpDir }),
+      exportPlugin({ db, projectId: 'no-such-project', target: 'readable-studio', outDir: tmpDir }),
     ).rejects.toBeInstanceOf(ExportError);
   });
 });

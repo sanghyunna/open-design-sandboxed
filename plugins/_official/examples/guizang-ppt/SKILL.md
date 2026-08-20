@@ -16,7 +16,7 @@ triggers:
   - "Webpage PPT"
   - "press conference"
   - "Share PPT"
-od:
+readable:
   mode: deck
   scenario: marketing
   featured: 9

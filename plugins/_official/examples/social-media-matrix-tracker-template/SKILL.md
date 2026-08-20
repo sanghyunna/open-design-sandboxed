@@ -24,7 +24,7 @@ triggers:
   - "Content operation data dashboard"
   - "Douyin Data Dashboard"
   - "Xiaohongshu data dashboard"
-od:
+readable:
   mode: template
   platform: desktop
   scenario: live-artifacts

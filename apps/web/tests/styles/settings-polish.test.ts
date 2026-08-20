@@ -33,7 +33,7 @@ describe('settings polish CSS', () => {
   it('paints selected select options as a full-row state, not text-only emphasis', () => {
     const option = cssBlock(expandedIndexCss, '.od-select-option');
     const selected = cssBlock(expandedIndexCss, '.od-select-option.selected');
-    const selectedHover = cssBlock(expandedIndexCss, '.od-select-option.selected:hover:not(:disabled),\n.od-select-option.selected.active:not(:disabled)');
+    const selectedHover = cssBlock(expandedIndexCss, '.od-select-option.selected:hover:not(:disabled),\n.readable-select-option.selected.active:not(:disabled)');
 
     expect(ruleValue(option, 'width')).toBe('100%');
     expect(ruleValue(option, 'display')).toBe('grid');

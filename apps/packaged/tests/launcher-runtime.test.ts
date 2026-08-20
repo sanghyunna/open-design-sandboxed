@@ -172,7 +172,7 @@ describe("resolvePackagedLauncherRuntime", () => {
       const resourcesPath = join(versionPaths.payloadRoot, "Open Design Beta.app", "Contents", "Resources");
       await mkdir(resourcesPath, { recursive: true });
       await writeFile(
-        join(resourcesPath, "open-design-config.json"),
+        join(resourcesPath, "readable-studio-config.json"),
         `${JSON.stringify({
           appVersion: "1.2.3-beta.5",
           descriptor: createRuntimeDescriptor("1.2.3-beta.4"),

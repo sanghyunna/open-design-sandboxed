@@ -740,7 +740,7 @@ function PluginShareConfirmModal({
 }
 
 function readLocalizedUseCaseQuery(record: InstalledPluginRecord | null): string | null {
-  const query = record?.manifest?.od?.useCase?.query;
+  const query = record?.manifest?.readable?.useCase?.query;
   if (typeof query === 'string' && query.trim()) return query.trim();
   if (!query || typeof query !== 'object') return null;
   const dict = query as Record<string, unknown>;
@@ -1425,7 +1425,7 @@ function SourcesPanel({
               onSourceUrlInput?.();
             }}
             onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://example.com/open-design-marketplace.json"
+            placeholder="https://example.com/readable-studio-marketplace.json"
             disabled={pendingAction === 'add'}
           />
           <select
@@ -1660,7 +1660,7 @@ function PluginImportModal({
           {kind === 'zip' ? (
             <FileImportPanel
               title="Upload zip"
-              body="Choose a .zip archive containing open-design.json, SKILL.md, or .claude-plugin/plugin.json."
+              body="Choose a .zip archive containing readable-studio.json, SKILL.md, or .claude-plugin/plugin.json."
               accept=".zip,application/zip"
               working={working}
               fileLabel={zipFile?.name ?? 'No zip selected'}

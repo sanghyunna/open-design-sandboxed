@@ -7,7 +7,7 @@ const baseManifest: PluginManifest = {
   title: 'Sample Plugin',
   version: '1.0.0',
   description: 'Fixture for digest tests.',
-  od: {
+  readable: {
     kind: 'skill',
     taskKind: 'new-generation',
     useCase: { query: 'Make a {{topic}} brief.' },
@@ -25,7 +25,7 @@ describe('manifestSourceDigest', () => {
       inputs: {},
       resolvedContextRefs: [],
     });
-    expect(digest).toBe('90d968416e5b98816af4ecb0ef07813b07032996aa59fb182ad7a68489167156');
+    expect(digest).toBe('462708192b92b495e8fa8f610ee27407d5e37881bc8cebba71a4d8ac44d4ab1b');
   });
 
   it('digests the topic-input case to a stable hex', () => {
@@ -37,7 +37,7 @@ describe('manifestSourceDigest', () => {
         { kind: 'design-system', ref: 'linear-clone' },
       ],
     });
-    expect(digest).toBe('d16e3ea91061168e0728ff7f9c3b79b087bb7cb2859c4c5c240feddbe3d8a3d9');
+    expect(digest).toBe('078cab2d428f8f0133e722b4ea6ff801874f3052a584a0a1bb3920506016dc2a');
   });
 
   it('produces the same digest regardless of object key order', () => {

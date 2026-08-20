@@ -2,10 +2,10 @@
 // fallback chain.
 //
 // Several bundled plugins (`example-guizang-ppt`, `example-html-ppt`)
-// declare `od.preview.entry: "./index.html"` but ship the actual
+// declare `readable.preview.entry: "./index.html"` but ship the actual
 // renderable HTML under `assets/example-slides.html`. The preview
 // endpoint must try the declared entry first AND fall back to the
-// plugin's `od.context.assets[]` HTMLs and `assets/*.html` so the
+// plugin's `readable.context.assets[]` HTMLs and `assets/*.html` so the
 // home gallery never paints a blank tile because the manifest's
 // declared entry is stale.
 //
@@ -73,15 +73,15 @@ beforeEach(async () => {
     '<section class="slide hero dark"><p>fallback body via assets</p></section>',
   );
   await writeFile(
-    path.join(folder, 'open-design.json'),
+    path.join(folder, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: PLUGIN_ID,
       title: 'Preview fallback fixture',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: {
+      readable: {
         kind: 'scenario',
         capabilities: ['prompt:inject'],
         preview: { type: 'html', entry: './index.html' },
@@ -139,7 +139,7 @@ describe('GET /api/plugins/:id/preview — fallback chain', () => {
       id: PLUGIN_ID,
       title: 'Oversized fixture',
       fsPath: pluginFolder,
-      manifest: { od: { preview: { entry: 'huge.html' } } },
+      manifest: { readable: { preview: { entry: 'huge.html' } } },
     } as any;
     await expect(resolvePluginHtml(plugin)).rejects.toBeInstanceOf(PluginHtmlTooLargeError);
   });

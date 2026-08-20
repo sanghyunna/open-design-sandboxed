@@ -19,7 +19,7 @@ example_tagline: "Midnight Indigo + glow bloom"
 example_desc: "Logo assembly + brand name + tagline + CTA, for video outros"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · logo-outro"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

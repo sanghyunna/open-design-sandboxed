@@ -8,7 +8,7 @@ triggers:
 - "Architecture Diagram"
   - "data flow"
   - "engineering whitepaper"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 29

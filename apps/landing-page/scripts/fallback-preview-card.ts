@@ -53,7 +53,7 @@ const FRONTMATTER_RE = /^---\s*\n([\s\S]*?)\n---/;
  * Tiny YAML scanner just for the keys we need. Handles:
  *   - top-level scalars: `name: foo` / `name: "foo"` / `name: 'foo'`
  *   - block scalars with `|` or `>` (folded for description)
- *   - one-level nesting under `od:` (mode, category, featured, upstream)
+ *   - one-level nesting under `readable:` (mode, category, featured, upstream)
  *
  * Anything fancier (anchors, multi-doc, sequences nested under
  * sequences) we don't need — SKILL.md frontmatter never goes there.
@@ -178,16 +178,19 @@ export function loadSkillCardMeta(skillsRoot: string, slug: string): SkillCardMe
   const fmMatch = FRONTMATTER_RE.exec(raw);
   const body = fmMatch ? raw.slice(fmMatch[0].length) : raw;
   const fm = fmMatch ? parseSimpleYaml(fmMatch[1] ?? '') : {};
-  const od = (fm.od as Record<string, unknown> | undefined) ?? {};
+  const readable = (fm.readable as Record<string, unknown> | undefined) ?? {};
 
   return {
     slug,
     displayName: (typeof fm.name === 'string' && fm.name) || slug,
     description: typeof fm.description === 'string' ? fm.description.trim() : '',
-    mode: typeof od.mode === 'string' ? od.mode : undefined,
-    category: typeof od.category === 'string' ? od.category : undefined,
-    featured: typeof od.featured === 'number' ? od.featured : undefined,
-    attribution: deriveAttribution(body, typeof od.upstream === 'string' ? od.upstream : undefined),
+    mode: typeof readable.mode === 'string' ? readable.mode : undefined,
+    category: typeof readable.category === 'string' ? readable.category : undefined,
+    featured: typeof readable.featured === 'number' ? readable.featured : undefined,
+    attribution: deriveAttribution(
+      body,
+      typeof readable.upstream === 'string' ? readable.upstream : undefined,
+    ),
   };
 }
 

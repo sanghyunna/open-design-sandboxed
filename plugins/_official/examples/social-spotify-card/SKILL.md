@@ -18,7 +18,7 @@ example_tagline: "Classic Spotify dark card"
 example_desc: "Lo-Fi Beats · Chillhop progress bar 1:24 / 3:42 + control row"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · spotify-card"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

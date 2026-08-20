@@ -1,7 +1,7 @@
 ---
 name: od-figma-migration
 description: Default reference pipeline for the figma-migration taskKind — figma-extract → token-map → generate → critique.
-od:
+readable:
   scenario: figma-migration
   mode: scenario
 ---

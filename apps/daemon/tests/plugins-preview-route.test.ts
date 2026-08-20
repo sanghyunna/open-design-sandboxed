@@ -2,7 +2,7 @@
 // and `/api/plugins/:id/example/:name` sandbox envelope.
 //
 // Tests that:
-//   - the preview endpoint resolves `od.preview.entry`, falls back
+//   - the preview endpoint resolves `readable.preview.entry`, falls back
 //     to common defaults, and serves with the §9.2 CSP + nosniff
 //     headers (so the marketplace iframe can't reach back into
 //     /api/*).
@@ -58,15 +58,15 @@ beforeAll(async () => {
   );
   await writeFile(path.join(folder, 'examples', 'wrapped', 'hero.png'), Buffer.from('plugin-image'));
   await writeFile(
-    path.join(folder, 'open-design.json'),
+    path.join(folder, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: PLUGIN_ID,
       title: 'Preview fixture',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: {
+      readable: {
         kind: 'skill',
         capabilities: ['prompt:inject'],
         preview: { entry: 'preview/index.html' },

@@ -46,7 +46,7 @@ function make(args: MakeArgs): InstalledPluginRecord {
       title: args.title ?? args.id,
       ...(args.authorUrl ? { author: { url: args.authorUrl } } : {}),
       ...(args.homepage ? { homepage: args.homepage } : {}),
-      od: { kind: 'scenario' },
+      readable: { kind: 'scenario' },
     },
     fsPath: '/tmp',
     installedAt: 0,

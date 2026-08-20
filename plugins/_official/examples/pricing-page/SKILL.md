@@ -10,7 +10,7 @@ triggers:
   - "plans"
   - "subscription"
   - "compare plans"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: sales

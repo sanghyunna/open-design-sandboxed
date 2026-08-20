@@ -16,7 +16,7 @@ triggers:
   - "social sentiment"
   - "Twitter sentiment"
   - "what people say on X"
-od:
+readable:
   mode: prototype
   preview:
     type: markdown

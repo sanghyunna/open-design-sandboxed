@@ -9,7 +9,7 @@ triggers:
   - "lesson"
 - "Teaching"
   - "Courseware"
-od:
+readable:
   mode: deck
   scenario: education
   featured: 25

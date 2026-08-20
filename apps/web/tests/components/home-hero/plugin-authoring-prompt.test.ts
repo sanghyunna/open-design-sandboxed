@@ -34,7 +34,7 @@ describe('PLUGIN_AUTHORING_PROMPT_TEMPLATE', () => {
   it('still asks the agent to scaffold generated-plugin with SKILL.md + manifest', () => {
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('generated-plugin');
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('SKILL.md');
-    expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('open-design.json');
+    expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('readable-studio.json');
     expect(PLUGIN_AUTHORING_PROMPT_TEMPLATE).toContain('plugin.repo');
   });
 

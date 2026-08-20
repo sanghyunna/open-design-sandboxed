@@ -11,7 +11,7 @@ triggers:
   - "sprint board"
   - "trello"
   - "jira board"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operations

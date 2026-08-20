@@ -1,7 +1,7 @@
 ---
 name: od-share-to-community
 description: Package the user's just-finished work as an Open Design plugin without asking for fields the project files already answer, then surface the existing Add-to-My-plugins / Open-Design-PR buttons.
-od:
+readable:
   scenario: plugin-sharing
   mode: scenario
 ---
@@ -15,7 +15,7 @@ Triggered by the post-completion "Share to Open Design" submission action. The u
 Produce a folder named `generated-plugin/` in the active project workspace. At minimum:
 
 - `SKILL.md` with frontmatter and clear agent instructions.
-- `open-design.json` with valid plugin metadata: `specVersion`, `name`, `version`, `description`, mode, task kind, inputs, plus any pipeline / context references the workflow needs.
+- `readable-studio.json` with valid plugin metadata: `specVersion`, `name`, `version`, `description`, mode, task kind, inputs, plus any pipeline / context references the workflow needs.
 - `plugin.repo` is optional during scaffolding, but do not silently omit it: check `gh --version` and `gh auth status`, then prefer the local account login printed by auth status. Only use `gh api user --jq .login` as a fallback when auth status does not expose a login. If `gh` is missing, not logged in, rate-limited, or cannot resolve a real owner, omit `plugin.repo` instead of inventing an owner and explicitly report the auth problem with `gh auth refresh -h github.com -s repo,workflow`, `gh auth login -h github.com -s repo,workflow`, or `readable plugin publish-repo generated-plugin --owner <github-login-or-org>` as recovery commands. Never write placeholder owners such as `open-design-user`, `<vendor>`, `example-user`, `your-org`, or `your-username` into the final manifest.
 - Optional `examples/` and `assets/` only when they help review or reuse.
 
@@ -54,7 +54,7 @@ Point the user at whichever button they want next; do NOT recreate those flows a
 
 ## Do NOT assume `jq` is on PATH
 
-Do NOT assume the standalone `jq` binary is installed (it is not part of the OD agent runtime baseline and is missing from default macOS / Windows shells). When you need to read the manifest, prefer your built-in file-reading tool, then `cat generated-plugin/open-design.json` followed by manual JSON parsing, then `node -e 'console.log(JSON.parse(require("fs").readFileSync("generated-plugin/open-design.json","utf8")))'`. The `gh ... --jq` flag is fine because gh ships its own embedded library; the brew-installed standalone `jq` is NOT.
+Do NOT assume the standalone `jq` binary is installed (it is not part of the OD agent runtime baseline and is missing from default macOS / Windows shells). When you need to read the manifest, prefer your built-in file-reading tool, then `cat generated-plugin/readable-studio.json` followed by manual JSON parsing, then `node -e 'console.log(JSON.parse(require("fs").readFileSync("generated-plugin/readable-studio.json","utf8")))'`. The `gh ... --jq` flag is fine because gh ships its own embedded library; the brew-installed standalone `jq` is NOT.
 
 ## Language
 
@@ -65,7 +65,7 @@ Mirror the user's chat language in any `AskUserQuestion` labels, status updates,
 ```text
 generated-plugin/
   SKILL.md
-  open-design.json
+  readable-studio.json
   examples/
     <copied-from-the-project>
   assets/
@@ -75,5 +75,5 @@ generated-plugin/
 ## Spec references
 
 - `docs/plugins-spec.md`
-- `docs/schemas/open-design.plugin.v1.json`
+- `docs/schemas/readable-studio.plugin.v1.json`
 - The sibling `plugins/_official/scenarios/od-plugin-authoring/SKILL.md` for the from-scratch authoring counterpart.

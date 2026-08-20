@@ -27,7 +27,7 @@ function fixture(overrides: {
       name: overrides.id,
       version: '0.1.0',
       ...(overrides.description ? { description: overrides.description } : {}),
-      od: {
+      readable: {
         ...(overrides.query ? { useCase: { query: overrides.query } } : {}),
         ...(overrides.inputs ? { inputs: overrides.inputs } : {}),
       },

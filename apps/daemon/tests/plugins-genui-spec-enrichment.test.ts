@@ -40,15 +40,15 @@ beforeEach(async () => {
   const pluginFolder = path.join(pluginRoot, PLUGIN_ID);
   await mkdir(pluginFolder, { recursive: true });
   await writeFile(
-    path.join(pluginFolder, 'open-design.json'),
+    path.join(pluginFolder, 'readable-studio.json'),
     JSON.stringify({
-      $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
       name: PLUGIN_ID,
       title: 'Phase 2A.5 fixture',
       version: '1.0.0',
       description: 'fixture',
       license: 'MIT',
-      od: {
+      readable: {
         kind: 'skill',
         taskKind: 'new-generation',
         useCase: { query: 'demo' },

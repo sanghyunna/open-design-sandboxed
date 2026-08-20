@@ -35,7 +35,7 @@ const skillSchema = z
     description: z.string().optional(),
     triggers: z.array(z.string()).optional(),
     i18n: localizedContentSchema,
-    od: z
+    readable: z
       .object({
         mode: z.string().optional(),
         platform: z.string().optional(),

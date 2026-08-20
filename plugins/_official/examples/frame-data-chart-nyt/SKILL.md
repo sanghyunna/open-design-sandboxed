@@ -18,7 +18,7 @@ example_tagline: "Editorial-grade chart + staggered reveal"
 example_desc: "8-year weekly active user line + NYT red accent + mono annotations"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · data-chart"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

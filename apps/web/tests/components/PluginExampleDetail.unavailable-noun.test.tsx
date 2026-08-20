@@ -40,7 +40,7 @@ function make(overrides: {
       name: overrides.id,
       version: '0.1.0',
       title: overrides.title ?? overrides.id,
-      od: {
+      readable: {
         kind: 'scenario',
         ...(overrides.mode ? { mode: overrides.mode } : {}),
         preview: { type: 'html', entry: './missing.html' },

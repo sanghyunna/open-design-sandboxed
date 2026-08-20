@@ -1,7 +1,7 @@
 ---
 name: todo-write
 description: TodoWrite-driven plan that the agent commits to before generation.
-od:
+readable:
   scenario: general
   mode: planning
 ---

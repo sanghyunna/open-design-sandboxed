@@ -356,7 +356,7 @@ async function buildFallbackCardJobsFor(args: {
 }
 
 /**
- * Bundled plugins (`plugins/_official/<bucket>/<slug>/open-design.json`)
+ * Bundled plugins (`plugins/_official/<bucket>/<slug>/readable-studio.json`)
  * are the daemon's canonical plugin registry, and the in-app Plugins
  * home reads from here. The marketing site's `/plugins/...` routes
  * mirror the same data, so every bundled entry that doesn't ship a
@@ -395,7 +395,7 @@ async function buildBundledPluginJobs(): Promise<Job[]> {
       if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
 
       const slugDir = path.join(bucketDir, entry.name);
-      const manifestPath = path.join(slugDir, 'open-design.json');
+      const manifestPath = path.join(slugDir, 'readable-studio.json');
       if (!existsSync(manifestPath)) continue;
 
       let raw: Record<string, unknown>;
@@ -409,13 +409,13 @@ async function buildBundledPluginJobs(): Promise<Job[]> {
       }
 
       // Filter atoms (infrastructure) — they don't need a thumbnail.
-      const od = (raw.od ?? {}) as Record<string, unknown>;
-      if (od.kind === 'atom') continue;
+      const readable = (raw.readable ?? {}) as Record<string, unknown>;
+      if (readable.kind === 'atom') continue;
 
       const manifestId = typeof raw.name === 'string' ? raw.name : entry.name;
 
       // Path 1: manifest ships a poster URL → no local generation.
-      const preview = (od.preview ?? {}) as Record<string, unknown>;
+      const preview = (readable.preview ?? {}) as Record<string, unknown>;
       if (typeof preview.poster === 'string' && preview.poster.length > 0) {
         continue;
       }
@@ -449,8 +449,8 @@ async function buildBundledPluginJobs(): Promise<Job[]> {
             title: typeof raw.title === 'string' ? raw.title : manifestId,
             description:
               typeof raw.description === 'string' ? raw.description : '',
-            mode: typeof od.mode === 'string' ? od.mode : undefined,
-            category: typeof od.scenario === 'string' ? od.scenario : undefined,
+            mode: typeof readable.mode === 'string' ? readable.mode : undefined,
+            category: typeof readable.scenario === 'string' ? readable.scenario : undefined,
             attribution:
               typeof (raw.author as Record<string, unknown> | undefined)?.name ===
               'string'

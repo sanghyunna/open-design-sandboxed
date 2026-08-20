@@ -38,7 +38,7 @@
 
 const MIN_HTML_LENGTH = 64;
 const STARTS_WITH_DOCUMENT_RE = /^(?:<!doctype\s+html\b|<html\b)/i;
-const RESERVED_PROJECT_PATH_RE = /(?:^|\/|\.\/)(?:\.od|\.tmp)(?=$|[/?#"'`\s>)])/i;
+const RESERVED_PROJECT_PATH_RE = /(?:^|\/|\.\/)(?:\.readable|\.tmp)(?=$|[/?#"'`\s>)])/i;
 const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
 const URL_ATTRIBUTE_RE =
   /\b(href|src|srcset|poster|action|formaction|data|xlink:href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`=<>]+))/gi;
@@ -66,7 +66,7 @@ export function validateHtmlArtifact(content: string): HtmlArtifactValidationRes
     return { ok: false, reason: 'content does not start with <!doctype html> or <html — looks like prose, not a complete HTML document' };
   }
   if (referencesReservedProjectPath(trimmed)) {
-    return { ok: false, reason: 'content references an internal project storage path such as .od or .tmp' };
+    return { ok: false, reason: 'content references an internal project storage path such as .readable or .tmp' };
   }
   return { ok: true };
 }

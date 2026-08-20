@@ -2,7 +2,7 @@
 name: layered-depth
 description: "Use this plugin when the user wants a cinematic, layered-parallax architecture-studio landing page (brand 'Qelora'): fullscreen background video, a giant center brand wordmark behind a parallax sculpture slab, an animated bird video state machine, frosted-glass nav pills and bottom info panels, and a second full-viewport video section with a centered editorial headline. Invoke for 'layered depth', 'architecture studio landing', 'parallax hero with video', 'Qelora', or when the user references the Layered Depth motionsites template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

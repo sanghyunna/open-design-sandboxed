@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 import type { PluginManifest } from '@readable-studio/contracts';
 import { resolveAppliedPipeline, type ScenarioRegistryEntry } from '../src/index.js';
 
-const baseManifest = (od: NonNullable<PluginManifest['od']> | undefined): PluginManifest => ({
-  $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+const baseManifest = (readable: NonNullable<PluginManifest['readable']> | undefined): PluginManifest => ({
+  $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
   name: 'fixture',
   version: '0.0.1',
-  ...(od ? { od } : {}),
-}) as PluginManifest;
+  ...(readable ? { readable } : {}),
+});
 
 const scenarios: ScenarioRegistryEntry[] = [
   {

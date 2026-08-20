@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **なぜ MCP なのか？** イテレーションのたびに zip をエクスポートして再アタッチすると、フローが途切れます。MCP はデザインソースを直接公開します——エージェントは常にライブのファイルを見ます。
 
-**ゼロから始めるエージェントのために、**インストーラーは `~/.config/<agent>/open-design.json`（またはプラットフォーム相当のもの）と、コピー＆ペースト用の MCP スニペットを配置します。Cursor にはワンクリックのディープリンク、Claude Code には `claude mcp add-json` のワンライナー、その他すべてのエージェントには、その設定が期待するスキーマの JSON が提供されます。エージェントごとの完全なフロー → デスクトップアプリの **Settings → MCP server**、または [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
+**ゼロから始めるエージェントのために、**インストーラーは `~/.config/<agent>/readable-studio.json`（またはプラットフォーム相当のもの）と、コピー＆ペースト用の MCP スニペットを配置します。Cursor にはワンクリックのディープリンク、Claude Code には `claude mcp add-json` のワンライナー、その他すべてのエージェントには、その設定が期待するスキーマの JSON が提供されます。エージェントごとの完全なフロー → デスクトップアプリの **Settings → MCP server**、または [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
 
 **セキュリティモデル。** デフォルトで読み取り専用、デーモンは `127.0.0.1` にバインドし、SSRF はプロキシのエッジでブロックされます。LAN への公開には、明示的な `OD_BIND_HOST` と `OD_ALLOWED_ORIGINS` が必要です。コネクターの認証情報とライブアーティファクトのプレビュールートは、いずれにせよループバック専用のままです。
 
@@ -427,7 +427,7 @@ readable skill list --scenario marketing
 
 ## プラグイン
 
-**261 の公式プラグイン**が [`plugins/_official/`](../../plugins/_official/) にあります。各プラグインは**ポータブルなエージェントスキルのフォルダ**です——`SKILL.md`（Agent Skills をサポートする任意のエージェントが読める）に加え、Open Design にマーケットプレイスのメタデータ、入力、プレビュー、パイプライン、機能宣言を与える任意の `open-design.json` マニフェストを備えています。カテゴリーに直接ジャンプ:
+**261 の公式プラグイン**が [`plugins/_official/`](../../plugins/_official/) にあります。各プラグインは**ポータブルなエージェントスキルのフォルダ**です——`SKILL.md`（Agent Skills をサポートする任意のエージェントが読める）に加え、Open Design にマーケットプレイスのメタデータ、入力、プレビュー、パイプライン、機能宣言を与える任意の `readable-studio.json` マニフェストを備えています。カテゴリーに直接ジャンプ:
 
 | カテゴリー | 数 | 内容 |
 |---|---|---|
@@ -469,18 +469,18 @@ readable plugin uninstall od-default       # uninstall
 
 ### プラグインを作る
 
-プラグインは **最低限 `SKILL.md` が 1 つあれば成り立ちます**。Open Design のマーケットプレイスに掲載するには `open-design.json` を追加します:
+プラグインは **最低限 `SKILL.md` が 1 つあれば成り立ちます**。Open Design のマーケットプレイスに掲載するには `readable-studio.json` を追加します:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-`open-design.json` の主要フィールド: `specVersion`（現在は `1.0.0`）、`name`（安定した ID）、`version`（semver）、`compat.agentSkills[].path`（`./SKILL.md` を指す）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（出力サーフェス、例: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**最小限を宣言する**——制限付きインストールはデフォルトで `prompt:inject` のみを付与します）、`od.inputs[]`（適用時のパラメーター）。
+`readable-studio.json` の主要フィールド: `specVersion`（現在は `1.0.0`）、`name`（安定した ID）、`version`（semver）、`compat.agentSkills[].path`（`./SKILL.md` を指す）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（出力サーフェス、例: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**最小限を宣言する**——制限付きインストールはデフォルトで `prompt:inject` のみを付与します）、`od.inputs[]`（適用時のパラメーター）。
 
 ローカルでスキャフォールド + 検証:
 
@@ -593,7 +593,7 @@ Open Design が動き続けるのは、貢献者——デザイナー、エン�
 |---|---|---|
 | 新しい**スキル** | `SKILL.md` + `assets/` + `references/` を備えたフォルダをドロップ | [`skills/`](../../skills/) · 仕様は [`docs/skills-protocol.md`](../../docs/skills-protocol.md) |
 | 新しい**デザインシステム** | 9 セクションのスキーマを使った `DESIGN.md` をドロップ | [`design-systems/<brand>/`](../../design-systems/) |
-| 新しい**プラグイン** | カテゴリーフォルダの下に `open-design.json` + マニフェストをドロップ | [`plugins/community/`](../../plugins/community/) · 仕様は [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · エージェント開発ガイドは [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
+| 新しい**プラグイン** | カテゴリーフォルダの下に `readable-studio.json` + マニフェストをドロップ | [`plugins/community/`](../../plugins/community/) · 仕様は [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md) · エージェント開発ガイドは [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md) |
 | 新しい**コーディングエージェント CLI** をサポート | アダプターエントリー 1 つ + ストリームパーサー | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | バグ修正や UI の磨き上げ | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) ラベルを閲覧 | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | ドキュメントを翻訳 | `README.<lang>.md` ファイルを更新 | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

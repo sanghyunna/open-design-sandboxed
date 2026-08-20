@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **为什么选择 MCP？** 每次迭代都导出并重新附加 zip 会打断流程。MCP 直接暴露设计源文件——Agent 始终看到实时文件。
 
-**对于从零开始的 Agent**，安装器会放置 `~/.config/<agent>/open-design.json`（或平台等效路径）以及可复制粘贴的 MCP 代码片段。Cursor 获得一键深层链接；Claude Code 获得 `claude mcp add-json` 一行命令；其他所有 Agent 获得其配置所需 schema 格式的 JSON。完整的逐 Agent 流程 → 桌面应用中的**设置 → MCP 服务器**，或 [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
+**对于从零开始的 Agent**，安装器会放置 `~/.config/<agent>/readable-studio.json`（或平台等效路径）以及可复制粘贴的 MCP 代码片段。Cursor 获得一键深层链接；Claude Code 获得 `claude mcp add-json` 一行命令；其他所有 Agent 获得其配置所需 schema 格式的 JSON。完整的逐 Agent 流程 → 桌面应用中的**设置 → MCP 服务器**，或 [`docs/agent-adapters.md`](../../docs/agent-adapters.md)。
 
 **安全模型。** 默认只读，守护进程绑定到 `127.0.0.1`，SSRF 在代理边缘拦截。局域网暴露需要 `OD_BIND_HOST` 显式启用加 `OD_ALLOWED_ORIGINS`。连接器凭证和实时工件预览路由无论如何都保持仅本地回环。
 
@@ -427,7 +427,7 @@ readable skill list --scenario marketing
 
 ## 插件
 
-**261 个官方插件**位于 [`plugins/_official/`](../../plugins/_official/)。每个插件就是一个**可移植的 agent skill 文件夹**——一个 `SKILL.md`（任何支持 Agent Skills 的 Agent 都能读），外加一个可选的 `open-design.json` manifest（给 Open Design 提供 marketplace 元数据、输入参数、预览、流水线与权限声明）。直接跳转到分类浏览：
+**261 个官方插件**位于 [`plugins/_official/`](../../plugins/_official/)。每个插件就是一个**可移植的 agent skill 文件夹**——一个 `SKILL.md`（任何支持 Agent Skills 的 Agent 都能读），外加一个可选的 `readable-studio.json` manifest（给 Open Design 提供 marketplace 元数据、输入参数、预览、流水线与权限声明）。直接跳转到分类浏览：
 
 | 分类 | 数量 | 内容 |
 |---|---|---|
@@ -469,18 +469,18 @@ readable plugin uninstall od-default       # 卸载
 
 ### 构建插件
 
-一个插件**最小只需要一个 `SKILL.md`**；要上架 Open Design marketplace，再加一个 `open-design.json`：
+一个插件**最小只需要一个 `SKILL.md`**；要上架 Open Design marketplace，再加一个 `readable-studio.json`：
 
 ```
 my-plugin/
 ├── SKILL.md            ← 必需：YAML frontmatter（name·description）+ 触发语 + 工作流（建议 < 500 行）
-├── open-design.json    ← 上架所需：marketplace 元数据 + 输入 + 流水线 + 权限
+├── readable-studio.json    ← 上架所需：marketplace 元数据 + 输入 + 流水线 + 权限
 ├── README.md           ← 可选：用法、安装、注册中心链接
 ├── preview/            ← 可选：index.html / poster.png（视觉类强烈建议）
 └── examples/           ← 可选：具体用例
 ```
 
-`open-design.json` 的核心字段：`specVersion`（当前 `1.0.0`）、`name`（稳定 ID）、`version`（semver）、`compat.agentSkills[].path`（指向 `./SKILL.md`）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（输出表面，如 `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**按最小权限声明**，默认受限安装只给 `prompt:inject`）、`od.inputs[]`（应用时的参数）。
+`readable-studio.json` 的核心字段：`specVersion`（当前 `1.0.0`）、`name`（稳定 ID）、`version`（semver）、`compat.agentSkills[].path`（指向 `./SKILL.md`）、`od.kind`（`skill` / `scenario` / `atom` / `bundle`）、`od.taskKind`（`new-generation` / `figma-migration` / `code-migration` / `tune-collab`）、`od.mode`（输出表面，如 `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`）、`od.capabilities[]`（**按最小权限声明**，默认受限安装只给 `prompt:inject`）、`od.inputs[]`（应用时的参数）。
 
 脚手架 + 本地验证：
 

@@ -9,7 +9,7 @@ triggers:
   - "Teleprompter"
   - "presenter view"
   - "Speech"
-od:
+readable:
   mode: deck
   scenario: engineering
   featured: 26

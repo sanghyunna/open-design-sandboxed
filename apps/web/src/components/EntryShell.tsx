@@ -120,7 +120,7 @@ import {
 // home -> project -> home navigation (EntryShell unmounts on the project
 // route) and a full reload. Without this the rail always reset to its
 // collapsed default on return.
-const RAIL_OPEN_STORAGE_KEY = 'od.entry.railOpen';
+const RAIL_OPEN_STORAGE_KEY = 'readable.entry.railOpen';
 
 function readStoredRailOpen(): boolean {
   if (typeof window === 'undefined') return false;

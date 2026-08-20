@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
 import type { ProjectLocation } from '@readable-studio/contracts';
 import type { AppConfig } from '../types';
 import {
@@ -74,7 +75,7 @@ export function ProjectLocationsSection({ cfg, setCfg, onProjectsRefresh }: Prop
     [locations],
   );
   const effectiveDefaultLocationId = useMemo(() => {
-    const configured = cfg.defaultProjectLocationId ?? 'default';
+    const configured = cfg.defaultProjectLocationId ?? READABLE_STUDIO_PROJECT_LOCATION_ID;
     return locations.some((location) => location.id === configured) ? configured : 'default';
   }, [cfg.defaultProjectLocationId, locations]);
 
@@ -106,7 +107,7 @@ export function ProjectLocationsSection({ cfg, setCfg, onProjectsRefresh }: Prop
       const external = externalLocations(saved);
       setDrafts(external);
       setCfg((current) => {
-        const configuredDefault = current.defaultProjectLocationId ?? 'default';
+        const configuredDefault = current.defaultProjectLocationId ?? READABLE_STUDIO_PROJECT_LOCATION_ID;
         const nextDefault = saved.some((location) => location.id === configuredDefault)
           ? configuredDefault
           : 'default';

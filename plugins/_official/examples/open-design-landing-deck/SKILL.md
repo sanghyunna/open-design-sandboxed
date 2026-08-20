@@ -18,7 +18,7 @@ triggers:
   - atelier zero deck
   - open design deck
   - open design landing deck
-od:
+readable:
   category: brand-deck
   surface: web
   mode: deck

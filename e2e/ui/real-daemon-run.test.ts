@@ -307,11 +307,11 @@ test('[P1] plugin authoring produces a generated-plugin scaffold with action car
   await expectWorkspaceReady(page);
   const { projectId } = await currentProjectContext(page);
   await expectProjectFilesToContain(page, projectId, [
-    'generated-plugin/open-design.json',
+    'generated-plugin/readable-studio.json',
     'generated-plugin/SKILL.md',
     'generated-plugin/examples/demo.md',
   ]);
-  await expectProjectFileToContain(page, projectId, 'generated-plugin/open-design.json', '"name": "generated-plugin"');
+  await expectProjectFileToContain(page, projectId, 'generated-plugin/readable-studio.json', '"name": "generated-plugin"');
   await expectProjectFileToContain(page, projectId, 'generated-plugin/SKILL.md', '# Generated Plugin');
 
   await expect(page.getByText('Files from this turn')).toBeVisible();

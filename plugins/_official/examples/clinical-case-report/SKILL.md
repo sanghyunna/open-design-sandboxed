@@ -15,7 +15,7 @@ triggers:
   - "patient presentation"
   - "case summary"
   - "medical case"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: healthcare

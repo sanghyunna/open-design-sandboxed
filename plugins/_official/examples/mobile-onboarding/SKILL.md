@@ -12,7 +12,7 @@ triggers:
   - "phone signup"
   - "app onboarding"
 - "Mobile Guide"
-od:
+readable:
   mode: prototype
   platform: mobile
   scenario: design

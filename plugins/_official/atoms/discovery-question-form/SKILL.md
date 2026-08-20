@@ -1,7 +1,7 @@
 ---
 name: discovery-question-form
 description: Turn-1 discovery question form for ambiguous briefs.
-od:
+readable:
   scenario: general
   mode: discovery
 ---

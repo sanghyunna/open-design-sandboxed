@@ -35,11 +35,11 @@ beforeEach(async () => {
   pluginsRoot = path.join(tmp, 'plugins');
   sourceFolder = path.join(tmp, 'source-plugin');
   await mkdir(sourceFolder, { recursive: true });
-  await writeFile(path.join(sourceFolder, 'open-design.json'), JSON.stringify({
+  await writeFile(path.join(sourceFolder, 'readable-studio.json'), JSON.stringify({
     name: 'event-fixture',
     version: '1.0.0',
     title: 'Event fixture',
-    od: { taskKind: 'new-generation' },
+    readable: { taskKind: 'new-generation' },
   }, null, 2));
   db = new Database(':memory:');
   db.exec(`
@@ -127,11 +127,11 @@ describe('installer producer hooks', () => {
       source: sourceFolder,
       roots: { userPluginsRoot: pluginsRoot },
     }));
-    await writeFile(path.join(sourceFolder, 'open-design.json'), JSON.stringify({
+    await writeFile(path.join(sourceFolder, 'readable-studio.json'), JSON.stringify({
       name: 'event-fixture',
       version: '1.1.0',
       title: 'Event fixture',
-      od: { taskKind: 'new-generation' },
+      readable: { taskKind: 'new-generation' },
     }, null, 2));
     await drain(installPlugin(db, {
       source: sourceFolder,

@@ -16,7 +16,7 @@
 // finished output.
 //
 // Pairs with `od.inputs` on `plugins/_official/examples/html-ppt-pitch-deck/
-// open-design.json`. The inputs gate is the primary contract — this guard
+// readable-studio.json`. The inputs gate is the primary contract — this guard
 // is the defense-in-depth invariant that catches agents that bypassed the
 // structured contract (e.g. routed through `od-default`) but still tried
 // to publish a placeholder-laden HTML/deck artifact.

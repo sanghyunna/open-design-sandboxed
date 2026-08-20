@@ -81,7 +81,7 @@ export function PluginCard({
         .slice(0, MAX_VISIBLE_TAGS),
     [record.manifest?.tags],
   );
-  const hasQuery = Boolean(record.manifest?.od?.useCase?.query);
+  const hasQuery = Boolean(record.manifest?.readable?.useCase?.query);
   const sharePendingAction =
     pendingShareAction?.pluginId === record.id ? pendingShareAction.action : null;
   const shareBusy = sharePendingAction !== null;

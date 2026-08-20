@@ -1,14 +1,14 @@
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
   type InputField,
   type PluginManifest,
 } from '@readable-studio/contracts';
 import { parseFrontmatter, type FrontmatterObject, type FrontmatterValue } from '../parsers/frontmatter.js';
 
-// Adapter from a portable SKILL.md (with optional `od:` frontmatter, see
+// Adapter from a portable SKILL.md (with optional `readable:` frontmatter, see
 // docs/skills-protocol.md) to a synthesized PluginManifest. Spec invariant
 // I1 demands this synthesizer always produce a schema-valid manifest for
-// any SKILL.md that already carries the `od:` frontmatter we use today.
+// any SKILL.md that already carries the `readable:` frontmatter we use today.
 //
 // Inputs:
 //   - rawSkillMd: full SKILL.md file body (frontmatter + markdown).
@@ -18,7 +18,7 @@ import { parseFrontmatter, type FrontmatterObject, type FrontmatterValue } from 
 //     alone. Defaults to "./SKILL.md".
 //
 // Output: { manifest, warnings } — warnings carry unmappable frontmatter
-// fields (e.g. od.parameters live sliders that v1 manifest does not surface).
+// fields (e.g. readable.parameters live sliders that v1 manifest does not surface).
 
 export interface AgentSkillAdapterOptions {
   folderId: string;
@@ -31,7 +31,7 @@ export interface AgentSkillAdapterResult {
   bodyMarkdown: string;
 }
 
-const ROLE_PARAMETER_KEYS = ['od.parameters'];
+const ROLE_PARAMETER_KEYS = ['readable.parameters'];
 
 // @dsp func-dfa3529f
 export function adaptAgentSkill(
@@ -39,7 +39,7 @@ export function adaptAgentSkill(
   opts: AgentSkillAdapterOptions,
 ): AgentSkillAdapterResult {
   const { data: frontmatter, body } = parseFrontmatter(rawSkillMd);
-  const od = isObject(frontmatter['od']) ? frontmatter['od'] : {};
+  const readable = isObject(frontmatter['readable']) ? frontmatter['readable'] : {};
   const warnings: string[] = [];
 
   const name = stringOr(frontmatter['name'], opts.folderId).trim() || opts.folderId;
@@ -48,7 +48,7 @@ export function adaptAgentSkill(
   const version = stringOr(frontmatter['version'], '0.0.0');
   const compatPath = opts.compatPath ?? './SKILL.md';
 
-  const designSystemFm = isObject(od['design_system']) ? od['design_system'] : null;
+  const designSystemFm = isObject(readable['design_system']) ? readable['design_system'] : null;
   const designSystem = designSystemFm
     ? {
         ref: stringOr(designSystemFm['ref'], '') || undefined,
@@ -56,23 +56,23 @@ export function adaptAgentSkill(
       }
     : undefined;
 
-  const craftFm = isObject(od['craft']) ? od['craft'] : null;
+  const craftFm = isObject(readable['craft']) ? readable['craft'] : null;
   const craftRequires = craftFm && Array.isArray(craftFm['requires'])
     ? (craftFm['requires'] as FrontmatterValue[]).filter((v): v is string => typeof v === 'string')
     : undefined;
 
-  const inputs: InputField[] | undefined = mapInputs(od['inputs'], warnings);
+  const inputs: InputField[] | undefined = mapInputs(readable['inputs'], warnings);
 
-  // od.parameters are deferred to Phase 4 per spec §5.4; record a warning so
+  // readable.parameters are deferred to Phase 4 per spec §5.4; record a warning so
   // doctor surfaces them instead of silently dropping.
   for (const key of ROLE_PARAMETER_KEYS) {
     const [namespace, sub] = key.split('.');
-    if (namespace === 'od' && sub && Array.isArray(od[sub])) {
+    if (namespace === 'readable' && sub && Array.isArray(readable[sub])) {
       warnings.push(`SKILL.md ${key} is preserved as adapter metadata; v1 manifest does not expose live sliders`);
     }
   }
 
-  const previewFm = isObject(od['preview']) ? od['preview'] : null;
+  const previewFm = isObject(readable['preview']) ? readable['preview'] : null;
   const preview = previewFm
     ? {
         type: stringOr(previewFm['type'], '') || undefined,
@@ -81,18 +81,18 @@ export function adaptAgentSkill(
     : undefined;
 
   const manifest: PluginManifest = {
-    specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
     name,
     title,
     version,
     description: description || undefined,
     compat: { agentSkills: [{ path: compatPath }] },
-    od: {
+    readable: {
       kind: 'skill',
-      taskKind: stringOr(od['taskKind'], 'new-generation') as PluginManifest['od'] extends infer T ? T extends { taskKind?: infer K } ? K : never : never,
-      mode: stringOr(od['mode'], '') || undefined,
-      platform: stringOr(od['platform'], '') || undefined,
-      scenario: stringOr(od['scenario'], '') || undefined,
+      taskKind: stringOr(readable['taskKind'], 'new-generation') as PluginManifest['readable'] extends infer T ? T extends { taskKind?: infer K } ? K : never : never,
+      mode: stringOr(readable['mode'], '') || undefined,
+      platform: stringOr(readable['platform'], '') || undefined,
+      scenario: stringOr(readable['scenario'], '') || undefined,
       preview,
       useCase: { query: examplePromptFromFrontmatter(frontmatter, body) },
       context: {
@@ -160,8 +160,8 @@ function mapInputs(value: FrontmatterValue | undefined, warnings: string[]): Inp
 }
 
 function examplePromptFromFrontmatter(fm: FrontmatterObject, body: string): string {
-  const od = isObject(fm['od']) ? fm['od'] : {};
-  const direct = stringOr(od['example_prompt'], '').trim();
+  const readable = isObject(fm['readable']) ? fm['readable'] : {};
+  const direct = stringOr(readable['example_prompt'], '').trim();
   if (direct) return direct;
   const desc = stringOr(fm['description'], '').trim();
   if (desc) {

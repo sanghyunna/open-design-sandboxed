@@ -19,7 +19,7 @@ example_tagline: "Word-by-word reveal + chromatic light trail"
 example_desc: "Cursor typing with hot pink + cyan chromatic aberration, for video intros"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · vfx-text-cursor"
-od:
+readable:
   mode: video
   surface: video
   scenario: video

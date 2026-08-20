@@ -8,7 +8,7 @@ triggers:
   - "saas landing"
   - "marketing page"
   - "product landing"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

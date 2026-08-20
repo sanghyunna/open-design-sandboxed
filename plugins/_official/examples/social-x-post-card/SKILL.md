@@ -18,7 +18,7 @@ example_tagline: "X dark mode + engagement stats"
 example_desc: "A standout-quote tweet + 12.3K likes / 1.2K reposts + verified badge"
 example_source_url: "https://github.com/nexu-io/html-anything"
 example_source_label: "html-frames · x-post"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop

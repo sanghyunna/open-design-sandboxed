@@ -12,7 +12,7 @@ triggers:
   - "github analytics"
   - "open source dashboard"
   - "github growth"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: operation

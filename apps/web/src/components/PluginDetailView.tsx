@@ -74,7 +74,7 @@ export function PluginDetailView(props: Props) {
 
   const localizedTitle = localizePluginTitle(locale, plugin);
   const localizedDescription = localizePluginDescription(locale, plugin);
-  const od = plugin.manifest?.od ?? {};
+  const od = plugin.manifest?.readable ?? {};
   const surfaces = od.genui?.surfaces ?? [];
   const capabilities = od.capabilities ?? [];
   // Plan §6 Phase 2B / spec §11.6 — show a sandboxed iframe of the

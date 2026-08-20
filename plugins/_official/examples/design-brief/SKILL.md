@@ -11,7 +11,7 @@ triggers:
   - "create a design brief"
   - "ilang brief"
   - "structured brief"
-od:
+readable:
   mode: design-system
   platform: desktop
   scenario: planning

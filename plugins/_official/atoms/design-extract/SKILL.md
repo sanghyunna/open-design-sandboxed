@@ -1,7 +1,7 @@
 ---
 name: design-extract
 description: Extract design tokens (color / typography / spacing) from imported source code, screenshots, or Figma exports into the canonical token bag token-map consumes.
-od:
+readable:
   scenario: code-migration
   mode: extract
 ---

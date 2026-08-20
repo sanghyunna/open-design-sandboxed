@@ -336,7 +336,7 @@ export async function collectReadableParityInventory(root = repoRoot): Promise<R
     httpCapabilities.push(...extractHttpCapabilities(await readFile(file, "utf8"), path.relative(root, file).replaceAll(path.sep, "/")));
   }
   const bundledPlugins: string[] = [];
-  for (const manifestPath of await filesBelow(path.join(root, "plugins/_official"), "open-design.json")) {
+  for (const manifestPath of await filesBelow(path.join(root, "plugins/_official"), "readable-studio.json")) {
     bundledPlugins.push(parseBundledPluginId(
       await readFile(manifestPath, "utf8"),
       path.relative(root, manifestPath).replaceAll(path.sep, "/"),

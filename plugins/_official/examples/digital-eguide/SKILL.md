@@ -18,7 +18,7 @@ triggers:
   - "ebook"
 - "Electronic Guide"
   - "e-book"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: marketing

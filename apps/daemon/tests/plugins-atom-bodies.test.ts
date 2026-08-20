@@ -19,13 +19,13 @@ import { renderActiveStageBlock } from '@readable-studio/contracts';
 
 const SAMPLE_MANIFEST = (id: string) =>
   JSON.stringify({
-    $schema: 'https://open-design.ai/schemas/plugin.v1.json',
+    $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
     name: id,
     title: id,
     version: '0.1.0',
     description: `${id} fixture`,
     license: 'MIT',
-    od: { kind: 'atom', capabilities: ['prompt:inject'] },
+    readable: { kind: 'atom', capabilities: ['prompt:inject'] },
   });
 
 const SAMPLE_SKILL = (id: string, body: string) =>
@@ -49,9 +49,9 @@ beforeEach(async () => {
   const atomB = path.join(tmpRoot, 'atoms', 'todo-write');
   await mkdir(atomA, { recursive: true });
   await mkdir(atomB, { recursive: true });
-  await writeFile(path.join(atomA, 'open-design.json'), SAMPLE_MANIFEST('discovery-question-form'));
+  await writeFile(path.join(atomA, 'readable-studio.json'), SAMPLE_MANIFEST('discovery-question-form'));
   await writeFile(path.join(atomA, 'SKILL.md'), SAMPLE_SKILL('discovery-question-form', 'Ask the user about audience.'));
-  await writeFile(path.join(atomB, 'open-design.json'), SAMPLE_MANIFEST('todo-write'));
+  await writeFile(path.join(atomB, 'readable-studio.json'), SAMPLE_MANIFEST('todo-write'));
   await writeFile(path.join(atomB, 'SKILL.md'), SAMPLE_SKILL('todo-write', 'Commit a numbered plan.'));
 
   await registerBundledPlugins({ db, bundledRoot: tmpRoot });

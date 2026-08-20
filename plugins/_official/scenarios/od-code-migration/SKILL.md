@@ -1,7 +1,7 @@
 ---
 name: od-code-migration
 description: Default reference pipeline for the code-migration taskKind — code-import → design-extract → token-map → rewrite-plan → patch-edit ↔ build-test devloop → diff-review → handoff.
-od:
+readable:
   scenario: code-migration
   mode: scenario
 ---

@@ -2,7 +2,7 @@
 name: nimbus-grid
 description: "Use this plugin when the user wants a premium dark warm-gold single-page marketing site for a secure cloud-storage capacity product: a full-viewport shader hero with a live console card and typewriter, a scroll-driven sticky platform accordion, a scroll-morphing pricing bar field, security cards with API window + binary map, a 3D tilting console showcase, and a click-to-explode operations cube. Invoke for 'Nimbus Grid', 'cloud storage landing page', 'shader hero marketing site', 'scroll accordion landing', or when the user references the Nimbus Grid template."
 version: 0.1.0
-od:
+readable:
   mode: prototype
   surface: web
   scenario: design

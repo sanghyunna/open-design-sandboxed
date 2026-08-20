@@ -1,5 +1,5 @@
 // HTML-preview detail surface for plugins that ship a runnable
-// `od.preview` entry or example output (the same surface ExamplesTab
+// `readable.preview` entry or example output (the same surface ExamplesTab
 // uses for skill cards). Wraps the shared PreviewModal so the user
 // gets the full chrome — sandboxed iframe, Fullscreen, merged Share menu —
 // plus a primary
@@ -90,7 +90,7 @@ export function PluginExampleDetail({
   }, [load]);
 
   const description = localizePluginDescription(locale, record);
-  const isDeck = record.manifest?.od?.mode === 'deck';
+  const isDeck = record.manifest?.readable?.mode === 'deck';
 
   return (
     <PreviewModal

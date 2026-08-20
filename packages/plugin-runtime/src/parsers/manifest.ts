@@ -1,8 +1,11 @@
 import {
-  OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+  READABLE_STUDIO_PLUGIN_SPEC_VERSION,
+  UNSUPPORTED_OPEN_DESIGN_V1,
   PluginManifestSchema,
   type PluginManifest,
 } from '@readable-studio/contracts';
+
+export { UNSUPPORTED_OPEN_DESIGN_V1 };
 
 export interface ManifestParseSuccess {
   ok: true;
@@ -11,14 +14,15 @@ export interface ManifestParseSuccess {
 }
 
 export interface ManifestParseFailure {
-  ok: false;
-  warnings: string[];
-  errors: string[];
+  readonly ok: false;
+  readonly code?: typeof UNSUPPORTED_OPEN_DESIGN_V1;
+  readonly warnings: string[];
+  readonly errors: string[];
 }
 
 export type ManifestParseResult = ManifestParseSuccess | ManifestParseFailure;
 
-// Read raw `open-design.json` text into a typed PluginManifest. The Zod
+// Read raw `readable-studio.json` text into a typed PluginManifest. The Zod
 // schema is permissive (passthrough), so unknown forward-compatible fields
 // survive parse without complaint. Warnings carry adapter hints — e.g. a
 // claude-plugin sidecar that declared an unmappable capability.
@@ -31,7 +35,7 @@ export function parseManifest(raw: string): ManifestParseResult {
     return {
       ok: false,
       warnings: [],
-      errors: [`open-design.json is not valid JSON: ${(err as Error).message}`],
+      errors: [`readable-studio.json is not valid JSON: ${(err as Error).message}`],
     };
   }
   return parseManifestObject(json);
@@ -39,6 +43,15 @@ export function parseManifest(raw: string): ManifestParseResult {
 
 // @dsp func-1c846dab
 export function parseManifestObject(value: unknown): ManifestParseResult {
+  if (isUnsupportedOpenDesignV1(value)) {
+    return {
+      ok: false,
+      code: UNSUPPORTED_OPEN_DESIGN_V1,
+      warnings: [],
+      errors: [UNSUPPORTED_OPEN_DESIGN_V1],
+    };
+  }
+
   const result = PluginManifestSchema.safeParse(value);
   if (!result.success) {
     return {
@@ -50,9 +63,16 @@ export function parseManifestObject(value: unknown): ManifestParseResult {
   return {
     ok: true,
     manifest: {
-      specVersion: OPEN_DESIGN_PLUGIN_SPEC_VERSION,
+      specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
       ...result.data,
     },
     warnings: [],
   };
+}
+
+export function isUnsupportedOpenDesignV1(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  if (Object.hasOwn(value, 'od')) return true;
+  const schema = Reflect.get(value, '$schema');
+  return typeof schema === 'string' && schema.includes('open-design.ai/schemas/');
 }

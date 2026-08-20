@@ -81,7 +81,7 @@ describe('doctorPlugin — component capability gate', () => {
     title:       'Sample',
     version:     '1.0.0',
     description: 'fixture',
-    od: {
+    readable: {
       kind:    'skill',
       genui:   {
         surfaces: [
@@ -108,7 +108,7 @@ describe('doctorPlugin — component capability gate', () => {
   it('passes when the matching capability is declared', () => {
     const m: PluginManifest = {
       ...baseManifest,
-      od: { ...baseManifest.od, capabilities: ['prompt:inject', 'genui:custom-component'] },
+      readable: { ...baseManifest.readable, capabilities: ['prompt:inject', 'genui:custom-component'] },
     };
     const report = doctorPlugin(pluginRecord(m), REGISTRY);
     expect(report.issues.find((d) => d.code === 'genui.component-capability')).toBeUndefined();
@@ -117,8 +117,8 @@ describe('doctorPlugin — component capability gate', () => {
   it('errors on path-traversal segments inside the component path', () => {
     const m: PluginManifest = {
       ...baseManifest,
-      od: {
-        ...baseManifest.od,
+      readable: {
+        ...baseManifest.readable,
         capabilities: ['prompt:inject', 'genui:custom-component'],
         genui: {
           surfaces: [

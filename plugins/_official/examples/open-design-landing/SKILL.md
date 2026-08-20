@@ -18,7 +18,7 @@ triggers:
   - hero collage
   - atelier zero
   - open design landing
-od:
+readable:
   category: brand-page
   surface: web
   scenario: marketing

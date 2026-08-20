@@ -353,7 +353,7 @@ readable skill list --scenario marketing
 
 **왜 MCP인가?** 반복할 때마다 zip을 내보내고 다시 첨부하는 일은 흐름을 끊습니다. MCP는 디자인 소스를 직접 노출합니다 — 에이전트는 언제나 살아 있는 파일을 봅니다.
 
-**처음부터 시작하는 에이전트라면,** 설치 프로그램이 `~/.config/<agent>/open-design.json`(또는 플랫폼에 해당하는 경로)과 복사해 붙여넣을 수 있는 MCP 스니펫을 배치합니다. Cursor는 원클릭 딥링크를, Claude Code는 `claude mcp add-json` 한 줄을, 그 외 모든 에이전트는 각자의 설정이 기대하는 스키마의 JSON을 받습니다. 전체 에이전트별 흐름 → 데스크톱 앱의 **Settings → MCP server**, 또는 [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
+**처음부터 시작하는 에이전트라면,** 설치 프로그램이 `~/.config/<agent>/readable-studio.json`(또는 플랫폼에 해당하는 경로)과 복사해 붙여넣을 수 있는 MCP 스니펫을 배치합니다. Cursor는 원클릭 딥링크를, Claude Code는 `claude mcp add-json` 한 줄을, 그 외 모든 에이전트는 각자의 설정이 기대하는 스키마의 JSON을 받습니다. 전체 에이전트별 흐름 → 데스크톱 앱의 **Settings → MCP server**, 또는 [`docs/agent-adapters.md`](../../docs/agent-adapters.md).
 
 **보안 모델.** 기본은 읽기 전용이며, 데몬은 `127.0.0.1`에 바인딩되고, SSRF는 프록시 경계에서 차단됩니다. LAN 노출에는 명시적인 `OD_BIND_HOST`와 `OD_ALLOWED_ORIGINS`가 필요합니다. 커넥터 자격 증명과 라이브 아티팩트 미리보기 경로는 어떤 경우에도 루프백 전용으로 유지됩니다.
 
@@ -427,7 +427,7 @@ readable skill list --scenario marketing
 
 ## 플러그인
 
-**261개의 공식 플러그인**이 [`plugins/_official/`](../../plugins/_official/)에 있습니다. 각 플러그인은 **이식 가능한 에이전트 스킬 폴더**입니다 — `SKILL.md`(Agent Skills를 지원하는 어떤 에이전트든 읽을 수 있음)와, Open Design에 마켓플레이스 메타데이터, 입력, 미리보기, 파이프라인, 기능 선언을 제공하는 선택적 `open-design.json` 매니페스트로 구성됩니다. 카테고리로 바로 이동하세요:
+**261개의 공식 플러그인**이 [`plugins/_official/`](../../plugins/_official/)에 있습니다. 각 플러그인은 **이식 가능한 에이전트 스킬 폴더**입니다 — `SKILL.md`(Agent Skills를 지원하는 어떤 에이전트든 읽을 수 있음)와, Open Design에 마켓플레이스 메타데이터, 입력, 미리보기, 파이프라인, 기능 선언을 제공하는 선택적 `readable-studio.json` 매니페스트로 구성됩니다. 카테고리로 바로 이동하세요:
 
 | 카테고리 | 개수 | 내용 |
 |---|---|---|
@@ -469,18 +469,18 @@ readable plugin uninstall od-default       # uninstall
 
 ### 플러그인 만들기
 
-플러그인은 **최소한 `SKILL.md` 하나만 있으면 됩니다**; Open Design 마켓플레이스에 등록하려면 `open-design.json`을 추가하세요:
+플러그인은 **최소한 `SKILL.md` 하나만 있으면 됩니다**; Open Design 마켓플레이스에 등록하려면 `readable-studio.json`을 추가하세요:
 
 ```
 my-plugin/
 ├── SKILL.md            ← required: YAML frontmatter (name · description) + trigger phrasing + workflow (aim for < 500 lines)
-├── open-design.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
+├── readable-studio.json    ← needed to list: marketplace metadata + inputs + pipeline + capabilities
 ├── README.md           ← optional: usage, install, registry links
 ├── preview/            ← optional: index.html / poster.png (strongly recommended for visual plugins)
 └── examples/           ← optional: concrete use cases
 ```
 
-핵심 `open-design.json` 필드: `specVersion`(현재 `1.0.0`), `name`(안정적 ID), `version`(semver), `compat.agentSkills[].path`(`./SKILL.md`를 가리킴), `od.kind`(`skill` / `scenario` / `atom` / `bundle`), `od.taskKind`(`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode`(출력 표면, 예: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]`(**최소한만 선언하세요** — 제한된 설치는 기본적으로 `prompt:inject`만 부여합니다), `od.inputs[]`(적용 시점 파라미터).
+핵심 `readable-studio.json` 필드: `specVersion`(현재 `1.0.0`), `name`(안정적 ID), `version`(semver), `compat.agentSkills[].path`(`./SKILL.md`를 가리킴), `od.kind`(`skill` / `scenario` / `atom` / `bundle`), `od.taskKind`(`new-generation` / `figma-migration` / `code-migration` / `tune-collab`), `od.mode`(출력 표면, 예: `prototype` / `deck` / `live-artifact` / `image` / `video` / `hyperframes` / `audio` / `design-system` / `scenario`), `od.capabilities[]`(**최소한만 선언하세요** — 제한된 설치는 기본적으로 `prompt:inject`만 부여합니다), `od.inputs[]`(적용 시점 파라미터).
 
 로컬에서 스캐폴드 + 검증:
 
@@ -593,7 +593,7 @@ Open Design가 계속 나아가는 것은 기여자들 — 디자이너, 엔지�
 |---|---|---|
 | 새 **스킬** | `SKILL.md` + `assets/` + `references/`가 있는 폴더를 넣기 | [`skills/`](../../skills/) · 사양은 [`docs/skills-protocol.md`](../../docs/skills-protocol.md)에 |
 | 새 **디자인 시스템** | 9개 섹션 스키마를 쓴 `DESIGN.md`를 넣기 | [`design-systems/<brand>/`](../../design-systems/) |
-| 새 **플러그인** | 카테고리 폴더 아래에 `open-design.json` + 매니페스트를 넣기 | [`plugins/community/`](../../plugins/community/) · 사양은 [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md)에 · 에이전트 개발 가이드는 [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md)에 |
+| 새 **플러그인** | 카테고리 폴더 아래에 `readable-studio.json` + 매니페스트를 넣기 | [`plugins/community/`](../../plugins/community/) · 사양은 [`plugins/spec/SPEC.md`](../../plugins/spec/SPEC.md)에 · 에이전트 개발 가이드는 [`plugins/spec/AGENT-DEVELOPMENT.md`](../../plugins/spec/AGENT-DEVELOPMENT.md)에 |
 | 새 **코딩 에이전트 CLI** 지원 | 어댑터 항목 하나 + 스트림 파서 | [`apps/daemon/src/agents.ts`](../../apps/daemon/src/agents.ts) |
 | 버그 수정 또는 UI 다듬기 | [`good-first-issue`](https://github.com/sanghyunna/open-design-sandboxed/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 라벨 둘러보기 | [Issues →](https://github.com/sanghyunna/open-design-sandboxed/issues) |
 | 문서 번역 | `README.<lang>.md` 파일 업데이트 | [`TRANSLATIONS.md`](../../TRANSLATIONS.md) |

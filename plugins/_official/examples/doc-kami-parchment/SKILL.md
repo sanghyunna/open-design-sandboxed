@@ -19,7 +19,7 @@ example_tagline: "Warm parchment + ink-blue monochrome + single serif"
 example_desc: "A one-page editorial-grade one-pager, Open Design Studio Issue No. 26"
 example_source_url: "https://github.com/tw93/kami"
 example_source_label: "tw93/kami"
-od:
+readable:
   mode: prototype
   surface: web
   platform: desktop
