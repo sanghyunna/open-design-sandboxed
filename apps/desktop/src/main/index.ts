@@ -96,7 +96,7 @@ const TOOLS_DEV_PARENT_PID_ENV = SIDECAR_ENV.TOOLS_DEV_PARENT_PID;
 const AMR_PROFILE_ENV_KEY = "OPEN_DESIGN_AMR_PROFILE";
 const AMR_PROFILE_AGENT_ID = "amr";
 const AMR_ENVIRONMENT_PROFILES = ["prod", "test", "local"] as const;
-const APP_CONFIG_CHANGED_IPC_CHANNEL = "od:app-config-changed";
+const APP_CONFIG_CHANGED_IPC_CHANNEL = "readable-studio:app-config-changed";
 type AmrEnvironmentProfile = (typeof AMR_ENVIRONMENT_PROFILES)[number];
 type DesktopAppConfigPrefs = {
   agentModels?: Record<string, { model?: string; reasoning?: string }>;
@@ -134,7 +134,7 @@ export type DesktopMainOptions = {
   discoverWebUrl?: () => Promise<string | null>;
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): packaged builds report the
-   * renderer URL (`od://app/`) over `discoverWebUrl`, but Node-side
+   * renderer URL (`readable-studio://app/`) over `discoverWebUrl`, but Node-side
    * fetch can't resolve a custom Electron protocol. Optional. When
    * provided, runtime API calls (`/api/import/folder`,
    * `/api/projects/:id`) target this URL instead. tools-dev callers

@@ -672,18 +672,18 @@ desktopMacDescribe('mac desktop settings smoke', () => {
           throw new Error('failed to seed project file: ' + fileResp.status);
         }
 
-        window.__odDesktopOpenHref = null;
-        window.__odDesktopOpenClickCount = 0;
-        if (!window.__odDesktopOpenCaptureInstalled) {
+        window.__readableStudioDesktopOpenHref = null;
+        window.__readableStudioDesktopOpenClickCount = 0;
+        if (!window.__readableStudioDesktopOpenCaptureInstalled) {
           document.addEventListener('click', (event) => {
             const target = event.target instanceof Element ? event.target.closest('a') : null;
             if (!(target instanceof HTMLAnchorElement)) return;
             if (target.textContent?.trim() !== 'Open') return;
-            window.__odDesktopOpenHref = target.getAttribute('href');
-            window.__odDesktopOpenClickCount += 1;
+            window.__readableStudioDesktopOpenHref = target.getAttribute('href');
+            window.__readableStudioDesktopOpenClickCount += 1;
             event.preventDefault();
           }, true);
-          window.__odDesktopOpenCaptureInstalled = true;
+          window.__readableStudioDesktopOpenCaptureInstalled = true;
         }
 
         window.location.assign('/projects/' + encodeURIComponent(projectId) + '/files/desktop-open.html');
@@ -722,8 +722,8 @@ desktopMacDescribe('mac desktop settings smoke', () => {
 
     const clickCapture = await desktop.eval<{ count: number; href: string | null }>(`
       (() => ({
-        count: typeof window.__odDesktopOpenClickCount === 'number' ? window.__odDesktopOpenClickCount : 0,
-        href: typeof window.__odDesktopOpenHref === 'string' ? window.__odDesktopOpenHref : null,
+        count: typeof window.__readableStudioDesktopOpenClickCount === 'number' ? window.__readableStudioDesktopOpenClickCount : 0,
+        href: typeof window.__readableStudioDesktopOpenHref === 'string' ? window.__readableStudioDesktopOpenHref : null,
       }))()
     `);
     expect(clickCapture.count).toBeGreaterThan(0);

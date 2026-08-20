@@ -1371,7 +1371,7 @@ function htmlPreviewFile(name = 'preview.html'): ProjectFile {
 }
 
 function manualEditDocumentRevision(srcDoc: string): number {
-  const match = srcDoc.match(/od:manual-edit-document-revision=(\d+)/);
+  const match = srcDoc.match(/readable-studio:manual-edit-document-revision=(\d+)/);
   if (!match) throw new Error('Expected a Manual Edit document revision marker.');
   return Number(match[1]);
 }

@@ -3,7 +3,7 @@
   "version": "0.2.2",
   "private": true,
   "type": "module",
-  "description": "Open Design renderer host bridge protocol.",
+  "description": "Readable Studio renderer host bridge protocol.",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [

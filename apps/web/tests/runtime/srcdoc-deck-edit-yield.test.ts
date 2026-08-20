@@ -13,7 +13,7 @@ import { buildSrcdoc } from '../../src/runtime/srcdoc';
 // right after <head> — before ANY deck script can register — that calls
 // preventDefault() on user arrows under the edit-yield condition (edit mode
 // + selected object + no active inline edit session). Host-driven synthetic
-// nav is exempted via the same `__odDeckSynthetic` flag the edit bridge keys
+// nav is exempted via the same `__readableStudioDeckSynthetic` flag the edit bridge keys
 // off. Every framework-derived deck bails on `e.defaultPrevented` (its
 // documented dedupe contract), so the key yields to the edit bridge's nudge
 // without stopping propagation.
@@ -131,10 +131,10 @@ describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legac
 
     // What the deck bridge's dispatchKey does: flags the key as deck-synthetic
     // (and the event itself is untrusted, like every dispatchEvent).
-    (win as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = true;
+    (win as unknown as { __readableStudioDeckSynthetic?: boolean }).__readableStudioDeckSynthetic = true;
     win.document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
     win.document.dispatchEvent(new win.KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-    (win as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = false;
+    (win as unknown as { __readableStudioDeckSynthetic?: boolean }).__readableStudioDeckSynthetic = false;
 
     expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
     expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');

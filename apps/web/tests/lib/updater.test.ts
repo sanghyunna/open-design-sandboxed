@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { OpenDesignHostUpdaterStatusSnapshot } from '@readable-studio/host';
-import { installMockOpenDesignHost } from '@readable-studio/host/testing';
+import type { ReadableStudioHostUpdaterStatusSnapshot } from '@readable-studio/host';
+import { installMockReadableStudioHost } from '@readable-studio/host/testing';
 
 import {
   checkForUpdaterUpdate,
@@ -12,7 +12,7 @@ import {
   readUpdaterStatus,
 } from '../../src/lib/updater';
 
-function downloadedStatus(overrides: Partial<OpenDesignHostUpdaterStatusSnapshot> = {}): OpenDesignHostUpdaterStatusSnapshot {
+function downloadedStatus(overrides: Partial<ReadableStudioHostUpdaterStatusSnapshot> = {}): ReadableStudioHostUpdaterStatusSnapshot {
   return {
     arch: 'arm64',
     artifact: {
@@ -167,7 +167,7 @@ describe('web updater model', () => {
       },
     }));
     const quit = vi.fn(async () => ({ ok: true as const }));
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           check,

@@ -146,8 +146,8 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
-    expect(res.headers.get('x-open-design-external-reference-count')).toBe('0');
-    expect(res.headers.get('x-open-design-missing-local-reference-count')).toBe('0');
+    expect(res.headers.get('x-readable-studio-external-reference-count')).toBe('0');
+    expect(res.headers.get('x-readable-studio-missing-local-reference-count')).toBe('0');
     const body = await res.text();
     expect(body).toContain('src="data:image/png;base64,');
     expect(body).not.toContain('./images/logo.png');
@@ -164,9 +164,9 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(res.headers.get('content-security-policy')).toBe('sandbox allow-scripts');
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(res.headers.get('cache-control')).toBe('no-store');
-    expect(res.headers.get('x-open-design-external-reference-count')).toBe('1');
-    expect(res.headers.get('x-open-design-missing-local-reference-count')).toBe('1');
-    expect(res.headers.get('x-open-design-skipped-system-font-count')).toBe('0');
+    expect(res.headers.get('x-readable-studio-external-reference-count')).toBe('1');
+    expect(res.headers.get('x-readable-studio-missing-local-reference-count')).toBe('1');
+    expect(res.headers.get('x-readable-studio-skipped-system-font-count')).toBe('0');
     const body = await res.text();
     expect(Number(res.headers.get('content-length'))).toBe(Buffer.byteLength(body));
   });

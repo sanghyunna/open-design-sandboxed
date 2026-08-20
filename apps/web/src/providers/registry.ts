@@ -51,7 +51,7 @@ import type {
 } from '../types';
 import type { ArtifactManifest } from '../artifacts/types';
 import {
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   openHostExternalUrl,
 } from '@readable-studio/host';
 
@@ -752,7 +752,7 @@ export async function daemonIsLive(): Promise<boolean> {
 }
 
 export async function openExternalUrl(url: string): Promise<boolean> {
-  if (isOpenDesignHostAvailable()) {
+  if (isReadableStudioHostAvailable()) {
     const opened = await openHostExternalUrl(url);
     if (opened.ok) return true;
   }
@@ -1446,7 +1446,7 @@ export async function replaceProjectWorkingDir(
 ): Promise<ReplaceProjectWorkingDirResponse> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (desktopImportToken) {
-    headers['x-od-desktop-import-token'] = desktopImportToken;
+    headers['x-readable-studio-desktop-import-token'] = desktopImportToken;
   }
   const resp = await fetch(
     `/api/projects/${encodeURIComponent(projectId)}/working-dir`,

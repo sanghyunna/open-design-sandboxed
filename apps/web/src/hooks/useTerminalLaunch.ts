@@ -11,7 +11,7 @@
 
 import { useMemo } from 'react';
 import {
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   openHostProjectPath,
 } from '@readable-studio/host';
 
@@ -27,7 +27,7 @@ export interface TerminalLauncher {
 
 export function useTerminalLaunch(): TerminalLauncher {
   return useMemo<TerminalLauncher>(() => {
-    const isHost = isOpenDesignHostAvailable();
+    const isHost = isReadableStudioHostAvailable();
 
     async function open(projectId: string): Promise<TerminalLaunchResult> {
       if (!isHost) {

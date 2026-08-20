@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { en } from './locales/en';
 import { ko } from './locales/ko';
-import { getOpenDesignHost } from '@readable-studio/host';
+import { getReadableStudioHost } from '@readable-studio/host';
 import { LOCALES, type Dict, type Locale } from './types';
 
 export { LOCALES, LOCALE_LABEL } from './types';
@@ -51,12 +51,12 @@ export function resolveSystemLocale(languages: readonly string[]): Locale | null
 // Read the OS locale the desktop host attached to its client descriptor.
 // Packaged desktop builds need this because Chromium otherwise reports
 // en-US through navigator.language regardless of the OS setting. We go
-// through `getOpenDesignHost` rather than reading the bridge global by
+// through `getReadableStudioHost` rather than reading the bridge global by
 // name so the web/preload boundary stays single-source (see the
 // `host bridge boundary` guard test).
 function readDesktopHostOsLocale(): string | undefined {
   if (typeof window === 'undefined') return undefined;
-  const host = getOpenDesignHost();
+  const host = getReadableStudioHost();
   const value = host?.client?.osLocale;
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

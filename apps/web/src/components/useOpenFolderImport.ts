@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   pickAndImportHostProject,
-  type OpenDesignHostProjectImportSuccess,
+  type ReadableStudioHostProjectImportSuccess,
 } from '@readable-studio/host';
 import { pickLocalFolderPath } from '../state/projects';
 import { formatPickAndImportFailure } from '../utils/pickAndImportError';
@@ -10,7 +10,7 @@ import { formatPickAndImportFailure } from '../utils/pickAndImportError';
 interface UseOpenFolderImportArgs {
   skillId?: string | null;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
 }
 
 export function useOpenFolderImport({
@@ -20,7 +20,7 @@ export function useOpenFolderImport({
 }: UseOpenFolderImportArgs) {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
-  const hasHostPickAndImport = isOpenDesignHostAvailable();
+  const hasHostPickAndImport = isReadableStudioHostAvailable();
   const available = hasHostPickAndImport ? Boolean(onImportFolderResponse) : Boolean(onImportFolder);
 
   const openFolder = useCallback(async () => {

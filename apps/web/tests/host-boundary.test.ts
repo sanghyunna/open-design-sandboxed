@@ -24,6 +24,9 @@ describe('host bridge boundary', () => {
       '__OD_CLIENT_TYPE__',
       '__od__',
       'OPEN_DESIGN_HOST_GLOBAL',
+      'openDesignDesktop',
+      '__readableStudio__',
+      'READABLE_STUDIO_HOST_GLOBAL',
     ];
     const candidates = [
       ...filesUnder(join(webRoot, 'src')),

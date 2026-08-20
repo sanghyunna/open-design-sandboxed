@@ -305,7 +305,7 @@ describe('PreviewDrawOverlay', () => {
     });
 
     expect(postMessage).toHaveBeenCalledWith(
-      { type: 'od:preview-scroll-by', left: 8, top: 96 },
+      { type: 'readable-studio:preview-scroll-by', left: 8, top: 96 },
       '*',
     );
   });
@@ -340,7 +340,7 @@ describe('PreviewDrawOverlay', () => {
     });
 
     expect(postMessage).toHaveBeenCalledWith(
-      { type: 'od:preview-scroll-by', left: 4, top: 72 },
+      { type: 'readable-studio:preview-scroll-by', left: 4, top: 72 },
       '*',
     );
   });

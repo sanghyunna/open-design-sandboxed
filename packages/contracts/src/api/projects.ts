@@ -88,7 +88,7 @@ export interface ProjectMetadata {
   // PR #974: marker stamped by the daemon's HMAC-gated import handler
   // when a folder import passed the desktop-main-process trust gate.
   // Only set on folder-imported projects (`baseDir` set) and only when
-  // the import request carried a valid `X-OD-Desktop-Import-Token`
+  // the import request carried a valid `X-Readable-Studio-Desktop-Import-Token`
   // signed with the secret the desktop main process registered with the
   // daemon at startup. The desktop `shell.openPath` IPC refuses to
   // forward folder-imported projects whose metadata lacks this marker,

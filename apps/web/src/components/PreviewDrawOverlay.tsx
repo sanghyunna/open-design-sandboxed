@@ -252,7 +252,7 @@ export function PreviewDrawOverlay({
 
   function postFrameScrollBy(win: Window, left: number, top: number): boolean {
     try {
-      win.postMessage({ type: 'od:preview-scroll-by', left, top }, '*');
+      win.postMessage({ type: 'readable-studio:preview-scroll-by', left, top }, '*');
       return true;
     } catch {
       return false;

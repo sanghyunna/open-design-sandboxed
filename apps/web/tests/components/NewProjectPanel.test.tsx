@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { isOpenDesignHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
+import { isReadableStudioHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
 import {
   defaultDesignSystemSelection,
   NewProjectPanel,
@@ -16,7 +16,7 @@ vi.mock('@readable-studio/host', async () => {
   const actual = await vi.importActual<typeof import('@readable-studio/host')>('@readable-studio/host');
   return {
     ...actual,
-    isOpenDesignHostAvailable: vi.fn(),
+    isReadableStudioHostAvailable: vi.fn(),
     pickHostWorkingDir: vi.fn(),
   };
 });
@@ -31,7 +31,7 @@ vi.mock('../../src/providers/registry', async () => {
   };
 });
 
-const mockedIsHostAvailable = vi.mocked(isOpenDesignHostAvailable);
+const mockedIsHostAvailable = vi.mocked(isReadableStudioHostAvailable);
 const mockedPickHostWorkingDir = vi.mocked(pickHostWorkingDir);
 const mockedOpenFolderDialog = vi.mocked(openFolderDialog);
 

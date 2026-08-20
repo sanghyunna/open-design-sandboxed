@@ -1545,7 +1545,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     // Synthetic arrow keys dispatched by the host-side deck bridge are wrapped
     // in the deck-synthetic flag: they are slide navigation, not user nudges,
     // so the edit bridge leaves them (and their keyups) completely untouched.
-    if (nudgeDirection && window.__odDeckSynthetic) return;
+    if (nudgeDirection && window.__readableStudioDeckSynthetic) return;
     var selectedEl = document.querySelector('[data-od-edit-selected]');
     var isEditing = !!document.querySelector('[data-od-editing="true"]');
     // A key still latched from an Escape-cancelled burst: swallow its repeats
@@ -1590,7 +1590,7 @@ export function buildManualEditBridge(enabled: boolean): string {
     if (!enabled) return;
     var nudgeKeys = { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1 };
     if (!nudgeKeys[ev.key]) return;
-    if (window.__odDeckSynthetic) return;
+    if (window.__readableStudioDeckSynthetic) return;
     if (heldNudgeKeys[ev.key]) {
       delete heldNudgeKeys[ev.key];
       for (var held in heldNudgeKeys) { if (heldNudgeKeys.hasOwnProperty(held)) return; }

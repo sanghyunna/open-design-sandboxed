@@ -16,7 +16,7 @@ export interface StandaloneHtmlExportSummary {
 }
 
 export const STANDALONE_HTML_EXPORT_HEADERS = {
-  externalReferenceCount: 'x-open-design-external-reference-count',
-  missingLocalReferenceCount: 'x-open-design-missing-local-reference-count',
-  skippedSystemFontCount: 'x-open-design-skipped-system-font-count',
+  externalReferenceCount: 'x-readable-studio-external-reference-count',
+  missingLocalReferenceCount: 'x-readable-studio-missing-local-reference-count',
+  skippedSystemFontCount: 'x-readable-studio-skipped-system-font-count',
 } as const;

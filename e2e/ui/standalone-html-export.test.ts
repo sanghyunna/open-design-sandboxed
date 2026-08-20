@@ -83,9 +83,9 @@ test('[P1] PreviewModal exports plugin examples and design-system views through 
     await route.fulfill({
       contentType: 'text/html',
       headers: {
-        'x-open-design-external-reference-count': '0',
-        'x-open-design-missing-local-reference-count': '0',
-        'x-open-design-skipped-system-font-count': '0',
+        'x-readable-studio-external-reference-count': '0',
+        'x-readable-studio-missing-local-reference-count': '0',
+        'x-readable-studio-skipped-system-font-count': '0',
       },
       body: '<!doctype html><p>standalone</p>',
     });

@@ -108,10 +108,10 @@ function deferredResponse() {
 function srcDocActivationMessages(calls: readonly (readonly unknown[])[]) {
   return calls
     .map(([message]) => message)
-    .filter((message): message is { type: 'od:srcdoc-transport-activate'; html: string } => {
+    .filter((message): message is { type: 'readable-studio:srcdoc-transport-activate'; html: string } => {
       if (typeof message !== 'object' || message === null) return false;
       const data = message as { type?: unknown; html?: unknown };
-      return data.type === 'od:srcdoc-transport-activate' && typeof data.html === 'string';
+      return data.type === 'readable-studio:srcdoc-transport-activate' && typeof data.html === 'string';
     });
 }
 
@@ -194,11 +194,11 @@ function installPreviewSnapshotBridge(iframe: HTMLIFrameElement) {
   if (!source) throw new Error('Expected preview iframe contentWindow');
   return vi.spyOn(source, 'postMessage').mockImplementation((message: unknown) => {
     const data = message as { type?: string; id?: string } | null;
-    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    if (!data || data.type !== 'readable-studio:snapshot' || !data.id) return;
     window.dispatchEvent(new MessageEvent('message', {
       source,
       data: {
-        type: 'od:snapshot:result',
+        type: 'readable-studio:snapshot:result',
         id: data.id,
         dataUrl: TEST_SNAPSHOT_DATA_URL,
         w: 2,
@@ -978,7 +978,7 @@ describe('FileViewer SVG artifacts', () => {
         projectId="project-1"
         projectKind="prototype"
         file={file}
-        liveHtml='<html><body><script>window.__odArtifactBootCount = (window.__odArtifactBootCount || 0) + 1;</script><main data-od-id="hero">Hero</main></body></html>'
+        liveHtml='<html><body><script>window.__readableStudioArtifactBootCount = (window.__readableStudioArtifactBootCount || 0) + 1;</script><main data-od-id="hero">Hero</main></body></html>'
       />,
     );
 
@@ -990,7 +990,7 @@ describe('FileViewer SVG artifacts', () => {
     expect(urlFrame?.getAttribute('data-od-active')).toBe('true');
     expect(srcDocFrame?.getAttribute('data-od-active')).toBe('false');
     expect(srcDocFrame?.srcdoc).toContain('data-od-lazy-srcdoc-transport');
-    expect(srcDocFrame?.srcdoc).not.toContain('__odArtifactBootCount');
+    expect(srcDocFrame?.srcdoc).not.toContain('__readableStudioArtifactBootCount');
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
 
@@ -1001,7 +1001,7 @@ describe('FileViewer SVG artifacts', () => {
     expect(urlFrameAfter?.getAttribute('data-od-active')).toBe('false');
     expect(urlFrameAfter?.getAttribute('src')).toBe('about:blank');
     expect(srcDocFrameAfter?.getAttribute('data-od-active')).toBe('true');
-    expect(srcDocFrameAfter?.srcdoc).toContain('__odArtifactBootCount');
+    expect(srcDocFrameAfter?.srcdoc).toContain('__readableStudioArtifactBootCount');
     expect(srcDocFrameAfter?.srcdoc).toContain('data-od-edit-bridge');
   });
 
@@ -2950,7 +2950,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: urlFrame.contentWindow,
       data: {
-        type: 'od:preview-scroll',
+        type: 'readable-studio:preview-scroll',
         frameLeft: 4,
         frameTop: 640,
         canvasLeft: 0,
@@ -2963,7 +2963,7 @@ describe('FileViewer tweaks toolbar', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od:preview-scroll-restore',
+          type: 'readable-studio:preview-scroll-restore',
           frameLeft: 4,
           frameTop: 640,
           canvasTop: 640,
@@ -2989,7 +2989,7 @@ describe('FileViewer tweaks toolbar', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         source: urlFrame.contentWindow,
-        data: { type: 'od:url-selection-bridge-ready' },
+        data: { type: 'readable-studio:url-selection-bridge-ready' },
       }));
     });
 
@@ -3001,7 +3001,7 @@ describe('FileViewer tweaks toolbar', () => {
       expect(urlFrame.getAttribute('data-od-active')).toBe('true');
       expect(srcDocFrame.getAttribute('data-od-active')).toBe('false');
       expect(postSpy).toHaveBeenCalledWith(
-        { type: 'od:comment-mode', enabled: true, mode: 'inspect' },
+        { type: 'readable-studio:comment-mode', enabled: true, mode: 'inspect' },
         '*',
       );
     });
@@ -3385,7 +3385,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3444,7 +3444,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-targets',
+        type: 'readable-studio:comment-targets',
         targets: [{
           elementId: 'hero',
           selector: '[data-od-id="hero"]',
@@ -3463,7 +3463,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3544,12 +3544,12 @@ describe('FileViewer tweaks toolbar', () => {
     const frame = screen.getByTestId('artifact-preview-frame') as HTMLIFrameElement;
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:slide-state', active: 3, count: 18 },
+      data: { type: 'readable-studio:slide-state', active: 3, count: 18 },
     }));
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-targets',
+        type: 'readable-studio:comment-targets',
         targets: [{
           elementId: 'slide-four-title',
           selector: '[data-od-id="slide-four-title"]',
@@ -3651,7 +3651,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3702,7 +3702,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3775,7 +3775,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'p',
@@ -3841,7 +3841,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3942,7 +3942,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -3982,7 +3982,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -4026,7 +4026,7 @@ describe('FileViewer tweaks toolbar', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
       data: {
-        type: 'od:comment-target',
+        type: 'readable-studio:comment-target',
         elementId: 'hero',
         selector: '[data-od-id="hero"]',
         label: 'Hero',
@@ -4096,7 +4096,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     expect(screen.queryByTestId('annotation-hover-style-summary')).toBeNull();
@@ -4107,7 +4107,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-target' },
+      data: { ...target, type: 'readable-studio:comment-target' },
     }));
 
     const summary = await screen.findByTestId('comment-popover-style-summary');
@@ -4150,18 +4150,18 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
 
     // Pointer crosses from the element onto the floating card. The iframe sees
-    // that as a mouseout and posts od:comment-leave; the card's own mouseenter
+    // that as a mouseout and posts readable-studio:comment-leave; the card's own mouseenter
     // fires first and pins it, so the leave must be ignored and the card stays.
     fireEvent.mouseEnter(card);
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:comment-leave' },
+      data: { type: 'readable-studio:comment-leave' },
     }));
 
     // Give React a chance to (wrongly) unmount before asserting it did not.
@@ -4201,18 +4201,18 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
 
     // Real-world ordering the synchronous teardown got wrong: the iframe's async
-    // od:comment-leave lands BEFORE the card's mouseenter has had a chance to pin
+    // readable-studio:comment-leave lands BEFORE the card's mouseenter has had a chance to pin
     // it. The dismiss must be deferred so the imminent mouseenter cancels it —
     // otherwise the card tears down for a frame and flickers on the way in.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { type: 'od:comment-leave' },
+      data: { type: 'readable-studio:comment-leave' },
     }));
     fireEvent.mouseEnter(card);
 
@@ -4246,7 +4246,7 @@ describe('FileViewer tweaks toolbar', () => {
 
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     const card = await screen.findByTestId('annotation-hover-popover');
@@ -4263,7 +4263,7 @@ describe('FileViewer tweaks toolbar', () => {
     // dismiss, so the card stays put rather than blinking out.
     window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow,
-      data: { ...target, type: 'od:comment-hover' },
+      data: { ...target, type: 'readable-studio:comment-hover' },
     }));
 
     await new Promise((resolve) => setTimeout(resolve, 140));
@@ -4925,7 +4925,7 @@ describe('serializeInspectOverrides', () => {
 
   // The vulnerability we're regression-testing: artifact code rendered with
   // scripts enabled can call window.parent.postMessage({ type:
-  // 'od:inspect-overrides', overrides, css: '</style><script>...</script>' })
+  // 'readable-studio:inspect-overrides', overrides, css: '</style><script>...</script>' })
   // — ev.source still matches iframe.contentWindow, so the host listener
   // accepts it. The fix is that the host re-derives CSS from the structured
   // `overrides` field under its own allow-list and ignores the inbound `css`
@@ -4979,7 +4979,7 @@ describe('serializeInspectOverrides', () => {
 // Regression for nexu-io/open-design#362: the host owns the inspect override
 // map authoritatively. Hydration parses the artifact source on load so an
 // initial Save-to-source preserves prior rules even when the user edits a
-// different element, and forging the iframe's od:inspect-overrides reply
+// different element, and forging the iframe's readable-studio:inspect-overrides reply
 // cannot inject overrides — the host never ingests it.
 describe('parseInspectOverridesFromSource', () => {
   it('returns an empty map when the source has no override block', () => {

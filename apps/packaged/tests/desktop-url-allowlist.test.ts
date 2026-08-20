@@ -41,7 +41,7 @@ describe('isHttpUrl', () => {
   });
 
   it('rejects non-http schemes', () => {
-    expect(isHttpUrl('od://app/foo')).toBe(false);
+    expect(isHttpUrl('readable-studio://app/foo')).toBe(false);
     expect(isHttpUrl('file:///etc/passwd')).toBe(false);
     expect(isHttpUrl('blob:http://x/abc')).toBe(false);
     expect(isHttpUrl('javascript:alert(1)')).toBe(false);
@@ -55,8 +55,8 @@ describe('isHttpUrl', () => {
 });
 
 describe('isAllowedChildWindowUrl (issue #911)', () => {
-  it('allows the packaged od:// scheme for child window routing', () => {
-    expect(isAllowedChildWindowUrl('od://app/')).toBe(true);
+  it('allows the packaged readable-studio:// scheme for child window routing', () => {
+    expect(isAllowedChildWindowUrl('readable-studio://app/')).toBe(true);
   });
 
   it('continues to allow blob: URLs (existing behaviour)', () => {
@@ -112,19 +112,19 @@ describe('isAllowedEmbeddedBrowserUrl', () => {
   it('rejects executable or privileged schemes for embedded browser startup', () => {
     expect(isAllowedEmbeddedBrowserUrl('javascript:alert(1)')).toBe(false);
     expect(isAllowedEmbeddedBrowserUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
-    expect(isAllowedEmbeddedBrowserUrl('od://app/')).toBe(false);
+    expect(isAllowedEmbeddedBrowserUrl('readable-studio://app/')).toBe(false);
     expect(isAllowedEmbeddedBrowserUrl('not a url')).toBe(false);
   });
 });
 
 describe('resolveDesktopStatusUrl', () => {
   it('reports the pending URL while navigation is in flight', () => {
-    expect(resolveDesktopStatusUrl(null, 'od://app/')).toBe('od://app/');
-    expect(resolveDesktopStatusUrl('http://127.0.0.1:3000/', 'od://app/')).toBe('od://app/');
+    expect(resolveDesktopStatusUrl(null, 'readable-studio://app/')).toBe('readable-studio://app/');
+    expect(resolveDesktopStatusUrl('http://127.0.0.1:3000/', 'readable-studio://app/')).toBe('readable-studio://app/');
   });
 
   it('falls back to the last successful URL when no navigation is pending', () => {
-    expect(resolveDesktopStatusUrl('od://app/', null)).toBe('od://app/');
+    expect(resolveDesktopStatusUrl('readable-studio://app/', null)).toBe('readable-studio://app/');
     expect(resolveDesktopStatusUrl(null, null)).toBe(null);
   });
 });

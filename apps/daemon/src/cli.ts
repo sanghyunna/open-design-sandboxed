@@ -4606,7 +4606,7 @@ async function postImportFolderToDaemon(base, body, baseDir) {
   const headers = {};
   const importToken = await mintCliImportToken(baseDir);
   if (importToken != null) {
-    headers['x-od-desktop-import-token'] = importToken;
+    headers['x-readable-studio-desktop-import-token'] = importToken;
   }
   return postJsonToDaemon(base, '/api/import/folder', body, headers);
 }
@@ -4755,7 +4755,7 @@ Common options:
       const headers = { 'content-type': 'application/json' };
       const importToken = await mintCliImportToken(importBaseDir);
       if (importToken != null) {
-        headers['x-od-desktop-import-token'] = importToken;
+        headers['x-readable-studio-desktop-import-token'] = importToken;
       }
       const resp = await fetch(`${base}/api/import/folder`, {
         method:  'POST',

@@ -19,7 +19,7 @@ import { injectStandaloneDeckKeyDedupe } from './standalone-deck-nav';
 import { randomUUID } from '../utils/uuid';
 import {
   captureHostPage,
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   printHostPdf,
 } from '@readable-studio/host';
 import {
@@ -418,7 +418,7 @@ export function requestPreviewSnapshotResult(
         h?: number;
         error?: string;
       } | null;
-      if (!d || d.type !== 'od:snapshot:result' || d.id !== id) return;
+      if (!d || d.type !== 'readable-studio:snapshot:result' || d.id !== id) return;
       if (done) return;
       done = true;
       window.removeEventListener('message', onMsg);
@@ -427,7 +427,7 @@ export function requestPreviewSnapshotResult(
     }
     window.addEventListener('message', onMsg);
     try {
-      win.postMessage({ type: 'od:snapshot', id }, '*');
+      win.postMessage({ type: 'readable-studio:snapshot', id }, '*');
     } catch {
       done = true;
       window.removeEventListener('message', onMsg);
@@ -469,7 +469,7 @@ export async function requestPreviewSnapshot(
 export async function captureHostRegionSnapshot(
   clipRect: { left: number; top: number; width: number; height: number } | null,
 ): Promise<PreviewSnapshot | null> {
-  if (!isOpenDesignHostAvailable()) return null;
+  if (!isReadableStudioHostAvailable()) return null;
   const clip = clipRect && clipRect.width >= 1 && clipRect.height >= 1
     ? {
         x: Math.max(0, Math.round(clipRect.left)),
@@ -1025,7 +1025,7 @@ export async function exportAsPdf(
   // omits allow-modals here because the native flow never calls
   // window.print(); granting it would let untrusted artifact code call
   // alert()/confirm() and stall the hidden Electron window indefinitely.
-  if (isOpenDesignHostAvailable()) {
+  if (isReadableStudioHostAvailable()) {
     if (sandboxedPreview) {
       doc = buildSandboxedPreviewDocument(doc, title);
     }
@@ -1106,14 +1106,14 @@ function injectPrintReadyHandshake(doc: string, nonce: string): string {
   // The nonce is a per-export random UUID that verifies the readiness signal
   // came from our injected handshake, not a spoofed message from untrusted
   // artifact code.
-  const script = `<script data-od-print-ready>(function(){function waitForImages(){var imgs=Array.from(document.images).filter(function(img){return !img.complete});return Promise.all(imgs.map(function(img){return new Promise(function(r){img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true});if(img.complete)r()})}))}function cssUrlValues(value){var urls=[];if(!value||value==='none')return urls;value.replace(/url\\((['"]?)(.*?)\\1\\)/g,function(_,q,rawUrl){if(rawUrl&&!/^data:/i.test(rawUrl))urls.push(rawUrl);return''});return urls}function waitForCssBackgroundImages(){var urls=new Set();Array.from(document.querySelectorAll('*')).forEach(function(el){var style=window.getComputedStyle(el);cssUrlValues(style.backgroundImage).forEach(function(url){urls.add(url)});cssUrlValues(style.borderImageSource).forEach(function(url){urls.add(url)});cssUrlValues(style.listStyleImage).forEach(function(url){urls.add(url)})});return Promise.all(Array.from(urls).map(function(url){return new Promise(function(r){var img=new Image();img.onload=r;img.onerror=r;img.src=url})}))}function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){r(true)})})}Promise.all([document.fonts&&document.fonts.ready?document.fonts.ready.catch(function(){}):Promise.resolve(),new Promise(function(r){if(document.readyState==='complete')r();else window.addEventListener('load',r,{once:true})})]).then(function(){return Promise.all([waitForImages(),waitForCssBackgroundImages()])}).then(nextFrame).then(nextFrame).then(function(){window.parent.postMessage({type:'OD_PRINT_READY',nonce:'${nonce}'},'*')})})();<\/script>`;
+  const script = `<script data-od-print-ready>(function(){function waitForImages(){var imgs=Array.from(document.images).filter(function(img){return !img.complete});return Promise.all(imgs.map(function(img){return new Promise(function(r){img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true});if(img.complete)r()})}))}function cssUrlValues(value){var urls=[];if(!value||value==='none')return urls;value.replace(/url\\((['"]?)(.*?)\\1\\)/g,function(_,q,rawUrl){if(rawUrl&&!/^data:/i.test(rawUrl))urls.push(rawUrl);return''});return urls}function waitForCssBackgroundImages(){var urls=new Set();Array.from(document.querySelectorAll('*')).forEach(function(el){var style=window.getComputedStyle(el);cssUrlValues(style.backgroundImage).forEach(function(url){urls.add(url)});cssUrlValues(style.borderImageSource).forEach(function(url){urls.add(url)});cssUrlValues(style.listStyleImage).forEach(function(url){urls.add(url)})});return Promise.all(Array.from(urls).map(function(url){return new Promise(function(r){var img=new Image();img.onload=r;img.onerror=r;img.src=url})}))}function nextFrame(){return new Promise(function(r){requestAnimationFrame(function(){r(true)})})}Promise.all([document.fonts&&document.fonts.ready?document.fonts.ready.catch(function(){}):Promise.resolve(),new Promise(function(r){if(document.readyState==='complete')r();else window.addEventListener('load',r,{once:true})})]).then(function(){return Promise.all([waitForImages(),waitForCssBackgroundImages()])}).then(nextFrame).then(nextFrame).then(function(){window.parent.postMessage({type:'READABLE_STUDIO_PRINT_READY',nonce:'${nonce}'},'*')})})();<\/script>`;
   if (/<\/head>/i.test(doc)) return doc.replace(/<\/head>/i, `${script}</head>`);
   if (/<\/body>/i.test(doc)) return doc.replace(/<\/body>/i, `${script}</body>`);
   return doc + script;
 }
 
 function injectParentPrintReadyCache(doc: string, nonce: string): string {
-  const script = `<script>window.__odPrintReady=false;window.addEventListener('message',function(e){if(e.data&&e.data.type==='OD_PRINT_READY'&&e.data.nonce==='${nonce}'&&(e.source===window||(window.frames&&e.source===window.frames[0])))window.__odPrintReady=true});<\/script>`;
+  const script = `<script>window.__readableStudioPrintReady=false;window.addEventListener('message',function(e){if(e.data&&e.data.type==='READABLE_STUDIO_PRINT_READY'&&e.data.nonce==='${nonce}'&&(e.source===window||(window.frames&&e.source===window.frames[0])))window.__readableStudioPrintReady=true});<\/script>`;
   if (/<head>/i.test(doc)) return doc.replace(/<head>/i, `<head>${script}`);
   return script + doc;
 }

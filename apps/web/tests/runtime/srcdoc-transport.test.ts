@@ -53,17 +53,17 @@ function runShellInSandbox(shellHtml: string): RunShellResult {
     parentMessages,
     triggerActivate: (html: string) => {
       for (const listener of messageListeners) {
-        listener({ data: { type: 'od:srcdoc-transport-activate', html } });
+        listener({ data: { type: 'readable-studio:srcdoc-transport-activate', html } });
       }
     },
   };
 }
 
 describe('buildLazySrcdocTransport (#2253)', () => {
-  it('posts od:srcdoc-transport-ready to parent on load', () => {
+  it('posts readable-studio:srcdoc-transport-ready to parent on load', () => {
     const shell = buildLazySrcdocTransport();
     const { parentMessages } = runShellInSandbox(shell);
-    expect(parentMessages).toContainEqual({ type: 'od:srcdoc-transport-ready' });
+    expect(parentMessages).toContainEqual({ type: 'readable-studio:srcdoc-transport-ready' });
   });
 
   it('skips the ready post when window.parent equals window (top-level load)', () => {
@@ -111,7 +111,7 @@ describe('buildLazySrcdocTransport (#2253)', () => {
     vm.createContext(sandbox);
     vm.runInContext(script, sandbox);
     const listener = (win as { __listener: (ev: { data: unknown }) => void }).__listener;
-    listener({ data: { type: 'od:srcdoc-transport-activate', html: '<p>hi</p>' } });
+    listener({ data: { type: 'readable-studio:srcdoc-transport-activate', html: '<p>hi</p>' } });
     expect(writes).toEqual(['<p>hi</p>']);
   });
 
@@ -136,8 +136,8 @@ describe('buildLazySrcdocTransport (#2253)', () => {
     vm.createContext(sandbox);
     vm.runInContext(script, sandbox);
     const listener = (win as { __listener: (ev: { data: unknown }) => void }).__listener;
-    listener({ data: { type: 'od:srcdoc-transport-activate' } });
-    listener({ data: { type: 'od:srcdoc-transport-activate', html: 123 } });
+    listener({ data: { type: 'readable-studio:srcdoc-transport-activate' } });
+    listener({ data: { type: 'readable-studio:srcdoc-transport-activate', html: 123 } });
     listener({ data: null });
     listener({ data: { type: 'unrelated' } });
     expect(writes).toEqual([]);

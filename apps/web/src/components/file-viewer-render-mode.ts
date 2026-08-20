@@ -92,7 +92,7 @@ export function shouldUrlLoadHtmlPreview(d: UrlLoadDecision): boolean {
   if (d.paletteActive) return false;
   if (d.drawMode) return false;
   // The class based tweaks template relies on the srcDoc tweaks bridge
-  // emitting `od:tweaks-available` on mount; on the URL load path the bridge
+  // emitting `readable-studio:tweaks-available` on mount; on the URL load path the bridge
   // is never injected, so the toolbar toggle would stay disabled even though
   // the artifact ships a `.tw-panel`.
   if (d.tweaksBridge) return false;

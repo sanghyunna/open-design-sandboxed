@@ -372,7 +372,7 @@ const MAX_CACHED_SLIDE_STATES = 64;
 const htmlPreviewSlideState = new Map<string, SlideState>();
 const MAX_CACHED_PREVIEW_VIEWPORTS = 128;
 // Grace window before the inspect hover card is torn down. Long enough to absorb
-// the async iframe mouseout (od:comment-leave) that fires when the pointer slides
+// the async iframe mouseout (readable-studio:comment-leave) that fires when the pointer slides
 // onto the card or hops back onto the element under it, short enough to read as
 // an immediate dismiss when the pointer really leaves.
 const HOVER_CARD_DISMISS_DELAY_MS = 80;
@@ -2038,7 +2038,7 @@ function InspectPanel({
 }
 
 // Inspect-mode override entry as held in the host's authoritative map and as
-// it travels in od:inspect-overrides messages. The host's persisted map is
+// it travels in readable-studio:inspect-overrides messages. The host's persisted map is
 // owned and mutated only by host-driven onApply / reset actions plus the
 // initial parse of the source's <style data-od-inspect-overrides> block;
 // inbound iframe messages are treated as preview acknowledgements, never as
@@ -2098,7 +2098,7 @@ const HOST_UNSAFE_INSPECT_VALUE = /[;{}<>\n\r]/;
 const HOST_UNSAFE_INSPECT_ID = /["\\<>\u0000-\u001f\u007f]/;
 
 // Build the inspect overrides CSS body the host will persist, from the
-// structured `overrides` field of an od:inspect-overrides message. The host
+// structured `overrides` field of an readable-studio:inspect-overrides message. The host
 // MUST NOT trust the sibling `css` string — it is attacker-controlled when
 // artifact JS forges the message. The selector is re-derived from each
 // elementId; only allow-listed properties with safe values survive.
@@ -2180,7 +2180,7 @@ export function updateInspectOverride(
 // Parse any persisted <style data-od-inspect-overrides> blocks in the
 // artifact source into the host's authoritative override map. The host owns
 // this map and only mutates it from onApply / reset actions plus this
-// initial hydration step — inbound iframe od:inspect-overrides messages are
+// initial hydration step — inbound iframe readable-studio:inspect-overrides messages are
 // not ingested. Without this step, opening a file that already carries an
 // override block would leave the host map empty, so a Save-to-source after
 // any subsequent edit could splice a CSS body that drops every previously
@@ -3798,7 +3798,7 @@ function HtmlViewer({
         frameDocument?.scrollingElement?.scrollTo(snapshot.frameLeft, snapshot.frameTop);
         frameDocument?.querySelector<HTMLElement>('.design-canvas')?.scrollTo(snapshot.canvasLeft, snapshot.canvasTop);
         iframeRef.current?.contentWindow?.postMessage({
-          type: 'od:preview-scroll-restore',
+          type: 'readable-studio:preview-scroll-restore',
           frameLeft: snapshot.frameLeft,
           frameTop: snapshot.frameTop,
           canvasLeft: snapshot.canvasLeft,
@@ -3924,14 +3924,14 @@ function HtmlViewer({
   const [hoveredCommentTarget, setHoveredCommentTarget] = useState<PreviewCommentSnapshot | null>(null);
   // True while the pointer is physically over the floating hover card. The card
   // sits on top of the preview iframe, so reaching it makes the iframe fire a
-  // mouseout -> od:comment-leave. We ignore that leave while pinned so the card
+  // mouseout -> readable-studio:comment-leave. We ignore that leave while pinned so the card
   // (and its selectable values) stays put instead of unmounting and flickering.
   // The pointer cannot be over the iframe and the host card at once, so a fresh
-  // od:comment-hover never races this; only the card's own leave clears it.
+  // readable-studio:comment-hover never races this; only the card's own leave clears it.
   const hoverCardPinnedRef = useRef(false);
   // Tearing the card down is always deferred by a beat rather than done
-  // synchronously. The iframe's mouseout (od:comment-leave) arrives async via
-  // postMessage; the card's own mouseenter and the next od:comment-hover are the
+  // synchronously. The iframe's mouseout (readable-studio:comment-leave) arrives async via
+  // postMessage; the card's own mouseenter and the next readable-studio:comment-hover are the
   // signals that the pointer actually landed on the card or back on the element
   // it overlaps. Deferring lets those cancel the dismiss before it lands.
   // Synchronous teardown raced ahead of them: the card flickered on the way in
@@ -3971,7 +3971,7 @@ function HtmlViewer({
   // overrides via postMessage. The host owns the authoritative override map:
   // it is hydrated from the artifact's persisted <style> block on load and
   // mutated only by host-driven onApply / reset actions. Save-to-source
-  // serializes that host map directly — iframe od:inspect-overrides messages
+  // serializes that host map directly — iframe readable-studio:inspect-overrides messages
   // are preview acknowledgements and never feed save input, so artifact JS
   // forging a postMessage cannot tamper with what gets persisted.
   const [activeInspectTarget, setActiveInspectTarget] = useState<InspectTarget | null>(null);
@@ -4445,7 +4445,7 @@ function HtmlViewer({
   const wasUrlLoadPreviewRef = useRef(useUrlLoadPreview);
   const urlPreviewKeepAliveKey = previewIframeKeepAliveKey(projectId, file.name);
   // Reset the shell-ready latch whenever the srcDoc iframe re-mounts. The
-  // next shell will post `od:srcdoc-transport-ready` (or fire onLoad) and
+  // next shell will post `readable-studio:srcdoc-transport-ready` (or fire onLoad) and
   // flip this back to true. See #2253.
   useEffect(() => {
     setSrcDocShellReady(false);
@@ -4459,7 +4459,7 @@ function HtmlViewer({
     function onMessage(ev: MessageEvent) {
       if (ev.source !== srcDocPreviewIframeRef.current?.contentWindow) return;
       const data = ev.data as { type?: string } | null;
-      if (data?.type !== 'od:srcdoc-transport-ready') return;
+      if (data?.type !== 'readable-studio:srcdoc-transport-ready') return;
       setSrcDocShellReady(true);
     }
     window.addEventListener('message', onMessage);
@@ -4471,7 +4471,7 @@ function HtmlViewer({
       if (ev.source !== frame?.contentWindow) return;
       if (frame.getAttribute('src') === 'about:blank') return;
       const data = ev.data as { type?: string } | null;
-      if (data?.type !== 'od:url-selection-bridge-ready') return;
+      if (data?.type !== 'readable-studio:url-selection-bridge-ready') return;
       setUrlSelectionBridgeReady(true);
     }
     window.addEventListener('message', onMessage);
@@ -4485,7 +4485,7 @@ function HtmlViewer({
   const srcDocTransportContent = useLazySrcDocTransport
     ? lazySrcDocTransport
     : manualEditSrcDocActive && !useUrlLoadPreview && srcDoc
-      ? `${srcDoc}\n<!-- od:manual-edit-document-revision=${manualEditDocumentRevision} -->`
+      ? `${srcDoc}\n<!-- readable-studio:manual-edit-document-revision=${manualEditDocumentRevision} -->`
       : srcDoc;
   const urlTransportSrc = useUrlLoadPreview ? activePreviewSrcUrl : 'about:blank';
   const activateSrcDocTransport = useCallback((target: HTMLIFrameElement | null = srcDocPreviewIframeRef.current) => {
@@ -4517,7 +4517,7 @@ function HtmlViewer({
     }
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     activatedSrcDocTransportHtmlRef.current = html;
     return true;
   }, [buildPreviewSrcDoc, srcDoc, useLazySrcDocTransport, useUrlLoadPreview, srcDocShellReady, boardMode]);
@@ -4532,7 +4532,7 @@ function HtmlViewer({
     })) return false;
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     activatedSrcDocTransportHtmlRef.current = html;
     return true;
   }, [buildPreviewSrcDoc, srcDoc, useLazySrcDocTransport, useUrlLoadPreview]);
@@ -4541,7 +4541,7 @@ function HtmlViewer({
     if (!html) return false;
     const win = target?.contentWindow;
     if (!win) return false;
-    win.postMessage({ type: 'od:srcdoc-transport-activate', html }, '*');
+    win.postMessage({ type: 'readable-studio:srcdoc-transport-activate', html }, '*');
     return true;
   }, [buildPreviewSrcDoc, srcDoc]);
   useEffect(() => {
@@ -4576,7 +4576,7 @@ function HtmlViewer({
         canvasLeft?: number;
         canvasTop?: number;
       } | null;
-      if (!data || data.type !== 'od:preview-scroll') return;
+      if (!data || data.type !== 'readable-studio:preview-scroll') return;
       if (previewScrollRestoreRef.current && Number(data.canvasLeft || 0) === 0 && Number(data.canvasTop || 0) === 0) return;
       if (
         previewScrollPositionRef.current.canvasLeft !== 0 ||
@@ -4596,7 +4596,7 @@ function HtmlViewer({
       if (!isOurPreviewIframeSource(ev.source)) return;
       if (!isActivePreviewIframeSource(ev.source)) return;
       const data = ev.data as { type?: string } | null;
-      if (!data || data.type !== 'od:preview-scroll-request') return;
+      if (!data || data.type !== 'readable-studio:preview-scroll-request') return;
       previewScrollRequestAtRef.current = Date.now();
       const snapshot = previewScrollRestoreRef.current;
       const scroll = snapshot ?? {
@@ -4606,7 +4606,7 @@ function HtmlViewer({
         canvasTop: previewScrollPositionRef.current.canvasTop,
       };
       iframeRef.current?.contentWindow?.postMessage({
-        type: 'od:preview-scroll-restore',
+        type: 'readable-studio:preview-scroll-restore',
         frameLeft: scroll.frameLeft,
         frameTop: scroll.frameTop,
         canvasLeft: scroll.canvasLeft,
@@ -4667,7 +4667,7 @@ function HtmlViewer({
       const data = ev?.data as
         | { type?: string; active?: number; count?: number }
         | null;
-      if (!data || data.type !== 'od:slide-state') return;
+      if (!data || data.type !== 'readable-studio:slide-state') return;
       if (typeof data.active !== 'number' || typeof data.count !== 'number') return;
       const next = { active: data.active, count: data.count };
       setSlideStateCached(previewStateKey, next);
@@ -4681,7 +4681,7 @@ function HtmlViewer({
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage({
-      type: 'od:comment-mode',
+      type: 'readable-studio:comment-mode',
       enabled: boardMode,
       mode: boardTool,
     }, '*');
@@ -4741,22 +4741,22 @@ function HtmlViewer({
     const win = target?.contentWindow;
     if (!win) return;
     win.postMessage({
-      type: 'od:comment-mode',
+      type: 'readable-studio:comment-mode',
       enabled: boardMode,
       mode: boardTool,
     }, '*');
     win.postMessage({ type: 'od-edit-mode', enabled: manualEditMode, documentEpoch: manualEditDocumentEpoch() }, '*');
     postSelectedManualEditTargetToIframe(manualEditMode ? selectedManualEditTarget?.id ?? null : null, target);
-    win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-mode', enabled: inspectMode }, '*');
   }
 
   useEffect(() => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:inspect-mode', enabled: inspectMode }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-mode', enabled: inspectMode }, '*');
   }, [inspectMode, srcDoc, useUrlLoadPreview]);
 
-  // Mirror the bridge's `od:comment-targets` broadcast into
+  // Mirror the bridge's `readable-studio:comment-targets` broadcast into
   // `liveCommentTargets` whenever EITHER Inspect or Comments mode is
   // active. The boardMode-only useEffect below still handles its
   // own comment-specific events (hover / click target / pod), but
@@ -4780,7 +4780,7 @@ function HtmlViewer({
             targets?: Array<Partial<PreviewCommentSnapshot>>;
           }
         | null;
-      if (data?.type !== 'od:comment-targets' || !Array.isArray(data.targets)) return;
+      if (data?.type !== 'readable-studio:comment-targets' || !Array.isArray(data.targets)) return;
       const next = new Map<string, PreviewCommentSnapshot>();
       data.targets.forEach((item) => {
         const elementId = String(item?.elementId || '');
@@ -4869,7 +4869,7 @@ function HtmlViewer({
   // updated state before commit, so the new `srcDoc` and the new
   // `inspectOverrides` always commit together. After hydration the map
   // only mutates from host-driven onApply / reset callbacks below, so
-  // artifact JS forging an od:inspect-overrides message cannot tamper
+  // artifact JS forging an readable-studio:inspect-overrides message cannot tamper
   // with what saveInspectToSource will persist.
   if (inspectHydratedSourceRef.current !== source) {
     inspectHydratedSourceRef.current = source;
@@ -4932,7 +4932,7 @@ function HtmlViewer({
         points?: StrokePoint[];
       }) | null;
       if (!data?.type) return;
-      if (data.type === 'od:comment-targets' && Array.isArray(data.targets)) {
+      if (data.type === 'readable-studio:comment-targets' && Array.isArray(data.targets)) {
         const next = new Map<string, PreviewCommentSnapshot>();
         data.targets.forEach((item) => {
           const snapshot = snapshotFromData(item);
@@ -4958,7 +4958,7 @@ function HtmlViewer({
         });
         return;
       }
-      if (data.type === 'od:comment-active-target-update') {
+      if (data.type === 'readable-studio:comment-active-target-update') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         // Fires on every pointermove while a target is active — skip the Map
@@ -4981,7 +4981,7 @@ function HtmlViewer({
         );
         return;
       }
-      if (data.type === 'od:comment-leave') {
+      if (data.type === 'readable-studio:comment-leave') {
         // Already firmly on the card — nothing to dismiss.
         if (hoverCardPinnedRef.current) return;
         // The pointer left the element. It may be sliding onto the floating card
@@ -4992,7 +4992,7 @@ function HtmlViewer({
         scheduleHoverCardDismiss();
         return;
       }
-      if (data.type === 'od:comment-hover') {
+      if (data.type === 'readable-studio:comment-hover') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         // Pointer landed on an element — cancel any deferred dismiss so moving
@@ -5012,7 +5012,7 @@ function HtmlViewer({
         });
         return;
       }
-      if (data.type === 'od:comment-target') {
+      if (data.type === 'readable-studio:comment-target') {
         const snapshot = snapshotFromData(data);
         if (!snapshot.elementId || !isValidCommentOverlayPosition(snapshot.position)) return;
         const shouldOpenComposer = boardMode || commentCreateMode;
@@ -5032,11 +5032,11 @@ function HtmlViewer({
         }
         return;
       }
-      if (data.type === 'od:pod-clear') {
+      if (data.type === 'readable-studio:pod-clear') {
         setStrokePoints([]);
         return;
       }
-      if (data.type === 'od:pod-stroke' && Array.isArray(data.points)) {
+      if (data.type === 'readable-studio:pod-stroke' && Array.isArray(data.points)) {
         setStrokePoints(
           data.points.map((point) => ({
             x: clampBridgeCoordinate(point.x),
@@ -5045,7 +5045,7 @@ function HtmlViewer({
         );
         return;
       }
-      if (data.type === 'od:pod-select' && Array.isArray(data.points)) {
+      if (data.type === 'readable-studio:pod-select' && Array.isArray(data.points)) {
         const points = data.points.map((point) => ({
           x: clampBridgeCoordinate(point.x),
           y: clampBridgeCoordinate(point.y),
@@ -5076,7 +5076,7 @@ function HtmlViewer({
   useEffect(() => {
     if (!boardMode || !activeCommentTarget || activeCommentTarget.selectionKind === 'pod') return;
     iframeRef.current?.contentWindow?.postMessage({
-      type: 'od:comment-active-target',
+      type: 'readable-studio:comment-active-target',
       elementId: activeCommentTarget.elementId,
       selector: activeCommentTarget.selector,
     }, '*');
@@ -6832,7 +6832,7 @@ function HtmlViewer({
     }
   }
 
-  // Inspect-mode picker: same `od:comment-target` payload, different sink.
+  // Inspect-mode picker: same `readable-studio:comment-target` payload, different sink.
   // The bridge tags the message with a computed-style snapshot so the panel
   // can show real starting values for color / typography / spacing / radius.
   useEffect(() => {
@@ -6850,7 +6850,7 @@ function HtmlViewer({
             clickedDescendant?: Partial<InspectClickedDescendant>;
           }
         | null;
-      if (!data || data.type !== 'od:comment-target') return;
+      if (!data || data.type !== 'readable-studio:comment-target') return;
       if (!data.elementId || !data.selector) return;
       const clickedDescendant =
         data.clickedDescendant && typeof data.clickedDescendant === 'object'
@@ -6877,21 +6877,21 @@ function HtmlViewer({
   function postSlide(action: 'next' | 'prev' | 'first' | 'last') {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:slide', action }, '*');
+    win.postMessage({ type: 'readable-studio:slide', action }, '*');
   }
 
   function syncCachedSlideStateToIframe(target: HTMLIFrameElement | null = iframeRef.current) {
     const active = htmlPreviewSlideState.get(previewStateKey)?.active;
     const win = target?.contentWindow;
     if (!win || typeof active !== 'number') return;
-    win.postMessage({ type: 'od:slide', action: 'go', index: active }, '*');
+    win.postMessage({ type: 'readable-studio:slide', action: 'go', index: active }, '*');
   }
 
   function postInspectSet(elementId: string, selector: string, prop: string, value: string) {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage(
-      { type: 'od:inspect-set', elementId, selector, prop, value },
+      { type: 'readable-studio:inspect-set', elementId, selector, prop, value },
       '*',
     );
   }
@@ -6899,7 +6899,7 @@ function HtmlViewer({
   function postInspectReset(elementId?: string) {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:inspect-reset', elementId }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-reset', elementId }, '*');
   }
 
   // Replay the host's authoritative override map into the freshly loaded
@@ -6912,7 +6912,7 @@ function HtmlViewer({
   // saveInspectToSource() can still persist them later from the stale
   // host map. The bridge re-validates each entry under its own allow-list,
   // so a parent that posted a hostile replay can only land overrides the
-  // bridge would also have accepted via od:inspect-set.
+  // bridge would also have accepted via readable-studio:inspect-set.
   //
   // The render-time hydration above keeps `inspectOverrides` aligned with
   // the current `source` whenever React commits, but the iframe `onLoad`
@@ -6928,7 +6928,7 @@ function HtmlViewer({
     const overrides = inspectHydratedSourceRef.current === source
       ? inspectOverrides
       : (typeof source === 'string' ? parseInspectOverridesFromSource(source) : {});
-    win.postMessage({ type: 'od:inspect-replay', overrides }, '*');
+    win.postMessage({ type: 'readable-studio:inspect-replay', overrides }, '*');
   }
 
   // Persist accumulated inspect overrides into the artifact source: replace
@@ -6937,7 +6937,7 @@ function HtmlViewer({
   // from source on load and updated only by host-driven onApply / reset
   // callbacks. We deliberately do NOT round-trip through the iframe at save
   // time: artifact JS rendered inside the preview shares the same
-  // contentWindow as the bridge and could forge an od:inspect-overrides
+  // contentWindow as the bridge and could forge an readable-studio:inspect-overrides
   // reply that flips allow-listed properties on elements the user never
   // touched. POSTing to /api/projects/:id/files upserts the file via
   // writeProjectFile (multipart-or-JSON; we use JSON).
@@ -9541,7 +9541,7 @@ function HtmlViewer({
                               type: '__dc_set_viewport',
                               ...dcViewportRef.current,
                             }, '*');
-                            frame?.contentWindow?.postMessage({ type: 'od:url-selection-bridge-probe' }, '*');
+                            frame?.contentWindow?.postMessage({ type: 'readable-studio:url-selection-bridge-probe' }, '*');
                             syncBridgeModes(frame);
                             if (useUrlLoadPreview) restorePreviewScrollPosition();
                           }}
@@ -9566,7 +9566,7 @@ function HtmlViewer({
                               type: '__dc_set_viewport',
                               ...dcViewportRef.current,
                             }, '*');
-                            frame?.contentWindow?.postMessage({ type: 'od:url-selection-bridge-probe' }, '*');
+                            frame?.contentWindow?.postMessage({ type: 'readable-studio:url-selection-bridge-probe' }, '*');
                             syncBridgeModes(frame);
                             if (useUrlLoadPreview) restorePreviewScrollPosition();
                           }}
@@ -9716,7 +9716,7 @@ function HtmlViewer({
               ) : null}
               {/*
                 Hint banner for Inspect / Picker modes. The bridge in
-                `apps/web/src/runtime/srcdoc.ts` posts `od:comment-targets`
+                `apps/web/src/runtime/srcdoc.ts` posts `readable-studio:comment-targets`
                 with every element annotated with `data-od-id` /
                 `data-screen-label`, so `liveCommentTargets.size` is the
                 authoritative annotation count for the current artifact.

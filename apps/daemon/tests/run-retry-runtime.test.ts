@@ -294,9 +294,9 @@ async function createAndWaitForRun(url: string): Promise<RunStatus> {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-od-analytics-device-id': 'retry-runtime-test',
-      'x-od-analytics-session-id': 'retry-runtime-session',
-      'x-od-analytics-client-type': 'web',
+      'x-readable-studio-analytics-device-id': 'retry-runtime-test',
+      'x-readable-studio-analytics-session-id': 'retry-runtime-session',
+      'x-readable-studio-analytics-client-type': 'web',
     },
     body: JSON.stringify({
       projectId,

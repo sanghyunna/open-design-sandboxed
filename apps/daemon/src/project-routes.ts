@@ -95,8 +95,8 @@ function projectDetailResolvedDir(
 
 const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
 (function(){
-  if (window.__odUrlScrollBridge) return;
-  window.__odUrlScrollBridge = true;
+  if (window.__readableStudioUrlScrollBridge) return;
+  window.__readableStudioUrlScrollBridge = true;
   var pending = false;
   function scrollElement(){
     return document.querySelector('.design-canvas') || document.scrollingElement || document.documentElement;
@@ -110,7 +110,7 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
     if (!el) return;
     var frame = document.scrollingElement || document.documentElement;
     window.parent.postMessage({
-      type: 'od:preview-scroll',
+      type: 'readable-studio:preview-scroll',
       canvasLeft: Math.round(el.scrollLeft || 0),
       canvasTop: Math.round(el.scrollTop || 0),
       frameLeft: Math.round(frame.scrollLeft || 0),
@@ -145,18 +145,18 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
     }
   }
   function requestRestore(){
-    window.parent.postMessage({ type: 'od:preview-scroll-request' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:preview-scroll-request' }, '*');
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
-    if (data.type === 'od:preview-scroll-restore') {
+    if (data.type === 'readable-studio:preview-scroll-restore') {
       scrollTo(document.scrollingElement || document.documentElement, data.frameLeft, data.frameTop);
       scrollTo(scrollElement(), data.canvasLeft, data.canvasTop);
       setTimeout(post, 0);
       return;
     }
-    if (data.type === 'od:preview-scroll-by') {
+    if (data.type === 'readable-studio:preview-scroll-by') {
       scrollBy(scrollElement(), data.left, data.top);
       schedule();
     }
@@ -180,8 +180,8 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
 
 const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
 (function(){
-  if (window.__odUrlSelectionBridge) return;
-  window.__odUrlSelectionBridge = true;
+  if (window.__readableStudioUrlSelectionBridge) return;
+  window.__readableStudioUrlSelectionBridge = true;
   var commentEnabled = false;
   var mode = 'picker';
   var hoveredId = null;
@@ -305,7 +305,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       html = match ? match[0] : '';
     } catch (_) {}
     var payload = {
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       elementId: id,
       selector: selector,
       label: tag + cls,
@@ -341,7 +341,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   }
   function postTargets(){
     if (!active()) return;
-    window.parent.postMessage({ type: 'od:comment-targets', targets: allTargets() }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-targets', targets: allTargets() }, '*');
   }
   function schedulePostTargets(){
     if (!active() || postTargetsPending) return;
@@ -373,7 +373,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var el = findCommentTargetByIdentity(activeCommentElementId, activeCommentSelector);
     if (!el) return;
     var payload = targetFrom(el, commentEnabled && mode === 'picker');
-    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-active-target-update' }), '*');
+    if (payload) window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-active-target-update' }), '*');
   }
   function schedulePostActiveCommentTarget(){
     if (!active() || !activeCommentElementId || activeTargetPending) return;
@@ -437,17 +437,17 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     if (strokeFrame !== null) return;
     strokeFrame = requestAnimationFrame(function(){
       strokeFrame = null;
-      postStroke('od:pod-stroke');
+      postStroke('readable-studio:pod-stroke');
     });
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
     if (!data || !data.type) return;
-    if (data.type === 'od:url-selection-bridge-probe') {
-      window.parent.postMessage({ type: 'od:url-selection-bridge-ready' }, '*');
+    if (data.type === 'readable-studio:url-selection-bridge-probe') {
+      window.parent.postMessage({ type: 'readable-studio:url-selection-bridge-ready' }, '*');
       return;
     }
-    if (data.type === 'od:comment-mode') {
+    if (data.type === 'readable-studio:comment-mode') {
       commentEnabled = !!data.enabled;
       mode = data.mode === 'pod' ? 'pod' : 'picker';
       document.documentElement.toggleAttribute('data-od-comment-mode', commentEnabled);
@@ -461,11 +461,11 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       if (!commentEnabled || mode !== 'pod') {
         drawing = false;
         stroke = [];
-        try { window.parent.postMessage({ type: 'od:pod-clear' }, '*'); } catch (_) {}
+        try { window.parent.postMessage({ type: 'readable-studio:pod-clear' }, '*'); } catch (_) {}
       }
       return;
     }
-    if (data.type === 'od:comment-active-target') {
+    if (data.type === 'readable-studio:comment-active-target') {
       activeCommentElementId = data.elementId ? String(data.elementId) : null;
       activeCommentSelector = data.selector ? String(data.selector) : null;
       schedulePostActiveCommentTarget();
@@ -478,7 +478,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var payload = targetFrom(result.target, true);
     if (!payload || payload.elementId === hoveredId) return;
     hoveredId = payload.elementId;
-    window.parent.postMessage(Object.assign({}, payload, { type: 'od:comment-hover' }), '*');
+    window.parent.postMessage(Object.assign({}, payload, { type: 'readable-studio:comment-hover' }), '*');
   }, true);
   document.addEventListener('mouseout', function(ev){
     if (!commentEnabled || mode !== 'picker') return;
@@ -490,7 +490,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       next = next.parentElement;
     }
     hoveredId = null;
-    window.parent.postMessage({ type: 'od:comment-leave' }, '*');
+    window.parent.postMessage({ type: 'readable-studio:comment-leave' }, '*');
   }, true);
   document.addEventListener('click', function(ev){
     if (!commentEnabled || mode !== 'picker') return;
@@ -520,7 +520,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     var pinY = Math.round(ev.clientY);
     var pinId = 'pin-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36);
     window.parent.postMessage({
-      type: 'od:comment-target',
+      type: 'readable-studio:comment-target',
       elementId: pinId,
       selector: '[data-od-pin="' + pinId + '"]',
       label: 'pin',
@@ -538,7 +538,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     stroke = [relativePoint(ev)];
     ev.preventDefault();
     ev.stopPropagation();
-    postStroke('od:pod-stroke');
+    postStroke('readable-studio:pod-stroke');
   }, true);
   document.addEventListener('pointermove', function(ev){
     if (!drawing || mode !== 'pod') return;
@@ -558,7 +558,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       ev.preventDefault();
       ev.stopPropagation();
     }
-    postStroke('od:pod-select');
+    postStroke('readable-studio:pod-select');
   }
   document.addEventListener('pointerup', finishStroke, true);
   document.addEventListener('pointercancel', finishStroke, true);
@@ -570,14 +570,14 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   var mo = new MutationObserver(schedulePostTargets);
   mo.observe(document.documentElement, { subtree: true, childList: true });
   ensureStyle();
-  window.parent.postMessage({ type: 'od:url-selection-bridge-ready' }, '*');
+  window.parent.postMessage({ type: 'readable-studio:url-selection-bridge-ready' }, '*');
 })();
 </script>`;
 
 const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-od-url-snapshot-bridge>
 (function(){
-  if (window.__odUrlSnapshotBridge) return;
-  window.__odUrlSnapshotBridge = true;
+  if (window.__readableStudioUrlSnapshotBridge) return;
+  window.__readableStudioUrlSnapshotBridge = true;
   var SNAPSHOT_STYLE_PROPS = [
     'display','position','box-sizing','width','height','min-width','max-width','min-height','max-height',
     'margin','margin-top','margin-right','margin-bottom','margin-left',
@@ -731,22 +731,22 @@ const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-od-url-snapshot-bridge>
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
         if (canvasLooksBlank(ctx, canvas.width, canvas.height)) {
-          window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'empty-render' }, '*');
+          window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'empty-render' }, '*');
           return;
         }
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
       } catch (err) {
-        window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
+        window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
       }
     };
     img.onerror = function(){
-      window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
+      window.parent.postMessage({ type: 'readable-studio:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
     };
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
   window.addEventListener('message', function(ev){
     var data = ev && ev.data;
-    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    if (!data || data.type !== 'readable-studio:snapshot' || !data.id) return;
     waitForImages().then(function(){ renderSnapshot(String(data.id)); });
   });
 })();

@@ -261,7 +261,7 @@ describe('GET /api/projects/:id/raw/* range request route', () => {
     expect(bridged.status).toBe(200);
     const html = await bridged.text();
     expect(html).toContain('data-od-url-scroll-bridge');
-    expect(html).toContain("type: 'od:preview-scroll'");
+    expect(html).toContain("type: 'readable-studio:preview-scroll'");
   });
 
   it('injects the URL preview scroll bridge before the closing body tag', async () => {
@@ -280,7 +280,7 @@ describe('GET /api/projects/:id/raw/* range request route', () => {
     expect(bridged.status).toBe(200);
     const html = await bridged.text();
     expect(html).toContain('data-od-url-selection-bridge');
-    expect(html).toContain("type: 'od:comment-target'");
+    expect(html).toContain("type: 'readable-studio:comment-target'");
     expect(html).not.toContain('data-od-url-scroll-bridge');
   });
 
@@ -292,7 +292,7 @@ describe('GET /api/projects/:id/raw/* range request route', () => {
     expect(bridged.status).toBe(200);
     const html = await bridged.text();
     expect(html).toContain('data-od-url-snapshot-bridge');
-    expect(html).toContain("type: 'od:snapshot:result'");
+    expect(html).toContain("type: 'readable-studio:snapshot:result'");
     expect(html).not.toContain('data-od-url-scroll-bridge');
     expect(html).not.toContain('data-od-url-selection-bridge');
   });

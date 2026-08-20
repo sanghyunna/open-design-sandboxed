@@ -3,14 +3,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { OpenDesignHostUpdaterStatusListener, OpenDesignHostUpdaterStatusSnapshot } from '@readable-studio/host';
-import { installMockOpenDesignHost } from '@readable-studio/host/testing';
+import type { ReadableStudioHostUpdaterStatusListener, ReadableStudioHostUpdaterStatusSnapshot } from '@readable-studio/host';
+import { installMockReadableStudioHost } from '@readable-studio/host/testing';
 
 import { UpdaterPopup } from '../../src/components/UpdaterPopup';
 import { I18nProvider } from '../../src/i18n';
 import { ko } from '../../src/i18n/locales/ko';
 
-function idleStatus(): OpenDesignHostUpdaterStatusSnapshot {
+function idleStatus(): ReadableStudioHostUpdaterStatusSnapshot {
   return {
     arch: 'arm64',
     capabilities: {
@@ -29,7 +29,7 @@ function idleStatus(): OpenDesignHostUpdaterStatusSnapshot {
   };
 }
 
-function downloadedStatus(overrides: Partial<OpenDesignHostUpdaterStatusSnapshot> = {}): OpenDesignHostUpdaterStatusSnapshot {
+function downloadedStatus(overrides: Partial<ReadableStudioHostUpdaterStatusSnapshot> = {}): ReadableStudioHostUpdaterStatusSnapshot {
   return {
     ...idleStatus(),
     availableVersion: '1.2.3-beta.4',
@@ -39,7 +39,7 @@ function downloadedStatus(overrides: Partial<OpenDesignHostUpdaterStatusSnapshot
   };
 }
 
-function payloadDownloadedStatus(overrides: Partial<OpenDesignHostUpdaterStatusSnapshot> = {}): OpenDesignHostUpdaterStatusSnapshot {
+function payloadDownloadedStatus(overrides: Partial<ReadableStudioHostUpdaterStatusSnapshot> = {}): ReadableStudioHostUpdaterStatusSnapshot {
   return downloadedStatus({
     artifact: {
       name: 'open-design-1.2.3-beta.4-mac-arm64-payload.zip',
@@ -82,7 +82,7 @@ describe('UpdaterPopup', () => {
         state: 'error',
       }),
     ]) {
-      restoreHost = installMockOpenDesignHost({
+      restoreHost = installMockReadableStudioHost({
         host: {
           updater: {
             status: vi.fn(async () => status),
@@ -104,7 +104,7 @@ describe('UpdaterPopup', () => {
   });
 
   it('shows only the ready indicator until the user opens the install prompt', async () => {
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           status: vi.fn(async () => downloadedStatus()),
@@ -126,7 +126,7 @@ describe('UpdaterPopup', () => {
   });
 
   it('uses localized ready prompt copy from the app i18n provider', async () => {
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           status: vi.fn(async () => downloadedStatus()),
@@ -147,7 +147,7 @@ describe('UpdaterPopup', () => {
     expect(screen.getByText(ko['updater.readyVersion'].replace('{version}', '1.2.3-beta.4'))).toBeTruthy();
   });
   it('uses install-and-restart copy for payload updates', async () => {
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           status: vi.fn(async () => payloadDownloadedStatus()),
@@ -170,7 +170,7 @@ describe('UpdaterPopup', () => {
     expect(screen.getByText(ko['updater.payloadReadyVersion'].replace('{version}', '1.2.3-beta.4'))).toBeTruthy();
   });
   it('dismisses the confirmation prompt before installation starts', async () => {
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           status: vi.fn(async () => downloadedStatus()),
@@ -192,12 +192,12 @@ describe('UpdaterPopup', () => {
 
   it('keeps the prompt in handoff loading after opening the installer', async () => {
     let status = downloadedStatus();
-    let resolveInstall: (status: OpenDesignHostUpdaterStatusSnapshot) => void = () => undefined;
-    const install = vi.fn(() => new Promise<OpenDesignHostUpdaterStatusSnapshot>((resolve) => {
+    let resolveInstall: (status: ReadableStudioHostUpdaterStatusSnapshot) => void = () => undefined;
+    const install = vi.fn(() => new Promise<ReadableStudioHostUpdaterStatusSnapshot>((resolve) => {
       resolveInstall = resolve;
     }));
     const quit = vi.fn(async () => ({ ok: true as const }));
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           install,
@@ -246,7 +246,7 @@ describe('UpdaterPopup', () => {
       },
     }));
     const quit = vi.fn(async () => ({ ok: true as const }));
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           install,
@@ -299,7 +299,7 @@ describe('UpdaterPopup', () => {
       },
       state: 'error',
     }));
-    restoreHost = installMockOpenDesignHost({
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           install,
@@ -321,8 +321,8 @@ describe('UpdaterPopup', () => {
   });
 
   it('reacts to updater subscription events by showing the ready indicator only', async () => {
-    const listeners = new Set<OpenDesignHostUpdaterStatusListener>();
-    restoreHost = installMockOpenDesignHost({
+    const listeners = new Set<ReadableStudioHostUpdaterStatusListener>();
+    restoreHost = installMockReadableStudioHost({
       host: {
         updater: {
           status: vi.fn(async () => idleStatus()),

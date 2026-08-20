@@ -1,32 +1,32 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 import type {
-  OpenDesignHostBridge,
-  OpenDesignHostActionResult,
-  OpenDesignHostBrowserClearDataOptions,
-  OpenDesignHostCaptureOptions,
-  OpenDesignHostCaptureResult,
-  OpenDesignHostFailure,
-  OpenDesignHostProjectImportResult,
-  OpenDesignHostProjectReplaceWorkingDirResult,
-  OpenDesignHostPickWorkingDirResult,
-  OpenDesignHostUpdaterActionOptions,
-  OpenDesignHostUpdaterStatusListener,
-  OpenDesignHostUpdaterStatusSnapshot,
+  ReadableStudioHostBridge,
+  ReadableStudioHostActionResult,
+  ReadableStudioHostBrowserClearDataOptions,
+  ReadableStudioHostCaptureOptions,
+  ReadableStudioHostCaptureResult,
+  ReadableStudioHostFailure,
+  ReadableStudioHostProjectImportResult,
+  ReadableStudioHostProjectReplaceWorkingDirResult,
+  ReadableStudioHostPickWorkingDirResult,
+  ReadableStudioHostUpdaterActionOptions,
+  ReadableStudioHostUpdaterStatusListener,
+  ReadableStudioHostUpdaterStatusSnapshot,
 } from '@readable-studio/host';
 
-const OPEN_DESIGN_HOST_GLOBAL: typeof import('@readable-studio/host').OPEN_DESIGN_HOST_GLOBAL = '__od__';
-const OPEN_DESIGN_HOST_VERSION: typeof import('@readable-studio/host').OPEN_DESIGN_HOST_VERSION = 2;
-const UPDATER_STATUS_EVENT = 'od:update:status-changed';
-const APP_CONFIG_CHANGED_IPC_CHANNEL = 'od:app-config-changed';
-const APP_CONFIG_CHANGED_EVENT = 'open-design:app-config-changed';
+const READABLE_STUDIO_HOST_GLOBAL: typeof import('@readable-studio/host').READABLE_STUDIO_HOST_GLOBAL = '__readableStudio__';
+const READABLE_STUDIO_HOST_VERSION: typeof import('@readable-studio/host').READABLE_STUDIO_HOST_VERSION = 3;
+const UPDATER_STATUS_EVENT = 'readable-studio:update:status-changed';
+const APP_CONFIG_CHANGED_IPC_CHANNEL = 'readable-studio:app-config-changed';
+const APP_CONFIG_CHANGED_EVENT = 'readable-studio:app-config-changed';
 
 // Mirror of the argv prefix used by main's `applyOsLocaleSwitch` and
 // runtime's `additionalArguments`. Duplicated literal on purpose: the
 // preload bundle must not pull in `@readable-studio/desktop/main` (it
 // transitively requires non-electron node modules that the sandboxed
 // preload can't load).
-const OS_LOCALE_ARG_PREFIX = '--od-os-locale=';
+const OS_LOCALE_ARG_PREFIX = '--readable-studio-os-locale=';
 
 function readOsLocaleFromArgv(): string | undefined {
   for (const arg of process.argv) {
@@ -55,7 +55,7 @@ function reasonFromError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function failure(reason: string, details?: unknown): OpenDesignHostFailure {
+function failure(reason: string, details?: unknown): ReadableStudioHostFailure {
   return {
     ...(details === undefined ? {} : { details }),
     ok: false,
@@ -63,19 +63,19 @@ function failure(reason: string, details?: unknown): OpenDesignHostFailure {
   };
 }
 
-function actionFailure(reason: string, details?: unknown): OpenDesignHostActionResult {
+function actionFailure(reason: string, details?: unknown): ReadableStudioHostActionResult {
   return failure(reason, details);
 }
 
-function importFailure(reason: string): OpenDesignHostProjectImportResult {
+function importFailure(reason: string): ReadableStudioHostProjectImportResult {
   return failure(reason);
 }
 
-function replaceWorkingDirFailure(reason: string): OpenDesignHostProjectReplaceWorkingDirResult {
+function replaceWorkingDirFailure(reason: string): ReadableStudioHostProjectReplaceWorkingDirResult {
   return failure(reason);
 }
 
-function normalizeProjectReplaceWorkingDirResult(input: unknown): OpenDesignHostProjectReplaceWorkingDirResult {
+function normalizeProjectReplaceWorkingDirResult(input: unknown): ReadableStudioHostProjectReplaceWorkingDirResult {
   if (!isRecord(input)) return failure('desktop working-dir replace returned an invalid response', input);
   if (input.ok !== true) {
     if (input.canceled === true) return { canceled: true, ok: false };
@@ -97,11 +97,11 @@ function normalizeProjectReplaceWorkingDirResult(input: unknown): OpenDesignHost
   return { baseDir, entryFile, ok: true };
 }
 
-function pickWorkingDirFailure(reason: string): OpenDesignHostPickWorkingDirResult {
+function pickWorkingDirFailure(reason: string): ReadableStudioHostPickWorkingDirResult {
   return failure(reason);
 }
 
-function normalizePickWorkingDirResult(input: unknown): OpenDesignHostPickWorkingDirResult {
+function normalizePickWorkingDirResult(input: unknown): ReadableStudioHostPickWorkingDirResult {
   if (!isRecord(input)) return failure('desktop working-dir pick returned an invalid response', input);
   if (input.ok !== true) {
     if (input.canceled === true) return { canceled: true, ok: false };
@@ -118,7 +118,7 @@ function normalizePickWorkingDirResult(input: unknown): OpenDesignHostPickWorkin
   return { baseDir, ok: true, token };
 }
 
-function normalizeProjectImportResult(input: unknown): OpenDesignHostProjectImportResult {
+function normalizeProjectImportResult(input: unknown): ReadableStudioHostProjectImportResult {
   if (!isRecord(input)) return failure('desktop import returned an invalid response', input);
   if (input.ok !== true) {
     if (input.canceled === true) return { canceled: true, ok: false };
@@ -175,22 +175,22 @@ type DesktopDiagnosticsExportResult =
 const project = {
   pickAndImport: (
     init?: { name?: string; skillId?: string | null; designSystemId?: string | null },
-  ): Promise<OpenDesignHostProjectImportResult> =>
+  ): Promise<ReadableStudioHostProjectImportResult> =>
     ipcRenderer.invoke('dialog:pick-and-import', init ?? null)
       .then(normalizeProjectImportResult)
       .catch((error: unknown) => importFailure(reasonFromError(error))),
-  pickAndReplaceWorkingDir: (projectId: string): Promise<OpenDesignHostProjectReplaceWorkingDirResult> =>
+  pickAndReplaceWorkingDir: (projectId: string): Promise<ReadableStudioHostProjectReplaceWorkingDirResult> =>
     ipcRenderer.invoke('dialog:pick-and-replace-working-dir', { projectId })
       .then(normalizeProjectReplaceWorkingDirResult)
       .catch((error: unknown) => replaceWorkingDirFailure(reasonFromError(error))),
-  pickWorkingDir: (): Promise<OpenDesignHostPickWorkingDirResult> =>
+  pickWorkingDir: (): Promise<ReadableStudioHostPickWorkingDirResult> =>
     ipcRenderer.invoke('dialog:pick-working-dir')
       .then(normalizePickWorkingDirResult)
       .catch((error: unknown) => pickWorkingDirFailure(reasonFromError(error))),
 };
 
 const shell = {
-  openExternal: async (url: string): Promise<OpenDesignHostActionResult> => {
+  openExternal: async (url: string): Promise<ReadableStudioHostActionResult> => {
     try {
       const opened = await ipcRenderer.invoke('shell:open-external', url);
       return opened === true
@@ -208,7 +208,7 @@ const shell = {
   // to be true (set by the HMAC-gated import flow), so renderer code
   // cannot ask the bridge to open arbitrary local paths even
   // indirectly through legacy or future project-creation routes.
-  openPath: async (projectId: string): Promise<OpenDesignHostActionResult> => {
+  openPath: async (projectId: string): Promise<ReadableStudioHostActionResult> => {
     try {
       const result = await ipcRenderer.invoke('shell:open-path', projectId);
       if (typeof result === 'string' && result.length > 0) return actionFailure(result);
@@ -220,7 +220,7 @@ const shell = {
 };
 
 const browser = {
-  clearData: async (options?: OpenDesignHostBrowserClearDataOptions): Promise<OpenDesignHostActionResult> => {
+  clearData: async (options?: ReadableStudioHostBrowserClearDataOptions): Promise<ReadableStudioHostActionResult> => {
     try {
       return await ipcRenderer.invoke('browser:clear-data', options ?? null);
     } catch (error) {
@@ -230,9 +230,9 @@ const browser = {
 };
 
 const capture = {
-  page: async (options?: OpenDesignHostCaptureOptions): Promise<OpenDesignHostCaptureResult> => {
+  page: async (options?: ReadableStudioHostCaptureOptions): Promise<ReadableStudioHostCaptureResult> => {
     try {
-      return await ipcRenderer.invoke('od:capture-page', options ?? null);
+      return await ipcRenderer.invoke('readable-studio:capture-page', options ?? null);
     } catch (error) {
       return failure(reasonFromError(error));
     }
@@ -241,29 +241,29 @@ const capture = {
 
 function invokeUpdater(
   action: 'check' | 'download' | 'install' | 'status',
-  options?: OpenDesignHostUpdaterActionOptions,
-): Promise<OpenDesignHostUpdaterStatusSnapshot> {
-  return ipcRenderer.invoke(`od:update:${action}`, options ?? null);
+  options?: ReadableStudioHostUpdaterActionOptions,
+): Promise<ReadableStudioHostUpdaterStatusSnapshot> {
+  return ipcRenderer.invoke(`readable-studio:update:${action}`, options ?? null);
 }
 
 const updater = {
-  check: (options?: OpenDesignHostUpdaterActionOptions): Promise<OpenDesignHostUpdaterStatusSnapshot> =>
+  check: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
     invokeUpdater('check', options),
-  download: (options?: OpenDesignHostUpdaterActionOptions): Promise<OpenDesignHostUpdaterStatusSnapshot> =>
+  download: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
     invokeUpdater('download', options),
-  install: (options?: OpenDesignHostUpdaterActionOptions): Promise<OpenDesignHostUpdaterStatusSnapshot> =>
+  install: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
     invokeUpdater('install', options),
-  quit: async (options?: OpenDesignHostUpdaterActionOptions): Promise<OpenDesignHostActionResult> => {
+  quit: async (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostActionResult> => {
     try {
-      return await ipcRenderer.invoke('od:update:quit', options ?? null);
+      return await ipcRenderer.invoke('readable-studio:update:quit', options ?? null);
     } catch (error) {
       return actionFailure(reasonFromError(error));
     }
   },
-  status: (options?: OpenDesignHostUpdaterActionOptions): Promise<OpenDesignHostUpdaterStatusSnapshot> =>
+  status: (options?: ReadableStudioHostUpdaterActionOptions): Promise<ReadableStudioHostUpdaterStatusSnapshot> =>
     invokeUpdater('status', options),
-  subscribe: (listener: OpenDesignHostUpdaterStatusListener): (() => void) => {
-    const handler = (_event: unknown, status: OpenDesignHostUpdaterStatusSnapshot): void => {
+  subscribe: (listener: ReadableStudioHostUpdaterStatusListener): (() => void) => {
+    const handler = (_event: unknown, status: ReadableStudioHostUpdaterStatusSnapshot): void => {
       listener(status);
     };
     ipcRenderer.on(UPDATER_STATUS_EVENT, handler);
@@ -280,7 +280,7 @@ ipcRenderer.on(APP_CONFIG_CHANGED_IPC_CHANNEL, () => {
 });
 
 const hostBridge = {
-  version: OPEN_DESIGN_HOST_VERSION,
+  version: READABLE_STUDIO_HOST_VERSION,
   client: {
     type: 'desktop',
     platform: process.platform,
@@ -291,9 +291,9 @@ const hostBridge = {
   capture,
   project,
   pdf: {
-    print: async (html: string, nonce?: string, options?: PrintPdfOptions): Promise<OpenDesignHostActionResult> => {
+    print: async (html: string, nonce?: string, options?: PrintPdfOptions): Promise<ReadableStudioHostActionResult> => {
       try {
-        await ipcRenderer.invoke('od:print-pdf', html, nonce, options ?? null);
+        await ipcRenderer.invoke('readable-studio:print-pdf', html, nonce, options ?? null);
         return { ok: true };
       } catch (error) {
         return actionFailure(reasonFromError(error));
@@ -305,11 +305,11 @@ const hostBridge = {
       ipcRenderer.send('desktop-pet:set-visible', Boolean(visible)),
   },
   updater,
-} satisfies OpenDesignHostBridge;
+} satisfies ReadableStudioHostBridge;
 
-contextBridge.exposeInMainWorld(OPEN_DESIGN_HOST_GLOBAL, hostBridge);
+contextBridge.exposeInMainWorld(READABLE_STUDIO_HOST_GLOBAL, hostBridge);
 
-contextBridge.exposeInMainWorld('openDesignDesktop', {
+contextBridge.exposeInMainWorld('readableStudioDesktop', {
   exportDiagnostics: (): Promise<DesktopDiagnosticsExportResult> =>
     ipcRenderer.invoke(DESKTOP_DIAGNOSTICS_IPC_CHANNEL) as Promise<DesktopDiagnosticsExportResult>,
 });

@@ -79,7 +79,7 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
 <script>
 try { void fetch('/api/hosted/provider', { method: 'DELETE' }); } catch {}
 try { new WebSocket('ws://' + location.host + '/api/hosted/provider'); } catch {}
-try { parent.postMessage({ type: 'od:file-save', path: 'index.html', content: 'forged' }, '*'); } catch {}
+try { parent.postMessage({ type: 'readable-studio:file-save', path: 'index.html', content: 'forged' }, '*'); } catch {}
 try { document.forms[0].submit(); } catch {}
 try { top.location = '/api/hosted/provider'; } catch {}
 </script>

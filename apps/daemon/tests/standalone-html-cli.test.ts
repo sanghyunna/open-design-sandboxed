@@ -50,9 +50,9 @@ describe('od export html', () => {
         const html = '<!doctype html><p>standalone</p>';
         response.writeHead(200, {
           'content-type': 'text/html',
-          'x-open-design-external-reference-count': '2',
-          'x-open-design-missing-local-reference-count': '1',
-          'x-open-design-skipped-system-font-count': '0',
+          'x-readable-studio-external-reference-count': '2',
+          'x-readable-studio-missing-local-reference-count': '1',
+          'x-readable-studio-skipped-system-font-count': '0',
           'content-length': Buffer.byteLength(html),
         });
         response.end(html);

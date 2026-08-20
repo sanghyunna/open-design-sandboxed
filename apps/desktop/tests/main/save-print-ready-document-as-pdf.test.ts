@@ -1,6 +1,6 @@
 // Issue #1774 — on desktop, "Export PDF" opened the macOS system print
 // dialog instead of a direct Save-as-PDF flow. The root cause was the
-// `od:print-pdf` IPC handler reaching for `webContents.print()` (the
+// `readable-studio:print-pdf` IPC handler reaching for `webContents.print()` (the
 // printer-first OS dialog) rather than the `showSaveDialog` +
 // `printToPDF` + write-to-disk shape that `exportPdfFromHtml` already
 // uses for the daemon-backed export path.

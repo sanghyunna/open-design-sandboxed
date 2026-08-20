@@ -84,7 +84,7 @@ import type {
   PluginShareAction,
   PluginShareProjectOutcome,
 } from './state/projects';
-import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import { useI18n } from './i18n';
 import type {
   AgentInfo,
@@ -126,7 +126,7 @@ const SettingsDialog = dynamic(
   { ssr: false },
 );
 
-const APP_CONFIG_CHANGED_EVENT = 'open-design:app-config-changed';
+const APP_CONFIG_CHANGED_EVENT = 'readable-studio:app-config-changed';
 const AMR_AGENT_ID = 'amr';
 const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
 
@@ -1327,7 +1327,7 @@ function AppInner() {
   // atomically. The renderer never sees the path, token, or daemon DTO;
   // it receives host-owned project identifiers and refreshes project state
   // through the normal daemon API.
-  const handleImportFolderResponse = useCallback(async (result: OpenDesignHostProjectImportSuccess) => {
+  const handleImportFolderResponse = useCallback(async (result: ReadableStudioHostProjectImportSuccess) => {
     rememberLocalProject(result.projectId);
     const project = await getProject(result.projectId);
     if (project != null) {

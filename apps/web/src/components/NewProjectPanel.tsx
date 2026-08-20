@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createTabToTracking } from '@readable-studio/contracts/analytics';
-import { isOpenDesignHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
-import type { OpenDesignHostProjectImportSuccess } from '@readable-studio/host';
+import { isReadableStudioHostAvailable, pickHostWorkingDir } from '@readable-studio/host';
+import type { ReadableStudioHostProjectImportSuccess } from '@readable-studio/host';
 import { useAnalytics } from '../analytics/provider';
 import {
   trackDesignSystemApplyResult,
@@ -105,7 +105,7 @@ interface Props {
   // never sees the path or the HMAC token; it only receives the
   // host-owned project identifiers and forwards them here so App-level
   // state can refresh through the daemon API.
-  onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
+  onImportFolderResponse?: (response: ReadableStudioHostProjectImportSuccess) => Promise<void> | void;
   loading?: boolean;
   initialTab?: CreateTab;
 }
@@ -495,7 +495,7 @@ export function NewProjectPanel({
     setWorkingDirPicking(true);
     setWorkingDirError(null);
     try {
-      if (isOpenDesignHostAvailable()) {
+      if (isReadableStudioHostAvailable()) {
         const result = await pickHostWorkingDir();
         if (result.ok) {
           setWorkingDir(result.baseDir);

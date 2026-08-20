@@ -3207,7 +3207,7 @@ describe('manual edit bridge keyboard forwarding', () => {
     image.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
     postMessage.mockClear();
 
-    (dom.window as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = true;
+    (dom.window as unknown as { __readableStudioDeckSynthetic?: boolean }).__readableStudioDeckSynthetic = true;
     const synthetic = new dom.window.KeyboardEvent('keydown', {
       bubbles: true, cancelable: true, key: 'ArrowRight',
     });
@@ -3222,7 +3222,7 @@ describe('manual edit bridge keyboard forwarding', () => {
     expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge-keyup' }), '*');
 
     // Once the flag clears, real keys nudge again.
-    (dom.window as unknown as { __odDeckSynthetic?: boolean }).__odDeckSynthetic = false;
+    (dom.window as unknown as { __readableStudioDeckSynthetic?: boolean }).__readableStudioDeckSynthetic = false;
     dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', {
       bubbles: true, cancelable: true, key: 'ArrowRight',
     }));

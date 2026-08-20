@@ -1,18 +1,18 @@
 import {
-  OPEN_DESIGN_HOST_UPDATER_STATES,
+  READABLE_STUDIO_HOST_UPDATER_STATES,
   checkHostUpdater,
   downloadHostUpdater,
   getHostUpdaterStatus,
   installHostUpdater,
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
   quitHostAfterUpdaterInstallerOpen,
   subscribeHostUpdater,
-  type OpenDesignHostActionResult,
-  type OpenDesignHostFailure,
-  type OpenDesignHostUpdaterActionOptions,
-  type OpenDesignHostUpdaterResult,
-  type OpenDesignHostUpdaterStatusListener,
-  type OpenDesignHostUpdaterStatusSnapshot,
+  type ReadableStudioHostActionResult,
+  type ReadableStudioHostFailure,
+  type ReadableStudioHostUpdaterActionOptions,
+  type ReadableStudioHostUpdaterResult,
+  type ReadableStudioHostUpdaterStatusListener,
+  type ReadableStudioHostUpdaterStatusSnapshot,
 } from '@readable-studio/host';
 
 export type UpdaterEnvironment = 'desktop' | 'web';
@@ -24,8 +24,8 @@ export type UpdaterDownloadProgress = {
 };
 
 export type UpdaterActionResult =
-  | { ok: true; model: UpdaterModel; status: OpenDesignHostUpdaterStatusSnapshot }
-  | OpenDesignHostFailure;
+  | { ok: true; model: UpdaterModel; status: ReadableStudioHostUpdaterStatusSnapshot }
+  | ReadableStudioHostFailure;
 
 export type UpdaterModel = {
   availableVersion: string | null;
@@ -46,11 +46,11 @@ export type UpdaterModel = {
   upToDate: boolean;
   shouldShowControl: boolean;
   shouldPrompt: boolean;
-  status: OpenDesignHostUpdaterStatusSnapshot | null;
+  status: ReadableStudioHostUpdaterStatusSnapshot | null;
   supported: boolean;
 };
 
-function modelFromHostResult(result: OpenDesignHostUpdaterResult): UpdaterActionResult {
+function modelFromHostResult(result: ReadableStudioHostUpdaterResult): UpdaterActionResult {
   if (!result.ok) return result;
   return {
     ok: true,
@@ -65,10 +65,10 @@ function clampPercent(value: number): number {
 }
 
 function downloadProgressFromStatus(
-  status: OpenDesignHostUpdaterStatusSnapshot | null,
+  status: ReadableStudioHostUpdaterStatusSnapshot | null,
 ): UpdaterDownloadProgress | null {
   if (status == null) return null;
-  if (status.state !== OPEN_DESIGN_HOST_UPDATER_STATES.DOWNLOADING) return null;
+  if (status.state !== READABLE_STUDIO_HOST_UPDATER_STATES.DOWNLOADING) return null;
   const sourceProgress = status.incoming?.progress ?? status.progress;
 
   const receivedBytes = Math.max(0, sourceProgress?.receivedBytes ?? 0);
@@ -85,16 +85,16 @@ function downloadProgressFromStatus(
 }
 
 export function deriveUpdaterModel(
-  status: OpenDesignHostUpdaterStatusSnapshot | null,
+  status: ReadableStudioHostUpdaterStatusSnapshot | null,
   options: { hostAvailable?: boolean } = {},
 ): UpdaterModel {
-  const hostAvailable = options.hostAvailable ?? isOpenDesignHostAvailable();
+  const hostAvailable = options.hostAvailable ?? isReadableStudioHostAvailable();
   const environment: UpdaterEnvironment = hostAvailable ? 'desktop' : 'web';
   const state = status?.state;
   const busy =
-    state === OPEN_DESIGN_HOST_UPDATER_STATES.CHECKING ||
-    state === OPEN_DESIGN_HOST_UPDATER_STATES.DOWNLOADING ||
-    state === OPEN_DESIGN_HOST_UPDATER_STATES.INSTALLING;
+    state === READABLE_STUDIO_HOST_UPDATER_STATES.CHECKING ||
+    state === READABLE_STUDIO_HOST_UPDATER_STATES.DOWNLOADING ||
+    state === READABLE_STUDIO_HOST_UPDATER_STATES.INSTALLING;
   const canOpenInstaller = Boolean(
     hostAvailable &&
     status?.enabled &&
@@ -102,7 +102,7 @@ export function deriveUpdaterModel(
     status.capabilities.canOpenInstaller,
   );
   const hasDownloadedInstaller = Boolean(
-    state === OPEN_DESIGN_HOST_UPDATER_STATES.DOWNLOADED &&
+    state === READABLE_STUDIO_HOST_UPDATER_STATES.DOWNLOADED &&
     status?.downloadPath,
   );
   const installerOpened = status?.installResult != null;
@@ -111,7 +111,7 @@ export function deriveUpdaterModel(
   const availableVersion = status?.availableVersion ?? null;
   const currentVersion = status?.currentVersion ?? null;
   const downloadProgress = downloadProgressFromStatus(status);
-  const upToDate = state === OPEN_DESIGN_HOST_UPDATER_STATES.NOT_AVAILABLE;
+  const upToDate = state === READABLE_STUDIO_HOST_UPDATER_STATES.NOT_AVAILABLE;
   const promptKey =
     status == null || availableVersion == null
       ? null
@@ -148,28 +148,28 @@ export function deriveUpdaterModel(
   };
 }
 
-export async function readUpdaterStatus(options?: OpenDesignHostUpdaterActionOptions): Promise<UpdaterActionResult> {
+export async function readUpdaterStatus(options?: ReadableStudioHostUpdaterActionOptions): Promise<UpdaterActionResult> {
   return modelFromHostResult(await getHostUpdaterStatus(options));
 }
 
-export async function checkForUpdaterUpdate(options?: OpenDesignHostUpdaterActionOptions): Promise<UpdaterActionResult> {
+export async function checkForUpdaterUpdate(options?: ReadableStudioHostUpdaterActionOptions): Promise<UpdaterActionResult> {
   return modelFromHostResult(await checkHostUpdater(options));
 }
 
-export async function downloadUpdaterUpdate(options?: OpenDesignHostUpdaterActionOptions): Promise<UpdaterActionResult> {
+export async function downloadUpdaterUpdate(options?: ReadableStudioHostUpdaterActionOptions): Promise<UpdaterActionResult> {
   return modelFromHostResult(await downloadHostUpdater(options));
 }
 
-export async function openUpdaterInstaller(options?: OpenDesignHostUpdaterActionOptions): Promise<UpdaterActionResult> {
+export async function openUpdaterInstaller(options?: ReadableStudioHostUpdaterActionOptions): Promise<UpdaterActionResult> {
   return modelFromHostResult(await installHostUpdater(options));
 }
 
 export async function quitAfterUpdaterInstallerOpen(
-  options?: OpenDesignHostUpdaterActionOptions,
-): Promise<OpenDesignHostActionResult> {
+  options?: ReadableStudioHostUpdaterActionOptions,
+): Promise<ReadableStudioHostActionResult> {
   return await quitHostAfterUpdaterInstallerOpen(options);
 }
 
-export function subscribeToUpdaterStatus(listener: OpenDesignHostUpdaterStatusListener): () => void {
+export function subscribeToUpdaterStatus(listener: ReadableStudioHostUpdaterStatusListener): () => void {
   return subscribeHostUpdater(listener);
 }

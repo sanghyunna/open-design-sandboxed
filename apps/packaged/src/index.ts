@@ -38,7 +38,7 @@ import {
   type PackagedDesktopLogger,
 } from "./logging.js";
 import { resolvePackagedNamespacePaths } from "./paths.js";
-import { packagedEntryUrl, registerOdProtocol } from "./protocol.js";
+import { packagedEntryUrl, registerReadableStudioProtocol } from "./protocol.js";
 import { startPackagedSidecars } from "./sidecars.js";
 import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
 
@@ -178,7 +178,7 @@ async function main(): Promise<void> {
     webOutputMode: activeConfig.webOutputMode,
     logStartupPhase: startupTiming.mark,
   });
-  registerOdProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
+  registerReadableStudioProtocol(sidecars.web.url ?? "http://127.0.0.1:0");
 
   const { runDesktopMain } = await import("@readable-studio/desktop/main");
   startupTiming.mark("desktop-main-handoff");
@@ -198,7 +198,7 @@ async function main(): Promise<void> {
     },
     // Round-7 (lefarcen P2 @ runtime.ts:336): packaged main-process
     // fetch targets the daemon sidecar's real http URL — never the
-    // od://app/ renderer URL, which Node/undici cannot resolve through
+    // readable-studio://app/ renderer URL, which Node/undici cannot resolve through
     // Electron's protocol handler.
     async discoverDaemonUrl() {
       return sidecars.daemon.url;

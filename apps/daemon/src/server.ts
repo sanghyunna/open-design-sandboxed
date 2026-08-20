@@ -12761,11 +12761,11 @@ export async function startServer({
     }
     // Capture clientType for downstream telemetry (Langfuse uses it on
     // run-completed metadata; PostHog gets it via the request header
-    // bridge). Prefer the explicit `x-od-client` header from desktop /
+    // bridge). Prefer the explicit `x-readable-studio-client` header from desktop /
     // web sidecars, fall back to user-agent detection. Without this the
     // run object's `clientType` stays undefined and Langfuse traces lose
     // the surface dimension.
-    const declaredClient = String(req.get('x-od-client') ?? '').toLowerCase();
+    const declaredClient = String(req.get('x-readable-studio-client') ?? '').toLowerCase();
     if (declaredClient === 'desktop' || declaredClient === 'web') {
       run.clientType = declaredClient;
     } else {

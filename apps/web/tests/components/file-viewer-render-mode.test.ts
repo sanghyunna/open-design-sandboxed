@@ -51,7 +51,7 @@ describe('shouldUrlLoadHtmlPreview', () => {
   it('falls back to srcDoc when the artifact ships the class based tweaks template', () => {
     // Without this, a plain `.tw-panel` artifact would URL load on first
     // open, skip the tweaks bridge entirely, and leave the toolbar toggle
-    // disabled (no `od:tweaks-available` ever fires).
+    // disabled (no `readable-studio:tweaks-available` ever fires).
     expect(shouldUrlLoadHtmlPreview({ ...base, tweaksBridge: true })).toBe(false);
   });
 

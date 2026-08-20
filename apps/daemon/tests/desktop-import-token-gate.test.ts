@@ -19,7 +19,7 @@ import {
  * PR #974 — desktop-import-token gate. The HTTP /api/import/folder
  * route only accepts requests when either (a) no desktop auth secret
  * has been registered (web mode, gate dormant) or (b) a request
- * carries a valid HMAC-signed `X-OD-Desktop-Import-Token` minted by
+ * carries a valid HMAC-signed `X-Readable-Studio-Desktop-Import-Token` minted by
  * the registered secret with the requested baseDir. These tests pin
  * each branch independently of the rest of the daemon.
  */
@@ -100,7 +100,7 @@ describe('desktop-import-token gate', () => {
     setDesktopAuthSecret(randomBytes(32));
     const resp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': 'totally.bogus' },
+      { 'x-readable-studio-desktop-import-token': 'totally.bogus' },
     );
     expect(resp.status).toBe(403);
   });
@@ -115,7 +115,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(wrongSecret, folder, { nonce: 'n', exp });
     const resp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(403);
   });
@@ -129,7 +129,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, '/some/other/path', { nonce: 'n', exp });
     const resp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(403);
   });
@@ -143,7 +143,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, folder, { nonce: 'n', exp });
     const resp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(403);
   });
@@ -160,7 +160,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, folder, { nonce: 'n', exp });
     const resp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(403);
   });
@@ -175,7 +175,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, folder, { nonce, exp });
     const okResp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(okResp.status).toBe(200);
     const okBody = (await okResp.json()) as {
@@ -191,7 +191,7 @@ describe('desktop-import-token gate', () => {
     // reject because the nonce is already in the consumed set.
     const replayResp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(replayResp.status).toBe(403);
   });
@@ -210,7 +210,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, folder, { nonce: 'round7-patch-allow', exp });
     const importResp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(importResp.status).toBe(200);
     const importBody = (await importResp.json()) as {
@@ -248,7 +248,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, folder, { nonce: 'round7-patch-flip', exp });
     const importResp = await importFolder(
       { baseDir: folder },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(importResp.status).toBe(200);
     const importBody = (await importResp.json()) as { project: { id: string } };
@@ -312,7 +312,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, trimmed, { nonce, exp });
     const resp = await importFolder(
       { baseDir: trimmed },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(200);
     const body = (await resp.json()) as {
@@ -341,7 +341,7 @@ describe('desktop-import-token gate', () => {
     const token = signDesktopImportToken(secret, trimmed, { nonce, exp });
     const resp = await importFolder(
       { baseDir: padded },
-      { 'x-od-desktop-import-token': token },
+      { 'x-readable-studio-desktop-import-token': token },
     );
     expect(resp.status).toBe(403);
   });

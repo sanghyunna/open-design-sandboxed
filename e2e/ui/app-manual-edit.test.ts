@@ -236,15 +236,15 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
   const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
   const armFrameLoad = async () => {
     await artifactPreview(page).evaluate((node) => {
-      const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
-      frameNode.__odIssue33NextLoad = new Promise((resolve) => {
+      const frameNode = node as HTMLIFrameElement & { __readableStudioIssue33NextLoad?: Promise<void> };
+      frameNode.__readableStudioIssue33NextLoad = new Promise((resolve) => {
         frameNode.addEventListener('load', () => resolve(), { once: true });
       });
     });
   };
   const waitForFrameLoad = () => artifactPreview(page).evaluate((node) => {
-    const frameNode = node as HTMLIFrameElement & { __odIssue33NextLoad?: Promise<void> };
-    return frameNode.__odIssue33NextLoad;
+    const frameNode = node as HTMLIFrameElement & { __readableStudioIssue33NextLoad?: Promise<void> };
+    return frameNode.__readableStudioIssue33NextLoad;
   });
   const commitText = async (text: string, beginInlineEdit: () => Promise<void>) => {
     const previousElement = await textOnlyDiv.elementHandle();
@@ -1484,7 +1484,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
   const projectId = await createEmptyProject(page, 'Issue 58 deck resize');
   const template = readFileSync(new URL('../../templates/deck-framework.html', import.meta.url), 'utf8');
   const deckHtml = template
-    .replace('</head>', "<script>window.parent.postMessage({ type: 'od:issue-58-deck-boot' }, '*');</script></head>")
+    .replace('</head>', "<script>window.parent.postMessage({ type: 'readable-studio:issue-58-deck-boot' }, '*');</script></head>")
     .replace('<!-- SLOT: slide 1 content -->', '<h1>Slide One</h1>')
     .replace(
       '<!-- SLOT: slide 2 content -->',
@@ -1519,7 +1519,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
     const host = window as typeof window & Record<string, number>;
     host[key] = 0;
     window.addEventListener('message', (event) => {
-      if ((event.data as { type?: string } | null)?.type !== 'od:issue-58-deck-boot') return;
+      if ((event.data as { type?: string } | null)?.type !== 'readable-studio:issue-58-deck-boot') return;
       host[key] = (host[key] ?? 0) + 1;
     });
   }, bootCounterKey);

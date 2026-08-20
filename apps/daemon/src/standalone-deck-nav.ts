@@ -20,9 +20,9 @@ function injectBeforeFirstScript(html: string, snippet: string): string {
 
 function standaloneDeckKeyDedupeScript(): string {
   return `<script ${MARKER}>(function(){
-  if (window.__odStandaloneDeckNavDedupe) return;
+  if (window.__readableStudioStandaloneDeckNavDedupe) return;
   if (typeof WeakMap !== 'function' || typeof WeakSet !== 'function') return;
-  window.__odStandaloneDeckNavDedupe = true;
+  window.__readableStudioStandaloneDeckNavDedupe = true;
   var keys = { ArrowRight:1, ArrowLeft:1, PageDown:1, PageUp:1, Home:1, End:1, " ":1 };
   var seenByEvent = new WeakMap();
   function shouldSkip(event, listener){

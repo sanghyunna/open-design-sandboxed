@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { OpenDesignHostUpdaterStatusSnapshot } from '@readable-studio/host';
+import type { ReadableStudioHostUpdaterStatusSnapshot } from '@readable-studio/host';
 
 import { Icon } from './Icon';
 import { popoverIn } from '../motion';
@@ -101,7 +101,7 @@ export function UpdaterPopup() {
 
   useEffect(() => {
     let mounted = true;
-    const applyStatus = (status: OpenDesignHostUpdaterStatusSnapshot) => {
+    const applyStatus = (status: ReadableStudioHostUpdaterStatusSnapshot) => {
       if (!mounted) return;
       setModel(deriveUpdaterModel(status, { hostAvailable: true }));
     };

@@ -16,7 +16,7 @@ import {
   type DesktopExportPdfResult,
   type DesktopUpdateStatusSnapshot,
 } from "@readable-studio/sidecar-proto";
-import type { OpenDesignHostActionResult, OpenDesignHostCaptureResult, OpenDesignHostUpdaterActionOptions } from "@readable-studio/host";
+import type { ReadableStudioHostActionResult, ReadableStudioHostCaptureResult, ReadableStudioHostUpdaterActionOptions } from "@readable-studio/host";
 
 import { openValidatedDirectory } from "./open-path.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
@@ -206,7 +206,7 @@ export async function fetchResolvedProjectDir(
 const DESKTOP_IMPORT_TOKEN_FIELD_SEP = "~";
 
 /**
- * Pure-function HMAC mint for the `X-OD-Desktop-Import-Token` header.
+ * Pure-function HMAC mint for the `X-Readable-Studio-Desktop-Import-Token` header.
  * Mirrors `signDesktopImportToken` on the daemon side (PR #974). Kept in
  * a small exported helper so the packaged workspace's vitest suite can
  * pin token-shape contract drift without booting Electron.
@@ -246,14 +246,14 @@ const MAX_CONSOLE_ENTRIES = 200;
 const DESKTOP_PET_WINDOW_WIDTH = 360;
 const DESKTOP_PET_WINDOW_HEIGHT = 300;
 const DESKTOP_PET_WINDOW_MARGIN = 24;
-const UPDATER_STATUS_EVENT = "od:update:status-changed";
+const UPDATER_STATUS_EVENT = "readable-studio:update:status-changed";
 const DESIGN_BROWSER_PARTITION = "persist:open-design-design-browser";
 const UPDATER_IPC_CHANNELS = [
-  "od:update:status",
-  "od:update:check",
-  "od:update:download",
-  "od:update:install",
-  "od:update:quit",
+  "readable-studio:update:status",
+  "readable-studio:update:check",
+  "readable-studio:update:download",
+  "readable-studio:update:install",
+  "readable-studio:update:quit",
 ] as const;
 
 export type DesktopEvalInput = {
@@ -336,7 +336,7 @@ export type DesktopRuntimeOptions = {
   discoverUrl(): Promise<string | null>;
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): packaged desktop loads the
-   * renderer from `od://app/`, which only resolves through Electron's
+   * renderer from `readable-studio://app/`, which only resolves through Electron's
    * registered protocol handler in the renderer context. Main-process
    * `globalThis.fetch` (Node/undici) ignores that handler, so any
    * `fetch(webUrl + '/api/...')` from main fails in packaged builds.
@@ -350,7 +350,7 @@ export type DesktopRuntimeOptions = {
   /**
    * BCP-47 locale string read from the OS by main process, forwarded
    * to the preload via `webPreferences.additionalArguments` so the
-   * renderer can mirror it onto `__od__.client.osLocale`. Optional;
+   * renderer can mirror it onto `__readableStudio__.client.osLocale`. Optional;
    * when omitted the renderer falls back to navigator/localStorage.
    */
   osLocale?: string;
@@ -392,7 +392,7 @@ export type DesktopRuntimeOptions = {
   updater?: DesktopUpdater;
 };
 
-const DESKTOP_IMPORT_TOKEN_HEADER = "X-OD-Desktop-Import-Token";
+const DESKTOP_IMPORT_TOKEN_HEADER = "X-Readable-Studio-Desktop-Import-Token";
 const DESKTOP_IMPORT_TOKEN_TTL_MS = 60_000;
 
 // @dsp func-8caf710f
@@ -425,7 +425,7 @@ export type PickAndImportFolderDeps = {
   /**
    * Round-7 (lefarcen P2 @ runtime.ts:336): the helper now POSTs to the
    * sidecar daemon's real `http://127.0.0.1:<port>` URL rather than the
-   * renderer-only `od://app/` webUrl. Renamed from `webUrl` to make the
+   * renderer-only `readable-studio://app/` webUrl. Renamed from `webUrl` to make the
    * boundary explicit — main-process Node fetch must hit a real http
    * URL, never a custom Electron protocol scheme. tools-dev callers
    * pass the same value they used to pass for `webUrl` (its web URL is
@@ -922,14 +922,14 @@ export function isAllowedChildWindowUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     // `blob:` covers in-renderer generated downloads / object URLs.
-    // `od:` is the packaged Electron entry's privileged scheme
+    // `readable-studio:` is the packaged Electron entry's privileged scheme
     // registered by `apps/packaged/src/protocol.ts` and proxied to the
     // local web sidecar. Without this branch, any in-app
-    // `<a target="_blank" href="/api/...">` resolves to `od://app/...`
+    // `<a target="_blank" href="/api/...">` resolves to `readable-studio://app/...`
     // in packaged builds, falls through `setWindowOpenHandler` to
     // `{ action: "deny" }`, and the click is silently dropped — that
     // was the "Open artifact" no-op reported in #911. Allowing
-    // `od:` here lets Electron open the link in a child BrowserWindow
+    // `readable-studio:` here lets Electron open the link in a child BrowserWindow
     // that inherits the same protocol registration + preload, so the
     // live artifact preview renders normally. Dev mode is unaffected:
     // its links resolve to `http://127.0.0.1:.../...`, which is gated
@@ -941,7 +941,7 @@ export function isAllowedChildWindowUrl(url: string): boolean {
     // and the user sees a "Popup blocked" alert.
     return (
       parsed.protocol === "blob:" ||
-      parsed.protocol === "od:" ||
+      parsed.protocol === "readable-studio:" ||
       (parsed.protocol === "about:" && parsed.pathname === "blank")
     );
   } catch {
@@ -995,7 +995,7 @@ function desktopPetUrl(baseUrl: string): string {
 // — BCP-47 region tags shouldn't contain `;` or `=`, but the renderer's
 // `process.argv` parser is happier if we never have to worry about it.
 function osLocaleAdditionalArguments(osLocale: string | undefined): string[] | undefined {
-  return osLocale ? [`--od-os-locale=${encodeURIComponent(osLocale)}`] : undefined;
+  return osLocale ? [`--readable-studio-os-locale=${encodeURIComponent(osLocale)}`] : undefined;
 }
 
 function createDesktopPetWindow(preloadPath: string, osLocale: string | undefined): BrowserWindow {
@@ -1234,7 +1234,7 @@ function unavailableUpdaterStatus(): DesktopUpdateStatusSnapshot {
 }
 
 function checkOptionsFromHost(options: unknown): { autoDownload?: boolean } | undefined {
-  const input = options as OpenDesignHostUpdaterActionOptions | null | undefined;
+  const input = options as ReadableStudioHostUpdaterActionOptions | null | undefined;
   const payload = input?.payload;
   if (payload == null || typeof payload.autoDownload !== "boolean") return undefined;
   return { autoDownload: payload.autoDownload };
@@ -1248,7 +1248,7 @@ async function reportRendererCrash(
     // discoverDaemonUrl returns the real http://127.0.0.1:<port> URL the
     // sidecar daemon listens on. In tools-dev callers omit it and fall back
     // to discoverUrl (which is also http in dev). In packaged builds it's
-    // mandatory because the renderer-only `od://app/` scheme isn't
+    // mandatory because the renderer-only `readable-studio://app/` scheme isn't
     // reachable from main-process Node fetch.
     const baseUrl = (await (options.discoverDaemonUrl?.() ?? options.discoverUrl())) ?? null;
     if (!baseUrl) return;
@@ -1327,7 +1327,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         return { ok: false, reason: "desktop auth secret not registered" };
       }
       // Round-7 (lefarcen P2): packaged builds report the renderer URL
-      // (`od://app/`) over `discoverUrl`, but Node-side fetch can't
+      // (`readable-studio://app/`) over `discoverUrl`, but Node-side fetch can't
       // resolve a custom Electron protocol scheme. Prefer the daemon
       // sidecar's real http URL when packaged exposes it; tools-dev
       // omits `discoverDaemonUrl` and we fall back to the web URL
@@ -1443,7 +1443,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   // openPath(projectId) for projects whose resolvedDir came from that
   // trusted flow."
   ipcMain.handle("shell:open-path", async (_event, projectId: string) => {
-    // Round-7 (lefarcen P2): same packaged od:// → daemon URL pivot as
+    // Round-7 (lefarcen P2): same packaged readable-studio:// → daemon URL pivot as
     // the dialog:pick-and-import handler above.
     const apiBaseUrl =
       (options.discoverDaemonUrl ? await options.discoverDaemonUrl() : null) ??
@@ -1557,7 +1557,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     guestWebContents.on("will-redirect", blockDisallowed);
     guestWebContents.setWindowOpenHandler(() => ({ action: "deny" }));
   });
-  ipcMain.handle("browser:clear-data", async (event, rawOptions: unknown): Promise<OpenDesignHostActionResult> => {
+  ipcMain.handle("browser:clear-data", async (event, rawOptions: unknown): Promise<ReadableStudioHostActionResult> => {
     requireMainWindowSender(event);
     const optionsRecord = rawOptions != null && typeof rawOptions === "object"
       ? rawOptions as { cookies?: unknown; storage?: unknown }
@@ -1589,31 +1589,31 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       };
     }
   });
-  ipcMain.handle("od:update:status", async (event) => {
+  ipcMain.handle("readable-studio:update:status", async (event) => {
     requireMainWindowSender(event);
     const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
     sendUpdaterStatus(status);
     return status;
   });
-  ipcMain.handle("od:update:check", async (event, updaterOptions: unknown) => {
+  ipcMain.handle("readable-studio:update:check", async (event, updaterOptions: unknown) => {
     requireMainWindowSender(event);
     const status = await (options.updater?.checkForUpdates(checkOptionsFromHost(updaterOptions)) ?? unavailableUpdaterStatus());
     sendUpdaterStatus(status);
     return status;
   });
-  ipcMain.handle("od:update:download", async (event) => {
+  ipcMain.handle("readable-studio:update:download", async (event) => {
     requireMainWindowSender(event);
     const status = await (options.updater?.downloadUpdate() ?? unavailableUpdaterStatus());
     sendUpdaterStatus(status);
     return status;
   });
-  ipcMain.handle("od:update:install", async (event) => {
+  ipcMain.handle("readable-studio:update:install", async (event) => {
     requireMainWindowSender(event);
     const status = await (options.updater?.installUpdate() ?? unavailableUpdaterStatus());
     sendUpdaterStatus(status);
     return status;
   });
-  ipcMain.handle("od:update:quit", async (event): Promise<OpenDesignHostActionResult> => {
+  ipcMain.handle("readable-studio:update:quit", async (event): Promise<ReadableStudioHostActionResult> => {
     requireMainWindowSender(event);
     const status = await (options.updater?.status() ?? unavailableUpdaterStatus());
     if (status.installResult == null) {
@@ -1676,8 +1676,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     }
   });
 
-  ipcMain.removeHandler('od:print-pdf');
-  ipcMain.handle('od:print-pdf', async (_event, html: unknown, nonce: unknown, options: unknown): Promise<void> => {
+  ipcMain.removeHandler('readable-studio:print-pdf');
+  ipcMain.handle('readable-studio:print-pdf', async (_event, html: unknown, nonce: unknown, options: unknown): Promise<void> => {
     if (typeof html !== 'string') {
       throw new Error('Invalid print payload: expected HTML string');
     }
@@ -1701,8 +1701,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     }
   });
 
-  ipcMain.removeHandler('od:capture-page');
-  ipcMain.handle('od:capture-page', async (event, rawOptions: unknown): Promise<OpenDesignHostCaptureResult> => {
+  ipcMain.removeHandler('readable-studio:capture-page');
+  ipcMain.handle('readable-studio:capture-page', async (event, rawOptions: unknown): Promise<ReadableStudioHostCaptureResult> => {
     if (event.sender !== window.webContents) {
       return { ok: false, reason: 'capture sender not allowed' };
     }

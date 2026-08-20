@@ -486,7 +486,7 @@ describe('App AMR polling', () => {
       expect(screen.getByTestId('amr-profile').textContent).toBe('prod');
     });
 
-    fireEvent(window, new CustomEvent('open-design:app-config-changed'));
+    fireEvent(window, new CustomEvent('readable-studio:app-config-changed'));
 
     await waitFor(() => {
       expect(screen.getByTestId('amr-profile').textContent).toBe('local');
@@ -555,7 +555,7 @@ describe('App AMR polling', () => {
       expect(mockedFetchAmrModels).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent(window, new CustomEvent('open-design:app-config-changed'));
+    fireEvent(window, new CustomEvent('readable-studio:app-config-changed'));
 
     await waitFor(() => {
       expect(mockedFetchAmrModels).toHaveBeenCalledTimes(2);

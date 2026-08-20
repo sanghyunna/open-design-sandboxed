@@ -12,7 +12,7 @@ import {
 import { createPortal, flushSync } from 'react-dom';
 import {
   clearHostBrowserData,
-  isOpenDesignHostAvailable,
+  isReadableStudioHostAvailable,
 } from '@readable-studio/host';
 import type { TrackingReferenceBoardCategory } from '@readable-studio/contracts/analytics';
 import { useAnalytics } from '../analytics/provider';
@@ -706,7 +706,7 @@ export function DesignBrowserPanel({
   sendDisabled = false,
 }: DesignBrowserPanelProps) {
   const t = useT();
-  const desktopHostAvailable = isOpenDesignHostAvailable();
+  const desktopHostAvailable = isReadableStudioHostAvailable();
   const initialState = initialBrowserState(initialUrl, initialTitle);
   // `loadUrl` is the navigation target bound to the <webview>/<iframe> `src`.
   // It changes ONLY on user-initiated navigation. `currentUrl` is the committed

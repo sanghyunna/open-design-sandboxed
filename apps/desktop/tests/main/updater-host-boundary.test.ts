@@ -14,11 +14,11 @@ function source(relativePath: string): string {
 describe("desktop updater host boundary", () => {
   it("routes renderer updater calls through the canonical host IPC surface", () => {
     const runtime = source("src/main/runtime.ts");
-    expect(runtime).toContain("od:update:status");
-    expect(runtime).toContain("od:update:check");
-    expect(runtime).toContain("od:update:download");
-    expect(runtime).toContain("od:update:install");
-    expect(runtime).toContain("od:update:quit");
+    expect(runtime).toContain("readable-studio:update:status");
+    expect(runtime).toContain("readable-studio:update:check");
+    expect(runtime).toContain("readable-studio:update:download");
+    expect(runtime).toContain("readable-studio:update:install");
+    expect(runtime).toContain("readable-studio:update:quit");
     expect(runtime).toContain("UPDATER_STATUS_EVENT");
     expect(runtime).toContain("event.sender !== window.webContents");
   });
@@ -44,8 +44,8 @@ describe("desktop updater host boundary", () => {
 
   it("keeps installer launch separate from desktop process shutdown", () => {
     const runtime = source("src/main/runtime.ts");
-    const installStart = runtime.indexOf('ipcMain.handle("od:update:install"');
-    const installEnd = runtime.indexOf('ipcMain.handle("od:update:quit"');
+    const installStart = runtime.indexOf('ipcMain.handle("readable-studio:update:install"');
+    const installEnd = runtime.indexOf('ipcMain.handle("readable-studio:update:quit"');
     expect(installStart).toBeGreaterThanOrEqual(0);
     expect(installEnd).toBeGreaterThan(installStart);
     const installHandler = runtime.slice(installStart, installEnd);
@@ -58,7 +58,7 @@ describe("desktop updater host boundary", () => {
 
   it("exposes process quit only as an explicit post-installer-open action", () => {
     const runtime = source("src/main/runtime.ts");
-    const quitStart = runtime.indexOf('ipcMain.handle("od:update:quit"');
+    const quitStart = runtime.indexOf('ipcMain.handle("readable-studio:update:quit"');
     const quitEnd = runtime.indexOf('ipcMain.removeAllListeners("desktop-pet:set-visible"');
     expect(quitStart).toBeGreaterThanOrEqual(0);
     expect(quitEnd).toBeGreaterThan(quitStart);

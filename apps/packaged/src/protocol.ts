@@ -1,7 +1,8 @@
 import { protocol } from "electron";
 
-const OD_SCHEME = "od";
-const OD_ENTRY_URL = `${OD_SCHEME}://app/`;
+const READABLE_STUDIO_SCHEME = "readable-studio";
+const READABLE_STUDIO_AUTHORITY = "app";
+const READABLE_STUDIO_ENTRY_URL = `${READABLE_STUDIO_SCHEME}://${READABLE_STUDIO_AUTHORITY}/`;
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -12,7 +13,7 @@ protocol.registerSchemesAsPrivileged([
       stream: true,
       supportFetchAPI: true,
     },
-    scheme: OD_SCHEME,
+    scheme: READABLE_STUDIO_SCHEME,
   },
 ]);
 
@@ -33,7 +34,7 @@ function buildProxyErrorResponse(error: unknown, target: string): Response {
       : null;
   return new Response(
     JSON.stringify({
-      error: "OD_PROTOCOL_PROXY_FAILED",
+      error: "READABLE_STUDIO_PROTOCOL_PROXY_FAILED",
       message,
       ...(code === null ? {} : { code }),
       target,
@@ -45,8 +46,8 @@ function buildProxyErrorResponse(error: unknown, target: string): Response {
   );
 }
 
-async function logOdProtocolResponse(response: Response, target: string): Promise<void> {
-  if (process.env.OD_PROTOCOL_DIAG !== "1") return;
+async function logReadableStudioProtocolResponse(response: Response, target: string): Promise<void> {
+  if (process.env.READABLE_STUDIO_PROTOCOL_DIAG !== "1") return;
 
   const contentType = response.headers.get("content-type") ?? "unknown";
   const title = contentType.toLowerCase().includes("text/html")
@@ -57,12 +58,12 @@ async function logOdProtocolResponse(response: Response, target: string): Promis
       .slice(0, 160)
     : null;
   console.warn(
-    `[open-design packaged] od proxy response status=${response.status} contentType=${contentType}${title ? ` title=${JSON.stringify(title)}` : ""} target=${target} url=${response.url || "unknown"}`,
+    `[readable-studio packaged] readable-studio proxy response status=${response.status} contentType=${contentType}${title ? ` title=${JSON.stringify(title)}` : ""} target=${target} url=${response.url || "unknown"}`,
   );
 }
 
 /**
- * Inner request handler for the `od://` Electron protocol — every
+ * Inner request handler for the `readable-studio://` Electron protocol — every
  * renderer fetch flows through here and gets proxied to the local web
  * sidecar via Node's global `fetch` (which is undici under the hood).
  *
@@ -80,15 +81,22 @@ async function logOdProtocolResponse(response: Response, target: string): Promis
  * renderer see a normal failure and keeps the process alive.
  */
 // @dsp func-ecffde00
-export async function handleOdRequest(
+export async function handleReadableStudioRequest(
   request: Request,
   webRuntimeUrl: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Response> {
+  const incoming = new URL(request.url);
+  if (incoming.protocol !== `${READABLE_STUDIO_SCHEME}:` || incoming.hostname !== READABLE_STUDIO_AUTHORITY) {
+    return new Response(
+      JSON.stringify({ error: "READABLE_STUDIO_PROTOCOL_REQUEST_INVALID" }),
+      { status: 400, headers: { "content-type": "application/json" } },
+    );
+  }
   const target = toWebRuntimeUrl(webRuntimeUrl, request.url);
   try {
     const response = await fetchImpl(new Request(target, request));
-    await logOdProtocolResponse(response, target);
+    await logReadableStudioProtocolResponse(response, target);
     return response;
   } catch (error) {
     return buildProxyErrorResponse(error, target);
@@ -97,12 +105,12 @@ export async function handleOdRequest(
 
 // @dsp func-caecdacf
 export function packagedEntryUrl(): string {
-  return OD_ENTRY_URL;
+  return READABLE_STUDIO_ENTRY_URL;
 }
 
 // @dsp func-97bde04f
-export function registerOdProtocol(webRuntimeUrl: string): void {
-  protocol.handle(OD_SCHEME, async (request) => {
-    return await handleOdRequest(request, webRuntimeUrl);
+export function registerReadableStudioProtocol(webRuntimeUrl: string): void {
+  protocol.handle(READABLE_STUDIO_SCHEME, async (request) => {
+    return await handleReadableStudioRequest(request, webRuntimeUrl);
   });
 }

@@ -1,8 +1,8 @@
 /**
- * Regression coverage for the `od://` protocol proxy in
+ * Regression coverage for the `readable-studio://` protocol proxy in
  * apps/packaged/src/protocol.ts.
  *
- * The packaged Electron entry registers `od://` as the loader for the
+ * The packaged Electron entry registers `readable-studio://` as the loader for the
  * web runtime and forwards every renderer request to the local web
  * sidecar through Node's global `fetch` (which is undici under the
  * hood). Without a try/catch in the handler, undici throwing
@@ -30,13 +30,17 @@ vi.mock('electron', () => ({
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { handleOdRequest } from '../src/protocol.js';
+import { handleReadableStudioRequest, packagedEntryUrl } from '../src/protocol.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('od:// protocol proxy', () => {
+describe('readable-studio:// protocol proxy', () => {
+  it('publishes the exact packaged entry URL without a legacy alias', () => {
+    expect(packagedEntryUrl()).toBe('readable-studio://app/');
+  });
+
   it('proxies the request through fetchImpl with the rewritten target URL', async () => {
     const captured: Request[] = [];
     const fetchImpl: typeof fetch = async (input) => {
@@ -44,13 +48,32 @@ describe('od:// protocol proxy', () => {
       return new Response('ok', { status: 200 });
     };
 
-    const request = new Request('od://app/api/codex-pets/sync', { method: 'POST' });
-    const response = await handleOdRequest(request, 'http://127.0.0.1:17579/', fetchImpl);
+    const request = new Request('readable-studio://app/api/codex-pets/sync', { method: 'POST' });
+    const response = await handleReadableStudioRequest(request, 'http://127.0.0.1:17579/', fetchImpl);
 
     expect(response.status).toBe(200);
     expect(captured).toHaveLength(1);
     expect(captured[0]!.url).toBe('http://127.0.0.1:17579/api/codex-pets/sync');
     expect(captured[0]!.method).toBe('POST');
+  });
+
+  it('rejects legacy and mixed protocol shapes without proxying them', async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+
+    const legacy = await handleReadableStudioRequest(
+      new Request('od://app/api/projects'),
+      'http://127.0.0.1:42424/',
+      fetchImpl,
+    );
+    const mixed = await handleReadableStudioRequest(
+      new Request('readable-studio://od/api/projects'),
+      'http://127.0.0.1:42424/',
+      fetchImpl,
+    );
+
+    expect(legacy.status).toBe(400);
+    expect(mixed.status).toBe(400);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('preserves the request path, search, and hash when rewriting to the web sidecar', async () => {
@@ -60,8 +83,8 @@ describe('od:// protocol proxy', () => {
       return new Response('', { status: 204 });
     };
 
-    const request = new Request('od://app/api/projects?limit=5#section', { method: 'GET' });
-    await handleOdRequest(request, 'http://127.0.0.1:42424/', fetchImpl);
+    const request = new Request('readable-studio://app/api/projects?limit=5#section', { method: 'GET' });
+    await handleReadableStudioRequest(request, 'http://127.0.0.1:42424/', fetchImpl);
 
     const target = new URL(captured[0]!.url);
     expect(target.host).toBe('127.0.0.1:42424');
@@ -87,8 +110,8 @@ describe('od:// protocol proxy', () => {
       throw error;
     };
 
-    const request = new Request('od://app/api/codex-pets/sync', { method: 'POST' });
-    const response = await handleOdRequest(request, 'http://127.0.0.1:17579/', fetchImpl);
+    const request = new Request('readable-studio://app/api/codex-pets/sync', { method: 'POST' });
+    const response = await handleReadableStudioRequest(request, 'http://127.0.0.1:17579/', fetchImpl);
 
     expect(response.status).toBe(502);
     const body = (await response.json()) as {
@@ -97,7 +120,7 @@ describe('od:// protocol proxy', () => {
       code?: string;
       target: string;
     };
-    expect(body.error).toBe('OD_PROTOCOL_PROXY_FAILED');
+    expect(body.error).toBe('READABLE_STUDIO_PROTOCOL_PROXY_FAILED');
     expect(body.message).toContain('setTypeOfService');
     expect(body.code).toBe('EINVAL');
     expect(body.target).toBe('http://127.0.0.1:17579/api/codex-pets/sync');
@@ -110,7 +133,7 @@ describe('od:// protocol proxy', () => {
 
     // The promise must resolve with a Response, never reject.
     await expect(
-      handleOdRequest(new Request('od://app/'), 'http://127.0.0.1:1/', fetchImpl),
+      handleReadableStudioRequest(new Request('readable-studio://app/'), 'http://127.0.0.1:1/', fetchImpl),
     ).resolves.toBeInstanceOf(Response);
   });
 
@@ -120,8 +143,8 @@ describe('od:// protocol proxy', () => {
       throw 'sync timeout';
     };
 
-    const response = await handleOdRequest(
-      new Request('od://app/api/probe'),
+    const response = await handleReadableStudioRequest(
+      new Request('readable-studio://app/api/probe'),
       'http://127.0.0.1:1/',
       fetchImpl,
     );
@@ -130,30 +153,30 @@ describe('od:// protocol proxy', () => {
     expect(body.message).toBe('sync timeout');
   });
 
-  it('logs response metadata and html title when OD_PROTOCOL_DIAG is enabled', async () => {
-    const originalDiag = process.env.OD_PROTOCOL_DIAG;
+  it('logs response metadata and html title when READABLE_STUDIO_PROTOCOL_DIAG is enabled', async () => {
+    const originalDiag = process.env.READABLE_STUDIO_PROTOCOL_DIAG;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {
-      process.env.OD_PROTOCOL_DIAG = '1';
+      process.env.READABLE_STUDIO_PROTOCOL_DIAG = '1';
       const fetchImpl: typeof fetch = async () =>
         new Response('<html><head><title>Blocked by corporate policy</title></head></html>', {
           headers: { 'content-type': 'text/html' },
           status: 200,
         });
 
-      const response = await handleOdRequest(new Request('od://app/'), 'http://127.0.0.1:17579/', fetchImpl);
+      const response = await handleReadableStudioRequest(new Request('readable-studio://app/'), 'http://127.0.0.1:17579/', fetchImpl);
 
       expect(await response.text()).toContain('Blocked by corporate policy');
       expect(warn).toHaveBeenCalledWith(
-        expect.stringContaining('[open-design packaged] od proxy response status=200 contentType=text/html'),
+        expect.stringContaining('[readable-studio packaged] readable-studio proxy response status=200 contentType=text/html'),
       );
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('title="Blocked by corporate policy"'),
       );
       expect(warn).toHaveBeenCalledTimes(1);
     } finally {
-      if (originalDiag == null) delete process.env.OD_PROTOCOL_DIAG;
-      else process.env.OD_PROTOCOL_DIAG = originalDiag;
+      if (originalDiag == null) delete process.env.READABLE_STUDIO_PROTOCOL_DIAG;
+      else process.env.READABLE_STUDIO_PROTOCOL_DIAG = originalDiag;
     }
   });
 });

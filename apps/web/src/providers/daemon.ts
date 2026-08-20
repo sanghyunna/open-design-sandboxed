@@ -588,7 +588,7 @@ export async function streamViaDaemon({
         // telemetry trace can be tagged 'client:desktop' vs 'client:web'.
         // The daemon falls back to a User-Agent sniff when this header is
         // absent (e.g. third-party clients), so omitting it in tests is OK.
-        'X-OD-Client': detectClientType(),
+        'X-Readable-Studio-Client': detectClientType(),
       },
       body,
     });
