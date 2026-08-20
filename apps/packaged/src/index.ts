@@ -94,6 +94,7 @@ async function main(): Promise<void> {
   const namespace = argvStamp?.namespace ?? config.namespace;
   const activeConfig = namespace === config.namespace ? config : { ...config, namespace };
   const paths = resolvePackagedNamespacePaths(activeConfig, namespace, process.env);
+  await ensurePackagedNamespacePaths(paths);
   const existingDesktop = await inspectExistingPackagedDesktop(namespace, {
     logger: console,
     paths,
@@ -106,7 +107,6 @@ async function main(): Promise<void> {
   startupTiming.mark("packaged-paths-resolved");
   const stamp = argvStamp ?? createPackagedDesktopStamp(namespace);
 
-  await ensurePackagedNamespacePaths(paths);
   packagedLogger = createPackagedDesktopLogger(paths);
   attachPackagedDesktopProcessLogging({
     descriptor: activeConfig.descriptor,

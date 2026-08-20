@@ -41,6 +41,8 @@ export function resolveDefaultPackagedNodeCommandRelativePath(
 export type RawPackagedConfig = {
   amrProfile?: string;
   appVersion?: string;
+  arch?: string;
+  artifact?: string;
   daemonCliEntryRelative?: string;
   daemonSidecarEntryRelative?: string;
   descriptor?: unknown;
@@ -51,6 +53,7 @@ export type RawPackagedConfig = {
   // directly into readable-studio-config.json before assembling the extracted
   // runtime so all runtime data stays beside the executable.
   portable?: boolean;
+  platform?: string;
   resourceRoot?: string;
   webSidecarEntryRelative?: string;
   webStandaloneRoot?: string;
@@ -60,6 +63,8 @@ export type RawPackagedConfig = {
 export type PackagedConfig = {
   amrProfile: PackagedAmrProfile | null;
   appVersion: string | null;
+  arch: "x64" | null;
+  artifact: "portable-zip" | null;
   daemonCliEntry: string | null;
   daemonSidecarEntry: string | null;
   descriptor: RuntimeDescriptor;
@@ -67,6 +72,7 @@ export type PackagedConfig = {
   namespaceBaseRoot: string;
   nodeCommand: string | null;
   portable: boolean;
+  platform: "win32" | null;
   resourceRoot: string;
   webSidecarEntry: string | null;
   webStandaloneRoot: string | null;
@@ -84,7 +90,18 @@ async function pathExists(filePath: string): Promise<boolean> {
 
 async function readJsonIfExists(filePath: string): Promise<RawPackagedConfig | null> {
   if (!(await pathExists(filePath))) return null;
-  return JSON.parse(await readFile(filePath, "utf8")) as RawPackagedConfig;
+  try {
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("root must be an object");
+    }
+    return parsed as RawPackagedConfig;
+  } catch (error) {
+    throw new Error(
+      `packaged config at ${filePath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
 }
 
 function resolveDefaultConfigPath(): string {
@@ -107,8 +124,12 @@ async function readRawPackagedConfig(): Promise<RawPackagedConfig> {
   );
 }
 
-function resolveOptionalPath(value: string | undefined): string | undefined {
-  return value == null || value.length === 0 ? undefined : resolve(value);
+function resolveOptionalPath(value: unknown, field: string): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`packaged config ${field} must be a non-empty path string`);
+  }
+  return resolve(value);
 }
 
 // Config DTOs use null for optional scalar values consumed by runtime options;
@@ -145,11 +166,24 @@ function resolvePackagedPortable(value: boolean | undefined): boolean {
   return value === true;
 }
 
+function resolvePortableTarget<T extends string>(
+  portable: boolean,
+  field: string,
+  value: string | undefined,
+  expected: T,
+): T | null {
+  if (!portable && value == null) return null;
+  if (value !== expected) {
+    throw new Error(`portable config ${field} must be ${JSON.stringify(expected)}`);
+  }
+  return expected;
+}
+
 function resolvePackagedWebStandaloneRoot(
   webOutputMode: PackagedWebOutputMode,
   value: string | undefined,
 ): string | null {
-  const configured = resolveOptionalPath(value);
+  const configured = resolveOptionalPath(value, "webStandaloneRoot");
   if (configured != null) return configured;
   if (webOutputMode !== "standalone") return null;
   return join(process.resourcesPath, "readable-studio-web-standalone");
@@ -178,6 +212,9 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   );
   const electronApp = await loadElectronApp();
   const portable = resolvePackagedPortable(raw.portable);
+  const arch = resolvePortableTarget(portable, "arch", raw.arch, "x64");
+  const artifact = resolvePortableTarget(portable, "artifact", raw.artifact, "portable-zip");
+  const platform = resolvePortableTarget(portable, "platform", raw.platform, "win32");
   // Portable invariant: a portable extraction keeps ALL runtime data beside the
   // extracted exe (`<exeDir>/ReadableStudioData/namespaces`) so nothing lands in
   // %APPDATA% or the registry. In the win-unpacked/zip layout
@@ -191,11 +228,11 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   // from portable artifacts precisely so this branch is reached, but a caller
   // that bakes an explicit root (e.g. a relocated install) keeps it.
   const namespaceBaseRoot =
-    resolveOptionalPath(raw.namespaceBaseRoot) ??
+    resolveOptionalPath(raw.namespaceBaseRoot, "namespaceBaseRoot") ??
     (portable
       ? join(dirname(process.execPath), "ReadableStudioData", "namespaces")
       : join(dirname(electronApp.getPath("userData")), "Readable Studio", "namespaces"));
-  const resourceRoot = resolveOptionalPath(raw.resourceRoot) ?? join(process.resourcesPath, "readable-studio");
+  const resourceRoot = resolveOptionalPath(raw.resourceRoot, "resourceRoot") ?? join(process.resourcesPath, "readable-studio");
   const relativeNodeCommand =
     raw.nodeCommandRelative == null || raw.nodeCommandRelative.length === 0
       ? resolveDefaultPackagedNodeCommandRelativePath()
@@ -221,6 +258,8 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   return {
     amrProfile: resolvePackagedAmrProfile(raw.amrProfile),
     appVersion,
+    arch,
+    artifact,
     daemonCliEntry,
     daemonSidecarEntry,
     descriptor,
@@ -228,6 +267,7 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
     namespaceBaseRoot,
     nodeCommand,
     portable,
+    platform,
     resourceRoot,
     webSidecarEntry,
     webStandaloneRoot,

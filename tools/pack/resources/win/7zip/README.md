@@ -1,4 +1,4 @@
-## Vendored 7-Zip extractor
+## Vendored 7-Zip archiver
 
 - Binaries:
   - `7z.exe`
@@ -12,9 +12,9 @@
 - SHA256 (`7z.dll`): `BBD705E3B58CA7677C1E9E67473F166A6712DA034DCB567D571FBB67507A443F`
 - SHA256 (`License.txt`): `32369594A3A9F7C643D124035120EAA6A7707E75E57C4386EF509F801447BC49`
 
-These binaries are vendored only for the Windows tools-pack installer build.
-The installer embeds `7z.exe` and `7z.dll` temporarily to extract the packaged
-Readable Studio `.7z` payload during installation.
+These binaries are vendored only for the Windows tools-pack portable build.
+The build uses them to create and validate the Readable Studio portable ZIP;
+the archive does not install or register them on the destination machine.
 
 These files remain subject to the upstream 7-Zip license and are not relicensed
 under this repository's Apache-2.0 license. In particular, see `License.txt` for

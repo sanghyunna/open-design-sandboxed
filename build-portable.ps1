@@ -2,121 +2,90 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Build the self-contained Windows portable zip of Open Design.
-
-    Agent note: this is the canonical Windows build entrypoint for this
-    workspace. If a user says "build" on Windows, run this script unless they
-    explicitly ask for package-scoped validation.
+    Build the self-contained Readable Studio Windows x64 portable ZIP.
 
 .DESCRIPTION
-    Produces a portable artifact that runs on a bare Windows x64 machine with NO
-    npm / Node / git installed — only the two external agent CLIs (codex,
-    cursor-agent) need to be on PATH in the target environment.
-
-    The portable runtime guarantees (apps/packaged/src/config.ts +
-    tools/pack/src/win/*):
-      - all runtime data lands beside the extracted exe
-        (<exeDir>\OpenDesignData\namespaces), never %APPDATA% or the registry
-
-    This machine's system Node is v22 (violates engines ~24), so the script
-    forces the portable Node 24 toolchain onto PATH. better-sqlite3 must remain
-    on the Node ABI because the daemon sidecar runs under the packaged Node
-    runtime; rebuilding it to Electron's ABI makes the portable app crash at
-    startup. The 16 workspace packages build in parallel via pnpm's topological
-    scheduler (tools/pack/src/win/app.ts).
-
-    BUILD SPEED — Windows Defender (build-machine only):
-      The single biggest cost on a fresh machine is Defender real-time scanning
-      every file under the build tree. Proven here: an identical 15,376-file zip
-      dropped 655s -> 59s purely from excluding .tmp. If a build feels
-      pathologically slow (tens of minutes for a ~250 MB app), exclude these on
-      the BUILD machine from an ADMIN PowerShell (or push via GPO/Intune for a
-      shared build box):
-        Add-MpPreference -ExclusionPath `
-          'D:\dev\open_design_port\open-design\.tmp', `
-          'D:\dev\open_design_port\open-design\node_modules', `
-          "$env:LOCALAPPDATA\electron-builder\Cache", `
-          "$env:LOCALAPPDATA\npm-cache", "$env:LOCALAPPDATA\pnpm-cache", `
-          'D:\.pnpm-store', 'D:\dev\open_design_port\.tools\node24'
-      (Already applied on THIS machine. `pnpm store path` prints the store dir if
-      it differs.) End users who only run the zip are unaffected — they pay at
-      most a one-time first-launch scan on their own machine, not the build tax.
-
-    DATA DIRECTORY is a RUNTIME concern, not a build flag:
-      Portable data defaults to <exeDir>\OpenDesignData. To relocate it, the END
-      USER sets OD_DATA_DIR when launching the extracted exe — it always wins
-      over the portable fallback. It is intentionally NOT baked at build time
-      (that would hardcode a path into a "portable" artifact), so there is no
-      -DataDir flag. The win packaging never reads OD_DATA_DIR at build time.
+    This is the canonical project-root Windows build entrypoint. The resulting
+    archive runs without Node, npm, pnpm, git, an installer, or an updater on
+    the destination machine. Runtime data, logs, cache, and Chromium user data
+    are created under <exeDir>\ReadableStudioData. Runtime-specific environment
+    overrides remain end-user concerns and are never baked into the archive.
 
 .PARAMETER Namespace
-    Runtime namespace baked into the artifact. Default: rg.
+    Runtime namespace embedded in the artifact. Default: rg.
 
 .PARAMETER DropDir
-    Folder that receives the final portable zip after the build moves it. Default:
-    D:\dev\open_design_port.
+    Directory that receives Readable Studio-<namespace>-portable.zip.
 
 .PARAMETER PortableZipCompression
-    Optional 7z compression level for the portable zip. Default: 5.
+    Optional 7-Zip compression level from 0 through 9. Default: 5.
 
 .PARAMETER AppVersion
-    Packaged app version baked into the portable artifact. Default: 0.1.5 for
-    the redesigned Windows release line.
-
-.EXAMPLE
-    .\build-portable.ps1
-    .\build-portable.ps1 -DropDir D:\dev\open_design_port
+    Optional packaged version. Defaults to the project package.json version.
 #>
 [CmdletBinding()]
 param(
     [string]$Namespace = "rg",
     [string]$DropDir = "D:\dev\open_design_port",
     [string]$PortableZipCompression,
-    [string]$AppVersion = "0.1.5"
+    [string]$AppVersion
 )
 
 $ErrorActionPreference = "Stop"
-
-# Project root = this script's directory.
 $ProjectRoot = $PSScriptRoot
-# Portable Node 24 toolchain (required: system Node here is v22, repo needs ~24).
-$Node24 = "D:\dev\open_design_port\.tools\node24"
+$FallbackToolchainRoot = "D:\dev\open_design_port\.tools\node24"
 
-Write-Host "=== Open Design portable build ===" -ForegroundColor Cyan
-Write-Host "Project root : $ProjectRoot"
-Write-Host "Namespace    : $Namespace"
-Write-Host "Zip drop dir : $DropDir"
-Write-Host "App version  : $AppVersion"
+if ([string]::IsNullOrWhiteSpace($Namespace)) {
+    throw "Namespace must not be empty."
+}
+if ([string]::IsNullOrWhiteSpace($AppVersion)) {
+    $AppVersion = (Get-Content -LiteralPath (Join-Path $ProjectRoot "package.json") -Raw | ConvertFrom-Json).version
+}
+if ([string]::IsNullOrWhiteSpace($AppVersion)) {
+    throw "package.json does not contain a packaged app version."
+}
+
+$NamespaceToken = $Namespace -replace '[^A-Za-z0-9._-]+', '-'
+$ArtifactName = "Readable Studio-$NamespaceToken-portable.zip"
+$ExpectedZip = Join-Path $ProjectRoot ".tmp\tools-pack\out\win\namespaces\$Namespace\builder\$ArtifactName"
+
 if ([string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     $PortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
 }
-
 $previousPortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
 if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     if ($PortableZipCompression -notmatch '^\d+$' -or [int]$PortableZipCompression -lt 0 -or [int]$PortableZipCompression -gt 9) {
-        throw "Portable zip compression must be an integer from 0 to 9, but got '$PortableZipCompression'."
+        throw "Portable ZIP compression must be an integer from 0 to 9, but got '$PortableZipCompression'."
     }
-
     $env:OD_PORTABLE_ZIP_COMPRESSION = $PortableZipCompression
-    Write-Host "Zip compression: -mx=$PortableZipCompression" -ForegroundColor Green
 }
 
-# --- 1. Force the Node 24 toolchain onto PATH -------------------------------
-if (-not (Test-Path (Join-Path $Node24 "node.exe"))) {
-    throw "Portable Node 24 not found at '$Node24'. Update `$Node24 in this script."
+$NodeCommand = $null
+$PnpmCommand = $null
+if (Test-Path -LiteralPath (Join-Path $FallbackToolchainRoot "node.exe")) {
+    $NodeCommand = Join-Path $FallbackToolchainRoot "node.exe"
+    $PnpmCommand = Join-Path $FallbackToolchainRoot "pnpm.cmd"
+    $env:Path = "$FallbackToolchainRoot$([IO.Path]::PathSeparator)$env:Path"
+} else {
+    $NodeCommand = (Get-Command node.exe -ErrorAction Stop).Source
+    $PnpmCommand = (Get-Command pnpm.cmd -ErrorAction Stop).Source
 }
-$env:Path = "$Node24$([IO.Path]::PathSeparator)$env:Path"
-
-$nodeVersion = & "$Node24\node.exe" --version
-if ($nodeVersion -notmatch '^v24\.') {
-    throw "Expected Node v24.x from the portable toolchain but got '$nodeVersion'."
+if (-not (Test-Path -LiteralPath $PnpmCommand)) {
+    throw "pnpm.cmd was not found beside the selected Node 24 toolchain."
 }
-Write-Host "Node         : $nodeVersion (from $Node24)" -ForegroundColor Green
+$nodeVersion = & $NodeCommand --version
+if ($LASTEXITCODE -ne 0 -or $nodeVersion -notmatch '^v24\.') {
+    throw "Readable Studio portable builds require Node v24.x; selected runtime reported '$nodeVersion'."
+}
 
-# --- 2. Build the portable artifact -----------------------------------------
-# tools-pack win build also (re)builds the 16 workspace packages. Keep
-# better-sqlite3 on the Node ABI for the daemon sidecar; do not Electron-rebuild
-# the assembled app's native module.
+Write-Host "=== Readable Studio portable build ===" -ForegroundColor Cyan
+Write-Host "Project root : $ProjectRoot"
+Write-Host "Namespace    : $Namespace"
+Write-Host "Architecture : Windows x64"
+Write-Host "App version  : $AppVersion"
+Write-Host "Artifact     : $ArtifactName"
+Write-Host "Node         : $nodeVersion"
+
 $buildArgs = @(
     "tools-pack", "win", "build",
     "--namespace", $Namespace,
@@ -125,65 +94,47 @@ $buildArgs = @(
 if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     $buildArgs += @("--cache-dir", (Join-Path $ProjectRoot ".tmp\tools-pack\cache\portable-zip-mx-$PortableZipCompression"))
 }
-Write-Host ""
-Write-Host "Running: pnpm $($buildArgs -join ' ')" -ForegroundColor Cyan
-Write-Host ""
 
 $sw = [Diagnostics.Stopwatch]::StartNew()
+$previousErrorActionPreference = $ErrorActionPreference
 Push-Location $ProjectRoot
-# tools-pack writes its phase logs to STDERR. Under PowerShell 5.1, when this
-# script's output is redirected (2>&1 / *> to a log, as the background build
-# launcher does), each native-stderr line is wrapped as a NativeCommandError
-# ErrorRecord. With $ErrorActionPreference='Stop' that wrapped record THROWS at
-# the first phase line and kills the build even though pnpm exited 0. Drop to
-# Continue for the native call, stringify the merged stream so the phase logs
-# stay readable, and trust $LASTEXITCODE (the real exit signal) for failure.
-$prevEAP = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
 try {
-    & "$Node24\pnpm.cmd" @buildArgs 2>&1 | ForEach-Object { "$_" }
-    $exit = $LASTEXITCODE
-}
-finally {
-    $ErrorActionPreference = $prevEAP
-    if ($previousPortableZipCompression -eq $null) {
+    # PowerShell 5.1 wraps native stderr as ErrorRecord when redirected. Preserve
+    # phase output and use each native exit code as the authoritative result.
+    $ErrorActionPreference = "Continue"
+    & $PnpmCommand --filter "@readable-studio/tools-pack" build 2>&1 | ForEach-Object { "$_" }
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -eq 0) {
+        & $PnpmCommand @buildArgs 2>&1 | ForEach-Object { "$_" }
+        $exitCode = $LASTEXITCODE
+    }
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+    if ($null -eq $previousPortableZipCompression) {
         Remove-Item Env:OD_PORTABLE_ZIP_COMPRESSION -ErrorAction SilentlyContinue
     } else {
         $env:OD_PORTABLE_ZIP_COMPRESSION = $previousPortableZipCompression
     }
     Pop-Location
+    $sw.Stop()
 }
-$sw.Stop()
-
-$elapsed = "{0:n1} min" -f $sw.Elapsed.TotalMinutes
-if ($exit -ne 0) {
-    throw "Build failed with exit code $exit after $elapsed."
+if ($exitCode -ne 0) {
+    throw "Portable build failed with exit code $exitCode after $(('{0:n1}' -f $sw.Elapsed.TotalMinutes)) minutes."
+}
+if (-not (Test-Path -LiteralPath $ExpectedZip -PathType Leaf)) {
+    throw "Portable build completed without the expected artifact: $ExpectedZip"
 }
 
-# --- 3. Report the artifact -------------------------------------------------
-Write-Host ""
-Write-Host "=== Build complete in $elapsed ===" -ForegroundColor Green
-
-$nsDir = Join-Path $ProjectRoot ".tmp\tools-pack\out\win\namespaces\$Namespace"
-$zip = Get-ChildItem -Path (Join-Path $nsDir "builder") -Filter "*-portable.zip" -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if ($zip) {
-    $zipMB = [math]::Round($zip.Length / 1MB, 1)
-    Write-Host "Portable zip : $($zip.FullName)" -ForegroundColor Green
-    Write-Host "Size         : $zipMB MB" -ForegroundColor Green
-    # Move the portable artifact to the requested drop dir for easy access; the
-    # raw packager output is buried deep under .tmp.
-    $dropDirInfo = New-Item -ItemType Directory -Path $DropDir -Force
-    $dropPath = Join-Path $dropDirInfo.FullName $zip.Name
-    if ([string]::Equals($zip.FullName, $dropPath, [StringComparison]::OrdinalIgnoreCase)) {
-        Write-Host "Already at   : $dropPath" -ForegroundColor Green
-    } else {
-        if (Test-Path -LiteralPath $dropPath) {
-            Remove-Item -LiteralPath $dropPath -Force
-        }
-        Move-Item -LiteralPath $zip.FullName -Destination $dropPath
-        Write-Host "Moved to     : $dropPath" -ForegroundColor Green
+$dropDirInfo = New-Item -ItemType Directory -Path $DropDir -Force
+$DropPath = Join-Path $dropDirInfo.FullName $ArtifactName
+if (-not [string]::Equals($ExpectedZip, $DropPath, [StringComparison]::OrdinalIgnoreCase)) {
+    if (Test-Path -LiteralPath $DropPath) {
+        Remove-Item -LiteralPath $DropPath -Force
     }
-} else {
-    Write-Host "Portable zip not found under $nsDir — check the build log above." -ForegroundColor Yellow
+    Move-Item -LiteralPath $ExpectedZip -Destination $DropPath
 }
+
+$artifact = Get-Item -LiteralPath $DropPath
+Write-Host "=== Build complete in $(('{0:n1}' -f $sw.Elapsed.TotalMinutes)) minutes ===" -ForegroundColor Green
+Write-Host "Portable ZIP : $($artifact.FullName)" -ForegroundColor Green
+Write-Host "Size         : $([math]::Round($artifact.Length / 1MB, 1)) MB" -ForegroundColor Green

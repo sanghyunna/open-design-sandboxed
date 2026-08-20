@@ -64,6 +64,8 @@ function resolveHeadlessConfig(): PackagedConfig {
   return {
     amrProfile: resolveHeadlessAmrProfile(),
     appVersion,
+    arch: null,
+    artifact: null,
     descriptor: createRuntimeDescriptor(appVersion),
     daemonCliEntry: null,
     daemonSidecarEntry: null,
@@ -74,6 +76,7 @@ function resolveHeadlessConfig(): PackagedConfig {
     // and never reads the packaged portable artifact, so it is always
     // non-portable; the portable exe-adjacent fallback never applies here.
     portable: false,
+    platform: null,
     resourceRoot,
     webSidecarEntry: null,
     webStandaloneRoot: null,

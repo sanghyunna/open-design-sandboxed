@@ -1,5 +1,5 @@
-import { access, appendFile, mkdir, stat } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
+import { appendFile, mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 import { userInfo } from "node:os";
 
@@ -50,7 +50,6 @@ function formatWritablePathError(options: {
 }): string {
   const { attemptedPath, currentUser, diagnostic, error, parentDiagnostic } = options;
   const message = error instanceof Error ? error.message : String(error);
-  const parentPath = dirname(attemptedPath);
   const diagLines = [
     `Readable Studio could not create or write to:`,
     attemptedPath,
@@ -63,31 +62,35 @@ function formatWritablePathError(options: {
     `Parent mode: ${formatMode(parentDiagnostic.mode)}`,
     "",
     `Common causes:`,
-    `• the folder was created by another user (for example with sudo)`,
-    `• the parent folder is not writable`,
-    `• the folder is a symlink to a protected location`,
+    `• the archive was extracted into a protected or read-only folder`,
+    `• a required directory path is occupied by a file`,
+    `• security software denied writes beside the executable`,
     "",
-    `Try in Terminal:`,
-    `ls -ld \"${parentPath}\" \"${attemptedPath}\"`,
-    `sudo chown -R \"${currentUser}\":staff \"${parentPath}\"`,
-    `chmod -R u+rwX \"${parentPath}\"`,
+    `Extract Readable Studio to a writable folder owned by ${currentUser}, then launch it again.`,
   ];
   return diagLines.join("\n");
 }
 
 // @dsp func-77b5e7da
 export async function verifyPackagedDataRootWritable(paths: Pick<PackagedNamespacePaths, "dataRoot">): Promise<void> {
+  await verifyPackagedWritableRoot(paths.dataRoot);
+}
+
+async function verifyPackagedWritableRoot(root: string): Promise<void> {
+  const probePath = join(root, `.readable-studio-write-test-${process.pid}-${randomUUID()}`);
   try {
-    await mkdir(paths.dataRoot, { recursive: true });
-    await access(paths.dataRoot, fsConstants.W_OK);
+    await mkdir(root, { recursive: true });
+    await writeFile(probePath, "", { flag: "wx" });
+    await rm(probePath, { force: true });
   } catch (error) {
+    await rm(probePath, { force: true }).catch(() => undefined);
     const [diagnostic, parentDiagnostic] = await Promise.all([
-      inspectPath(paths.dataRoot),
-      inspectPath(dirname(paths.dataRoot)),
+      inspectPath(root),
+      inspectPath(dirname(root)),
     ]);
     throw new PackagedPathAccessError(
       formatWritablePathError({
-        attemptedPath: paths.dataRoot,
+        attemptedPath: root,
         currentUser: userInfo().username,
         diagnostic,
         error,
@@ -102,17 +105,18 @@ export async function verifyPackagedDataRootWritable(paths: Pick<PackagedNamespa
 export async function ensurePackagedNamespacePaths(
   paths: PackagedNamespacePaths,
 ): Promise<void> {
-  await verifyPackagedDataRootWritable(paths);
-  await Promise.all([
-    mkdir(paths.namespaceRoot, { recursive: true }),
-    mkdir(paths.cacheRoot, { recursive: true }),
-    mkdir(paths.dataRoot, { recursive: true }),
-    mkdir(paths.logsRoot, { recursive: true }),
-    mkdir(paths.desktopLogsRoot, { recursive: true }),
-    mkdir(paths.runtimeRoot, { recursive: true }),
-    mkdir(paths.electronUserDataRoot, { recursive: true }),
-    mkdir(paths.electronSessionDataRoot, { recursive: true }),
-  ]);
+  const writableRoots = [
+    paths.installationRoot,
+    paths.namespaceRoot,
+    paths.cacheRoot,
+    paths.dataRoot,
+    paths.logsRoot,
+    paths.desktopLogsRoot,
+    paths.runtimeRoot,
+    paths.electronUserDataRoot,
+    paths.electronSessionDataRoot,
+  ];
+  for (const root of writableRoots) await verifyPackagedWritableRoot(root);
 }
 
 // @dsp func-3debd19d

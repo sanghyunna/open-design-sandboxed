@@ -31,7 +31,7 @@ export type ElectronBuilderDirCacheMetadata = {
 };
 
 export type ResourceTreeCacheMetadata = {
-  resourceName: "open-design";
+  resourceName: "readable-studio";
 };
 
 export type WinBuiltAppManifest = {

@@ -4,9 +4,10 @@ import { dirname, join } from "node:path";
 import { hashJson, hashPath, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
 import { copyBundledResourceTrees, winResources } from "../resources.js";
+import { RESOURCE_TREE_NAME } from "./constants.js";
 import type { WinPaths, ResourceTreeCacheMetadata } from "./types.js";
 
-const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 10;
+const RESOURCE_TREE_CACHE_SCHEMA_VERSION = 11;
 
 function nativeIsolatorPaths(workspaceRoot: string): {
   binary: string;
@@ -59,10 +60,10 @@ export async function prepareResourceTree(
   const node = {
     id: "win.resource-tree",
     key,
-    outputs: ["open-design"],
+    outputs: [RESOURCE_TREE_NAME],
     invalidate: async () => null,
     build: async ({ entryRoot }: { entryRoot: string }): Promise<ResourceTreeCacheMetadata> => {
-      const resourceRoot = join(entryRoot, "open-design");
+      const resourceRoot = join(entryRoot, RESOURCE_TREE_NAME);
       await mkdir(resourceRoot, { recursive: true });
       await copyBundledResourceTrees({
         workspaceRoot: config.workspaceRoot,
@@ -76,16 +77,16 @@ export async function prepareResourceTree(
       );
       await cp(winResources.sevenZipExe, join(resourceRoot, "bin", "7z.exe"));
       await cp(winResources.sevenZipDll, join(resourceRoot, "bin", "7z.dll"));
-      return { resourceName: "open-design" };
+      return { resourceName: RESOURCE_TREE_NAME };
     },
   };
   const manifest = await cache.acquire({
-    materialize: options.materialize ? [{ from: "open-design", to: paths.resourceRoot }] : [],
+    materialize: options.materialize ? [{ from: RESOURCE_TREE_NAME, to: paths.resourceRoot }] : [],
     node,
   });
   return {
     key,
-    resourceRoot: options.materialize ? paths.resourceRoot : join(manifest.entryPath, "open-design"),
+    resourceRoot: options.materialize ? paths.resourceRoot : join(manifest.entryPath, RESOURCE_TREE_NAME),
   };
 }
 

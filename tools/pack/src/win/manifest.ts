@@ -26,9 +26,12 @@ function createPackagedConfig(
   return {
     ...(config.amrProfile == null ? {} : { amrProfile: config.amrProfile }),
     appVersion: packagedVersion,
+    arch: "x64",
+    artifact: "portable-zip",
     descriptor: createRuntimeDescriptor(packagedVersion),
     ...entrypoints,
     namespace: config.namespace,
+    platform: "win32",
     portable: true,
     webOutputMode: config.webOutputMode,
   };

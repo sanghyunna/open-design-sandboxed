@@ -105,10 +105,15 @@ describe("materializeCachedUnpackedForPortableZip", () => {
       await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Readable Studio.exe"))).resolves.toMatchObject({
         fixedFileVersion: "0.5.0.0",
         fixedProductVersion: "0.5.0.0",
+        machine: "x64",
         stringTables: [
           {
             values: expect.objectContaining({
+              FileDescription: "Readable Studio",
               FileVersion: "0.5.0-beta.2",
+              InternalName: "Readable Studio",
+              OriginalFilename: "Readable Studio.exe",
+              ProductName: "Readable Studio",
               ProductVersion: "0.5.0.0",
             }),
           },

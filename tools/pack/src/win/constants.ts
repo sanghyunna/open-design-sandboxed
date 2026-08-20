@@ -1,4 +1,5 @@
 export { PRODUCT_NAME } from "@readable-studio/product-identity";
+export const RESOURCE_TREE_NAME = "readable-studio";
 export const DESKTOP_LOG_ECHO_ENV = "OD_DESKTOP_LOG_ECHO";
 export const WEB_STANDALONE_HOOK_CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
 export const WEB_STANDALONE_RESOURCE_NAME = "readable-studio-web-standalone";

@@ -1,5 +1,6 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
 
 import { SIDECAR_MESSAGES } from "@readable-studio/sidecar-proto";
@@ -12,6 +13,7 @@ vi.mock("electron", () => ({
 import { PackagedPathAccessError } from "../src/errors.js";
 import {
   claimPackagedSingleInstanceLock,
+  ensurePackagedNamespacePaths,
   inspectExistingPackagedDesktop,
   verifyPackagedDataRootWritable,
 } from "../src/launch.js";
@@ -46,6 +48,26 @@ describe("verifyPackagedDataRootWritable", () => {
     }
   });
 
+  it.runIf(process.platform === "win32")("rejects an ACL read-only portable root with a clear recovery action", async () => {
+    const root = mkdtempSync(join(tmpdir(), "readable-packaged-readonly-"));
+    const protectedRoot = join(root, "portable-root");
+    const username = userInfo().username;
+    mkdirSync(protectedRoot);
+    try {
+      execFileSync("icacls.exe", [protectedRoot, "/deny", `${username}:(OI)(CI)(W)`]);
+
+      await expect(
+        verifyPackagedDataRootWritable({ dataRoot: join(protectedRoot, "ReadableStudioData", "data") }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("Extract Readable Studio to a writable folder"),
+        name: "PackagedPathAccessError",
+      });
+    } finally {
+      execFileSync("icacls.exe", [protectedRoot, "/remove:d", username]);
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   it("wraps low-level mkdir/access failures with a user-actionable error", async () => {
     const root = mkdtempSync(join(tmpdir(), "od-packaged-launch-"));
     try {
@@ -64,8 +86,26 @@ describe("verifyPackagedDataRootWritable", () => {
       expect((captured as Error).message).toContain("Readable Studio could not create or write to:");
       expect((captured as Error).message).toContain(join(blocker, "data"));
       expect((captured as Error).message).toContain("Current user:");
-      expect((captured as Error).message).toContain("Try in Terminal:");
-      expect((captured as Error).message).toContain("sudo chown -R");
+      expect((captured as Error).message).toContain("Extract Readable Studio to a writable folder");
+      expect((captured as Error).message).toContain("security software denied writes");
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+});
+
+describe("ensurePackagedNamespacePaths", () => {
+  it("fails clearly when any exe-adjacent writable root is malformed", async () => {
+    const root = mkdtempSync(join(tmpdir(), "readable-packaged-roots-"));
+    try {
+      const paths = fakePaths(root);
+      writeFileSync(paths.cacheRoot, "cache root is a file", "utf8");
+
+      await expect(ensurePackagedNamespacePaths(paths)).rejects.toMatchObject({
+        message: expect.stringContaining(paths.cacheRoot),
+        name: "PackagedPathAccessError",
+      });
+      await expect(ensurePackagedNamespacePaths(paths)).rejects.toThrow(/extract Readable Studio to a writable folder/i);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }

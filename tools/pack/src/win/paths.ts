@@ -10,7 +10,7 @@ import {
   WIN_PREBUNDLED_PACKAGED_MAIN_RELATIVE_PATH,
   WIN_PREBUNDLED_WEB_SIDECAR_RELATIVE_PATH,
 } from "../win-prebundle.js";
-import { PRODUCT_NAME } from "./constants.js";
+import { PRODUCT_NAME, RESOURCE_TREE_NAME } from "./constants.js";
 import type { WinPaths } from "./types.js";
 
 export function sanitizeNamespace(value: string): string {
@@ -37,7 +37,7 @@ export function resolveWinPaths(config: ToolPackConfig): WinPaths {
     packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, WIN_PREBUNDLE_META_DIR_NAME, "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", WIN_PREBUNDLED_PACKAGED_MAIN_RELATIVE_PATH),
-    resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
+    resourceRoot: join(namespaceRoot, "resources", RESOURCE_TREE_NAME),
     setupZipPath: join(namespaceRoot, "builder", `${PRODUCT_NAME}-${namespaceToken}-portable.zip`),
     tarballsRoot: join(namespaceRoot, "tarballs"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),

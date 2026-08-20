@@ -418,7 +418,7 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
   const appendLifecycleLog = async (message: string): Promise<void> => {
     await appendFile(child.logPath, `${message}\n`, "utf8").catch(() => undefined);
   };
-  await appendLifecycleLog(`[open-design packaged] shutdown requested app=${child.app} pid=${child.child.pid ?? "unknown"}`);
+  await appendLifecycleLog(`[readable-studio packaged] shutdown requested app=${child.app} pid=${child.child.pid ?? "unknown"}`);
   try {
     await requestJsonIpc(child.ipcPath, { type: SIDECAR_MESSAGES.SHUTDOWN }, { timeoutMs: 1200 });
   } catch {
@@ -426,11 +426,11 @@ async function closeManagedChild(child: ManagedSidecarChild): Promise<void> {
   }
 
   if (!(await waitForProcessExit(child.child.pid, 5000))) {
-    await appendLifecycleLog(`[open-design packaged] shutdown timeout app=${child.app} pid=${child.child.pid ?? "unknown"}; forcing stop`);
+    await appendLifecycleLog(`[readable-studio packaged] shutdown timeout app=${child.app} pid=${child.child.pid ?? "unknown"}; forcing stop`);
     await stopProcesses([child.child.pid]);
   }
 
-  await appendLifecycleLog(`[open-design packaged] exited app=${child.app} pid=${child.child.pid ?? "unknown"} code=${child.child.exitCode ?? "unknown"} signal=${child.child.signalCode ?? "none"}`);
+  await appendLifecycleLog(`[readable-studio packaged] exited app=${child.app} pid=${child.child.pid ?? "unknown"} code=${child.child.exitCode ?? "unknown"} signal=${child.child.signalCode ?? "none"}`);
   await child.logHandle.close().catch(() => undefined);
 }
 

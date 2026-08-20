@@ -71,9 +71,12 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
   function writeConfig(raw: Record<string, unknown>): void {
     const configPath = join(configDir, "readable-studio-config.json");
     const appVersion = typeof raw.appVersion === "string" ? raw.appVersion : "1.2.3";
+    const portableTarget = raw.portable === true
+      ? { arch: "x64", artifact: "portable-zip", platform: "win32" }
+      : {};
     writeFileSync(
       configPath,
-      `${JSON.stringify({ appVersion, descriptor: createRuntimeDescriptor(appVersion), ...raw }, null, 2)}\n`,
+      `${JSON.stringify({ appVersion, descriptor: createRuntimeDescriptor(appVersion), ...portableTarget, ...raw }, null, 2)}\n`,
       "utf8",
     );
     process.env[PACKAGED_CONFIG_PATH_ENV] = configPath;
@@ -112,6 +115,28 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
     await expect(readPackagedConfig()).rejects.toThrow(/appVersion does not match packaged config/);
   });
 
+  it("rejects malformed JSON with the embedded config path in the diagnostic", async () => {
+    const configPath = join(configDir, "readable-studio-config.json");
+    writeFileSync(configPath, "{ definitely-not-json", "utf8");
+    process.env[PACKAGED_CONFIG_PATH_ENV] = configPath;
+
+    await expect(readPackagedConfig()).rejects.toThrow(
+      new RegExp(`packaged config at .*${configPath.split(/[\\/]/).at(-1)} is not valid JSON`),
+    );
+  });
+
+  it("rejects a malformed embedded namespace root with a field-specific diagnostic", async () => {
+    writeConfig({ namespace: "rg", namespaceBaseRoot: { path: "D:/data" }, portable: true });
+
+    await expect(readPackagedConfig()).rejects.toThrow(/namespaceBaseRoot must be a non-empty path string/);
+  });
+
+  it("rejects incomplete portable target metadata", async () => {
+    writeConfig({ arch: "arm64", namespace: "rg", portable: true });
+
+    await expect(readPackagedConfig()).rejects.toThrow(/portable config arch must be "x64"/);
+  });
+
   it("falls back to an exe-adjacent ReadableStudioData root when portable and no explicit root", async () => {
     const exeDir = join("D:", "Portable", "Readable Studio");
     stubExecPath(join(exeDir, "Readable Studio.exe"));
@@ -120,6 +145,9 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
     const config = await readPackagedConfig();
 
     expect(config.portable).toBe(true);
+    expect(config.arch).toBe("x64");
+    expect(config.artifact).toBe("portable-zip");
+    expect(config.platform).toBe("win32");
     expect(config.namespaceBaseRoot).toBe(join(exeDir, "ReadableStudioData", "namespaces"));
     // The portable root must never touch the mocked userData directory.
     expect(config.namespaceBaseRoot.startsWith(USER_DATA_DIR)).toBe(false);

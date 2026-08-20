@@ -357,6 +357,9 @@ async function assertMaterializedUnpackedVersionConsistency(
   const executablePath = join(unpackedRoot, `${PRODUCT_NAME}.exe`);
   const executableVersionTargets = resolveWinExecutableVersionTargets(packagedVersion);
   const executableVersion = await readWinExecutableVersionSnapshot(executablePath);
+  if (executableVersion.machine !== "x64") {
+    throw new Error(`expected unpacked executable to target Windows x64 in ${executablePath}`);
+  }
   if (executableVersion.fixedFileVersion !== executableVersionTargets.numericVersion) {
     throw new Error(
       `expected unpacked executable fixed FileVersion ${executableVersionTargets.numericVersion} in ${executablePath}, received ${executableVersion.fixedFileVersion}`,

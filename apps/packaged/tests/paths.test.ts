@@ -19,6 +19,8 @@ function fakeConfig(): PackagedConfig {
   return {
     amrProfile: null,
     appVersion: null,
+    arch: null,
+    artifact: null,
     daemonCliEntry: null,
     daemonSidecarEntry: null,
     descriptor: createRuntimeDescriptor("0.0.0"),
@@ -26,6 +28,7 @@ function fakeConfig(): PackagedConfig {
     namespaceBaseRoot: join("C:", "Users", "Fred", "AppData", "Roaming", "Readable Studio", "namespaces"),
     nodeCommand: null,
     portable: false,
+    platform: null,
     resourceRoot: join("C:", "Program Files", "Readable Studio", "resources", "readable-studio"),
     webOutputMode: "server",
     webSidecarEntry: null,
@@ -56,6 +59,8 @@ describe("resolvePackagedNamespacePaths", () => {
     const config: PackagedConfig = {
       amrProfile: null,
       appVersion: "1.2.3",
+      arch: null,
+      artifact: null,
       daemonCliEntry: null,
       daemonSidecarEntry: null,
       descriptor: createRuntimeDescriptor("1.2.3"),
@@ -63,6 +68,7 @@ describe("resolvePackagedNamespacePaths", () => {
       namespaceBaseRoot: "/tmp/open-design-packaged/namespaces",
       nodeCommand: null,
       portable: false,
+      platform: null,
       resourceRoot: "/tmp/open-design-packaged/resources",
       webSidecarEntry: null,
       webStandaloneRoot: null,
