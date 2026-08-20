@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const hu: HostedMessages = {
-  'hosted.provider.eyebrow': 'Hosztolt Open Design',
+  'hosted.provider.eyebrow': 'Hosztolt Readable Studio',
   'hosted.provider.title': 'Modellszolgáltató csatlakoztatása',
   'hosted.provider.description': 'A kulcs csak ebben a munkamenetben marad, a böngésző nem menti el.',
   'hosted.provider.runtime': 'Ügynök futtatókörnyezete',

@@ -36,15 +36,15 @@ function createPaths(root: string): WinPaths {
     packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
-    resourceRoot: join(namespaceRoot, "resources", "open-design"),
-    setupZipPath: join(namespaceRoot, "builder", "Open Design-second-portable.zip"),
+    resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
+    setupZipPath: join(namespaceRoot, "builder", "Readable Studio-second-portable.zip"),
     tarballsRoot: join(namespaceRoot, "tarballs"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
     webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
     webSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "web-sidecar.mjs"),
     winIconPath: join(namespaceRoot, "resources", "win", "icon.ico"),
-    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Open Design.exe"),
+    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Readable Studio.exe"),
     unpackedRoot: join(namespaceRoot, "builder", "win-unpacked"),
   };
 }
@@ -72,7 +72,7 @@ describe("materializeCachedUnpackedForPortableZip", () => {
 
     try {
       await mkdir(join(cachedUnpackedRoot, "resources"), { recursive: true });
-      await writeFile(join(cachedUnpackedRoot, "Open Design.exe"), await createVersionedExecutable("0.5.0-beta.1"));
+      await writeFile(join(cachedUnpackedRoot, "Readable Studio.exe"), await createVersionedExecutable("0.5.0-beta.1"));
       await writeFile(
         join(cachedUnpackedRoot, "resources", "readable-studio-config.json"),
         `${JSON.stringify({ namespace: "first", version: 1 })}\n`,
@@ -81,7 +81,7 @@ describe("materializeCachedUnpackedForPortableZip", () => {
       await mkdir(join(cachedUnpackedRoot, "resources", "app"), { recursive: true });
       await writeFile(
         join(cachedUnpackedRoot, "resources", "app", "package.json"),
-        `${JSON.stringify({ name: "open-design-packaged-app", version: "0.5.0-beta.1" })}\n`,
+        `${JSON.stringify({ name: "readable-studio-packaged-app", version: "0.5.0-beta.1" })}\n`,
         "utf8",
       );
       await mkdir(join(paths.packagedConfigPath, ".."), { recursive: true });
@@ -104,7 +104,7 @@ describe("materializeCachedUnpackedForPortableZip", () => {
       await expect(readFile(join(paths.unpackedRoot, "resources", "readable-studio-config.json"), "utf8")).resolves.toContain(
         '"appVersion":"0.5.0-beta.2"',
       );
-      await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Open Design.exe"))).resolves.toMatchObject({
+      await expect(readWinExecutableVersionSnapshot(join(paths.unpackedRoot, "Readable Studio.exe"))).resolves.toMatchObject({
         fixedFileVersion: "0.5.0.0",
         fixedProductVersion: "0.5.0.0",
         stringTables: [
@@ -211,9 +211,9 @@ async function createVersionedExecutable(packagedVersion: string): Promise<Buffe
   version.setStringValues(
     { codepage: 1200, lang: 1033 },
     {
-      FileDescription: "Open Design",
+      FileDescription: "Readable Studio",
       FileVersion: packagedVersion,
-      ProductName: "Open Design",
+      ProductName: "Readable Studio",
       ProductVersion: "0.5.0.0",
     },
   );

@@ -286,8 +286,10 @@ export function resolveAboutPanelVersion(options: DesktopMainOptions): string | 
 
 function configureAboutPanel(options: DesktopMainOptions): void {
   const version = resolveAboutPanelVersion(options);
-  if (version == null) return;
-  app.setAboutPanelOptions({ version });
+  app.setAboutPanelOptions({
+    applicationName: "Readable Studio",
+    ...(version == null ? {} : { version }),
+  });
 }
 
 function appConfigUrl(baseUrl: string): string {
@@ -563,6 +565,7 @@ export async function runDesktopMain(
   // `apps/packaged/src/index.ts` has already applied the switch before
   // its own `whenReady`; this call is then a no-op for the switch and
   // only recovers the locale string for the BrowserWindow below.
+  app.setName("Readable Studio");
   const osLocale = applyOsLocaleSwitch(app);
 
   await app.whenReady();
@@ -589,7 +592,7 @@ export async function runDesktopMain(
   const registered = await registerDesktopAuthWithDaemon(runtime, desktopAuthSecret);
   if (!registered) {
     console.warn(
-      "[open-design desktop] initial import-token handshake with daemon did not complete; " +
+      "[readable-studio desktop] initial import-token handshake with daemon did not complete; " +
         "first folder-import attempt will lazily retry registration before failing",
     );
   }

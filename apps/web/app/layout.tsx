@@ -8,9 +8,17 @@ import '../src/styles/home/index.css';
 import '../src/styles/fonts.css';
 
 export const metadata: Metadata = {
-  title: 'Readable Studio',
+  applicationName: 'Readable Studio',
+  title: {
+    default: 'Readable Studio',
+    template: '%s · Readable Studio',
+  },
+  description: 'Turn source text into polished, directly editable standalone HTML documents.',
   icons: {
-    icon: '/app-icon.png',
+    icon: [
+      { url: '/app-icon.svg', type: 'image/svg+xml' },
+      { url: '/app-icon.png', type: 'image/png' },
+    ],
     apple: '/app-icon.png',
   },
 };

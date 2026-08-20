@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const ar: HostedMessages = {
-  'hosted.provider.eyebrow': 'Open Design المستضاف',
+  'hosted.provider.eyebrow': 'Readable Studio المستضاف',
   'hosted.provider.title': 'ربط موفّر نموذج',
   'hosted.provider.description': 'يبقى مفتاحك في ذاكرة هذه الجلسة ولا يُحفظ في المتصفح.',
   'hosted.provider.runtime': 'بيئة تشغيل الوكيل',

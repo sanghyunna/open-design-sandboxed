@@ -6,7 +6,7 @@ export const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定|Acco
 export const SETTINGS_MENU_LABEL = /Settings|设置|設定/i;
 
 export async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 export async function dismissPrivacyDialog(page: Page) {

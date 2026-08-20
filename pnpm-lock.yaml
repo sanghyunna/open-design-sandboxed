@@ -601,6 +601,9 @@ importers:
       '@readable-studio/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@readable-studio/product-identity':
+        specifier: workspace:*
+        version: link:../../packages/product-identity
       '@readable-studio/sidecar':
         specifier: workspace:*
         version: link:../../packages/sidecar

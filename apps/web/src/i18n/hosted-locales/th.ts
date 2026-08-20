@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const th: HostedMessages = {
-  'hosted.provider.eyebrow': 'Open Design แบบโฮสต์',
+  'hosted.provider.eyebrow': 'Readable Studio แบบโฮสต์',
   'hosted.provider.title': 'เชื่อมต่อผู้ให้บริการโมเดล',
   'hosted.provider.description': 'คีย์จะอยู่ในเซสชันนี้เท่านั้นและไม่ถูกบันทึกในเบราว์เซอร์',
   'hosted.provider.runtime': 'รันไทม์เอเจนต์',

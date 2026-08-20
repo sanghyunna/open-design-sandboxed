@@ -1113,7 +1113,7 @@ async function openNewProjectModal(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await page.getByText('Loading Open Design…').waitFor({ state: 'hidden', timeout: T.medium });
+  await page.locator('.readable-loading-shell').waitFor({ state: 'hidden', timeout: T.medium });
 }
 
 async function getCurrentProjectContext(

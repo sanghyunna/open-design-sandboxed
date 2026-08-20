@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const ru: HostedMessages = {
-  'hosted.provider.eyebrow': 'Облачный Open Design',
+  'hosted.provider.eyebrow': 'Облачный Readable Studio',
   'hosted.provider.title': 'Подключить поставщика модели',
   'hosted.provider.description': 'Ключ хранится только в этой сессии и не сохраняется в браузере.',
   'hosted.provider.runtime': 'Среда агента',

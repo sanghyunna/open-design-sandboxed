@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const zhCN: HostedMessages = {
-  'hosted.provider.eyebrow': '托管版 Open Design',
+  'hosted.provider.eyebrow': '托管版 Readable Studio',
   'hosted.provider.title': '连接模型提供商',
   'hosted.provider.description': '密钥只保留在本次会话的内存中，绝不会保存到浏览器。',
   'hosted.provider.runtime': '智能体运行时',

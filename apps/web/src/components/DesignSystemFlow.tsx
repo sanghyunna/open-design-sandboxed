@@ -587,7 +587,7 @@ export function DesignSystemCreationFlow({
             onClick={() => {
               emitCreateFormClick('continue_to_generation');
               if (!state.company.trim()) {
-                setError('Tell Open Design about the company or design system first.');
+                setError('Tell Readable Studio about the company or design system first.');
                 return;
               }
               setStep('confirm');
@@ -745,7 +745,7 @@ export function DesignSystemCreationFlow({
               onClick={() => {
                 emitCreateFormClick('continue_to_generation');
                 if (!state.company.trim()) {
-                  setError('Tell Open Design about the company or design system first.');
+                  setError('Tell Readable Studio about the company or design system first.');
                   return;
                 }
                 setStep('confirm');
@@ -1292,7 +1292,7 @@ export function DesignSystemDetailView({
         conversationId = fresh.id;
       }
       if (config.mode !== 'daemon' || !config.agentId) {
-        setChatError('Pick a local agent first, then ask Open Design to update this design system.');
+        setChatError('Pick a local agent first, then ask Readable Studio to update this design system.');
         return;
       }
 
@@ -1743,11 +1743,11 @@ export function DesignSystemDetailView({
               <p>
                 {generationActive
                   ? activeJob?.kind === 'token-contract-rebuild'
-                    ? 'Open Design is preparing a token contract rebuild for review. The active contract stays unchanged until you accept it.'
+                    ? 'Readable Studio is preparing a token contract rebuild for review. The active contract stays unchanged until you accept it.'
                     : activeJob?.kind === 'revision'
-                      ? 'Open Design is applying your feedback. You can keep reviewing while the updated draft is prepared.'
-                      : 'Open Design is still working, but you can start giving feedback on the work so far.'
-                  : 'Open Design is ready for review. Give feedback on the work so far, then publish when it is useful for future projects.'}
+                      ? 'Readable Studio is applying your feedback. You can keep reviewing while the updated draft is prepared.'
+                      : 'Readable Studio is still working, but you can start giving feedback on the work so far.'
+                  : 'Readable Studio is ready for review. Give feedback on the work so far, then publish when it is useful for future projects.'}
               </p>
               <label>
                 <input
@@ -1794,7 +1794,7 @@ export function DesignSystemDetailView({
               <Icon name="help-circle" />
               <span>
                 <strong>Missing brand fonts</strong>
-                Open Design is rendering typography with substitute web fonts.
+                Readable Studio is rendering typography with substitute web fonts.
               </span>
               <Button variant="ghost" className="compact">
                 <Icon name="upload" />
@@ -2241,7 +2241,7 @@ function WorkspaceActivityCard({
         <span>
           <strong>
             {status === 'running'
-              ? 'Open Design is updating this system'
+              ? 'Readable Studio is updating this system'
               : status === 'failed'
                 ? 'Workspace update needs attention'
                 : 'Workspace update ready'}
@@ -2464,10 +2464,10 @@ function GenerationStatusCard({ job }: { job: DesignSystemGenerationJob }) {
           <strong>
             {active
               ? job.kind === 'token-contract-rebuild'
-                ? 'Open Design is rebuilding tokens'
+                ? 'Readable Studio is rebuilding tokens'
                 : job.kind === 'revision'
-                  ? 'Open Design is revising'
-                  : 'Open Design is still working'
+                  ? 'Readable Studio is revising'
+                  : 'Readable Studio is still working'
               : job.status === 'failed'
                 ? `${noun} needs attention`
                 : `${noun} completed`}
@@ -3547,7 +3547,7 @@ function buildCreationAgentPrompt(
   const localCode = localCodeReferences(state);
   const title = inferDesignSystemTitle(state);
   return [
-    'Create this project as a complete Open Design design system workspace.',
+    'Create this project as a complete Readable Studio design system workspace.',
     '',
     'Autonomy requirement:',
     '- Do not ask setup or clarification questions during design-system generation.',
@@ -3711,7 +3711,7 @@ function buildSourceContextManifest(
     '- DESIGN.md is the canonical source of truth.',
     '- Use the canonical design-system title above for headings, README/SKILL names, preview labels, and UI-kit copy unless inspected evidence proves a more accurate product name. Never title the system from URL protocol text such as `https`.',
     '- colors_and_type.css should hold concrete reusable tokens when the source evidence supports them; if fonts/ contains preserved font files, colors_and_type.css must bind those files with @font-face, @import, or url(...) references so typography does not fall back to substitute fonts.',
-    '- README.md and SKILL.md should make the extracted system reusable as a real Open Design design-system package.',
+    '- README.md and SKILL.md should make the extracted system reusable as a real Readable Studio design-system package.',
     '- README.md should include a source-backed Product Overview/Product Context section, source repository or source folder references, package contents, a concrete `## Preview Manifest` listing every generated `preview/*.html` card, and reuse workflow, similar to Claude Design exports.',
     '- SKILL.md should include YAML frontmatter with `name`, `description`, and `user-invocable`, plus Claude-style reusable skill sections: What is inside, Source context, When to use this skill, How to use, and Design system highlights. The usage guidance should point agents at README.md, DESIGN.md, colors_and_type.css, preview/, assets/, build/, fonts/, source_examples/, and ui_kits/app/.',
     '- README.md, SKILL.md, DESIGN.md, and ui_kits/app/README.md must describe the final focused preview cards and `ui_kits/app/` paths, not old scaffold names such as `preview/typography-scale.html` or `ui_kits/generated_interface/`.',

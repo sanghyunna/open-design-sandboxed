@@ -97,7 +97,7 @@ async function runFixture(options: {
   destinationRoot: string;
   root: string;
 }> {
-  const root = await mkdtemp(join(tmpdir(), "open-design-web-standalone-hook-"));
+  const root = await mkdtemp(join(tmpdir(), "readable-studio-web-standalone-hook-"));
   const workspaceRoot = join(root, "workspace");
   const standaloneSourceRoot = await writeStandaloneFixture(workspaceRoot, {
     includeHoistedNext: options.includeHoistedNext ?? true,
@@ -125,7 +125,7 @@ async function runFixture(options: {
         ...(options.requireRootWebPackageAudit == null
           ? {}
           : { requireRootWebPackageAudit: options.requireRootWebPackageAudit }),
-        resourceName: "open-design-web-standalone",
+        resourceName: "readable-studio-web-standalone",
         standaloneSourceRoot,
         version: 1,
         webPublicSourceRoot: join(workspaceRoot, "apps", "web", "public"),
@@ -143,7 +143,7 @@ async function runFixture(options: {
     await runWebStandaloneAfterPack({
       appOutDir,
       electronPlatformName: "win32",
-      packager: { appInfo: { productFilename: "Open Design" } },
+      packager: { appInfo: { productFilename: "Readable Studio" } },
     });
   } catch (error) {
     await rm(root, { force: true, recursive: true });
@@ -159,7 +159,7 @@ async function runFixture(options: {
   return {
     appOutDir,
     auditReportPath,
-    destinationRoot: join(resourcesRoot, "open-design-web-standalone"),
+    destinationRoot: join(resourcesRoot, "readable-studio-web-standalone"),
     root,
   };
 }
@@ -189,11 +189,11 @@ describe("web standalone afterPack hook", () => {
       );
       expect(report.copiedNextDedupeAudit.remainingPaths).toEqual([]);
       expect(resolvedNextPath).toMatch(
-        /open-design-web-standalone\/apps\/web\/node_modules\/next\/package\.json$/,
+        /readable-studio-web-standalone\/apps\/web\/node_modules\/next\/package\.json$/,
       );
       expect(report.copiedAudit.brokenSymlinks).toEqual([]);
       expect(report.copiedAudit.resolvedModules["next/package.json"].split(path.sep).join("/")).toMatch(
-        /open-design-web-standalone\/apps\/web\/node_modules\/next\/package\.json$/,
+        /readable-studio-web-standalone\/apps\/web\/node_modules\/next\/package\.json$/,
       );
     } finally {
       await rm(fixture.root, { force: true, recursive: true });

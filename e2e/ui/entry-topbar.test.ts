@@ -10,7 +10,7 @@ const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定/i;
 test.describe.configure({ timeout: 30_000 });
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function gotoEntryHome(page: Page) {
@@ -148,8 +148,8 @@ test('[P2] home topbar star and discord badges expose the current external-link 
 
   const discord = page.getByTestId('entry-discord-badge');
   await expect(discord).toHaveAttribute('href', 'https://discord.gg/mHAjSMV6gz');
-  await expect(discord).toHaveAttribute('title', /Join the Open Design Discord/i);
-  await expect(discord).toHaveAttribute('aria-label', /Join the Open Design Discord/i);
+  await expect(discord).toHaveAttribute('title', /Join the Readable Studio Discord/i);
+  await expect(discord).toHaveAttribute('aria-label', /Join the Readable Studio Discord/i);
 });
 
 test('[P2] home topbar Use everywhere navigates to Integrations with the tab selected', async ({ page }) => {

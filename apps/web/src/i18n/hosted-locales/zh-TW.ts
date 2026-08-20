@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const zhTW: HostedMessages = {
-  'hosted.provider.eyebrow': '託管版 Open Design',
+  'hosted.provider.eyebrow': '託管版 Readable Studio',
   'hosted.provider.title': '連接模型供應商',
   'hosted.provider.description': '金鑰只保留在本次工作階段的記憶體中，絕不會儲存到瀏覽器。',
   'hosted.provider.runtime': '代理程式執行環境',

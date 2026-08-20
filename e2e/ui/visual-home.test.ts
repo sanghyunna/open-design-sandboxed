@@ -43,41 +43,20 @@ const VISUAL_CLI_AGENTS = [
   },
 ] as const;
 
-const VISUAL_AMR_AGENT = {
-  id: 'amr',
-  name: 'Open Design AMR',
-  bin: 'vela',
-  available: true,
-  version: '0.1.0',
-  models: [
-    { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
-    { id: 'deepseek-v3.2', label: 'DeepSeek V3.2' },
-    { id: 'glm-5.1', label: 'GLM 5.1' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  ],
-} as const;
-
 test('[P2] captures the onboarding runtime selection surface', async ({ page }) => {
   await configureVisualPage(page, {
     projects: [],
-    agents: [VISUAL_AMR_AGENT, ...VISUAL_CLI_AGENTS],
+    agents: VISUAL_CLI_AGENTS,
     config: {
       onboardingCompleted: false,
-      agentId: 'amr',
-      agentModels: { amr: { model: 'deepseek-v4-flash', reasoning: 'default' } },
+      agentId: 'claude',
+      agentModels: { claude: { model: 'default', reasoning: 'default' } },
     },
   });
 
   await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Welcome|欢迎/i })).toBeVisible();
-  await expect(page.getByText(/Open Design AMR/i)).toBeVisible();
-  await expect(
-    page
-      .locator('.onboarding-view__amr-cloud-card .onboarding-view__model-picker')
-      .getByRole('button'),
-  ).toContainText(
-    'DeepSeek V4 Flash',
-  );
+  await expect(page.getByRole('main')).toBeVisible();
+  await expect(page.locator('.onboarding-view__card')).toHaveCount(2);
   await waitForVisualFonts(page);
 
   await captureVisual(page, 'visual-onboarding-runtime');

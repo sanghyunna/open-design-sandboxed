@@ -205,7 +205,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
         `${JSON.stringify(originalConfig, null, 2)}\n`,
         "utf8",
       );
-      await writeFile(join(unpackedRoot, "Open Design.exe"), "fake-exe", "utf8");
+      await writeFile(join(unpackedRoot, "Readable Studio.exe"), "fake-exe", "utf8");
       await writeFile(join(unpackedRoot, "resources", "app.txt"), "fake-resource", "utf8");
       await mkdir(join(unpackedRoot, "locales"), { recursive: true });
       await writeFile(join(unpackedRoot, "locales", "en-US.pak"), "en", "utf8");
@@ -214,7 +214,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       await mkdir(join(unpackedRoot, "resources", "app", "i18n", "locales"), { recursive: true });
       await writeFile(join(unpackedRoot, "resources", "app", "i18n", "locales", "ja.ts"), "app i18n", "utf8");
 
-      const setupZipPath = join(root, "builder", "Open Design-rg-portable.zip");
+      const setupZipPath = join(root, "builder", "Readable Studio-rg-portable.zip");
       const paths = fakePaths(root, setupZipPath, unpackedRoot);
       const builtApp: WinBuiltAppManifest = {
         appBuilderOutputRoot: paths.appBuilderOutputRoot,
@@ -271,7 +271,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
       packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
       packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
-      resourceRoot: join(namespaceRoot, "resources", "open-design"),
+      resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
       setupZipPath,
       tarballsRoot: join(namespaceRoot, "tarballs"),
       webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
@@ -279,7 +279,7 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
       webSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "web", "web-sidecar.mjs"),
       winIconPath: join(namespaceRoot, "resources", "win", "icon.ico"),
-      unpackedExePath: join(unpackedRoot, "Open Design.exe"),
+      unpackedExePath: join(unpackedRoot, "Readable Studio.exe"),
       unpackedRoot,
     };
   }

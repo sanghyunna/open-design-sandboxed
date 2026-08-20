@@ -94,7 +94,7 @@ test.beforeEach(async ({ page }) => {
 
 async function waitForLoadingToClear(page: Page): Promise<void> {
   await page
-    .getByText('Loading Open Design…')
+    .locator('.readable-loading-shell')
     .waitFor({ state: 'detached', timeout: 15_000 })
     .catch(() => {});
 }

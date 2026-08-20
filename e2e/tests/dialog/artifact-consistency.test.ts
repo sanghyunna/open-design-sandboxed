@@ -195,7 +195,7 @@ async function expectWorkspaceReady(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  const loading = page.getByText('Loading Open Design…');
+  const loading = page.locator('.readable-loading-shell');
   await loading.waitFor({ state: 'detached', timeout: 10_000 }).catch(() => {});
 }
 

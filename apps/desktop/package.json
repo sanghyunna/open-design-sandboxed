@@ -1,6 +1,7 @@
 {
   "name": "@readable-studio/desktop",
   "version": "0.2.2",
+  "description": "Readable Studio desktop shell.",
   "private": true,
   "type": "module",
   "main": "./dist/main/index.js",

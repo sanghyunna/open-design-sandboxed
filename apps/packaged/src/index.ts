@@ -84,6 +84,7 @@ async function main(): Promise<void> {
   // renderer's `navigator.language` follow the OS instead of Chromium's
   // en-US default. runDesktopMain (called later) calls the same helper
   // again to recover the resolved locale string for the BrowserWindow.
+  app.setName("Readable Studio");
   applyOsLocaleSwitch(app);
   addLoopbackNoProxyEnv(process.env);
 

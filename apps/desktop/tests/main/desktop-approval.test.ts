@@ -29,7 +29,7 @@ const PLAN = {
   targetMessageId: "message-1",
 } as const satisfies NonNullable<DesktopRollbackApprovalNextResponse["approval"]>;
 const SAFETY_WARNING =
-  "Approving can overwrite current files. Open Design creates a safety checkpoint before the rollback.";
+  "Approving can overwrite current files. Readable Studio creates a safety checkpoint before the rollback.";
 
 async function runApproval(buttonResponse: number, plan: Record<string, unknown> = PLAN) {
   const requests: Array<{ init?: RequestInit; url: string }> = [];

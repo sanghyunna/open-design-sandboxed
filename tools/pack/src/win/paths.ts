@@ -37,7 +37,7 @@ export function resolveWinPaths(config: ToolPackConfig): WinPaths {
     packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, WIN_PREBUNDLE_META_DIR_NAME, "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", WIN_PREBUNDLED_PACKAGED_MAIN_RELATIVE_PATH),
-    resourceRoot: join(namespaceRoot, "resources", "open-design"),
+    resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
     setupZipPath: join(namespaceRoot, "builder", `${PRODUCT_NAME}-${namespaceToken}-portable.zip`),
     tarballsRoot: join(namespaceRoot, "tarballs"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),

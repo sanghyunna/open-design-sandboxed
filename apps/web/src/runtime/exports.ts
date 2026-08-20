@@ -149,7 +149,7 @@ export function buildDesignManifestContent(opts: {
   files?: string[];
   kind?: 'html' | 'react';
 }): string {
-  const title = opts.title || 'Readable Studio artifact';
+  const title = opts.title || 'Readable Studio document';
   const requestedEntryFile = opts.entryFile || 'index.html';
   const { files, htmlFiles, screenHtmlFiles, cssFiles, jsFiles, assetFiles, entryFile } = designFileMap(requestedEntryFile, opts.files);
   const screenFiles = screenHtmlFiles.length > 0 ? screenHtmlFiles : [entryFile];
@@ -241,7 +241,7 @@ export function buildDesignHandoffContent(opts: {
   files?: string[];
   kind?: 'html' | 'react';
 }): string {
-  const title = opts.title || 'Readable Studio artifact';
+  const title = opts.title || 'Readable Studio document';
   const requestedEntryFile = opts.entryFile || 'index.html';
   const { files, htmlFiles, cssFiles, jsFiles, assetFiles, entryFile } = designFileMap(requestedEntryFile, opts.files);
   const accentLikelyBrandLed =

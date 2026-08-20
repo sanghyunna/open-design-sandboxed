@@ -3,7 +3,7 @@ const { createRequire } = require("node:module");
 const path = require("node:path");
 
 const CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
-const STANDALONE_RESOURCE_NAME = "open-design-web-standalone";
+const STANDALONE_RESOURCE_NAME = "readable-studio-web-standalone";
 const REQUIRED_MODULES = ["next/package.json", "react/package.json", "react-dom/package.json", "styled-jsx/package.json"];
 
 function isRecord(value) {

@@ -211,7 +211,7 @@ describe("copyOptionalVelaCliBinary", () => {
 
   it("never copies the vela CLI (resolveOptionalVelaCliBinary returns null unconditionally)", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-never-"));
-    const resourceRoot = join(root, "resources", "open-design");
+    const resourceRoot = join(root, "resources", "readable-studio");
     const platform = process.platform === "win32" ? "win" : process.platform === "darwin" ? "mac" : "linux";
 
     try {
@@ -233,7 +233,7 @@ describe("copyOptionalVelaCliBinary", () => {
   it("returns null even when OPEN_DESIGN_VELA_CLI_BIN env is set", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-env-"));
     const source = join(root, "source", "vela");
-    const resourceRoot = join(root, "resources", "open-design");
+    const resourceRoot = join(root, "resources", "readable-studio");
 
     try {
       await mkdir(join(root, "source"), { recursive: true });
@@ -256,7 +256,7 @@ describe("copyOptionalVelaCliBinary", () => {
   it("returns null even with an npm package mock resolver", async () => {
     const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-vela-npm-"));
     const source = join(root, "source", "vela");
-    const resourceRoot = join(root, "resources", "open-design");
+    const resourceRoot = join(root, "resources", "readable-studio");
 
     try {
       await mkdir(join(root, "source"), { recursive: true });

@@ -44,7 +44,7 @@ async function seedSettingsBase(page: Page, override?: Record<string, unknown>) 
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function gotoEntryHome(page: Page) {

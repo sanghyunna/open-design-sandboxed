@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@readable-studio/platform": "workspace:*",
+    "@readable-studio/product-identity": "workspace:*",
     "@readable-studio/sidecar": "workspace:*",
     "@readable-studio/sidecar-proto": "workspace:*",
     "cac": "6.7.14",

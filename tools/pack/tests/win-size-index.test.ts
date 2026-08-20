@@ -28,15 +28,15 @@ function createPaths(root: string): WinPaths {
     packagedConfigPath: join(namespaceRoot, "readable-studio-config.json"),
     packagedMainPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "packaged-main.meta.json"),
     packagedMainPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "packaged-main.mjs"),
-    resourceRoot: join(namespaceRoot, "resources", "open-design"),
-    setupZipPath: join(namespaceRoot, "builder", "Open Design-second-portable.zip"),
+    resourceRoot: join(namespaceRoot, "resources", "readable-studio"),
+    setupZipPath: join(namespaceRoot, "builder", "Readable Studio-second-portable.zip"),
     tarballsRoot: join(namespaceRoot, "tarballs"),
     webStandaloneHookAuditPath: join(namespaceRoot, "web-standalone-after-pack-audit.json"),
     webStandaloneHookConfigPath: join(namespaceRoot, "web-standalone-after-pack-config.json"),
     webSidecarPrebundleMetaPath: join(namespaceRoot, "prebundle-meta", "web-sidecar.meta.json"),
     webSidecarPrebundlePath: join(namespaceRoot, "assembled", "app", "prebundled", "web-sidecar.mjs"),
     winIconPath: join(namespaceRoot, "resources", "win", "icon.ico"),
-    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Open Design.exe"),
+    unpackedExePath: join(namespaceRoot, "builder", "win-unpacked", "Readable Studio.exe"),
     unpackedRoot: join(namespaceRoot, "builder", "win-unpacked"),
   };
 }
@@ -135,11 +135,11 @@ describe("collectWinSizeReport", () => {
       await mkdir(join(paths.setupZipPath, ".."), { recursive: true });
       await writeFile(paths.setupZipPath, "portable zip bytes\n", "utf8");
       await mkdir(join(paths.unpackedRoot, "resources", "app", "node_modules", "better-sqlite3"), { recursive: true });
-      await mkdir(join(paths.unpackedRoot, "resources", "open-design"), { recursive: true });
+      await mkdir(join(paths.unpackedRoot, "resources", "readable-studio"), { recursive: true });
       await mkdir(join(paths.unpackedRoot, "locales"), { recursive: true });
       await mkdir(join(config.roots.output.namespaceRoot, "marker"), { recursive: true });
       await writeFile(join(paths.unpackedRoot, "resources", "app", "node_modules", "better-sqlite3", "addon.node"), "sqlite\n", "utf8");
-      await writeFile(join(paths.unpackedRoot, "resources", "open-design", "asset.txt"), "asset\n", "utf8");
+      await writeFile(join(paths.unpackedRoot, "resources", "readable-studio", "asset.txt"), "asset\n", "utf8");
       await writeFile(join(paths.unpackedRoot, "locales", "en.pak"), "locale\n", "utf8");
       await writeFile(join(config.roots.output.namespaceRoot, "marker", "file.txt"), "output\n", "utf8");
 

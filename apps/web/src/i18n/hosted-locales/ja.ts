@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const ja: HostedMessages = {
-  'hosted.provider.eyebrow': 'ホステッド Open Design',
+  'hosted.provider.eyebrow': 'ホステッド Readable Studio',
   'hosted.provider.title': 'モデルプロバイダーを接続',
   'hosted.provider.description': 'キーはこのセッションのメモリだけに保持され、ブラウザーには保存されません。',
   'hosted.provider.runtime': 'エージェントランタイム',

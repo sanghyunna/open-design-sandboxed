@@ -230,7 +230,7 @@ const MIN_SPLASH_MS = 6800;
 // While the splash is up, the real web app loads in a hidden main window. We
 // reveal it only once the web bundle reports it has actually mounted (it sets
 // `data-od-app-mounted="1"` on first paint of the real UI), so the user never
-// sees the web's own "Loading Open Design…" shell flash between the splash and
+// sees the web's own "Loading Readable Studio…" shell flash between the splash and
 // the app. Poll cadence + a hard ceiling so a missing mount signal can never
 // strand the user on the splash forever.
 const WEB_MOUNT_POLL_MS = 80;
@@ -1438,9 +1438,9 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     // Starts hidden: the splash window is what the user sees while the real web
     // app loads in here. We reveal this window only once the app has actually
     // mounted (see `revealWhenReady` below), so there is never a flash of the
-    // web's own "Loading Open Design…" shell.
+    // web's own "Loading Readable Studio…" shell.
     show: false,
-    title: "Open Design",
+    title: "Readable Studio",
     autoHideMenuBar: true,
     ...MAC_WINDOW_CHROME,
     webPreferences: {
@@ -1474,7 +1474,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
 
   const requireMainWindowSender = (event: Electron.IpcMainInvokeEvent): void => {
     if (event.sender !== window.webContents) {
-      throw new Error("host IPC is only available to the main Open Design window");
+      throw new Error("host IPC is only available to the main Readable Studio window");
     }
   };
   window.webContents.on("will-attach-webview", (event, webPreferences, params) => {

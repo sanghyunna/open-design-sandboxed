@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const fr: HostedMessages = {
-  'hosted.provider.eyebrow': 'Open Design hébergé',
+  'hosted.provider.eyebrow': 'Readable Studio hébergé',
   'hosted.provider.title': 'Connecter un fournisseur de modèles',
   'hosted.provider.description': 'Votre clé reste dans cette session et n’est jamais enregistrée dans le navigateur.',
   'hosted.provider.runtime': 'Moteur de l’agent',

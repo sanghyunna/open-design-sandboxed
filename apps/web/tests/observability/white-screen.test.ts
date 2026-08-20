@@ -134,7 +134,7 @@ import {
  * (don't fire when the app actually rendered something) but must fire
  * when the user is really stuck on a non-app screen. The critical case —
  * called out by codex review on PR #2527 — is the dynamic-import loading
- * shell: `<div class="od-loading-shell">Loading Open Design…</div>`. That
+ * shell: `<div class="readable-loading-shell">A long loading label</div>`. That
  * string is well above the visible-text floor, so an earlier
  * implementation that only checked `body.innerText.length` would silently
  * treat the loading sentinel as a successful mount and cancel the timer.
@@ -224,11 +224,11 @@ describe('observability/white-screen', () => {
   });
 
   it('runs the detector and reports client_white_screen (no network) when only the dynamic-import loading shell is in the DOM after the timeout', () => {
-    // Reproduces the codex-review reported bug: the loading shell text
-    // "Loading Open Design…" is longer than the legacy 10-char floor.
+    // Reproduces the codex-review reported bug: the branded loading shell
+    // is longer than the legacy 10-char floor.
     const shell = document.createElement('div');
-    shell.className = 'od-loading-shell';
-    shell.textContent = 'Loading Open Design…';
+    shell.className = 'readable-loading-shell';
+    shell.textContent = 'A deliberately long loading label';
     document.body.appendChild(shell);
 
     installWhiteScreenDetector();
@@ -262,8 +262,8 @@ describe('observability/white-screen', () => {
   it('cancels the timer the moment a non-loading-shell child appears with real content', () => {
     // Start with only the loading shell.
     const shell = document.createElement('div');
-    shell.className = 'od-loading-shell';
-    shell.textContent = 'Loading Open Design…';
+    shell.className = 'readable-loading-shell';
+    shell.textContent = 'A deliberately long loading label';
     document.body.appendChild(shell);
 
     installWhiteScreenDetector();

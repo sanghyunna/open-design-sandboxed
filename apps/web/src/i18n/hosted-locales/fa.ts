@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const fa: HostedMessages = {
-  'hosted.provider.eyebrow': 'Open Design میزبانی‌شده',
+  'hosted.provider.eyebrow': 'Readable Studio میزبانی‌شده',
   'hosted.provider.title': 'اتصال ارائه‌دهندهٔ مدل',
   'hosted.provider.description': 'کلید فقط در حافظهٔ این نشست می‌ماند و در مرورگر ذخیره نمی‌شود.',
   'hosted.provider.runtime': 'محیط اجرای عامل',

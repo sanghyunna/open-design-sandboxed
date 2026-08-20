@@ -1,7 +1,7 @@
 import type { HostedMessages } from '../hosted';
 
 export const id: HostedMessages = {
-  'hosted.provider.eyebrow': 'Open Design terhosting',
+  'hosted.provider.eyebrow': 'Readable Studio terhosting',
   'hosted.provider.title': 'Hubungkan penyedia model',
   'hosted.provider.description': 'Kunci Anda hanya berada di sesi ini dan tidak pernah disimpan di browser.',
   'hosted.provider.runtime': 'Runtime agen',

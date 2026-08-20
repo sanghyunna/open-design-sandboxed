@@ -285,7 +285,7 @@ test('[P1] plugin authoring produces a generated-plugin scaffold with action car
 
   await page.getByTestId('home-hero-shortcuts-trigger').click();
   await page.getByTestId('home-hero-rail-create-plugin').click();
-  await expect(page.getByTestId('home-hero-input')).toHaveText(/Create an Open Design plugin for:/);
+  await expect(page.getByTestId('home-hero-input')).toHaveText(/Create an Readable Studio plugin for:/);
 
   const projectRequestPromise = page.waitForRequest(isCreateProjectRequest);
   const runRequestPromise = page.waitForRequest(isCreateRunRequest);
@@ -482,7 +482,7 @@ async function dismissPrivacyDialog(page: Page) {
 }
 
 async function waitForLoadingToClear(page: Page) {
-  await page.getByText('Loading Open Design…').waitFor({ state: 'hidden', timeout: T.medium });
+  await page.locator('.readable-loading-shell').waitFor({ state: 'hidden', timeout: T.medium });
 }
 
 async function configureFakeAgent(page: Page, agentId: FakeAgentId) {

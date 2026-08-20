@@ -272,7 +272,7 @@ async function runElectronBuilderRaw(
     executableName: PRODUCT_NAME,
     extraMetadata: {
       main: "./main.cjs",
-      name: "open-design-packaged-app",
+      name: "readable-studio-packaged-app",
       productName: PRODUCT_NAME,
       version: packageVersion,
     },
@@ -564,7 +564,7 @@ export async function runElectronBuilder(
   if (purePortableZipHit) return segments;
   const materialized = await runSegment("portable-zip:materialize-unpacked", async () => {
     const cached = await cache.readHit({
-      materialize: [{ from: "builder/win-unpacked", reuse: true, reuseRequiredPaths: [["resources/open-design-web-standalone/apps/web/server.js", "resources/open-design-web-standalone/server.js"]], to: paths.unpackedRoot }],
+      materialize: [{ from: "builder/win-unpacked", reuse: true, reuseRequiredPaths: [["resources/readable-studio-web-standalone/apps/web/server.js", "resources/readable-studio-web-standalone/server.js"]], to: paths.unpackedRoot }],
       node,
     });
     if (cached == null) throw new Error("electron builder cache entry disappeared before portable zip materialization");

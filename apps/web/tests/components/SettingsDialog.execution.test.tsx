@@ -1913,7 +1913,7 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Local CLI/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Open Design AMR\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^AMR\b/ }));
 
     const modelPickers = screen.getAllByRole('combobox', {
       name: en['settings.modelPicker'],
@@ -2185,7 +2185,7 @@ describe('SettingsDialog execution settings Local CLI interactions', () => {
     );
 
     fireEvent.click(screen.getByRole('tab', { name: /Local CLI.*1 installed/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Open Design AMR\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^AMR\b/ }));
 
     expect(screen.queryByText('1.0.0')).toBeNull();
     expect(screen.queryByText(/AMR \(vela\)/i)).toBeNull();
@@ -2270,7 +2270,7 @@ describe('SettingsDialog MCP server interactions', () => {
       expect(screen.getByText(/claude mcp add-json --scope user open-design/i)).toBeTruthy();
     });
     expect(screen.getByText(/Restart your client to pick up the new server/i)).toBeTruthy();
-    expect(screen.getByText(/Open Design must be running for MCP tool calls to succeed/i)).toBeTruthy();
+    expect(screen.getByText(/Readable Studio must be running for MCP tool calls to succeed/i)).toBeTruthy();
   });
 
   it('switches client instructions and snippet content when a different MCP client is selected', async () => {

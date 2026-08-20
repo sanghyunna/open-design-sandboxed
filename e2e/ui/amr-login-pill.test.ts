@@ -22,7 +22,7 @@ const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定/i;
 test.describe.configure({ timeout: 30_000 });
 
 async function waitForLoadingToClear(page: Page) {
-  await expect(page.getByText('Loading Open Design…')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('.readable-loading-shell')).toHaveCount(0, { timeout: 15_000 });
 }
 
 async function gotoEntryHome(page: Page) {
@@ -141,7 +141,7 @@ test('[P1] AMR card authorizes through daemon login status and returns to author
 
   const amrCard = dialog
     .locator('.amr-agent-card, .agent-card-installed')
-    .filter({ hasText: /Open Design AMR|AMR \(vela\)/i })
+    .filter({ hasText: /AMR|AMR \(vela\)/i })
     .first();
   await expect(amrCard).toBeVisible();
 
