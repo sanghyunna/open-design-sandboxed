@@ -9,7 +9,7 @@ import { closeDatabase } from '../src/db.js';
 import { startServer } from '../src/server.js';
 import { withFakeAgent } from './helpers/fake-agent.js';
 
-const TOKEN_ENV = 'OD_DESKTOP_APPROVAL_TOKEN';
+const TOKEN_ENV = 'READABLE_DESKTOP_APPROVAL_TOKEN';
 const servers: http.Server[] = [];
 
 afterEach(async () => {
@@ -120,8 +120,8 @@ describe('secure rollback agent spawn selection', () => {
       for (const key of [
         'OD_DAEMON_URL',
         'OD_DATA_DIR',
-        'OD_DESKTOP_APPROVAL_TOKEN',
-        'OD_SIDECAR_IPC_PATH',
+        'READABLE_DESKTOP_APPROVAL_TOKEN',
+        'READABLE_SIDECAR_IPC_PATH',
         'OD_TOOL_TOKEN',
       ]) expect(envKeys).not.toContain(key);
       expect(options.env.OD_BIN).toMatch(/od-tool-broker-client\.mjs$/);

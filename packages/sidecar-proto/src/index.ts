@@ -26,39 +26,67 @@ export const SIDECAR_SOURCES = Object.freeze({
 
 export type SidecarSource = (typeof SIDECAR_SOURCES)[keyof typeof SIDECAR_SOURCES];
 
+const LEGACY_SIDECAR_ENV_NAMES = Object.freeze([
+  "OD_SIDECAR_BASE",
+  "OD_DAEMON_CLI_PATH",
+  "OD_PORT",
+  "OD_DESKTOP_APPROVAL_TOKEN",
+  "OD_SIDECAR_IPC_BASE",
+  "OD_SIDECAR_IPC_PATH",
+  "OD_SIDECAR_NAMESPACE",
+  "OD_SIDECAR_SOURCE",
+  "OD_TOOLS_DEV_PARENT_PID",
+  "OD_WEB_DIST_DIR",
+  "OD_WEB_PORT",
+  "OD_WEB_TSCONFIG_PATH",
+] as const);
+
+function createSidecarEnv(identity: ProductIdentity) {
+  return Object.freeze({
+    BASE: `${identity.envPrefix}SIDECAR_BASE`,
+    DAEMON_CLI_PATH: `${identity.envPrefix}DAEMON_CLI_PATH`,
+    DAEMON_PORT: `${identity.envPrefix}PORT`,
+    DESKTOP_APPROVAL_TOKEN: `${identity.envPrefix}DESKTOP_APPROVAL_TOKEN`,
+    IPC_BASE: `${identity.envPrefix}SIDECAR_IPC_BASE`,
+    IPC_PATH: `${identity.envPrefix}SIDECAR_IPC_PATH`,
+    NAMESPACE: `${identity.envPrefix}SIDECAR_NAMESPACE`,
+    SOURCE: `${identity.envPrefix}SIDECAR_SOURCE`,
+    TOOLS_DEV_PARENT_PID: `${identity.envPrefix}TOOLS_DEV_PARENT_PID`,
+    WEB_DIST_DIR: `${identity.envPrefix}WEB_DIST_DIR`,
+    WEB_PORT: `${identity.envPrefix}WEB_PORT`,
+    WEB_TSCONFIG_PATH: `${identity.envPrefix}WEB_TSCONFIG_PATH`,
+  } as const);
+}
+
+function createSidecarRuntimeEnv(env: ReturnType<typeof createSidecarEnv>) {
+  return Object.freeze({
+    base: env.BASE,
+    ipcBase: env.IPC_BASE,
+    ipcPath: env.IPC_PATH,
+    namespace: env.NAMESPACE,
+    source: env.SOURCE,
+  } as const);
+}
+
+function createSidecarStampFlags(identity: ProductIdentity) {
+  const prefix = `--${identity.productId}-stamp-`;
+  return Object.freeze({
+    app: `${prefix}app`,
+    ipc: `${prefix}ipc`,
+    mode: `${prefix}mode`,
+    namespace: `${prefix}namespace`,
+    source: `${prefix}source`,
+  } as const);
+}
+
 // @dsp func-ab30f711
-export const SIDECAR_ENV = Object.freeze({
-  BASE: "OD_SIDECAR_BASE",
-  DAEMON_CLI_PATH: "OD_DAEMON_CLI_PATH",
-  DAEMON_PORT: "OD_PORT",
-  DESKTOP_APPROVAL_TOKEN: "OD_DESKTOP_APPROVAL_TOKEN",
-  IPC_BASE: "OD_SIDECAR_IPC_BASE",
-  IPC_PATH: "OD_SIDECAR_IPC_PATH",
-  NAMESPACE: "OD_SIDECAR_NAMESPACE",
-  SOURCE: "OD_SIDECAR_SOURCE",
-  TOOLS_DEV_PARENT_PID: "OD_TOOLS_DEV_PARENT_PID",
-  WEB_DIST_DIR: "OD_WEB_DIST_DIR",
-  WEB_PORT: "OD_WEB_PORT",
-  WEB_TSCONFIG_PATH: "OD_WEB_TSCONFIG_PATH",
-} as const);
+export const SIDECAR_ENV = createSidecarEnv(PRODUCT_IDENTITY);
 
 // @dsp func-73f5a6da
-export const SIDECAR_RUNTIME_ENV = Object.freeze({
-  base: SIDECAR_ENV.BASE,
-  ipcBase: SIDECAR_ENV.IPC_BASE,
-  ipcPath: SIDECAR_ENV.IPC_PATH,
-  namespace: SIDECAR_ENV.NAMESPACE,
-  source: SIDECAR_ENV.SOURCE,
-} as const);
+export const SIDECAR_RUNTIME_ENV = createSidecarRuntimeEnv(SIDECAR_ENV);
 
 // @dsp func-0c7ed02e
-export const SIDECAR_STAMP_FLAGS = Object.freeze({
-  app: "--od-stamp-app",
-  ipc: "--od-stamp-ipc",
-  mode: "--od-stamp-mode",
-  namespace: "--od-stamp-namespace",
-  source: "--od-stamp-source",
-} as const);
+export const SIDECAR_STAMP_FLAGS = createSidecarStampFlags(PRODUCT_IDENTITY);
 
 // @dsp func-a39fe218
 export const STAMP_APP_FLAG = SIDECAR_STAMP_FLAGS.app;
@@ -485,6 +513,7 @@ export type SidecarContract = {
   readonly normalizeSource: typeof normalizeSidecarSource;
   readonly normalizeStamp: typeof normalizeSidecarStamp;
   readonly normalizeStampCriteria: typeof normalizeSidecarStampCriteria;
+  readonly rejectedEnvNames: readonly string[];
   readonly sources: typeof SIDECAR_SOURCES;
   readonly stampFields: typeof SIDECAR_STAMP_FIELDS;
   readonly stampFlags: typeof SIDECAR_STAMP_FLAGS;
@@ -756,6 +785,7 @@ export function normalizeDesktopSidecarMessage(input: unknown): DesktopSidecarMe
 
 // @dsp func-e67eab33
 export function createSidecarContract(identity: ProductIdentity): SidecarContract {
+  const env = createSidecarEnv(identity);
   const defaults = Object.freeze({
     host: "127.0.0.1",
     ipcBase: `/tmp/${identity.productId}/ipc`,
@@ -767,7 +797,7 @@ export function createSidecarContract(identity: ProductIdentity): SidecarContrac
   return Object.freeze({
     appKeys: APP_KEYS,
     defaults,
-    env: SIDECAR_RUNTIME_ENV,
+    env: createSidecarRuntimeEnv(env),
     errorCodes: SIDECAR_ERROR_CODES,
     messages: SIDECAR_MESSAGES,
     modes: SIDECAR_MODES,
@@ -776,9 +806,10 @@ export function createSidecarContract(identity: ProductIdentity): SidecarContrac
     normalizeSource: normalizeSidecarSource,
     normalizeStamp: normalizeSidecarStamp,
     normalizeStampCriteria: normalizeSidecarStampCriteria,
+    rejectedEnvNames: LEGACY_SIDECAR_ENV_NAMES,
     sources: SIDECAR_SOURCES,
     stampFields: SIDECAR_STAMP_FIELDS,
-    stampFlags: SIDECAR_STAMP_FLAGS,
+    stampFlags: createSidecarStampFlags(identity),
     updateActions: DESKTOP_UPDATE_ACTIONS,
     updateChannels: DESKTOP_UPDATE_CHANNELS,
     updateModes: DESKTOP_UPDATE_MODES,

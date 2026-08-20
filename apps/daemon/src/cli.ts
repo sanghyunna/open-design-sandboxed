@@ -398,7 +398,7 @@ function printRootHelp() {
       project-scoped artifacts without exporting a zip.
 
 Options:
-  --port <n>       Port to listen on (default: 7456, env: OD_PORT).
+  --port <n>       Port to listen on (default: 7456, env: READABLE_PORT).
   --host <addr>    Interface address to bind to (default: 127.0.0.1, env: OD_BIND_HOST).
                    Set to a specific IP (e.g. a Tailscale address) to restrict access
                    to that interface only.
@@ -496,7 +496,7 @@ Output is JSON only on stdout:
 Flags:
   --query        Required search query.
   --max-sources  Optional source cap. Defaults to 5, clamped to Tavily's max.
-  --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
+  --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
 }
 
 function surfaceFetchError(err, daemonUrl) {
@@ -640,7 +640,7 @@ every iteration.
 
 Options:
   --daemon-url <url>   Open Design daemon HTTP base URL. Resolution
-                       order: this flag, OD_DAEMON_URL, OD_SIDECAR_IPC_PATH,
+                       order: this flag, OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH,
                        then http://127.0.0.1:7456. Each new MCP spawn
                        discovers the live daemon URL at startup, so
                        MCP client configs stay valid across daemon
@@ -1492,7 +1492,7 @@ async function runMarketplace(args) {
                                                               Update the marketplace trust tier.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts).`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4221,7 +4221,7 @@ function printUiHelp() {
                                                      Pre-answer a surface so the run never broadcasts it.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.`);
 }
 
@@ -4268,7 +4268,7 @@ function printPluginHelp() {
   readable plugin whoami [--host github.com]     Show the gh account used for publishing.
 
 Common options:
-  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Open Design daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.
 
 Installs support local folders, github:owner/repo refs, HTTPS .tgz archives,
@@ -6644,7 +6644,7 @@ function formatBytes(n) {
 }
 
 async function runDaemonStart(flags) {
-  const port = Number(flags.port ?? process.env.OD_PORT ?? 7456);
+  const port = Number(flags.port ?? process.env[SIDECAR_ENV.DAEMON_PORT] ?? 7456);
   const host = String(flags.host ?? process.env.OD_BIND_HOST ?? '127.0.0.1');
   const headless = Boolean(flags.headless || flags['no-open'] || flags['serve-web']);
   const runtime = await startDaemonRuntime({

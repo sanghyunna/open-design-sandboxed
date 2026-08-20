@@ -11,6 +11,7 @@ import {
 } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 const MAX_REQUESTS_PER_RUN = 256;
@@ -394,11 +395,11 @@ const STRIPPED_ISOLATED_ENV_KEYS = new Set([
   'OD_API_TOKEN',
   'OD_DAEMON_URL',
   'OD_DATA_DIR',
-  'OD_DESKTOP_APPROVAL_TOKEN',
+  SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN,
   'OD_MEDIA_CONFIG_DIR',
-  'OD_PORT',
+  SIDECAR_ENV.DAEMON_PORT,
   'OD_RESOURCE_ROOT',
-  'OD_SIDECAR_IPC_PATH',
+  SIDECAR_ENV.IPC_PATH,
   'OD_TOOL_TOKEN',
 ]);
 

@@ -255,7 +255,7 @@ Review in this order. Each priority lists the concrete checks for it.
 
 - No committed secrets, API keys, or `media-config.json` content. No widening of credential storage scope without explicit need.
 - Logs do not leak credentials, tokens, or full prompt payloads.
-- Runtime files stay under the documented paths: `<project-root>/.tmp/<source>/<namespace>/...` and POSIX IPC sockets under `/tmp/open-design/ipc/<namespace>/<app>.sock`.
+- Runtime files stay under the documented paths: `<project-root>/.tmp/<source>/<namespace>/...` and POSIX IPC sockets under `/tmp/readable-studio/ipc/<namespace>/<app>.sock`.
 - For daemon, desktop, sidecar, path, log, or namespace changes, validate runtime isolation per `AGENTS.md` (concurrent namespaces, log paths under `.tmp/tools-dev/<namespace>/...`, `inspect eval` and `inspect screenshot` per namespace).
 
 ### 5.5 Performance and operational risk

@@ -105,7 +105,7 @@ export async function withFakeAgent<T>(
 export function namedPipePath(name: string): string {
   return process.platform === 'win32'
     ? '\\\\.\\pipe\\' + name
-    : `/tmp/open-design/ipc/${name}.sock`;
+    : `/tmp/readable-studio/ipc/${name}.sock`;
 }
 
 function scriptWithPidTracking(script: string, pidLogPath: string): string {

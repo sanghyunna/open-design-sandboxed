@@ -5,6 +5,7 @@ import { dirname, join, relative } from "node:path";
 import { promisify } from "node:util";
 
 import { createCommandInvocation, createPackageManagerInvocation } from "@readable-studio/platform";
+import { SIDECAR_ENV } from "@readable-studio/sidecar-proto";
 
 import { hashJson, hashPath, ToolPackCache } from "../cache.js";
 import type { ToolPackConfig } from "../config.js";
@@ -369,7 +370,7 @@ async function buildPrebundledStandaloneRuntime(
       'import { fileURLToPath } from "node:url";',
       "const selfPath = fileURLToPath(import.meta.url);",
       "process.env.OD_BIN ??= selfPath;",
-      "process.env.OD_DAEMON_CLI_PATH ??= selfPath;",
+      `process.env[${JSON.stringify(SIDECAR_ENV.DAEMON_CLI_PATH)}] ??= selfPath;`,
       `await import(${JSON.stringify(
         toRelativeImportSpecifier(
           dirname(paths.daemonCliPrebundleEntrypointPath),

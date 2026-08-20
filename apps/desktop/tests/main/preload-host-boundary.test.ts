@@ -34,7 +34,7 @@ describe("desktop preload host boundary", () => {
     expect(source).toContain("open-design:app-config-changed");
     expect(source).toContain("window.dispatchEvent(new CustomEvent(APP_CONFIG_CHANGED_EVENT))");
     expect(source).not.toContain("@readable-studio/contracts");
-    expect(source).not.toContain("OD_DESKTOP_APPROVAL_TOKEN");
+    expect(source).not.toContain("READABLE_DESKTOP_APPROVAL_TOKEN");
     expect(source).not.toContain("decisionToken");
     expect(source).not.toContain("rollback-approvals");
     expect(source).not.toContain("exposeInMainWorld('electronAPI'");

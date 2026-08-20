@@ -374,7 +374,7 @@ runtime nouns that are clearer in English:
 | iframe | iframe |
 | monorepo, workspace | monorepo, workspace |
 | `readable`, `pnpm`, `pnpm tools-dev` | `readable`, `pnpm`, `pnpm tools-dev` |
-| `OD_DATA_DIR`, `OD_WEB_PORT`, `{provider}` | `OD_DATA_DIR`, `OD_WEB_PORT`, `{provider}` |
+| `OD_DATA_DIR`, `READABLE_WEB_PORT`, `{provider}` | `OD_DATA_DIR`, `READABLE_WEB_PORT`, `{provider}` |
 | `.zip`, `.html`, `.md`, `.json` | `.zip`, `.html`, `.md`, `.json` |
 
 Use French grammar around preserved terms:

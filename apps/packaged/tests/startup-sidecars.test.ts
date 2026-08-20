@@ -31,7 +31,7 @@ import { dirname, join } from "node:path";
 
 const app = ${JSON.stringify(app)};
 const behavior = ${JSON.stringify(behavior)};
-const ipcPath = process.env.OD_SIDECAR_IPC_PATH;
+const ipcPath = process.env.READABLE_SIDECAR_IPC_PATH;
 const root = ${JSON.stringify(root)};
 const readyPath = join(root, app + ".status-requested");
 const peerReadyPath = join(root, ${JSON.stringify(peer)} + ".status-requested");
@@ -39,7 +39,7 @@ const tracePath = join(root, "trace.log");
 const isPipe = ipcPath.startsWith("\\\\\\\\.\\\\pipe\\\\");
 const trace = (event) => appendFileSync(tracePath, event + "\\n", "utf8");
 
-trace(app + ":spawned:" + (process.env.OD_PORT ?? ""));
+trace(app + ":spawned:" + (process.env.READABLE_PORT ?? ""));
 if (behavior === "fail") {
   console.error(app + " fixture startup failed");
   process.exit(3);
@@ -47,8 +47,8 @@ if (behavior === "fail") {
 if (behavior === "port-conflict-once") {
   const markerPath = join(root, app + ".port-conflict");
   if (!existsSync(markerPath)) {
-    writeFileSync(markerPath, process.env.OD_PORT ?? "", "utf8");
-    console.error("listen EADDRINUSE: address already in use 127.0.0.1:" + process.env.OD_PORT);
+    writeFileSync(markerPath, process.env.READABLE_PORT ?? "", "utf8");
+    console.error("listen EADDRINUSE: address already in use 127.0.0.1:" + process.env.READABLE_PORT);
     process.exit(4);
   }
 }
@@ -68,7 +68,7 @@ const server = createServer((socket) => {
     if (message.type === "status") {
       if (behavior === "concurrent") writeFileSync(readyPath, "", "utf8");
       const ready = behavior !== "concurrent" || existsSync(peerReadyPath);
-      const port = app === "daemon" ? process.env.OD_PORT : "32123";
+      const port = app === "daemon" ? process.env.READABLE_PORT : "32123";
       socket.end(JSON.stringify({
         ok: true,
         result: {

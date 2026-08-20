@@ -85,7 +85,7 @@ describe("resolveDaemonUrl", () => {
 
   it("discovers the live daemon URL via the concrete sidecar IPC status endpoint", async () => {
     const socketPath = process.platform === "win32"
-      ? namedPipePath(`open-design-daemon-url-${process.pid}-${Date.now()}`)
+      ? namedPipePath(`readable-studio-daemon-url-${process.pid}-${Date.now()}`)
       : path.join(ipcBaseDir, "daemon.sock");
     let ipc: JsonIpcServerHandle | null = null;
     try {

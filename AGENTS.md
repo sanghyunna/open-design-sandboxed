@@ -58,7 +58,7 @@ This file is the single source of truth for agents entering this repository. Rea
 - Use `pnpm tools-dev` as the only local development lifecycle entry point.
 - Do not add or restore root lifecycle aliases: `pnpm dev`, `pnpm dev:all`, `pnpm daemon`, `pnpm preview`, or `pnpm start`.
 - Ports are governed by `tools-dev` flags: `--daemon-port` and `--web-port`.
-- `tools-dev` exports `OD_PORT` for the web proxy target and `OD_WEB_PORT` for the web listener; do not use `NEXT_PORT`.
+- `tools-dev` exports `READABLE_PORT` for the web proxy target and `READABLE_WEB_PORT` for the web listener; do not use `NEXT_PORT`.
 
 ## Windows portable build
 
@@ -88,9 +88,9 @@ This file is the single source of truth for agents entering this repository. Rea
 - App business logic must not know about sidecar/control-plane concepts. Keep sidecar awareness in `apps/<app>/sidecar` or the desktop sidecar entry wrapper.
 - Shared web/daemon app contracts belong in `packages/contracts`; that package must not depend on Next.js, Express, Node filesystem/process APIs, browser APIs, SQLite, daemon internals, or the sidecar control-plane protocol.
 - Sidecar process stamps must have exactly five fields: `app`, `mode`, `namespace`, `ipc`, and `source`.
-- Orchestration layers (`tools-dev`, `tools-pack`, packaged launchers) must call package primitives; do not hand-build `--od-stamp-*` args or process-scan regexes.
+- Orchestration layers (`tools-dev`, `tools-pack`, packaged launchers) must call package primitives; do not hand-build `--readable-studio-stamp-*` args or process-scan regexes.
 - Packaged runtime paths must be namespace-scoped and independent from daemon/web ports; ports are transient transport details only.
-- Default runtime files live under `<project-root>/.tmp/<source>/<namespace>/...`; POSIX IPC sockets are fixed at `/tmp/open-design/ipc/<namespace>/<app>.sock`.
+- Default runtime files live under `<project-root>/.tmp/<source>/<namespace>/...`; POSIX IPC sockets are fixed at `/tmp/readable-studio/ipc/<namespace>/<app>.sock`.
 
 ## Capability exposure (UI/CLI dual-track)
 

@@ -21,7 +21,7 @@ Follow the root `AGENTS.md` and `tools/AGENTS.md` first. This tool owns the repo
 
 ## Rules
 
-- Do not hand-build `--od-stamp-*` args; use `createProcessStampArgs` with `OPEN_DESIGN_SIDECAR_CONTRACT`.
+- Do not hand-build `--readable-studio-stamp-*` args; use `createProcessStampArgs` with `SIDECAR_CONTRACT`.
 - Do not use port numbers in data/log/runtime/cache path decisions. Namespace decides paths; ports are only transient transports.
 - Do not let namespace-named `.app` installs change data/log/runtime/cache path conventions.
 - Use `--portable` for artifacts that leave the local build workspace so packaged config does not bake local tools-pack runtime roots from the build machine.

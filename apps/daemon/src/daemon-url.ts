@@ -25,7 +25,7 @@ export interface ResolveDaemonUrlOptions {
  *
  * Spawn order: explicit `--daemon-url` flag, `OD_DAEMON_URL` env, then
  * a STATUS roundtrip to the concrete sidecar IPC endpoint supplied by
- * the lifecycle owner in `OD_SIDECAR_IPC_PATH`, then the default
+ * the lifecycle owner in `READABLE_SIDECAR_IPC_PATH`, then the default
  * `tools-dev status --json` runtime. Falls back to the legacy default
  * for direct `od` launches that do not run as a sidecar.
  */

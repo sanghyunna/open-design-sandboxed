@@ -2,13 +2,14 @@ import type { NextConfig } from 'next';
 import { existsSync, realpathSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 import { fileURLToPath } from 'node:url';
 
 // Daemon port the local Express server binds to (see apps/daemon/src/cli.ts). The
-// dev-all launcher overrides OD_PORT after probing for a free port; we read
+// dev-all launcher overrides READABLE_PORT after probing for a free port; we read
 // the same env so /api, /artifacts, and /frames always reach the right
 // daemon instance during `next dev`.
-const DAEMON_PORT = Number(process.env.OD_PORT) || 7456;
+const DAEMON_PORT = Number(process.env[SIDECAR_ENV.DAEMON_PORT]) || 7456;
 const DAEMON_ORIGIN = `http://127.0.0.1:${DAEMON_PORT}`;
 
 // The regular CLI build still ships as a static export so the `od` daemon can
@@ -74,17 +75,17 @@ const toPosixPath = (value: string) => value.replaceAll('\\', '/');
 
 function resolveDistDir(defaultValue: string) {
   if (process.env.OD_WEB_PROD === '1') return defaultValue;
-  const configured = process.env.OD_WEB_DIST_DIR;
+  const configured = process.env[SIDECAR_ENV.WEB_DIST_DIR];
   if (!configured) return defaultValue;
   return toPosixPath(isAbsolute(configured) ? relative(WEB_ROOT, configured) || '.' : configured);
 }
 
-const DIST_DIR = shouldStaticExport && !process.env.OD_WEB_DIST_DIR
+const DIST_DIR = shouldStaticExport && !process.env[SIDECAR_ENV.WEB_DIST_DIR]
   ? null
   : resolveDistDir('.next');
 
 function resolveDevTsconfigPath() {
-  const configured = process.env.OD_WEB_TSCONFIG_PATH;
+  const configured = process.env[SIDECAR_ENV.WEB_TSCONFIG_PATH];
   if (!configured) return undefined;
   return toPosixPath(isAbsolute(configured) ? relative(WEB_ROOT, configured) || 'tsconfig.json' : configured);
 }

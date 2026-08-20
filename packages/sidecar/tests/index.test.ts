@@ -30,6 +30,7 @@ const fakeContract: SidecarContractDescriptor<FakeStamp> = {
     projectTmpDirName: ".fake-tmp",
     windowsPipePrefix: "fake-product",
   },
+  rejectedEnvNames: ["OLD_FAKE_BASE", "OLD_FAKE_IPC_PATH"],
   env: {
     base: "FAKE_BASE",
     ipcBase: "FAKE_IPC_BASE",
@@ -103,6 +104,22 @@ describe("generic sidecar path boundary", () => {
 });
 
 describe("generic sidecar bootstrap", () => {
+  it("rejects old identity inputs", () => {
+    const stamp: FakeStamp = {
+      app: "api",
+      ipc: resolveAppIpcPath({ app: "api", contract: fakeContract, namespace: "alpha" }),
+      mode: "dev",
+      namespace: "alpha",
+      source: "tool",
+    };
+
+    expect(() => bootstrapSidecarRuntime(
+      stamp,
+      { OLD_FAKE_IPC_PATH: stamp.ipc },
+      { app: "api", contract: fakeContract },
+    )).toThrow(/OLD_FAKE_IPC_PATH/);
+  });
+
   it("creates and validates launch env from descriptor env names", () => {
     const stamp: FakeStamp = {
       app: "api",

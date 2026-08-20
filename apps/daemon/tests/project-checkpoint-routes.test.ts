@@ -16,7 +16,7 @@ describe('project checkpoint routes', () => {
   let approvalLoop: Promise<void>;
 
   beforeAll(async () => {
-    process.env.OD_DESKTOP_APPROVAL_TOKEN = approvalToken;
+    process.env.READABLE_DESKTOP_APPROVAL_TOKEN = approvalToken;
     const started = (await startServer({ port: 0, returnServer: true })) as {
       url: string;
       server: http.Server;

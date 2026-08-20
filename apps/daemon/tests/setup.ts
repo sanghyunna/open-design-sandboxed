@@ -54,4 +54,4 @@ process.env.OD_DATA_DIR = globalState[TEST_DATA_DIR_SYMBOL];
 // Build the CLI artifact once per vitest process so package tests do not depend
 // on a prior manual `pnpm --filter @readable-studio/daemon build`.
 ensureDaemonCliBuilt();
-process.env.OD_DAEMON_CLI_PATH = daemonCliDist;
+process.env.READABLE_DAEMON_CLI_PATH = daemonCliDist;

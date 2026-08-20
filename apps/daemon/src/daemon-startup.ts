@@ -1,4 +1,5 @@
 import type { Server } from 'node:http';
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
 
 import type { StartServerOptions } from './server.js';
 
@@ -39,7 +40,7 @@ export function parseDaemonCliStartupArgs(
   argv: string[],
   env: NodeJS.ProcessEnv = process.env,
 ): DaemonCliStartupParseResult {
-  let port = Number(env.OD_PORT) || 7456;
+  let port = Number(env[SIDECAR_ENV.DAEMON_PORT]) || 7456;
   let host = env.OD_BIND_HOST || '127.0.0.1';
   let open = true;
 

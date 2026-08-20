@@ -21,7 +21,7 @@ describe("tools-dev desktop approval env", () => {
 
   it("distributes one bearer to daemon and desktop but never web", () => {
     const inherited = {
-      Od_DeSkToP_ApPrOvAl_ToKeN: "stale-token",
+      ReAdAbLe_DeSkToP_ApPrOvAl_ToKeN: "stale-token",
       PATH: "safe",
     };
     const token = "coordinated-token";
@@ -34,7 +34,7 @@ describe("tools-dev desktop approval env", () => {
     assert.equal(web[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN], undefined);
     assert.equal(Object.keys(web).some((key) => key.toUpperCase() === SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN), false);
     assert.deepEqual(inherited, {
-      Od_DeSkToP_ApPrOvAl_ToKeN: "stale-token",
+      ReAdAbLe_DeSkToP_ApPrOvAl_ToKeN: "stale-token",
       PATH: "safe",
     });
   });
@@ -42,14 +42,14 @@ describe("tools-dev desktop approval env", () => {
   it("fails closed by stripping every bearer when no coordinated token exists", () => {
     for (const app of [APP_KEYS.DAEMON, APP_KEYS.DESKTOP, APP_KEYS.WEB]) {
       const env = desktopApprovalChildEnv(app, null, {
-        OD_DESKTOP_APPROVAL_TOKEN: "inherited",
+        READABLE_DESKTOP_APPROVAL_TOKEN: "inherited",
       });
       assert.equal(env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN], undefined);
     }
   });
 
   it("removes inherited bearers from the tools-dev parent before build, status, or logs", () => {
-    const env = { od_desktop_approval_token: "inherited", PATH: "safe" };
+    const env = { readable_desktop_approval_token: "inherited", PATH: "safe" };
     stripDesktopApprovalToken(env);
     assert.deepEqual(env, { PATH: "safe" });
   });

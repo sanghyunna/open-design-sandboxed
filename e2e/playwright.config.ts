@@ -2,8 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const daemonPort = Number(process.env.OD_PORT) || 17_456;
-const webPort = Number(process.env.OD_WEB_PORT) || 17_573;
+const daemonPort = Number(process.env.READABLE_PORT) || 17_456;
+const webPort = Number(process.env.READABLE_WEB_PORT) || 17_573;
 const baseURL = `http://127.0.0.1:${webPort}`;
 const namespace = process.env.OD_E2E_NAMESPACE || `playwright-${process.pid}`;
 const dataDir = process.env.OD_E2E_DATA_DIR || `e2e/ui/.od-data/${namespace}`;

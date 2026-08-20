@@ -14,7 +14,7 @@
 //   pnpm seed:test-projects --clear            # remove previously seeded projects
 //
 // The daemon URL is resolved in this order: --daemon flag > $OD_DAEMON_URL >
-// http://127.0.0.1:$OD_PORT > whatever `pnpm tools-dev status --json` reports
+// http://127.0.0.1:$READABLE_PORT > whatever `pnpm tools-dev status --json` reports
 // for the daemon app. --namespace is only passed to that tools-dev discovery
 // step; it is not forwarded to the od CLI or stored in daemon data. The
 // discovery step is what makes the two-shell flow
@@ -313,7 +313,7 @@ ingest fixtures before starting pnpm tools-dev.
 
 Options:
   --daemon <url>     Daemon base URL. When omitted, the script reads
-                     \$OD_DAEMON_URL, then \$OD_PORT, and finally falls back
+                     \$OD_DAEMON_URL, then \$READABLE_PORT, and finally falls back
                      to discovering the URL from \`pnpm tools-dev status --json\`.
   --mode <mode>      auto | online | offline (default: auto). Auto uses the
                      daemon when one is discoverable; otherwise offline ingest.
@@ -337,7 +337,7 @@ Options:
 Online daemon URL resolution (first match wins):
   1. \`--daemon <url>\` on the command line.
   2. \`OD_DAEMON_URL\` env var.
-  3. \`http://127.0.0.1:\$OD_PORT\` when \`OD_PORT\` is set to a real port.
+  3. \`http://127.0.0.1:\$READABLE_PORT\` when \`READABLE_PORT\` is set to a real port.
   4. Auto-discovered from \`pnpm tools-dev status --json\`. \`tools-dev\` defaults
      to an ephemeral daemon port, so a typical two-shell flow works without
      extra flags:
@@ -354,7 +354,7 @@ Offline ingest before boot:
 
 function isDiscoverablePort(value: string | undefined): value is string {
   if (value == null || value.length === 0) return false;
-  // tools-dev sets OD_PORT=0 to mean "ephemeral, look at runtime status",
+  // tools-dev sets READABLE_PORT=0 to mean "ephemeral, look at runtime status",
   // which is unusable as a target. Treat it the same as unset so we fall
   // through to the discovery path.
   const n = Number(value);
@@ -417,15 +417,15 @@ function extractDaemonUrlFromStatusOutput(stdout: string): string | null {
 async function resolveDaemonUrl(args: Args, { required }: { required: boolean }): Promise<string | null> {
   if (args.daemonUrl) return args.daemonUrl;
   if (process.env.OD_DAEMON_URL) return process.env.OD_DAEMON_URL;
-  if (isDiscoverablePort(process.env.OD_PORT)) {
-    return `http://127.0.0.1:${process.env.OD_PORT}`;
+  if (isDiscoverablePort(process.env.READABLE_PORT)) {
+    return `http://127.0.0.1:${process.env.READABLE_PORT}`;
   }
   const discovered = await discoverDaemonUrlFromToolsDev(args.namespace);
   if (discovered) return discovered;
   if (!required) return null;
   throw new Error(
     'cannot determine daemon URL: no --daemon flag, no OD_DAEMON_URL, ' +
-      'no usable OD_PORT, and `pnpm tools-dev status --json` did not report a ' +
+      'no usable READABLE_PORT, and `pnpm tools-dev status --json` did not report a ' +
       'running daemon. Start the daemon (e.g. `pnpm tools-dev`), pass ' +
       '`--daemon http://127.0.0.1:<port>`, or use `--offline` to ingest ' +
       'fixtures before startup.',

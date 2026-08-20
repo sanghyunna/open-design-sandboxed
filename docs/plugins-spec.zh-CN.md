@@ -1357,7 +1357,7 @@ readable version       [--json]
 readable config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
 ```
 
-`readable daemon start --headless` 是 §11.7 中 headless mode 的入口（无 web bundle、无 electron）。`readable daemon start --serve-web` 增加本地 web UI 但不启用 electron。二者都沿用现有 tools-dev port conventions（[`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)）。
+`readable daemon start --headless` 是 §11.7 中 headless mode 的入口（无 web bundle、无 electron）。`readable daemon start --serve-web` 增加本地 web UI 但不启用 electron。二者都沿用现有 tools-dev port conventions（[`READABLE_PORT`, `READABLE_WEB_PORT`](../AGENTS.md)）。
 
 #### 现有 agent-callable tools（不变）
 

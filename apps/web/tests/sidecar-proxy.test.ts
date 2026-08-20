@@ -137,8 +137,8 @@ describe('resolveDaemonProxyTarget', () => {
 
 describe('resolveStandaloneServerEntry', () => {
   it('resolves the traced monorepo standalone server entry', async () => {
-    const previousDistDir = process.env.OD_WEB_DIST_DIR;
-    delete process.env.OD_WEB_DIST_DIR;
+    const previousDistDir = process.env.READABLE_WEB_DIST_DIR;
+    delete process.env.READABLE_WEB_DIST_DIR;
     const webRoot = await mkdtemp(join(tmpdir(), 'open-design-web-standalone-'));
     const nestedRoot = join(webRoot, '.next', 'standalone', 'apps', 'web');
     const fallbackRoot = join(webRoot, '.next', 'standalone');
@@ -152,17 +152,17 @@ describe('resolveStandaloneServerEntry', () => {
       expect(resolveStandaloneServerEntry(webRoot)).toBe(join(nestedRoot, 'server.js'));
     } finally {
       if (previousDistDir == null) {
-        delete process.env.OD_WEB_DIST_DIR;
+        delete process.env.READABLE_WEB_DIST_DIR;
       } else {
-        process.env.OD_WEB_DIST_DIR = previousDistDir;
+        process.env.READABLE_WEB_DIST_DIR = previousDistDir;
       }
       await rm(webRoot, { force: true, recursive: true });
     }
   });
 
   it('prefers a copied standalone resource root before package fallback entries', async () => {
-    const previousDistDir = process.env.OD_WEB_DIST_DIR;
-    delete process.env.OD_WEB_DIST_DIR;
+    const previousDistDir = process.env.READABLE_WEB_DIST_DIR;
+    delete process.env.READABLE_WEB_DIST_DIR;
     const webRoot = await mkdtemp(join(tmpdir(), 'open-design-web-package-'));
     const copiedRoot = await mkdtemp(join(tmpdir(), 'open-design-web-copied-'));
     const copiedWebRoot = join(copiedRoot, 'apps', 'web');
@@ -177,9 +177,9 @@ describe('resolveStandaloneServerEntry', () => {
       expect(resolveStandaloneServerEntry(webRoot, copiedRoot)).toBe(join(copiedWebRoot, 'server.js'));
     } finally {
       if (previousDistDir == null) {
-        delete process.env.OD_WEB_DIST_DIR;
+        delete process.env.READABLE_WEB_DIST_DIR;
       } else {
-        process.env.OD_WEB_DIST_DIR = previousDistDir;
+        process.env.READABLE_WEB_DIST_DIR = previousDistDir;
       }
       await rm(webRoot, { force: true, recursive: true });
       await rm(copiedRoot, { force: true, recursive: true });

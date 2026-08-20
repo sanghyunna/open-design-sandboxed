@@ -41,7 +41,7 @@ describe('resolveDaemonCliPath', () => {
   });
 
   it('uses the packaged daemon CLI path override before package resolution', () => {
-    expect(resolveDaemonCliPath({ OD_DAEMON_CLI_PATH: '/app/prebundled/daemon-cli.mjs' })).toBe(
+    expect(resolveDaemonCliPath({ READABLE_DAEMON_CLI_PATH: '/app/prebundled/daemon-cli.mjs' })).toBe(
       '/app/prebundled/daemon-cli.mjs',
     );
   });

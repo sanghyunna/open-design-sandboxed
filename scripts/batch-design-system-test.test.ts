@@ -152,7 +152,7 @@ test("CLI dry-run with explicit design systems succeeds without daemon discovery
       env: {
         ...process.env,
         OD_DAEMON_URL: "",
-        OD_PORT: "",
+        READABLE_PORT: "",
       },
     },
   );

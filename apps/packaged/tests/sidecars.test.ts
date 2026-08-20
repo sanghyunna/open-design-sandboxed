@@ -394,7 +394,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect('OD_LEGACY_DATA_DIR' in withEmptyLegacy).toBe(false);
   });
 
-  it('forwards daemonCliEntry through OD_DAEMON_CLI_PATH when set', () => {
+  it('forwards daemonCliEntry through READABLE_DAEMON_CLI_PATH when set', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: '/path/to/cli/dist/index.js',
@@ -402,7 +402,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       legacyDataDir: null,
       requireDesktopAuth: true,
     });
-    expect(env.OD_DAEMON_CLI_PATH).toBe('/path/to/cli/dist/index.js');
+    expect(env.READABLE_DAEMON_CLI_PATH).toBe('/path/to/cli/dist/index.js');
   });
 
   it('forwards the packaged AMR profile to the daemon when configured', () => {

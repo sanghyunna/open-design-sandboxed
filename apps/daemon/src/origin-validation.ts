@@ -1,3 +1,5 @@
+import { SIDECAR_ENV } from '@readable-studio/sidecar-proto';
+
 export interface ParsedHostHeader {
   hostname: string;
   host: string;
@@ -39,7 +41,7 @@ export function allowedBrowserPorts(
   const ports = [];
   const primary = Number(port);
   if (primary) ports.push(primary);
-  const webPort = Number(env.OD_WEB_PORT);
+  const webPort = Number(env[SIDECAR_ENV.WEB_PORT]);
   if (webPort && webPort !== primary) ports.push(webPort);
   return ports;
 }

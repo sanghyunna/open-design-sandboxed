@@ -36,7 +36,7 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
   function computeInstallPayload(): McpInstallPayload {
     const cliPath = OD_BIN;
     // The daemon was bootstrapped as a sidecar (tools-dev, packaged) iff
-    // bootstrapSidecarRuntime stamped OD_SIDECAR_IPC_PATH into the env.
+    // bootstrapSidecarRuntime stamped READABLE_SIDECAR_IPC_PATH into the env.
     // In sidecar mode the snippet omits --daemon-url and the spawned
     // `od mcp` discovers the live URL via the concrete IPC endpoint on
     // every spawn, so the client config survives ephemeral-port
@@ -49,12 +49,12 @@ export function registerMcpRoutes(app: Express, ctx: RegisterMcpRoutesDeps) {
     if (isSidecarMode) {
       sidecarEnv[SIDECAR_ENV.IPC_PATH] = sidecarIpcPath;
     }
-    // tools-dev / packaged launchers export OD_WEB_PORT so the daemon
+    // tools-dev / packaged launchers export READABLE_WEB_PORT so the daemon
     // knows where the browser-facing Open Design studio is running.
     // CLI-only / headless launches set neither and webBaseUrl falls
     // through as null — MCP clients then just omit the studio deep
     // link from their responses.
-    const webPortRaw = process.env.OD_WEB_PORT;
+    const webPortRaw = process.env[SIDECAR_ENV.WEB_PORT];
     const webPortNum = webPortRaw ? Number(webPortRaw) : Number.NaN;
     const webBaseUrl = Number.isFinite(webPortNum) && webPortNum > 0
       ? `http://127.0.0.1:${webPortNum}`
@@ -363,7 +363,7 @@ function getPublicBaseUrl(req: any) {
   }
   const proto = req.protocol || 'http';
   const host = req.get('host');
-  if (!host) return `http://localhost:${process.env.OD_PORT ?? '7456'}`;
+  if (!host) return `http://localhost:${process.env[SIDECAR_ENV.DAEMON_PORT] ?? '7456'}`;
   return `${proto}://${host}`;
 }
 

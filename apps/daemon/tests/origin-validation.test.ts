@@ -386,25 +386,25 @@ describe('daemon origin validation middleware', () => {
     expect(res.status).toBe(403);
   });
 
-  // --- OD_WEB_PORT (split-port proxy) ---
+  // --- READABLE_WEB_PORT (split-port proxy) ---
 
-  it('allows requests from OD_WEB_PORT (web proxy port)', async () => {
+  it('allows requests from READABLE_WEB_PORT (web proxy port)', async () => {
     const webPort = port + 1000;
-    process.env.OD_WEB_PORT = String(webPort);
+    process.env.READABLE_WEB_PORT = String(webPort);
     const res = await request(port, 'GET', '/api/projects', {
       origin: `http://127.0.0.1:${webPort}`,
     });
-    delete process.env.OD_WEB_PORT;
+    delete process.env.READABLE_WEB_PORT;
     expect(res.status).toBe(200);
   });
 
-  it('blocks requests from unknown ports even with OD_WEB_PORT set', async () => {
+  it('blocks requests from unknown ports even with READABLE_WEB_PORT set', async () => {
     const webPort = port + 1000;
-    process.env.OD_WEB_PORT = String(webPort);
+    process.env.READABLE_WEB_PORT = String(webPort);
     const res = await request(port, 'GET', '/api/projects', {
       origin: `http://127.0.0.1:${port + 2000}`,
     });
-    delete process.env.OD_WEB_PORT;
+    delete process.env.READABLE_WEB_PORT;
     expect(res.status).toBe(403);
   });
 

@@ -524,7 +524,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
-const DAEMON_CLI_PATH_ENV = 'OD_DAEMON_CLI_PATH';
+const DAEMON_CLI_PATH_ENV = SIDECAR_ENV.DAEMON_CLI_PATH;
 function cleanOptionalPath(value: string | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0
     ? path.resolve(value)
@@ -1443,7 +1443,7 @@ function getPublicBaseUrl(req) {
   }
   const proto = req.protocol || 'http';
   const host = req.get('host');
-  if (!host) return `http://localhost:${process.env.OD_PORT ?? '7456'}`;
+  if (!host) return `http://localhost:${process.env[SIDECAR_ENV.DAEMON_PORT] ?? '7456'}`;
   return `${proto}://${host}`;
 }
 

@@ -21,11 +21,6 @@ import {
   SIDECAR_ENV,
   SIDECAR_SOURCES,
   SIDECAR_STAMP_FIELDS,
-  STAMP_APP_FLAG,
-  STAMP_IPC_FLAG,
-  STAMP_MODE_FLAG,
-  STAMP_NAMESPACE_FLAG,
-  STAMP_SOURCE_FLAG,
   type DaemonStatusSnapshot,
 } from "../src/index.js";
 
@@ -68,21 +63,34 @@ describe("sidecar contract", () => {
     }));
   });
 
-  it("exports the canonical five-field stamp descriptor with unchanged wire names", () => {
+  it("exports the descriptor-derived five-field Readable Studio identity", () => {
     expect(SIDECAR_STAMP_FIELDS).toEqual(["app", "mode", "namespace", "ipc", "source"]);
     expect(SIDECAR_CONTRACT.stampFlags).toEqual({
-      app: STAMP_APP_FLAG,
-      ipc: STAMP_IPC_FLAG,
-      mode: STAMP_MODE_FLAG,
-      namespace: STAMP_NAMESPACE_FLAG,
-      source: STAMP_SOURCE_FLAG,
+      app: "--readable-studio-stamp-app",
+      ipc: "--readable-studio-stamp-ipc",
+      mode: "--readable-studio-stamp-mode",
+      namespace: "--readable-studio-stamp-namespace",
+      source: "--readable-studio-stamp-source",
     });
     expect(SIDECAR_CONTRACT.updateActions).toBe(DESKTOP_UPDATE_ACTIONS);
     expect(SIDECAR_CONTRACT.updateChannels).toBe(DESKTOP_UPDATE_CHANNELS);
     expect(Object.values(DESKTOP_UPDATE_CHANNELS)).toEqual(["beta", "nightly", "preview", "stable"]);
     expect(SIDECAR_CONTRACT.updateModes).toBe(DESKTOP_UPDATE_MODES);
     expect(SIDECAR_CONTRACT.updateStates).toBe(DESKTOP_UPDATE_STATES);
-    expect(SIDECAR_ENV.BASE).toBe("OD_SIDECAR_BASE");
+    expect(SIDECAR_ENV).toEqual({
+      BASE: "READABLE_SIDECAR_BASE",
+      DAEMON_CLI_PATH: "READABLE_DAEMON_CLI_PATH",
+      DAEMON_PORT: "READABLE_PORT",
+      DESKTOP_APPROVAL_TOKEN: "READABLE_DESKTOP_APPROVAL_TOKEN",
+      IPC_BASE: "READABLE_SIDECAR_IPC_BASE",
+      IPC_PATH: "READABLE_SIDECAR_IPC_PATH",
+      NAMESPACE: "READABLE_SIDECAR_NAMESPACE",
+      SOURCE: "READABLE_SIDECAR_SOURCE",
+      TOOLS_DEV_PARENT_PID: "READABLE_TOOLS_DEV_PARENT_PID",
+      WEB_DIST_DIR: "READABLE_WEB_DIST_DIR",
+      WEB_PORT: "READABLE_WEB_PORT",
+      WEB_TSCONFIG_PATH: "READABLE_WEB_TSCONFIG_PATH",
+    });
   });
 
   it("does not export legacy contract symbols", () => {
@@ -91,7 +99,7 @@ describe("sidecar contract", () => {
   });
 
   it("exports the desktop approval launch token key outside the process stamp", () => {
-    expect(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN).toBe("OD_DESKTOP_APPROVAL_TOKEN");
+    expect(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN).toBe("READABLE_DESKTOP_APPROVAL_TOKEN");
     expect(SIDECAR_STAMP_FIELDS).not.toContain(SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN);
   });
 

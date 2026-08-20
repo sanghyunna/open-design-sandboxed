@@ -18,6 +18,7 @@ export type SidecarContractDescriptor<TStamp extends SidecarStampShape = Sidecar
     projectTmpDirName: string;
     windowsPipePrefix: string;
   };
+  rejectedEnvNames: readonly string[];
   env: {
     base: string;
     ipcBase: string;
@@ -131,12 +132,22 @@ export function normalizeIpcPath(ipc: unknown): string {
   return ipc;
 }
 
+function assertNoRejectedEnv<TStamp extends SidecarStampShape>(
+  env: NodeJS.ProcessEnv,
+  contract: SidecarContractDescriptor<TStamp>,
+): void {
+  const rejected = contract.rejectedEnvNames.filter((name) => env[name] != null);
+  if (rejected.length > 0) {
+    throw new Error(`legacy sidecar environment is not supported: ${rejected.join(", ")}`);
+  }
+}
+
 // @dsp func-f31f3f13
 export function resolveNamespace<TStamp extends SidecarStampShape>(options: NamespaceResolutionOptions<TStamp>): string {
+  const env = options.env ?? process.env;
+  assertNoRejectedEnv(env, options.contract);
   return options.contract.normalizeNamespace(
-    options.namespace ??
-      options.env?.[options.contract.env.namespace] ??
-      options.contract.defaults.namespace,
+    options.namespace ?? env[options.contract.env.namespace] ?? options.contract.defaults.namespace,
   );
 }
 
@@ -176,6 +187,7 @@ export function resolveSidecarBase<TStamp extends SidecarStampShape>({
   projectRoot = process.cwd(),
   source,
 }: BaseResolutionOptions<TStamp>): string {
+  assertNoRejectedEnv(env, contract);
   return resolve(base ?? env[contract.env.base] ?? resolveSourceRuntimeRoot({ contract, projectRoot, source }));
 }
 
@@ -307,6 +319,7 @@ export function resolveAppIpcPath<TStamp extends SidecarStampShape>({
   env = process.env,
   namespace,
 }: AppIpcPathRequest<TStamp>): string {
+  assertNoRejectedEnv(env, contract);
   const normalizedApp = contract.normalizeApp(app);
   const normalizedNamespace = contract.normalizeNamespace(namespace);
 
@@ -325,6 +338,7 @@ export function createSidecarLaunchEnv<TStamp extends SidecarStampShape>({
   extraEnv = process.env,
   stamp,
 }: SidecarLaunchEnvRequest<TStamp>): NodeJS.ProcessEnv {
+  assertNoRejectedEnv(extraEnv, contract);
   const normalizedStamp = contract.normalizeStamp(stamp);
   return {
     ...extraEnv,
@@ -348,6 +362,7 @@ export function bootstrapSidecarRuntime<TStamp extends SidecarStampShape>(
   env: NodeJS.ProcessEnv,
   options: BootstrapSidecarRuntimeOptions<TStamp>,
 ): SidecarRuntimeContext<TStamp> {
+  assertNoRejectedEnv(env, options.contract);
   const stamp = options.contract.normalizeStamp(stampInput);
   const expectedApp = options.contract.normalizeApp(options.app);
   if (stamp.app !== expectedApp) {

@@ -2,6 +2,7 @@ import { cp, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
 import { rebuild, type RebuildOptions } from "@electron/rebuild";
+import { SIDECAR_ENV } from "@readable-studio/sidecar-proto";
 
 import type { ToolPackConfig } from "../config.js";
 import {
@@ -93,7 +94,7 @@ async function buildPrebundledStandaloneRuntime(
       'import { fileURLToPath } from "node:url";',
       "const selfPath = fileURLToPath(import.meta.url);",
       "process.env.OD_BIN ??= selfPath;",
-      "process.env.OD_DAEMON_CLI_PATH ??= selfPath;",
+      `process.env[${JSON.stringify(SIDECAR_ENV.DAEMON_CLI_PATH)}] ??= selfPath;`,
       `await import(${JSON.stringify(
         toRelativeImportSpecifier(
           dirname(paths.daemonCliPrebundleEntrypointPath),

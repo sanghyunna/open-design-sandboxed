@@ -1359,7 +1359,7 @@ readable version       [--json]
 readable config get|set|list|unset  [--key ...] [--value ...]     # backed by media-config.json + db
 ```
 
-`readable daemon start --headless` is the entry for the headless mode in §11.7 (no web bundle, no electron). `readable daemon start --serve-web` adds the local web UI without electron. Both keep using the existing tools-dev port conventions ([`OD_PORT`, `OD_WEB_PORT`](../AGENTS.md)).
+`readable daemon start --headless` is the entry for the headless mode in §11.7 (no web bundle, no electron). `readable daemon start --serve-web` adds the local web UI without electron. Both keep using the existing tools-dev port conventions ([`READABLE_PORT`, `READABLE_WEB_PORT`](../AGENTS.md)).
 
 #### Existing agent-callable tools (unchanged)
 
