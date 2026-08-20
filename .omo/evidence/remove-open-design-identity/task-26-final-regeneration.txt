@@ -1,1 +1,0 @@
-Design-system metadata regeneration complete: packages=150 filesChanged=0

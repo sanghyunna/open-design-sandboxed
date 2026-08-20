@@ -1,4 +1,0 @@
-Readable identity audit passed: scope=active, matches=21290, unclassified=0, stale=0, report=.omo/evidence/remove-open-design-identity/task-26-active-1.json
-Readable identity audit passed: scope=all, matches=22174, unclassified=0, stale=0, report=.omo/evidence/remove-open-design-identity/task-26-all-1.json
-Readable identity audit passed: scope=active, matches=21290, unclassified=0, stale=0, report=.omo/evidence/remove-open-design-identity/task-26-active-2.json
-Readable identity audit passed: scope=all, matches=22174, unclassified=0, stale=0, report=.omo/evidence/remove-open-design-identity/task-26-all-2.json

@@ -1,8 +1,0 @@
-
- RUN  v4.1.6 D:/dev/open_design_port/readable-task26-design-systems/packages/contracts
-
-
- Test Files  1 passed (1)
-      Tests  2 passed (2)
-   Start at  15:40:09
-   Duration  2.35s (transform 458ms, setup 0ms, import 690ms, tests 34ms, environment 0ms)

@@ -1,1 +1,0 @@
-error: cannot resolve "typescript" from the caller project (D:\dev\open_design_port\readable-task26-design-systems). Install it in the project being checked (e.g. `bun add -d typescript`) and re-run.

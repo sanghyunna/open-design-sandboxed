@@ -1,8 +1,0 @@
-
- RUN  v4.1.6 D:/dev/open_design_port/readable-task26-design-systems/apps/web
-
-
- Test Files  5 passed (5)
-      Tests  38 passed (38)
-   Start at  15:40:10
-   Duration  17.05s (transform 7.72s, setup 266ms, import 17.40s, tests 8.75s, environment 27.02s)
