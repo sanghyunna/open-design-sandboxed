@@ -15685,16 +15685,6 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "68f7d353d0e0eb448820472cafa5d0e6d66b6749117f0535764609b1c2eff474",
-      "location": "content",
-      "path": "apps/web/sidecar/server.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "OD_"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "77ad8fdb44c200c9cf740c1936dafafe5336374ed1e140fc5e2656e2b3533b9f",
       "location": "content",
       "path": "apps/web/sidecar/server.ts",
@@ -15706,6 +15696,16 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "8315156a4a69d34d6f34668f7d930ef2806fa2b7fcdba681076c79314226c619",
+      "location": "content",
+      "path": "apps/web/sidecar/server.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "844ae008166dfd56af6317d9bdbf2b19400e1992990a995681c9d62e6060036a",
       "location": "content",
       "path": "apps/web/sidecar/server.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -19266,6 +19266,16 @@
       "class": "machine contract to migrate",
       "count": 1,
       "fingerprint": "fcc2ed6c7ce8586e717a096a128abecec343b5f69ca36659524df3f363a574bf",
+      "location": "content",
+      "path": "apps/web/tests/sidecar-proxy.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "fd4b50c6c955ba203145d1fd07dcbb7a8887e28af4f09c91330d1bdf992c703e",
       "location": "content",
       "path": "apps/web/tests/sidecar-proxy.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -49845,37 +49855,7 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "399dec4722e554abbcc4ca0a127ac359ff4b34453b9ebe27ff0d58734f9c8c83",
-      "location": "content",
-      "path": "tools/pack/tests/resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "51b7bda505b532f067705faff04f038994f7061bb4022f1e5de070ac952501f8",
-      "location": "content",
-      "path": "tools/pack/tests/resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "53c47de699c8782641427dad60747083dbd90cea947fcaf18352f6ed7d64c360",
-      "location": "content",
-      "path": "tools/pack/tests/resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "f31a5e08b256edf73f5b855029b38f98d598b574876f2586ca6b1e7e79a4c64f",
       "location": "content",
       "path": "tools/pack/tests/resources.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -49898,16 +49878,6 @@
       "fingerprint": "f399ecc08a29a7f9e6b928cf9aa53b248a71f8bb3b7caf2e379bd2e9e16b20db",
       "location": "content",
       "path": "tools/pack/tests/win-app.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "21449a860314303c62dc44edc52aa9db1a3e3c5f8c08be769a83314938a3f376",
-      "location": "content",
-      "path": "tools/pack/tests/win-builder.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
       "ruleId": "identity.machine-contract",
       "token": "open-design"
@@ -49954,7 +49924,7 @@
     },
     {
       "class": "machine contract to migrate",
-      "count": 8,
+      "count": 6,
       "fingerprint": "35242012b76c35f979f634b2a8599b82e2836cd3c01a05748484f93e692c3e35",
       "location": "content",
       "path": "tools/pack/tests/win-resources.test.ts",
@@ -49985,27 +49955,7 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
-      "fingerprint": "c85e8c8acea5bbedca40986e70923947955791d4c0b7108750051370306a80e2",
-      "location": "content",
-      "path": "tools/pack/tests/win-resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
       "fingerprint": "e07384505454e15067c915418252ef5d1c582a2ac0f8998b8fe82e197dbd0038",
-      "location": "content",
-      "path": "tools/pack/tests/win-resources.test.ts",
-      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
-      "ruleId": "identity.machine-contract",
-      "token": "open-design"
-    },
-    {
-      "class": "machine contract to migrate",
-      "count": 1,
-      "fingerprint": "e702497a36417a74038fa723ed2347957fded5b39efa6a03150dae89eedbcb2c",
       "location": "content",
       "path": "tools/pack/tests/win-resources.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
