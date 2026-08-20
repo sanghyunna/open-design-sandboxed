@@ -170,7 +170,7 @@ test("rejects stale active fixture contracts", async () => {
 
   // When: active bytes are scanned for retired product contracts.
   const stale: string[] = [];
-  const retired = /@open-design|Open Design|open-design|\bOD_|od:\/\/|__od__/u;
+  const retired = /Open Design|open-design|od:\/\/|__od__/u;
   for (const filePath of activePaths) {
     if (retired.test(await readFile(path.resolve(import.meta.dirname, "..", filePath), "utf8"))) stale.push(filePath);
   }

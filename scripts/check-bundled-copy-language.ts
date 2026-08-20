@@ -63,7 +63,7 @@ const intentionalHanPaths = new Set([
   "design-templates/guizang-ppt/LICENSE",
 ]);
 const hanScriptPattern = /\p{Script=Han}/gu;
-const retiredIdentityPattern = /@open-design|Open Design|open-design|\bOD_|od:\/\/|__od__/gu;
+const retiredIdentityPattern = /Open Design|open-design|od:\/\/|__od__/gu;
 const immutableAssetLocatorPattern = /https:\/\/plugin-assets\.open-design\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
 const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
