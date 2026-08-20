@@ -52,7 +52,7 @@ the *huashu-design* expert-critique flow.
 A single self-contained `<artifact type="text/html">` review report
 including:
 
-1. **Header** — what artifact was reviewed, date, reviewer ("OD ·
+1. **Header** — what artifact was reviewed, date, reviewer ("Readable Studio ·
    Critique skill"), 1-line verdict
 2. **Radar chart** (inline SVG, no library) showing the 5 scores
 3. **Five dimension cards**, each with:

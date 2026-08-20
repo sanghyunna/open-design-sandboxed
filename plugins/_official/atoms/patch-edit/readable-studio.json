@@ -7,10 +7,10 @@
   "description": "Apply one rewrite-plan step at a time as small reviewable file edits.",
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/atoms/patch-edit",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/atoms/patch-edit",
   "tags": [
     "atom",
     "first-party",

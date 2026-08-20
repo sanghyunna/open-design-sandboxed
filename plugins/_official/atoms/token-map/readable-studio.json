@@ -4,13 +4,13 @@
   "name": "token-map",
   "title": "Token map",
   "version": "0.1.0",
-  "description": "Map an extracted source-token bag onto the active OD design system, producing a deterministic crosswalk.",
+  "description": "Map an extracted source-token bag onto the active Readable Studio design system, producing a deterministic crosswalk.",
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/atoms/token-map",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/atoms/token-map",
   "tags": [
     "atom",
     "first-party",

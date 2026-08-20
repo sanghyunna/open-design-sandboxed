@@ -8,7 +8,7 @@ readable:
 
 # Handoff
 
-Spec §11.5.1 / §21.5: an OD run isn't done when the artifact
+Spec §11.5.1 / §21.5: a Readable Studio run isn't done when the artifact
 exists — it's done when the artifact reaches the surface the user
 will keep iterating on. This atom is the "push it somewhere"
 stage. It's the natural counterpart to `diff-review`.
@@ -25,8 +25,8 @@ stage. It's the natural counterpart to `diff-review`.
 | surface | typical follow-on |
 | --- | --- |
 | `cli` | the user runs `readable files read` against the project; no extra push |
-| `desktop` | open the project in the OD desktop app |
-| `web` | publish to the public marketplace via spec §13's `od://` deep link |
+| `desktop` | open the project in the Readable Studio desktop app |
+| `web` | publish to the public marketplace via spec §13's `readable-studio://` deep link |
 | `docker` | wrap the artifact into a self-contained container (calls the §15.4 image) |
 | `github` | open a PR via `readable plugin publish --to <catalog>` |
 | `figma` | round-trip back into the figma-migration source file |

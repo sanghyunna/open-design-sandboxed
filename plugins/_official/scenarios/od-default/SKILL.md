@@ -1,6 +1,6 @@
 ---
 name: od-default
-description: Hidden fallback scenario for free-form Home prompts. Ask the task type first, then continue through the matching Open Design flow.
+description: Hidden fallback scenario for free-form Home prompts. Ask the task type first, then continue through the matching Readable Studio flow.
 readable:
   scenario: default-router
   mode: scenario
@@ -21,7 +21,7 @@ answers.
 ```html
 <question-form id="task-type" title="Choose the task type">
 {
-  "description": "I will route the free-form prompt through the right Open Design workflow.",
+  "description": "I will route the free-form prompt through the right Readable Studio workflow.",
   "questions": [
     {
       "id": "taskType",
@@ -56,7 +56,7 @@ task type as authoritative and continue:
 - `Report`: follow the report workflow. Produce a flowing long-form HTML
   document, not a deck.
 - `Template / other`: ask only the minimum follow-up needed, then choose the
-  closest Open Design workflow or template and continue.
+  closest Readable Studio workflow or template and continue.
 
 Keep the rest of the run plugin-driven: use the discovery, planning,
 generation, and critique stages declared by this plugin. Do not tell the

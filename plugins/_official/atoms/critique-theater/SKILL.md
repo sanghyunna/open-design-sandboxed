@@ -45,7 +45,7 @@ cwd plus a structured event the daemon's pipeline runner reads:
 ## Convergence + escape hatches
 
 - Critique converges at `score >= 4` per default `until`.
-- Iteration cap (`OD_MAX_DEVLOOP_ITERATIONS`, default 10) always wins
+- Iteration cap (`READABLE_MAX_DEVLOOP_ITERATIONS`, default 10) always wins
   even when the score never reaches 4.
 - The user can break out via `readable ui respond` with action `break-loop`
   or the desktop "Stop refining" button.

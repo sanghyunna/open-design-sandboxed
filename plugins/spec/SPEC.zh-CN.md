@@ -91,7 +91,7 @@ my-plugin/
 
 | 主类 | 适用场景 | 常见 `taskKind` | 常用 atoms |
 | --- | --- | --- | --- |
-| `import` | 把外部来源带入 OD | `figma-migration` 或 `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
+| `import` | 把外部来源带入 Readable Studio | `figma-migration` 或 `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
 | `create` | 生成新 artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | 把已接受 artifact 转换为下游格式 | `tune-collab` 或 `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
 | `share` | 发布或发送 artifact 给协作者 | `tune-collab` | `file-read`, `handoff` |
@@ -122,7 +122,7 @@ my-plugin/
 - 支持文件使用相对插件根目录的路径。
 - 写出带 checkpoint 和期望输出的明确 workflow。
 - 只有真正缺输入时，才描述需要问用户什么。
-- 避免把 OD marketplace 专属数据放进 `SKILL.md`；保持它可移植。
+- 避免把 Readable Studio marketplace 专属数据放进 `SKILL.md`；保持它可移植。
 
 ## 6. Manifest 规则
 
@@ -132,7 +132,7 @@ my-plugin/
 - `version` 是插件包自身版本，独立于 `specVersion`。
 - `compat.agentSkills[0].path` 应指向 `./SKILL.md`。
 - `readable.taskKind` 必须是 `new-generation`、`figma-migration`、`code-migration` 或 `tune-collab`。
-- `readable.pipeline.stages[].atoms[]` 应使用已知一方 atoms，除非插件明确面向未来 OD 版本。
+- `readable.pipeline.stages[].atoms[]` 应使用已知一方 atoms，除非插件明确面向未来 Readable Studio 版本。
 - `repeat` stage 必须包含 `until`。
 - `readable.capabilities` 应从小集合开始。restricted install 默认只有 `prompt:inject`。
 

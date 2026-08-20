@@ -4,7 +4,7 @@ Language: English | [简体中文](README.zh-CN.md)
 
 This folder is the shareable specification kit for Readable Studio plugin authors. It is meant to work for a human reading the repo and for an external coding agent such as Claude Code, Codex, Cursor, OpenClaw, Hermes Agent, or another Agent Skills compatible tool.
 
-Readable Studio plugins follow the same portable shape as Agent Skills: a folder with `SKILL.md` plus optional assets, references, scripts, and examples. Readable Studio adds `readable-studio.json` as a sidecar so the same folder can appear in the OD plugin gallery, hydrate the home composer, declare inputs and GenUI surfaces, run an OD atom pipeline, and participate in publish or PR flows.
+Readable Studio plugins follow the same portable shape as Agent Skills: a folder with `SKILL.md` plus optional assets, references, scripts, and examples. Readable Studio adds `readable-studio.json` as a sidecar so the same folder can appear in the Readable Studio plugin gallery, hydrate the home composer, declare inputs and GenUI surfaces, run a Readable Studio atom pipeline, and participate in publish or PR flows.
 
 ## Folder Map
 

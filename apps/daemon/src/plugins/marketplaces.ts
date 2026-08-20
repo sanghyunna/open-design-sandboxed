@@ -78,8 +78,6 @@ const HTTPS_RE = /^https:\/\//i;
 const DEFAULT_MARKETPLACE_REPO = 'sanghyunna/readable-studio';
 const DEFAULT_MARKETPLACE_REPO_REF = 'main';
 const DEFAULT_MARKETPLACE_REGISTRY_PATH = 'plugins/registry';
-const PUBLIC_MARKETPLACE_BASE_URL = 'https://open-design.ai/marketplace';
-const PUBLIC_PLUGINS_BASE_URL = 'https://open-design.ai/plugins';
 
 function marketplaceRegistryRepo(): string {
   return (process.env.OD_MARKETPLACE_REPO?.trim() || DEFAULT_MARKETPLACE_REPO)
@@ -121,17 +119,6 @@ export function marketplaceRegistryIdFromUrl(url: string): string | null {
   const configuredId = registryIdFromBaseUrl(trimmed, marketplaceRegistryBaseUrl());
   if (configuredId) return configuredId;
 
-  const publicBases = [PUBLIC_MARKETPLACE_BASE_URL, PUBLIC_PLUGINS_BASE_URL];
-  for (const base of publicBases) {
-    if (trimmed === `${base}/${READABLE_STUDIO_REGISTRY_MANIFEST_NAME}`) return 'official';
-    if (trimmed.startsWith(`${base}/`) && trimmed.endsWith(`/${READABLE_STUDIO_REGISTRY_MANIFEST_NAME}`)) {
-      const id = trimmed
-        .slice(base.length + 1)
-        .replace(/\/readable-studio-marketplace\.json$/, '');
-      if (id && !id.includes('/')) return id;
-    }
-  }
-
   try {
     const parsed = new URL(trimmed);
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'raw.githubusercontent.com') {
@@ -159,6 +146,12 @@ export function resolveMarketplaceFetchUrl(url: string): string {
   return registryId ? marketplaceManifestUrlForRegistry(registryId) : trimmed;
 }
 
+function isUnsupportedMarketplaceUrl(url: string): boolean {
+  return url.includes('://open-design.ai/')
+    || url.includes('raw.githubusercontent.com/nexu-io/open-design/')
+    || url.endsWith('/open-design-marketplace.json');
+}
+
 function normalizeMarketplaceTrust(value: unknown): MarketplaceTrustTier {
   return value === 'official' || value === 'trusted' ? value : 'restricted';
 }
@@ -167,10 +160,7 @@ export async function addMarketplace(
   db: SqliteDb,
   input: AddMarketplaceInput,
 ): Promise<AddMarketplaceResult | AddMarketplaceFailure> {
-  if (
-    input.url.includes('raw.githubusercontent.com/nexu-io/open-design/') ||
-    input.url.endsWith('/open-design-marketplace.json')
-  ) {
+  if (isUnsupportedMarketplaceUrl(input.url)) {
     return {
       ok: false,
       status: 400,
@@ -374,6 +364,14 @@ export async function refreshMarketplace(
   const existing = getMarketplace(db, id);
   if (!existing) {
     return { ok: false, status: 404, message: `marketplace ${id} not found` };
+  }
+  if (isUnsupportedMarketplaceUrl(existing.url)) {
+    return {
+      ok: false,
+      status: 400,
+      message: UNSUPPORTED_OPEN_DESIGN_V1,
+      errors: [UNSUPPORTED_OPEN_DESIGN_V1],
+    };
   }
   const useFetcher = fetcher ?? defaultFetcher;
   const url = resolveMarketplaceFetchUrl(existing.url);

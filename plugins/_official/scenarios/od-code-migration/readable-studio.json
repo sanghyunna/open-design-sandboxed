@@ -47,10 +47,10 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/scenarios/od-code-migration",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/scenarios/od-code-migration",
   "tags": [
     "scenario",
     "first-party",
@@ -97,7 +97,7 @@
             "build-test"
           ],
           "repeat": true,
-          "until": "(build.passing && tests.passing) || iterations>=8"
+          "until": "build.passing==true && tests.passing==true || iterations>=8"
         },
         {
           "id": "review",

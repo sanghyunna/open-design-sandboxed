@@ -36,7 +36,7 @@ devloop's `until` evaluator reads.
 project-cwd/
 └── critique/
     ├── build-test.json   # { build: 'passing' | 'failing', tests: 'passing' | 'failing' | 'skipped', durationMs, commandsRun: [...], failures: [...] }
-    └── build-test.log    # raw stdout / stderr (truncated to OD_BUILD_TEST_LOG_BUDGET_BYTES, default 1 MiB)
+    └── build-test.log    # raw stdout / stderr (truncated to READABLE_BUILD_TEST_LOG_BUDGET_BYTES, default 1 MiB)
 ```
 
 The atom emits **two** signals the devloop reads:

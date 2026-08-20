@@ -3,7 +3,7 @@ name: open-design-landing
 description: >
   Produce a world-class single-page editorial landing site in the
   Atelier Zero visual language (Monocle / Apartamento / Études editorial
-  collage) — the same aesthetic Open Design uses for its own marketing
+  collage) — the same aesthetic Readable Studio uses for its own marketing
   surface. The agent fills a typed `inputs.json` from a brand brief,
   optionally generates 16 collage assets via gpt-image-2, then runs a
   pure-function composer that emits a self-contained HTML file; a
@@ -12,12 +12,11 @@ description: >
   Headroom-style sticky nav are wired automatically.
 triggers:
   - landing page
-- Landing page
   - editorial site
   - magazine layout
   - hero collage
   - atelier zero
-  - open design landing
+  - readable studio landing
 readable:
   category: brand-page
   surface: web
@@ -92,7 +91,8 @@ parameters:
     type: enum
     values: [fal, azure]
     default: fal
-    description: Provider for `image_strategy: generate`. fal.ai is faster.
+    description: >
+      Provider for `image_strategy: generate`. fal.ai is faster.
 outputs:
   - path: <out>/index.html
     when: output_format in [standalone-html, both]
@@ -122,8 +122,8 @@ Tight + Playfair Display, italic serif emphasis spans, dotted hairline
 rules, coral terminating dots, scroll-reveal motion, and 16 surreal
 collage plates.
 
-This is the canonical Open Design marketing-page recipe — the example
-output is the very page you see at [open-design](https://github.com/nexu-io/open-design).
+This is the canonical Readable Studio marketing-page recipe — the example
+output is the very page you see at [readable-studio](https://github.com/sanghyunna/readable-studio).
 
 The skill is fully **parameterized**. The agent fills one typed
 `inputs.json` from the user's brief; the composer turns that JSON +
@@ -185,7 +185,7 @@ The eight question groups, in order:
 | 8     | `cta` + `footer.{columns[4],mega}`                      | All         | Mega kicker is a `MixedText` like the headlines |
 
 Open [`inputs.example.json`](./inputs.example.json) for a complete
-worked example (Open Design itself).
+worked example (Readable Studio itself).
 
 ### 2. Decide the image strategy
 
@@ -286,14 +286,14 @@ skills/open-design-landing/
 ├── README.md                # quick-start
 ├── schema.ts                # typed inputs (single source of truth)
 ├── styles.css               # Atelier Zero stylesheet (single source of truth)
-├── inputs.example.json      # Open Design as the worked example
+├── inputs.example.json      # Readable Studio as the worked example
 ├── example.html             # canonical rendering (regenerated from inputs.example.json)
 ├── scripts/
 │   ├── compose.ts           # inputs.json + styles.css → index.html
 │   ├── imagegen.ts          # gpt-image-2 wrapper (fal.ai)
 │   └── placeholder.ts       # SVG paper-textured frames
 └── assets/
-    ├── *.png                # 16 collage plates (Open Design instance)
+    ├── *.png                # 16 collage plates (Readable Studio instance)
     ├── image-manifest.json  # slot → file/dimensions/prompt mapping
     └── imagegen-prompts.md  # human-readable prompt pack
 ```

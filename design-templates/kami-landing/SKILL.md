@@ -8,18 +8,21 @@ description: >
   zh-CN · ja). One self-contained HTML file, zero dependencies.
 triggers:
   - kami
+  - paper
   - paper one-pager
+  - White paper
   - white paper
   - parchment landing
   - editorial document
   - print-grade page
   - kami landing
-od:
+readable:
   category: brand-page
   surface: web
   mode: prototype
   platform: desktop
   scenario: marketing
+  featured: 3
   audience: founders, design studios, OSS maintainers, researchers
   tone: editorial, restrained, print-first
   scale: viewport-anchored long-form single page
@@ -202,7 +205,7 @@ host app's comment mode can target it.
 skills/kami-landing/
 ├── SKILL.md                 # this contract
 ├── README.md                # human quick-start
-└── example.html             # canonical Open Design rendering
+└── example.html             # canonical Readable Studio rendering
 ```
 
 ## Boundaries

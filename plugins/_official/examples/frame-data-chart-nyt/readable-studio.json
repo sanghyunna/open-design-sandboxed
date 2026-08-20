@@ -47,10 +47,10 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/frame-data-chart-nyt",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/examples/frame-data-chart-nyt",
   "tags": [
     "example",
     "first-party",

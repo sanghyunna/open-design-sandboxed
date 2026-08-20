@@ -2,7 +2,7 @@
 
 Language: English | [简体中文](AGENT-DEVELOPMENT.zh-CN.md)
 
-Give this file to a coding agent when you want it to create or improve an Readable Studio plugin.
+Give this file to a coding agent when you want it to create or improve a Readable Studio plugin.
 
 ## Mission
 
@@ -36,7 +36,7 @@ Read these files before editing:
 ```
 
 3. Keep the `SKILL.md` portable. It may mention Readable Studio behavior, but the core workflow must still make sense in any Agent Skills compatible agent.
-4. Put OD-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, and capabilities in `readable-studio.json`.
+4. Put Readable Studio-specific display, `specVersion`, plugin `version`, inputs, preview, pipeline, atoms, and capabilities in `readable-studio.json`.
 5. Add `examples/`, `preview/`, `assets/`, or `references/` only when they materially help the agent produce better results.
 6. Add `evals/evals.json` when the plugin has enough behavior to regress.
 7. If publishing externally, prepare registry-safe README sections for skills.sh, ClawHub, and canonical GitHub source.

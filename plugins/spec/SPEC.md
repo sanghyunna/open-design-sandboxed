@@ -87,7 +87,7 @@ my-plugin/
 
 ### 2.1 Open Design v1 is unsupported
 
-Readable Studio does not normalize the former `open-design.json`, `od` metadata namespace, Open Design schema URLs, marketplace indexes, or `.open-design/project.json` files. Every boundary rejects those inputs with the machine-readable code `UNSUPPORTED_OPEN_DESIGN_V1`. Authors must publish `readable-studio.json` with the `readable` namespace; there is no dual parser.
+Readable Studio does not normalize the former `open-design.json`, `od` metadata namespace, Open Design schema URLs, marketplace indexes, or `.od/project.json` files. Every boundary rejects those inputs with the machine-readable code `UNSUPPORTED_OPEN_DESIGN_V1`. Authors must publish `readable-studio.json` with the `readable` namespace; there is no dual parser.
 
 ## 3. Workflow Taxonomy
 
@@ -95,7 +95,7 @@ Use one primary lane. Put the lane in `tags`, `readable.scenario`, or `readable.
 
 | Lane | Use when | Typical `taskKind` | Useful atoms |
 | --- | --- | --- | --- |
-| `import` | Bring external sources into OD | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
+| `import` | Bring external sources into Readable Studio | `figma-migration` or `code-migration` | `figma-extract`, `code-import`, `design-extract`, `token-map`, `rewrite-plan` |
 | `create` | Generate a new artifact | `new-generation` | `discovery-question-form`, `direction-picker`, `todo-write`, `file-write`, `critique-theater` |
 | `export` | Convert an accepted artifact to a downstream format | `tune-collab` or `code-migration` | `file-read`, `file-write`, `handoff`, `diff-review` |
 | `share` | Publish or send an artifact to collaborators | `tune-collab` | `file-read`, `handoff` |
@@ -126,7 +126,7 @@ Use `readable.mode` for the main output surface:
 - Reference support files by relative path from the plugin root.
 - Include an explicit workflow with checkpoints and expected outputs.
 - Describe what to ask the user only when the input is genuinely missing.
-- Avoid OD-only marketplace data in `SKILL.md`; keep it portable.
+- Avoid Readable Studio-only marketplace data in `SKILL.md`; keep it portable.
 
 ## 6. Manifest Rules
 
@@ -136,7 +136,7 @@ Use `readable.mode` for the main output surface:
 - `version` is the plugin package version, independent from `specVersion`.
 - `compat.agentSkills[0].path` should point to `./SKILL.md`.
 - `readable.taskKind` must be one of `new-generation`, `figma-migration`, `code-migration`, or `tune-collab`.
-- `readable.pipeline.stages[].atoms[]` should use known first-party atoms unless the plugin clearly targets a future OD release.
+- `readable.pipeline.stages[].atoms[]` should use known first-party atoms unless the plugin clearly targets a future Readable Studio release.
 - A repeated stage must include `until`.
 - `readable.capabilities` should start small. Restricted installs get `prompt:inject` by default.
 

@@ -7,10 +7,10 @@
   "description": "5-dimension critique panel; emits the critique.score signal that drives devloop convergence.",
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/atoms/critique-theater",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/atoms/critique-theater",
   "tags": [
     "atom",
     "first-party",

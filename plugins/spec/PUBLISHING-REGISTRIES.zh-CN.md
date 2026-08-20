@@ -24,7 +24,7 @@ Readable Studio 插件刻意设计成一个文件夹可以跨多个 agent 生态
 
 | 目标 | 适合场景 | 源形态 | 发布策略 |
 | --- | --- | --- | --- |
-| Readable Studio | OD marketplace、composer chips、pipelines、GenUI、artifact provenance | `SKILL.md` + `readable-studio.json` | 向 Readable Studio 提 PR，或发布指向插件仓库的 marketplace index entry。 |
+| Readable Studio | Readable Studio marketplace、composer chips、pipelines、GenUI、artifact provenance | `SKILL.md` + `readable-studio.json` | 向 Readable Studio 提 PR，或发布指向插件仓库的 marketplace index entry。 |
 | skills.sh | 面向多种编码 agent 的 Agent Skills 发现 | 包含 `SKILL.md` 的公开 Git repo 或 subpath | 确保 `npx skills add owner/repo` 可用，添加 skills.sh badge，并写清 README。 |
 | ClawHub | 让 OpenClaw 用户从 registry 安装 skills 或 OpenClaw plugins | skill 使用 `SKILL.md` 文件夹；plugin 使用 OpenClaw package metadata | `SKILL.md` 文件夹使用 `clawhub skill publish ./my-skill`。只有同时提供 OpenClaw plugin metadata 时，才使用 `clawhub package publish ... --family code-plugin`。 |
 | 独立 GitHub | source of truth 和广泛 agent 兼容 | 可移植文件夹或 mono-repo subpath | 打 tag、写安装命令、维护 changelog。 |
@@ -56,7 +56,7 @@ readable plugin install https://github.com/owner/repo
 [![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/owner/repo)
 ```
 
-- 使用与插件主类匹配的 GitHub topic 和 README 关键词，例如 `open-design-plugin`、`agent-skill`、`prototype`、`deck`、`report`、`dashboard`、`design-system`。
+- 使用与插件主类匹配的 GitHub topic 和 README 关键词，例如 `readable-studio-plugin`、`agent-skill`、`prototype`、`deck`、`report`、`dashboard`、`design-system`。
 
 不要把 skills.sh 视为 canonical 存储位置。GitHub 是 source of truth，skills.sh 是发现和安装表面。
 

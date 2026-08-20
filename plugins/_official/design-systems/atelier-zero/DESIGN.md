@@ -101,7 +101,7 @@ hand-pressed paper warmth.
   numerals, on testimonial quotes, on the brand mark `Ø`.
 - **Body:** `Inter` 300–500 — paragraph copy, lab descriptions.
 - **Mono:** `JetBrains Mono` 400–500 — code spans, coordinates,
-  SHAs, plate numbers ("FIG. 01 / OD-26").
+  SHAs, plate numbers ("FIG. 01 / Readable Studio-26").
 
 ### Scale (px)
 
@@ -300,7 +300,7 @@ When generating against this design system:
 - The page is a **printed magazine** that happens to deploy. Lean
   into print metaphors before web metaphors.
 - Always include the metadata strip, the side rails, the Roman
-  section rules, and a footer with a giant `Open Design.` (or brand)
+  section rules, and a footer with a giant `Readable Studio.` (or brand)
   word at clamp(70px, 13vw, 200px).
 - Coral is a single character on stage. If you find yourself
   reaching for a second coral element in the same viewport, use

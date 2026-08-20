@@ -6,8 +6,8 @@ description: |
   Innovation, each scored 0–10. Outputs a single self-contained HTML
   report with a radar chart, evidence-backed scores, and three lists:
   Keep / Fix / Quick-wins. Use when the brief asks for a "design
-  review", "design critique", "five-dimension review", "design audit", or "what's
-  wrong with my design".
+  review", "design critique", "5-dimension review", "design audit", or
+  "what's wrong with my design".
 triggers:
   - "critique"
   - "design review"
@@ -19,7 +19,7 @@ triggers:
   - "review my landing page"
   - "review"
   - "retrospective"
-od:
+readable:
   mode: prototype
   platform: desktop
   scenario: design
@@ -52,7 +52,7 @@ the *huashu-design* expert-critique flow.
 A single self-contained `<artifact type="text/html">` review report
 including:
 
-1. **Header** — what artifact was reviewed, date, reviewer ("OD ·
+1. **Header** — what artifact was reviewed, date, reviewer ("Readable Studio ·
    Critique skill"), 1-line verdict
 2. **Radar chart** (inline SVG, no library) showing the 5 scores
 3. **Five dimension cards**, each with:

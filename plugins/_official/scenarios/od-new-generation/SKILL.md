@@ -8,7 +8,7 @@ readable:
 
 # od-new-generation (scenario)
 
-Spec §10.1 / §23.3.3: when a plugin omits `od.pipeline`, the daemon
+Spec §10.1 / §23.3.3: when a plugin omits `readable.pipeline`, the daemon
 falls back to this scenario plugin's pipeline. Replacing the
 default for an enterprise / vertical edition is now a content edit
 rather than a code change.
@@ -37,5 +37,5 @@ until the score converges or the iteration ceiling is hit.
 
 ## Plugins that customise this scenario
 
-A plugin can override or extend by declaring its own `od.pipeline`.
+A plugin can override or extend by declaring its own `readable.pipeline`.
 The default applies only when the plugin's pipeline is absent.

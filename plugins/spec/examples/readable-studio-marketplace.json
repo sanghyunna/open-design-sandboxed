@@ -4,8 +4,8 @@
   "name": "readable-studio-spec-examples",
   "version": "0.1.0",
   "owner": {
-    "name": "Open Design Spec Examples",
-    "url": "https://github.com/nexu-io/open-design"
+    "name": "Readable Studio Spec Examples",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
   "metadata": {
     "description": "Example plugin spec catalog for authoring and PR workflows.",

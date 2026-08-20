@@ -7,10 +7,10 @@
   "description": "3-5 direction picker that lets the user choose before final generation.",
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/atoms/direction-picker",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/atoms/direction-picker",
   "tags": [
     "atom",
     "first-party",

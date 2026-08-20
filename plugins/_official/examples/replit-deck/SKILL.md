@@ -76,7 +76,7 @@ replit-deck/
 ### Step 0 ??Pre-flight (mandatory reads)
 
 1. Read `assets/template.html` end-to-end. The `[data-theme]` blocks carry the tokens; the `<script>` at the bottom solves five iframe nav bugs ??**do not rewrite it**.
-2. Read `references/themes.md` ??pick **one** theme that matches the user's brief. If the user already picked a theme via `od.inputs.theme`, use that.
+2. Read `references/themes.md` ??pick **one** theme that matches the user's brief. If the user already picked a theme via `readable.inputs.theme`, use that.
 3. Read `references/layouts.md` ??you'll copy `<section>` blocks from here.
 4. Read `references/checklist.md` ??P0 must pass before emit.
 
@@ -175,7 +175,7 @@ If the user just says "make me a deck" without further guidance, default to `sim
 
 - **Eight themes = the full replit.com/slides landing-page gallery at the time of snapshot.** Not a curated subset ??every theme card currently published on replit.com/slides is represented here (helix, holm, vance, bevel, world-dark, world-mint, atlas, bluehouse). If Replit ships a ninth template, it is **not** automatically reflected in this skill.
 - **Snapshot date: 2026-04-29.** All hex values were sampled from the actual replit.com/slides PNGs on that date with ImageMagick ??no guessed colors, no memory substitutions. See `references/themes.md` ??*Contributing a new theme* for the exact sampling procedure.
-- **Maintenance: one-time snapshot, not tracked.** Replit Slides is a live product and may drift. This skill does not auto-sync. If you notice Replit has updated colors or added a theme and want it reflected here, open an issue on `nexu-io/open-design` titled `replit-deck: re-sync to replit.com/slides (YYYY-MM-DD)` and attach the updated screenshots. There is no designated owner monitoring the upstream.
+- **Maintenance: one-time snapshot, not tracked.** Replit Slides is a live product and may drift. This skill does not auto-sync. If you notice Replit has updated colors or added a theme and want it reflected here, open an issue on `sanghyunna/readable-studio` titled `replit-deck: re-sync to replit.com/slides (YYYY-MM-DD)` and attach the updated screenshots. There is no designated owner monitoring the upstream.
 - **No Replit branding.** These are gallery-style templates, not a Replit-brand deck. The checklist (P0) forbids inserting a Replit logo or wordmark.
 
 ---

@@ -7,10 +7,10 @@
   "description": "Spec example plugin for creating a dense operations dashboard prototype with KPIs, charts, and an action table.",
   "license": "MIT",
   "author": {
-    "name": "Open Design Spec Examples",
-    "url": "https://github.com/nexu-io/open-design"
+    "name": "Readable Studio Spec Examples",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/spec/examples/create-prototype-dashboard",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/spec/examples/create-prototype-dashboard",
   "tags": [
     "create",
     "prototype",

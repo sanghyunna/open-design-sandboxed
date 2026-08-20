@@ -13,7 +13,7 @@ Run this before emitting `<artifact>`. P0 = must pass; P1 = should pass; P2 = ni
 - [ ] **No filler copy.** Zero "Feature One / Feature Two", lorem ipsum, "Lorem ipsum dolor". If a section feels empty, delete it; do not pad.
 - [ ] **`data-od-id` on every top-level `<section>`.** Used by comment mode to target sections.
 - [ ] **Mobile reflow works.** All `grid-2`, `grid-3`, `grid-4`, `grid-2-1`, `grid-1-2` collapse to one column at ≤920px (the default media query in `template.html` does this). Verify by mentally narrowing — no horizontal scroll.
-- [ ] **No `scrollIntoView()` calls.** Breaks the OD preview iframe. Use `scrollTo({...})` if you need scroll behaviour.
+- [ ] **No `scrollIntoView()` calls.** Breaks the Readable Studio preview iframe. Use `scrollTo({...})` if you need scroll behaviour.
 
 ## P1 — should pass
 

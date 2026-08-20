@@ -62,7 +62,7 @@
         "type": "string",
         "required": true,
         "label": "Target repository",
-        "placeholder": "nexu-io/open-design"
+        "placeholder": "sanghyunna/readable-studio"
       }
     ],
     "capabilities": [

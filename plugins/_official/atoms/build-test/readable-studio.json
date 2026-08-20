@@ -7,10 +7,10 @@
   "description": "Run the project's build / typecheck / lint / test commands and emit build.passing + tests.passing signals.",
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/atoms/build-test",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/atoms/build-test",
   "tags": [
     "atom",
     "first-party",

@@ -4,7 +4,7 @@ Language: English | [简体中文](PUBLISHING-REGISTRIES.zh-CN.md)
 
 Readable Studio plugins are intentionally shaped so one folder can travel across multiple agent ecosystems. The safest publishing model is:
 
-1. Keep the source of truth in a public GitHub repository or in an Readable Studio PR.
+1. Keep the source of truth in a public GitHub repository or in a Readable Studio PR.
 2. Keep `SKILL.md` portable and registry-friendly.
 3. Add `readable-studio.json` as the Readable Studio sidecar.
 4. Publish or list the same source in external registries only after local validation passes.
@@ -14,7 +14,7 @@ Registry rules can change, so always check the target registry docs before runni
 ## Recommended Release Order
 
 1. Validate the plugin folder locally.
-2. Push a public GitHub repository or open an Readable Studio PR.
+2. Push a public GitHub repository or open a Readable Studio PR.
 3. Add README install instructions for Readable Studio and generic Agent Skills clients.
 4. Add registry-specific badges or links.
 5. Publish to registries that match the plugin's audience.
@@ -24,7 +24,7 @@ Registry rules can change, so always check the target registry docs before runni
 
 | Target | Best for | Source shape | Publish strategy |
 | --- | --- | --- | --- |
-| Readable Studio | OD marketplace, composer chips, pipelines, GenUI, artifact provenance | `SKILL.md` + `readable-studio.json` | Open a PR to Readable Studio or publish a marketplace index entry pointing to the plugin repo. |
+| Readable Studio | Readable Studio marketplace, composer chips, pipelines, GenUI, artifact provenance | `SKILL.md` + `readable-studio.json` | Open a PR to Readable Studio or publish a marketplace index entry pointing to the plugin repo. |
 | skills.sh | Agent Skills discovery across many coding agents | Public Git repo or subpath containing `SKILL.md` | Make `npx skills add owner/repo` work, add the skills.sh badge, and keep the README clear. |
 | ClawHub | OpenClaw users who install skills or OpenClaw plugins from a registry | `SKILL.md` folder for skills; OpenClaw package metadata for plugins | Use `clawhub skill publish ./my-skill` for skill folders. Use `clawhub package publish ... --family code-plugin` only when you also ship OpenClaw plugin metadata. |
 | Standalone GitHub | Source of truth and broad agent compatibility | Portable folder or mono-repo subpath | Tag releases, document install commands, and keep changelogs. |
@@ -56,7 +56,7 @@ readable plugin install https://github.com/owner/repo
 [![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/owner/repo)
 ```
 
-- Use a GitHub topic and README keywords that match the plugin's lane, such as `open-design-plugin`, `agent-skill`, `prototype`, `deck`, `report`, `dashboard`, or `design-system`.
+- Use a GitHub topic and README keywords that match the plugin's lane, such as `readable-studio-plugin`, `agent-skill`, `prototype`, `deck`, `report`, `dashboard`, or `design-system`.
 
 Do not assume skills.sh is the canonical storage location. Treat GitHub as source of truth and skills.sh as a discovery and install surface.
 

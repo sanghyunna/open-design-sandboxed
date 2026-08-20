@@ -55,7 +55,7 @@ export function adaptClaudePlugin(
   const description = typeof obj['description'] === 'string' ? obj['description'] : undefined;
   const commands = Array.isArray(obj['commands']) ? obj['commands'].length : 0;
   if (commands > 0) {
-    warnings.push(`claude-plugin declares ${commands} command(s); v1 OD apply does not auto-register hooks. Add them via od.context.claudePlugins[].`);
+    warnings.push(`claude-plugin declares ${commands} command(s); v1 Readable Studio apply does not auto-register hooks. Add them via readable.context.claudePlugins[].`);
   }
   const manifest: PluginManifest = {
     specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,

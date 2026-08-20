@@ -70,9 +70,32 @@ export function parseManifestObject(value: unknown): ManifestParseResult {
   };
 }
 
+const LEGACY_REPOSITORY = /^(?:github:nexu-io\/open-design|https?:\/\/(?:www\.)?open-design\.(?:ai|dev)|https:\/\/github\.com\/nexu-io\/open-design)(?:[/@]|$)/u;
+
+function hasLegacyRepository(value: unknown): boolean {
+  return typeof value === 'string' && LEGACY_REPOSITORY.test(value);
+}
+
+function hasLegacyPublisher(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  return Reflect.get(value, 'name') === 'Open Design'
+    || Reflect.get(value, 'id') === 'open-design'
+    || hasLegacyRepository(Reflect.get(value, 'url'));
+}
+
 export function isUnsupportedOpenDesignV1(value: unknown): boolean {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   if (Object.hasOwn(value, 'od')) return true;
+
   const schema = Reflect.get(value, '$schema');
-  return typeof schema === 'string' && schema.includes('open-design.ai/schemas/');
+  if (typeof schema === 'string' && schema.includes('open-design.ai/schemas/')) return true;
+
+  if (hasLegacyRepository(Reflect.get(value, 'homepage'))) return true;
+  if (hasLegacyRepository(Reflect.get(value, 'source'))) return true;
+  if (hasLegacyPublisher(Reflect.get(value, 'author'))) return true;
+  if (hasLegacyPublisher(Reflect.get(value, 'owner'))) return true;
+  if (hasLegacyPublisher(Reflect.get(value, 'publisher'))) return true;
+
+  const plugins = Reflect.get(value, 'plugins');
+  return Array.isArray(plugins) && plugins.some(isUnsupportedOpenDesignV1);
 }

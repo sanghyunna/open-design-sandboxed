@@ -93,7 +93,7 @@ describe('pluginInventoryStats', () => {
       make('e', { capabilities: ['subprocess', 'bash'] }),
     ];
     const stats = pluginInventoryStats(plugins);
-    expect(stats.withElevatedCapabilities).toBe(4); // b/c/d/e
+    expect(stats.withElevatedCapabilities).toBe(3); // b/c/e
   });
 
   it('splits bundled vs. third-party correctly', () => {

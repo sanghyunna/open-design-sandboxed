@@ -25,7 +25,7 @@ the convergence engine.
       "id": "verify",
       "atoms": ["patch-edit", "build-test"],
       "repeat": true,
-      "until": "(build.passing && tests.passing) || iterations>=8"
+      "until": "build.passing==true && tests.passing==true || iterations>=8"
     },
     { "id": "review",    "atoms": ["diff-review"] },
     { "id": "handoff",   "atoms": ["handoff"] }
@@ -39,7 +39,7 @@ the `build-test` atom.
 
 ## Required user inputs
 
-A plugin built on this scenario typically declares `od.inputs`:
+A plugin built on this scenario typically declares `readable.inputs`:
 
   - `repoPath` (string, required): pulled from `readable project import`.
   - `targetStack` (form): collected by `rewrite-plan`.

@@ -89,7 +89,7 @@ const KNOWN_TOP_LEVEL_CAPABILITIES = new Set<string>([
   'genui:custom-component',
 ]);
 
-const SCOPED_MCP_RE = /^mcp:[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const SCOPED_MCP_RE = /^mcp:[a-z0-9][a-z0-9._-]*$/;
 
 export interface InvalidCapabilityIssue {
   capability: string;

@@ -21,7 +21,7 @@ explicit re-import.
 
 | Source | Required | Notes |
 | --- | --- | --- |
-| `repoPath` | yes | Absolute path to the repo's root, supplied via `readable project import` or an upstream `od.context.assets[]` reference |
+| `repoPath` | yes | Absolute path to the repo's root, supplied via `readable project import` or an upstream `readable.context.assets[]` reference |
 | `targetStack` | yes | { framework, packageManager, styleSystem, componentLibrary } via the matching `form` GenUI surface |
 
 ## Output
@@ -36,7 +36,7 @@ project-cwd/
 ```
 
 `code/index.json` is the input every other Phase 7 atom reads. The
-walk respects a budget (`OD_CODE_IMPORT_BUDGET_MS`, default 60s) so
+walk respects a budget (`READABLE_CODE_IMPORT_BUDGET_MS`, default 60s) so
 large monorepos don't burn an entire run on import.
 
 ## Convergence

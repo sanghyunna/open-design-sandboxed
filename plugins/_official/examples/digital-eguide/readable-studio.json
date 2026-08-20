@@ -47,10 +47,10 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Open Design",
-    "url": "https://github.com/nexu-io"
+    "name": "Readable Studio",
+    "url": "https://github.com/sanghyunna/readable-studio"
   },
-  "homepage": "https://github.com/nexu-io/open-design/tree/main/plugins/_official/examples/digital-eguide",
+  "homepage": "https://github.com/sanghyunna/readable-studio/tree/main/plugins/_official/examples/digital-eguide",
   "tags": [
     "example",
     "first-party",

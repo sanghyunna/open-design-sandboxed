@@ -4,7 +4,7 @@
   "name": "extend-plugin-author",
   "title": "Plugin Author",
   "version": "0.1.0",
-  "description": "Guide an agent through creating, validating, and preparing an Open Design plugin contribution.",
+  "description": "Guide an agent through creating, validating, and preparing a Readable Studio plugin contribution.",
   "license": "MIT",
   "tags": [
     "extend",
@@ -26,7 +26,7 @@
     "mode": "utility",
     "scenario": "plugin-authoring",
     "useCase": {
-      "query": "Create an Open Design plugin for {{lane}} that helps users {{goal}}."
+      "query": "Create a Readable Studio plugin for {{lane}} that helps users {{goal}}."
     },
     "context": {
       "skills": [

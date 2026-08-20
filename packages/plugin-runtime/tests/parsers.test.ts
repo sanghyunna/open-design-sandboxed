@@ -69,6 +69,18 @@ describe('parseManifest', () => {
     expect(result).toMatchObject({ ok: false, code: UNSUPPORTED_OPEN_DESIGN_V1 });
   });
 
+  it('rejects Open Design publisher metadata with the documented code', () => {
+    const result = parseManifest(JSON.stringify({
+      $schema: 'urn:readable-studio:schema:plugin-manifest:v1',
+      name: 'legacy-plugin',
+      version: '1.0.0',
+      author: { name: 'Open Design', url: 'https://open-design.ai' },
+      homepage: 'https://github.com/nexu-io/open-design/tree/main/plugins/legacy-plugin',
+    }));
+
+    expect(result).toMatchObject({ ok: false, code: UNSUPPORTED_OPEN_DESIGN_V1 });
+  });
+
   it('rejects an Open Design v1 schema URL with the documented code', () => {
     const result = parseManifest(JSON.stringify({
       $schema: 'https://open-design.ai/schemas/plugin.v1.json',
@@ -111,6 +123,22 @@ describe('parseMarketplace', () => {
   it('rejects when plugins is missing', () => {
     const result = parseMarketplace(JSON.stringify({ name: 'no-plugins', version: '1.0.0' }));
     expect(result.ok).toBe(false);
+  });
+
+  it('rejects Open Design marketplace metadata with the documented code', () => {
+    const result = parseMarketplace(JSON.stringify({
+      $schema: 'urn:readable-studio:schema:plugin-marketplace:v1',
+      name: 'legacy-marketplace',
+      version: '1.0.0',
+      owner: { name: 'Open Design', url: 'https://open-design.ai' },
+      plugins: [{
+        name: 'legacy/plugin',
+        source: 'github:nexu-io/open-design@main/plugins/legacy-plugin',
+        version: '1.0.0',
+      }],
+    }));
+
+    expect(result).toMatchObject({ ok: false, code: UNSUPPORTED_OPEN_DESIGN_V1 });
   });
 });
 

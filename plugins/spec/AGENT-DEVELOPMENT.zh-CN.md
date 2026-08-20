@@ -36,7 +36,7 @@
 ```
 
 3. 保持 `SKILL.md` 可移植。它可以提到 Readable Studio 行为，但核心 workflow 必须在任何 Agent Skills 兼容 agent 中都能理解。
-4. 把 OD 专属 display、`specVersion`、插件 `version`、inputs、preview、pipeline、atoms和 capabilities 放进 `readable-studio.json`。
+4. 把 Readable Studio 专属 display、`specVersion`、插件 `version`、inputs、preview、pipeline、atoms和 capabilities 放进 `readable-studio.json`。
 5. 只有在能明显提升 agent 输出质量时，才添加 `examples/`、`preview/`、`assets/` 或 `references/`。
 6. 当插件行为足够复杂、容易回归时，添加 `evals/evals.json`。
 7. 如果要对外发布，准备适配 skills.sh、ClawHub 和 canonical GitHub source 的 registry-safe README 段落。

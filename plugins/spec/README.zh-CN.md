@@ -4,7 +4,7 @@
 
 这个文件夹是给 Readable Studio 插件作者使用的可共享规范包。它既适合人直接阅读，也适合交给 Claude Code、Codex、Cursor、OpenClaw、Hermes Agent 或其他兼容 Agent Skills 的编码 agent 使用。
 
-Readable Studio 插件遵循和 Agent Skills 兼容的可移植形态：一个包含 `SKILL.md` 的文件夹，可选添加 assets、references、scripts 和 examples。Readable Studio 额外使用 `readable-studio.json` 作为 sidecar，让同一个文件夹可以出现在 OD 插件库里、填充首页输入框、声明 inputs 和 GenUI surfaces、运行 OD atom pipeline，并参与发布或 PR 流程。
+Readable Studio 插件遵循和 Agent Skills 兼容的可移植形态：一个包含 `SKILL.md` 的文件夹，可选添加 assets、references、scripts 和 examples。Readable Studio 额外使用 `readable-studio.json` 作为 sidecar，让同一个文件夹可以出现在 Readable Studio 插件库里、填充首页输入框、声明 inputs 和 GenUI surfaces、运行 Readable Studio atom pipeline，并参与发布或 PR 流程。
 
 ## 文件夹地图
 
