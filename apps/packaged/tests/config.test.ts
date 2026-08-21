@@ -138,6 +138,30 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
     await expect(readPackagedConfig()).rejects.toThrow(/portable config arch must be "x64"/);
   });
 
+  it("fails closed synchronously when portable metadata is not a JSON boolean", () => {
+    writeConfig({ namespace: "rg", portable: "true" });
+
+    expect(() => resolveEarlyPackagedElectronPaths()).toThrow(/portable must be a boolean/);
+  });
+
+  it("fails closed synchronously when portable target metadata is malformed", () => {
+    writeConfig({ arch: "arm64", namespace: "rg", portable: true });
+
+    expect(() => resolveEarlyPackagedElectronPaths()).toThrow(/portable config arch must be "x64"/);
+  });
+
+  it("fails closed synchronously when portable namespaceBaseRoot escapes the exe data container", () => {
+    const exeDir = join("D:", "Portable", "Readable Studio");
+    stubExecPath(join(exeDir, "Readable Studio.exe"));
+    writeConfig({
+      namespace: "rg",
+      namespaceBaseRoot: join("C:", "Users", "Fred", "AppData", "Roaming", "Readable Studio", "namespaces"),
+      portable: true,
+    });
+
+    expect(() => resolveEarlyPackagedElectronPaths()).toThrow(/namespaceBaseRoot.*ReadableStudioData/);
+  });
+
   it("resolves Chromium paths synchronously before Electron can spawn children", () => {
     const exeDir = join("D:", "Portable", "Readable Studio");
     stubExecPath(join(exeDir, "Readable Studio.exe"));
@@ -197,15 +221,24 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
     expect(config.namespaceBaseRoot).toBe(join(READABLE_USER_DATA_DIR, "namespaces"));
   });
 
-  it("lets an explicit namespaceBaseRoot win even when portable", async () => {
-    const explicitRoot = join("F:", "od-data", "namespaces");
-    stubExecPath(join("D:", "Portable", "Readable Studio", "Readable Studio.exe"));
+  it("accepts an explicit portable namespaceBaseRoot only inside the exe data container", async () => {
+    const exeDir = join("D:", "Portable", "Readable Studio");
+    const explicitRoot = join(exeDir, "ReadableStudioData", "custom", "namespaces");
+    stubExecPath(join(exeDir, "Readable Studio.exe"));
     writeConfig({ namespace: "rg", namespaceBaseRoot: explicitRoot, portable: true });
 
     const config = await readPackagedConfig();
 
     expect(config.portable).toBe(true);
     expect(config.namespaceBaseRoot).toBe(explicitRoot);
+  });
+
+  it("rejects an explicit portable namespaceBaseRoot outside the exe data container", async () => {
+    const explicitRoot = join("F:", "od-data", "namespaces");
+    stubExecPath(join("D:", "Portable", "Readable Studio", "Readable Studio.exe"));
+    writeConfig({ namespace: "rg", namespaceBaseRoot: explicitRoot, portable: true });
+
+    await expect(readPackagedConfig()).rejects.toThrow(/namespaceBaseRoot.*ReadableStudioData/);
   });
 
   it("lets an explicit namespaceBaseRoot win for non-portable builds (unchanged behavior)", async () => {

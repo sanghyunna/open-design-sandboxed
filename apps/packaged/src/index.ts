@@ -23,7 +23,7 @@ import { app, dialog, session } from "electron";
 
 import { readPackagedConfig, resolveEarlyPackagedElectronPaths } from "./config.js";
 import { writePackagedDesktopIdentity } from "./identity.js";
-import { PackagedPathAccessError } from "./errors.js";
+import { PackagedNetworkingRestoreError, PackagedPathAccessError } from "./errors.js";
 import {
   applyPackagedElectronPathOverrides,
   claimPackagedSingleInstanceLock,
@@ -194,10 +194,8 @@ async function main(): Promise<void> {
     async discoverDaemonUrl() {
       return sidecars.daemon.url;
     },
-    onDesktopReady(controls) {
-      void releasePackagedElectronNetworking(session.defaultSession).catch((error) => {
-        packagedLogger?.warn("failed to restore desktop networking", { error });
-      });
+    async onDesktopReady(controls) {
+      await releasePackagedElectronNetworking(session.defaultSession);
       showExistingDesktop = controls.show;
       if (!pendingSecondInstanceFocus) return;
       pendingSecondInstanceFocus = false;
@@ -211,7 +209,7 @@ async function main(): Promise<void> {
 void main().catch((error: unknown) => {
   flushStartupTimingOnFailure?.();
   flushStartupTimingOnFailure = null;
-  if (error instanceof PackagedPathAccessError) {
+  if (error instanceof PackagedPathAccessError || error instanceof PackagedNetworkingRestoreError) {
     try {
       dialog.showErrorBox(error.title, error.message);
     } catch {

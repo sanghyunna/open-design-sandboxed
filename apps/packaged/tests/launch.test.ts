@@ -52,6 +52,7 @@ describe("applyPackagedElectronPathOverrides", () => {
       ["userData", paths.electronUserDataRoot],
       ["sessionData", paths.electronSessionDataRoot],
       ["logs", paths.desktopLogsRoot],
+      ["cache", paths.cacheRoot],
     ]);
     expect(electronApp.commandLine.appendSwitch.mock.calls).toEqual(expect.arrayContaining([
       ["user-data-dir", paths.electronUserDataRoot],
@@ -76,6 +77,34 @@ describe("applyPackagedElectronPathOverrides", () => {
 
     expect(electronSession.setSpellCheckerEnabled).toHaveBeenCalledWith(false);
     expect(electronSession.setProxy).toHaveBeenCalledWith({ mode: "system" });
+  });
+
+  it("retries proxy restoration deterministically before desktop ready succeeds", async () => {
+    const electronSession = {
+      setProxy: vi.fn()
+        .mockRejectedValueOnce(new Error("network service starting"))
+        .mockRejectedValueOnce(new Error("network service starting"))
+        .mockResolvedValue(undefined),
+      setSpellCheckerEnabled: vi.fn(),
+    };
+
+    await expect(releasePackagedElectronNetworking(electronSession)).resolves.toBeUndefined();
+
+    expect(electronSession.setProxy).toHaveBeenCalledTimes(3);
+    expect(electronSession.setProxy).toHaveBeenNthCalledWith(3, { mode: "system" });
+  });
+
+  it("rejects visibly after the bounded proxy restoration attempts are exhausted", async () => {
+    const electronSession = {
+      setProxy: vi.fn(async () => {
+        throw new Error("proxy restore denied");
+      }),
+      setSpellCheckerEnabled: vi.fn(),
+    };
+
+    await expect(releasePackagedElectronNetworking(electronSession)).rejects.toThrow(/proxy restore denied/);
+
+    expect(electronSession.setProxy).toHaveBeenCalledTimes(3);
   });
 });
 

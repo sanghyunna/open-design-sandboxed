@@ -14644,7 +14644,7 @@
     },
     {
       "class": "machine contract to migrate",
-      "count": 1,
+      "count": 2,
       "fingerprint": "7281f740ccb1242745bd48cc5624a1ddbab0d6afdfe5f004d05c019936620efc",
       "location": "content",
       "path": "apps/packaged/src/paths.ts",
@@ -14655,7 +14655,27 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
+      "fingerprint": "b978793637bf63f5567575b42f54ce1381a9ed5ef9b0b078f662ae808078370f",
+      "location": "content",
+      "path": "apps/packaged/src/paths.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
       "fingerprint": "dc22fde0a0d0b9d125d7f97335fceff02270103844f4d85698d99b5f9312fd0c",
+      "location": "content",
+      "path": "apps/packaged/src/paths.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "f82c077c41ca6391892ef4019cfdc086d07bdf82468ec2c8bac2231c3faa5eb1",
       "location": "content",
       "path": "apps/packaged/src/paths.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",
@@ -15015,6 +15035,16 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
+      "fingerprint": "430aa63ad6656300d73c9912fbc3d52a97875a0e4e5e763e9017eb80d3b3d873",
+      "location": "content",
+      "path": "apps/packaged/tests/paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
       "fingerprint": "433605ce01880bbb3f6b816dc8b366973e332dc9f03f8537e25bc1ccd99ae59f",
       "location": "content",
       "path": "apps/packaged/tests/paths.test.ts",
@@ -15085,7 +15115,47 @@
     {
       "class": "machine contract to migrate",
       "count": 1,
+      "fingerprint": "a26e06b808466782776c9e6647e159478fbbf0deed99de9c63f90dd0bdbcdcbb",
+      "location": "content",
+      "path": "apps/packaged/tests/paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
       "fingerprint": "b61155be24d5c1f5e07d3f8b94ba48356fbbdddbc5074564106684fe504f9f57",
+      "location": "content",
+      "path": "apps/packaged/tests/paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "b9a1c65d9d805da4e2fa4f55992f2ea080cc441633684110c5d0ab6a48119a24",
+      "location": "content",
+      "path": "apps/packaged/tests/paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "c24a6c1c237925c12266eb82ac676a9181db4bb844238e48a62185c9f83787a6",
+      "location": "content",
+      "path": "apps/packaged/tests/paths.test.ts",
+      "reason": "Machine-consumed identity contract awaiting coordinated migration.",
+      "ruleId": "identity.machine-contract",
+      "token": "OD_"
+    },
+    {
+      "class": "machine contract to migrate",
+      "count": 1,
+      "fingerprint": "d6700aa7ea042ecd510f8c523dc3ab787bcfdbfd2047c69612c17d24f481a218",
       "location": "content",
       "path": "apps/packaged/tests/paths.test.ts",
       "reason": "Machine-consumed identity contract awaiting coordinated migration.",

@@ -95,6 +95,46 @@ describe("resolvePackagedNamespacePaths", () => {
     ).toBe(join(override, "namespaces", config.namespace, "data"));
   });
 
+  it("rejects portable OD_DATA_DIR overrides outside the exe data container", () => {
+    const config = fakeConfig();
+    const exeDir = join("D:", "Portable", "Readable Studio");
+    const originalExecPath = process.execPath;
+    Object.defineProperty(process, "execPath", {
+      configurable: true,
+      value: join(exeDir, "Readable Studio.exe"),
+    });
+    try {
+      config.portable = true;
+      config.namespaceBaseRoot = join(exeDir, "ReadableStudioData", "namespaces");
+      expect(
+        () => resolvePackagedNamespacePaths(config, config.namespace, {
+          OD_DATA_DIR: join("C:", "Users", "Fred", "AppData", "Roaming", "Readable Studio"),
+        }),
+      ).toThrow(/OD_DATA_DIR.*ReadableStudioData/);
+    } finally {
+      Object.defineProperty(process, "execPath", { configurable: true, value: originalExecPath });
+    }
+  });
+
+  it("accepts portable OD_DATA_DIR overrides inside the exe data container", () => {
+    const config = fakeConfig();
+    const exeDir = join("D:", "Portable", "Readable Studio");
+    const originalExecPath = process.execPath;
+    Object.defineProperty(process, "execPath", {
+      configurable: true,
+      value: join(exeDir, "Readable Studio.exe"),
+    });
+    try {
+      config.portable = true;
+      config.namespaceBaseRoot = join(exeDir, "ReadableStudioData", "namespaces");
+      const override = join(exeDir, "ReadableStudioData", "daemon-data");
+      expect(resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: override }).dataRoot)
+        .toBe(join(override, "namespaces", config.namespace, "data"));
+    } finally {
+      Object.defineProperty(process, "execPath", { configurable: true, value: originalExecPath });
+    }
+  });
+
   it("keeps shared OD_DATA_DIR overrides isolated across packaged namespaces", () => {
     const config = fakeConfig();
     const override = join("C:", "Users", "Fred", "MyProject", "design", ".od");

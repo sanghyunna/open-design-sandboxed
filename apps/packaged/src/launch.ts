@@ -7,7 +7,7 @@ import { app } from "electron";
 import { APP_KEYS, SIDECAR_CONTRACT, SIDECAR_MESSAGES, type DesktopStatusSnapshot } from "@readable-studio/sidecar-proto";
 import { requestJsonIpc, resolveAppIpcPath } from "@readable-studio/sidecar";
 
-import { PackagedPathAccessError } from "./errors.js";
+import { PackagedNetworkingRestoreError, PackagedPathAccessError } from "./errors.js";
 import type { PackagedNamespacePaths } from "./paths.js";
 
 type PackagedLaunchLogger = Pick<Console, "warn"> & Partial<Pick<Console, "info">>;
@@ -174,6 +174,7 @@ export function applyPackagedElectronPathOverrides(
   app.setPath("userData", paths.electronUserDataRoot);
   app.setPath("sessionData", paths.electronSessionDataRoot);
   app.setPath("logs", paths.desktopLogsRoot);
+  app.setPath("cache", paths.cacheRoot);
 
   // Chromium child processes do not reliably expose Electron's setPath values
   // in their launch contract. Pin both profile and cache explicitly so GPU and
@@ -213,7 +214,20 @@ export async function releasePackagedElectronNetworking(electronSession: {
   setSpellCheckerEnabled: (enabled: boolean) => void;
 }): Promise<void> {
   electronSession.setSpellCheckerEnabled(false);
-  await electronSession.setProxy({ mode: "system" });
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await electronSession.setProxy({ mode: "system" });
+      return;
+    } catch (error) {
+      if (attempt < maxAttempts) continue;
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new PackagedNetworkingRestoreError(
+        `Readable Studio could not restore system networking after ${maxAttempts} attempts: ${reason}. Relaunch Readable Studio to retry.`,
+        { cause: error },
+      );
+    }
+  }
 }
 
 // @dsp func-a5f43a0f

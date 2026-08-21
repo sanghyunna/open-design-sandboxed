@@ -142,7 +142,7 @@ export type DesktopMainOptions = {
    */
   discoverDaemonUrl?: () => Promise<string | null>;
   preloadPath?: string;
-  onDesktopReady?: (controls: { show(): void }) => void;
+  onDesktopReady?: (controls: { show(): void }) => Promise<void> | void;
   /**
    * Optional pre-created splash window. The packaged entry creates it before
    * awaiting the daemon/web sidecars so the brand animation overlaps the cold
@@ -667,7 +667,7 @@ export async function runDesktopMain(
       token: desktopApprovalToken,
     });
   }
-  options.onDesktopReady?.({ show: () => desktop?.show() });
+  await options.onDesktopReady?.({ show: () => desktop?.show() });
   disposeMenu = installDesktopMenu(runtime, options);
   removeDiagnosticsIpc = registerDesktopDiagnosticsIpc(runtime);
   attachParentMonitor(shutdown);

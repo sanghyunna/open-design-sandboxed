@@ -3,6 +3,7 @@ import { join, posix, win32 } from "node:path";
 
 import { APP_KEYS, normalizeNamespace } from "@readable-studio/sidecar-proto";
 
+import { isInsidePortableDataContainer } from "./config.js";
 import type { PackagedConfig } from "./config.js";
 import { PackagedPathAccessError } from "./errors.js";
 
@@ -49,7 +50,7 @@ function getScopedPackagedDataRootNamespace(raw: string): string | null {
 }
 
 function resolvePackagedDataRoot(
-  config: Pick<PackagedConfig, "namespaceBaseRoot">,
+  config: Pick<PackagedConfig, "namespaceBaseRoot" | "portable">,
   namespace: string,
   env: NodeJS.ProcessEnv = {},
 ): string {
@@ -67,6 +68,18 @@ function resolvePackagedDataRoot(
           `Configured value: ${odDataDir}`,
           "",
           "Set OD_DATA_DIR to an absolute path (for example, C:\\\\Users\\\\You\\\\ReadableStudio on Windows or /Users/you/ReadableStudio on macOS/Linux) and relaunch Readable Studio.",
+        ].join("\n"),
+        { title: "Readable Studio cannot start with this OD_DATA_DIR" },
+      );
+    }
+    if (config.portable && !isInsidePortableDataContainer(expanded)) {
+      throw new PackagedPathAccessError(
+        [
+          "Readable Studio's portable runtime requires OD_DATA_DIR to stay inside <exeDir>/ReadableStudioData.",
+          "",
+          `Configured value: ${odDataDir}`,
+          "",
+          "Move the override beneath the extracted ReadableStudioData folder or remove OD_DATA_DIR and relaunch Readable Studio.",
         ].join("\n"),
         { title: "Readable Studio cannot start with this OD_DATA_DIR" },
       );

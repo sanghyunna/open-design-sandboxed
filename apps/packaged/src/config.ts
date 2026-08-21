@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { access, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import {
   SIDECAR_DEFAULTS,
@@ -42,19 +42,19 @@ export function resolveDefaultPackagedNodeCommandRelativePath(
 export type RawPackagedConfig = {
   amrProfile?: string;
   appVersion?: string;
-  arch?: string;
-  artifact?: string;
+  arch?: unknown;
+  artifact?: unknown;
   daemonCliEntryRelative?: string;
   daemonSidecarEntryRelative?: string;
   descriptor?: unknown;
   namespace?: string;
-  namespaceBaseRoot?: string;
+  namespaceBaseRoot?: unknown;
   nodeCommandRelative?: string;
   // True in the sole Windows portable ZIP artifact. tools/pack writes this
   // directly into readable-studio-config.json before assembling the extracted
   // runtime so all runtime data stays beside the executable.
-  portable?: boolean;
-  platform?: string;
+  portable?: unknown;
+  platform?: unknown;
   resourceRoot?: string;
   webSidecarEntryRelative?: string;
   webStandaloneRoot?: string;
@@ -87,34 +87,74 @@ export type PackagedConfig = {
   webOutputMode: PackagedWebOutputMode;
 };
 
+export function isInsidePortableDataContainer(candidate: string): boolean {
+  const container = join(dirname(process.execPath), "ReadableStudioData");
+  const containedPath = relative(container, candidate);
+  const parentPrefix = process.platform === "win32" ? "..\\" : "../";
+  return containedPath === "" || (
+    containedPath !== ".." &&
+    !containedPath.startsWith(parentPrefix) &&
+    !isAbsolute(containedPath)
+  );
+}
+
+function resolveNamespaceBaseRoot(portable: boolean, value: unknown): string | undefined {
+  const configured = resolveOptionalPath(value, "namespaceBaseRoot");
+  if (portable && configured != null && !isInsidePortableDataContainer(configured)) {
+    throw new Error("portable config namespaceBaseRoot must resolve inside <exeDir>/ReadableStudioData");
+  }
+  return configured;
+}
+
+function parseRawPackagedConfig(rawText: string, configPath: string): RawPackagedConfig {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch (error) {
+    throw new Error(
+      `packaged config at ${configPath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`packaged config at ${configPath} is not valid JSON: root must be an object`);
+  }
+  return parsed;
+}
+
 export function resolveEarlyPackagedElectronPaths(
   namespaceOverride?: string,
 ): EarlyPackagedElectronPaths | null {
   const explicit = process.env[PACKAGED_CONFIG_PATH_ENV];
-  const candidates = [
-    ...(explicit == null || explicit.length === 0 ? [] : [resolve(explicit)]),
-    join(process.resourcesPath, "readable-studio-config.json"),
-  ];
+  const candidates = explicit == null || explicit.length === 0
+    ? [join(process.resourcesPath, "readable-studio-config.json")]
+    : [resolve(explicit)];
   for (const configPath of candidates) {
+    let rawText: string;
     try {
-      const raw = JSON.parse(readFileSync(configPath, "utf8")) as RawPackagedConfig;
-      if (raw.portable !== true) continue;
-      const namespace = normalizeNamespace(
-        namespaceOverride ?? process.env[PACKAGED_NAMESPACE_ENV] ?? raw.namespace ?? SIDECAR_DEFAULTS.namespace,
-      );
-      const namespaceBaseRoot = typeof raw.namespaceBaseRoot === "string" && raw.namespaceBaseRoot.trim().length > 0
-        ? resolve(raw.namespaceBaseRoot)
-        : join(dirname(process.execPath), "ReadableStudioData", "namespaces");
-      const namespaceRoot = join(namespaceBaseRoot, namespace);
-      return {
-        cacheRoot: join(namespaceRoot, "cache"),
-        desktopLogsRoot: join(namespaceRoot, "logs", "desktop"),
-        electronSessionDataRoot: join(namespaceRoot, "user-data", "session"),
-        electronUserDataRoot: join(namespaceRoot, "user-data"),
-      };
-    } catch {
-      // Full async config loading below owns user-facing validation errors.
+      rawText = readFileSync(configPath, "utf8");
+    } catch (error) {
+      if (error instanceof Error && Reflect.get(error, "code") === "ENOENT" && explicit == null) continue;
+      throw error;
     }
+    const raw = parseRawPackagedConfig(rawText, configPath);
+    const portable = resolvePackagedPortable(raw.portable);
+    resolvePortableTarget(portable, "arch", raw.arch, "x64");
+    resolvePortableTarget(portable, "artifact", raw.artifact, "portable-zip");
+    resolvePortableTarget(portable, "platform", raw.platform, "win32");
+    const configuredRoot = resolveNamespaceBaseRoot(portable, raw.namespaceBaseRoot);
+    if (!portable) return null;
+    const namespace = normalizeNamespace(
+      namespaceOverride ?? process.env[PACKAGED_NAMESPACE_ENV] ?? raw.namespace ?? SIDECAR_DEFAULTS.namespace,
+    );
+    const namespaceBaseRoot = configuredRoot ?? join(dirname(process.execPath), "ReadableStudioData", "namespaces");
+    const namespaceRoot = join(namespaceBaseRoot, namespace);
+    return {
+      cacheRoot: join(namespaceRoot, "cache"),
+      desktopLogsRoot: join(namespaceRoot, "logs", "desktop"),
+      electronSessionDataRoot: join(namespaceRoot, "user-data", "session"),
+      electronUserDataRoot: join(namespaceRoot, "user-data"),
+    };
   }
   return null;
 }
@@ -131,11 +171,7 @@ async function pathExists(filePath: string): Promise<boolean> {
 async function readJsonIfExists(filePath: string): Promise<RawPackagedConfig | null> {
   if (!(await pathExists(filePath))) return null;
   try {
-    const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new Error("root must be an object");
-    }
-    return parsed as RawPackagedConfig;
+    return parseRawPackagedConfig(await readFile(filePath, "utf8"), filePath);
   } catch (error) {
     throw new Error(
       `packaged config at ${filePath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
@@ -198,18 +234,20 @@ function isTruthyEnv(value: string | undefined): boolean {
 }
 
 // The portable signal is a baked JSON boolean (tools/pack writes a literal
-// `true`); only an explicit `true` enables portable mode. Anything else —
-// absent, `false`, or a malformed value from a hand-edited config — resolves
-// to the non-portable default so a partial/garbage config can never silently
-// relocate a user's data tree.
-function resolvePackagedPortable(value: boolean | undefined): boolean {
-  return value === true;
+// `true`). Missing/false selects non-portable mode; every other value is
+// rejected so malformed metadata cannot silently select the AppData fallback.
+function resolvePackagedPortable(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value !== "boolean") {
+    throw new Error("packaged config portable must be a boolean");
+  }
+  return value;
 }
 
 function resolvePortableTarget<T extends string>(
   portable: boolean,
   field: string,
-  value: string | undefined,
+  value: unknown,
   expected: T,
 ): T | null {
   if (!portable && value == null) return null;
@@ -263,12 +301,11 @@ export async function readPackagedConfig(): Promise<PackagedConfig> {
   // and runtime state — derives from this single root (apps/packaged/src/paths.ts), so
   // branching only the fallback here relocates the whole tree.
   //
-  // An explicit `namespaceBaseRoot` ALWAYS wins, including in portable mode:
-  // portable only changes the *fallback*. tools/pack omits namespaceBaseRoot
-  // from portable artifacts precisely so this branch is reached, but a caller
-  // that bakes an explicit root (e.g. a relocated install) keeps it.
+  // Portable roots may be customized only within the extraction-adjacent
+  // ReadableStudioData container. This keeps every portable write out of the
+  // OS profile even when the baked config has been hand-edited.
   const namespaceBaseRoot =
-    resolveOptionalPath(raw.namespaceBaseRoot, "namespaceBaseRoot") ??
+    resolveNamespaceBaseRoot(portable, raw.namespaceBaseRoot) ??
     (portable
       ? join(dirname(process.execPath), "ReadableStudioData", "namespaces")
       : join(dirname(electronApp.getPath("userData")), "Readable Studio", "namespaces"));
