@@ -68,6 +68,8 @@ export async function runBadRoot(options: Options, extractionRoot: string, trap:
     evidenceName: 'malformed portable config',
     executablePath,
   });
+  assert.match(malformedConfig.launchError, /packaged config at .* is not valid JSON/);
+  assert.match(malformedConfig.launchError, /exitCode=1/);
 
   await writeFile(configPath, `${JSON.stringify({ ...originalConfig, namespaceBaseRoot: join(extractionRoot, '..', 'foreign-namespaces') })}\n`, 'utf8');
   const foreignNamespaceRoot = await observeFailClosedLaunch({
@@ -75,6 +77,8 @@ export async function runBadRoot(options: Options, extractionRoot: string, trap:
     evidenceName: 'foreign namespace root',
     executablePath,
   });
+  assert.match(foreignNamespaceRoot.launchError, /namespaceBaseRoot must resolve inside <exeDir>\/ReadableStudioData/);
+  assert.match(foreignNamespaceRoot.launchError, /exitCode=1/);
 
   await writeFile(configPath, originalConfigText, 'utf8');
   const foreignDataRoot = join(extractionRoot, '..', 'foreign-data');
@@ -86,6 +90,8 @@ export async function runBadRoot(options: Options, extractionRoot: string, trap:
     evidenceName: 'foreign data root override',
     executablePath,
   });
+  assert.equal(foreignDataOverride.applicationReady, false);
+  assert.match(foreignDataOverride.launchError, /Timeout 20000ms exceeded/);
 
   assert.deepEqual(trap.attempts, [], 'fail-closed launches attempted feed/network traffic');
   const cases = { foreignDataOverride, foreignNamespaceRoot, malformedConfig, occupiedRoot };

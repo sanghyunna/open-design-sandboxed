@@ -85,12 +85,18 @@ function resolveFromWorkspace(path: string): string {
 export function validateEvidenceRoot(resolvedPath: string): void {
   const normalized = resolve(resolvedPath);
   const workspace = resolve(workspaceRoot);
+  const evidenceBase = resolve(workspace, '.omo', 'evidence');
   const temp = resolve(tmpdir());
-  const insideWorkspace = normalized === workspace || normalized.startsWith(workspace + sep);
-  const insideTemp = normalized === temp || normalized.startsWith(temp + sep);
-  if (!insideWorkspace && !insideTemp) {
+  const normalizedLower = normalized.toLowerCase();
+  const workspaceLower = workspace.toLowerCase();
+  const evidenceBaseLower = evidenceBase.toLowerCase();
+  const tempLower = temp.toLowerCase();
+  const insideEvidence = normalizedLower.startsWith(evidenceBaseLower + sep);
+  const insideTempSubdirectory = normalizedLower.startsWith(tempLower + sep);
+  const isGitPath = normalizedLower === `${workspaceLower}${sep}.git` || normalizedLower.startsWith(`${workspaceLower}${sep}.git${sep}`);
+  if ((!insideEvidence && !insideTempSubdirectory) || isGitPath) {
     throw new PortableQaError(
-      `evidence root ${resolvedPath} is outside workspace (${workspaceRoot}) or temp (${tmpdir()}); refusing to delete`,
+      `evidence root ${resolvedPath} is not inside the dedicated evidence directory (${evidenceBase}) or a temp subdirectory; refusing to delete workspace, git, or ancestor paths`,
     );
   }
 }
