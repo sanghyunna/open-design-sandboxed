@@ -10,10 +10,10 @@ export async function ensureWindowsNativeIsolator(options: {
   if ((options.platform ?? process.platform) !== "win32") return false;
 
   const platformRoot = path.join(options.workspaceRoot, "packages/platform");
-  const output = path.join(platformRoot, "dist/native/win32/readable-studio-agent-isolator.exe");
+  const output = path.join(platformRoot, "dist/native/win32/agent-isolator.exe");
   const inputs = [
     path.join(platformRoot, "native/win32/build.ps1"),
-    path.join(platformRoot, "native/win32/readable-studio-agent-isolator.cpp"),
+    path.join(platformRoot, "native/win32/agent-isolator.cpp"),
   ];
   const [outputStat, ...inputStats] = await Promise.all([
     stat(output).catch(() => null),

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -144,6 +144,38 @@ export function toRecord(value: unknown, label = 'value'): Record<string, unknow
     throw new PortableQaError(`${label} must be a JSON object`);
   }
   return Object.fromEntries(Object.entries(value));
+}
+
+export type CleanupResult = {
+  readonly warning: string | null;
+  readonly leftoverPath: string | null;
+};
+
+export async function cleanupExtractionRoot(
+  extractionRoot: string,
+  remove: typeof rm = rm,
+  wait: (milliseconds: number) => Promise<void> = (milliseconds) => new Promise((resolveWait) => setTimeout(resolveWait, milliseconds)),
+): Promise<CleanupResult> {
+  const backoff = [250, 500, 1_000, 2_000, 4_000, 6_000];
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= backoff.length; attempt += 1) {
+    try {
+      await remove(extractionRoot, { force: true, recursive: true });
+      return { leftoverPath: null, warning: null };
+    } catch (error) {
+      lastError = error;
+      if (attempt < backoff.length) await wait(backoff[attempt]);
+    }
+  }
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  return {
+    leftoverPath: extractionRoot,
+    warning: `[portable-qa] non-fatal cleanup warning: could not remove ${extractionRoot}: ${detail}`,
+  };
+}
+
+export function acceptanceExitCode(assertionFailed: boolean, _cleanup: CleanupResult): number {
+  return assertionFailed ? 1 : 0;
 }
 
 export async function writeEvidence(root: string, name: string, value: unknown): Promise<void> {

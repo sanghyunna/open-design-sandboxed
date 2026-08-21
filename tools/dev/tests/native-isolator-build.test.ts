@@ -17,10 +17,10 @@ describe("native isolator build", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "readable-native-build-"));
     roots.push(root);
     const nativeRoot = path.join(root, "packages/platform/native/win32");
-    const output = path.join(root, "packages/platform/dist/native/win32/readable-studio-agent-isolator.exe");
+    const output = path.join(root, "packages/platform/dist/native/win32/agent-isolator.exe");
     await mkdir(nativeRoot, { recursive: true });
     await writeFile(path.join(nativeRoot, "build.ps1"), "build");
-    await writeFile(path.join(nativeRoot, "readable-studio-agent-isolator.cpp"), "source");
+    await writeFile(path.join(nativeRoot, "agent-isolator.cpp"), "source");
 
     let builds = 0;
     const runBuild = async () => {

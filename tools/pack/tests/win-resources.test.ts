@@ -21,12 +21,12 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
   await mkdir(join(workspaceRoot, "packages", "platform", "dist", "native", "win32"), { recursive: true });
   await mkdir(join(workspaceRoot, "packages", "platform", "native", "win32"), { recursive: true });
   await writeFile(
-    join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "readable-studio-agent-isolator.exe"),
+    join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "agent-isolator.exe"),
     "fake deterministic isolator\n",
     "utf8",
   );
   await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "build.ps1"), "# build\n", "utf8");
-  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "readable-studio-agent-isolator.cpp"), "// source\n", "utf8");
+  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "agent-isolator.cpp"), "// source\n", "utf8");
   await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
   await mkdir(join(workspaceRoot, "design-templates", "orbit-general"), {
     recursive: true,
@@ -106,7 +106,7 @@ describe("prepareResourceTree", () => {
       ).resolves.toBe("{\"name\":\"dario\"}\n");
       await expect(access(join(result.resourceRoot, "bin", "node.exe"))).resolves.toBeUndefined();
       await expect(
-        readFile(join(result.resourceRoot, "bin", "readable-studio-agent-isolator.exe"), "utf8"),
+        readFile(join(result.resourceRoot, "bin", "agent-isolator.exe"), "utf8"),
       ).resolves.toBe("fake deterministic isolator\n");
       expect(cache.report().entries.at(-1)?.materialized).toEqual([]);
     } finally {
@@ -278,7 +278,7 @@ describe("prepareResourceTree", () => {
     const cache = new ToolPackCache(join(root, "cache"));
     const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
-    const source = join(workspaceRoot, "packages", "platform", "native", "win32", "readable-studio-agent-isolator.cpp");
+    const source = join(workspaceRoot, "packages", "platform", "native", "win32", "agent-isolator.cpp");
 
     try {
       await createWorkspaceFixture(workspaceRoot);

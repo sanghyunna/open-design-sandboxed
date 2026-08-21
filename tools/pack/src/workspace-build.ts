@@ -125,7 +125,7 @@ function workspaceBuildOutputFiles(config: ToolPackConfig): string[] {
     "packages/platform/dist/index.mjs",
     "packages/platform/dist/index.d.ts",
     ...(config.platform === "win"
-      ? ["packages/platform/dist/native/win32/readable-studio-agent-isolator.exe"]
+      ? ["packages/platform/dist/native/win32/agent-isolator.exe"]
       : []),
     "packages/download/dist/index.mjs",
     "packages/download/dist/index.d.ts",

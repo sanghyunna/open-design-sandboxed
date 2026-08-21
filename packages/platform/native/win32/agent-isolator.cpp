@@ -440,7 +440,7 @@ Request ParseRequest(const std::string& input) {
   }
   if (request.command.empty() || request.cwd.empty()) throw std::runtime_error("helper request command and cwd must be non-empty");
   if (!request.broker_pipe_name.empty()) {
-    constexpr std::wstring_view prefix = L"\\\\.\\pipe\\LOCAL\\ReadableStudio.";
+    constexpr std::wstring_view prefix = L"\\\\.\\pipe\\LOCAL\\GenericAgent.";
     if (!request.broker_pipe_name.starts_with(prefix) || request.broker_pipe_name.size() > prefix.size() + 160) {
       throw std::runtime_error("isolated broker pipe name is invalid");
     }
@@ -508,7 +508,7 @@ bool PathContains(const std::wstring& parent, const std::wstring& child) {
 
 void ChangePathAccess(const std::wstring& path, PSID sid, const GrantSpec* grant) {
   // ponytail: one named ACL mutex; shard by volume only if launch contention is measurable.
-  Handle acl_mutex(CreateMutexW(nullptr, FALSE, L"Local\\ReadableStudio.AgentIsolator.Acl.v1"));
+  Handle acl_mutex(CreateMutexW(nullptr, FALSE, L"Local\\GenericAgentIsolator.Acl.v1"));
   if (!acl_mutex) ThrowLastError("create AppContainer ACL mutex");
   const DWORD wait_result = WaitForSingleObject(acl_mutex.get(), 30'000);
   if (wait_result != WAIT_OBJECT_0 && wait_result != WAIT_ABANDONED) {
@@ -593,13 +593,13 @@ std::wstring UniqueProfileName() {
     suffix += hex[(value >> 4) & 0x0f];
     suffix += hex[value & 0x0f];
   }
-  return L"ReadableStudio.Agent." + std::to_wstring(GetCurrentProcessId()) + L"." + suffix;
+  return L"GenericAgent." + std::to_wstring(GetCurrentProcessId()) + L"." + suffix;
 }
 
 class AppContainerProfile {
  public:
   AppContainerProfile() : name_(UniqueProfileName()) {
-    const HRESULT result = CreateAppContainerProfile(name_.c_str(), L"Readable Studio isolated agent", L"Ephemeral agent sandbox", nullptr, 0, &sid_);
+    const HRESULT result = CreateAppContainerProfile(name_.c_str(), L"isolated agent", L"Ephemeral sandbox", nullptr, 0, &sid_);
     if (FAILED(result)) ThrowHresult("create AppContainer profile", result);
     active_ = true;
   }
@@ -1320,7 +1320,7 @@ int wmain(int argc, wchar_t** argv) {
     throw std::runtime_error("expected --probe or --exec");
   } catch (const std::exception& error) {
     if (exec_mode) WriteControlError(error.what());
-    WriteUtf8(GetStdHandle(STD_ERROR_HANDLE), std::string("readable-studio-agent-isolator: ") + error.what() + "\n");
+    WriteUtf8(GetStdHandle(STD_ERROR_HANDLE), std::string("agent-isolator: ") + error.what() + "\n");
     return kHelperFailureExitCode;
   }
 }

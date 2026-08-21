@@ -1133,7 +1133,7 @@ export function resolveDaemonPluginPreviewsDir({ env = process.env, resourceRoot
 
 const DAEMON_RESOURCE_ROOT = resolveDaemonResourceRoot();
 const PACKAGED_AGENT_ISOLATOR_PATH = DAEMON_RESOURCE_ROOT
-  ? path.join(DAEMON_RESOURCE_ROOT, 'bin', 'readable-studio-agent-isolator.exe')
+  ? path.join(DAEMON_RESOURCE_ROOT, 'bin', 'agent-isolator.exe')
   : undefined;
 // Built web app lives in `out/` — that's where Next.js writes the static
 // export configured in next.config.ts. The folder name used to be `dist/`

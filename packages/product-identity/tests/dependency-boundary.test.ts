@@ -45,16 +45,22 @@ describe("product identity dependency boundary", () => {
   });
 
   it("keeps generic sidecar and platform packages product-neutral", async () => {
-    const [sidecarSource, platformSource] = await Promise.all([
+    const platformFiles = [
+      "src/index.ts",
+      "src/isolated-process.ts",
+      "native/win32/agent-isolator.cpp",
+      "native/win32/build.ps1",
+    ];
+    const [sidecarSource, ...platformSources] = await Promise.all([
       readFile(resolve(workspaceRoot, "packages/sidecar/src/index.ts"), "utf8"),
-      readFile(resolve(workspaceRoot, "packages/platform/src/index.ts"), "utf8"),
+      ...platformFiles.map((file) => readFile(resolve(workspaceRoot, "packages/platform", file), "utf8")),
     ]);
 
-    for (const source of [sidecarSource, platformSource]) {
+    for (const source of [sidecarSource, ...platformSources]) {
       expect(source).not.toMatch(/Readable Studio|readable-studio|READABLE_|@readable-studio|__readableStudio__/);
       expect(source).not.toContain("@readable-studio/product-identity");
     }
     expect(sidecarSource).toContain("SidecarContractDescriptor");
-    expect(platformSource).toContain("ProcessStampContract");
+    expect(platformSources[0]).toContain("ProcessStampContract");
   });
 });
