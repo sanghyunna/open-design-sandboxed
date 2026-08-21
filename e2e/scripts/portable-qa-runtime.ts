@@ -223,6 +223,7 @@ export async function runCli(extractionRoot: string, args: readonly string[], da
 }
 
 export async function closePortable(app: ElectronApplication): Promise<void> {
+  const pid = app.process().pid;
   const closed = app.close();
   const timeout = new Promise<never>((_resolve, reject) => {
     setTimeout(() => reject(new PortableQaError('Electron application did not close within 15 seconds')), 15_000);
@@ -230,8 +231,15 @@ export async function closePortable(app: ElectronApplication): Promise<void> {
   try {
     await Promise.race([closed, timeout]);
   } catch (error) {
-    app.process().kill();
     if (!(error instanceof PortableQaError)) throw error;
+  } finally {
+    if (pid != null) {
+      try {
+        await runCommand('taskkill.exe', ['/PID', String(pid), '/T', '/F'], undefined, { timeoutMs: 10_000 });
+      } catch {
+        // process tree already gone; ignore
+      }
+    }
   }
 }
 

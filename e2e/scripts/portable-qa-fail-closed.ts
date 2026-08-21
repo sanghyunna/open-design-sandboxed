@@ -40,10 +40,7 @@ async function observeFailClosedLaunch(input: FailClosedInput): Promise<FailClos
   } catch (error) {
     launchError = error instanceof Error ? error.stack ?? error.message : String(error);
   } finally {
-    if (app != null) {
-      app.process().kill();
-      await closePortable(app);
-    }
+    if (app != null) await closePortable(app);
   }
   const applicationReady = windowTitle === canonicalProductName && windowUrl?.startsWith('readable-studio://app/') === true;
   assert.equal(applicationReady, false, `${input.evidenceName} reached application readiness`);

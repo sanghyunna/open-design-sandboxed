@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
-import { dirname, isAbsolute, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, isAbsolute, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const scriptRoot = dirname(fileURLToPath(import.meta.url));
 export const workspaceRoot = dirname(dirname(scriptRoot));
@@ -81,7 +82,26 @@ function resolveFromWorkspace(path: string): string {
   return isAbsolute(path) ? path : resolve(workspaceRoot, path);
 }
 
-export async function runCommand(command: string, args: readonly string[], input?: string): Promise<CommandResult> {
+export function validateEvidenceRoot(resolvedPath: string): void {
+  const normalized = resolve(resolvedPath);
+  const workspace = resolve(workspaceRoot);
+  const temp = resolve(tmpdir());
+  const insideWorkspace = normalized === workspace || normalized.startsWith(workspace + sep);
+  const insideTemp = normalized === temp || normalized.startsWith(temp + sep);
+  if (!insideWorkspace && !insideTemp) {
+    throw new PortableQaError(
+      `evidence root ${resolvedPath} is outside workspace (${workspaceRoot}) or temp (${tmpdir()}); refusing to delete`,
+    );
+  }
+}
+
+export async function runCommand(
+  command: string,
+  args: readonly string[],
+  input?: string,
+  options: { readonly timeoutMs?: number } = {},
+): Promise<CommandResult> {
+  const timeoutMs = options.timeoutMs ?? 300_000;
   const child = spawn(command, args, {
     cwd: workspaceRoot,
     env: process.env,
@@ -94,9 +114,21 @@ export async function runCommand(command: string, args: readonly string[], input
   child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
   if (input == null) child.stdin.end();
   else child.stdin.end(input, 'utf8');
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    child.kill();
+  }, timeoutMs);
   const exitCode = await new Promise<number>((resolveExit, rejectExit) => {
     child.once('error', rejectExit);
-    child.once('exit', (code) => resolveExit(code ?? 1));
+    child.once('exit', (code) => {
+      clearTimeout(timeout);
+      if (timedOut) {
+        rejectExit(new PortableQaError(`command timed out after ${timeoutMs}ms: ${command} ${args.join(' ')}`));
+      } else {
+        resolveExit(code ?? 1);
+      }
+    });
   });
   return {
     args,

@@ -273,4 +273,3 @@ export async function runFull(options: Options, extractionRoot: string, trap: Ne
     await closePortable(primary.app);
   }
 }
-

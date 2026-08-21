@@ -2,11 +2,12 @@ import { mkdir, rm } from 'node:fs/promises';
 
 import { runBadRoot } from './portable-qa-fail-closed.ts';
 import { createNetworkTrap, extractPortable } from './portable-qa-runtime.ts';
-import { parseOptions, writeEvidence } from './portable-qa-support.ts';
+import { parseOptions, validateEvidenceRoot, writeEvidence } from './portable-qa-support.ts';
 import { runFull } from './portable-qa-workflows.ts';
 
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
+  validateEvidenceRoot(options.evidenceRoot);
   await rm(options.evidenceRoot, { force: true, recursive: true });
   await mkdir(options.evidenceRoot, { recursive: true });
   const extractionRoot = await extractPortable(options.zipPath);
