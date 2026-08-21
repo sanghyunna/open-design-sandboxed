@@ -11,7 +11,7 @@ import { collectReadableParityInventory } from "./readable-parity.ts";
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const resourceRoots = ["skills", "design-templates", "craft"] as const;
-const retiredIdentity = /Readable Studio|readable-studio|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|^readable:/mu;
+const retiredIdentity = /Open Design|open-design|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|od:\/\/|@open-design|\.od(?=$|[^A-Za-z0-9_])|__od__|OD_/mu;
 const retiredProviderLogos = [
   "anthropic.svg",
   "deepseek.svg",
@@ -39,13 +39,11 @@ test("preserves resource inventory when product-owned identities are converted",
   // When: its machine-consumed inventory is collected.
   const inventory = await collectReadableParityInventory(repoRoot);
 
-  // Then: exact counts remain and only the product-owned landing IDs move.
+  // Then: exact counts remain and the product-owned landing IDs stay in inventory.
   assert.equal(inventory.skills.length, 154);
   assert.equal(inventory.templates.length, 104);
   assert.ok(inventory.templates.includes("readable-landing"));
   assert.ok(inventory.templates.includes("readable-landing-deck"));
-  assert.ok(!inventory.templates.includes("readable-landing"));
-  assert.ok(!inventory.templates.includes("readable-landing-deck"));
 });
 
 test("rejects old resource frontmatter and stale generated copies", async () => {
@@ -58,6 +56,7 @@ test("rejects old resource frontmatter and stale generated copies", async () => 
     const relativePath = path.relative(repoRoot, file).replaceAll(path.sep, "/");
     if (relativePath.endsWith("/LICENSE") || relativePath.endsWith("/LICENSE.md")) continue;
     const source = await readFile(file, "utf8");
+    if (source.includes("\0")) continue;
     if (retiredIdentity.test(source) || relativePath.includes("readable-studio")) stale.push(relativePath);
   }
 
