@@ -91,7 +91,8 @@ export async function runBadRoot(options: Options, extractionRoot: string, trap:
     executablePath,
   });
   assert.equal(foreignDataOverride.applicationReady, false);
-  assert.match(foreignDataOverride.launchError, /Timeout 20000ms exceeded/);
+  assert.match(foreignDataOverride.launchError, /READABLE_DATA_DIR.*requires.*stay inside <exeDir>\/ReadableStudioData/);
+  assert.match(foreignDataOverride.launchError, /exitCode=1/);
 
   assert.deepEqual(trap.attempts, [], 'fail-closed launches attempted feed/network traffic');
   const cases = { foreignDataOverride, foreignNamespaceRoot, malformedConfig, occupiedRoot };
