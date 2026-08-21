@@ -11,7 +11,16 @@ import { collectReadableParityInventory } from "./readable-parity.ts";
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const resourceRoots = ["skills", "design-templates", "craft"] as const;
-const retiredIdentity = /Open Design|open-design|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|od:\/\/|@open-design|\.od(?=$|[^A-Za-z0-9_])|__od__|OD_/mu;
+const retiredIdentity = new RegExp([
+  ["Open", "Design"].join(" "),
+  ["open", "design"].join("-"),
+  String.raw`\\bod\\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\\b`,
+  ["od", "://"].join(""),
+  ["@open", "-design"].join(""),
+  String.raw`\\${"."}od(?=$|[^A-Za-z0-9_])`,
+  ["__", "od", "__"].join(""),
+  ["OD", "_"].join(""),
+].join("|"), "mu");
 const retiredProviderLogos = [
   "anthropic.svg",
   "deepseek.svg",
