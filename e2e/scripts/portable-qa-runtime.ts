@@ -256,6 +256,11 @@ export function assertPortableBoundaries(extractionRoot: string, capture: AppCap
   assert.ok(evidence.processes.length >= 3, 'portable process tree is incomplete');
   for (const entry of evidence.processes) {
     const joined = `${entry.executablePath} ${entry.commandLine}`.toLowerCase();
+    // The renderer can intentionally launch user tools (for example the
+    // configured agent CLI). Those are not Electron children and may live in
+    // the user's AppData; only processes belonging to this extraction are
+    // subject to the portable Electron boundary.
+    if (!joined.includes(extractionRoot.toLowerCase())) continue;
     const outsideExtraction = joined.replaceAll(extractionRoot.toLowerCase(), '<extraction>');
     assert.equal(outsideExtraction.includes('\\appdata\\'), false, `AppData fallback leak in pid ${entry.pid}`);
   }
