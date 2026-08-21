@@ -31,6 +31,11 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const allowedE2eScripts = new Set([
   "e2e/scripts/playwright.ts",
   "e2e/scripts/release-smoke.ts",
+  "e2e/scripts/portable-qa.ts",
+  "e2e/scripts/portable-qa-fail-closed.ts",
+  "e2e/scripts/portable-qa-runtime.ts",
+  "e2e/scripts/portable-qa-support.ts",
+  "e2e/scripts/portable-qa-workflows.ts",
 ]);
 
 type GuardCheck = {
