@@ -327,7 +327,7 @@ async function writeAppConfigToDaemon(
   return payload.config;
 }
 
-function installDesktopMenu(
+export function installDesktopMenu(
   runtime: SidecarRuntimeContext<SidecarStamp>,
   options: Pick<DesktopMainOptions, "discoverDaemonUrl" | "discoverWebUrl"> = {},
 ): () => void {
@@ -485,10 +485,12 @@ function installDesktopMenu(
       });
   });
   if (!registered) {
-    showDevelopMenuError("Develop menu shortcut unavailable", new Error(`Failed to register ${accelerator}`));
+    console.warn(`Develop menu shortcut registration failed; continuing without ${accelerator}`);
   }
   return () => {
-    globalShortcut.unregister(accelerator);
+    if (registered) {
+      globalShortcut.unregister(accelerator);
+    }
   };
 }
 
