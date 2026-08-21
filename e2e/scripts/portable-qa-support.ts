@@ -164,7 +164,7 @@ export async function cleanupExtractionRoot(
       return { leftoverPath: null, warning: null };
     } catch (error) {
       lastError = error;
-      if (attempt < backoff.length) await wait(backoff[attempt]);
+      if (attempt < backoff.length) await wait(backoff[attempt]!);
     }
   }
   const detail = lastError instanceof Error ? lastError.message : String(lastError);
