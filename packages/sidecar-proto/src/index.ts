@@ -41,7 +41,6 @@ export const SIDECAR_SOURCES = Object.freeze({
 
 export type SidecarSource = (typeof SIDECAR_SOURCES)[keyof typeof SIDECAR_SOURCES];
 
-const LEGACY_SIDECAR_ENV_NAMES = Object.freeze([] as const);
 
 function createSidecarEnv(identity: ProductIdentity) {
   return Object.freeze({
@@ -601,7 +600,7 @@ export function createSidecarContract(identity: ProductIdentity): SidecarContrac
     normalizeSource: normalizeSidecarSource,
     normalizeStamp: normalizeSidecarStamp,
     normalizeStampCriteria: normalizeSidecarStampCriteria,
-    rejectedEnvNames: LEGACY_SIDECAR_ENV_NAMES,
+    rejectedEnvNames: [],
     sources: SIDECAR_SOURCES,
     stampFields: SIDECAR_STAMP_FIELDS,
     stampFlags: createSidecarStampFlags(identity),
