@@ -200,7 +200,7 @@ async function seedHtmlArtifact(page: Page, projectId: string, fileName: string,
         name: fileName,
         content,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           title: fileName,
           entry: fileName,

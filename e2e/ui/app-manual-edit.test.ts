@@ -173,7 +173,7 @@ test('[P0] manual edit selects and persists semantic SVG visualization roots', a
         name: 'semantic-svg-deck.html',
         content: deckHtml,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'deck',
           title: 'Semantic SVG deck',
           entry: 'semantic-svg-deck.html',
@@ -1381,7 +1381,7 @@ async function selectStyleRowInput(
     window.parent.postMessage({
       type: 'readable-edit-select',
       target: {
-        id: element.dataset.odId ?? element.id,
+        id: element.dataset.readableId ?? element.id,
         kind: 'text',
         label: element.textContent?.trim() || element.tagName.toLowerCase(),
         tagName: element.tagName.toLowerCase(),
@@ -1499,7 +1499,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
         name: 'issue-58-deck.html',
         content: deckHtml,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'deck',
           title: 'Issue 58 Deck',
           entry: 'issue-58-deck.html',
@@ -1658,7 +1658,7 @@ test('[P1] manual edit arrow-key nudge on a selected deck object does not advanc
         name: 'deck-nudge.html',
         content: deckHtml,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'deck',
           title: 'Deck Nudge',
           entry: 'deck-nudge.html',
@@ -1727,7 +1727,7 @@ test('[P1] manual edit arrow-key nudge on a selected object does not advance a l
         name: 'legacy-deck.html',
         content: legacyDeckHtml(),
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'deck',
           title: 'Legacy Deck Nudge',
           entry: 'legacy-deck.html',
@@ -1862,7 +1862,7 @@ async function seedHtmlArtifact(page: Page, projectId: string, fileName: string,
         name: fileName,
         content,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'html',
           title: fileName,
           entry: fileName,
@@ -1893,7 +1893,7 @@ async function seedDeckArtifact(
         name: fileName,
         content: `<!doctype html><html><body>${slideHtml}</body></html>`,
         artifactManifest: {
-          version: 1,
+          schema: 'readable-studio.artifact-manifest.v1',
           kind: 'deck',
           title,
           entry: fileName,

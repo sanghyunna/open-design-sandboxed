@@ -13,7 +13,7 @@ describe('renderResearchCommandContract', () => {
       'the first tool action must be the research command with this canonical query',
     );
     expect(prompt).toContain(
-      'If the Readable Studio command fails because Tavily is not configured or unavailable',
+      'If the readable command fails because Tavily is not configured or unavailable',
     );
     expect(prompt).toContain(
       'use your own search capability as fallback and label the fallback clearly',

@@ -67,8 +67,8 @@ test('[P1] FileViewer downloads offline standalone HTML and reports unresolved r
     await page.getByRole('button', { name: 'Download', exact: true }).last().click();
     await page.getByRole('menuitem', { name: /Export as standalone HTML/i }).click();
     await warningDownload;
-    await expect(page.locator('.readable-studio-toast')).toContainText('1 external');
-    await expect(page.locator('.readable-studio-toast')).toContainText('1 missing');
+    await expect(page.locator('.readable-toast')).toContainText('1 external');
+    await expect(page.locator('.readable-toast')).toContainText('1 missing');
   } finally {
     await page.request.delete(`/api/projects/${projectId}`).catch(() => undefined);
   }
@@ -124,7 +124,7 @@ async function seedTextFile(page: Page, projectId: string, name: string, content
       name,
       content,
       ...(artifact ? {
-        artifactManifest: { version: 1, kind: 'html', title: name, entry: name, renderer: 'html', exports: ['html'] },
+        artifactManifest: { schema: 'readable-studio.artifact-manifest.v1', kind: 'html', title: name, entry: name, renderer: 'html', exports: ['html'] },
       } : {}),
     },
   });

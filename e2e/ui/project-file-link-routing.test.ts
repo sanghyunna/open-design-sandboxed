@@ -57,7 +57,7 @@ async function seedProjectWithAssistantFileLink(
       name: 'index.html',
       content: '<!doctype html><html><body><main><h1>Project file link target</h1></main></body></html>',
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: 'index.html',
         entry: 'index.html',

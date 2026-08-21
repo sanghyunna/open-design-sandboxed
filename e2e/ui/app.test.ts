@@ -673,7 +673,7 @@ async function seedHtmlArtifact(
       name: fileName,
       content,
       artifactManifest: {
-        version: 1,
+        schema: 'readable-studio.artifact-manifest.v1',
         kind: 'html',
         title: fileName,
         entry: fileName,
@@ -1052,7 +1052,7 @@ async function seedDeckArtifact(
     `<!doctype html><html><body>${slideHtml}</body></html>`,
     undefined,
     {
-      version: 1,
+      schema: 'readable-studio.artifact-manifest.v1',
       kind: 'deck',
       title,
       entry: fileName,

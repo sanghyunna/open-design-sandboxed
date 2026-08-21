@@ -206,7 +206,7 @@ describe('hosted Pi runtime', () => {
       assert.equal(handle.invocation.command, process.execPath);
       assert.equal(handle.invocation.env.READABLE_HOSTED_PI_BROKER_TOKEN?.startsWith('odpi_'), true);
       if (process.platform === 'win32') {
-        assert.match(handle.invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET ?? '', /OpenDesign\.HostedPi\./);
+        assert.match(handle.invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET ?? '', /ReadableStudio\.HostedPi\./);
       } else {
         assert.match(
           handle.invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET ?? '',

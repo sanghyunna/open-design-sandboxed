@@ -18,6 +18,7 @@ import { mkdir, readdir, readFile, realpath, stat, symlink, writeFile } from 'no
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { READABLE_STUDIO_PROJECT_LOCATION_ID } from '@readable-studio/contracts';
 
 import { startServer } from '../src/server.js';
 
@@ -701,7 +702,7 @@ describe('project locations routes', () => {
     const body = (await resp.json()) as { locations: Array<{ id: string; name: string; builtIn?: boolean; path: string }> };
     expect(body.locations).toHaveLength(1); // only default on fresh start
     const loc0 = body.locations[0]!;
-    expect(loc0.id).toBe('default');
+    expect(loc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(loc0.builtIn).toBe(true);
     expect(loc0.name).toBe('Readable Studio projects');
   });
@@ -716,7 +717,7 @@ describe('project locations routes', () => {
     expect(putBody.locations).toHaveLength(2);
     const putLoc0 = putBody.locations[0]!;
     const putLoc1 = putBody.locations[1]!;
-    expect(putLoc0.id).toBe('default');
+    expect(putLoc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(putLoc1.id).toBe('ext-root');
     expect(putLoc1.path).toBe(await realpath(extDir));
 
@@ -727,7 +728,7 @@ describe('project locations routes', () => {
     expect(getBody.locations).toHaveLength(2);
     const getLoc0 = getBody.locations[0]!;
     const getLoc1 = getBody.locations[1]!;
-    expect(getLoc0.id).toBe('default');
+    expect(getLoc0.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
     expect(getLoc1.id).toBe('ext-root');
   });
 
@@ -1125,7 +1126,7 @@ describe('project locations routes', () => {
       locations: Array<{ id: string }>;
     };
     const ids = locBody.locations.map((l) => l.id);
-    expect(ids).toContain('default'); // built-in always present
+    expect(ids).toContain(READABLE_STUDIO_PROJECT_LOCATION_ID); // built-in always present
     // The invalid location must not appear
     expect(ids).not.toContain('bad-root');
 
@@ -1237,7 +1238,7 @@ describe('project locations routes', () => {
     expect(removeBody.removedProjectIds).toContain(projectId);
     // Only the built-in default location should remain
     expect(removeBody.locations).toHaveLength(1);
-    expect(removeBody.locations[0]!.id).toBe('default');
+    expect(removeBody.locations[0]!.id).toBe(READABLE_STUDIO_PROJECT_LOCATION_ID);
 
     // The project should no longer appear in GET /api/projects
     const listAfter = await fetch(`${baseUrl}/api/projects`);

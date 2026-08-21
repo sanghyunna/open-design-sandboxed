@@ -110,7 +110,7 @@ describe('isolated agent tool broker', () => {
       expect(agentEnv.READABLE_TOOL_TOKEN).toBeUndefined();
       expect(agentEnv.READABLE_BIN).toBe(broker.paths.clientPath);
       expect(agentEnv.READABLE_ISOLATED_TOOL_BROKER_ROOT).toBeUndefined();
-      expect(broker.ipc.pipeName).toMatch(/^\\\\\.\\pipe\\LOCAL\\OpenDesign\./);
+      expect(broker.ipc.pipeName).toMatch(/^\\\\\.\\pipe\\LOCAL\\ReadableStudio\./);
 
       const token = broker.clientEnv.READABLE_ISOLATED_TOOL_BROKER_TOKEN!;
       const allowed = JSON.parse(await broker.ipc.handleRequest(JSON.stringify({
@@ -226,6 +226,8 @@ describe('isolated agent tool broker', () => {
           'tools',
           'design-systems',
           'read',
+          '--path',
+          'preview/colors.html',
         ],
         command: nativeHelper,
         cwd: project,

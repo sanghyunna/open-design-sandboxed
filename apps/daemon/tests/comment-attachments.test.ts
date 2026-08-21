@@ -13,6 +13,7 @@ import {
   listMessages,
   listPreviewComments,
   openDatabase,
+  READABLE_STUDIO_SQLITE_APPLICATION_ID,
   updatePreviewCommentStatus,
   upsertMessage,
   upsertPreviewComment,
@@ -185,6 +186,7 @@ describe('preview comment persistence', () => {
     const odDir = path.join(tempDir, '.readable-studio');
     fs.mkdirSync(odDir, { recursive: true });
     const legacyDb = new Database(path.join(odDir, 'app.sqlite'));
+    legacyDb.pragma(`application_id = ${READABLE_STUDIO_SQLITE_APPLICATION_ID}`);
     legacyDb.exec(`
       CREATE TABLE projects (
         id TEXT PRIMARY KEY,

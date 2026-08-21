@@ -11,25 +11,31 @@ import {
 import { listFiles, writeProjectFile } from '../src/projects.js';
 
 const deckManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'deck',
   renderer: 'deck-html',
   title: 'Pitch deck',
+  entry: 'pitch-deck.html',
   exports: ['html', 'pdf'],
   metadata: { identifier: 'pitch-deck' },
 };
 
 const htmlManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'html',
   renderer: 'html',
   title: 'Pitch HTML',
+  entry: 'pitch-deck.html',
   exports: ['html'],
   metadata: { identifier: 'pitch-html' },
 };
 
 const markdownManifest = {
+  schema: 'readable-studio.artifact-manifest.v1',
   kind: 'markdown',
   renderer: 'markdown',
   title: 'Notes',
+  entry: 'notes.md',
   exports: ['md'],
   metadata: { identifier: 'pitch-notes' },
 };
