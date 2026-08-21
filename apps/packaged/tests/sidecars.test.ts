@@ -157,7 +157,7 @@ describe('packaged child Vite+ environment forwarding', () => {
   });
 
   it('adds custom VP_HOME/bin to the packaged PATH builder', () => {
-    const vpHome = mkdtempSync(join(tmpdir(), 'od-packaged-vp-home-'));
+    const vpHome = mkdtempSync(join(tmpdir(), 'readable-packaged-vp-home-'));
     const originalVpHome = process.env.VP_HOME;
     try {
       process.env.VP_HOME = vpHome;
@@ -175,7 +175,7 @@ describe('packaged child Vite+ environment forwarding', () => {
 
 describe('resolvePackagedElectronNodeCommand', () => {
   it('uses the hidden Electron helper as the macOS Electron-as-Node command when available', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-packaged-electron-helper-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-packaged-electron-helper-'));
     try {
       const appPath = join(root, 'Readable Studio.app');
       const execPath = join(appPath, 'Contents', 'MacOS', 'Readable Studio').replace(/\\/g, '/');
@@ -201,7 +201,7 @@ describe('resolvePackagedElectronNodeCommand', () => {
   });
 
   it('falls back to the main executable when the macOS helper is unavailable', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-packaged-no-electron-helper-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-packaged-no-electron-helper-'));
     try {
       const execPath = join(root, 'Readable Studio.app', 'Contents', 'MacOS', 'Readable Studio').replace(/\\/g, '/');
       mkdirSync(dirname(execPath), { recursive: true });
@@ -214,7 +214,7 @@ describe('resolvePackagedElectronNodeCommand', () => {
   });
 
   it('keeps the main executable on non-macOS platforms', async () => {
-    const execPath = '/opt/Readable Studio/open-design';
+    const execPath = '/opt/Readable Studio/readable-studio';
 
     await expect(resolvePackagedElectronNodeCommand(execPath, 'linux')).resolves.toBe(execPath);
   });
@@ -255,35 +255,35 @@ describe('buildPackagedDaemonSpawnEnv', () => {
   // regress either side.
   function fakePaths(): PackagedNamespacePaths {
     return {
-      cacheRoot: '/tmp/od-pkg/cache',
-      dataRoot: '/tmp/od-pkg/data',
-      desktopIdentityPath: '/tmp/od-pkg/runtime/desktop-root.json',
-      desktopLogPath: '/tmp/od-pkg/logs/desktop/latest.log',
-      desktopLogsRoot: '/tmp/od-pkg/logs/desktop',
-      electronSessionDataRoot: '/tmp/od-pkg/user-data/session',
-      electronUserDataRoot: '/tmp/od-pkg/user-data',
-      headlessIdentityPath: '/tmp/od-pkg/runtime/headless-root.json',
-      installationRoot: '/tmp/od-pkg/..',
-      logsRoot: '/tmp/od-pkg/logs',
-      namespaceRoot: '/tmp/od-pkg',
-      resourceRoot: '/tmp/od-pkg/resources',
-      runtimeRoot: '/tmp/od-pkg/runtime',
-      webIdentityPath: '/tmp/od-pkg/runtime/web-root.json',
+      cacheRoot: '/tmp/readable-pkg/cache',
+      dataRoot: '/tmp/readable-pkg/data',
+      desktopIdentityPath: '/tmp/readable-pkg/runtime/desktop-root.json',
+      desktopLogPath: '/tmp/readable-pkg/logs/desktop/latest.log',
+      desktopLogsRoot: '/tmp/readable-pkg/logs/desktop',
+      electronSessionDataRoot: '/tmp/readable-pkg/user-data/session',
+      electronUserDataRoot: '/tmp/readable-pkg/user-data',
+      headlessIdentityPath: '/tmp/readable-pkg/runtime/headless-root.json',
+      installationRoot: '/tmp/readable-pkg/..',
+      logsRoot: '/tmp/readable-pkg/logs',
+      namespaceRoot: '/tmp/readable-pkg',
+      resourceRoot: '/tmp/readable-pkg/resources',
+      runtimeRoot: '/tmp/readable-pkg/runtime',
+      webIdentityPath: '/tmp/readable-pkg/runtime/web-root.json',
     };
   }
 
-  it('sets OD_REQUIRE_DESKTOP_AUTH=1 when requireDesktopAuth=true (Electron entry)', () => {
+  it('sets READABLE_REQUIRE_DESKTOP_AUTH=1 when requireDesktopAuth=true (Electron entry)', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: '1.2.3',
       daemonCliEntry: null,
       daemonPort: 7456,
       requireDesktopAuth: true,
     });
-    expect(env.OD_REQUIRE_DESKTOP_AUTH).toBe('1');
-    expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
-    expect(env.OD_RESOURCE_ROOT).toBe('/tmp/od-pkg/resources');
-    expect(env.OD_APP_VERSION).toBe('1.2.3');
-    expect(env.OD_AGENT_DISCOVERY_OFFLINE).toBe('1');
+    expect(env.READABLE_REQUIRE_DESKTOP_AUTH).toBe('1');
+    expect(env.READABLE_DATA_DIR).toBe('/tmp/readable-pkg/data');
+    expect(env.READABLE_RESOURCE_ROOT).toBe('/tmp/readable-pkg/resources');
+    expect(env.READABLE_APP_VERSION).toBe('1.2.3');
+    expect(env.READABLE_AGENT_DISCOVERY_OFFLINE).toBe('1');
     expect(env[SIDECAR_ENV.DAEMON_PORT]).toBe('7456');
   });
 
@@ -299,7 +299,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
     expect(env[SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN]).toBe('packaged-approval-token');
   });
 
-  it('omits OD_REQUIRE_DESKTOP_AUTH entirely when requireDesktopAuth=false (headless)', () => {
+  it('omits READABLE_REQUIRE_DESKTOP_AUTH entirely when requireDesktopAuth=false (headless)', () => {
     const env = buildPackagedDaemonSpawnEnv(fakePaths(), {
       appVersion: null,
       daemonCliEntry: null,
@@ -307,13 +307,13 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       requireDesktopAuth: false,
     });
     // Round-5 (lefarcen P2): MUST NOT set the env var, even to "0" —
-    // the daemon's gate trigger is `process.env.OD_REQUIRE_DESKTOP_AUTH === '1'`,
+    // the daemon's gate trigger is `process.env.READABLE_REQUIRE_DESKTOP_AUTH === '1'`,
     // so a literal "0" would behave the same as omitted today, but a
     // future code change to truthy-check the variable would silently
     // re-arm the gate. Omitted is the intent.
-    expect('OD_REQUIRE_DESKTOP_AUTH' in env).toBe(false);
-    expect(env.OD_DATA_DIR).toBe('/tmp/od-pkg/data');
-    expect(env.OD_APP_VERSION).toBeUndefined();
+    expect('READABLE_REQUIRE_DESKTOP_AUTH' in env).toBe(false);
+    expect(env.READABLE_DATA_DIR).toBe('/tmp/readable-pkg/data');
+    expect(env.READABLE_APP_VERSION).toBeUndefined();
   });
 
   it('forwards daemonCliEntry through READABLE_DAEMON_CLI_PATH when set', () => {
@@ -334,7 +334,7 @@ describe('buildPackagedDaemonSpawnEnv', () => {
       daemonPort: 7456,
       requireDesktopAuth: true,
     });
-    expect(env.OPEN_DESIGN_AMR_PROFILE).toBe('test');
+    expect(env.READABLE_AMR_PROFILE).toBe('test');
   });
 
 });
@@ -342,8 +342,8 @@ describe('buildPackagedDaemonSpawnEnv', () => {
 describe('waitForStatus child-exit fast-fail', () => {
   it('rejects within milliseconds when the child exits before status is ready', async () => {
     const child = fakeChild();
-    const ipcPath = '/tmp/od-test-no-such-ipc-' + Date.now();
-    const logPath = '/tmp/od-test-daemon.log';
+    const ipcPath = '/tmp/readable-test-no-such-ipc-' + Date.now();
+    const logPath = '/tmp/readable-test-daemon.log';
 
     const startedAt = Date.now();
     const promise = waitForStatus<{ url: string | null }>(
@@ -390,10 +390,10 @@ describe('waitForStatus child-exit fast-fail', () => {
     let captured: unknown;
     try {
       await waitForStatus<{ url: string | null }>(
-        '/tmp/od-test-no-such-ipc-pre-' + Date.now(),
+        '/tmp/readable-test-no-such-ipc-pre-' + Date.now(),
         (status) => status.url != null,
         30 * 60 * 1000,
-        { child, logPath: '/tmp/od-test-daemon.log' },
+        { child, logPath: '/tmp/readable-test-daemon.log' },
       );
     } catch (err) {
       captured = err;

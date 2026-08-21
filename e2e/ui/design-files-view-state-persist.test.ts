@@ -1,7 +1,7 @@
 /**
  * Verifies that the DesignFilesPanel view state (sortKey, sortDir, pageSize,
  * kindFilter) is written to localStorage under the per-project key
- * 'od:design-files:view-state:v1:<projectId>' and is restored correctly
+ * 'readable:design-files:view-state:v1:<projectId>' and is restored correctly
  * across three scenarios:
  *
  *   (a) Tab-away / tab-back: navigating to a file tab and returning remounts
@@ -21,10 +21,10 @@ import { ensureRailOpen } from '@/playwright/rail';
 import { routeAgents } from '@/playwright/mock-factory';
 
 // Matches the constant in DesignFilesPanel.tsx
-const VIEW_STATE_KEY_PREFIX = 'od:design-files:view-state:v1:';
+const VIEW_STATE_KEY_PREFIX = 'readable:design-files:view-state:v1:';
 
 // Config key expected by the web app to skip onboarding
-const CONFIG_STORAGE_KEY = 'open-design:config';
+const CONFIG_STORAGE_KEY = 'readable-studio:config';
 
 // Minimal 1x1 PNG, base64-encoded
 const TINY_PNG_B64 =
@@ -104,7 +104,7 @@ async function gotoEntryHome(page: Page): Promise<void> {
   await waitForLoadingToClear(page);
   const privacyDialog = page
     .getByRole('dialog')
-    .filter({ hasText: 'Help us improve Open Design' });
+    .filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);

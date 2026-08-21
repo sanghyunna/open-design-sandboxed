@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 async function fixture(): Promise<{ destinationRoot: string; uploadsRoot: string }> {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-upload-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-upload-'));
   roots.push(root);
   const uploadsRoot = path.join(root, 'uploads');
   const destinationRoot = path.join(root, 'project');
@@ -160,7 +160,7 @@ describe('hosted upload intake', () => {
 
   it('rejects a staged junction and an aliased destination root', async () => {
     const { destinationRoot, uploadsRoot } = await fixture();
-    const outside = mkdtempSync(path.join(tmpdir(), 'od-hosted-upload-outside-'));
+    const outside = mkdtempSync(path.join(tmpdir(), 'readable-hosted-upload-outside-'));
     roots.push(outside);
     await writeFile(path.join(outside, 'secret.txt'), 'secret');
 

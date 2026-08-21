@@ -52,7 +52,7 @@ describe("desktop package runtime shape", () => {
   });
 
   it("waits for the rendered splash media to finish before revealing the app", () => {
-    const finishedMarker = "data-od-splash-finished";
+    const finishedMarker = "data-readable-splash-finished";
     const runtimeSource = readFileSync(desktopRuntimePath, "utf8");
     const splashHtml = readFileSync(splashHtmlPath, "utf8");
 

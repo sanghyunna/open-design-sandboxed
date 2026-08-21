@@ -15,10 +15,10 @@ const MAX_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 // watchdog (10 min) so agents that spend several minutes silently writing
 // large artifacts do not get killed before the outer watchdog can apply.
 // Callers can override via `stageTimeoutMs`; the chat server reads
-// `OD_ACP_STAGE_TIMEOUT_MS` from the environment.
+// `READABLE_ACP_STAGE_TIMEOUT_MS` from the environment.
 // A non-positive `stageTimeoutMs` (`<= 0`) disables the watchdog entirely,
 // mirroring the outer chat watchdog's escape-hatch semantics — without this,
-// `OD_ACP_STAGE_TIMEOUT_MS=0` would call `setTimeout(..., 0)` and fail every
+// `READABLE_ACP_STAGE_TIMEOUT_MS=0` would call `setTimeout(..., 0)` and fail every
 // ACP session on the next tick instead of disabling the watchdog.
 const DEFAULT_STAGE_TIMEOUT_MS = 600_000;
 const ACP_ARTIFACT_OPEN_PATTERN = String.raw`<\s*(?:\|?\s*DSML[\s,]+artifact\b|artifact\b)`;
@@ -90,7 +90,7 @@ function errorMessage(err: unknown): string {
 }
 
 function resolveAcpTimeoutMs(env: NodeJS.ProcessEnv, fallbackMs: number): number {
-  const raw = Number(env.OD_ACP_TIMEOUT_MS);
+  const raw = Number(env.READABLE_ACP_TIMEOUT_MS);
   if (!Number.isFinite(raw)) return fallbackMs;
   return Math.min(MAX_TIMEOUT_MS, Math.max(0, Math.floor(raw)));
 }
@@ -190,7 +190,7 @@ function promotedOpenCodeSessionErrorPayload(data: unknown, fallbackMessage: str
       retryable: typeof details.retryable === 'boolean' ? details.retryable : true,
       details: {
         ...details,
-        promoted_by: 'open_design_acp',
+        promoted_by: 'readable_studio_acp',
       },
     },
   };
@@ -642,7 +642,7 @@ export async function detectAcpModels({
   cwd = process.cwd(),
   env = process.env,
   timeoutMs = DEFAULT_TIMEOUT_MS,
-  clientName = 'open-design-detect',
+  clientName = 'readable-studio-detect',
   clientVersion = 'runtime-adapter',
   defaultModelOption = { id: 'default', label: 'Default (CLI config)' },
 }: DetectAcpModelsOptions): Promise<ModelOption[]> {
@@ -755,7 +755,7 @@ export function attachAcpSession({
   imagePaths = [],
   mcpServers,
   send,
-  clientName = 'open-design',
+  clientName = 'readable-studio',
   clientVersion = 'runtime-adapter',
   stageTimeoutMs = DEFAULT_STAGE_TIMEOUT_MS,
   modelUnavailableErrorCode,
@@ -795,7 +795,7 @@ export function attachAcpSession({
     if (stageTimer) clearTimeout(stageTimer);
     // `stageTimeoutMs <= 0` disables the watchdog. Mirrors the outer chat
     // inactivity watchdog escape hatch (see server.ts → inactivityTimer).
-    // Without this, an operator setting `OD_ACP_STAGE_TIMEOUT_MS=0` would
+    // Without this, an operator setting `READABLE_ACP_STAGE_TIMEOUT_MS=0` would
     // schedule a 0ms timeout that fires on the next tick and kills the
     // session immediately.
     if (stageWatchdogDisabled) return;
@@ -916,7 +916,7 @@ export function attachAcpSession({
     clearStageTimer();
     stdin.end();
     // Some ACP agents keep the child process alive after stdin closes,
-    // waiting for another prompt. Each Open Design run owns one process per
+    // waiting for another prompt. Each Readable Studio run owns one process per
     // turn, so close it once this prompt is cleanly complete.
     const cleanExitTimer = setTimeout(() => {
       if (!child.killed) child.kill('SIGTERM');

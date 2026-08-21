@@ -15,7 +15,7 @@
 - [ ] All data is synthetic, de-identified, or clearly fictional
 - [ ] If based on a real case, apply formal de-identification before use
 - [ ] HTML renders without errors in a browser
-- [ ] All major sections tagged with `data-od-id`
+- [ ] All major sections tagged with `data-readable-id`
 
 ## P1 — Should Pass
 

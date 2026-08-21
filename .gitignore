@@ -18,7 +18,7 @@ out/
 .astro/
 .wrangler/
 *.tsbuildinfo
-/OpenDesign.exe
+/ReadableStudio.exe
 # Nix build result symlinks
 result
 result-*

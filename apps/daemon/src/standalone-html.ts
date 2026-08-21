@@ -183,7 +183,7 @@ function ownerFromBase(entryPath: string, href: string): string {
   const resolved = raw.startsWith('/')
     ? path.posix.normalize(raw.slice(1))
     : path.posix.normalize(path.posix.join(path.posix.dirname(entryPath), raw));
-  return href.endsWith('/') ? path.posix.join(resolved, '__od_base__.html') : resolved;
+  return href.endsWith('/') ? path.posix.join(resolved, '__readable_base__.html') : resolved;
 }
 
 export async function bundleStandaloneHtml(source: StandaloneSource): Promise<StandaloneBundleReport> {
@@ -373,7 +373,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
 
   const bundleModule = async (contents: string, ownerPath: string) => {
     const moduleOwnerPath = /\.html?$/i.test(ownerPath)
-      ? path.posix.join(path.posix.dirname(ownerPath), '__od_inline_module__.js')
+      ? path.posix.join(path.posix.dirname(ownerPath), '__readable_inline_module__.js')
       : ownerPath;
     const files = new Map<string, StandaloneSourceFile>();
     const dataUrlReservations = new Map<string, number>();
@@ -395,11 +395,11 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
       dataUrlReservations.set(file.path, next);
     };
     const plugin: Plugin = {
-      name: 'open-design-standalone',
+      name: 'readable-studio-standalone',
       setup(esbuild) {
         esbuild.onResolve({ filter: /.*/ }, async (args) => {
-          if (args.kind === 'entry-point') return { path: moduleOwnerPath, namespace: 'od-entry' };
-          const importer = !args.importer || args.importer === moduleOwnerPath || args.namespace === 'od-entry'
+          if (args.kind === 'entry-point') return { path: moduleOwnerPath, namespace: 'readable-entry' };
+          const importer = !args.importer || args.importer === moduleOwnerPath || args.namespace === 'readable-entry'
             ? moduleOwnerPath
             : args.importer;
           let result;
@@ -420,10 +420,10 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
             throw error;
           }
           files.set(result.file.path, result.file);
-          return { path: result.file.path, namespace: 'od-file' };
+          return { path: result.file.path, namespace: 'readable-file' };
         });
-        esbuild.onLoad({ filter: /.*/, namespace: 'od-entry' }, () => ({ contents, loader: loaderFor(moduleOwnerPath) }));
-        esbuild.onLoad({ filter: /.*/, namespace: 'od-file' }, async (args) => {
+        esbuild.onLoad({ filter: /.*/, namespace: 'readable-entry' }, () => ({ contents, loader: loaderFor(moduleOwnerPath) }));
+        esbuild.onLoad({ filter: /.*/, namespace: 'readable-file' }, async (args) => {
           const file = files.get(args.path)!;
           return { contents: await read(file), loader: loaderFor(file.path) };
         });
@@ -431,7 +431,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
     };
     try {
       const result = await build({
-        entryPoints: ['od-entry'],
+        entryPoints: ['readable-entry'],
         bundle: true,
         write: false,
         outdir: 'out',
@@ -486,7 +486,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
     const css = await processCss(bytes.toString('utf8'), result.file.path, new Set([result.file.path]));
     const attrs = ['media', 'title', 'nonce'].flatMap((name) => tag.attr(name) == null ? [] : [`${name}="${tag.attr(name)}"`]);
     if (tag.is('[disabled]')) attrs.push('disabled');
-    const replacement = `<style data-od-bundled-from="${href.replace(/"/g, '&quot;')}"${attrs.length ? ` ${attrs.join(' ')}` : ''}>${css.replace(/<\/style/gi, '<\\/style')}</style>`;
+    const replacement = `<style data-readable-bundled-from="${href.replace(/"/g, '&quot;')}"${attrs.length ? ` ${attrs.join(' ')}` : ''}>${css.replace(/<\/style/gi, '<\\/style')}</style>`;
     releaseReadReservation(result.file);
     adjustBytes(bytes.length + Buffer.byteLength(replacement, 'utf8') - Buffer.byteLength(css, 'utf8'));
     tag.replaceWith(replacement);
@@ -494,7 +494,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
 
   for (const element of $('style').toArray()) {
     const tag = $(element);
-    if (tag.is('[data-od-bundled-from]')) continue;
+    if (tag.is('[data-readable-bundled-from]')) continue;
     tag.text(await processCss(tag.html() ?? '', effectiveOwner));
   }
   for (const element of $('[style]').toArray()) {
@@ -520,7 +520,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
       const bundled = await bundleModule(contents, result.file.path);
       tag.removeAttr('src integrity crossorigin').html(bundled.js.replace(/<\/script/gi, '<\\/script'));
       if (bundled.css) {
-        injectedCss = `<style data-od-bundled-module-css>${bundled.css.replace(/<\/style/gi, '<\\/style')}</style>`;
+        injectedCss = `<style data-readable-bundled-module-css>${bundled.css.replace(/<\/style/gi, '<\\/style')}</style>`;
         tag.before(injectedCss);
       }
     } else {
@@ -536,7 +536,7 @@ export async function bundleStandaloneHtml(source: StandaloneSource): Promise<St
     const bundled = await bundleModule(original, effectiveOwner);
     tag.html(bundled.js.replace(/<\/script/gi, '<\\/script'));
     const injectedCss = bundled.css
-      ? `<style data-od-bundled-module-css>${bundled.css.replace(/<\/style/gi, '<\\/style')}</style>`
+      ? `<style data-readable-bundled-module-css>${bundled.css.replace(/<\/style/gi, '<\\/style')}</style>`
       : '';
     if (injectedCss) tag.before(injectedCss);
     adjustBytes(Buffer.byteLength($.html(element), 'utf8') + Buffer.byteLength(injectedCss, 'utf8') - originalTagBytes);

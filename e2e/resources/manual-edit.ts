@@ -20,16 +20,16 @@ export function issue41SelectionPaintHtml(): string {
   <body>
     <img
       class="authored-paint"
-      data-od-id="issue-41-image"
-      data-od-label="Authored image"
+      data-readable-id="issue-41-image"
+      data-readable-label="Authored image"
       alt="Authored image"
       style="display:block;width:96px;height:72px;background:#cbd5e1;"
     >
-    <p data-od-id="issue-41-text" data-od-label="Inline text">Inline text</p>
+    <p data-readable-id="issue-41-text" data-readable-label="Inline text">Inline text</p>
     <p
       class="authored-inline authored-outline authored-shadow"
-      data-od-id="issue-41-authored-text"
-      data-od-label="Authored inline text"
+      data-readable-id="issue-41-authored-text"
+      data-readable-label="Authored inline text"
     >Authored inline text</p>
   </body>
 </html>`;
@@ -50,9 +50,9 @@ export function magneticEdgeAlignmentHtml(): string {
   </head>
   <body>
     <main>
-      <section class="snap-stage" data-od-id="snap-stage" data-od-label="Snap stage">
-        <div class="snap-box snap-source" data-od-id="snap-source" data-od-label="Snap source"><span>Source</span></div>
-        <div class="snap-box snap-target" data-od-id="snap-target" data-od-label="Snap target" data-od-edit="container"><span>Target</span></div>
+      <section class="snap-stage" data-readable-id="snap-stage" data-readable-label="Snap stage">
+        <div class="snap-box snap-source" data-readable-id="snap-source" data-readable-label="Snap source"><span>Source</span></div>
+        <div class="snap-box snap-target" data-readable-id="snap-target" data-readable-label="Snap target" data-readable-edit="container"><span>Target</span></div>
       </section>
     </main>
   </body>

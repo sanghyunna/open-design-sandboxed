@@ -18,7 +18,7 @@ Existing OSS a11y guidance for AI agents (`fecarrico/A11Y.md`,
 `Community-Access/accessibility-agents`) tends to inline a checklist of
 WCAG SCs without versioning the legal floor or specifying which
 constraints survive on iOS / Android / Flutter. This file scopes
-narrower: the compliance floor an OD artifact must clear, with
+narrower: the compliance floor an Readable Studio artifact must clear, with
 jurisdiction notes and native-mobile parity. Heuristic rules and
 linter-checked items live in sibling craft files
 (`anti-ai-slop.md`, `state-coverage.md`); WCAG SC numbers map to
@@ -126,7 +126,7 @@ does not satisfy it.
 Visual contrast and labelled inputs don't matter if a keyboard or
 screen-reader user can't reach the control or parse the page. The
 bullets below are Level A / AA WCAG essentials plus a small set of
-structural conventions OD treats as craft commitments. WCAG levels
+structural conventions Readable Studio treats as craft commitments. WCAG levels
 are noted per item.
 
 - **Tab reachability** (2.1.1 Keyboard, Level A): every interactive element must be reachable and operable via keyboard. `tabindex="-1"` removes from the tab order; `tabindex` values >0 break document order and should not be used. (2.1.3 No Exception extends 2.1.1 to AAA by removing the underlying-function exception.)
@@ -135,7 +135,7 @@ are noted per item.
 - **Focus order** (2.4.3, Level A): tab order must follow the meaningful reading order. Don't rely on positive `tabindex` to fix DOM that's out of order; fix the DOM.
 - **Native control first** (craft convention, anchored on 4.1.2 Name/Role/Value Level A): a `<button>` is keyboard-operable, focusable, name-resolvable, and announced as a button by every AT for free. `<div role="button" tabindex="0">` requires you to re-implement all of that and most reimplementations miss `aria-pressed`, disabled state, or Space-on-keyup. Reach for ARIA only when no native element fits.
 - **Document language** (3.1.1, Level A): `<html lang="...">` is required. Sub-tree language switches use `lang` on the inner element.
-- **Heading hierarchy** (1.3.1 Info and Relationships Level A; 2.4.6 Headings and Labels Level AA): WCAG requires programmatically-determined structure and descriptive headings, not a specific outline shape. OD craft convention layers on: prefer one `<h1>` per page and don't skip levels (`<h1>` → `<h3>` without `<h2>`). Visual size and heading level are independent.
+- **Heading hierarchy** (1.3.1 Info and Relationships Level A; 2.4.6 Headings and Labels Level AA): WCAG requires programmatically-determined structure and descriptive headings, not a specific outline shape. Readable Studio craft convention layers on: prefer one `<h1>` per page and don't skip levels (`<h1>` → `<h3>` without `<h2>`). Visual size and heading level are independent.
 - **Landmarks** (1.3.1, 2.4.1 Bypass Blocks Level A): use `<header>` `<nav>` `<main>` `<aside>` `<footer>` rather than `<div role="banner">` etc. AT users navigate by landmark; a page with no landmarks is a wall of divs.
 - **Text alternatives** (1.1.1 Non-text Content, Level A): `<img alt="...">` for content images, `alt=""` for decorative; `aria-label` on icon-only buttons; long-form description for charts and SVG data viz. A chart without a text alternative is unreadable to a screen reader.
 

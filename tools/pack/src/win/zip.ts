@@ -9,7 +9,7 @@ import type { WinBuiltAppManifest, WinPackTiming, WinPaths } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_PORTABLE_ZIP_COMPRESSION = 5;
-const PORTABLE_ZIP_COMPRESSION_ENV = "OD_PORTABLE_ZIP_COMPRESSION";
+const PORTABLE_ZIP_COMPRESSION_ENV = "READABLE_PORTABLE_ZIP_COMPRESSION";
 export const WIN_PORTABLE_CHROMIUM_LOCALE_PAKS = ["en-US.pak", "ko.pak"] as const;
 
 const CHROMIUM_LOCALES_ARCHIVE_RELATIVE_DIR = "locales";

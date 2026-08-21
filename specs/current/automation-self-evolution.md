@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Automations should become the product-wide loop that lets Open Design improve
+Automations should become the product-wide loop that lets Readable Studio improve
 itself over time: ingest sources, distill durable memory, crystallize reusable
 skills, extract and refine design systems, and feed compact context back into
 future agent runs.
@@ -15,14 +15,14 @@ design agent.
 
 | Reference | Pattern to borrow | Boundary |
 |---|---|---|
-| [OpenHuman](https://github.com/tinyhumansai/openhuman) | Connector auto-fetch into a memory tree, local editable knowledge, chunking, and optional token compression before LLM use. | Keep OD design-focused and local-first; do not copy its subscription/model-router product shape. |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | Closed learning loop: persistent memory, agent-created skills from experience, skill improvement during use, scheduled automations, and explicit compression commands. | Do not replace the user's agent loop or turn OD into a general messaging gateway. |
-| [Multica](https://github.com/multica-ai/multica) | Managed agents, agent-scoped skills, workspace/local skill imports, and skill attachment as a team-level capability. | Do not turn OD into an issue board; use the skill attachment pattern for design work. |
-| [GenericAgent](https://github.com/lsdefine/GenericAgent) | After solving a new task, crystallize the execution path into a reusable skill tree and recall it for similar tasks with a smaller context window. | Do not grant broad uncontrolled desktop authority; OD keeps daemon and connector capability gates. |
+| [OpenHuman](https://github.com/tinyhumansai/openhuman) | Connector auto-fetch into a memory tree, local editable knowledge, chunking, and optional token compression before LLM use. | Keep Readable Studio design-focused and local-first; do not copy its subscription/model-router product shape. |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | Closed learning loop: persistent memory, agent-created skills from experience, skill improvement during use, scheduled automations, and explicit compression commands. | Do not replace the user's agent loop or turn Readable Studio into a general messaging gateway. |
+| [Multica](https://github.com/multica-ai/multica) | Managed agents, agent-scoped skills, workspace/local skill imports, and skill attachment as a team-level capability. | Do not turn Readable Studio into an issue board; use the skill attachment pattern for design work. |
+| [GenericAgent](https://github.com/lsdefine/GenericAgent) | After solving a new task, crystallize the execution path into a reusable skill tree and recall it for similar tasks with a smaller context window. | Do not grant broad uncontrolled desktop authority; Readable Studio keeps daemon and connector capability gates. |
 
 ## Product thesis
 
-Open Design becomes a self-evolving design agent when every useful run can
+Readable Studio becomes a self-evolving design agent when every useful run can
 promote durable knowledge into one of four trees:
 
 1. **Memory tree** - user, project, source, connector, and artifact knowledge
@@ -175,7 +175,7 @@ Design-system evolution is the product-specific center of gravity:
 - Feed recurring critique failures back into design-system anti-patterns,
   component rules, or token choices.
 
-This keeps OD positioned as a self-evolving design agent rather than a generic
+This keeps Readable Studio positioned as a self-evolving design agent rather than a generic
 personal assistant.
 
 ## UI and CLI closure

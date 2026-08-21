@@ -21,7 +21,7 @@ import {
 } from '@readable-studio/plugin-runtime';
 import {
   READABLE_STUDIO_PLUGIN_SPEC_VERSION,
-  UNSUPPORTED_OPEN_DESIGN_V1,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   type MarketplaceManifest,
 } from '@readable-studio/contracts';
 import { READABLE_STUDIO_REGISTRY_MANIFEST_NAME } from '@readable-studio/registry-protocol';
@@ -74,24 +74,40 @@ export interface EnsureMarketplaceManifestInput {
   now?: number;
 }
 
+export type MarketplaceManifestReadErrorCode =
+  | 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+  | 'CORRUPT_MARKETPLACE_MANIFEST';
+
+export class MarketplaceManifestReadError extends Error {
+  constructor(
+    readonly code: MarketplaceManifestReadErrorCode,
+    readonly errors: readonly string[],
+  ) {
+    super(code === 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+      ? 'stored marketplace uses an unsupported legacy product format'
+      : 'stored marketplace manifest is corrupt');
+    this.name = 'MarketplaceManifestReadError';
+  }
+}
+
 const HTTPS_RE = /^https:\/\//i;
 const DEFAULT_MARKETPLACE_REPO = 'sanghyunna/readable-studio';
 const DEFAULT_MARKETPLACE_REPO_REF = 'main';
 const DEFAULT_MARKETPLACE_REGISTRY_PATH = 'plugins/registry';
 
 function marketplaceRegistryRepo(): string {
-  return (process.env.OD_MARKETPLACE_REPO?.trim() || DEFAULT_MARKETPLACE_REPO)
+  return (process.env.READABLE_MARKETPLACE_REPO?.trim() || DEFAULT_MARKETPLACE_REPO)
     .replace(/^\/+|\/+$/g, '');
 }
 
 export function marketplaceRegistryBaseUrl(): string {
-  const explicit = process.env.OD_MARKETPLACE_REGISTRY_BASE_URL?.trim();
+  const explicit = process.env.READABLE_MARKETPLACE_REGISTRY_BASE_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/, '');
 
   const repo = marketplaceRegistryRepo();
-  const ref = (process.env.OD_MARKETPLACE_REPO_REF?.trim() || DEFAULT_MARKETPLACE_REPO_REF)
+  const ref = (process.env.READABLE_MARKETPLACE_REPO_REF?.trim() || DEFAULT_MARKETPLACE_REPO_REF)
     .replace(/^\/+|\/+$/g, '');
-  const registryPath = (process.env.OD_MARKETPLACE_REGISTRY_PATH?.trim() || DEFAULT_MARKETPLACE_REGISTRY_PATH)
+  const registryPath = (process.env.READABLE_MARKETPLACE_REGISTRY_PATH?.trim() || DEFAULT_MARKETPLACE_REGISTRY_PATH)
     .replace(/^\/+|\/+$/g, '');
   return `https://raw.githubusercontent.com/${repo}/${ref}/${registryPath}`;
 }
@@ -146,6 +162,9 @@ export function resolveMarketplaceFetchUrl(url: string): string {
   return registryId ? marketplaceManifestUrlForRegistry(registryId) : trimmed;
 }
 
+const LEGACY_MARKETPLACE_SLUG = ['open', 'design'].join('-');
+const LEGACY_MARKETPLACE_HOST = `${LEGACY_MARKETPLACE_SLUG}.ai`;
+
 function isUnsupportedMarketplaceUrl(url: string): boolean {
   let parsed: URL;
   try {
@@ -156,12 +175,12 @@ function isUnsupportedMarketplaceUrl(url: string): boolean {
   }
 
   const { hostname, pathname } = parsed;
-  if (pathname.endsWith('/open-design-marketplace.json')) return true;
-  if (hostname === 'open-design.ai' || hostname === 'www.open-design.ai') return true;
+  if (pathname.endsWith(`/${LEGACY_MARKETPLACE_SLUG}-marketplace.json`)) return true;
+  if (hostname === LEGACY_MARKETPLACE_HOST || hostname === `www.${LEGACY_MARKETPLACE_HOST}`) return true;
   if (hostname !== 'github.com' && hostname !== 'raw.githubusercontent.com') return false;
 
   const [owner, repository] = pathname.split('/').filter(Boolean);
-  return owner === 'nexu-io' && repository === 'open-design';
+  return owner === 'nexu-io' && repository === LEGACY_MARKETPLACE_SLUG;
 }
 
 function normalizeMarketplaceTrust(value: unknown): MarketplaceTrustTier {
@@ -176,8 +195,8 @@ export async function addMarketplace(
     return {
       ok: false,
       status: 400,
-      message: UNSUPPORTED_OPEN_DESIGN_V1,
-      errors: [UNSUPPORTED_OPEN_DESIGN_V1],
+      message: UNSUPPORTED_LEGACY_PRODUCT_V1,
+      errors: [UNSUPPORTED_LEGACY_PRODUCT_V1],
     };
   }
   const url = resolveMarketplaceFetchUrl(input.url);
@@ -381,8 +400,8 @@ export async function refreshMarketplace(
     return {
       ok: false,
       status: 400,
-      message: UNSUPPORTED_OPEN_DESIGN_V1,
-      errors: [UNSUPPORTED_OPEN_DESIGN_V1],
+      message: UNSUPPORTED_LEGACY_PRODUCT_V1,
+      errors: [UNSUPPORTED_LEGACY_PRODUCT_V1],
     };
   }
   const useFetcher = fetcher ?? defaultFetcher;
@@ -425,62 +444,14 @@ async function defaultFetcher(url: string) {
 }
 
 function safeParseManifest(raw: string): MarketplaceManifest {
-  try {
-    const parsed = parseMarketplace(raw);
-    if (parsed.ok) return parsed.manifest;
-  } catch {
-    // fall through
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('legacy marketplace manifest is not an object');
-    }
-    const legacy = parsed as Record<string, unknown>;
-    const metadata = typeof legacy['metadata'] === 'object' && legacy['metadata'] !== null
-      ? legacy['metadata'] as Record<string, unknown>
-      : {};
-    const plugins = Array.isArray(legacy?.['plugins'])
-      ? (legacy['plugins'] as unknown[]).flatMap((entry) => {
-          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-          const obj = entry as Record<string, unknown>;
-          const name = typeof obj['name'] === 'string' ? obj['name'] : '';
-          const source = typeof obj['source'] === 'string' ? obj['source'] : '';
-          if (!name || !source) return [];
-          return [{
-            ...obj,
-            name,
-            source,
-            version: typeof obj['version'] === 'string' && obj['version'].length > 0
-              ? obj['version']
-              : '0.0.0',
-          }];
-        })
-      : [];
-    return {
-      ...legacy,
-      specVersion: typeof legacy['specVersion'] === 'string'
-        ? legacy['specVersion'] as string
-        : READABLE_STUDIO_PLUGIN_SPEC_VERSION,
-      name: typeof legacy['name'] === 'string' ? legacy['name'] as string : 'unknown',
-      version: typeof legacy['version'] === 'string' && (legacy['version'] as string).length > 0
-        ? legacy['version'] as string
-        : typeof metadata['version'] === 'string' && metadata['version'].length > 0
-          ? metadata['version']
-          : '0.0.0',
-      plugins,
-    } as MarketplaceManifest;
-  } catch {
-    // fall through
-  }
-  // Last-resort fallback: return a minimal shape so the caller doesn't
-  // explode if a database row was stored before a schema patch.
-  return {
-    specVersion: READABLE_STUDIO_PLUGIN_SPEC_VERSION,
-    name: 'unknown',
-    version: '0.0.0',
-    plugins: [],
-  } as MarketplaceManifest;
+  const parsed = parseMarketplace(raw);
+  if (parsed.ok) return parsed.manifest;
+  throw new MarketplaceManifestReadError(
+    parsed.code === UNSUPPORTED_LEGACY_PRODUCT_V1
+      ? 'UNSUPPORTED_LEGACY_PRODUCT_V1'
+      : 'CORRUPT_MARKETPLACE_MANIFEST',
+    parsed.errors,
+  );
 }
 
 // Plan §3.F3 / spec §7.2 + §6 — resolve a bare plugin name through

@@ -1,7 +1,7 @@
 // Plan §3.B4 — marketplaces add / list / refresh / remove / trust unit tests.
 //
 // Locks the storage half of the federated catalog story. The Phase 3
-// follow-up will layer on `od plugin install <name>` resolution +
+// follow-up will layer on `readable plugin install <name>` resolution +
 // trust UI, but the storage layout here is the contract that lookup
 // will read against.
 
@@ -16,6 +16,7 @@ import {
   ensureMarketplaceManifest,
   getMarketplace,
   listMarketplaces,
+  MarketplaceManifestReadError,
   marketplaceManifestUrlForRegistry,
   refreshMarketplace,
   removeMarketplace,
@@ -27,13 +28,16 @@ import {
 let db: Database.Database;
 let tmpDir: string;
 
+const LEGACY_SLUG = ['open', 'design'].join('-');
+const LEGACY_HOST = `${LEGACY_SLUG}.ai`;
+
 const VALID_MANIFEST = JSON.stringify({
   specVersion: '1.0.0',
   name: 'test-marketplace',
   version: '1.0.0',
   metadata: { description: 'fixture', version: '1.0.0' },
   plugins: [
-    { name: 'sample-plugin', source: 'github:open-design/sample-plugin', version: '0.1.0' },
+    { name: 'sample-plugin', source: 'github:readable-studio/sample-plugin', version: '0.1.0' },
   ],
 });
 
@@ -46,7 +50,7 @@ function fixtureFetcher(text: string, ok = true) {
 }
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-mp-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-mp-'));
   db = new Database(path.join(tmpDir, 'test.sqlite'));
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -141,21 +145,21 @@ describe('marketplaces', () => {
   it('rejects an old public marketplace URL without fetching it', async () => {
     let fetchCount = 0;
     const result = await addMarketplace(db, {
-      url: 'https://open-design.ai/marketplace/community/readable-studio-marketplace.json',
+      url: `https://${LEGACY_HOST}/marketplace/community/readable-studio-marketplace.json`,
       fetcher: async () => {
         fetchCount += 1;
         return { ok: true, status: 200, text: async () => VALID_MANIFEST };
       },
     });
 
-    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_OPEN_DESIGN_V1'] });
+    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
     expect(fetchCount).toBe(0);
   });
 
   it.each([
-    'https://open-design.ai',
-    'https://www.open-design.ai/marketplace/readable-studio-marketplace.json',
-    'https://github.com/nexu-io/open-design/raw/main/plugins/registry/official/readable-studio-marketplace.json',
+    `https://${LEGACY_HOST}`,
+    `https://www.${LEGACY_HOST}/marketplace/readable-studio-marketplace.json`,
+    `https://github.com/nexu-io/${LEGACY_SLUG}/raw/main/plugins/registry/official/readable-studio-marketplace.json`,
   ])('rejects legacy marketplace URL variant without fetching: %s', async (url) => {
     // Given: a legacy URL whose fetcher would return a valid new manifest.
     let fetchCount = 0;
@@ -170,19 +174,19 @@ describe('marketplaces', () => {
     });
 
     // Then: the old source is rejected before fetch or normalization.
-    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_OPEN_DESIGN_V1'] });
+    expect(result).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
     expect(fetchCount).toBe(0);
   });
 
-  it('rejects an external Open Design v1 registry without normalization', async () => {
+  it('rejects an external Readable Studio v1 registry without normalization', async () => {
     const result = await addMarketplace(db, {
-      url: 'https://raw.githubusercontent.com/nexu-io/open-design/garnet-hemisphere/plugins/registry/community/open-design-marketplace.json',
+      url: `https://raw.githubusercontent.com/nexu-io/${LEGACY_SLUG}/garnet-hemisphere/plugins/registry/community/${LEGACY_SLUG}-marketplace.json`,
       fetcher: fixtureFetcher(VALID_MANIFEST),
     });
 
     expect(result).toMatchObject({
       ok: false,
-      errors: ['UNSUPPORTED_OPEN_DESIGN_V1'],
+      errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'],
     });
   });
 
@@ -208,7 +212,7 @@ describe('marketplaces', () => {
     const updatedManifest = JSON.parse(VALID_MANIFEST);
     updatedManifest.plugins.push({
       name: 'new-plugin',
-      source: 'github:open-design/new-plugin',
+      source: 'github:readable-studio/new-plugin',
       version: '0.2.0',
     });
     updatedManifest.version = '1.0.1';
@@ -226,7 +230,7 @@ describe('marketplaces', () => {
   it('rejects refresh of a stored old public marketplace URL without fetching it', async () => {
     const seeded = ensureMarketplaceManifest(db, {
       id: 'community',
-      url: 'https://open-design.ai/marketplace/community/readable-studio-marketplace.json',
+      url: `https://${LEGACY_HOST}/marketplace/community/readable-studio-marketplace.json`,
       trust: 'restricted',
       manifestText: VALID_MANIFEST,
     });
@@ -238,8 +242,24 @@ describe('marketplaces', () => {
       return { ok: true, status: 200, text: async () => VALID_MANIFEST };
     });
 
-    expect(refreshed).toMatchObject({ ok: false, errors: ['UNSUPPORTED_OPEN_DESIGN_V1'] });
+    expect(refreshed).toMatchObject({ ok: false, errors: ['UNSUPPORTED_LEGACY_PRODUCT_V1'] });
     expect(fetchCount).toBe(0);
+  });
+
+  it('fails closed with a typed error for a corrupt stored marketplace manifest', () => {
+    db.prepare(`
+      INSERT INTO plugin_marketplaces
+        (id, url, spec_version, version, trust, manifest_json, added_at, refreshed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('corrupt', 'https://example.com/corrupt.json', '1.0.0', '1.0.0', 'restricted', '{}', 1, 1);
+
+    expect(() => getMarketplace(db, 'corrupt')).toThrowError(
+      expect.objectContaining<Partial<MarketplaceManifestReadError>>({
+        name: 'MarketplaceManifestReadError',
+        code: 'CORRUPT_MARKETPLACE_MANIFEST',
+      }),
+    );
+    expect(() => listMarketplaces(db)).toThrowError(MarketplaceManifestReadError);
   });
 
   it('setMarketplaceTrust updates the trust tier and remove deletes the row', async () => {
@@ -379,7 +399,7 @@ describe('resolvePluginInMarketplaces', () => {
     });
     const resolved = resolvePluginInMarketplaces(db, 'sample-plugin');
     expect(resolved).not.toBeNull();
-    expect(resolved!.source).toBe('github:open-design/sample-plugin');
+    expect(resolved!.source).toBe('github:readable-studio/sample-plugin');
     expect(resolved!.pluginVersion).toBe('0.1.0');
     expect(resolved!.marketplaceVersion).toBe('1.0.0');
     expect(resolved!.marketplaceTrust).toBe('restricted');

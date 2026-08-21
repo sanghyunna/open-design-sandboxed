@@ -8,7 +8,7 @@ import { hashPackageSourcePath } from "../src/package-source-hash.js";
 
 describe("hashPackageSourcePath", () => {
   it("includes package versions in the source hash", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-package-source-hash-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-package-source-hash-"));
     const packageRoot = join(root, "apps", "packaged");
     try {
       await mkdir(join(packageRoot, "src"), { recursive: true });

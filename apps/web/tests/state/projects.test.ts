@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyPlugin,
-  contributeGeneratedPluginToOpenDesign,
+  contributeGeneratedPluginToReadableStudio,
   createPluginShareProject,
   executeAgentRollback,
   fetchProjectCheckpointDiff,
@@ -183,14 +183,14 @@ describe('listPlugins', () => {
     vi.unstubAllGlobals();
   });
 
-  it('hides plugins marked od.hidden from UI-facing lists', async () => {
+  it('hides plugins marked readable.hidden from UI-facing lists', async () => {
     const visible = {
-      id: 'od-new-generation',
+      id: 'readable-new-generation',
       title: 'New generation',
       manifest: { readable: { kind: 'scenario' } },
     };
     const hidden = {
-      id: 'od-default',
+      id: 'readable-default',
       title: 'Default design router',
       manifest: { readable: { kind: 'scenario', hidden: true } },
     };
@@ -201,17 +201,17 @@ describe('listPlugins', () => {
 
     const rows = await listPlugins();
 
-    expect(rows.map((row) => row.id)).toEqual(['od-new-generation']);
+    expect(rows.map((row) => row.id)).toEqual(['readable-new-generation']);
   });
 
   it('can include hidden plugins for installed-entry matching', async () => {
     const visible = {
-      id: 'od-new-generation',
+      id: 'readable-new-generation',
       title: 'New generation',
       manifest: { readable: { kind: 'scenario' } },
     };
     const hidden = {
-      id: 'od-default',
+      id: 'readable-default',
       title: 'Default design router',
       manifest: { readable: { kind: 'scenario', hidden: true } },
     };
@@ -222,7 +222,7 @@ describe('listPlugins', () => {
 
     const rows = await listPlugins({ includeHidden: true });
 
-    expect(rows.map((row) => row.id)).toEqual(['od-default', 'od-new-generation']);
+    expect(rows.map((row) => row.id)).toEqual(['readable-default', 'readable-new-generation']);
   });
 });
 
@@ -329,7 +329,7 @@ describe('generated plugin share actions', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const publish = await publishGeneratedPluginToGitHub('project-1', 'generated-plugin');
-    const contribute = await contributeGeneratedPluginToOpenDesign('project-1', 'generated-plugin');
+    const contribute = await contributeGeneratedPluginToReadableStudio('project-1', 'generated-plugin');
 
     expect(publish).toMatchObject({ ok: true, message: 'Ready' });
     expect(contribute).toMatchObject({ ok: true, message: 'Ready' });
@@ -343,7 +343,7 @@ describe('generated plugin share actions', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      '/api/projects/project-1/plugins/contribute-open-design',
+      '/api/projects/project-1/plugins/contribute-readable-studio',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ path: 'generated-plugin' }),
@@ -373,7 +373,7 @@ describe('createPluginShareProject', () => {
         },
         conversationId: 'conversation-1',
         appliedPluginSnapshotId: 'snapshot-1',
-        actionPluginId: 'od-plugin-publish-github',
+        actionPluginId: 'readable-plugin-publish-github',
         sourcePluginId: 'sample-plugin',
         stagedPath: 'plugin-source/sample-plugin',
         prompt: 'Publish it',
@@ -417,7 +417,7 @@ describe('createPluginShareProject', () => {
 
     const outcome = await createPluginShareProject(
       'sample-plugin',
-      'contribute-open-design',
+      'contribute-readable-studio',
     );
 
     expect(outcome).toEqual({

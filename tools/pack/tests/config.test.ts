@@ -2,26 +2,26 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { resolveToolPackConfig } from "../src/config.js";
 
-const savedAmrProfile = process.env.OPEN_DESIGN_AMR_PROFILE;
-const savedUpdateMetadataUrl = process.env.OD_UPDATE_METADATA_URL;
+const savedAmrProfile = process.env.READABLE_AMR_PROFILE;
+const savedUpdateMetadataUrl = process.env.READABLE_UPDATE_METADATA_URL;
 
 afterEach(() => {
   if (savedAmrProfile == null) {
-    delete process.env.OPEN_DESIGN_AMR_PROFILE;
+    delete process.env.READABLE_AMR_PROFILE;
   } else {
-    process.env.OPEN_DESIGN_AMR_PROFILE = savedAmrProfile;
+    process.env.READABLE_AMR_PROFILE = savedAmrProfile;
   }
   if (savedUpdateMetadataUrl == null) {
-    delete process.env.OD_UPDATE_METADATA_URL;
+    delete process.env.READABLE_UPDATE_METADATA_URL;
   } else {
-    process.env.OD_UPDATE_METADATA_URL = savedUpdateMetadataUrl;
+    process.env.READABLE_UPDATE_METADATA_URL = savedUpdateMetadataUrl;
   }
 });
 
 describe("resolveToolPackConfig updater absence", () => {
   it("does not expose release-feed configuration from a former updater environment key", () => {
     // Given a legacy update metadata environment value
-    process.env.OD_UPDATE_METADATA_URL = "https://example.invalid/latest.json";
+    process.env.READABLE_UPDATE_METADATA_URL = "https://example.invalid/latest.json";
 
     // When portable packager configuration is resolved
     const config = resolveToolPackConfig("win", { namespace: "no-updater-config" });
@@ -32,16 +32,16 @@ describe("resolveToolPackConfig updater absence", () => {
 });
 
 describe("resolveToolPackConfig AMR profile", () => {
-  it("bakes OPEN_DESIGN_AMR_PROFILE into packaged config when set at build time", () => {
-    process.env.OPEN_DESIGN_AMR_PROFILE = "test";
+  it("bakes READABLE_AMR_PROFILE into packaged config when set at build time", () => {
+    process.env.READABLE_AMR_PROFILE = "test";
     const config = resolveToolPackConfig("win", { namespace: "amr-profile-test" });
     expect(config.amrProfile).toBe("test");
   });
 
   it("rejects unsupported AMR profiles before packaging", () => {
-    process.env.OPEN_DESIGN_AMR_PROFILE = "staging";
+    process.env.READABLE_AMR_PROFILE = "staging";
     expect(() => resolveToolPackConfig("win")).toThrow(
-      /OPEN_DESIGN_AMR_PROFILE must be prod, test, or local/,
+      /READABLE_AMR_PROFILE must be prod, test, or local/,
     );
   });
 });

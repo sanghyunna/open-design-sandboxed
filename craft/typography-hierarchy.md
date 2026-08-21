@@ -7,7 +7,7 @@ the conditions under which controlled violations are allowed. This contract
 applies per-surface (a page with multiple pacing resets may establish new
 primaries at intentional intervals), not globally.
 
-> Opt in via `od.craft.requires: [typography, typography-hierarchy]`.
+> Opt in via `readable.craft.requires: [typography, typography-hierarchy]`.
 > Aesthetic-specific variants (e.g. `typography-hierarchy-editorial`) extend this.
 
 ---

@@ -40,7 +40,7 @@ const BUILD_COMMANDS = [
   { args: ["--filter", "@readable-studio/product-identity", "build"] },
   { args: ["--filter", "@readable-studio/diagnostics", "build"] },
   { args: ["--filter", "@readable-studio/daemon", "build"] },
-  { args: ["--filter", "@readable-studio/web", "build"], env: ["OD_WEB_OUTPUT_MODE"] },
+  { args: ["--filter", "@readable-studio/web", "build"], env: ["READABLE_WEB_OUTPUT_MODE"] },
   { args: ["--filter", "@readable-studio/web", "build:sidecar"] },
   { args: ["--filter", "@readable-studio/desktop", "build"] },
   { args: ["--filter", "@readable-studio/packaged", "build"] },
@@ -125,7 +125,7 @@ function workspaceBuildOutputFiles(config: ToolPackConfig): string[] {
     "packages/platform/dist/index.mjs",
     "packages/platform/dist/index.d.ts",
     ...(config.platform === "win"
-      ? ["packages/platform/dist/native/win32/od-agent-isolator.exe"]
+      ? ["packages/platform/dist/native/win32/readable-studio-agent-isolator.exe"]
       : []),
     "packages/download/dist/index.mjs",
     "packages/download/dist/index.d.ts",

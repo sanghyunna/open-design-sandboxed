@@ -178,7 +178,7 @@ describe('hosted artifact adapter', () => {
   });
 
   it('rejects a reparse-point artifacts root', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'od-hosted-artifact-link-'));
+    const root = await mkdtemp(path.join(os.tmpdir(), 'readable-hosted-artifact-link-'));
     roots.push(root);
     const realRoot = path.join(root, 'real');
     const linkedRoot = path.join(root, 'linked');
@@ -196,7 +196,7 @@ async function fixture(
   adapter: ReturnType<typeof createHostedArtifactAdapter>;
   artifactsRoot: string;
 }> {
-  const root = await mkdtemp(path.join(os.tmpdir(), `od-hosted-${name}-`));
+  const root = await mkdtemp(path.join(os.tmpdir(), `readable-hosted-${name}-`));
   roots.push(root);
   const artifactsRoot = path.join(root, 'artifacts');
   await mkdir(artifactsRoot);

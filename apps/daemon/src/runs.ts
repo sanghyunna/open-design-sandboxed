@@ -42,7 +42,7 @@ export function createChatRunService({
   // event persistence is disabled and statusBody.eventsLogPath = null —
   // legacy behavior. The path is surfaced through MCP get_run so an
   // external coding agent can `tail` the file in its own shell during
-  // a long OD generation, instead of polling blindly and giving up.
+  // a long Readable Studio generation, instead of polling blindly and giving up.
   runsLogDir = null,
 }: ChatRunServiceOptions) {
   const runs = new Map();

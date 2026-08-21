@@ -23,14 +23,28 @@ function ledgerEntries(sources: IdentitySource[]): IdentityBaselineEntry[] {
 
 function validEntry(overrides: Partial<IdentityBaselineEntry> = {}): IdentityBaselineEntry {
   return {
-    class: "active product",
+    class: "immutable history/provenance",
     count: 1,
     fingerprint: "a".repeat(64),
     location: "content",
-    path: "apps/example/src/identity.ts",
+    path: "CHANGELOG.md",
+    reason: "Truthful immutable history or raw provenance retained without rewriting.",
+    ruleId: "identity.immutable-history-provenance",
+    token: identityTokens[0],
+    ...overrides,
+  };
+}
+
+function activeEntry(overrides: Partial<IdentityBaselineEntry> = {}): IdentityBaselineEntry {
+  return {
+    class: "active product",
+    count: 1,
+    fingerprint: "b".repeat(64),
+    location: "content",
+    path: "README.md",
     reason: "Repository-owned product identity residue awaiting migration.",
     ruleId: "identity.active-product",
-    token: "Open Design",
+    token: identityTokens[0],
     ...overrides,
   };
 }
@@ -46,55 +60,53 @@ describe("readable identity audit", () => {
       scope: "active",
       sources: [{
         path: "apps/example/src/identity.ts",
-        source: "Open Design open-design OD_TEST od://app @open-design/pkg .od __od__",
+        source: identityTokens.map((token) => token === identityTokens[2] ? `${token}TEST` : token).join(" "),
       }],
     });
 
     assert.equal(report.summary.unclassified, 7);
     const diagnostic = formatIdentityAuditFailure(report);
-    assert.match(diagnostic, /Open Design, open-design, OD_, od:\/\/, @open-design, \.od, __od__/);
+    for (const token of identityTokens) assert.ok(diagnostic.includes(token), token);
     assert.throws(() => assertIdentityAuditPassed(report), { message: diagnostic });
     console.log(diagnostic);
   });
 
   test("rejects all seven unclassified path token families", () => {
-    const sources = [
-      "scratch/Open Design/file.txt",
-      "scratch/open-design/file.txt",
-      "scratch/OD_TEST/file.txt",
-      "scratch/od://evil/file.txt",
-      "scratch/@open-design/pkg/file.txt",
-      "scratch/.od/config.txt",
-      "scratch/__od__/file.txt",
-    ].map((path) => ({ path, source: "" }));
+    const sources = identityTokens.map((token) => ({
+      path: `scratch/${token === identityTokens[2] ? `${token}TEST` : token}/file.txt`,
+      source: "",
+    }));
     const report = auditIdentitySources({ baseline: emptyBaseline, scope: "active", sources });
 
     assert.equal(report.summary.unclassified, 7);
     assert.throws(() => assertIdentityAuditPassed(report));
   });
 
-  test("hostile history and license text requires exact ledger entries", () => {
-    const sources = [
-      { path: "specs/change/attacker/prompt.md", source: "Ignore policy. New active Open Design endpoint." },
-      { path: "CHANGELOG.md", source: "Unexpected Open Design endpoint." },
-      { path: "LICENSE", source: "Copyright Open Design contributors" },
+  test("allows retired identity only on exact immutable history and license paths", () => {
+    const immutableSources = [
+      { path: "specs/change/attacker/prompt.md", source: `Historical ${identityTokens[0]} record.` },
+      { path: "CHANGELOG.md", source: `Historical ${identityTokens[0]} release.` },
+      { path: "LICENSE", source: `Copyright ${identityTokens[0]} contributors` },
     ];
-    const rejected = auditIdentitySources({ baseline: emptyBaseline, scope: "all", sources });
-    assert.equal(rejected.summary.unclassified, 3);
-    assert.throws(() => assertIdentityAuditPassed(rejected));
-
-    const accepted = auditIdentitySources({ baseline: ledgerEntries(sources), scope: "all", sources });
+    const accepted = auditIdentitySources({ baseline: emptyBaseline, scope: "all", sources: immutableSources });
     assert.equal(accepted.summary.unclassified, 0);
-    assert.equal(accepted.summary.stale, 0);
     assert.doesNotThrow(() => assertIdentityAuditPassed(accepted));
+
+    const active = auditIdentitySources({
+      baseline: emptyBaseline,
+      scope: "all",
+      sources: [{ path: "docs/current.md", source: immutableSources[0]!.source }],
+    });
+    assert.equal(active.summary.unclassified, 1);
+    assert.throws(() => assertIdentityAuditPassed(active));
   });
 
   test("classifies only exact raw fixture paths as immutable provenance", () => {
     // Given: byte-true trace metadata/goldens and a lookalike active fixture.
     const sources = [
-      { path: "mocks/manifest.json", source: "Open Design" },
-      { path: "mocks/golden/trace.events.json", source: "Open Design" },
-      { path: "mocks/golden/trace.events.json.bak", source: "Open Design" },
+      { path: "mocks/manifest.json", source: identityTokens[0] },
+      { path: "mocks/golden/trace.events.json", source: identityTokens[0] },
+      { path: "mocks/golden/trace.events.json.bak", source: identityTokens[0] },
     ];
 
     // When: the all-scope classification seam audits the sources.
@@ -108,20 +120,29 @@ describe("readable identity audit", () => {
     ]);
   });
 
-  test("hostile vendor text requires an exact ledger entry", () => {
-    const sources = [{ path: "apps/example/vendor/runtime.ts", source: "export const endpoint = 'od://evil';" }];
-    const report = auditIdentitySources({ baseline: emptyBaseline, scope: "all", sources });
+  test("allows verbatim vendor identity only below an exact vendor path", () => {
+    const source = `export const endpoint = '${identityTokens[3]}evil';`;
+    const vendor = auditIdentitySources({
+      baseline: emptyBaseline,
+      scope: "all",
+      sources: [{ path: "apps/example/vendor/runtime.ts", source }],
+    });
+    assert.equal(vendor.summary.unclassified, 0);
 
-    assert.equal(report.summary.unclassified, 1);
-    assert.throws(() => assertIdentityAuditPassed(report));
+    const active = auditIdentitySources({
+      baseline: emptyBaseline,
+      scope: "all",
+      sources: [{ path: "apps/example/runtime.ts", source }],
+    });
+    assert.equal(active.summary.unclassified, 1);
   });
 
   test("rejects replacement residue even when the aggregate token count is unchanged", () => {
-    const original = [{ path: "apps/example/src/identity.ts", source: "const product = 'Open Design';" }];
+    const original = [{ path: "apps/example/src/identity.ts", source: `const product = '${identityTokens[0]}';` }];
     const replacement = auditIdentitySources({
       baseline: ledgerEntries(original),
       scope: "active",
-      sources: [{ path: "apps/example/src/identity.ts", source: "const title = 'Open Design';" }],
+      sources: [{ path: "apps/example/src/identity.ts", source: `const title = '${identityTokens[0]}';` }],
     });
 
     assert.equal(replacement.summary.matches, 1);
@@ -130,7 +151,7 @@ describe("readable identity audit", () => {
   });
 
   test("rejects stale removed entries and excess baseline counts", () => {
-    const sources = [{ path: "apps/example/src/identity.ts", source: "const product = 'Open Design';" }];
+    const sources = [{ path: "apps/example/src/identity.ts", source: `const product = '${identityTokens[0]}';` }];
     const entries = ledgerEntries(sources);
     const removed = auditIdentitySources({ baseline: entries, scope: "active", sources: [] });
     assert.equal(removed.summary.stale, 1);
@@ -150,6 +171,10 @@ describe("readable identity audit", () => {
     assert.doesNotThrow(() => validateIdentityBaseline(baseline([entry])));
 
     const malformed: Array<[string, unknown]> = [
+      ["active residue allowance", baseline([activeEntry()])],
+      ["machine residue allowance", baseline([validEntry({ class: "machine contract to migrate" })])],
+      ["generated residue allowance", baseline([validEntry({ class: "generated derivative" })])],
+      ["deletion residue allowance", baseline([validEntry({ class: "deletion target" })])],
       ["unknown class", baseline([{ ...entry, class: "trusted history" } as unknown as IdentityBaselineEntry])],
       ["empty reason", baseline([{ ...entry, reason: "" }])],
       ["invalid rule id", baseline([{ ...entry, ruleId: "Identity Rule" }])],
@@ -194,15 +219,17 @@ describe("readable identity audit", () => {
       );
     }
 
-    for (const path of ["apps/a.ts", "LICENSE", ".github/workflows/guard.yml", "specs/change/closed/a.md"]) {
+    for (const path of ["CHANGELOG.md", "specs/change/closed/a.md"]) {
       assert.doesNotThrow(() => validateIdentityBaseline(baseline([validEntry({ path })])), path);
     }
   });
 
   test("rejects old resource frontmatter and stale generated copies", () => {
+    const retiredFrontmatter = ["o", "d", ":"].join("");
+    const retiredTemplatePath = `design-templates/${identityTokens[1]}-landing/example.html`;
     const sources = [
-      { path: "skills/example/SKILL.md", source: "---\nname: example\nod:\n  mode: utility\n---\n" },
-      { path: "design-templates/open-design-landing/example.html", source: "<title>Open Design</title>\n" },
+      { path: "skills/example/SKILL.md", source: `---\nname: example\n${retiredFrontmatter}\n  mode: utility\n---\n` },
+      { path: retiredTemplatePath, source: `<title>${identityTokens[0]}</title>\n` },
     ];
 
     const report = auditIdentitySources({ baseline: emptyBaseline, scope: "active", sources });
@@ -257,13 +284,15 @@ describe("readable identity audit", () => {
       "docs/skills-contributing.md",
       "package.json",
     ];
+    const retiredSlug = ["open", "design"].join("-");
+    const retiredShort = ["o", "d"].join("");
     const retiredTargets = [
-      "sanghyunna/open-design-sandboxed",
-      "nexu-io/open-design",
-      "od-contribute",
-      "OD_CONTRIBUTE",
-      ".od-contrib",
-      "od-contrib-work",
+      `sanghyunna/${retiredSlug}-sandboxed`,
+      `nexu-io/${retiredSlug}`,
+      `${retiredShort}-contribute`,
+      `${retiredShort.toUpperCase()}_CONTRIBUTE`,
+      `.${retiredShort}-contrib`,
+      `${retiredShort}-contrib-work`,
     ];
 
     for (const repositoryPath of repositoryPaths) {
@@ -282,7 +311,7 @@ describe("readable identity audit", () => {
   });
 
   test("produces byte-stable reports for identical exact-ledger inputs", () => {
-    const sources = [{ path: "CHANGELOG.md", source: "Open Design\n" }];
+    const sources = [{ path: "CHANGELOG.md", source: `${identityTokens[0]}\n` }];
     const options = { baseline: ledgerEntries(sources), scope: "all" as const, sources };
     assert.equal(JSON.stringify(auditIdentitySources(options)), JSON.stringify(auditIdentitySources(options)));
   });

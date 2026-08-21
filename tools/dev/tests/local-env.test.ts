@@ -28,7 +28,7 @@ describe("tools-dev local env loading", () => {
   });
 
   it("loads workspace .env.local over the parent environment", async () => {
-    const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "od-local-env-"));
+    const workspaceRoot = await mkdtemp(path.join(os.tmpdir(), "readable-local-env-"));
     await writeFile(path.join(workspaceRoot, ".env.local"), [
       "API_KEY=from_file",
       "QUOTED_VALUE=from_file",

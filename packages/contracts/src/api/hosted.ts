@@ -117,7 +117,7 @@ export interface HostedProviderClearResponse {
   readonly configured: false;
 }
 
-export const HOSTED_CSRF_HEADER = 'X-Open-Design-CSRF' as const;
+export const HOSTED_CSRF_HEADER = 'X-Readable-Studio-CSRF' as const;
 
 export const HOSTED_PROJECT_KINDS = [
   'prototype',

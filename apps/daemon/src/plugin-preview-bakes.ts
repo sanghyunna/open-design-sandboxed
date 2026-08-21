@@ -3,13 +3,13 @@
 // The home gallery renders html plugins as live, scaled hover-pan iframes, which
 // is GPU-expensive at scale. When a plugin has a pre-baked preview (a small VP9
 // `.webm` hover-pan clip + a poster `.jpg`), we rewrite that plugin's record so
-// its `od.preview` becomes a `video` block. The web gallery's `inferPluginPreview`
+// its `readable.preview` becomes a `video` block. The web gallery's `inferPluginPreview`
 // then classifies it as `media` and renders a cheap poster + hover-play `<video>`
 // (MediaSurface) instead of a live iframe. Plugins without a bake are left
 // untouched and keep the live-iframe path as the fallback.
 //
-// Files + a `manifest.json` live under `<dir>` (OD_PLUGIN_PREVIEWS_DIR, default
-// `<project>/.od/plugin-previews`). An external operator may publish baked clips
+// Files + a `manifest.json` live under `<dir>` (READABLE_PLUGIN_PREVIEWS_DIR, default
+// `<project>/.readable-studio/plugin-previews`). An external operator may publish baked clips
 // to remote storage; the daemon serves whatever is present locally at
 // `/api/plugin-previews/<file>`.
 
@@ -20,8 +20,8 @@ export const PLUGIN_PREVIEWS_ROUTE = '/api/plugin-previews';
 
 // Public R2 (Cloudflare CDN) origin the baked clips are published to. Used as
 // the default so the packaged desktop app and the web deployment both serve
-// previews with zero configuration; OD_PLUGIN_PREVIEWS_BASE_URL overrides it.
-const DEFAULT_PUBLIC_BASE = 'https://repo-assets.open-design.ai/plugin-previews';
+// previews with zero configuration; READABLE_PLUGIN_PREVIEWS_BASE_URL overrides it.
+const DEFAULT_PUBLIC_BASE = 'https://repo-assets.readable-studio.ai/plugin-previews';
 
 interface BakeEntry {
   video: string;
@@ -37,10 +37,10 @@ export interface BakedPreviewBlock {
 }
 
 export function resolvePluginPreviewsDir(projectRoot: string): string {
-  const env = process.env.OD_PLUGIN_PREVIEWS_DIR;
+  const env = process.env.READABLE_PLUGIN_PREVIEWS_DIR;
   if (env) return path.isAbsolute(env) ? env : path.resolve(projectRoot, env);
   // Default to the checked-in manifest dir. Externally published clips may live
-  // in remote storage; local runs override OD_PLUGIN_PREVIEWS_DIR with a freshly
+  // in remote storage; local runs override READABLE_PLUGIN_PREVIEWS_DIR with a freshly
   // baked directory that also holds the mp4/poster files for local serving.
   return path.join(projectRoot, 'data', 'plugin-previews');
 }
@@ -71,13 +71,13 @@ export function bakedPreviewBlock(id: string, dir: string): BakedPreviewBlock | 
   const entry = loadManifest(dir)[id];
   if (!entry || !entry.video || !entry.poster) return null;
   // Resolve where the clip is fetchable from, in priority order:
-  //   1. an explicit OD_PLUGIN_PREVIEWS_BASE_URL override;
+  //   1. an explicit READABLE_PLUGIN_PREVIEWS_BASE_URL override;
   //   2. the daemon's own /api/plugin-previews route when the clips are on disk
   //      (local dev / a freshly-baked dir);
   //   3. the public R2 origin — the default for the packaged desktop app and the
   //      web deployment, so neither needs any config: the checked-in manifest
   //      names the clips and they're served from R2's CDN.
-  const envBase = process.env.OD_PLUGIN_PREVIEWS_BASE_URL?.replace(/\/+$/, '');
+  const envBase = process.env.READABLE_PLUGIN_PREVIEWS_BASE_URL?.replace(/\/+$/, '');
   const onDisk =
     existsSync(path.join(dir, entry.video)) && existsSync(path.join(dir, entry.poster));
   const base = envBase || (onDisk ? PLUGIN_PREVIEWS_ROUTE : DEFAULT_PUBLIC_BASE);
@@ -88,10 +88,10 @@ export function bakedPreviewBlock(id: string, dir: string): BakedPreviewBlock | 
   };
 }
 
-// Attach the baked clip under `manifest.od.bakedPreview` (a SEPARATE field —
-// we deliberately do NOT overwrite `od.preview`). The gallery card opts into the
+// Attach the baked clip under `manifest.readable.bakedPreview` (a SEPARATE field —
+// we deliberately do NOT overwrite `readable.preview`). The gallery card opts into the
 // baked clip via `inferPluginPreview(record, { preferBaked: true })`, while the
-// detail modal keeps reading the real `od.preview` and renders the live,
+// detail modal keeps reading the real `readable.preview` and renders the live,
 // interactive page. Records are shallow-cloned so registry rows stay pure.
 export function applyBakedPreviews<T extends { id: string; manifest?: unknown }>(
   records: T[],
@@ -103,9 +103,9 @@ export function applyBakedPreviews<T extends { id: string; manifest?: unknown }>
     const block = bakedPreviewBlock(rec.id, dir);
     if (!block) return rec;
     const manifest = { ...((rec.manifest ?? {}) as Record<string, unknown>) };
-    const od = { ...((manifest.od ?? {}) as Record<string, unknown>) };
-    od.bakedPreview = block;
-    manifest.od = od;
+    const readable = { ...((manifest.readable ?? {}) as Record<string, unknown>) };
+    readable.bakedPreview = block;
+    manifest.readable = readable;
     return { ...rec, manifest };
   });
 }

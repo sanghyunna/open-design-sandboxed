@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 function fakePiPackage(): { root: string; entrypoint: string; project: string; sessionDir: string } {
-  const root = mkdtempSync(join(tmpdir(), 'od-hosted-pi-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-hosted-pi-'));
   roots.push(root);
   const entrypoint = join(root, 'dist', 'rpc-entry.js');
   const project = join(root, 'project');
@@ -102,8 +102,8 @@ describe('hosted Pi runtime', () => {
     for (const key of ['npm_config_prefix', 'NPM_CONFIG_PREFIX', 'npm_execpath', 'npm_config_user_agent']) {
       assert.equal(invocation.env[key], undefined, `ambient package manager env leaked: ${key}`);
     }
-    assert.equal(invocation.env.OD_TOOL_TOKEN, undefined);
-    assert.equal(invocation.env.OD_HOSTED_DESIGN_SYSTEM_READ_URL, undefined);
+    assert.equal(invocation.env.READABLE_TOOL_TOKEN, undefined);
+    assert.equal(invocation.env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL, undefined);
     assert.equal(invocation.env.ANTHROPIC_API_KEY, 'anthropic-secret');
     assert.equal(invocation.env.AI_GATEWAY_API_KEY, undefined);
     assert.equal(invocation.args.includes('anthropic-secret'), false);
@@ -170,9 +170,9 @@ describe('hosted Pi runtime', () => {
       assert.ok(invocation.args.includes('--extension'));
       assert.ok(invocation.args.includes(broker.extensionPath));
       assert.ok(invocation.args.includes('--tools'));
-      assert.ok(invocation.args.includes('od_hosted_broker'));
-      assert.equal(invocation.env.OD_HOSTED_PI_BROKER_SOCKET, broker.socketPath);
-      assert.equal(invocation.env.OD_HOSTED_PI_BROKER_TOKEN, broker.grant.token);
+      assert.ok(invocation.args.includes('readable_hosted_broker'));
+      assert.equal(invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET, broker.socketPath);
+      assert.equal(invocation.env.READABLE_HOSTED_PI_BROKER_TOKEN, broker.grant.token);
       assert.equal(invocation.env.ANTHROPIC_API_KEY, undefined);
       assert.equal(invocation.env.AI_GATEWAY_API_KEY, undefined);
     } finally {
@@ -204,18 +204,18 @@ describe('hosted Pi runtime', () => {
     const handle = await adapter(request);
     try {
       assert.equal(handle.invocation.command, process.execPath);
-      assert.equal(handle.invocation.env.OD_HOSTED_PI_BROKER_TOKEN?.startsWith('odpi_'), true);
+      assert.equal(handle.invocation.env.READABLE_HOSTED_PI_BROKER_TOKEN?.startsWith('odpi_'), true);
       if (process.platform === 'win32') {
-        assert.match(handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '', /OpenDesign\.HostedPi\./);
+        assert.match(handle.invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET ?? '', /OpenDesign\.HostedPi\./);
       } else {
         assert.match(
-          handle.invocation.env.OD_HOSTED_PI_BROKER_SOCKET ?? '',
-          /\/tmp\/open-design\/ipc\/pi-[^/]+\/broker\.sock$/,
+          handle.invocation.env.READABLE_HOSTED_PI_BROKER_SOCKET ?? '',
+          /\/tmp\/readable-studio\/ipc\/pi-[^/]+\/broker\.sock$/,
         );
       }
       assert.equal(handle.invocation.sessionDir, join(sessionRoot, request.runId));
       assert.ok(handle.invocation.args.includes('--extension'));
-      assert.equal(handle.invocation.args.includes('od_hosted_broker'), true);
+      assert.equal(handle.invocation.args.includes('readable_hosted_broker'), true);
       assert.equal(handle.invocation.env.AI_GATEWAY_API_KEY, 'gateway-secret');
     } finally {
       await handle.close?.();
@@ -259,11 +259,11 @@ describe('hosted Pi runtime', () => {
       projectId: request.projectId,
       generation: request.generation,
       designSystemId: request.designSystemId,
-      carrierToken: handle.invocation.env.OD_HOSTED_PI_BROKER_TOKEN,
+      carrierToken: handle.invocation.env.READABLE_HOSTED_PI_BROKER_TOKEN,
     });
-    assert.equal(handle.invocation.env.OD_HOSTED_DESIGN_SYSTEM_READ_URL, readUrl);
-    assert.equal(handle.invocation.env.OD_TOOL_TOKEN, `odds_${'1'.repeat(43)}`);
-    assert.equal(handle.invocation.env.OD_DAEMON_URL, undefined);
+    assert.equal(handle.invocation.env.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL, readUrl);
+    assert.equal(handle.invocation.env.READABLE_TOOL_TOKEN, `odds_${'1'.repeat(43)}`);
+    assert.equal(handle.invocation.env.READABLE_DAEMON_URL, undefined);
     await handle.close?.();
     await handle.close?.();
     assert.equal(revoked, 1);
@@ -289,18 +289,18 @@ describe('hosted Pi runtime', () => {
       registerTool: (tool) => { registered = tool as typeof registered; },
     });
     assert.ok(registered);
-    vi.stubEnv('OD_HOSTED_DESIGN_SYSTEM_READ_URL', 'https://host.example/api/tools/design-systems/read');
+    vi.stubEnv('READABLE_HOSTED_DESIGN_SYSTEM_READ_URL', 'https://host.example/api/tools/design-systems/read');
     const toolToken = `odds_${'t'.repeat(43)}`;
     const carrierToken = `odpi_${'c'.repeat(43)}`;
-    vi.stubEnv('OD_TOOL_TOKEN', toolToken);
-    vi.stubEnv('OD_HOSTED_PI_BROKER_TOKEN', carrierToken);
+    vi.stubEnv('READABLE_TOOL_TOKEN', toolToken);
+    vi.stubEnv('READABLE_HOSTED_PI_BROKER_TOKEN', carrierToken);
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       assert.equal(String(input), 'https://host.example/api/tools/design-systems/read');
       assert.equal(init?.method, 'POST');
       assert.equal(init?.redirect, 'error');
       const headers = new Headers(init?.headers);
       assert.equal(headers.get('authorization'), `Bearer ${toolToken}`);
-      assert.equal(headers.get('x-open-design-tool-token'), carrierToken);
+      assert.equal(headers.get('x-readable-studio-tool-token'), carrierToken);
       assert.equal(headers.get('cookie'), null);
       assert.equal(headers.get('origin'), null);
       assert.deepEqual(JSON.parse(String(init?.body)), {

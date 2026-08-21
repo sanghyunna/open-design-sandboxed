@@ -57,9 +57,9 @@ describe('discovery.ts — Plugin inputs are authoritative for Quick brief defau
   it('does not re-ask the kind when the active plugin already names it', () => {
     // RULE 1 used to scope the "don't re-ask kind" carve-out to
     // `metadata.kind` only. Extending it to the active plugin's
-    // `od.kind` / `taskKind` closes the loop for chip-launched flows.
+    // `readable.kind` / `taskKind` closes the loop for chip-launched flows.
     expect(DISCOVERY_AND_PHILOSOPHY).toMatch(
-      /metadata\.kind is set or the active plugin's `od\.kind` \/ `taskKind` already names it/,
+      /metadata\.kind is set or the active plugin's `readable\.kind` \/ `taskKind` already names it/,
     );
   });
 });

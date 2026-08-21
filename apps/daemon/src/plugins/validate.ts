@@ -14,7 +14,7 @@
 //   - skips the `snapshot-stale` cross-check (no SQLite involved
 //     because nothing is installed yet).
 //
-// Rationale: spec §16 Phase 4 ships `readable plugin scaffold`, `od
+// Rationale: spec §16 Phase 4 ships `readable plugin scaffold`, `readable
 // plugin export`, `readable plugin publish` for the author tooling slice.
 // `readable plugin validate` closes the loop: the author can run lint
 // before pushing to a marketplace catalog, without installing into

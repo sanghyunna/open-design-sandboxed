@@ -28,12 +28,12 @@ const DECORATIVE_HTML_ALLOWED_TAGS = new Set([
   'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'mask', 'use',
 ]);
 const DUPLICATE_RUNTIME_ATTRIBUTES = new Set([
-  'data-od-source-path',
-  'data-od-edit-selected',
-  'data-od-editing',
-  'data-od-edit-mode',
-  'data-od-authored-size-probe',
-  'data-od-authored-size-probe-style',
+  'data-readable-source-path',
+  'data-readable-edit-selected',
+  'data-readable-editing',
+  'data-readable-edit-mode',
+  'data-readable-authored-size-probe',
+  'data-readable-authored-size-probe-style',
 ]);
 const DUPLICATE_UNSUPPORTED_TAGS = new Set([
   'audio', 'base', 'button', 'canvas', 'dialog', 'datalist', 'details', 'embed', 'form', 'frame', 'frameset',
@@ -71,11 +71,11 @@ export function planManualEditDuplicate(
   const contentError = validateDuplicateContent(located.original);
   if (contentError) return { ok: false, error: contentError };
 
-  const manualIds = collectIdentityValues(located.original, 'data-od-id');
+  const manualIds = collectIdentityValues(located.original, 'data-readable-id');
   const nativeIds = collectIdentityValues(located.original, 'id');
   if (manualIds.error) return { ok: false, error: manualIds.error };
   if (nativeIds.error) return { ok: false, error: nativeIds.error };
-  const globalManualIds = collectGlobalIdentityValues(doc, 'data-od-id');
+  const globalManualIds = collectGlobalIdentityValues(doc, 'data-readable-id');
   const globalNativeIds = collectGlobalIdentityValues(doc, 'id');
   if (globalManualIds.error) return { ok: false, error: globalManualIds.error };
   if (globalNativeIds.error) return { ok: false, error: globalNativeIds.error };
@@ -84,7 +84,7 @@ export function planManualEditDuplicate(
 
   const manualIdMap = allocateDuplicateIds(manualIds.values, globalManualIds.values);
   const nativeIdMap = allocateDuplicateIds(nativeIds.values, globalNativeIds.values);
-  const rootManualId = located.original.getAttribute('data-od-id');
+  const rootManualId = located.original.getAttribute('data-readable-id');
   const parent = located.original.parentElement;
   if (!parent) return { ok: false, error: 'Duplicate source target has no parent.' };
   const duplicateRootId = rootManualId
@@ -208,7 +208,7 @@ function applyDuplicateAndMovePatch(
 
   const contentError = validateDuplicateContent(locator.original);
   if (contentError) return { ok: false, source, error: contentError };
-  const manualIds = collectIdentityValues(locator.original, 'data-od-id');
+  const manualIds = collectIdentityValues(locator.original, 'data-readable-id');
   const nativeIds = collectIdentityValues(locator.original, 'id');
   if (manualIds.error) return { ok: false, source, error: manualIds.error };
   if (nativeIds.error) return { ok: false, source, error: nativeIds.error };
@@ -260,11 +260,11 @@ function findDuplicateSourceElement(
 ): { original: Element } | { error: string } {
   if (!originalId) return { error: 'Duplicate source locator is incomplete.' };
   // Authored IDs win over the path-shaped fallback, matching the normal
-  // Manual Edit resolver. `data-od-id="path-0"` is valid authored content and
+  // Manual Edit resolver. `data-readable-id="path-0"` is valid authored content and
   // must not be mistaken for a generated locator.
   const authoredMatches = Array.from(doc.querySelectorAll('*')).filter((el) =>
-    el.getAttribute('data-od-id') === originalId
-    || el.getAttribute('data-od-source-path') === originalId);
+    el.getAttribute('data-readable-id') === originalId
+    || el.getAttribute('data-readable-source-path') === originalId);
   const matches = authoredMatches.length > 0
     ? authoredMatches
     : [findElementByPath(doc, originalId)].filter((el): el is Element => el !== null);
@@ -309,7 +309,7 @@ function validateDuplicateContent(root: Element): string | null {
     if (contenteditable !== undefined && contenteditable !== 'false') {
       return 'Duplicate active content is unsupported: contenteditable.';
     }
-    if (el.getAttribute('data-od-editing') === 'true') {
+    if (el.getAttribute('data-readable-editing') === 'true') {
       return 'Cannot duplicate content while it is being edited.';
     }
     for (const attr of Array.from(el.attributes)) {
@@ -335,8 +335,8 @@ function validateDuplicateContent(root: Element): string | null {
       if (
         DUPLICATE_IDREF_LIKE_ATTRIBUTE.test(name)
         && name !== 'id'
-        && name !== 'data-od-id'
-        && !name.startsWith('data-od-runtime-')
+        && name !== 'data-readable-id'
+        && !name.startsWith('data-readable-runtime-')
       ) {
         return 'Duplicate reference attribute is unsupported: ' + attr.name + '.';
       }
@@ -368,8 +368,8 @@ function validateDuplicateStylesheetReferences(
   }
   for (const id of manualIds) {
     const escaped = escapeRegExp(id);
-    if (new RegExp(`\\[\\s*data-od-id\\s*=\\s*["']?${escaped}(?:["']?\\s*\\])`, 'i').test(stylesheetText)) {
-      return 'Duplicate stylesheet reference to a cloned data-od-id is unsupported: ' + id + '.';
+    if (new RegExp(`\\[\\s*data-readable-id\\s*=\\s*["']?${escaped}(?:["']?\\s*\\])`, 'i').test(stylesheetText)) {
+      return 'Duplicate stylesheet reference to a cloned data-readable-id is unsupported: ' + id + '.';
     }
   }
   return null;
@@ -385,11 +385,11 @@ function validateDuplicateIdentity(
   root: Element,
   plan: Extract<ManualEditPatch, { kind: 'duplicate-and-move' }>['plan'],
 ): string | null {
-  const manualIds = collectIdentityValues(root, 'data-od-id');
+  const manualIds = collectIdentityValues(root, 'data-readable-id');
   const nativeIds = collectIdentityValues(root, 'id');
   if (manualIds.error) return manualIds.error;
   if (nativeIds.error) return nativeIds.error;
-  const globalManualIds = collectGlobalIdentityValues(doc, 'data-od-id');
+  const globalManualIds = collectGlobalIdentityValues(doc, 'data-readable-id');
   const globalNativeIds = collectGlobalIdentityValues(doc, 'id');
   if (globalManualIds.error) return globalManualIds.error;
   if (globalNativeIds.error) return globalNativeIds.error;
@@ -399,13 +399,13 @@ function validateDuplicateIdentity(
     manualIds.values,
     plan.manualIdMap,
     globalManualIds.values,
-    'data-od-id',
+    'data-readable-id',
   );
   if (manualMapError) return manualMapError;
   const nativeMapError = validateDuplicateIdMap(nativeIds.values, plan.nativeIdMap, globalNativeIds.values, 'id');
   if (nativeMapError) return nativeMapError;
 
-  const rootManualId = root.getAttribute('data-od-id');
+  const rootManualId = root.getAttribute('data-readable-id');
   if (rootManualId && plan.manualIdMap[rootManualId] !== plan.duplicateRootId) {
     return 'Duplicate root id map does not match its plan.';
   }
@@ -499,9 +499,9 @@ function rewriteDuplicateElement(
 ): string | null {
   const elements = duplicateElements(root);
   for (const el of elements) {
-    const manualId = el.getAttribute('data-od-id');
-    if (manualId) el.setAttribute('data-od-id', duplicateMapValue(plan.manualIdMap, manualId) ?? plan.duplicateRootId);
-    else if (el === root) el.setAttribute('data-od-id', plan.duplicateRootId);
+    const manualId = el.getAttribute('data-readable-id');
+    if (manualId) el.setAttribute('data-readable-id', duplicateMapValue(plan.manualIdMap, manualId) ?? plan.duplicateRootId);
+    else if (el === root) el.setAttribute('data-readable-id', plan.duplicateRootId);
     const nativeId = el.getAttribute('id');
     if (nativeId) el.setAttribute('id', duplicateMapValue(plan.nativeIdMap, nativeId) ?? nativeId);
     for (const attr of Array.from(el.attributes)) {
@@ -522,7 +522,7 @@ function rewriteDuplicateElement(
 
 function isDuplicateRuntimeAttribute(name: string): boolean {
   const normalized = name.toLowerCase();
-  return DUPLICATE_RUNTIME_ATTRIBUTES.has(normalized) || normalized.startsWith('data-od-runtime-');
+  return DUPLICATE_RUNTIME_ATTRIBUTES.has(normalized) || normalized.startsWith('data-readable-runtime-');
 }
 
 function rewriteDuplicateAttribute(name: string, value: string, nativeIdMap: Record<string, string>): string {
@@ -618,7 +618,7 @@ export function readManualEditAttributes(source: string, id: string): Record<str
   if (!el) return {};
   const attrs: Record<string, string> = {};
   Array.from(el.attributes).forEach((attr) => {
-    if (attr.name === 'data-od-runtime-id') return;
+    if (attr.name === 'data-readable-runtime-id') return;
     attrs[attr.name] = attr.value;
   });
   return attrs;
@@ -663,7 +663,7 @@ function firstSourceToken(source: string): string {
 }
 
 function inferKind(el: Element): 'text' | 'link' | 'image' | 'container' {
-  const explicit = el.getAttribute('data-od-edit');
+  const explicit = el.getAttribute('data-readable-edit');
   if (explicit === 'text' || explicit === 'link' || explicit === 'image' || explicit === 'container') return explicit;
   const tag = el.tagName.toLowerCase();
   if (tag === 'a') return 'link';
@@ -677,9 +677,9 @@ function inferKind(el: Element): 'text' | 'link' | 'image' | 'container' {
 function findEditableElement(doc: Document, id: string): Element | null {
   if (id === '__body__') return doc.body;
   return (
-    doc.querySelector(`[data-od-id="${cssEscape(id)}"]`) ??
-    doc.querySelector(`[data-od-runtime-id="${cssEscape(id)}"]`) ??
-    doc.querySelector(`[data-od-source-path="${cssEscape(id)}"]`) ??
+    doc.querySelector(`[data-readable-id="${cssEscape(id)}"]`) ??
+    doc.querySelector(`[data-readable-runtime-id="${cssEscape(id)}"]`) ??
+    doc.querySelector(`[data-readable-source-path="${cssEscape(id)}"]`) ??
     findElementByPath(doc, id)
   );
 }
@@ -736,7 +736,7 @@ function setInlineStyles(el: HTMLElement, styles: Partial<ManualEditStyles>): vo
 }
 
 function setAttributes(el: Element, attributes: Record<string, string>): void {
-  const protectedAttrs = new Set(['data-od-id', 'data-od-edit', 'data-od-label', 'data-od-runtime-id']);
+  const protectedAttrs = new Set(['data-readable-id', 'data-readable-edit', 'data-readable-label', 'data-readable-runtime-id']);
   for (const [name, value] of Object.entries(attributes)) {
     if (!isSafeAttributeName(name) || protectedAttrs.has(name)) continue;
     if (value.trim() === '') el.removeAttribute(name);
@@ -835,11 +835,11 @@ function replaceOuterHtml(doc: Document, el: Element, html: string): { ok: true 
   const elements = Array.from(template.content.children);
   if (elements.length !== 1) return { ok: false, error: 'Replacement HTML must contain exactly one root element.' };
   const next = elements[0]!;
-  if (el.getAttribute('data-od-id') && !next.getAttribute('data-od-id')) {
-    next.setAttribute('data-od-id', el.getAttribute('data-od-id') ?? '');
+  if (el.getAttribute('data-readable-id') && !next.getAttribute('data-readable-id')) {
+    next.setAttribute('data-readable-id', el.getAttribute('data-readable-id') ?? '');
   }
-  if (el.getAttribute('data-od-edit') && !next.getAttribute('data-od-edit')) {
-    next.setAttribute('data-od-edit', el.getAttribute('data-od-edit') ?? '');
+  if (el.getAttribute('data-readable-edit') && !next.getAttribute('data-readable-edit')) {
+    next.setAttribute('data-readable-edit', el.getAttribute('data-readable-edit') ?? '');
   }
   el.replaceWith(next);
   return { ok: true };

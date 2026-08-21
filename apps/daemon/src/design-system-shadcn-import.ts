@@ -1,7 +1,7 @@
 // Import a shadcn registry item as a Readable Studio design system.
 //
 // A shadcn registry item carries a `cssVars` theme (`theme` / `light` /
-// `dark`) plus optional component `files`. That maps almost 1:1 onto an OD
+// `dark`) plus optional component `files`. That maps almost 1:1 onto an Readable Studio
 // design system's `tokens.css`, so this importer reuses the existing local
 // importer wholesale: it fetches the registry item, materializes its
 // `cssVars` (and any inline/raw component files) into a temp directory, and
@@ -660,7 +660,7 @@ function normalizeVarName(key: string): string {
 
 // shadcn (Tailwind v3 era) stores colors as bare HSL triplets — e.g.
 // `222.2 47.4% 11.2%` — because the Tailwind config wraps them as
-// `hsl(var(--token))`. OD's importer only recognizes wrapped colors, so wrap
+// `hsl(var(--token))`. Readable Studio's importer only recognizes wrapped colors, so wrap
 // bare HSL triplets back into `hsl(...)` to preserve brand fidelity. Values
 // that are already functions/hex/keywords (incl. Tailwind v4 `oklch(...)`)
 // pass through untouched.

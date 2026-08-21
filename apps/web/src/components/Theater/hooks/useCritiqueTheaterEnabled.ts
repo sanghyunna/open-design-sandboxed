@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'readable-studio:config';
-const TOGGLE_EVENT = 'open-design:critique-theater-toggle';
+const TOGGLE_EVENT = 'readable-studio:critique-theater-toggle';
 
 interface ConfigShape {
   critiqueTheaterEnabled?: boolean;
@@ -22,7 +22,7 @@ interface ConfigShape {
  *
  *   1. The platform `storage` event fires for other tabs and is how
  *      the toggle stays in sync across browser windows.
- *   2. A same-tab `open-design:critique-theater-toggle` CustomEvent so
+ *   2. A same-tab `readable-studio:critique-theater-toggle` CustomEvent so
  *      a Settings save in the same window updates this hook without
  *      a page reload. The Settings save handler emits the event after
  *      it writes the new config blob.

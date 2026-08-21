@@ -35,18 +35,18 @@ export function defaultCapabilities(trust: TrustTier): string[] {
 // grant decisions consult this; the doctor reports under-grants here too.
 export function requiredCapabilities(manifest: PluginManifest): string[] {
   const required = new Set<string>(['prompt:inject']);
-  const od = manifest.readable;
+  const readable = manifest.readable;
 
-  for (const mcp of od?.context?.mcp ?? []) {
+  for (const mcp of readable?.context?.mcp ?? []) {
     if (mcp?.name) required.add(`mcp:${mcp.name}`);
   }
-  for (const surface of od?.genui?.surfaces ?? []) {
+  for (const surface of readable?.genui?.surfaces ?? []) {
     if (surface?.kind) required.add(`genui:${surface.kind}`);
   }
-  if ((od?.pipeline?.stages?.length ?? 0) > 0) {
+  if ((readable?.pipeline?.stages?.length ?? 0) > 0) {
     required.add('pipeline:*');
   }
-  for (const cap of od?.capabilities ?? []) {
+  for (const cap of readable?.capabilities ?? []) {
     if (typeof cap === 'string' && cap.length > 0) required.add(cap);
   }
   return Array.from(required.values()).sort();

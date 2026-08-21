@@ -46,13 +46,13 @@ const doctrineRules: readonly Rule[] = [
 
 const retiredClaimRules: readonly Rule[] = [
   { id: "claude-alternative", pattern: /\b(?:open-source )?Claude Design alternative\b/i },
-  { id: "fellow-program", pattern: /\bOpen Design Fellows?\b/i },
-  { id: "community-positioning", pattern: /\bOpen Design community\b|\bjoin (?:the )?(?:Open Design )?(?:community|discussion)\b/i },
-  { id: "official-router", pattern: /\bofficial (?:AMR )?(?:model service|Model Router)\b|\bOpen Design AMR\b/i },
+  { id: "fellow-program", pattern: /\bReadable Studio Fellows?\b/i },
+  { id: "community-positioning", pattern: /\bReadable Studio community\b|\bjoin (?:the )?(?:Readable Studio )?(?:community|discussion)\b/i },
+  { id: "official-router", pattern: /\bofficial (?:AMR )?(?:model service|Model Router)\b|\bReadable Studio AMR\b/i },
 ];
 
 const forbiddenDistributionRules: readonly Rule[] = [
-  { id: "product-website", pattern: /\bofficial product website\b|>Website<|\bdownload\b[^\n]*\bopen-design\.ai\b/i },
+  { id: "product-website", pattern: /\bofficial product website\b|>Website<|\bdownload\b[^\n]*\breadable-studio\.ai\b/i },
   { id: "automatic-updater", pattern: /\bautomatic updater\b|\bauto(?:matic)?[- ]updates?\b|\bchecks? for updates?\b/i },
   { id: "unsupported-distribution", pattern: /\bLinux AppImage\b|\bmacOS installers?\b|\b(?:macOS|Linux)\b[^\n]*\b(?:download|artifact|package|build)\b/i },
 ];

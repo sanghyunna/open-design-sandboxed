@@ -31,9 +31,9 @@ import {
   type SidecarRuntimeContext,
 } from "@readable-studio/sidecar";
 
-const HOST = process.env.OD_HOST || "127.0.0.1";
-if (process.env.OD_HOST != null && !/^[a-zA-Z0-9._\-:[\]@]+$/.test(process.env.OD_HOST)) {
-  throw new Error(`OD_HOST contains invalid characters: ${process.env.OD_HOST}`);
+const HOST = process.env.READABLE_HOST || "127.0.0.1";
+if (process.env.READABLE_HOST != null && !/^[a-zA-Z0-9._\-:[\]@]+$/.test(process.env.READABLE_HOST)) {
+  throw new Error(`READABLE_HOST contains invalid characters: ${process.env.READABLE_HOST}`);
 }
 const DAEMON_HOST = "127.0.0.1";
 const STANDALONE_BACKEND_HOST = "127.0.0.1";
@@ -41,13 +41,13 @@ const DAEMON_PORT_ENV = SIDECAR_ENV.DAEMON_PORT;
 const WEB_DIST_DIR_ENV = SIDECAR_ENV.WEB_DIST_DIR;
 const WEB_PORT_ENV = SIDECAR_ENV.WEB_PORT;
 const TOOLS_DEV_PARENT_PID_ENV = SIDECAR_ENV.TOOLS_DEV_PARENT_PID;
-const WEB_OUTPUT_MODE_ENV = "OD_WEB_OUTPUT_MODE";
-const WEB_STANDALONE_ROOT_ENV = "OD_WEB_STANDALONE_ROOT";
-const STANDALONE_PARENT_PID_ENV = "OD_STANDALONE_PARENT_PID";
-const STANDALONE_STARTUP_TIMEOUT_ENV = "OD_STANDALONE_STARTUP_TIMEOUT_MS";
-const WEB_COMPOSITION_ENV = 'OD_WEB_COMPOSITION';
-const HOSTED_PUBLIC_ORIGIN_ENV = 'OD_HOSTED_PUBLIC_ORIGIN';
-const HOSTED_BROWSER_COOKIE = '__Host-od-hosted';
+const WEB_OUTPUT_MODE_ENV = "READABLE_WEB_OUTPUT_MODE";
+const WEB_STANDALONE_ROOT_ENV = "READABLE_WEB_STANDALONE_ROOT";
+const STANDALONE_PARENT_PID_ENV = "READABLE_STANDALONE_PARENT_PID";
+const STANDALONE_STARTUP_TIMEOUT_ENV = "READABLE_STANDALONE_STARTUP_TIMEOUT_MS";
+const WEB_COMPOSITION_ENV = 'READABLE_WEB_COMPOSITION';
+const HOSTED_PUBLIC_ORIGIN_ENV = 'READABLE_HOSTED_PUBLIC_ORIGIN';
+const HOSTED_BROWSER_COOKIE = '__Host-readable-hosted';
 const HOSTED_PREVIEW_COOKIE = /^odpvb_[A-Za-z0-9_-]{22}$/u;
 const HOSTED_PROXY_HEADER_ALLOWLIST = new Set([
   'accept',
@@ -64,7 +64,7 @@ const HOSTED_PROXY_HEADER_ALLOWLIST = new Set([
   'range',
   'referer',
   'user-agent',
-  'x-open-design-csrf',
+  'x-readable-studio-csrf',
 ]);
 const SHUTDOWN_TIMEOUT_MS = 3000;
 const require = createRequire(import.meta.url);
@@ -452,7 +452,7 @@ function parseAllowedDevHost(value: string): string | null {
 
 function configuredAllowedDevHosts(): Set<string> {
   return new Set(
-    (process.env.OD_ALLOWED_DEV_ORIGINS ?? "")
+    (process.env.READABLE_ALLOWED_DEV_ORIGINS ?? "")
       .split(",")
       .map(parseAllowedDevHost)
       .filter((host): host is string => host != null),
@@ -714,7 +714,7 @@ async function startStandaloneBackend(webRoot: string | null): Promise<Standalon
 
   const port = await reserveTcpPort(STANDALONE_BACKEND_HOST);
   const origin = resolveStandaloneBackendOrigin(port);
-  console.log(`[open-design web] starting standalone Next.js server from ${entryPath}`);
+  console.log(`[readable-studio web] starting standalone Next.js server from ${entryPath}`);
   const child = spawn(process.execPath, createStandaloneServerArgs(entryPath), {
     cwd: dirname(entryPath),
     env: createStandaloneBackendEnv({ port }),
@@ -730,7 +730,7 @@ async function startStandaloneBackend(webRoot: string | null): Promise<Standalon
   child.once("exit", (code, signal) => {
     standaloneRunning = false;
     standaloneExitReason = `code=${code ?? "null"} signal=${signal ?? "null"}`;
-    console.error(`[open-design web] standalone Next.js server exited ${standaloneExitReason}`);
+    console.error(`[readable-studio web] standalone Next.js server exited ${standaloneExitReason}`);
   });
 
   try {
@@ -804,7 +804,7 @@ export function resolveWebAppVersion(
   webRoot: string | null,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  const configured = env.OD_APP_VERSION?.trim();
+  const configured = env.READABLE_APP_VERSION?.trim();
   if (configured != null && configured.length > 0) return configured;
   if (webRoot == null) return "0.0.0";
   const packageMetadata = JSON.parse(readFileSync(join(webRoot, "package.json"), "utf8")) as { version?: unknown };
@@ -946,7 +946,7 @@ async function startRegularNextSidecar(
   webRoot: string,
   hostedPublicOrigin: URL | null,
 ): Promise<WebSidecarHandle> {
-  const dev = process.env.OD_WEB_PROD !== '1' && runtime.mode === 'dev';
+  const dev = process.env.READABLE_WEB_PROD !== '1' && runtime.mode === 'dev';
   const app = createNextApp({ dev, dir: webRoot });
   await prepareNextApp(app, webRoot);
 

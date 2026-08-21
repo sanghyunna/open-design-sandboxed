@@ -113,7 +113,7 @@ function stripFns(
 export function shouldRunAgentNetworkDiscovery(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return env.OD_AGENT_DISCOVERY_OFFLINE !== '1';
+  return env.READABLE_AGENT_DISCOVERY_OFFLINE !== '1';
 }
 
 async function probe(

@@ -45,7 +45,7 @@ describe('showCompletionNotification', () => {
     expect(MockNotification.instances[0]!.title).toBe('Task completed');
     expect(MockNotification.instances[0]!.options).toMatchObject({
       body: 'Done',
-      tag: 'od-task-succeeded',
+      tag: 'readable-task-succeeded',
       renotify: true,
     });
   });
@@ -69,12 +69,12 @@ describe('showCompletionNotification', () => {
     });
 
     expect(result).toBe('shown');
-    expect(register).toHaveBeenCalledWith('/od-notifications-sw.js');
+    expect(register).toHaveBeenCalledWith('/readable-studio-notifications-sw.js');
     expect(showNotification).toHaveBeenCalledWith(
       'Task completed',
       expect.objectContaining({
         body: 'Done',
-        tag: 'od-task-succeeded',
+        tag: 'readable-task-succeeded',
         renotify: true,
       }),
     );

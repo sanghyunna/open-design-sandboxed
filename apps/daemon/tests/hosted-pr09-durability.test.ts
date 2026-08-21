@@ -20,7 +20,7 @@ import {
   type HostedSnapshotStoreOptions,
 } from '../src/hosted-snapshots.js';
 
-const PUBLIC_ORIGIN = 'https://hosted.open-design.test';
+const PUBLIC_ORIGIN = 'https://hosted.readable-studio.test';
 const USER = 'pr09-durability-user';
 
 type StartedServer = Awaited<ReturnType<typeof startHostedServer>>;
@@ -571,7 +571,7 @@ async function mutate(
     headers: {
       ...auth(),
       'content-type': 'application/json',
-      'x-open-design-csrf': csrf,
+      'x-readable-studio-csrf': csrf,
       origin: PUBLIC_ORIGIN,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -649,7 +649,7 @@ function sessionPath(
 }
 
 function newRuntimeRoot(): string {
-  const runtimeRoot = mkdtempSync(join(tmpdir(), 'od-hosted-pr09-durability-'));
+  const runtimeRoot = mkdtempSync(join(tmpdir(), 'readable-hosted-pr09-durability-'));
   runtimeRoots.push(runtimeRoot);
   return runtimeRoot;
 }

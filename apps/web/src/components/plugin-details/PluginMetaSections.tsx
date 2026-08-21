@@ -84,14 +84,14 @@ export function PluginMetaSections({ record, omit, compact, heading, variant = '
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
   const specVersion = typeof manifest.specVersion === 'string' ? manifest.specVersion : '';
-  const od = manifest.readable ?? {};
+  const readable = manifest.readable ?? {};
   const description = localizePluginDescription(locale, record);
-  const query = resolvePluginQueryFallback(od.useCase?.query);
-  const inputs = (od.inputs ?? []) as InputField[];
-  const ctx = od.context ?? {};
-  const stages = od.pipeline?.stages ?? [];
-  const surfaces = od.genui?.surfaces ?? [];
-  const capabilities = od.capabilities ?? [];
+  const query = resolvePluginQueryFallback(readable.useCase?.query);
+  const inputs = (readable.inputs ?? []) as InputField[];
+  const ctx = readable.context ?? {};
+  const stages = readable.pipeline?.stages ?? [];
+  const surfaces = readable.genui?.surfaces ?? [];
+  const capabilities = readable.capabilities ?? [];
 
   const hasContext = useMemo(() => {
     if (!ctx) return false;

@@ -496,11 +496,11 @@ const previewComment: PreviewComment = {
   conversationId: 'conv-a',
   filePath: 'index.html',
   elementId: 'hero',
-  selector: '[data-od-id="hero"]',
+  selector: '[data-readable-id="hero"]',
   label: 'Hero',
   text: 'Hero copy',
   position: { x: 1, y: 2, width: 30, height: 40 },
-  htmlHint: '<section data-od-id="hero">Hero copy</section>',
+  htmlHint: '<section data-readable-id="hero">Hero copy</section>',
   note: 'tighten this area',
   status: 'open',
   createdAt: 1,
@@ -511,7 +511,7 @@ const secondPreviewComment: PreviewComment = {
   ...previewComment,
   id: 'comment-2',
   elementId: 'cta',
-  selector: '[data-od-id="cta"]',
+  selector: '[data-readable-id="cta"]',
   label: 'CTA',
   text: 'Start now',
   note: 'keep this attached',
@@ -879,7 +879,7 @@ describe('ProjectView conversation run isolation', () => {
       createdAt: 1,
     };
     window.localStorage.setItem(
-      'od:chat-queued-sends:project-1:v1',
+      'readable:chat-queued-sends:project-1:v1',
       JSON.stringify([queuedSend]),
     );
 
@@ -970,7 +970,7 @@ describe('ProjectView conversation run isolation', () => {
       createdAt: 1,
     };
     window.localStorage.setItem(
-      'od:chat-queued-sends:project-1:v1',
+      'readable:chat-queued-sends:project-1:v1',
       JSON.stringify([queuedSend]),
     );
 
@@ -1460,13 +1460,13 @@ describe('ProjectView conversation run isolation', () => {
         if (streamViaDaemon.mock.calls.length > 1) return;
         options.onRunCreated?.('run-amr-balance');
         const error = new Error(
-          'AMR Cloud reported insufficient balance for this model. Recharge your AMR wallet at https://open-design.ai/amr/wallet, then retry this run.',
+          'AMR Cloud reported insufficient balance for this model. Recharge your AMR wallet at https://vela.powerformer.net/wallet, then retry this run.',
         ) as Error & { code: string; details: unknown };
         error.code = 'AMR_INSUFFICIENT_BALANCE';
         error.details = {
           kind: 'amr_account',
           action: 'recharge',
-          actionUrl: 'https://open-design.ai/amr/wallet',
+          actionUrl: 'https://vela.powerformer.net/wallet',
         };
         options.handlers.onError(error);
       },

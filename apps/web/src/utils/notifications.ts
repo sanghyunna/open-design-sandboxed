@@ -30,7 +30,7 @@ type NotificationOptionsWithBrowserExtensions = NotificationOptions & {
 
 let ctx: AudioContext | null = null;
 const activeNotifications = new Set<Notification>();
-const SERVICE_WORKER_URL = '/od-notifications-sw.js';
+const SERVICE_WORKER_URL = '/readable-studio-notifications-sw.js';
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -189,7 +189,7 @@ export type CompletionNotificationResult =
 function notificationOptionsFor(
   opts: CompletionNotificationOpts,
 ): NotificationOptionsWithBrowserExtensions {
-  const tag = `od-task-${opts.status}`;
+  const tag = `readable-task-${opts.status}`;
   return {
     body: opts.body,
     tag,

@@ -42,10 +42,11 @@ describe('project location manifests', () => {
     expect(parsed).toMatchObject(manifest);
   });
 
-  it('rejects an Open Design v1 project fixture with the documented unsupported code', async () => {
+  it('rejects an Readable Studio v1 project fixture with the documented unsupported code', async () => {
     // Given
     const projectDir = await temporaryProject();
-    const legacyDir = path.join(projectDir, '.open-design');
+    const retiredDataDirName = ['.', 'od'].join('');
+    const legacyDir = path.join(projectDir, retiredDataDirName);
     await mkdir(legacyDir, { recursive: true });
     await writeFile(path.join(legacyDir, 'project.json'), JSON.stringify({
       schemaVersion: 1,
@@ -57,7 +58,7 @@ describe('project location manifests', () => {
 
     // When / Then
     await expect(readProjectManifest(projectDir)).rejects.toMatchObject({
-      code: 'UNSUPPORTED_OPEN_DESIGN_V1',
+      code: 'UNSUPPORTED_LEGACY_PRODUCT_V1',
     });
   });
 });

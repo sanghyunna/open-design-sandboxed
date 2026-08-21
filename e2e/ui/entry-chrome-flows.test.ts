@@ -861,7 +861,7 @@ test('[P0] @critical home starters Use-plugin-only routes the plugin as the acti
     pendingPrompt?: string;
   };
   expect(projectBody.pendingPrompt).toBe('Use the selected starter as the driver');
-  // The picked plugin now drives the run instead of the hidden od-default router.
+  // The picked plugin now drives the run instead of the hidden readable-default router.
   // The create-project request is the authoritative assertion: it pins the
   // routed pluginId. Navigation is intentionally not asserted here — the real
   // e2e daemon has no `localized-plugin` installed (it only exists in the
@@ -937,7 +937,7 @@ test('[P0] @critical home starters Use with query carries the hydrated starter p
     pluginId?: string;
   };
   expect(projectBody.pendingPrompt).toBe('Make a design systems brief.');
-  // The picked starter drives the run instead of the hidden od-default router.
+  // The picked starter drives the run instead of the hidden readable-default router.
   expect(projectBody.pluginId).toBe('localized-plugin');
   expect(typeof projectBody.metadata?.kind).toBe('string');
 });
@@ -1131,7 +1131,7 @@ test('[P1] rail can be collapsed again on coarse-pointer / non-hover devices', a
 
 async function gotoEntryHome(page: Page) {
   await page.goto('/');
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);
@@ -1297,7 +1297,7 @@ function makeStarterPlugin({
         : {}),
       ...(homepage ? { homepage } : {}),
       ...(tags.length > 0 ? { tags } : {}),
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind,
         mode,

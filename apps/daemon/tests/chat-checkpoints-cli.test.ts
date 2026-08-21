@@ -94,7 +94,7 @@ async function runCli(
   });
 }
 
-describe('od chat checkpoint CLI', () => {
+describe('readable chat checkpoint CLI', () => {
   let stub: StubServer;
 
   beforeAll(async () => {
@@ -538,7 +538,7 @@ describe('od chat checkpoint CLI', () => {
 
   it('reads rollback reason from a prompt file while preserving JSON output', async () => {
     const reason = 'The generated layout removed the navigation hierarchy.\nRestore the prior files.';
-    const dir = await mkdtemp(join(tmpdir(), 'od-rollback-reason-'));
+    const dir = await mkdtemp(join(tmpdir(), 'readable-rollback-reason-'));
     const promptFile = join(dir, 'reason.txt');
     await writeFile(promptFile, reason, 'utf8');
     const payload = {

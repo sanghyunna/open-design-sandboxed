@@ -40,7 +40,7 @@ describe('importGitHubDesignSystemProject', () => {
   let fakeGit: string;
 
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-ds-github-import-'));
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-ds-github-import-'));
     fixtureRoot = path.join(tempRoot, 'fixture-repo');
     tmpRoot = path.join(tempRoot, '.tmp');
     userDesignSystemsRoot = path.join(tempRoot, 'user-design-systems');

@@ -208,9 +208,9 @@ async function runRealDaemonLifecycleAssertion(): Promise<void> {
       cwd: daemonRoot,
       env: {
         ...process.env,
-        OD_BIND_HOST: '127.0.0.1',
-        OD_DATA_DIR: dataDir,
-        OD_RESOURCE_ROOT: resourceRoot,
+        READABLE_BIND_HOST: '127.0.0.1',
+        READABLE_DATA_DIR: dataDir,
+        READABLE_RESOURCE_ROOT: resourceRoot,
       },
     },
     READY_PATTERN,

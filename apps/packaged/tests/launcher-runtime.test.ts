@@ -30,6 +30,6 @@ describe("packaged launcher runtime absence", () => {
 
   it("does not ship an after-quit update entry path", () => {
     expect(existsSync(join(packagedRoot, "src", "launcher-after-quit.ts"))).toBe(false);
-    expect(source("src/index.ts")).not.toContain("--od-launcher-after-quit");
+    expect(source("src/index.ts")).not.toContain("--readable-launcher-after-quit");
   });
 });

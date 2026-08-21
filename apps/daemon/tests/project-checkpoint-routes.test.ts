@@ -85,8 +85,8 @@ describe('project checkpoint routes', () => {
   }
 
   function openTestDb() {
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     return new Database(path.join(dataDir, 'app.sqlite'));
   }
 
@@ -545,8 +545,8 @@ setInterval(() => {}, 1000);
       content: 'first answer',
       telemetryFinalized: true,
     });
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const filePath = path.join(dataDir, 'projects', projectId, 'index.html');
     await writeFile(filePath, '<h1>Human edit</h1>');
 
@@ -596,8 +596,8 @@ setInterval(() => {}, 1000);
       telemetryFinalized: true,
     });
 
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const filePath = path.join(dataDir, 'projects', projectId, 'index.html');
     await writeFile(filePath, '<h1>Human edit</h1>');
 

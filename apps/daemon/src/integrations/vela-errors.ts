@@ -7,10 +7,9 @@ export interface AmrAccountFailure {
   actionUrl?: string;
 }
 
-// `source=open_design` tags the wallet landing page_view so vela analytics can
-// attribute the recharge visit to Open Design.
+// AMR account management is owned by the third-party Vela service.
 export const DEFAULT_AMR_RECHARGE_URL =
-  'https://open-design.ai/amr/wallet?source=open_design';
+  'https://vela.powerformer.net/wallet?source=readable_studio';
 
 const AMR_AUTH_REQUIRED_MESSAGE =
   'AMR sign-in is required. Sign in to AMR Cloud again, then retry this run.';

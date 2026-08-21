@@ -51,7 +51,7 @@ describe('resume-on-failure runtime', () => {
   });
 
   it('marks a resumable failure with output as resumable and resumes the session next turn', async () => {
-    binDir = await mkdtemp(path.join(os.tmpdir(), 'od-resume-on-failure-bin-'));
+    binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-resume-on-failure-bin-'));
     const { bin: fakeClaude, argsLogPath } = await writeResumableClaude(
       binDir,
       'claude-resumable',
@@ -62,7 +62,7 @@ describe('resume-on-failure runtime', () => {
     delete process.env.LANGFUSE_PUBLIC_KEY;
     delete process.env.LANGFUSE_SECRET_KEY;
     delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL;
+    delete process.env.READABLE_TELEMETRY_RELAY_URL;
 
     started = await startServer({ port: 0, returnServer: true }) as StartedServer;
     await putConfig(started.url, {
@@ -99,7 +99,7 @@ describe('resume-on-failure runtime', () => {
   });
 
   it('treats a no-output upstream drop as a from-scratch restart, not resumable', async () => {
-    binDir = await mkdtemp(path.join(os.tmpdir(), 'od-resume-noout-bin-'));
+    binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-resume-noout-bin-'));
     const { bin: fakeClaude, argsLogPath } = await writeNoOutputUpstreamClaude(
       binDir,
       'claude-noout',
@@ -110,7 +110,7 @@ describe('resume-on-failure runtime', () => {
     delete process.env.LANGFUSE_PUBLIC_KEY;
     delete process.env.LANGFUSE_SECRET_KEY;
     delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL;
+    delete process.env.READABLE_TELEMETRY_RELAY_URL;
 
     started = await startServer({ port: 0, returnServer: true }) as StartedServer;
     await putConfig(started.url, {
@@ -143,7 +143,7 @@ describe('resume-on-failure runtime', () => {
   });
 
   it('does not flag a text-only drop with no committed block as resumable', async () => {
-    binDir = await mkdtemp(path.join(os.tmpdir(), 'od-resume-textonly-bin-'));
+    binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-resume-textonly-bin-'));
     const { bin: fakeClaude } = await writeTextOnlyUpstreamClaude(binDir, 'claude-textonly');
 
     delete process.env.POSTHOG_KEY;
@@ -151,7 +151,7 @@ describe('resume-on-failure runtime', () => {
     delete process.env.LANGFUSE_PUBLIC_KEY;
     delete process.env.LANGFUSE_SECRET_KEY;
     delete process.env.LANGFUSE_BASE_URL;
-    delete process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL;
+    delete process.env.READABLE_TELEMETRY_RELAY_URL;
 
     started = await startServer({ port: 0, returnServer: true }) as StartedServer;
     await putConfig(started.url, {
@@ -178,7 +178,7 @@ function snapshotEnv(): Record<string, string | undefined> {
     LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
     LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
     LANGFUSE_BASE_URL: process.env.LANGFUSE_BASE_URL,
-    OPEN_DESIGN_TELEMETRY_RELAY_URL: process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL,
+    READABLE_TELEMETRY_RELAY_URL: process.env.READABLE_TELEMETRY_RELAY_URL,
     POSTHOG_KEY: process.env.POSTHOG_KEY,
     POSTHOG_HOST: process.env.POSTHOG_HOST,
   };

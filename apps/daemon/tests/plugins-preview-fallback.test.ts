@@ -28,9 +28,9 @@ type StartedServer = { server: http.Server; url: string };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../../..');
-const serverRuntimeDataRoot = process.env.OD_DATA_DIR
-  ? path.resolve(projectRoot, process.env.OD_DATA_DIR)
-  : path.join(projectRoot, '.od');
+const serverRuntimeDataRoot = process.env.READABLE_DATA_DIR
+  ? path.resolve(projectRoot, process.env.READABLE_DATA_DIR)
+  : path.join(projectRoot, '.readable-studio');
 
 const PLUGIN_ID = `phase2b-preview-fallback-${Date.now()}`;
 let pluginRoot: string;
@@ -59,7 +59,7 @@ async function bootInstall(folder: string): Promise<void> {
 }
 
 beforeEach(async () => {
-  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-preview-fallback-'));
+  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-preview-fallback-'));
   const folder = path.join(pluginRoot, PLUGIN_ID);
   pluginFolder = folder;
   await mkdir(path.join(folder, 'assets'), { recursive: true });
@@ -144,7 +144,7 @@ describe('GET /api/plugins/:id/preview — fallback chain', () => {
   });
 
   it('rejects intermediate directory symlinks in plugin assets', async () => {
-    const outside = await mkdtemp(path.join(os.tmpdir(), 'od-plugin-outside-'));
+    const outside = await mkdtemp(path.join(os.tmpdir(), 'readable-plugin-outside-'));
     try {
       await writeFile(path.join(outside, 'secret.png'), 'secret');
       await symlink(outside, path.join(pluginFolder, 'linked'), 'junction');

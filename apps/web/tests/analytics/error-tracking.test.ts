@@ -163,7 +163,7 @@ describe('error-tracking', () => {
     const error = new Error('scrub-target');
     error.stack = [
       'Error: scrub-target',
-      '    at handleClick (file:///Applications/Open Design.app/Contents/Resources/apps/web/src/FileViewer.tsx:147:23)',
+      '    at handleClick (file:///Applications/Readable Studio.app/Contents/Resources/apps/web/src/FileViewer.tsx:147:23)',
       '    at /Users/jane/dev/checkout/apps/web/src/index.tsx:12:1',
     ].join('\n');
     expect(() => reportHandledException(error)).not.toThrow();

@@ -128,7 +128,7 @@ const SettingsDialog = dynamic(
 
 const APP_CONFIG_CHANGED_EVENT = 'readable-studio:app-config-changed';
 const AMR_AGENT_ID = 'amr';
-const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
+const AMR_PROFILE_ENV_KEY = 'READABLE_AMR_PROFILE';
 
 
 function amrProfileForConfig(config: AppConfig): string | null {
@@ -290,7 +290,7 @@ function AppInner() {
   // screen (subsequent failures show up as `$exception`).
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-od-app-mounted', '1');
+      document.documentElement.setAttribute('data-readable-app-mounted', '1');
     }
   }, []);
   const [config, setConfig] = useState<AppConfig>(() => loadConfig());
@@ -1125,7 +1125,7 @@ function AppInner() {
       // uploading staged attachments. `replaceProjectWorkingDir` changes
       // `metadata.baseDir`, so the project starts reading from the external
       // folder. If we uploaded first, the staged files would land in the
-      // temporary managed `.od/projects/<id>` root and then silently vanish
+      // temporary managed `.readable-studio/projects/<id>` root and then silently vanish
       // from Design Files and the first auto-send context once the project
       // folder flips. Doing the handoff first means the initial upload lands in
       // the final tree.
@@ -1144,7 +1144,7 @@ function AppInner() {
           // handoff fails AFTER the project already exists. Do NOT swallow
           // this and do NOT proceed: uploading staged attachments or
           // auto-sending the first message would target the managed
-          // `.od/projects/<id>` root the user did not choose. Mark the
+          // `.readable-studio/projects/<id>` root the user did not choose. Mark the
           // handoff as failed so the upload + auto-send branches below are
           // skipped, then surface a create-time error so the user can create
           // again after choosing the intended project folder.
@@ -1207,17 +1207,17 @@ function AppInner() {
       ) {
         try {
           window.sessionStorage.setItem(
-            `od:auto-send-first:${result.project.id}`,
+            `readable:auto-send-first:${result.project.id}`,
             '1',
           );
           if (firstMessageAttachments.length > 0) {
             window.sessionStorage.setItem(
-              `od:auto-send-attachments:${result.project.id}`,
+              `readable:auto-send-attachments:${result.project.id}`,
               JSON.stringify(firstMessageAttachments),
             );
           } else {
             window.sessionStorage.removeItem(
-              `od:auto-send-attachments:${result.project.id}`,
+              `readable:auto-send-attachments:${result.project.id}`,
             );
           }
         } catch {
@@ -1260,7 +1260,7 @@ function AppInner() {
       if (!outcome.ok) return outcome;
       try {
         window.sessionStorage.setItem(
-          `od:auto-send-first:${outcome.project.id}`,
+          `readable:auto-send-first:${outcome.project.id}`,
           '1',
         );
       } catch {

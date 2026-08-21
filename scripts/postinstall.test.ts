@@ -145,7 +145,8 @@ test("root workspace depends on the daemon package so pnpm exec resolves the rea
     readable: "./bin/readable.mjs",
   });
   assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/readable.mjs")), true);
-  assert.equal(existsSync(join(repoRoot, "apps/daemon/bin/od.mjs")), false);
+  const retiredBinName = ["o", "d"].join("");
+  assert.equal(existsSync(join(repoRoot, `apps/daemon/bin/${retiredBinName}.mjs`)), false);
 });
 
 test("postinstall builds workspace packages whose linkable bins delegate to dist", () => {

@@ -67,8 +67,8 @@ test('[P1] FileViewer downloads offline standalone HTML and reports unresolved r
     await page.getByRole('button', { name: 'Download', exact: true }).last().click();
     await page.getByRole('menuitem', { name: /Export as standalone HTML/i }).click();
     await warningDownload;
-    await expect(page.locator('.od-toast')).toContainText('1 external');
-    await expect(page.locator('.od-toast')).toContainText('1 missing');
+    await expect(page.locator('.readable-studio-toast')).toContainText('1 external');
+    await expect(page.locator('.readable-studio-toast')).toContainText('1 missing');
   } finally {
     await page.request.delete(`/api/projects/${projectId}`).catch(() => undefined);
   }

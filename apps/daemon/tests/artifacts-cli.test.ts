@@ -7,7 +7,7 @@ import { runArtifactsCli } from '../src/artifacts-cli.js';
 
 const ORIGINAL_ENV = { ...process.env };
 
-describe('od artifacts CLI', () => {
+describe('readable artifacts CLI', () => {
   let stdoutWrite: { mockRestore: () => void };
   let stderrWrite: { mockRestore: () => void };
   let stdoutOutput: string[];
@@ -45,7 +45,7 @@ describe('od artifacts CLI', () => {
   });
 
   async function makeFile(name: string, contents: string): Promise<string> {
-    const root = await mkdtemp(path.join(tmpdir(), 'od-artifacts-cli-'));
+    const root = await mkdtemp(path.join(tmpdir(), 'readable-artifacts-cli-'));
     tempRoots.push(root);
     const filePath = path.join(root, name);
     await writeFile(filePath, contents, 'utf8');

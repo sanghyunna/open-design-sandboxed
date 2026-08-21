@@ -11,7 +11,7 @@ import { applyDiffReviewDecisionToCwd } from '../src/plugins/atoms/diff-review-g
 let cwd: string;
 
 beforeEach(async () => {
-  cwd = await mkdtemp(path.join(os.tmpdir(), 'od-handoff-persist-'));
+  cwd = await mkdtemp(path.join(os.tmpdir(), 'readable-handoff-persist-'));
 });
 
 afterEach(async () => {
@@ -105,7 +105,7 @@ describe('runAndPersistHandoff', () => {
         schema: 'readable-studio.artifact-manifest.v1', kind: 'react-component', title: 'Button',
         entry: 'Button.tsx', renderer: 'react-component', exports: [],
       },
-      exportTarget: { surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 },
+      exportTarget: { surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 1 },
     });
     expect(result.manifest.handoffKind).toBe('deployable-app');
     expect(result.signals.deployable).toBe(true);

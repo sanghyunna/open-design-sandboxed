@@ -25,7 +25,7 @@ describe('buildProjectArchive', () => {
   const projectId = 'proj-archive-test';
 
   beforeEach(async () => {
-    projectsRoot = mkdtempSync(path.join(tmpdir(), 'od-archive-'));
+    projectsRoot = mkdtempSync(path.join(tmpdir(), 'readable-archive-'));
     const dir = path.join(projectsRoot, projectId);
     await mkdir(path.join(dir, 'ui-design', 'src'), { recursive: true });
     await mkdir(path.join(dir, 'ui-design', 'frames'), { recursive: true });
@@ -59,8 +59,8 @@ describe('buildProjectArchive', () => {
     const zip = await JSZip.loadAsync(buffer);
     const html = await zip.file('index.html')!.async('string');
 
-    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-    expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+    expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+    expect(html.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
   });
 
   it('injects standalone deck key dedupe into batch archived HTML decks', async () => {
@@ -70,8 +70,8 @@ describe('buildProjectArchive', () => {
     const zip = await JSZip.loadAsync(buffer);
     const html = await zip.file('deck.html')!.async('string');
 
-    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-    expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+    expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+    expect(html.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
   });
 
   it('zips the whole project when no root is given', async () => {
@@ -147,7 +147,7 @@ describe('buildProjectArchive', () => {
     const zip = await JSZip.loadAsync(buffer);
     const manifestRaw = await zip.file('DESIGN-MANIFEST.json')?.async('string');
     const manifest = JSON.parse(manifestRaw || '{}');
-    expect(manifest.schema).toBe('open-design.design-manifest.v1');
+    expect(manifest.schema).toBe('readable-studio.design-manifest.v1');
     expect(manifest.entryFile).toBe('index.html');
     expect(manifest.sourceFiles.css).toEqual(['src/app.css']);
     expect(manifest.sourceFiles.html).toEqual(['frames/phone.html', 'index.html']);

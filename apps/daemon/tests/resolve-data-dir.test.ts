@@ -1,5 +1,5 @@
 /**
- * Unit tests for resolveDataDir, the OD_DATA_DIR path resolver. Covers the
+ * Unit tests for resolveDataDir, the READABLE_DATA_DIR path resolver. Covers the
  * $HOME / ${HOME} / ~/ shorthands that launchers can pass literally when no
  * shell is in the loop (#390), with both forward and backslash separators so
  * Windows launchers behave the same as Unix ones.
@@ -32,36 +32,36 @@ describe('resolveDataDir', () => {
     await rm(projectRoot, { recursive: true, force: true });
   });
 
-  it('returns <projectRoot>/.readable-studio when OD_DATA_DIR is unset', () => {
+  it('returns <projectRoot>/.readable-studio when READABLE_DATA_DIR is unset', () => {
     expect(resolveDataDir(undefined, projectRoot)).toBe(path.join(projectRoot, '.readable-studio'));
     expect(resolveDataDir('', projectRoot)).toBe(path.join(projectRoot, '.readable-studio'));
   });
 
-  it('requires an explicit OD_DATA_DIR when sandbox mode requires one', () => {
+  it('requires an explicit READABLE_DATA_DIR when sandbox mode requires one', () => {
     expect(() =>
       resolveDataDir(undefined, projectRoot, { requireExplicit: true }),
-    ).toThrow('OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled');
+    ).toThrow('READABLE_DATA_DIR is required when READABLE_SANDBOX_MODE is enabled');
     expect(() => resolveDataDir('', projectRoot, { requireExplicit: true })).toThrow(
-      'OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled',
+      'READABLE_DATA_DIR is required when READABLE_SANDBOX_MODE is enabled',
     );
     expect(() =>
       resolveDataDir('   ', projectRoot, { requireExplicit: true }),
-    ).toThrow('OD_DATA_DIR is required when OD_SANDBOX_MODE is enabled');
+    ).toThrow('READABLE_DATA_DIR is required when READABLE_SANDBOX_MODE is enabled');
   });
 
-  it('trims OD_DATA_DIR before resolving the storage root', () => {
-    const out = resolveDataDir('  rel-od  ', projectRoot, { requireExplicit: true });
-    expect(out).toBe(path.join(projectRoot, 'rel-od'));
+  it('trims READABLE_DATA_DIR before resolving the storage root', () => {
+    const out = resolveDataDir('  rel-readable  ', projectRoot, { requireExplicit: true });
+    expect(out).toBe(path.join(projectRoot, 'rel-readable'));
   });
 
   it('expands a leading ~/ against the user home directory', () => {
-    const out = resolveDataDir('~/od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('~/readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands ~\\ (backslash) against the user home directory', () => {
-    const out = resolveDataDir('~\\od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('~\\readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands a bare ~ to the user home directory', () => {
@@ -69,23 +69,23 @@ describe('resolveDataDir', () => {
   });
 
   it('expands $HOME/ against the user home directory', () => {
-    const out = resolveDataDir('$HOME/od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('$HOME/readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands $HOME\\ (backslash, Windows launcher) against the user home directory', () => {
-    const out = resolveDataDir('$HOME\\od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('$HOME\\readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands ${HOME}/ against the user home directory', () => {
-    const out = resolveDataDir('${HOME}/od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('${HOME}/readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands ${HOME}\\ (backslash) against the user home directory', () => {
-    const out = resolveDataDir('${HOME}\\od-test', projectRoot);
-    expect(out).toBe(path.join(fakeHome, 'od-test'));
+    const out = resolveDataDir('${HOME}\\readable-test', projectRoot);
+    expect(out).toBe(path.join(fakeHome, 'readable-test'));
   });
 
   it('expands a bare $HOME to the user home directory', () => {
@@ -106,7 +106,7 @@ describe('resolveDataDir', () => {
   });
 
   it('resolves relative paths against projectRoot', () => {
-    const out = resolveDataDir('rel-od', projectRoot);
-    expect(out).toBe(path.join(projectRoot, 'rel-od'));
+    const out = resolveDataDir('rel-readable', projectRoot);
+    expect(out).toBe(path.join(projectRoot, 'rel-readable'));
   });
 });

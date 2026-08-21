@@ -48,7 +48,7 @@ export function registerHostedCatalogueRoutes(
   app.post('/api/tools/design-systems/read', async (request, response) => {
     const authorization = request.get('authorization');
     const token = authorization?.match(/^Bearer ([^\s]+)$/u)?.[1] ?? null;
-    const carrierToken = request.get('x-open-design-tool-token') ?? null;
+    const carrierToken = request.get('x-readable-studio-tool-token') ?? null;
     if (token == null || carrierToken == null || carrierToken.length === 0) {
       hostedApiFailure(response, 403, 'TOOL_TOKEN_MISSING', 'hosted tool token is required');
       return;

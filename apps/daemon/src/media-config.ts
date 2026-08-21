@@ -1,32 +1,32 @@
 // Per-provider credentials for the media dispatcher.
 //
 // Media settings APIs push API keys here; the daemon persists them to
-// .od/media-config.json
+// .readable-studio/media-config.json
 // and reads them at generation time. Environment variables override the
 // stored values so power users can keep keys out of the workspace
-// folder altogether (`OD_OPENAI_API_KEY=… node daemon/cli.js`).
+// folder altogether (`READABLE_OPENAI_API_KEY=… node daemon/cli.js`).
 //
 // Storage location (precedence high → low):
-//   1. OD_MEDIA_CONFIG_DIR=DIR   → <DIR>/media-config.json
-//   2. OD_DATA_DIR=DIR           → <DIR>/media-config.json
-//   3. (default)                 → <projectRoot>/.od/media-config.json
+//   1. READABLE_MEDIA_CONFIG_DIR=DIR   → <DIR>/media-config.json
+//   2. READABLE_DATA_DIR=DIR           → <DIR>/media-config.json
+//   3. (default)                 → <projectRoot>/.readable-studio/media-config.json
 // The default is unchanged for workspace-local installs. (1) lets a
 // supervisor relocate just the credentials file. (2) means installs
-// that already set OD_DATA_DIR for the rest of the daemon's runtime
+// that already set READABLE_DATA_DIR for the rest of the daemon's runtime
 // state (Nix-store / immutable-image installs, the packaged daemon at
 // apps/packaged/src/sidecars.ts:createPackagedDaemonManagedPathEnv,
 // the Home Manager / NixOS modules) get media-config there too without
 // any extra plumbing. Both env values are resolved with the same
-// semantics as OD_DATA_DIR in server.ts:resolveDataDir(): the shared
+// semantics as READABLE_DATA_DIR in server.ts:resolveDataDir(): the shared
 // expandHomePrefix() helper handles `~`, `$HOME`, and `${HOME}` (with
 // either `/` or `\` separator), then relative paths anchor to
 // <projectRoot> (NOT process.cwd, which is unrelated to the workspace
 // when systemd or launchd starts the daemon).
 //
-// Migration note: a workspace install that sets a custom OD_DATA_DIR
-// AND has a pre-existing `<projectRoot>/.od/media-config.json` will
-// start reading from `<OD_DATA_DIR>/media-config.json` instead. Move
-// the file once or set OD_MEDIA_CONFIG_DIR=<projectRoot>/.od to keep
+// Migration note: a workspace install that sets a custom READABLE_DATA_DIR
+// AND has a pre-existing `<projectRoot>/.readable-studio/media-config.json` will
+// start reading from `<READABLE_DATA_DIR>/media-config.json` instead. Move
+// the file once or set READABLE_MEDIA_CONFIG_DIR=<projectRoot>/.readable-studio to keep
 // the old location.
 //
 // The file is intentionally simple JSON — no encryption, no schema
@@ -62,39 +62,39 @@ const ENV_KEYS: Record<string, string[]> = {
   // who pastes an Azure deployment URL into the OpenAI Base URL field
   // gets the credential picked up automatically.
   openai: [
-    'OD_OPENAI_API_KEY',
+    'READABLE_OPENAI_API_KEY',
     'OPENAI_API_KEY',
     'AZURE_API_KEY',
     'AZURE_OPENAI_API_KEY',
   ],
-  volcengine: ['OD_VOLCENGINE_API_KEY', 'ARK_API_KEY', 'VOLCENGINE_API_KEY'],
-  // OD_GROK_API_KEY first (the project-reserved override, same shape as
+  volcengine: ['READABLE_VOLCENGINE_API_KEY', 'ARK_API_KEY', 'VOLCENGINE_API_KEY'],
+  // READABLE_GROK_API_KEY first (the project-reserved override, same shape as
   // every other provider above), then XAI_API_KEY as the canonical
   // upstream env per docs.x.ai quickstart — so users who already export
   // it for the official SDK don't have to re-paste into Settings.
-  grok: ['OD_GROK_API_KEY', 'XAI_API_KEY'],
-  nanobanana: ['OD_NANOBANANA_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_API_KEY'],
-  imagerouter: ['OD_IMAGEROUTER_API_KEY', 'IMAGEROUTER_API_KEY'],
-  openrouter: ['OD_OPENROUTER_API_KEY', 'OPENROUTER_API_KEY'],
-  'custom-image': ['OD_CUSTOM_IMAGE_API_KEY', 'CUSTOM_IMAGE_API_KEY'],
-  bfl: ['OD_BFL_API_KEY', 'BFL_API_KEY'],
-  fal: ['OD_FAL_KEY', 'FAL_KEY'],
-  replicate: ['OD_REPLICATE_API_TOKEN', 'REPLICATE_API_TOKEN'],
-  google: ['OD_GOOGLE_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_API_KEY'],
-  kling: ['OD_KLING_API_KEY', 'KLING_API_KEY'],
-  midjourney: ['OD_MIDJOURNEY_API_KEY'],
-  minimax: ['OD_MINIMAX_API_KEY', 'MINIMAX_API_KEY'],
-  suno: ['OD_SUNO_API_KEY'],
-  udio: ['OD_UDIO_API_KEY'],
-  elevenlabs: ['OD_ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'],
-  fishaudio: ['OD_FISHAUDIO_API_KEY', 'FISH_AUDIO_API_KEY'],
-  senseaudio: ['OD_SENSEAUDIO_API_KEY', 'SENSEAUDIO_API_KEY'],
-  aihubmix: ['OD_AIHUBMIX_API_KEY', 'AIHUBMIX_API_KEY'],
-  tavily: ['OD_TAVILY_API_KEY', 'TAVILY_API_KEY'],
-  leonardo: ['OD_LEONARDO_API_KEY', 'LEONARDO_API_KEY'],
+  grok: ['READABLE_GROK_API_KEY', 'XAI_API_KEY'],
+  nanobanana: ['READABLE_NANOBANANA_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_API_KEY'],
+  imagerouter: ['READABLE_IMAGEROUTER_API_KEY', 'IMAGEROUTER_API_KEY'],
+  openrouter: ['READABLE_OPENROUTER_API_KEY', 'OPENROUTER_API_KEY'],
+  'custom-image': ['READABLE_CUSTOM_IMAGE_API_KEY', 'CUSTOM_IMAGE_API_KEY'],
+  bfl: ['READABLE_BFL_API_KEY', 'BFL_API_KEY'],
+  fal: ['READABLE_FAL_KEY', 'FAL_KEY'],
+  replicate: ['READABLE_REPLICATE_API_TOKEN', 'REPLICATE_API_TOKEN'],
+  google: ['READABLE_GOOGLE_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_API_KEY'],
+  kling: ['READABLE_KLING_API_KEY', 'KLING_API_KEY'],
+  midjourney: ['READABLE_MIDJOURNEY_API_KEY'],
+  minimax: ['READABLE_MINIMAX_API_KEY', 'MINIMAX_API_KEY'],
+  suno: ['READABLE_SUNO_API_KEY'],
+  udio: ['READABLE_UDIO_API_KEY'],
+  elevenlabs: ['READABLE_ELEVENLABS_API_KEY', 'ELEVENLABS_API_KEY'],
+  fishaudio: ['READABLE_FISHAUDIO_API_KEY', 'FISH_AUDIO_API_KEY'],
+  senseaudio: ['READABLE_SENSEAUDIO_API_KEY', 'SENSEAUDIO_API_KEY'],
+  aihubmix: ['READABLE_AIHUBMIX_API_KEY', 'AIHUBMIX_API_KEY'],
+  tavily: ['READABLE_TAVILY_API_KEY', 'TAVILY_API_KEY'],
+  leonardo: ['READABLE_LEONARDO_API_KEY', 'LEONARDO_API_KEY'],
 };
 
-// Resolve an `OD_*_DIR` env override using the same semantics as
+// Resolve an `READABLE_*_DIR` env override using the same semantics as
 // `resolveDataDir()` in server.ts: expandHomePrefix() handles the `~`,
 // `$HOME`, and `${HOME}` shorthands (with either `/` or `\` separator),
 // then relative paths anchor to <projectRoot>, not process.cwd, since
@@ -105,12 +105,12 @@ const ENV_KEYS: Record<string, string[]> = {
 // is a normal "no config yet" condition handled by readStored(); the
 // write path's mkdir(recursive) creates the directory on first use.
 function resolveOverrideDir(raw: string, projectRoot: string): string {
-  // Share expandHomePrefix with resolveDataDir (server.ts) so OD_DATA_DIR
-  // and OD_MEDIA_CONFIG_DIR cannot split state under a $HOME-style value.
-  // A launcher passing OD_DATA_DIR=$HOME/.open-design without a shell to
+  // Share expandHomePrefix with resolveDataDir (server.ts) so READABLE_DATA_DIR
+  // and READABLE_MEDIA_CONFIG_DIR cannot split state under a $HOME-style value.
+  // A launcher passing READABLE_DATA_DIR=$HOME/.readable-studio without a shell to
   // expand it would otherwise route SQLite/projects/artifacts to the
   // expanded path while media-config.json stayed under
-  // <projectRoot>/$HOME/.open-design, leaving stored credentials
+  // <projectRoot>/$HOME/.readable-studio, leaving stored credentials
   // unreachable on the next read.
   const expanded = expandHomePrefix(raw);
   return path.isAbsolute(expanded)
@@ -132,9 +132,9 @@ function envOverrideDir(envName: string, projectRoot: string): string | null {
  */
 export function mediaConfigDir(projectRoot: string): string {
   return (
-    envOverrideDir('OD_MEDIA_CONFIG_DIR', projectRoot)
-    ?? envOverrideDir('OD_DATA_DIR', projectRoot)
-    ?? path.join(projectRoot, '.od')
+    envOverrideDir('READABLE_MEDIA_CONFIG_DIR', projectRoot)
+    ?? envOverrideDir('READABLE_DATA_DIR', projectRoot)
+    ?? path.join(projectRoot, '.readable-studio')
   );
 }
 
@@ -211,8 +211,8 @@ async function resolveOpenAIAuthFileCredential(): Promise<OAuthCredential | null
 async function resolveXAIOAuthCredential(
   projectRoot: string,
 ): Promise<OAuthCredential | null> {
-  // 1. OD-native xAI OAuth tokens (written by the daemon's own
-  //    xai-oauth.ts client when the user authorizes inside OD).
+  // 1. Readable Studio-native xAI OAuth tokens (written by the daemon's own
+  //    xai-oauth.ts client when the user authorizes inside Readable Studio).
   const odBearer = await resolveXAIBearer(mediaConfigDir(projectRoot)).catch(
     () => null,
   );
@@ -227,7 +227,7 @@ async function resolveXAIOAuthCredential(
 
   // 2. Borrow the xAI OAuth token Hermes wrote to ~/.hermes/auth.json
   //    when the user ran `hermes auth add xai-oauth`. A user who has already authorized
-  //    Hermes doesn't have to run a second OAuth dance inside OD.
+  //    Hermes doesn't have to run a second OAuth dance inside Readable Studio.
   //    (No proactive refresh here — Hermes itself maintains the token,
   //    and we only borrow what is currently fresh.)
   const home = os.homedir();

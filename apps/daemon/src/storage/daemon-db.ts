@@ -9,7 +9,7 @@
 //
 // Today's resolver simply records the operator's choice; the
 // existing better-sqlite3 path is the only reachable backend.
-// `OD_DAEMON_DB=postgres` returns a stub that throws when used so
+// `READABLE_DAEMON_DB=postgres` returns a stub that throws when used so
 // a misconfigured operator sees a clear error instead of silently
 // dropping writes onto a non-existent backend.
 
@@ -39,19 +39,19 @@ export class DaemonDbConfigError extends Error {
 
 export function resolveDaemonDbConfig(env?: Record<string, string | undefined>): DaemonDbConfig {
   const e = env ?? process.env;
-  const kind = (e.OD_DAEMON_DB ?? 'sqlite').trim().toLowerCase();
+  const kind = (e.READABLE_DAEMON_DB ?? 'sqlite').trim().toLowerCase();
   if (kind === 'postgres') {
-    const host = e.OD_PG_HOST ?? '';
-    const portStr = e.OD_PG_PORT ?? '5432';
-    const database = e.OD_PG_DATABASE ?? '';
-    const user = e.OD_PG_USER ?? '';
-    const sslMode = e.OD_PG_SSL_MODE === 'disable' || e.OD_PG_SSL_MODE === 'verify-full'
-      ? e.OD_PG_SSL_MODE
+    const host = e.READABLE_PG_HOST ?? '';
+    const portStr = e.READABLE_PG_PORT ?? '5432';
+    const database = e.READABLE_PG_DATABASE ?? '';
+    const user = e.READABLE_PG_USER ?? '';
+    const sslMode = e.READABLE_PG_SSL_MODE === 'disable' || e.READABLE_PG_SSL_MODE === 'verify-full'
+      ? e.READABLE_PG_SSL_MODE
       : 'require';
     if (!host || !database || !user) {
       throw new DaemonDbConfigError(
-        'OD_DAEMON_DB=postgres requires OD_PG_HOST, OD_PG_DATABASE, OD_PG_USER. ' +
-        'OD_PG_PORT defaults to 5432; OD_PG_SSL_MODE defaults to "require".',
+        'READABLE_DAEMON_DB=postgres requires READABLE_PG_HOST, READABLE_PG_DATABASE, READABLE_PG_USER. ' +
+        'READABLE_PG_PORT defaults to 5432; READABLE_PG_SSL_MODE defaults to "require".',
       );
     }
     return {
@@ -67,7 +67,7 @@ export function resolveDaemonDbConfig(env?: Record<string, string | undefined>):
   }
   if (kind !== 'sqlite' && kind !== '') {
     throw new DaemonDbConfigError(
-      `unknown OD_DAEMON_DB value '${kind}'. Accepted: 'sqlite' (default), 'postgres'.`,
+      `unknown READABLE_DAEMON_DB value '${kind}'. Accepted: 'sqlite' (default), 'postgres'.`,
     );
   }
   return { kind: 'sqlite' };

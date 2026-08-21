@@ -74,7 +74,7 @@ describe('composeSystemPrompt — API mode (#313)', () => {
 
     it('pins the override at the top so it overrides the discovery layer', () => {
       // The discovery layer (DISCOVERY_AND_PHILOSOPHY) starts with the
-      // string `# OD core directives`. The API-mode override must appear
+      // string `# Readable Studio core directives`. The API-mode override must appear
       // BEFORE that header — otherwise the discovery layer's own
       // "these override anything later" preamble wins precedence and
       // re-enables TodoWrite/Read/Write/Edit/Bash mentions later in the

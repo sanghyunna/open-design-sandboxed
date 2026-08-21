@@ -138,7 +138,7 @@ function createFixtureHarness(
   daemonBehavior: FixtureBehavior,
   webBehavior: FixtureBehavior,
 ): FixtureHarness {
-  const root = mkdtempSync(join(tmpdir(), "od-packaged-startup-"));
+  const root = mkdtempSync(join(tmpdir(), "readable-packaged-startup-"));
   const namespace = `startup-${randomUUID()}`;
   const paths = fixturePaths(root, namespace);
   const fixturesRoot = join(root, "fixtures");

@@ -1,8 +1,8 @@
-// RED spec: `od agent ...` is a planned UI/CLI dual-track subcommand
-// (Optimization_plan.md §1, "od agent list|enable|disable|reset
+// RED spec: `readable agent ...` is a planned UI/CLI dual-track subcommand
+// (Optimization_plan.md §1, "readable agent list|enable|disable|reset
 // --json"). Per AGENTS.md "Capability exposure (UI/CLI dual-track)",
 // every capability the web UI exposes (agent picker filtering by
-// enabledAgentIds) must also be reachable through `od`.
+// enabledAgentIds) must also be reachable through `readable`.
 //
 // We assert this at the source level rather than booting the CLI
 // because `apps/daemon/src/cli.ts` runs `runDaemonCliStartup(argv)` at
@@ -19,7 +19,7 @@ import { describe, expect, test } from 'vitest';
 const cliPath = path.resolve(__dirname, '../../src/cli.ts');
 const cliSource = readFileSync(cliPath, 'utf8');
 
-describe('od agent subcommand (source-level RED spec)', () => {
+describe('readable agent subcommand (source-level RED spec)', () => {
   test('cli.ts declares a runAgent handler', () => {
     const declared =
       /\bfunction\s+runAgent\b/.test(cliSource) ||
@@ -45,7 +45,7 @@ describe('od agent subcommand (source-level RED spec)', () => {
   test('cli.ts whitelists `agent list` verbs and supports --json', () => {
     expect(
       /['"]list['"]/.test(cliSource) && /['"]enable['"]/.test(cliSource),
-      'expected `list` and `enable` verbs to appear in cli.ts for `od agent`',
+      'expected `list` and `enable` verbs to appear in cli.ts for `readable agent`',
     ).toBe(true);
     expect(/--json/.test(cliSource)).toBe(true);
   });

@@ -43,7 +43,7 @@ afterEach(() => {
 });
 
 function tempRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-snapshots-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-snapshots-'));
   roots.push(root);
   return root;
 }

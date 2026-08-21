@@ -104,7 +104,7 @@ If the user asks for refreshability, source auditability, or scheduled updates, 
 6. **Write the artifact**
    - For a static artifact, write one self-contained `index.html` with inline CSS and no external JS libraries.
    - For a live artifact, write `template.html`, `data.json`, `artifact.json`, and `provenance.json`; `index.html` is derived by the daemon.
-   - Tag major regions with stable `data-od-id` values: `sidebar`, `topbar`, `repo-header`, `kpi-strip`, `growth-chart`, `contributors`, `activity`, `provenance`.
+   - Tag major regions with stable `data-readable-id` values: `sidebar`, `topbar`, `repo-header`, `kpi-strip`, `growth-chart`, `contributors`, `activity`, `provenance`.
 
 ## Visual rules
 

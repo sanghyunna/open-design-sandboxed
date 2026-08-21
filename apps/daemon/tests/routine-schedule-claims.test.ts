@@ -24,7 +24,7 @@ let tmp: string;
 let dbFile: string;
 
 beforeEach(async () => {
-  tmp = await mkdtemp(path.join(os.tmpdir(), 'od-routine-claims-'));
+  tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-routine-claims-'));
   dbFile = path.join(tmp, 'app.sqlite');
 });
 
@@ -100,8 +100,8 @@ describe('routine scheduled loser cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
     const projectId = 'routine-winner-project';
     const routinePlugin = pluginRecord('routine-winner-plugin');
@@ -185,8 +185,8 @@ describe('routine scheduled loser cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
     const projectId = 'routine-reuse-project';
     const routinePlugin = pluginRecord('routine-plugin');
@@ -269,8 +269,8 @@ describe('routine scheduled loser cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
     const projectId = 'routine-phantom-loser-project';
     insertProject(db, {
@@ -365,8 +365,8 @@ describe('routine scheduled loser cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
     const projectId = 'routine-mid-link-rollback-project';
     const routinePlugin = pluginRecord('routine-mid-link-plugin');
@@ -471,8 +471,8 @@ describe('routine scheduled loser cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
     const projectId = 'routine-rollback-failure-project';
     const routinePlugin = pluginRecord('routine-rollback-plugin');
@@ -552,8 +552,8 @@ describe('routine prepare failure cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
 
     try {
@@ -642,8 +642,8 @@ describe('routine prepare failure cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
 
     try {
@@ -703,8 +703,8 @@ describe('routine prepare failure cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
 
     try {
@@ -799,8 +799,8 @@ describe('routine prepare failure cleanup', () => {
       server: http.Server;
       shutdown?: () => Promise<void> | void;
     };
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     const db = openDatabase(tmp, { dataDir });
 
     try {
@@ -889,7 +889,7 @@ function pluginRecord(id: string): InstalledPluginRecord {
     title: 'Routine Plugin',
     version: '1.0.0',
     description: 'Routine snapshot fixture.',
-    od: {
+    readable: {
       kind: 'skill',
       taskKind: 'new-generation',
       useCase: { query: 'Handle {{prompt}}' },

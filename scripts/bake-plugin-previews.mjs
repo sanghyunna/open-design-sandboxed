@@ -46,7 +46,7 @@ import path from 'node:path';
 //   v3: bound the slide-walk — cap deckSignal's DOM scan + a wall-time cap — so a
 //       deck that renders every slide in one giant rail (#deck{width:10000vw})
 //       no longer drags the walk, and the clip, out to 20s+ in automated runs.
-//   v4: honor an `od.preview.motion` ('scroll'|'deck'|'static') declaration;
+//   v4: honor an `readable.preview.motion` ('scroll'|'deck'|'static') declaration;
 //       auto-detect deck-vs-scroll by viewport height (not by probing, which
 //       misread tall pages with a horizontal marquee as decks); pan via REAL
 //       wheel events so scroll-hijack landing pages (custom/transform scroll)
@@ -125,7 +125,7 @@ async function discoverIds() {
 }
 
 // Authors can declare how their preview should be captured via
-// `od.preview.motion` ('scroll' | 'deck' | 'static'); we honor it and only
+// `readable.preview.motion` ('scroll' | 'deck' | 'static'); we honor it and only
 // auto-detect when it's absent. Returns an id -> motion map (missing => null).
 async function loadMotionMap() {
   const map = {};
@@ -136,7 +136,7 @@ async function loadMotionMap() {
     for (const it of items) {
       if (!it || typeof it !== 'object') continue;
       const id = it.id || it.slug;
-      const m = it.manifest?.od?.preview?.motion;
+      const m = it.manifest?.readable?.preview?.motion;
       if (id && (m === 'scroll' || m === 'deck' || m === 'static')) map[id] = m;
     }
   } catch {}
@@ -231,7 +231,7 @@ async function bakeOne(browser, id, hash, motion) {
   } catch (e) { await page.close(); return { id, skipped: `load ${e.message}` }; }
   await sleep(1000);
 
-  // Capture mode: an explicit `od.preview.motion` declaration wins; otherwise
+  // Capture mode: an explicit `readable.preview.motion` declaration wins; otherwise
   // auto-detect.
   let mode = motion;
   let deckDriver = null;

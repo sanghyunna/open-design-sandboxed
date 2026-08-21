@@ -1,10 +1,10 @@
-# Open Design Plugin Registry — Plan (living)
+# Readable Studio Plugin Registry — Plan (living)
 
 > **One sentence:** Turn the existing `readable-studio-marketplace.json` federation
 > into a real npm-/clawhub-/skills.sh-style **registry**: GitHub repo as the v1
 > storage backend, `readable` CLI as the canonical client, official site as one
 > rendered consumer, and the whole thing pluggable so a third party can stand
-> up their own Open Design plugin source with one config line.
+> up their own Readable Studio plugin source with one config line.
 
 Source spec: [`docs/plugins-spec.md`](../plugins-spec.md) · zh-CN
 [`docs/plugins-spec.zh-CN.md`](../plugins-spec.zh-CN.md).
@@ -30,7 +30,7 @@ References (shape, not API):
 - [x] **R2. Storage backend is swappable.** GitHub repo is the v1 backend, but
   daemon code talks to a `RegistryBackend` interface. Replacing GitHub with a
   managed DB later must be a one-file swap, not a refactor.
-- [ ] **R3. `SKILL.md` floor stays portable.** A plugin published to OD's
+- [ ] **R3. `SKILL.md` floor stays portable.** A plugin published to Readable Studio's
   registry must still install cleanly as a plain agent skill in Claude
   Code / Cursor / Codex / Gemini CLI / OpenClaw / Hermes. `readable-studio.json`
   remains an additive sidecar (per spec §1).
@@ -39,7 +39,7 @@ References (shape, not API):
   `marketplace.ts` ships `official|trusted|untrusted` and the runtime ships
   `bundled|trusted|restricted` — P0 unifies these and normalizes legacy
   `untrusted` rows to `restricted`.)
-- [x] **R5. Federation is the default, not the exception.** OD's own registry
+- [x] **R5. Federation is the default, not the exception.** Readable Studio's own registry
   is one source among many. Adding a third-party registry URL is symmetric
   to adding ours; no special-casing in code paths.
 - [x] **R6. Provenance is preserved end-to-end.** Every installed plugin
@@ -82,7 +82,7 @@ Plugin artifact
         |
         v
 Registry index
-  v1: open-design/plugin-registry or this repo
+  v1: readable-studio/plugin-registry or this repo
       community/**/readable-studio.json
       generated readable-studio-marketplace.json
   future: DatabaseRegistryBackend
@@ -109,7 +109,7 @@ Product surface semantics:
   status later.
 - **Plugins / Team** is the enterprise governance layer: private catalogs,
   organization allowlists, approvals, audit, and policy.
-- **open-design.ai/plugins** is the public renderer of the official and
+- **readable-studio.ai/plugins** is the public renderer of the official and
   community registry sources, not a separate source of truth.
 
 Agent consumption boundary:
@@ -124,7 +124,7 @@ Packaged official plugins
 
 Default community registry
   community source -> Available by default -> user installs intentionally
-  -> ~/.open-design/plugins/<plugin-id> -> Installed -> agent
+  -> ~/.readable-studio/plugins/<plugin-id> -> Installed -> agent
 ```
 
 `Available` is not directly consumable by the agent. It is a supply pool. The
@@ -134,7 +134,7 @@ future "Use from Available" convenience action may auto-install first, but it
 must still create an installed record before execution.
 
 User-created and user-installed plugins are persisted under the user plugin
-root (`~/.open-design/plugins/<plugin-id>` by default). Daemon startup reloads
+root (`~/.readable-studio/plugins/<plugin-id>` by default). Daemon startup reloads
 installed records from SQLite and resolves those user-state plugin folders; a
 packaged runtime upgrade should not overwrite them. Bundled official plugins
 stay inside the runtime image and are re-registered on boot as official-source
@@ -162,8 +162,8 @@ agent is the product wrapper around the CLI workflow.
 v1 registry scope is intentionally simple: a GitHub repo with reviewable source
 entries plus a generated `readable-studio-marketplace.json`. The JSON is what
 daemon/CLI/UI fetch; the source entries are what humans review in PRs. This can
-start in the main Open Design repo, but the code path must still be expressed as
-`RegistryBackend` so moving to `open-design/plugin-registry` or a database later
+start in the main Readable Studio repo, but the code path must still be expressed as
+`RegistryBackend` so moving to `readable-studio/plugin-registry` or a database later
 does not change the product model.
 
 ### 1.1 Storage abstraction
@@ -180,7 +180,7 @@ apps/daemon/src/registry/                ← side-effect zone
   ├── http-backend.ts                    ← already-exists shape (marketplace.json)
   ├── local-backend.ts                   ← dev/test fixture
   ├── cache.ts                           ← on-disk cache + ETag refresh
-  ├── lockfile.ts                        ← od-plugin-lock.json writer/reader
+  ├── lockfile.ts                        ← readable-plugin-lock.json writer/reader
   └── publish.ts                         ← orchestrates pack → fork → PR
 ```
 
@@ -206,12 +206,12 @@ interface RegistryBackend {
 
 ### 1.2 GitHub-backed v1 layout
 
-A dedicated public repo — proposed **`open-design/plugin-registry`** — owns the
+A dedicated public repo — proposed **`readable-studio/plugin-registry`** — owns the
 canonical official catalog. Third parties fork the same shape and point their
 own `marketplace.json` URL at it.
 
 ```text
-open-design/plugin-registry/
+readable-studio/plugin-registry/
 ├── plugins/
 │   └── <vendor>/<plugin-name>/
 │       ├── manifest.json              ← latest copy of readable-studio.json
@@ -261,7 +261,7 @@ Fallback archives require integrity hashes.
 2. Read or create a GitHub release on the plugin's **own** source repo,
    upload the tarball, capture release asset URL + SHA-256.
 3. `gh auth status` to confirm login (no token persisted by `readable`).
-4. Fork (or reuse fork of) `open-design/plugin-registry` via `gh repo fork`.
+4. Fork (or reuse fork of) `readable-studio/plugin-registry` via `gh repo fork`.
 5. Check out a branch `publish/<vendor>-<name>-<version>`.
 6. Write/refresh `plugins/<vendor>/<name>/manifest.json` and
    `versions/<version>.json`, append entry to a per-plugin index, run
@@ -272,7 +272,7 @@ Fallback archives require integrity hashes.
    tarball download + checksum, manifest replay, optional preview render.
 9. On merge, `publish-index.yml` regenerates `marketplace.json` and pushes
    it to `main`. GitHub Pages / CDN serves it as the fetchable marketplace
-   JSON, while `https://open-design.ai/plugins/` renders the public browser
+   JSON, while `https://github.com/sanghyunna/readable-studio/plugins/` renders the public browser
    and detail pages over that same source data.
 
 **Yanking** uses the same PR shape with a `yanked: true, reason: "..."` patch
@@ -289,10 +289,10 @@ the archive remains reachable and integrity matches.
 readable plugin install <name>[@<range>]
   → daemon iterates configured backends in trust order
   → first match: download tarball, verify SHA-256, extract to
-    .od/plugins/<name>/<version>/, write InstalledPluginRecord with
+    .readable-studio/plugins/<name>/<version>/, write InstalledPluginRecord with
     full provenance (sourceMarketplaceId, marketplaceTrust, source URL,
     sourceDigest, resolved ref)
-  → record into .od/od-plugin-lock.json for reproducibility
+  → record into .readable-studio/readable-plugin-lock.json for reproducibility
 ```
 
 `readable plugin upgrade [--policy latest|pinned]` re-resolves against lockfile and
@@ -304,7 +304,7 @@ swap symlink, rollback on failure).
 - `gh` is a first-class dependency of `readable` registry workflows. Installing
   `readable` should ensure `gh` is present when the platform channel can bootstrap
   it; otherwise the installer fails with exact remediation.
-- `readable plugin login` wraps `gh auth login` with Open Design copy, scopes, and
+- `readable plugin login` wraps `gh auth login` with Readable Studio copy, scopes, and
   host guidance. `readable plugin whoami` wraps `gh auth status` plus `gh api user`.
 - `readable plugin logout` may wrap `gh auth logout`, but only after explicit
   confirmation because it affects the user's global GitHub CLI session.
@@ -320,11 +320,11 @@ swap symlink, rollback on failure).
 
 Two consumers of the same `marketplace.json`:
 
-- **Official site (open-design.ai/plugins)** — static, SSG against
+- **Official site (readable-studio.ai/plugins)** — static, SSG against
   repo-owned `plugins/registry/*/readable-studio-marketplace.json` sources. Browse,
   search, copy install command, render plugin details, preview asset,
   capability & permission summary, version history, publisher links, and
-  canonical SEO pages. `open-design.ai/marketplace` can be kept as an alias
+  canonical SEO pages. `readable-studio.ai/marketplace` can be kept as an alias
   once routes are finalized.
 - **Self-hosted third-party site** — out of the box, anyone running the
   same registry repo template gets the static site as a copy-paste
@@ -372,11 +372,11 @@ This repo now has the first registry closure in place:
   verified and can also hydrate bundled preinstalls; `community` is restricted
   by default and feeds Available entries for user-initiated installs.
 - Bundled official plugins now carry `sourceMarketplaceId=official` and
-  `sourceMarketplaceEntryName=open-design/<plugin-id>`, so they are modeled as
+  `sourceMarketplaceEntryName=readable-studio/<plugin-id>`, so they are modeled as
   preinstalled official registry entries while keeping offline first-run bytes
   in the runtime image.
 - `readable plugin login` and `readable plugin whoami` now delegate to `gh`, and
-  registry publishing now has three paths: `--to open-design` produces the
+  registry publishing now has three paths: `--to readable-studio` produces the
   human review target/link, `--to marketplace-json --catalog <path>` upserts a
   self-hosted static catalog entry, and `GithubRegistryBackend.publish/yank`
   produces deterministic PR mutation payloads for a real GitHub mutator.
@@ -397,7 +397,7 @@ This repo now has the first registry closure in place:
 - `apps/landing-page` now exposes the public SEO renderer at `/plugins/` plus
   static per-plugin detail pages. It reads `plugins/registry/official`,
   `plugins/registry/community`, and bundled official manifests at build time,
-  so open-design.ai can show the ecosystem without calling daemon APIs.
+  so readable-studio.ai can show the ecosystem without calling daemon APIs.
 - The `Create plugin` product prompt is agent-assisted and explicitly drives
   scaffold/validate/local install/pack/login/whoami/publish expectations.
 - Registry evaluation cases now live in
@@ -450,12 +450,12 @@ first, headless, JSON-emitting.
   - `readable plugin upgrade [--policy latest|pinned]`
   - `readable plugin yank <name>@<version> --reason "..."`
   - `readable plugin info <name> [--version <v>] [--json]`
-  - `readable plugin login` -> wraps `gh auth login` with OD-specific host/scope guidance.
+  - `readable plugin login` -> wraps `gh auth login` with Readable Studio-specific host/scope guidance.
   - `readable plugin whoami` -> wraps `gh auth status` plus `gh api user`.
   These now cover marketplace plugins/search/doctor/login, versioned install,
   policy-aware upgrade, marketplace info, yanking, and gh-backed login/whoami.
 - [x] **P1.2 GitHub backend module.** `apps/daemon/src/registry/github-backend.ts`
-  implements `RegistryBackend` against `open-design/plugin-registry`. Uses
+  implements `RegistryBackend` against `readable-studio/plugin-registry`. Uses
   raw HTTPS/static reads and a narrow mutation client for PR creation, keeping
   `gh`/GitHub auth outside daemon persistence.
 - [x] **P1.3 Publish orchestrator, first mutation-capable slice.**
@@ -463,7 +463,7 @@ first, headless, JSON-emitting.
   PR payloads; `readable plugin publish --to marketplace-json --catalog <path>`
   covers self-hosted static catalogs. The release-upload/fork/branch executor
   remains an adapter on top of the tested mutation contract.
-- [x] **P1.4 Lockfile.** `.od/od-plugin-lock.json` records resolved
+- [x] **P1.4 Lockfile.** `.readable-studio/readable-plugin-lock.json` records resolved
   `name@version` + integrity + `sourceMarketplaceId`. `readable plugin install`
   honors lock on second run; `readable plugin upgrade` rewrites it.
 - [x] **P1.5 Private GitHub catalog auth.** `readable marketplace login <id>`
@@ -511,15 +511,15 @@ first, headless, JSON-emitting.
 
 ### P3 — Official website + ecosystem
 
-- [x] **P3.1 Stand up `open-design/plugin-registry` repo shape.** Schema, validation
+- [x] **P3.1 Stand up `readable-studio/plugin-registry` repo shape.** Schema, validation
   workflow, index-publishing workflow, OWNERS, contribution guide. Seed with
   the bundled plugins currently shipped in `plugins/_official/`. The local repo
   now carries the source shape and generated registry inputs; creating the
   external GitHub repo is an operational launch step, not a code blocker.
 - [x] **P3.2 Static site renderer.** `apps/landing-page` now
-  statically generates `open-design.ai/plugins` and per-plugin detail routes
+  statically generates `readable-studio.ai/plugins` and per-plugin detail routes
   from `plugins/registry/*/readable-studio-marketplace.json` plus bundled official
-  manifests, with SEO metadata, search JSON, and `od://` detail links.
+  manifests, with SEO metadata, search JSON, and `readable-studio://` detail links.
 - [x] **P3.3 Submission guide.** `docs/publishing-a-plugin.md` + zh-CN. The
   guide must be runnable end-to-end with `readable plugin init` →
   `readable plugin pack` → `readable plugin publish`, no manual JSON editing.
@@ -542,7 +542,7 @@ first, headless, JSON-emitting.
 
 - [x] **P4.1 DB-backed RegistryBackend.** Same interface, SQLite or Postgres.
   Validates R2.
-- [x] **P4.2 Search index.** Static `open-design.ai/plugins/search.json`
+- [x] **P4.2 Search index.** Static `readable-studio.ai/plugins/search.json`
   exposes the website search index; CLI still works against
   `marketplace.json` directly. Typesense/Meilisearch can replace the static
   file later without changing registry semantics.
@@ -582,8 +582,8 @@ first, headless, JSON-emitting.
 
 - [ ] `R1`–`R6` invariants each have a regression test that fails when
   violated.
-- [ ] A third party can fork `open-design/plugin-registry`, change two
-  config values, run one workflow, and have a working OD plugin source at
+- [ ] A third party can fork `readable-studio/plugin-registry`, change two
+  config values, run one workflow, and have a working Readable Studio plugin source at
   their own URL — verified with an e2e fixture catalog.
 - [ ] Every UI action in `PluginsView.tsx` Sources/Available tabs is
   expressible as one `readable` CLI invocation, verified by a script that drives

@@ -694,7 +694,7 @@
 /* Heads-up banner shown while a Sign-in flow is awaiting callback. xAI
    sometimes renders a "Cannot connect" page that misleads the user into
    thinking auth failed; this banner tells them to ignore that page and
-   stay on the OD panel. */
+   stay on the Readable Studio panel. */
 .xai-oauth-warning {
   font-size: 12px;
   line-height: 1.5;
@@ -1197,7 +1197,7 @@
   font-size: 11.5px;
 }
 
-/* Preview hero — promotes the manifest's `od.useCase.exampleOutputs`
+/* Preview hero — promotes the manifest's `readable.useCase.exampleOutputs`
    to a glanceable iframe so reviewers see what the plugin actually
    produces before reading the workflow stages. The browser-chrome
    shell (traffic lights + URL pill) signals "this is a sandboxed

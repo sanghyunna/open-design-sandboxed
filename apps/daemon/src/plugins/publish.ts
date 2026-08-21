@@ -11,8 +11,8 @@
 //   - awesome-agent-skills   → VoltAgent/awesome-agent-skills
 //   - clawhub                → openclaw/clawhub
 //   - skills-sh              → skills.sh discovery hint
-//   - open-design            → sanghyunna/readable-studio (plugins/community/<plugin-name>/).
-//                              The dedicated `open-design/plugin-registry` repo per
+//   - readable-studio            → sanghyunna/readable-studio (plugins/community/<plugin-name>/).
+//                              The dedicated `readable-studio/plugin-registry` repo per
 //                              docs/plans/plugin-registry.md §1.2 stays the long-term
 //                              target, but submissions land in the monorepo until
 //                              that operational launch step happens — keeping the
@@ -27,7 +27,7 @@ export type PublishCatalog =
   | 'awesome-agent-skills'
   | 'clawhub'
   | 'skills-sh'
-  | 'open-design';
+  | 'readable-studio';
 
 export interface PublishMetadata {
   // Plugin name + version come from the manifest. The repo URL is the
@@ -95,7 +95,7 @@ const KNOWN_TARGETS = new Set<PublishCatalog>([
   'awesome-agent-skills',
   'clawhub',
   'skills-sh',
-  'open-design',
+  'readable-studio',
 ]);
 
 export function buildPublishLink(args: {
@@ -142,7 +142,7 @@ export function buildPublishLink(args: {
         ].join('\n'),
       };
     }
-    case 'open-design': {
+    case 'readable-studio': {
       const bodyWithRegistry = [
         body,
         '',

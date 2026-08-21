@@ -21,7 +21,7 @@ function policyFor(name: string): ToolBuildMetadataPolicy {
 }
 
 async function createToolFixture(name: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), `open-design-${name}-`));
+  const root = await mkdtemp(join(tmpdir(), `readable-studio-${name}-`));
   await mkdir(join(root, "src"), { recursive: true });
   await writeFile(join(root, "src", "index.ts"), "export const value = 1;\n", "utf8");
   await writeFile(join(root, "package.json"), JSON.stringify({ name, private: true }, null, 2), "utf8");

@@ -27,7 +27,7 @@ function commentAttachment(
     order: 1,
     filePath: 'deck.html',
     elementId: 'el-1',
-    selector: '[data-od-id="el-1"]',
+    selector: '[data-readable-id="el-1"]',
     label: 'span.capsule.accent',
     comment: 'make it white',
     currentText: 'DTC launches',
@@ -42,10 +42,10 @@ describe('preview comment attachment helpers', () => {
     const target = targetFromSnapshot({
       filePath: 'index.html',
       elementId: 'hero-title',
-      selector: '[data-od-id="hero-title"]',
+      selector: '[data-readable-id="hero-title"]',
       label: 'h1.hero-title',
       text: `  ${'Title '.repeat(80)}  `,
-      htmlHint: `<h1 class="hero-title" data-od-id="hero-title">${'x'.repeat(240)}</h1>`,
+      htmlHint: `<h1 class="hero-title" data-readable-id="hero-title">${'x'.repeat(240)}</h1>`,
       position: { x: 10.4, y: 20.5, width: 300.2, height: 88.8 },
       style: {
         color: 'rgb(26, 25, 22)',
@@ -105,7 +105,7 @@ describe('preview comment attachment helpers', () => {
     const content = messageContentWithCommentAttachments('Make the title factual', contextOnly);
 
     expect(content).toContain('Make the title factual');
-    expect(content).toContain('selector: [data-od-id="hero-title"]');
+    expect(content).toContain('selector: [data-readable-id="hero-title"]');
     expect(content).not.toContain('comment: Make the title factual');
   });
 
@@ -133,29 +133,29 @@ describe('preview comment attachment helpers', () => {
       target: {
         filePath: 'atlas.html',
         elementId: 'pod-1',
-        selector: '[data-od-id="hero"], [data-od-id="chart"]',
+        selector: '[data-readable-id="hero"], [data-readable-id="chart"]',
         label: 'Hero and chart',
         text: 'Hero title Chart value',
         position: { x: 10, y: 20, width: 300, height: 200 },
-        htmlHint: '<section data-od-id="hero">',
+        htmlHint: '<section data-readable-id="hero">',
         selectionKind: 'pod',
         memberCount: 2,
         podMembers: [
           {
             elementId: 'hero',
-            selector: '[data-od-id="hero"]',
+            selector: '[data-readable-id="hero"]',
             label: 'section.hero',
             text: 'Hero title',
             position: { x: 10, y: 20, width: 200, height: 100 },
-            htmlHint: '<section data-od-id="hero">',
+            htmlHint: '<section data-readable-id="hero">',
           },
           {
             elementId: 'chart',
-            selector: '[data-od-id="chart"]',
+            selector: '[data-readable-id="chart"]',
             label: 'section.chart',
             text: 'Chart value',
             position: { x: 120, y: 80, width: 190, height: 120 },
-            htmlHint: '<section data-od-id="chart">',
+            htmlHint: '<section data-readable-id="chart">',
           },
         ],
       },
@@ -177,11 +177,11 @@ describe('preview comment attachment helpers', () => {
       target: {
         filePath: 'atlas.html',
         elementId: 'hero-title',
-        selector: '[data-od-id="hero-title"]',
+        selector: '[data-readable-id="hero-title"]',
         label: 'Hero title',
-        text: 'Open Design',
+        text: 'Readable Studio',
         position: { x: 10, y: 20, width: 300, height: 80 },
-        htmlHint: '<h1 data-od-id="hero-title">',
+        htmlHint: '<h1 data-readable-id="hero-title">',
         selectionKind: 'element',
       },
       notes: [],
@@ -230,37 +230,37 @@ describe('preview comment attachment helpers', () => {
       target: {
         filePath: 'atlas.html',
         elementId: 'pod-2',
-        selector: '[data-od-id="card"]',
+        selector: '[data-readable-id="card"]',
         label: 'Card pod',
         text: 'Heading Body CTA',
         position: { x: 20, y: 30, width: 240, height: 160 },
-        htmlHint: '<section data-od-id="card">',
+        htmlHint: '<section data-readable-id="card">',
         selectionKind: 'pod',
         memberCount: 3,
         podMembers: [
           {
             elementId: 'card-heading',
-            selector: '[data-od-id="card-heading"]',
+            selector: '[data-readable-id="card-heading"]',
             label: 'h2.card-heading',
             text: 'Heading',
             position: { x: 24, y: 34, width: 100, height: 32 },
-            htmlHint: '<h2 data-od-id="card-heading">',
+            htmlHint: '<h2 data-readable-id="card-heading">',
           },
           {
             elementId: 'card-body',
-            selector: '[data-od-id="card-body"]',
+            selector: '[data-readable-id="card-body"]',
             label: 'p.card-body',
             text: 'Body',
             position: { x: 24, y: 72, width: 180, height: 48 },
-            htmlHint: '<p data-od-id="card-body">',
+            htmlHint: '<p data-readable-id="card-body">',
           },
           {
             elementId: 'card-cta',
-            selector: '[data-od-id="card-cta"]',
+            selector: '[data-readable-id="card-cta"]',
             label: 'button.card-cta',
             text: 'CTA',
             position: { x: 24, y: 128, width: 96, height: 32 },
-            htmlHint: '<button data-od-id="card-cta">',
+            htmlHint: '<button data-readable-id="card-cta">',
           },
         ],
       },
@@ -292,7 +292,7 @@ describe('preview comment attachment helpers', () => {
     expect(overlayBoundsFromSnapshot({
       filePath: 'index.html',
       elementId: 'hero-title',
-      selector: '[data-od-id="hero-title"]',
+      selector: '[data-readable-id="hero-title"]',
       label: 'h1.hero-title',
       text: '',
       htmlHint: '',
@@ -311,7 +311,7 @@ describe('preview comment attachment helpers', () => {
       ['hero-title', {
         filePath: 'index.html',
         elementId: 'hero-title',
-        selector: '[data-od-id="hero-title"]',
+        selector: '[data-readable-id="hero-title"]',
         label: 'h1.hero-title',
         text: '',
         htmlHint: '',
@@ -326,7 +326,7 @@ describe('preview comment attachment helpers', () => {
   it('rehydrates saved free-pin markers from persisted comment position after iframe reload', () => {
     const saved = comment({
       elementId: 'pin-abc123',
-      selector: '[data-od-pin="pin-abc123"]',
+      selector: '[data-readable-pin="pin-abc123"]',
       label: 'pin',
       text: '',
       htmlHint: '',
@@ -336,7 +336,7 @@ describe('preview comment attachment helpers', () => {
     expect(liveSnapshotForComment(saved, new Map())).toMatchObject({
       filePath: 'index.html',
       elementId: 'pin-abc123',
-      selector: '[data-od-pin="pin-abc123"]',
+      selector: '[data-readable-pin="pin-abc123"]',
       label: 'pin',
       position: { x: 88, y: 144, width: 24, height: 24 },
     });
@@ -348,7 +348,7 @@ describe('preview comment attachment helpers', () => {
       ['hero-title', {
         filePath: 'index.html',
         elementId: 'hero-title',
-        selector: '[data-od-id="hero-title"]',
+        selector: '[data-readable-id="hero-title"]',
         label: 'h1.hero-title',
         text: '',
         htmlHint: '',
@@ -369,7 +369,7 @@ describe('preview comment attachment helpers', () => {
     const base: PreviewCommentSnapshot = {
       filePath: 'index.html',
       elementId: 'hero-title',
-      selector: '[data-od-id="hero-title"]',
+      selector: '[data-readable-id="hero-title"]',
       label: 'h1.hero-title',
       text: 'Hello',
       htmlHint: '',
@@ -403,7 +403,7 @@ describe('preview comment attachment helpers', () => {
 
     expect(content).toContain('(No extra typed instruction.)');
     expect(content).toContain('<attached-preview-comments>');
-    expect(content).toContain('selector: [data-od-id="hero-title"]');
+    expect(content).toContain('selector: [data-readable-id="hero-title"]');
     expect(content).toContain('computedStyle: color: rgb(26, 25, 22)');
     expect(content).toContain('fontSize: 13.5px');
     expect(content).toContain('comment: Only shorten this title');
@@ -460,11 +460,11 @@ function comment(patch: Partial<PreviewComment>): PreviewComment {
     conversationId: 'conversation-1',
     filePath: 'index.html',
     elementId: 'hero-title',
-    selector: '[data-od-id="hero-title"]',
+    selector: '[data-readable-id="hero-title"]',
     label: 'h1.hero-title',
     text: 'Current title',
     position: { x: 1, y: 2, width: 3, height: 4 },
-    htmlHint: '<h1 data-od-id="hero-title">',
+    htmlHint: '<h1 data-readable-id="hero-title">',
     note: 'Comment',
     status: 'open',
     createdAt: 1,

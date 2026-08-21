@@ -175,25 +175,25 @@ export async function assertExternalAssetUrl(
 }
 
 // Aggressive but not punitive — happy paths usually return in under 2 s.
-// Override with OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS for slow networks
+// Override with READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS for slow networks
 // or distant providers; invalid values fall back to the default.
 const DEFAULT_PROVIDER_TIMEOUT_MS = 12_000;
 const LOOPBACK_NO_PROXY_TOKENS = ['localhost', '127.0.0.1', '[::1]'] as const;
 // CLI boot time is dominated by adapter auth/session restore; the heavy
 // adapters (Codex, Cursor Agent) regularly take 5–10 s on a cold first
 // run, so 45 s leaves headroom without making a hung child invisible.
-// Override with OD_CONNECTION_TEST_AGENT_TIMEOUT_MS.
+// Override with READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS.
 const DEFAULT_AGENT_TIMEOUT_MS = 45_000;
 // Node's `setTimeout` silently clamps any delay above this to ~1 ms
 // (with a TimeoutOverflowWarning), so an override meant to *extend*
-// the budget — e.g. `OD_CONNECTION_TEST_AGENT_TIMEOUT_MS=3000000000` —
+// the budget — e.g. `READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS=3000000000` —
 // would actually make every connection test fail almost immediately.
 // Reject above the cap so the safety timeout cannot be accidentally
 // disarmed by an oversized env value.
 const MAX_CONNECTION_TEST_TIMEOUT_MS = 2_147_483_647;
 
 export function resolveConnectionTestTimeoutMs(
-  key: 'OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS' | 'OD_CONNECTION_TEST_AGENT_TIMEOUT_MS',
+  key: 'READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS' | 'READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS',
   fallback: number,
   env: NodeJS.ProcessEnv = process.env,
 ): number {
@@ -211,7 +211,7 @@ export function resolveConnectionTestTimeoutMs(
 
 function providerTimeoutMs(): number {
   return resolveConnectionTestTimeoutMs(
-    'OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS',
+    'READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS',
     DEFAULT_PROVIDER_TIMEOUT_MS,
   );
 }
@@ -231,7 +231,7 @@ export function agentTimeoutMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
   return resolveConnectionTestTimeoutMs(
-    'OD_CONNECTION_TEST_AGENT_TIMEOUT_MS',
+    'READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS',
     defaultAgentTimeoutMs(def),
     env,
   );
@@ -1065,7 +1065,7 @@ function buildProviderCall(input: ProviderTestRequest): ProviderCallShape {
           'content-type': 'application/json',
           authorization: `Bearer ${apiKey}`,
           ...(new URL(baseUrl).hostname === 'openrouter.ai' ? {
-            'HTTP-Referer': 'https://opendesign.dev',
+            'HTTP-Referer': 'https://github.com/sanghyunna/readable-studio',
             'X-Title': 'Readable Studio',
           } : {}),
         },
@@ -1721,7 +1721,7 @@ async function testAgentConnectionInternal(
     };
   }
 
-  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-'));
+  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-'));
   let child: AgentChild | null = null;
   let childExit: Promise<AgentChildExit> | null = null;
   let childClosed = false;

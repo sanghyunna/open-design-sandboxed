@@ -19,7 +19,7 @@ e.g. ALL CAPS always needs ≥0.06em tracking, regardless of the brand.
 
 ## How a skill opts in
 
-Add an `od.craft.requires` array to the skill's front-matter. Only the
+Add an `readable.craft.requires` array to the skill's front-matter. Only the
 listed sections are injected, so a skill that needs only typography pays
 no token cost for color/motion content.
 
@@ -92,5 +92,5 @@ PRs as we wire the linter side.
 Craft content is adapted from the MIT-licensed
 [refero_skill](https://github.com/referodesign/refero_skill) project
 (© Refero Design), with edits to fit Readable Studio's house style and link
-back to OD's design tokens (`var(--accent)` etc.) instead of generic
+back to Readable Studio's design tokens (`var(--accent)` etc.) instead of generic
 Tailwind hex values.

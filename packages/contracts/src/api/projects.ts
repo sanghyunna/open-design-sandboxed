@@ -80,7 +80,7 @@ export interface ProjectMetadata {
   entryFile?: string;
   sourceFileName?: string;
   // Folder-import (#597): when set, the project's files live under this
-  // absolute path instead of .od/projects/<id>/. OD reads and writes
+  // absolute path instead of .readable-studio/projects/<id>/. Readable Studio reads and writes
   // directly inside the user's folder. Stored as the realpath() result so
   // symlinks can't redirect writes after import time.
   baseDir?: string;
@@ -187,7 +187,7 @@ export interface Conversation {
 
 export interface CreateProjectRequest {
   name: string;
-  /** Optional project library location id. Omit or use `default` for .od/projects. */
+  /** Optional project library location id. Omit or use `default` for .readable-studio/projects. */
   projectLocationId?: string;
   skillId?: string | null;
   designSystemId?: string | null;
@@ -271,8 +271,8 @@ export interface ScanProjectLocationsResponse {
 
 // POST /api/import/folder — create a project rooted at an existing local
 // folder. The submitted baseDir is stored as the project's metadata.baseDir
-// (after realpath canonicalization) and OD reads/writes directly inside it.
-// The user owns version control; OD does not snapshot or copy.
+// (after realpath canonicalization) and Readable Studio reads/writes directly inside it.
+// The user owns version control; Readable Studio does not snapshot or copy.
 export interface ImportFolderRequest {
   baseDir: string;
   name?: string;

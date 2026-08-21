@@ -1034,10 +1034,10 @@ export async function runDesignSystemPackageAuditCli(args: string[]): Promise<{ 
 }
 
 async function fetchDaemonAudit(projectId: string): Promise<DesignSystemPackageAudit> {
-  const daemonUrl = process.env.OD_DAEMON_URL;
-  const token = process.env.OD_TOOL_TOKEN;
-  if (!daemonUrl) throw new Error('OD_DAEMON_URL is required for --project-id audit');
-  if (!token) throw new Error('OD_TOOL_TOKEN is required for --project-id audit');
+  const daemonUrl = process.env.READABLE_DAEMON_URL;
+  const token = process.env.READABLE_TOOL_TOKEN;
+  if (!daemonUrl) throw new Error('READABLE_DAEMON_URL is required for --project-id audit');
+  if (!token) throw new Error('READABLE_TOOL_TOKEN is required for --project-id audit');
 
   const url = new URL(`/api/projects/${encodeURIComponent(projectId)}/design-system-package-audit`, daemonUrl);
   const response = await fetch(url, {

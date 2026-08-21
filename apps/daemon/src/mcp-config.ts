@@ -7,7 +7,7 @@
 // `mcpServers` parameter) so the agent surfaces their tools to the model.
 //
 // Storage: <dataDir>/mcp-config.json with shape `{ servers: [...] }`. The
-// dataDir resolution mirrors app-config.ts so OD_DATA_DIR / packaged daemon
+// dataDir resolution mirrors app-config.ts so READABLE_DATA_DIR / packaged daemon
 // runtime layouts route this file alongside the rest of the runtime state.
 //
 // We deliberately keep the schema close to Claude Code's `.mcp.json` and
@@ -672,7 +672,7 @@ export const MCP_TEMPLATES: McpTemplate[] = [
     id: 'imagician',
     label: 'Imagician (image post-processing)',
     description:
-      'Local sharp-based image editor: resize, crop, rotate, flip, format conversion (JPEG / PNG / WebP / AVIF), compression and batch operations. Pairs naturally with the generation MCPs above so the agent can polish a freshly rendered artifact before saving it under .od/artifacts/. No auth, no network — all operations run locally on absolute file paths.',
+      'Local sharp-based image editor: resize, crop, rotate, flip, format conversion (JPEG / PNG / WebP / AVIF), compression and batch operations. Pairs naturally with the generation MCPs above so the agent can polish a freshly rendered artifact before saving it under .readable-studio/artifacts/. No auth, no network — all operations run locally on absolute file paths.',
     transport: 'stdio',
     category: 'image-editing',
     homepage: 'https://github.com/flowy11/imagician',

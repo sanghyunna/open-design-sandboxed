@@ -709,7 +709,7 @@ async function loadHostedCatalogue(resourceRoot?: string): Promise<HostedCatalog
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   const workspaceRoot = resolveProjectRoot(moduleDir);
   const root = exactResourceRoot(
-    resourceRoot ?? process.env.OD_RESOURCE_ROOT ?? workspaceRoot,
+    resourceRoot ?? process.env.READABLE_RESOURCE_ROOT ?? workspaceRoot,
   );
   const skillsRoot = path.join(root, 'skills');
   const designSystemsRoot = path.join(root, 'design-systems');

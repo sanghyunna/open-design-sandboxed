@@ -21,12 +21,12 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
   await mkdir(join(workspaceRoot, "packages", "platform", "dist", "native", "win32"), { recursive: true });
   await mkdir(join(workspaceRoot, "packages", "platform", "native", "win32"), { recursive: true });
   await writeFile(
-    join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "od-agent-isolator.exe"),
+    join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "readable-studio-agent-isolator.exe"),
     "fake deterministic isolator\n",
     "utf8",
   );
   await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "build.ps1"), "# build\n", "utf8");
-  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "od-agent-isolator.cpp"), "// source\n", "utf8");
+  await writeFile(join(workspaceRoot, "packages", "platform", "native", "win32", "readable-studio-agent-isolator.cpp"), "// source\n", "utf8");
   await mkdir(join(workspaceRoot, "skills", "sample"), { recursive: true });
   await mkdir(join(workspaceRoot, "design-templates", "orbit-general"), {
     recursive: true,
@@ -75,9 +75,9 @@ async function createWorkspaceFixture(workspaceRoot: string): Promise<void> {
 
 describe("prepareResourceTree", () => {
   it("keeps pure portable zip resource packaging on the cache tree", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-resources-cache-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-resources-cache-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const cache = new ToolPackCache(join(root, "cache"));
     const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
@@ -106,7 +106,7 @@ describe("prepareResourceTree", () => {
       ).resolves.toBe("{\"name\":\"dario\"}\n");
       await expect(access(join(result.resourceRoot, "bin", "node.exe"))).resolves.toBeUndefined();
       await expect(
-        readFile(join(result.resourceRoot, "bin", "od-agent-isolator.exe"), "utf8"),
+        readFile(join(result.resourceRoot, "bin", "readable-studio-agent-isolator.exe"), "utf8"),
       ).resolves.toBe("fake deterministic isolator\n");
       expect(cache.report().entries.at(-1)?.materialized).toEqual([]);
     } finally {
@@ -115,9 +115,9 @@ describe("prepareResourceTree", () => {
   });
 
   it("invalidates the Windows resource tree cache when design templates change", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-resources-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-resources-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const cache = new ToolPackCache(join(root, "cache"));
     const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
@@ -161,9 +161,9 @@ describe("prepareResourceTree", () => {
   });
 
   it("invalidates the Windows resource tree cache when the plugin-preview manifest changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-previews-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-previews-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const cache = new ToolPackCache(join(root, "cache"));
     const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
@@ -207,9 +207,9 @@ describe("prepareResourceTree", () => {
   });
 
   it("materializes a bundled node.exe copied from process.execPath", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-node-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-node-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const sourceRoot = join(root, "source");
     const nodePath = join(sourceRoot, "node.exe");
     const cache = new ToolPackCache(join(root, "cache"));
@@ -235,9 +235,9 @@ describe("prepareResourceTree", () => {
   });
 
   it("invalidates the Windows resource tree cache when the bundled Node binary changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-node-cache-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-node-cache-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const sourceRoot = join(root, "source");
     const nodePath = join(sourceRoot, "node.exe");
     const cache = new ToolPackCache(join(root, "cache"));
@@ -272,13 +272,13 @@ describe("prepareResourceTree", () => {
   });
 
   it("invalidates the Windows resource tree cache when the isolator source changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-isolator-cache-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-isolator-cache-"));
     const workspaceRoot = join(root, "workspace");
-    const resourceRoot = join(root, "materialized", "open-design");
+    const resourceRoot = join(root, "materialized", "readable-studio");
     const cache = new ToolPackCache(join(root, "cache"));
     const config = { workspaceRoot } as ToolPackConfig;
     const paths = { resourceRoot } as WinPaths;
-    const source = join(workspaceRoot, "packages", "platform", "native", "win32", "od-agent-isolator.cpp");
+    const source = join(workspaceRoot, "packages", "platform", "native", "win32", "readable-studio-agent-isolator.cpp");
 
     try {
       await createWorkspaceFixture(workspaceRoot);

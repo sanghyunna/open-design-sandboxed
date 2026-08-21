@@ -289,7 +289,7 @@ function injectTitle(doc: string, title: string): string {
 }
 
 function injectPrintStylesheet(doc: string, css: string): string {
-  const tag = `<style data-od-desktop-pdf>${css}</style>`;
+  const tag = `<style data-readable-desktop-pdf>${css}</style>`;
   if (/<\/head>/i.test(doc)) return doc.replace(/<\/head>/i, `${tag}</head>`);
   if (/<head[^>]*>/i.test(doc)) return doc.replace(/<head[^>]*>/i, (match) => `${match}${tag}`);
   return `${tag}${doc}`;

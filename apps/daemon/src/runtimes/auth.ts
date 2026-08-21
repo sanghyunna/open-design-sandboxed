@@ -26,7 +26,7 @@ const DEEPSEEK_AUTH_GUIDANCE =
 // Google sign-in URL to stdout, waits 30s for completion, then exits
 // "Error: authentication timed out." That URL points at a callback page
 // that asks the user to paste the resulting auth code BACK into agy —
-// which only works in the interactive TUI. So in OD's chat, surfacing
+// which only works in the interactive TUI. So in Readable Studio's chat, surfacing
 // the raw URL is a dead end (no input field to paste the code into).
 // Instead we ask the user to run `agy` in a terminal once, which opens
 // the browser, completes OAuth, and writes the credentials to the
@@ -44,7 +44,7 @@ const ANTIGRAVITY_AUTH_GUIDANCE =
 // without log inspection the daemon misreads it as missing-OAuth.
 // Guidance points the user at agy's TUI Switch-Model picker because
 // (a) different models have separate quotas, and (b) we can't drive
-// the picker from OD until upstream issue #35 ships a `--model`
+// the picker from Readable Studio until upstream issue #35 ships a `--model`
 // flag — see antigravity.ts notes.
 const ANTIGRAVITY_QUOTA_GUIDANCE =
   'Antigravity returned "RESOURCE_EXHAUSTED: Individual quota reached" for the current model. Each Antigravity model (Gemini 3 Pro / Flash, Claude 4.6, GPT-OSS) has its own quota.\n\nFix: open `agy` in a terminal and use its Switch Model picker (the menu at the bottom of the TUI) to pick a model with available quota, then retry here. Readable Studio uses whatever model you pick in agy\'s TUI when the Settings model picker is left on "Default". Quotas reset automatically on Antigravity\'s schedule.';

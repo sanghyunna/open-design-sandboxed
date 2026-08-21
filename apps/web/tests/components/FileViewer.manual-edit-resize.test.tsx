@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 describe('FileViewer manual edit resize handles', () => {
-  const SOURCE = '<!doctype html><html><body><main data-od-id="hero">Hero</main></body></html>';
+  const SOURCE = '<!doctype html><html><body><main data-readable-id="hero">Hero</main></body></html>';
 
   async function previewFrame() {
     return waitFor(() => {
@@ -36,7 +36,7 @@ describe('FileViewer manual edit resize handles', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target },
+        data: { type: 'readable-edit-select', target },
         source: frame.contentWindow,
       }));
     });
@@ -84,7 +84,7 @@ describe('FileViewer manual edit resize handles', () => {
     const se = seHandle();
     const sendHover = () => act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-hover', target: { ...heroTarget(), id: 'hovered' } },
+        data: { type: 'readable-edit-hover', target: { ...heroTarget(), id: 'hovered' } },
         source: frame.contentWindow,
       }));
     });
@@ -93,7 +93,7 @@ describe('FileViewer manual edit resize handles', () => {
     postSpy.mockClear();
 
     fireEvent.pointerEnter(se, { clientX: 300, clientY: 150 });
-    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+    expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-hover-reset' }, '*');
 
     sendHover();
     await waitFor(() => expect(screen.getByTestId('manual-edit-hover-open')).toBeTruthy());
@@ -101,13 +101,13 @@ describe('FileViewer manual edit resize handles', () => {
     fireEvent.pointerDown(se, { pointerId: 90, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(se, { pointerId: 90, clientX: 340, clientY: 170 });
     fireEvent.pointerCancel(se, { pointerId: 90 });
-    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+    expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-hover-reset' }, '*');
     expect(postSpy.mock.calls.some(([message]) => (
-      (message as { type?: string }).type === 'od-edit-hover-at'
+      (message as { type?: string }).type === 'readable-edit-hover-at'
     ))).toBe(false);
   });
 
-  it('streams od-edit-preview-style with width/height while dragging the SE handle', async () => {
+  it('streams readable-edit-preview-style with width/height while dragging the SE handle', async () => {
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
     vi.stubGlobal('fetch', fetchMock);
@@ -129,7 +129,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'hero',
           styles: expect.objectContaining({
             width: expect.stringMatching(/px$/),
@@ -197,7 +197,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'hero',
           resize: {
             axes: ['width', 'height'],
@@ -211,7 +211,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -234,7 +234,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 2,
           ok: true,
@@ -248,7 +248,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 3,
           ok: true,
@@ -263,7 +263,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 2,
           ok: true,
@@ -276,7 +276,7 @@ describe('FileViewer manual edit resize handles', () => {
       }));
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'other',
           version: 4,
           ok: true,
@@ -293,7 +293,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 5,
           ok: true,
@@ -332,7 +332,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       const resizePreview = postSpy.mock.calls
         .map(([message]) => message as { type?: string; version?: number; resize?: unknown })
-        .find((message) => message.type === 'od-edit-preview-style' && message.resize);
+        .find((message) => message.type === 'readable-edit-preview-style' && message.resize);
       expect(resizePreview?.version).toEqual(expect.any(Number));
       resizeVersion = resizePreview?.version ?? 0;
     });
@@ -343,7 +343,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'hero',
           version: revertVersion,
         }),
@@ -354,7 +354,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: resizeVersion,
           ok: true,
@@ -367,7 +367,7 @@ describe('FileViewer manual edit resize handles', () => {
       }));
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: revertVersion,
           ok: true,
@@ -395,7 +395,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -432,7 +432,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -459,7 +459,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 2,
           ok: true,
@@ -484,7 +484,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 3,
           ok: true,
@@ -536,7 +536,7 @@ describe('FileViewer manual edit resize handles', () => {
       );
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'hero',
           includeAuthoredSize: true,
           resize: {
@@ -548,7 +548,7 @@ describe('FileViewer manual edit resize handles', () => {
         '*',
       );
     });
-    expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*200px/);
+    expect(savedContent).toMatch(/data-readable-id="hero"[^>]*style="[^"]*width:\s*200px/);
     expect(savedContent).toMatch(/height:\s*68px/);
 
     await waitFor(() => {
@@ -659,7 +659,7 @@ describe('FileViewer manual edit resize handles', () => {
     ['before', true],
     ['after', false],
   ])('does not let a stale save replace another file when its response arrives %s the new raw response', async (_order, saveFirst) => {
-    const secondSource = '<!doctype html><html><body><main data-od-id="hero">Second file</main></body></html>';
+    const secondSource = '<!doctype html><html><body><main data-readable-id="hero">Second file</main></body></html>';
     let resolveSave!: (response: Response) => void;
     const saveResponse = new Promise<Response>((resolve) => {
       resolveSave = resolve;
@@ -921,7 +921,7 @@ describe('FileViewer manual edit resize handles', () => {
       );
     });
     // +40/+20 rect px at k=1.25 is +32/+16 CSS px on top of 400x80.
-    expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*432px/);
+    expect(savedContent).toMatch(/data-readable-id="hero"[^>]*style="[^"]*width:\s*432px/);
     expect(savedContent).toMatch(/height:\s*96px/);
   });
 
@@ -964,7 +964,7 @@ describe('FileViewer manual edit resize handles', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
-    expect(savedContent).toMatch(/data-od-id="hero"[^>]*style="[^"]*width:\s*200px/);
+    expect(savedContent).toMatch(/data-readable-id="hero"[^>]*style="[^"]*width:\s*200px/);
     expect(savedContent).toMatch(/margin-left:\s*-40px/);
   });
 
@@ -1003,7 +1003,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -1020,7 +1020,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       expect(midDragSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           styles: expect.objectContaining({ width: '210px' }),
         }),
         '*',
@@ -1043,7 +1043,7 @@ describe('FileViewer manual edit resize handles', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'hero',
           styles: expect.objectContaining({ width: '160px' }),
         }),
@@ -1096,12 +1096,12 @@ describe('FileViewer manual edit resize handles', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-preview-style', id: 'hero' }),
+        expect.objectContaining({ type: 'readable-edit-preview-style', id: 'hero' }),
         '*',
       );
     });
     const revertCall = postSpy.mock.calls.find((call) => (
-      (call[0] as { type?: string }).type === 'od-edit-preview-style'
+      (call[0] as { type?: string }).type === 'readable-edit-preview-style'
     ));
     // Revert restores the committed size (non-empty), not the pre-first-drag empty styles.
     // Margins revert too: a west/north drag preview may have shifted them.
@@ -1118,7 +1118,7 @@ describe('FileViewer manual edit resize handles', () => {
   it('tracks the element measured box from preview acks while dragging', async () => {
     // Flex/grid/min-content constraints can clamp or ignore the streamed
     // width/height, so mid-drag the handles must render the element's REAL box
-    // (fed back through the od-edit-preview-style-applied ack), not the
+    // (fed back through the readable-edit-preview-style-applied ack), not the
     // mouse-implied one.
     const fetchMock = vi.fn(async () =>
       new Response(SOURCE, { status: 200, headers: { 'Content-Type': 'text/html' } }));
@@ -1142,7 +1142,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -1192,7 +1192,7 @@ describe('FileViewer manual edit resize handles', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'hero',
           version: 1,
           ok: true,
@@ -1240,12 +1240,12 @@ describe('FileViewer manual edit resize handles', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-preview-style', id: 'hero' }),
+        expect.objectContaining({ type: 'readable-edit-preview-style', id: 'hero' }),
         '*',
       );
     });
     const revertCall = postSpy.mock.calls.find((call) => (
-      (call[0] as { type?: string }).type === 'od-edit-preview-style'
+      (call[0] as { type?: string }).type === 'readable-edit-preview-style'
     ));
     expect((revertCall?.[0] as { styles?: Record<string, unknown> }).styles).toEqual({
       width: '', height: '', marginLeft: '', marginRight: '', marginTop: '', marginBottom: '',
@@ -1286,7 +1286,7 @@ describe('FileViewer manual edit resize handles', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-preview-style', id: 'hero' }),
+        expect.objectContaining({ type: 'readable-edit-preview-style', id: 'hero' }),
         '*',
       );
     });
@@ -1311,12 +1311,12 @@ describe('FileViewer manual edit resize handles', () => {
 
     const frame = await previewFrame();
     // A geometry refresh (not a user selection) reporting the same element
-    // moved far away — this is what the deferred od-edit-targets re-broadcast
+    // moved far away — this is what the deferred readable-edit-targets re-broadcast
     // after a layout mutation looks like.
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-targets',
+          type: 'readable-edit-targets',
           targets: [{ ...heroTarget(), rect: { x: 500, y: 500, width: 160, height: 48 } }],
         },
         source: frame.contentWindow,
@@ -1343,10 +1343,10 @@ function heroTarget(): ManualEditTarget {
     text: 'Hero',
     rect: { x: 24, y: 24, width: 160, height: 48 },
     fields: { text: 'Hero' },
-    attributes: { 'data-od-id': 'hero' },
+    attributes: { 'data-readable-id': 'hero' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<main data-od-id="hero">Hero</main>',
+    outerHtml: '<main data-readable-id="hero">Hero</main>',
   };
 }
 

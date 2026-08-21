@@ -12,9 +12,9 @@ import {
   type HostedStorageIdentity,
 } from './hosted-runtime-storage.js';
 
-const SNAPSHOT_SCHEMA = 'open-design-hosted-snapshot';
-const CHECKSUM_SCHEMA = 'open-design-hosted-snapshot-checksums';
-const COMPLETION_SCHEMA = 'open-design-hosted-snapshot-complete';
+const SNAPSHOT_SCHEMA = 'readable-studio-hosted-snapshot';
+const CHECKSUM_SCHEMA = 'readable-studio-hosted-snapshot-checksums';
+const COMPLETION_SCHEMA = 'readable-studio-hosted-snapshot-complete';
 const SNAPSHOT_VERSION = 1;
 const SEQUENCE_WIDTH = 20;
 const IMMUTABLE_METADATA_FILE_COUNT = 3;
@@ -1831,7 +1831,7 @@ async function withDatabaseCopy<T>(
 ): Promise<T> {
   let root: string;
   try {
-    root = await fsp.mkdtemp(path.join(tmpdir(), 'od-hosted-snapshot-db-'));
+    root = await fsp.mkdtemp(path.join(tmpdir(), 'readable-hosted-snapshot-db-'));
   } catch (error) {
     throw new SnapshotValidationIoError(
       'hosted snapshot database validation staging failed',

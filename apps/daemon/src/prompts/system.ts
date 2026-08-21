@@ -265,7 +265,7 @@ export interface ComposeInput {
   // shipped as sibling files to DESIGN.md when available. Both fields are
   // optional; the daemon populates them by default for every brand that
   // ships `tokens.css` / `components.html` (today: `default` and
-  // `kami`). `OD_DESIGN_TOKEN_CHANNEL=0` disables the channel as a kill
+  // `kami`). `READABLE_DESIGN_TOKEN_CHANNEL=0` disables the channel as a kill
   // switch. When present they are appended AFTER the DESIGN.md block so
   // prose still sets the high-level voice and the structured form
   // disambiguates token names + worked component shapes.
@@ -289,7 +289,7 @@ export interface ComposeInput {
   designSystemFixtureHtml?: string | undefined;
   designSystemPullIndex?: string | undefined;
   designSystemImportMode?: 'normalized' | 'hybrid' | 'verbatim' | undefined;
-  // Craft references the active skill opted into via `od.craft.requires`.
+  // Craft references the active skill opted into via `readable.craft.requires`.
   // The daemon resolves the slug list to file contents and concatenates
   // them with section headers; we inject them between the DESIGN.md and
   // the skill body so brand tokens win on conflict but craft rules
@@ -340,7 +340,7 @@ export interface ComposeInput {
   // Plan §3.L2 / spec §23.4 — pre-rendered `## Active stage: <id>`
   // blocks (one per pipeline stage active for the run). The daemon's
   // pipeline runner builds these from `loadAtomBodies()` +
-  // `renderActiveStageBlock()` when the OD_BUNDLED_ATOM_PROMPTS env
+  // `renderActiveStageBlock()` when the READABLE_BUNDLED_ATOM_PROMPTS env
   // flag is set; otherwise this stays undefined and the prompt
   // composer's hard-coded constants keep their precedence (back-compat).
   activeStageBlocks?: ReadonlyArray<string> | undefined;
@@ -520,7 +520,7 @@ export function composeSystemPrompt({
 
   if (designSystemPullIndex && designSystemPullIndex.trim().length > 0) {
     parts.push(
-      `\n\n## Pull-layer files available on demand${designSystemTitle ? ` — ${designSystemTitle}` : ''}\n\nThis design-system package declares richer files for inspection, source evidence, or human preview. Keep the push prompt light: use the index below to decide what to read later. When the runtime tool environment is available, read a listed path with \`\"$OD_NODE_BIN\" \"$OD_BIN\" tools design-systems read --path <path>\`; the daemon will reject paths outside this manifest allowlist.\n\n\`\`\`text\n${designSystemPullIndex.trim()}\n\`\`\``,
+      `\n\n## Pull-layer files available on demand${designSystemTitle ? ` — ${designSystemTitle}` : ''}\n\nThis design-system package declares richer files for inspection, source evidence, or human preview. Keep the push prompt light: use the index below to decide what to read later. When the runtime tool environment is available, read a listed path with \`\"$READABLE_NODE_BIN\" \"$READABLE_BIN\" tools design-systems read --path <path>\`; the daemon will reject paths outside this manifest allowlist.\n\n\`\`\`text\n${designSystemPullIndex.trim()}\n\`\`\``,
     );
   }
 
@@ -699,7 +699,7 @@ const ROLLBACK_SELF_CORRECTION_SECTION = `## Self-correction / rollback
 
 If you make a file edit that you immediately realize was wrong (for example, you deleted content that should have been kept, overwrote the wrong file, or introduced a syntax error you cannot quickly fix), you may ask to undo your last edit by emitting:
 
-<od-rollback-request mode="files_only" reason="concise reason" />
+<readable-rollback-request mode="files_only" reason="concise reason" />
 
 - \`mode\` must be \`files_only\`; agent-requested chat restoration is not supported.
 - \`reason\` should be a short, honest explanation the user can read.

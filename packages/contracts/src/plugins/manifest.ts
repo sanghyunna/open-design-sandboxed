@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 export const READABLE_STUDIO_PLUGIN_SPEC_VERSION = '1.0.0';
 export const READABLE_STUDIO_PLUGIN_SCHEMA_ID = 'urn:readable-studio:schema:plugin-manifest:v1';
-export const UNSUPPORTED_OPEN_DESIGN_V1 = 'UNSUPPORTED_OPEN_DESIGN_V1';
+export const UNSUPPORTED_LEGACY_PRODUCT_V1 = 'UNSUPPORTED_LEGACY_PRODUCT_V1';
 
 export const ReadableStudioSpecVersionSchema = z.string().min(1);
 

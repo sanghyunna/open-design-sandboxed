@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { HostedProviderClient, HostedProviderRequestError } from '../../src/providers/hosted';
 
 const session = {
-  publicOrigin: 'https://hosted.open-design.test',
+  publicOrigin: 'https://hosted.readable-studio.test',
   csrfToken: 'csrf-one',
   csrfExpiresAt: Date.now() + 60_000,
   providers: [{ id: 'anthropic', model: 'claude-sonnet-4-20250514' }],
@@ -67,11 +67,11 @@ describe('HostedProviderClient', () => {
     expect(retry?.body).toBe(first?.body);
     expect(first?.headers).toMatchObject({
       Origin: session.publicOrigin,
-      'X-Open-Design-CSRF': 'csrf-one',
+      'X-Readable-Studio-CSRF': 'csrf-one',
     });
     expect(retry?.headers).toMatchObject({
       Origin: session.publicOrigin,
-      'X-Open-Design-CSRF': 'csrf-two',
+      'X-Readable-Studio-CSRF': 'csrf-two',
     });
   });
 

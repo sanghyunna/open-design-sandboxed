@@ -65,7 +65,7 @@ const fakeContract: SidecarContractDescriptor<FakeStamp> = {
 };
 
 describe("generic sidecar path boundary", () => {
-  it("uses descriptor defaults instead of Open Design constants", () => {
+  it("uses descriptor defaults instead of Readable Studio constants", () => {
     const sourceRoot = resolveSourceRuntimeRoot({
       contract: fakeContract,
       projectRoot: "/repo/product",

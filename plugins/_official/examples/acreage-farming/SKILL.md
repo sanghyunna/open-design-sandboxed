@@ -52,7 +52,7 @@ Pill that shrinks on scroll. At top: transparent, max-width 1240px, padding `22p
 
 ### 2. Hero (fullscreen, video background)
 `min-height:100vh`, content bottom-aligned. A `<video autoplay muted loop playsinline>` fills `inset:0` with `object-fit:cover` and a poster still. A gradient `::after` (top transparent → bottom `rgba(8,11,9,0.92)`) keeps text legible. Headline: `clamp(3rem, 8vw, 6.5rem)`, weight 800, `letter-spacing:-0.03em`, with one word in Instrument Serif italic ("every"). Sub-paragraph in `--text-muted-light`. Actions: green-bright primary button + ghost outline "Watch the film". Below: a hero-meta row of three big stats (`2.4M+ acres`, `31% yield lift`, `−40% water`).
-- Hero video: `https://plugin-assets.open-design.ai/plugins/aerocore/23211-720-e83442.mp4` (large stable CDN — keep as remote URL). Poster: an Unsplash aerial-field still (remote URL OK).
+- Hero video: `https://plugin-assets.readable-studio.ai/plugins/aerocore/23211-720-e83442.mp4` (large stable CDN — keep as remote URL). Poster: an Unsplash aerial-field still (remote URL OK).
 
 ### 3. Logo marquee
 Full-width band on `--bg-darker`, top+bottom hairline borders. Centered uppercase label, then an **infinite horizontal marquee**: a `.marquee-track` of duplicated partner logos animated `translateX(0 → -50%)` over `32s linear infinite`, paused on hover, edge-masked with a `linear-gradient` CSS mask. The track is built in JS by duplicating an 8-name partner array, each rendered as an inline leaf SVG + name. Logos are text + inline SVG only — **no remote logo images**.

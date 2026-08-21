@@ -18,7 +18,7 @@ vi.mock('../../src/i18n', () => ({
   }),
   useT: () => (key: string) => {
     const labels: Record<string, string> = {
-      'app.brand': 'Open Design',
+      'app.brand': 'Readable Studio',
       'common.close': 'Close',
       'common.untitled': 'Untitled',
       'entry.navDesignSystems': 'Design systems',
@@ -253,7 +253,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('collapses a restored two-entry-tab workspace into a single entry tab', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'entry:projects:1',
         tabs: [
@@ -285,7 +285,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('keeps a singleton Home tab when restoring a Home-less workspace and navigating back to Home', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [
@@ -331,7 +331,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
     // that state must mint a Home tab and pin it leftmost, not leave the workspace
     // Home-less until the user manually navigates home.
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [
@@ -371,7 +371,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('deduplicates and cleans up restored Home tabs from old sessions', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'entry:home:old-two',
         tabs: [
@@ -458,7 +458,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('maps the browser close-tab shortcut to the active workspace tab', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [
@@ -500,7 +500,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('switches tabs with browser-style next and previous tab shortcuts', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [
@@ -585,7 +585,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('sizes the hover preview to the hovered tab width', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'entry:home:seed',
         tabs: [
@@ -636,7 +636,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
     });
 
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [
@@ -714,7 +714,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
     expect(navigate).not.toHaveBeenCalled();
     expect(vibrate).toHaveBeenCalledWith(8);
     expect(vibrate).toHaveBeenCalledWith(12);
-    const stored = JSON.parse(window.localStorage.getItem('open-design:workspace-tabs:v1') ?? '{}') as {
+    const stored = JSON.parse(window.localStorage.getItem('readable-studio:workspace-tabs:v1') ?? '{}') as {
       activeTabId?: string;
       tabs?: Array<{ id?: string }>;
     };
@@ -728,7 +728,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
 
   it('reorders tabs live from right to left while dragging', async () => {
     window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
+      'readable-studio:workspace-tabs:v1',
       JSON.stringify({
         activeTabId: 'project:project-alpha',
         tabs: [

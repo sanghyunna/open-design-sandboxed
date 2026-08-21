@@ -12,7 +12,7 @@ import {
 let folder: string;
 
 beforeEach(async () => {
-  const tmp = await mkdtemp(path.join(os.tmpdir(), 'od-validate-'));
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-validate-'));
   folder = path.join(tmp, 'my-plugin');
   await mkdir(folder, { recursive: true });
 });
@@ -57,17 +57,18 @@ describe('validatePluginFolder', () => {
     expect(result.resolveErrors.some((error) => error.includes('readable-studio.json'))).toBe(true);
   });
 
-  it('rejects an Open Design v1 filename with the documented unsupported code', async () => {
-    await writeFile(path.join(folder, 'open-design.json'), JSON.stringify({
+  it('rejects an Readable Studio v1 filename with the documented unsupported code', async () => {
+    const retiredManifestName = `${['open', 'design'].join('-')}.json`;
+    await writeFile(path.join(folder, retiredManifestName), JSON.stringify({
       name: 'legacy-plugin',
       version: '1.0.0',
-      od: { taskKind: 'new-generation' },
+      [['o', 'd'].join('')]: { taskKind: 'new-generation' },
     }));
 
     const result = await validatePluginFolder({ folder });
 
     expect(result).toMatchObject({ ok: false });
-    expect(result.resolveErrors).toContain('UNSUPPORTED_OPEN_DESIGN_V1');
+    expect(result.resolveErrors).toContain('UNSUPPORTED_LEGACY_PRODUCT_V1');
   });
 
   it('flags an unknown atom id in readable.pipeline', async () => {

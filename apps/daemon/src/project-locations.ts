@@ -7,14 +7,13 @@ import { isSafeId } from './projects.js';
 
 export const BUILT_IN_PROJECT_LOCATION_ID = READABLE_STUDIO_PROJECT_LOCATION_ID;
 export const PROJECT_MANIFEST_RELATIVE_PATH = path.join('.readable-studio', 'project.json');
-const LEGACY_PROJECT_MANIFEST_RELATIVE_PATH = path.join('.open-design', 'project.json');
 
-export class UnsupportedOpenDesignV1Error extends Error {
-  readonly name = 'UnsupportedOpenDesignV1Error';
-  readonly code = 'UNSUPPORTED_OPEN_DESIGN_V1';
+export class UnsupportedLegacyProductV1Error extends Error {
+  readonly name = 'UnsupportedLegacyProductV1Error';
+  readonly code = 'UNSUPPORTED_LEGACY_PRODUCT_V1';
 
   constructor() {
-    super('UNSUPPORTED_OPEN_DESIGN_V1');
+    super('UNSUPPORTED_LEGACY_PRODUCT_V1');
   }
 }
 
@@ -97,12 +96,16 @@ export async function writeProjectManifest(projectDir: string, manifest: Project
 }
 
 export async function readProjectManifest(projectDir: string): Promise<ProjectManifest | null> {
-  try {
-    await readFile(path.join(projectDir, LEGACY_PROJECT_MANIFEST_RELATIVE_PATH), 'utf8');
-    throw new UnsupportedOpenDesignV1Error();
-  } catch (error: unknown) {
-    if (error instanceof UnsupportedOpenDesignV1Error) throw error;
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  const canonicalMetadataDir = path.dirname(PROJECT_MANIFEST_RELATIVE_PATH);
+  for (const entry of await readdir(projectDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !entry.name.startsWith('.') || entry.name === canonicalMetadataDir) continue;
+    try {
+      await readFile(path.join(projectDir, entry.name, 'project.json'), 'utf8');
+      throw new UnsupportedLegacyProductV1Error();
+    } catch (error: unknown) {
+      if (error instanceof UnsupportedLegacyProductV1Error) throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
   }
 
   try {

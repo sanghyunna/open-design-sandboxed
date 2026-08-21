@@ -3,7 +3,7 @@
 ## Purpose
 
 Define the post-PR1 reliability optimization plan for issue
-[#3408](https://github.com/nexu-io/open-design/issues/3408), grounded in the
+[#3408](https://github.com/nexu-io/readable-studio/issues/3408), grounded in the
 source planning document:
 
 https://powerformer.feishu.cn/wiki/KHqiw4QlRiOqBdk5SPAckSWSn0b
@@ -29,7 +29,7 @@ approximately 179k events:
 | Successful-task latency | P50 98s / P90 566s / P99 23m | P90 is 9.4 minutes across mixed task types. |
 | Successful-task tokens | Avg 360k/run | About 350k input and 9k output; cost is input/context dominated. |
 
-PR [#2453](https://github.com/nexu-io/open-design/pull/2453) already removed
+PR [#2453](https://github.com/nexu-io/readable-studio/pull/2453) already removed
 the earlier "missing `error_code`" gap after 2026-05-22. That is not part of
 this plan.
 
@@ -48,7 +48,7 @@ this plan.
 
 ## Current State After PR1
 
-PR [#3412](https://github.com/nexu-io/open-design/pull/3412) landed the first
+PR [#3412](https://github.com/nexu-io/readable-studio/pull/3412) landed the first
 observability slice:
 
 - failed `run_finished` events include structured failure fields:

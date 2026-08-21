@@ -1951,7 +1951,7 @@ describe('POST /api/test/connection agent mode', () => {
           agentId: 'amr',
           agentCliEnv: {
             amr: {
-              OPEN_DESIGN_AMR_PROFILE: 'local',
+              READABLE_AMR_PROFILE: 'local',
             },
           },
         });
@@ -1968,8 +1968,8 @@ describe('POST /api/test/connection agent mode', () => {
 
   it('resolves the AMR connection-test scope from the merged launch env', async () => {
     rememberLiveModels('amr', [{ id: 'local-env-model', label: 'local-env-model' }], 'local');
-    const previousProfile = process.env.OPEN_DESIGN_AMR_PROFILE;
-    process.env.OPEN_DESIGN_AMR_PROFILE = 'local';
+    const previousProfile = process.env.READABLE_AMR_PROFILE;
+    process.env.READABLE_AMR_PROFILE = 'local';
 
     try {
       await withFakeAgent(
@@ -1994,8 +1994,8 @@ describe('POST /api/test/connection agent mode', () => {
         },
       );
     } finally {
-      if (previousProfile === undefined) delete process.env.OPEN_DESIGN_AMR_PROFILE;
-      else process.env.OPEN_DESIGN_AMR_PROFILE = previousProfile;
+      if (previousProfile === undefined) delete process.env.READABLE_AMR_PROFILE;
+      else process.env.READABLE_AMR_PROFILE = previousProfile;
     }
   });
 
@@ -2023,7 +2023,7 @@ setImmediate(() => process.exit(0));
   });
 
   it('spawns agent tests with draft allowlisted CLI env', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-env-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-env-'));
     const envFile = path.join(markerDir, 'env.json');
     const codexHome = path.join(markerDir, 'codex-home');
     try {
@@ -2034,7 +2034,7 @@ fs.writeFileSync(${JSON.stringify(envFile)}, JSON.stringify({
   CODEX_HOME: process.env.CODEX_HOME || null,
   OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || null,
   CODEX_API_KEY: process.env.CODEX_API_KEY || null,
-  SHOULD_NOT_PASS: process.env.OD_CONNECTION_TEST_SHOULD_NOT_PASS || null,
+  SHOULD_NOT_PASS: process.env.READABLE_CONNECTION_TEST_SHOULD_NOT_PASS || null,
 }));
 console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));
 setImmediate(() => process.exit(0));
@@ -2056,7 +2056,7 @@ setImmediate(() => process.exit(0));
                   CODEX_HOME: codexHome,
                   OPENAI_BASE_URL: 'https://proxy.example.com/v1',
                   CODEX_API_KEY: 'codex-key',
-                  OD_CONNECTION_TEST_SHOULD_NOT_PASS: 'leaked',
+                  READABLE_CONNECTION_TEST_SHOULD_NOT_PASS: 'leaked',
                 },
                 claude: {
                   CLAUDE_CONFIG_DIR: path.join(markerDir, 'claude'),
@@ -2086,7 +2086,7 @@ setImmediate(() => process.exit(0));
   });
 
   it('strips stale Codex API keys when no custom OPENAI_BASE_URL is configured', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-strip-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-codex-strip-'));
     const envFile = path.join(markerDir, 'env.json');
     const codexHome = path.join(markerDir, 'codex-home');
     try {
@@ -2254,7 +2254,7 @@ process.stdin.on('end', () => {
   });
 
   it('preserves ANTHROPIC_API_KEY when Claude adapter launches the OpenClaude fallback', async () => {
-    const envFile = path.join(os.tmpdir(), `od-openclaude-env-${Date.now()}-${Math.random()}.json`);
+    const envFile = path.join(os.tmpdir(), `readable-openclaude-env-${Date.now()}-${Math.random()}.json`);
     const previousKey = process.env.ANTHROPIC_API_KEY;
     try {
       process.env.ANTHROPIC_API_KEY = 'sk-openclaude-test';
@@ -2447,7 +2447,7 @@ process.stdin.on('end', () => {
   });
 
   it('uses CODEX_BIN overrides when testing agent connections', async () => {
-    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-bin-'));
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-codex-bin-'));
     const oldPath = process.env.PATH;
     try {
       const bin = await writeExecutableScript(
@@ -2485,7 +2485,7 @@ process.stdin.on('end', () => {
     await withFakeCodex(
       `console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));\n`,
       async () => {
-        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-invalid-'));
+        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-codex-invalid-'));
         try {
           const invalidBin = path.join(dir, 'codex-missing');
           const result = await testAgentConnection({
@@ -2520,7 +2520,7 @@ process.stdin.on('end', () => {
     await withFakeCodex(
       `console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));\n`,
       async () => {
-        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-fallback-'));
+        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-codex-fallback-'));
         try {
           const bin = await writeExecutableScript(
             dir,
@@ -2561,7 +2561,7 @@ process.stdin.on('end', () => {
     await withFakeCodex(
       `console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: 'ok' } }));\n`,
       async () => {
-        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-codex-stale-shim-'));
+        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-codex-stale-shim-'));
         try {
           const bin = await writeExecutableScript(
             dir,
@@ -2627,7 +2627,7 @@ setTimeout(() => process.exit(0), 50);
   });
 
   it('launches OpenCode connection tests with 1.3-compatible JSON stdin args', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-opencode-argv-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-opencode-argv-'));
     const argvFile = path.join(markerDir, 'argv.json');
     const stdinFile = path.join(markerDir, 'stdin.txt');
     try {
@@ -2849,7 +2849,7 @@ process.exit(1);
   });
 
   it('rejects invalid custom model ids before spawning an agent', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-argv-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-argv-'));
     const argvFile = path.join(markerDir, 'argv.json');
     try {
       await withFakeCodex(
@@ -2887,7 +2887,7 @@ console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_messag
   });
 
   it('drops invalid agent reasoning options before spawning an agent', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-argv-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-argv-'));
     const argvFile = path.join(markerDir, 'argv.json');
     try {
       await withFakeCodex(
@@ -2941,7 +2941,7 @@ console.log(JSON.stringify({ type: 'item.completed', item: { type: 'agent_messag
   });
 
   it('hard-cancels aborted agent probes before cleaning up', async () => {
-    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-conn-test-marker-'));
+    const markerDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-conn-test-marker-'));
     const pidFile = path.join(markerDir, 'pid');
     const termFile = path.join(markerDir, 'term');
     try {
@@ -3086,14 +3086,14 @@ process.stdin.on('end', () => {
     // `claude`, even on machines that have a pinned CLAUDE_BIN or an
     // alternate user toolchain home configured. PATH alone is no longer
     // sufficient because runtime resolution also consults CLI env
-    // overrides and OD_AGENT_HOME-scoped toolchain bins.
+    // overrides and READABLE_AGENT_HOME-scoped toolchain bins.
     const oldPath = process.env.PATH;
     const oldClaudeBin = process.env.CLAUDE_BIN;
-    const oldAgentHome = process.env.OD_AGENT_HOME;
-    const emptyHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-missing-claude-home-'));
+    const oldAgentHome = process.env.READABLE_AGENT_HOME;
+    const emptyHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-missing-claude-home-'));
     process.env.PATH = '';
     delete process.env.CLAUDE_BIN;
-    process.env.OD_AGENT_HOME = emptyHome;
+    process.env.READABLE_AGENT_HOME = emptyHome;
     try {
       const result = await testAgentConnection({ agentId: 'claude' });
       expect(result.ok).toBe(false);
@@ -3104,8 +3104,8 @@ process.stdin.on('end', () => {
       process.env.PATH = oldPath;
       if (oldClaudeBin === undefined) delete process.env.CLAUDE_BIN;
       else process.env.CLAUDE_BIN = oldClaudeBin;
-      if (oldAgentHome === undefined) delete process.env.OD_AGENT_HOME;
-      else process.env.OD_AGENT_HOME = oldAgentHome;
+      if (oldAgentHome === undefined) delete process.env.READABLE_AGENT_HOME;
+      else process.env.READABLE_AGENT_HOME = oldAgentHome;
       await fsp.rm(emptyHome, { recursive: true, force: true });
     }
   });
@@ -3230,24 +3230,24 @@ describe('connection test helpers', () => {
 describe('connection test timeout overrides', () => {
   it('returns the fallback when the override is missing or empty', () => {
     expect(
-      resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {}),
+      resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {}),
     ).toBe(12_000);
     expect(
-      resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
-        OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: '',
+      resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
+        READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS: '',
       }),
     ).toBe(45_000);
   });
 
   it('honors a positive integer override', () => {
     expect(
-      resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {
-        OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS: '30000',
+      resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {
+        READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS: '30000',
       }),
     ).toBe(30_000);
     expect(
-      resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
-        OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: '120000',
+      resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
+        READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS: '120000',
       }),
     ).toBe(120_000);
   });
@@ -3261,8 +3261,8 @@ describe('connection test timeout overrides', () => {
     try {
       for (const bad of ['fast', '0', '-1', '1.5', 'NaN']) {
         expect(
-          resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {
-            OD_CONNECTION_TEST_PROVIDER_TIMEOUT_MS: bad,
+          resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS', 12_000, {
+            READABLE_CONNECTION_TEST_PROVIDER_TIMEOUT_MS: bad,
           }),
         ).toBe(12_000);
       }
@@ -3283,19 +3283,19 @@ describe('connection test timeout overrides', () => {
     try {
       const tooLarge = '3000000000'; // ~50 minutes; exceeds 2_147_483_647 ms
       expect(
-        resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
-          OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: tooLarge,
+        resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
+          READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS: tooLarge,
         }),
       ).toBe(45_000);
       // The exact maximum is still accepted; anything past it is not.
       expect(
-        resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
-          OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: '2147483647',
+        resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
+          READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS: '2147483647',
         }),
       ).toBe(2_147_483_647);
       expect(
-        resolveConnectionTestTimeoutMs('OD_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
-          OD_CONNECTION_TEST_AGENT_TIMEOUT_MS: '2147483648',
+        resolveConnectionTestTimeoutMs('READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS', 45_000, {
+          READABLE_CONNECTION_TEST_AGENT_TIMEOUT_MS: '2147483648',
         }),
       ).toBe(45_000);
       expect(warn).toHaveBeenCalled();

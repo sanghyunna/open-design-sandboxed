@@ -79,7 +79,7 @@ async function expectRejectedPlan(plan: Record<string, unknown>) {
 describe("desktop rollback approval", () => {
   it("consumes every case variant before a BrowserWindow can inherit it", () => {
     const env = {
-      Od_DeSkToP_ApPrOvAl_ToKeN: ` ${TOKEN} `,
+      ReAdAbLe_DeSkToP_ApPrOvAl_ToKeN: ` ${TOKEN} `,
       PATH: "safe",
     };
 

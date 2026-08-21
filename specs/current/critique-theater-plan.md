@@ -28,7 +28,7 @@
 - [ ] **Step 1: Verify branch and clean tree**
 
 ```bash
-cd /c/Users/ekada/OneDrive/Desktop/Githubcontributing/open-design
+cd /c/Users/ekada/OneDrive/Desktop/Githubcontributing/readable-studio
 git status
 git branch --show-current
 ```
@@ -1393,9 +1393,9 @@ In `spawn.ts`, after stdout is established, branch on `cfg.enabled`:
 // apps/daemon/tests/agents/spawn-critique.test.ts
 import { spawnAgent } from '../spawn';
 
-it('routes through critique orchestrator when OD_CRITIQUE_ENABLED=true', async () => {
+it('routes through critique orchestrator when READABLE_CRITIQUE_ENABLED=true', async () => {
   // mock CLI emitting the happy fixture
-  process.env.OD_CRITIQUE_ENABLED = 'true';
+  process.env.READABLE_CRITIQUE_ENABLED = 'true';
   const { status } = await spawnAgent(/* mocked params */);
   expect(['shipped', 'below_threshold']).toContain(status);
 });
@@ -1904,7 +1904,7 @@ git commit -m "feat(i18n): Critique Theater strings across all 6 locales"
 - Modify: `apps/web/src/components/Settings/index.tsx` (existing)
 - Modify: `apps/daemon/src/api/settings.ts` (existing)
 
-- [ ] **Step 1–5:** Add the toggle bound to `OD_CRITIQUE_ENABLED`. Persist through the existing settings endpoint. Test that the daemon reads the new value at run start. Commit.
+- [ ] **Step 1–5:** Add the toggle bound to `READABLE_CRITIQUE_ENABLED`. Persist through the existing settings endpoint. Test that the daemon reads the new value at run start. Commit.
 
 ```bash
 git commit -m "feat(web,daemon): Settings toggle Critique Theater (beta)"
@@ -2125,8 +2125,8 @@ docs/critique-theater.md
      - Auto-converging rounds (max 3, threshold 8.0/10)
      - The single CLI session model (no parallel processes, no second transport)
   3. Settings reference
-     - OD_CRITIQUE_ENABLED env var and the in-app toggle
-     - Per-skill override via SKILL.md frontmatter (od.critique.policy)
+     - READABLE_CRITIQUE_ENABLED env var and the in-app toggle
+     - Per-skill override via SKILL.md frontmatter (readable.critique.policy)
      - Score threshold and weights (read-only in v1)
   4. Reading the score badge
      - composite, per-dim swatches, threshold marker
@@ -2144,7 +2144,7 @@ docs/critique-theater.md
      - Can I add my own panelist? (link to v2 roadmap entry)
 ```
 
-The README adds a single line under the existing "What you get" table linking to the new doc; no new section in the README itself. `apps/daemon/src/critique/AGENTS.md` and `apps/web/src/components/Theater/AGENTS.md` give engineering-side guidance per the existing convention. `AGENTS.md` (root) gains an entry for `OD_CRITIQUE_ENABLED` in the environment-variables table.
+The README adds a single line under the existing "What you get" table linking to the new doc; no new section in the README itself. `apps/daemon/src/critique/AGENTS.md` and `apps/web/src/components/Theater/AGENTS.md` give engineering-side guidance per the existing convention. `AGENTS.md` (root) gains an entry for `READABLE_CRITIQUE_ENABLED` in the environment-variables table.
 
 ### Task 14.1: User-facing `docs/critique-theater.md`
 
@@ -2164,7 +2164,7 @@ git commit -m "docs: user-facing Critique Theater guide"
 ```bash
 git commit -m "docs(spec): add Critique Theater protocol v1 section"
 git commit -m "docs(architecture): add critique module diagram"
-git commit -m "docs(skills-protocol): document od.critique.policy"
+git commit -m "docs(skills-protocol): document readable.critique.policy"
 git commit -m "docs(agent-adapters): add conformance contract"
 git commit -m "docs(roadmap): note v2 panelist extensions"
 ```
@@ -2183,14 +2183,14 @@ git commit -m "docs: README + AGENTS.md entries for Critique Theater"
 
 ### Task 15.1: M0 flag wiring
 
-- [ ] **Step 1: Default `OD_CRITIQUE_ENABLED=false`.**
+- [ ] **Step 1: Default `READABLE_CRITIQUE_ENABLED=false`.**
 - [ ] **Step 2: Run end-to-end.** Verify legacy generation is unchanged.
 - [ ] **Step 3: Flip env to `true`.** Verify the orchestrator path runs.
 - [ ] **Step 4: Document the env var** in `docs/critique-theater.md` and the README.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git commit -m "chore(rollout): M0 ships behind OD_CRITIQUE_ENABLED=false"
+git commit -m "chore(rollout): M0 ships behind READABLE_CRITIQUE_ENABLED=false"
 ```
 
 ### Task 15.2: Final validation matrix
@@ -2236,5 +2236,5 @@ EOF
 - [ ] No `TBD`, `TODO`, `placeholder`, `fill in details` in any task body. (One mention of the literal string "TODO comments" in Task 5.1 documents what the AGENT must NOT emit.)
 - [ ] Type names and signatures used in later tasks (`runOrchestrator`, `panelEventToSse`, `decideRound`, `selectFallbackRound`, `computeComposite`, `RoundState`, `CritiqueState`) match definitions in earlier tasks.
 - [ ] Each step is 2–5 minutes of work. Tasks 8.x and 14.x are templates that repeat the same TDD shape per file; engineers iterate the template per item.
-- [ ] Every `git commit` line uses Conventional Commits matching OD's existing style (`feat`, `fix`, `docs`, `test`, `ci`, `chore`).
+- [ ] Every `git commit` line uses Conventional Commits matching Readable Studio's existing style (`feat`, `fix`, `docs`, `test`, `ci`, `chore`).
 - [ ] Frequent commits: every task closes with one commit; large phases close with multiple commits.

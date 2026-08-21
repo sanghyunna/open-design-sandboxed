@@ -704,7 +704,7 @@ function ToolbarPopover({ label, icon, children }: { label: string; icon: string
       <Button
         variant="subtle"
         size="default"
-        className={`${styles.popoverButton} od-tooltip`}
+        className={`${styles.popoverButton} readable-tooltip`}
         aria-label={label}
         aria-expanded={open}
         data-tooltip={label}
@@ -739,7 +739,7 @@ function UnitInput({
   };
   return (
     <label
-      className={`${styles.field}${compact ? ` ${styles.compactField}` : ''}${icon ? ' od-tooltip' : ''}`}
+      className={`${styles.field}${compact ? ` ${styles.compactField}` : ''}${icon ? ' readable-tooltip' : ''}`}
       data-tooltip={icon ? label : undefined}
     >
       {icon ? <RemixIcon name={icon} size={14} /> : <span>{label}</span>}
@@ -799,7 +799,7 @@ function ColorControl({ label, value, onChange }: { label: string; value: string
     <span className={styles.colorWrap} ref={ref}>
       <button
         type="button"
-        className={`${styles.swatch} od-tooltip`}
+        className={`${styles.swatch} readable-tooltip`}
         style={{ '--swatch-color': value || 'transparent' } as CSSProperties}
         aria-label={label}
         data-tooltip={label}

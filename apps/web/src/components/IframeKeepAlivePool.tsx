@@ -15,8 +15,8 @@ import {
   type SyntheticEvent,
 } from 'react';
 
-export const OD_PREVIEW_KEEP_ALIVE =
-  typeof process === 'undefined' || process.env.OD_PREVIEW_KEEP_ALIVE !== '0';
+export const READABLE_PREVIEW_KEEP_ALIVE =
+  typeof process === 'undefined' || process.env.READABLE_PREVIEW_KEEP_ALIVE !== '0';
 export const DEFAULT_IFRAME_KEEP_ALIVE_POOL_SIZE = 5;
 
 interface PoolEntry {
@@ -58,7 +58,7 @@ export function previewIframeKeepAliveKey(projectId: string, fileName: string): 
 function parkIframeElement(frame: HTMLIFrameElement) {
   frame.onload = null;
   frame.removeAttribute('data-testid');
-  frame.setAttribute('data-od-active', 'false');
+  frame.setAttribute('data-readable-active', 'false');
   frame.setAttribute('aria-hidden', 'true');
   frame.setAttribute('tabindex', '-1');
 }

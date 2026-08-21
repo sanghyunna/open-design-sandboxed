@@ -49,7 +49,7 @@ Translate meaning and operating facts, not just words.
 Keep these machine-consumed values unchanged:
 
 - commands and flags such as `readable export html --json`;
-- environment variables such as `OD_DATA_DIR`;
+- environment variables such as `READABLE_DATA_DIR`;
 - file names such as `SKILL.md`, `DESIGN.md`, and `readable-studio.json`;
 - paths such as `.readable-studio`, `ReadableStudioData`, and `.tmp`;
 - JSON keys, API routes, locale codes, plugin IDs, and code symbols;

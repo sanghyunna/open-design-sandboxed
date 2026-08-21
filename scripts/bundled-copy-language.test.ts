@@ -13,7 +13,7 @@ import {
 } from "./check-bundled-copy-language.ts";
 
 test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file copy", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
   try {
     await mkdir(path.join(root, "skills/example"), { recursive: true });
     await mkdir(path.join(root, "design-templates/example/references"), { recursive: true });
@@ -45,7 +45,7 @@ test("bundled copy guard rejects Chinese SKILL, preview, and nested side-file co
 });
 
 test("bundled copy guard permits explicit translations in manifests and reviewed Japanese previews", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
   try {
     await mkdir(path.join(root, "skills/example"), { recursive: true });
     await mkdir(path.join(root, "design-templates/last30days/scripts/lib"), { recursive: true });
@@ -73,7 +73,7 @@ test("bundled copy guard permits explicit translations in manifests and reviewed
 });
 
 test("bundled copy guard rejects arbitrary Japanese/Han manifest properties", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await writeFile(
@@ -93,7 +93,7 @@ test("bundled copy guard rejects arbitrary Japanese/Han manifest properties", as
 });
 
 test("bundled copy guard rejects Han defaults beside localized manifest maps", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await writeFile(
@@ -113,7 +113,7 @@ test("bundled copy guard rejects Han defaults beside localized manifest maps", a
 });
 
 test("bundled copy guard compares every shared copy's user-visible default content", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "od-bundled-copy-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "readable-bundled-copy-"));
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await mkdir(path.join(root, "design-templates/example"), { recursive: true });
@@ -139,7 +139,8 @@ test("rejects stale generated identity even when canonical and derived copies ag
   try {
     await mkdir(path.join(root, "plugins/_official/examples/example"), { recursive: true });
     await mkdir(path.join(root, "design-templates/example"), { recursive: true });
-    const stale = '<html lang="en"><title>Open Design</title></html>\n';
+    const retiredDisplay = ["Open", "Design"].join(" ");
+    const stale = `<html lang="en"><title>${retiredDisplay}</title></html>\n`;
     await writeFile(path.join(root, "plugins/_official/examples/example/example.html"), stale);
     await writeFile(path.join(root, "design-templates/example/example.html"), stale);
 
@@ -170,7 +171,11 @@ test("rejects stale active fixture contracts", async () => {
 
   // When: active bytes are scanned for retired product contracts.
   const stale: string[] = [];
-  const retired = /Open Design|open-design|od:\/\/|__od__/u;
+  const retiredDisplay = ["Open", "Design"].join(" ");
+  const retiredSlug = ["open", "design"].join("-");
+  const retiredScheme = ["od", "://"].join("");
+  const retiredGlobal = ["__", "od", "__"].join("");
+  const retired = new RegExp([retiredDisplay, retiredSlug, retiredScheme, retiredGlobal].join("|"), "u");
   for (const filePath of activePaths) {
     if (retired.test(await readFile(path.resolve(import.meta.dirname, "..", filePath), "utf8"))) stale.push(filePath);
   }

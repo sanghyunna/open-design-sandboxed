@@ -122,7 +122,7 @@ export type TrackingAmrEntrySource =
 
 export interface AmrEntryAttribution {
   entryId: string;
-  sourceProduct: 'open_design';
+  sourceProduct: 'readable_studio';
   sourceDetail: TrackingAmrEntrySource;
   occurredAt: string;
 }
@@ -1044,7 +1044,7 @@ export interface ExecutionSettingsPopoverClickProps {
 
 // Items inside the header gear settings popover (EntrySettingsMenu): the
 // interface-language select, the appearance (system/light/dark) radio row,
-// the "Share Open Design" social grid, the Discord / follow-on-X links and
+// the "Share Readable Studio" social grid, the Discord / follow-on-X links and
 // the Settings → details entry. The same popover is mounted both on the home
 // header and the in-project artifact header, hence the two-value page_name.
 export type TrackingThemeChoice =
@@ -1480,7 +1480,7 @@ export interface DesignSystemsTemplatesModalClickProps {
     | 'showcase'
     | 'tokens'
     | 'design_md'
-    | 'open_design_set'
+    | 'readable_studio_set'
     | 'fullscreen'
     | 'share';
   templates_id?: string;
@@ -1676,7 +1676,7 @@ export interface NextStepActionClickProps {
     | 'chip'
     | 'toolbox_action'
     | 'toolbox_more'
-    | 'share_to_open_design';
+    | 'share_to_readable_studio';
   chip_id?: string;
 }
 
@@ -1710,7 +1710,7 @@ export interface QuestionsFormClickProps {
 }
 
 // Hosted-AMR nudge shown under a non-AMR agent's model/auth/quota failure.
-// `go_amr` is the link that opens https://open-design.ai/amr.
+// `go_amr` is the link that opens https://vela.powerformer.net.
 export interface RunFailedToastClickProps {
   page_name: 'chat_panel';
   area: 'chat_panel';
@@ -1723,7 +1723,7 @@ export interface AmrEntryClickProps {
   element: TrackingAmrEntrySource;
   action: 'click_amr_entry';
   entry_id: string;
-  source_product: 'open_design';
+  source_product: 'readable_studio';
   source_detail: TrackingAmrEntrySource;
   entry_occurred_at: string;
 }

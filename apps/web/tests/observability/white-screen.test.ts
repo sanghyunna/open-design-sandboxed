@@ -167,7 +167,7 @@ beforeEach(() => {
   reportSafetyEvent.mockReset();
   vi.useFakeTimers({ shouldAdvanceTime: false });
   document.body.innerHTML = '';
-  document.documentElement.removeAttribute('data-od-app-mounted');
+  document.documentElement.removeAttribute('data-readable-app-mounted');
   vi.mocked(daemonIsLive).mockResolvedValue(true);
   vi.mocked(fetchAgentsStream).mockReturnValue(new Promise(() => undefined));
   vi.mocked(fetchSkills).mockResolvedValue([]);
@@ -185,7 +185,7 @@ afterEach(() => {
   globalThis.fetch = ORIGINAL_FETCH;
   cleanup();
   document.body.innerHTML = '';
-  document.documentElement.removeAttribute('data-od-app-mounted');
+  document.documentElement.removeAttribute('data-readable-app-mounted');
   vi.clearAllMocks();
 });
 
@@ -204,7 +204,7 @@ describe('observability/white-screen', () => {
 
     expect(screen.getByTestId('home-ready')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
-    expect(document.documentElement.getAttribute('data-od-app-mounted')).toBe('1');
+    expect(document.documentElement.getAttribute('data-readable-app-mounted')).toBe('1');
     expect(screen.getByTestId('selected-agent').textContent).toBe('codex');
     expect(fetchAgentsStream).not.toHaveBeenCalled();
     expect(fetchDesignTemplates).not.toHaveBeenCalled();
@@ -248,9 +248,9 @@ describe('observability/white-screen', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('does NOT report when the app sets the data-od-app-mounted marker before the timeout', () => {
+  it('does NOT report when the app sets the data-readable-app-mounted marker before the timeout', () => {
     // Simulate App.tsx's first useEffect setting the attribute.
-    document.documentElement.setAttribute('data-od-app-mounted', '1');
+    document.documentElement.setAttribute('data-readable-app-mounted', '1');
 
     installWhiteScreenDetector();
     vi.advanceTimersByTime(6000);

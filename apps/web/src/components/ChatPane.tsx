@@ -454,7 +454,7 @@ interface Props {
   config?: AppConfig;
 }
 
-const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
+const AMR_PROFILE_ENV_KEY = 'READABLE_AMR_PROFILE';
 
 type Tab = 'chat' | 'comments';
 
@@ -810,7 +810,7 @@ export function ChatPane({
   );
   const showImportedFolderArtifacts = projectMetadata?.importedFrom === 'folder';
   const composerDraftStorageKey = projectId && activeConversationId
-    ? `od:chat-composer:draft:${projectId}:${activeConversationId}`
+    ? `readable:chat-composer:draft:${projectId}:${activeConversationId}`
     : undefined;
   // Only the first user message gets the active-plugin chip — the
   // plugin is project-scoped so re-stamping it on every reply would be
@@ -2604,7 +2604,7 @@ function QueuedSendStrip({
             >
               <button
                 type="button"
-                className="chat-queued-send-drag-handle chat-queued-send-tooltip od-tooltip"
+                className="chat-queued-send-drag-handle chat-queued-send-tooltip readable-tooltip"
                 title={t('chat.queuedReorder')}
                 data-tooltip={t('chat.queuedReorder')}
                 data-tooltip-placement="right"
@@ -2624,7 +2624,7 @@ function QueuedSendStrip({
                 {onEdit ? (
                   <button
                     type="button"
-                    className="chat-queued-send-action chat-queued-send-tooltip od-tooltip"
+                    className="chat-queued-send-action chat-queued-send-tooltip readable-tooltip"
                     title={t('chat.queuedEdit')}
                     data-tooltip={t('chat.queuedEdit')}
                     data-tooltip-placement="top"
@@ -2636,7 +2636,7 @@ function QueuedSendStrip({
                 ) : null}
                 <button
                   type="button"
-                  className="chat-queued-send-action chat-queued-send-tooltip od-tooltip"
+                  className="chat-queued-send-action chat-queued-send-tooltip readable-tooltip"
                   title={t('chat.send')}
                   data-tooltip={t('chat.send')}
                   data-tooltip-placement="top"
@@ -2650,7 +2650,7 @@ function QueuedSendStrip({
                 {onRemove ? (
                   <button
                     type="button"
-                    className="chat-queued-send-action chat-queued-send-tooltip od-tooltip"
+                    className="chat-queued-send-action chat-queued-send-tooltip readable-tooltip"
                     onClick={() => onRemove(item.id)}
                     title={t('chat.comments.remove')}
                     data-tooltip={t('chat.comments.remove')}
@@ -2674,7 +2674,7 @@ function QueuedSendStrip({
   );
 }
 
-const QUEUED_SEND_DRAG_MIME = 'application/x-open-design-queued-send';
+const QUEUED_SEND_DRAG_MIME = 'application/x-readable-studio-queued-send';
 const QUEUED_SEND_VISIBLE_ROW_COUNT = 4;
 
 type QueuedSendDropEdge = 'before' | 'after';

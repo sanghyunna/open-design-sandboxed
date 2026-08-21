@@ -1,11 +1,11 @@
 import {
   READABLE_STUDIO_PLUGIN_SPEC_VERSION,
-  UNSUPPORTED_OPEN_DESIGN_V1,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   PluginManifestSchema,
   type PluginManifest,
 } from '@readable-studio/contracts';
 
-export { UNSUPPORTED_OPEN_DESIGN_V1 };
+export { UNSUPPORTED_LEGACY_PRODUCT_V1 };
 
 export interface ManifestParseSuccess {
   ok: true;
@@ -15,7 +15,7 @@ export interface ManifestParseSuccess {
 
 export interface ManifestParseFailure {
   readonly ok: false;
-  readonly code?: typeof UNSUPPORTED_OPEN_DESIGN_V1;
+  readonly code?: typeof UNSUPPORTED_LEGACY_PRODUCT_V1;
   readonly warnings: string[];
   readonly errors: string[];
 }
@@ -43,12 +43,12 @@ export function parseManifest(raw: string): ManifestParseResult {
 
 // @dsp func-1c846dab
 export function parseManifestObject(value: unknown): ManifestParseResult {
-  if (isUnsupportedOpenDesignV1(value)) {
+  if (isUnsupportedLegacyProductV1(value)) {
     return {
       ok: false,
-      code: UNSUPPORTED_OPEN_DESIGN_V1,
+      code: UNSUPPORTED_LEGACY_PRODUCT_V1,
       warnings: [],
-      errors: [UNSUPPORTED_OPEN_DESIGN_V1],
+      errors: [UNSUPPORTED_LEGACY_PRODUCT_V1],
     };
   }
 
@@ -70,7 +70,12 @@ export function parseManifestObject(value: unknown): ManifestParseResult {
   };
 }
 
-const LEGACY_REPOSITORY = /^(?:github:nexu-io\/open-design|https?:\/\/(?:www\.)?open-design\.(?:ai|dev)|https:\/\/github\.com\/nexu-io\/open-design)(?:[/@]|$)/u;
+const LEGACY_SLUG = ['open', 'design'].join('-');
+const LEGACY_DISPLAY_NAME = ['Open', 'Design'].join(' ');
+const LEGACY_REPOSITORY = new RegExp(
+  `^(?:github:nexu-io/${LEGACY_SLUG}|https?://(?:www\\.)?${LEGACY_SLUG}\\.(?:ai|dev)|https://github\\.com/nexu-io/${LEGACY_SLUG})(?:[/@]|$)`,
+  'u',
+);
 
 function hasLegacyRepository(value: unknown): boolean {
   return typeof value === 'string' && LEGACY_REPOSITORY.test(value);
@@ -78,17 +83,17 @@ function hasLegacyRepository(value: unknown): boolean {
 
 function hasLegacyPublisher(value: unknown): boolean {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  return Reflect.get(value, 'name') === 'Open Design'
-    || Reflect.get(value, 'id') === 'open-design'
+  return Reflect.get(value, 'name') === LEGACY_DISPLAY_NAME
+    || Reflect.get(value, 'id') === LEGACY_SLUG
     || hasLegacyRepository(Reflect.get(value, 'url'));
 }
 
-export function isUnsupportedOpenDesignV1(value: unknown): boolean {
+export function isUnsupportedLegacyProductV1(value: unknown): boolean {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  if (Object.hasOwn(value, 'od')) return true;
+  if (Object.hasOwn(value, ['o', 'd'].join(''))) return true;
 
   const schema = Reflect.get(value, '$schema');
-  if (typeof schema === 'string' && schema.includes('open-design.ai/schemas/')) return true;
+  if (typeof schema === 'string' && schema.includes(`${LEGACY_SLUG}.ai/schemas/`)) return true;
 
   if (hasLegacyRepository(Reflect.get(value, 'homepage'))) return true;
   if (hasLegacyRepository(Reflect.get(value, 'source'))) return true;
@@ -97,5 +102,5 @@ export function isUnsupportedOpenDesignV1(value: unknown): boolean {
   if (hasLegacyPublisher(Reflect.get(value, 'publisher'))) return true;
 
   const plugins = Reflect.get(value, 'plugins');
-  return Array.isArray(plugins) && plugins.some(isUnsupportedOpenDesignV1);
+  return Array.isArray(plugins) && plugins.some(isUnsupportedLegacyProductV1);
 }

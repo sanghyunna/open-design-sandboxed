@@ -183,10 +183,10 @@
   - [ ] Never store credentials or raw provider responses.
   - [ ] Keep `data.json` compact and preview-oriented.
 - [ ] Implement wrapper CLI.
-  - [ ] `readable tools live-artifacts create --input artifact.json`.
-  - [ ] `readable tools live-artifacts list --format compact`.
-  - [ ] `readable tools live-artifacts update --artifact-id <id> --input artifact.json`.
-  - [ ] `readable tools live-artifacts refresh --artifact-id <id>`.
+  - [ ] `od tools live-artifacts create --input artifact.json`.
+  - [ ] `od tools live-artifacts list --format compact`.
+  - [ ] `od tools live-artifacts update --artifact-id <id> --input artifact.json`.
+  - [ ] `od tools live-artifacts refresh --artifact-id <id>`.
   - [ ] Implement project-owned command code as TypeScript under `apps/daemon/src`.
 - [ ] Ensure wrapper reads injected environment.
   - [ ] `OD_DAEMON_URL`.
@@ -286,8 +286,8 @@
   - [ ] `GET /api/tools/connectors/list`.
   - [ ] `POST /api/tools/connectors/execute`.
 - [ ] Implement connector wrapper CLI.
-  - [ ] `readable tools connectors list --format compact`.
-  - [ ] `readable tools connectors execute --connector <id> --tool <name> --input input.json`.
+  - [ ] `od tools connectors list --format compact`.
+  - [ ] `od tools connectors execute --connector <id> --tool <name> --input input.json`.
   - [ ] Implement project-owned command code as TypeScript under `apps/daemon/src`.
 - [ ] Implement read-only safety classification.
   - [ ] Scope/name contains write/create/update/delete/admin/send/post/manage → write/confirm.

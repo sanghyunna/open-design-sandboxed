@@ -131,7 +131,7 @@ describe('findPriorArtifactSiblings', () => {
   });
 
   async function makeDir() {
-    const dir = await mkdtemp(path.join(tmpdir(), 'od-stub-guard-'));
+    const dir = await mkdtemp(path.join(tmpdir(), 'readable-stub-guard-'));
     tempDirs.push(dir);
     return dir;
   }
@@ -153,7 +153,7 @@ describe('findPriorArtifactSiblings', () => {
   });
 
   it('returns an empty list when the directory does not exist', async () => {
-    const priors = await findPriorArtifactSiblings('/nonexistent/od/projects/missing', 'dashboard');
+    const priors = await findPriorArtifactSiblings('/nonexistent/readable/projects/missing', 'dashboard');
     expect(priors).toEqual([]);
   });
 
@@ -335,7 +335,7 @@ describe('evaluateArtifactStubGuard (integration with disk scan)', () => {
   });
 
   async function makeDir() {
-    const dir = await mkdtemp(path.join(tmpdir(), 'od-stub-guard-eval-'));
+    const dir = await mkdtemp(path.join(tmpdir(), 'readable-stub-guard-eval-'));
     tempDirs.push(dir);
     return dir;
   }
@@ -377,21 +377,21 @@ describe('readArtifactStubGuardConfigFromEnv', () => {
   });
 
   it('parses recognised mode values', () => {
-    expect(readArtifactStubGuardConfigFromEnv({ OD_ARTIFACT_STUB_GUARD: 'reject' }).mode).toBe('reject');
-    expect(readArtifactStubGuardConfigFromEnv({ OD_ARTIFACT_STUB_GUARD: 'WARN' }).mode).toBe('warn');
-    expect(readArtifactStubGuardConfigFromEnv({ OD_ARTIFACT_STUB_GUARD: 'off' }).mode).toBe('off');
+    expect(readArtifactStubGuardConfigFromEnv({ READABLE_ARTIFACT_STUB_GUARD: 'reject' }).mode).toBe('reject');
+    expect(readArtifactStubGuardConfigFromEnv({ READABLE_ARTIFACT_STUB_GUARD: 'WARN' }).mode).toBe('warn');
+    expect(readArtifactStubGuardConfigFromEnv({ READABLE_ARTIFACT_STUB_GUARD: 'off' }).mode).toBe('off');
   });
 
   it('falls back to default when mode is unrecognised', () => {
-    expect(readArtifactStubGuardConfigFromEnv({ OD_ARTIFACT_STUB_GUARD: 'maybe' }).mode).toBe(
+    expect(readArtifactStubGuardConfigFromEnv({ READABLE_ARTIFACT_STUB_GUARD: 'maybe' }).mode).toBe(
       DEFAULT_ARTIFACT_STUB_GUARD_CONFIG.mode,
     );
   });
 
   it('honours numeric overrides within range', () => {
     const config = readArtifactStubGuardConfigFromEnv({
-      OD_ARTIFACT_STUB_GUARD_MIN_RATIO: '0.35',
-      OD_ARTIFACT_STUB_GUARD_MIN_PRIOR_BYTES: '8192',
+      READABLE_ARTIFACT_STUB_GUARD_MIN_RATIO: '0.35',
+      READABLE_ARTIFACT_STUB_GUARD_MIN_PRIOR_BYTES: '8192',
     });
     expect(config.minRetainedRatio).toBeCloseTo(0.35);
     expect(config.minPriorBytes).toBe(8_192);
@@ -399,15 +399,15 @@ describe('readArtifactStubGuardConfigFromEnv', () => {
 
   it('accepts ratio = 1 to reject any shrinkage', () => {
     const config = readArtifactStubGuardConfigFromEnv({
-      OD_ARTIFACT_STUB_GUARD_MIN_RATIO: '1',
+      READABLE_ARTIFACT_STUB_GUARD_MIN_RATIO: '1',
     });
     expect(config.minRetainedRatio).toBe(1);
   });
 
   it('rejects out-of-range numeric overrides', () => {
     const config = readArtifactStubGuardConfigFromEnv({
-      OD_ARTIFACT_STUB_GUARD_MIN_RATIO: '5',
-      OD_ARTIFACT_STUB_GUARD_MIN_PRIOR_BYTES: '-12',
+      READABLE_ARTIFACT_STUB_GUARD_MIN_RATIO: '5',
+      READABLE_ARTIFACT_STUB_GUARD_MIN_PRIOR_BYTES: '-12',
     });
     expect(config.minRetainedRatio).toBe(DEFAULT_ARTIFACT_STUB_GUARD_CONFIG.minRetainedRatio);
     expect(config.minPriorBytes).toBe(DEFAULT_ARTIFACT_STUB_GUARD_CONFIG.minPriorBytes);

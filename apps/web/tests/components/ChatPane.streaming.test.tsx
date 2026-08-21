@@ -511,7 +511,7 @@ describe('ChatPane streaming state', () => {
             order: 1,
             filePath: 'preview.html',
             elementId: 'path-0-0-0-0-1',
-            selector: '[data-od-id="path-0-0-0-0-1"]',
+            selector: '[data-readable-id="path-0-0-0-0-1"]',
             label: '',
             comment: '222',
             currentText: '',

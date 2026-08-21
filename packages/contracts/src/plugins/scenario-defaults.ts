@@ -11,12 +11,12 @@
 // bundled skill+template (decks, web prototypes) point to the
 // specialised plugin so the agent gets a real seed (`assets/template.html`),
 // a layout vocabulary (`references/layouts.md`), and a P0 checklist —
-// instead of routing through the generic od-new-generation router and
+// instead of routing through the generic readable-new-generation router and
 // re-inventing every slide/section's CSS from scratch. The latter is
 // the root cause of decks that overflow the 1080px canvas, mismatched
 // type scales, and "different aesthetic every turn" drift.
 //
-// Generic / catch-all kinds (template, other) keep od-new-generation,
+// Generic / catch-all kinds (template, other) keep readable-new-generation,
 // which runs discovery → plan → generate → critique without a
 // surface-specific seed.
 
@@ -26,7 +26,7 @@ import type { AppliedPluginSnapshot } from './apply.js';
 export type TaskKind = AppliedPluginSnapshot['taskKind'];
 
 // Plugin ids the kind/task-kind defaults can resolve to. Two tiers:
-//   1. `od-*` scenarios (under `plugins/_official/scenarios/`) — generic
+//   1. `readable-*` scenarios (under `plugins/_official/scenarios/`) — generic
 //      routers / pipelines without per-surface templates.
 //   2. `example-*` scenarios (under `plugins/_official/examples/`) —
 //      specialised bundled skills that ship a seed template + layout
@@ -36,18 +36,18 @@ export type TaskKind = AppliedPluginSnapshot['taskKind'];
 // Kept as a string-literal union so a typo surfaces as a type error in
 // both the web shell and the daemon resolver.
 export type DefaultScenarioPluginId =
-  | 'od-default'
-  | 'od-new-generation'
-  | 'od-plugin-authoring'
-  | 'od-figma-migration'
-  | 'od-code-migration'
-  | 'od-tune-collab'
+  | 'readable-default'
+  | 'readable-new-generation'
+  | 'readable-plugin-authoring'
+  | 'readable-figma-migration'
+  | 'readable-code-migration'
+  | 'readable-tune-collab'
   | 'example-report'
   | 'example-simple-deck'
   | 'example-web-prototype';
 
 export const DEFAULT_UNSELECTED_SCENARIO_PLUGIN_ID =
-  'od-default' satisfies DefaultScenarioPluginId;
+  'readable-default' satisfies DefaultScenarioPluginId;
 
 export const DEFAULT_SCENARIO_PLUGIN_BY_KIND: Record<ProjectKind, DefaultScenarioPluginId> = {
   // Prototypes bind to web-prototype's seed template (single-file HTML,
@@ -58,15 +58,15 @@ export const DEFAULT_SCENARIO_PLUGIN_BY_KIND: Record<ProjectKind, DefaultScenari
   // closing, plus an overflow checklist that catches the
   // "headline + subtitle + absolute footer" collision).
   deck:      'example-simple-deck',
-  template:  'od-new-generation',
-  other:     'od-new-generation',
+  template:  'readable-new-generation',
+  other:     'readable-new-generation',
 };
 
 export const DEFAULT_SCENARIO_PLUGIN_BY_TASK_KIND: Record<TaskKind, DefaultScenarioPluginId> = {
-  'new-generation':  'od-new-generation',
-  'figma-migration': 'od-figma-migration',
-  'code-migration':  'od-code-migration',
-  'tune-collab':     'od-tune-collab',
+  'new-generation':  'readable-new-generation',
+  'figma-migration': 'readable-figma-migration',
+  'code-migration':  'readable-code-migration',
+  'tune-collab':     'readable-tune-collab',
 };
 
 export function defaultScenarioPluginIdForKind(

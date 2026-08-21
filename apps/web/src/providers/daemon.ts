@@ -141,7 +141,7 @@ function scopeHistoryToAgent(history: ChatMessage[], targetAgentId?: string): Ch
   return history;
 }
 
-// Strip OD-specific markup that the agent emitted on a prior turn but
+// Strip Readable Studio-specific markup that the agent emitted on a prior turn but
 // that the model would otherwise pattern-match as a template to echo.
 // Today this is `<question-form>` blocks (and the `<ask-question>` alias the
 // UI parser and the daemon open-tag matcher both accept) and the ```json
@@ -269,7 +269,7 @@ export interface DaemonReattachOptions {
 }
 
 // @dsp func-a0453828
-export const RUNS_CHANGED_EVENT = 'open-design:runs-changed';
+export const RUNS_CHANGED_EVENT = 'readable-studio:runs-changed';
 
 function notifyRunsChanged() {
   if (typeof window === 'undefined') return;

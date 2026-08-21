@@ -2,7 +2,7 @@ const { access, cp, lstat, mkdir, readFile, readlink, readdir, realpath, rm, sta
 const { createRequire } = require("node:module");
 const path = require("node:path");
 
-const CONFIG_ENV = "OD_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
+const CONFIG_ENV = "READABLE_TOOLS_PACK_WEB_STANDALONE_HOOK_CONFIG";
 const STANDALONE_RESOURCE_NAME = "readable-studio-web-standalone";
 const REQUIRED_MODULES = ["next/package.json", "react/package.json", "react-dom/package.json", "styled-jsx/package.json"];
 

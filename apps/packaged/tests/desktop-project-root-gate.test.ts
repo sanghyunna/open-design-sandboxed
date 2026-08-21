@@ -7,7 +7,7 @@
  * no vitest setup yet — same reasoning as the existing
  * `desktop-url-allowlist.test.ts` next to this file.
  *
- * @see https://github.com/nexu-io/open-design/pull/974
+ * @see https://github.com/nexu-io/readable-studio/pull/974
  *      lefarcen + mrcfps round-3 reviews on runtime.ts: path-allowlist
  *      gate must be daemon-controlled, `.app` bundles must be rejected,
  *      and `openPath(projectId)` must only forward projects whose
@@ -29,7 +29,7 @@ import {
 let tempRoot = "";
 
 beforeEach(() => {
-  tempRoot = mkdtempSync(path.join(tmpdir(), "od-desktop-validate-"));
+  tempRoot = mkdtempSync(path.join(tmpdir(), "readable-desktop-validate-"));
 });
 
 afterEach(() => {
@@ -289,7 +289,7 @@ describe("isOpenPathAllowedForProject", () => {
     const result = isOpenPathAllowedForProject({
       fromTrustedPicker: false,
       hasBaseDir: false,
-      resolvedDir: "/tmp/od-projects/abc123",
+      resolvedDir: "/tmp/readable-projects/abc123",
     });
     expect(result.ok).toBe(true);
   });

@@ -4,7 +4,7 @@
 
 - `assets/template.html` exists and opens directly from disk.
 - `example.html` renders both the editable template preview and the default MP4 showcase.
-- Skill frontmatter uses `readable.mode: template`, `od.surface: video`, and `od.type: hyperframes`.
+- Skill frontmatter uses `readable.mode: template`, `readable.surface: video`, and `readable.type: hyperframes`.
 - Base composition includes exactly 3 scenes and each scene hold is under 3 seconds.
 - Template keeps deterministic logic (seeded randomness only, no `repeat: -1` loops).
 - Template avoids sandbox-hostile APIs (`localStorage`, `sessionStorage`, `alert`, `confirm`, `prompt`).

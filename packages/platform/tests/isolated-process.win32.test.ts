@@ -20,12 +20,12 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { probeIsolatedAgentSupport, spawnIsolatedAgent } from "../src/index.js";
 
-const helper = fileURLToPath(new URL("../dist/native/win32/od-agent-isolator.exe", import.meta.url));
+const helper = fileURLToPath(new URL("../dist/native/win32/readable-studio-agent-isolator.exe", import.meta.url));
 const nativeAvailable = process.platform === "win32" && existsSync(helper);
 const temporaryPaths: string[] = [];
 
 function makeTemp(root = tmpdir()): string {
-  const path = mkdtempSync(join(root, "od-isolator-"));
+  const path = mkdtempSync(join(root, "readable-isolator-"));
   temporaryPaths.push(path);
   return path;
 }
@@ -273,7 +273,7 @@ describe.skipIf(!nativeAvailable)("Windows AppContainer agent isolation", () => 
 
   it("rejects a native helper inside an agent-writable path", async () => {
     const writable = makeTemp();
-    const mutableHelper = join(writable, "od-agent-isolator.exe");
+    const mutableHelper = join(writable, "readable-studio-agent-isolator.exe");
     copyFileSync(helper, mutableHelper);
 
     await expect(spawnIsolatedAgent({

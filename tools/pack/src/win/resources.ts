@@ -16,9 +16,9 @@ function nativeIsolatorPaths(workspaceRoot: string): {
 } {
   const root = join(workspaceRoot, "packages", "platform", "native", "win32");
   return {
-    binary: join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "od-agent-isolator.exe"),
+    binary: join(workspaceRoot, "packages", "platform", "dist", "native", "win32", "readable-studio-agent-isolator.exe"),
     buildScript: join(root, "build.ps1"),
-    source: join(root, "od-agent-isolator.cpp"),
+    source: join(root, "readable-studio-agent-isolator.cpp"),
   };
 }
 
@@ -73,7 +73,7 @@ export async function prepareResourceTree(
       await cp(process.execPath, join(resourceRoot, "bin", "node.exe"));
       await cp(
         nativeIsolatorPaths(config.workspaceRoot).binary,
-        join(resourceRoot, "bin", "od-agent-isolator.exe"),
+        join(resourceRoot, "bin", "readable-studio-agent-isolator.exe"),
       );
       await cp(winResources.sevenZipExe, join(resourceRoot, "bin", "7z.exe"));
       await cp(winResources.sevenZipDll, join(resourceRoot, "bin", "7z.dll"));

@@ -111,14 +111,14 @@ describe('hasTweaksTemplate', () => {
 
 describe('hasUrlModeBridge', () => {
   it('detects an artifact-owned direct-edit bridge script', () => {
-    expect(hasUrlModeBridge('<script src="od-direct-edit.js"></script>')).toBe(true);
-    expect(hasUrlModeBridge('<script defer src="./assets/od-direct-edit.js?v=1"></script>')).toBe(true);
+    expect(hasUrlModeBridge('<script src="readable-direct-edit.js"></script>')).toBe(true);
+    expect(hasUrlModeBridge('<script defer src="./assets/readable-direct-edit.js?v=1"></script>')).toBe(true);
   });
 
   it('ignores comments, text nodes, and inline script bodies that only mention the bridge name', () => {
-    expect(hasUrlModeBridge('<!-- TODO: ship od-direct-edit.js -->')).toBe(false);
-    expect(hasUrlModeBridge('<p>Use od-direct-edit.js for editing</p>')).toBe(false);
-    expect(hasUrlModeBridge('<script>console.log("od-direct-edit.js")</script>')).toBe(false);
+    expect(hasUrlModeBridge('<!-- TODO: ship readable-direct-edit.js -->')).toBe(false);
+    expect(hasUrlModeBridge('<p>Use readable-direct-edit.js for editing</p>')).toBe(false);
+    expect(hasUrlModeBridge('<script>console.log("readable-direct-edit.js")</script>')).toBe(false);
   });
 
   it('ignores unrelated script URLs', () => {

@@ -238,7 +238,7 @@ If the schema has drifted from the template (`templates/ISSUE-BODY-bug.md`), reg
 | `steps` | "How can I reproduce it? Walk me through step by step." |
 | `expected` | "What did you expect to happen?" |
 | `version` | "Which Readable Studio version are you running? (About menu, or `readable --version`)" |
-| `platform` | dropdown: macOS (Apple Silicon) / macOS (Intel) / Windows / Linux / Other |
+| `platform` | dropdown: Windows 10 x64 / Windows 11 x64 |
 | `logs` | "Any error logs you can paste? Skip if you don't have them." |
 | `screenshots` | "Path to a screenshot? Skip if you don't have one." |
 

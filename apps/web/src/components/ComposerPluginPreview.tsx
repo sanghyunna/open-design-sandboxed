@@ -44,8 +44,8 @@ function pluginKindLabel(
 // `extractCategories` returns nothing for them. Detect them the same way
 // the preview classifier does (mode / tag) so they still get a kind tag.
 function isDesignSystemRecord(record: InstalledPluginRecord): boolean {
-  const od = record.manifest?.readable as { mode?: unknown } | undefined;
-  if (typeof od?.mode === 'string' && od.mode.toLowerCase() === 'design-system') {
+  const readable = record.manifest?.readable as { mode?: unknown } | undefined;
+  if (typeof readable?.mode === 'string' && readable.mode.toLowerCase() === 'design-system') {
     return true;
   }
   return (record.manifest?.tags ?? []).some(

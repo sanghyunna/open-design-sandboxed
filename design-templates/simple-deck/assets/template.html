@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OD simple-deck seed.
+  Readable Studio simple-deck seed.
 
   Single-file horizontal-swipe HTML deck. Each `<section class="slide">`
   is one slide; the body uses CSS scroll-snap to lock to slide boundaries.
@@ -277,7 +277,7 @@
 
   <script>
     /*
-      Five hard rules for deck nav inside an iframe (the OD preview is one).
+      Five hard rules for deck nav inside an iframe (the Readable Studio preview is one).
       The naive `document.body.scrollLeft` pattern silently fails: clicks
       register, but keyboard does nothing, and the counter freezes at "1 / N"
       while the user is on slide 6.
@@ -292,7 +292,7 @@
       var slides   = document.querySelectorAll('.slide');
       var counter  = document.getElementById('deck-counter');
       var progress = document.getElementById('deck-progress');
-      var KEY      = 'od-deck-pos';
+      var KEY      = 'readable-deck-pos';
       var active   = 0;
 
       function scrollContainers() {

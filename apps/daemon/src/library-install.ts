@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Install/uninstall logic for user-managed skills and design systems.
-// Installed items live under ~/.open-design/skills/ and
-// ~/.open-design/design-systems/ respectively.
+// Installed items live under ~/.readable-studio/skills/ and
+// ~/.readable-studio/design-systems/ respectively.
 
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
@@ -28,7 +28,7 @@ export function sanitizeRepoName(url) {
 
 /**
  * @param {InstallTarget} target
- * @param {string} userDir - user-installed directory (e.g. ~/.open-design/skills)
+ * @param {string} userDir - user-installed directory (e.g. ~/.readable-studio/skills)
  * @param {'skill' | 'design-system'} kind
  * @returns {Promise<{ok: true, dir: string} | {ok: false, error: string}>}
  */

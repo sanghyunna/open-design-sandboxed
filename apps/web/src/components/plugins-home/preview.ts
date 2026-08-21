@@ -96,9 +96,9 @@ interface ContextRef {
 }
 
 function readPreview(record: InstalledPluginRecord): PreviewBlock | null {
-  const od = record.manifest?.readable as { preview?: unknown } | undefined;
-  if (!od || typeof od.preview !== 'object' || od.preview === null) return null;
-  return od.preview as PreviewBlock;
+  const readable = record.manifest?.readable as { preview?: unknown } | undefined;
+  if (!readable || typeof readable.preview !== 'object' || readable.preview === null) return null;
+  return readable.preview as PreviewBlock;
 }
 
 // Pre-baked hover-pan clip attached by the daemon (scripts/bake-plugin-previews.mjs),
@@ -106,8 +106,8 @@ function readPreview(record: InstalledPluginRecord): PreviewBlock | null {
 function readBakedPreview(
   record: InstalledPluginRecord,
 ): { poster: string; video: string; holdMs: number | null } | null {
-  const od = record.manifest?.readable as { bakedPreview?: unknown } | undefined;
-  const b = od?.bakedPreview;
+  const readable = record.manifest?.readable as { bakedPreview?: unknown } | undefined;
+  const b = readable?.bakedPreview;
   if (!b || typeof b !== 'object') return null;
   const { poster, video, holdMs } = b as Record<string, unknown>;
   if (typeof poster !== 'string' || typeof video !== 'string') return null;
@@ -115,10 +115,10 @@ function readBakedPreview(
 }
 
 function readExamples(record: InstalledPluginRecord): ExampleOutputEntry[] {
-  const od = record.manifest?.readable as
+  const readable = record.manifest?.readable as
     | { useCase?: { exampleOutputs?: unknown } }
     | undefined;
-  const list = od?.useCase?.exampleOutputs;
+  const list = readable?.useCase?.exampleOutputs;
   if (!Array.isArray(list)) return [];
   return list as ExampleOutputEntry[];
 }
@@ -132,8 +132,8 @@ function exampleStem(entry: ExampleOutputEntry): string | null {
 }
 
 function isDesignSystemPlugin(record: InstalledPluginRecord): boolean {
-  const od = record.manifest?.readable as { mode?: unknown } | undefined;
-  if (typeof od?.mode === 'string' && od.mode.toLowerCase() === 'design-system') {
+  const readable = record.manifest?.readable as { mode?: unknown } | undefined;
+  if (typeof readable?.mode === 'string' && readable.mode.toLowerCase() === 'design-system') {
     return true;
   }
   const tags = record.manifest?.tags ?? [];
@@ -141,10 +141,10 @@ function isDesignSystemPlugin(record: InstalledPluginRecord): boolean {
 }
 
 function designSystemRef(record: InstalledPluginRecord): string | null {
-  const od = record.manifest?.readable as
+  const readable = record.manifest?.readable as
     | { context?: { designSystem?: ContextRef } }
     | undefined;
-  const ref = od?.context?.designSystem?.ref;
+  const ref = readable?.context?.designSystem?.ref;
   return typeof ref === 'string' && ref.length > 0 ? ref : null;
 }
 

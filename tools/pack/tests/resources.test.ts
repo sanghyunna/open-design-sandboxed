@@ -12,7 +12,7 @@ import { copyBundledResourceTrees } from "../src/resources.js";
 
 describe("copyBundledResourceTrees", () => {
   it("includes the full packaged resource catalog", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-tools-pack-"));
     const workspaceRoot = join(root, "workspace");
     const resourceRoot = join(root, "resources");
 
@@ -146,7 +146,7 @@ describe("copyBundledResourceTrees", () => {
   });
 
   it("includes the full community pet catalog in portable builds", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-tools-pack-portable-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-tools-pack-portable-"));
     const workspaceRoot = join(root, "workspace");
     const resourceRoot = join(root, "resources");
 

@@ -97,7 +97,7 @@ describe('applyPlugin — diff-review auto-surface integration', () => {
       inputs: {},
       registry: baseRegistry([
         {
-          id: 'od-code-migration',
+          id: 'readable-code-migration',
           taskKind: 'code-migration',
           pipeline: {
             stages: [

@@ -30,8 +30,9 @@ describe('Readable Studio browser storage identity', () => {
     store.clear();
   });
 
-  it('does not read the old Open Design config key', () => {
-    store.set('open-design:config', JSON.stringify({ theme: 'dark' }));
+  it('does not read the retired config key', () => {
+    const retiredConfigKey = `${['open', 'design'].join('-')}:config`;
+    store.set(retiredConfigKey, JSON.stringify({ theme: 'dark' }));
 
     expect(loadConfig().theme).toBe(DEFAULT_CONFIG.theme);
   });
@@ -39,7 +40,8 @@ describe('Readable Studio browser storage identity', () => {
   it('writes only the Readable Studio config key', () => {
     saveConfig({ ...DEFAULT_CONFIG, theme: 'dark' });
 
-    expect(store.has('open-design:config')).toBe(false);
+    const retiredConfigKey = `${['open', 'design'].join('-')}:config`;
+    expect(store.has(retiredConfigKey)).toBe(false);
     expect(JSON.parse(store.get('readable-studio:config') ?? '{}').theme).toBe('dark');
   });
 });

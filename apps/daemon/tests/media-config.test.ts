@@ -8,7 +8,7 @@ import { resolveProviderConfig } from '../src/media-config.js';
 const TEST_NANOBANANA_BASE_URL = 'https://nano-banana-gateway.example.test';
 
 const OPENAI_ENV_KEYS = [
-  'OD_OPENAI_API_KEY',
+  'READABLE_OPENAI_API_KEY',
   'OPENAI_API_KEY',
   'AZURE_API_KEY',
   'AZURE_OPENAI_API_KEY',
@@ -21,22 +21,22 @@ describe('media-config OpenAI auth-file fallback', () => {
   const originalEnv = Object.fromEntries(
     OPENAI_ENV_KEYS.map((key) => [key, process.env[key]]),
   );
-  const originalMediaConfigDir = process.env.OD_MEDIA_CONFIG_DIR;
-  const originalDataDir = process.env.OD_DATA_DIR;
-  const originalSandboxMode = process.env.OD_SANDBOX_MODE;
+  const originalMediaConfigDir = process.env.READABLE_MEDIA_CONFIG_DIR;
+  const originalDataDir = process.env.READABLE_DATA_DIR;
+  const originalSandboxMode = process.env.READABLE_SANDBOX_MODE;
   let homedirSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    homeDir = await mkdtemp(path.join(tmpdir(), 'od-media-home-'));
-    projectRoot = await mkdtemp(path.join(tmpdir(), 'od-media-project-'));
+    homeDir = await mkdtemp(path.join(tmpdir(), 'readable-media-home-'));
+    projectRoot = await mkdtemp(path.join(tmpdir(), 'readable-media-project-'));
     process.env.HOME = homeDir;
     homedirSpy = vi.spyOn(os, 'homedir').mockReturnValue(homeDir);
     for (const key of OPENAI_ENV_KEYS) {
       delete process.env[key];
     }
-    delete process.env.OD_MEDIA_CONFIG_DIR;
-    delete process.env.OD_DATA_DIR;
-    delete process.env.OD_SANDBOX_MODE;
+    delete process.env.READABLE_MEDIA_CONFIG_DIR;
+    delete process.env.READABLE_DATA_DIR;
+    delete process.env.READABLE_SANDBOX_MODE;
   });
 
   afterEach(async () => {
@@ -53,19 +53,19 @@ describe('media-config OpenAI auth-file fallback', () => {
       }
     }
     if (originalMediaConfigDir == null) {
-      delete process.env.OD_MEDIA_CONFIG_DIR;
+      delete process.env.READABLE_MEDIA_CONFIG_DIR;
     } else {
-      process.env.OD_MEDIA_CONFIG_DIR = originalMediaConfigDir;
+      process.env.READABLE_MEDIA_CONFIG_DIR = originalMediaConfigDir;
     }
     if (originalDataDir == null) {
-      delete process.env.OD_DATA_DIR;
+      delete process.env.READABLE_DATA_DIR;
     } else {
-      process.env.OD_DATA_DIR = originalDataDir;
+      process.env.READABLE_DATA_DIR = originalDataDir;
     }
     if (originalSandboxMode == null) {
-      delete process.env.OD_SANDBOX_MODE;
+      delete process.env.READABLE_SANDBOX_MODE;
     } else {
-      process.env.OD_SANDBOX_MODE = originalSandboxMode;
+      process.env.READABLE_SANDBOX_MODE = originalSandboxMode;
     }
     homedirSpy.mockRestore();
     await rm(homeDir, { recursive: true, force: true });
@@ -79,7 +79,7 @@ describe('media-config OpenAI auth-file fallback', () => {
   }
 
   async function writeStoredMediaConfig(data: unknown) {
-    const file = path.join(projectRoot, '.od', 'media-config.json');
+    const file = path.join(projectRoot, '.readable-studio', 'media-config.json');
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, JSON.stringify(data), 'utf8');
   }
@@ -109,7 +109,7 @@ describe('media-config OpenAI auth-file fallback', () => {
   });
 
   it('does not read host OpenAI auth files in sandbox mode', async () => {
-    process.env.OD_SANDBOX_MODE = '1';
+    process.env.READABLE_SANDBOX_MODE = '1';
     await writeHomeJson('.hermes/auth.json', {
       providers: {
         'openai-codex': {
@@ -164,7 +164,7 @@ describe('media-config OpenAI auth-file fallback', () => {
   });
 
   it('resolves Nano Banana env and stored model overrides', async () => {
-    process.env.OD_NANOBANANA_API_KEY = 'env-nano-key';
+    process.env.READABLE_NANOBANANA_API_KEY = 'env-nano-key';
     await writeStoredMediaConfig({
       providers: {
         nanobanana: {
@@ -183,32 +183,32 @@ describe('media-config OpenAI auth-file fallback', () => {
       model: 'gemini-3.1-flash-image-preview-custom',
     });
 
-    delete process.env.OD_NANOBANANA_API_KEY;
+    delete process.env.READABLE_NANOBANANA_API_KEY;
   });
 
-  describe('OD_MEDIA_CONFIG_DIR / OD_DATA_DIR storage routing', () => {
+  describe('READABLE_MEDIA_CONFIG_DIR / READABLE_DATA_DIR storage routing', () => {
     let overrideRoot: string;
     let originalMediaConfigDir: string | undefined;
     let originalDataDir: string | undefined;
 
     beforeEach(async () => {
-      overrideRoot = await mkdtemp(path.join(tmpdir(), 'od-media-override-'));
-      originalMediaConfigDir = process.env.OD_MEDIA_CONFIG_DIR;
-      originalDataDir = process.env.OD_DATA_DIR;
-      delete process.env.OD_MEDIA_CONFIG_DIR;
-      delete process.env.OD_DATA_DIR;
+      overrideRoot = await mkdtemp(path.join(tmpdir(), 'readable-media-override-'));
+      originalMediaConfigDir = process.env.READABLE_MEDIA_CONFIG_DIR;
+      originalDataDir = process.env.READABLE_DATA_DIR;
+      delete process.env.READABLE_MEDIA_CONFIG_DIR;
+      delete process.env.READABLE_DATA_DIR;
     });
 
     afterEach(async () => {
       if (originalMediaConfigDir == null) {
-        delete process.env.OD_MEDIA_CONFIG_DIR;
+        delete process.env.READABLE_MEDIA_CONFIG_DIR;
       } else {
-        process.env.OD_MEDIA_CONFIG_DIR = originalMediaConfigDir;
+        process.env.READABLE_MEDIA_CONFIG_DIR = originalMediaConfigDir;
       }
       if (originalDataDir == null) {
-        delete process.env.OD_DATA_DIR;
+        delete process.env.READABLE_DATA_DIR;
       } else {
-        process.env.OD_DATA_DIR = originalDataDir;
+        process.env.READABLE_DATA_DIR = originalDataDir;
       }
       await rm(overrideRoot, { recursive: true, force: true });
     });
@@ -222,8 +222,8 @@ describe('media-config OpenAI auth-file fallback', () => {
       );
     }
 
-    it('reads media-config.json from an absolute OD_MEDIA_CONFIG_DIR', async () => {
-      process.env.OD_MEDIA_CONFIG_DIR = overrideRoot;
+    it('reads media-config.json from an absolute READABLE_MEDIA_CONFIG_DIR', async () => {
+      process.env.READABLE_MEDIA_CONFIG_DIR = overrideRoot;
       await writeProvidersAt(overrideRoot, {
         providers: {
           openai: {
@@ -243,8 +243,8 @@ describe('media-config OpenAI auth-file fallback', () => {
     it('expands a leading ~/ against the user home directory', async () => {
       // Per-test HOME points at a tmpdir (set by outer beforeEach), so the
       // expansion lands somewhere safe to write.
-      const subdir = '.od-test';
-      process.env.OD_MEDIA_CONFIG_DIR = `~/${subdir}`;
+      const subdir = '.readable-studio-test';
+      process.env.READABLE_MEDIA_CONFIG_DIR = `~/${subdir}`;
       const expandedDir = path.join(homeDir, subdir);
       await writeProvidersAt(expandedDir, {
         providers: {
@@ -266,9 +266,9 @@ describe('media-config OpenAI auth-file fallback', () => {
       // process.cwd() during tests is typically the workspace root, which
       // is unrelated to the per-test projectRoot. A relative override must
       // land inside projectRoot, mirroring how resolveDataDir() in
-      // server.ts anchors OD_DATA_DIR.
+      // server.ts anchors READABLE_DATA_DIR.
       const relative = 'config/media';
-      process.env.OD_MEDIA_CONFIG_DIR = relative;
+      process.env.READABLE_MEDIA_CONFIG_DIR = relative;
       const anchoredDir = path.join(projectRoot, relative);
       await writeProvidersAt(anchoredDir, {
         providers: {
@@ -286,12 +286,12 @@ describe('media-config OpenAI auth-file fallback', () => {
       });
     });
 
-    it('falls back to OD_DATA_DIR when OD_MEDIA_CONFIG_DIR is unset', async () => {
+    it('falls back to READABLE_DATA_DIR when READABLE_MEDIA_CONFIG_DIR is unset', async () => {
       // Packaged daemon (apps/packaged/src/sidecars.ts) and the
-      // Home Manager / NixOS modules already set OD_DATA_DIR for the
+      // Home Manager / NixOS modules already set READABLE_DATA_DIR for the
       // rest of the daemon's runtime state. media-config should
       // co-locate there without needing a second env var.
-      process.env.OD_DATA_DIR = overrideRoot;
+      process.env.READABLE_DATA_DIR = overrideRoot;
       await writeProvidersAt(overrideRoot, {
         providers: {
           openai: {
@@ -308,12 +308,12 @@ describe('media-config OpenAI auth-file fallback', () => {
       });
     });
 
-    it('OD_MEDIA_CONFIG_DIR takes precedence over OD_DATA_DIR', async () => {
-      const dataDir = await mkdtemp(path.join(tmpdir(), 'od-media-data-'));
+    it('READABLE_MEDIA_CONFIG_DIR takes precedence over READABLE_DATA_DIR', async () => {
+      const dataDir = await mkdtemp(path.join(tmpdir(), 'readable-media-data-'));
       try {
-        process.env.OD_DATA_DIR = dataDir;
-        process.env.OD_MEDIA_CONFIG_DIR = overrideRoot;
-        // Two competing files; only the OD_MEDIA_CONFIG_DIR one should
+        process.env.READABLE_DATA_DIR = dataDir;
+        process.env.READABLE_MEDIA_CONFIG_DIR = overrideRoot;
+        // Two competing files; only the READABLE_MEDIA_CONFIG_DIR one should
         // be read.
         await writeProvidersAt(dataDir, {
           providers: {
@@ -338,14 +338,14 @@ describe('media-config OpenAI auth-file fallback', () => {
 
     // Round 3 review feedback on PR #530.
     // resolveOverrideDir shares expandHomePrefix with resolveDataDir, so
-    // OD_DATA_DIR=$HOME/.open-design (and ${HOME}/.open-design) routes
+    // READABLE_DATA_DIR=$HOME/.readable-studio (and ${HOME}/.readable-studio) routes
     // both daemon runtime data AND media credentials to the same expanded
     // path. Without this, media-config.json was written under
-    // <projectRoot>/$HOME/.open-design and stored provider keys appeared
+    // <projectRoot>/$HOME/.readable-studio and stored provider keys appeared
     // missing on the next read.
-    it('expands $HOME/... in OD_DATA_DIR fallback so media-config co-locates with daemon data', async () => {
-      const subdir = '.od-test-home';
-      process.env.OD_DATA_DIR = `$HOME/${subdir}`;
+    it('expands $HOME/... in READABLE_DATA_DIR fallback so media-config co-locates with daemon data', async () => {
+      const subdir = '.readable-studio-test-home';
+      process.env.READABLE_DATA_DIR = `$HOME/${subdir}`;
       const expandedDir = path.join(homeDir, subdir);
       await writeProvidersAt(expandedDir, {
         providers: {
@@ -363,9 +363,9 @@ describe('media-config OpenAI auth-file fallback', () => {
       });
     });
 
-    it('expands ${HOME}/... in OD_DATA_DIR fallback', async () => {
-      const subdir = '.od-test-braced';
-      process.env.OD_DATA_DIR = `\${HOME}/${subdir}`;
+    it('expands ${HOME}/... in READABLE_DATA_DIR fallback', async () => {
+      const subdir = '.readable-studio-test-braced';
+      process.env.READABLE_DATA_DIR = `\${HOME}/${subdir}`;
       const expandedDir = path.join(homeDir, subdir);
       await writeProvidersAt(expandedDir, {
         providers: {
@@ -383,9 +383,9 @@ describe('media-config OpenAI auth-file fallback', () => {
       });
     });
 
-    it('expands $HOME/... in OD_MEDIA_CONFIG_DIR (explicit override path)', async () => {
-      const subdir = '.od-media-home';
-      process.env.OD_MEDIA_CONFIG_DIR = `$HOME/${subdir}`;
+    it('expands $HOME/... in READABLE_MEDIA_CONFIG_DIR (explicit override path)', async () => {
+      const subdir = '.readable-studio-media-home';
+      process.env.READABLE_MEDIA_CONFIG_DIR = `$HOME/${subdir}`;
       const expandedDir = path.join(homeDir, subdir);
       await writeProvidersAt(expandedDir, {
         providers: {
@@ -405,7 +405,7 @@ describe('media-config OpenAI auth-file fallback', () => {
   });
 });
 
-const GROK_ENV_KEYS = ['OD_GROK_API_KEY', 'XAI_API_KEY'];
+const GROK_ENV_KEYS = ['READABLE_GROK_API_KEY', 'XAI_API_KEY'];
 
 describe('media-config Grok / xAI OAuth fallback', () => {
   let homeDir: string;
@@ -414,20 +414,20 @@ describe('media-config Grok / xAI OAuth fallback', () => {
   const originalEnv = Object.fromEntries(
     GROK_ENV_KEYS.map((key) => [key, process.env[key]]),
   );
-  const originalMediaConfigDir = process.env.OD_MEDIA_CONFIG_DIR;
-  const originalDataDir = process.env.OD_DATA_DIR;
+  const originalMediaConfigDir = process.env.READABLE_MEDIA_CONFIG_DIR;
+  const originalDataDir = process.env.READABLE_DATA_DIR;
   let homedirSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
-    homeDir = await mkdtemp(path.join(tmpdir(), 'od-media-grok-home-'));
-    projectRoot = await mkdtemp(path.join(tmpdir(), 'od-media-grok-project-'));
+    homeDir = await mkdtemp(path.join(tmpdir(), 'readable-media-grok-home-'));
+    projectRoot = await mkdtemp(path.join(tmpdir(), 'readable-media-grok-project-'));
     process.env.HOME = homeDir;
     homedirSpy = vi.spyOn(os, 'homedir').mockReturnValue(homeDir);
     for (const key of GROK_ENV_KEYS) {
       delete process.env[key];
     }
-    delete process.env.OD_MEDIA_CONFIG_DIR;
-    delete process.env.OD_DATA_DIR;
+    delete process.env.READABLE_MEDIA_CONFIG_DIR;
+    delete process.env.READABLE_DATA_DIR;
   });
 
   afterEach(async () => {
@@ -444,14 +444,14 @@ describe('media-config Grok / xAI OAuth fallback', () => {
       }
     }
     if (originalMediaConfigDir == null) {
-      delete process.env.OD_MEDIA_CONFIG_DIR;
+      delete process.env.READABLE_MEDIA_CONFIG_DIR;
     } else {
-      process.env.OD_MEDIA_CONFIG_DIR = originalMediaConfigDir;
+      process.env.READABLE_MEDIA_CONFIG_DIR = originalMediaConfigDir;
     }
     if (originalDataDir == null) {
-      delete process.env.OD_DATA_DIR;
+      delete process.env.READABLE_DATA_DIR;
     } else {
-      process.env.OD_DATA_DIR = originalDataDir;
+      process.env.READABLE_DATA_DIR = originalDataDir;
     }
     homedirSpy.mockRestore();
     await rm(homeDir, { recursive: true, force: true });
@@ -469,7 +469,7 @@ describe('media-config Grok / xAI OAuth fallback', () => {
     refreshToken?: string;
     expiresAt?: number;
   }) {
-    const file = path.join(projectRoot, '.od', 'xai-tokens.json');
+    const file = path.join(projectRoot, '.readable-studio', 'xai-tokens.json');
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(
       file,
@@ -489,23 +489,23 @@ describe('media-config Grok / xAI OAuth fallback', () => {
   }
 
   async function writeStoredMediaConfig(data: unknown) {
-    const file = path.join(projectRoot, '.od', 'media-config.json');
+    const file = path.join(projectRoot, '.readable-studio', 'media-config.json');
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, JSON.stringify(data), 'utf8');
   }
 
-  it('uses OD-native xai-tokens.json when one is stored', async () => {
+  it('uses Readable Studio-native xai-tokens.json when one is stored', async () => {
     await writeOdXaiTokens({
-      accessToken: 'od-bearer-1',
+      accessToken: 'readable-bearer-1',
       expiresAt: Date.now() + 3_600_000,
     });
 
     const resolved = await resolveProviderConfig(projectRoot, 'grok');
 
-    expect(resolved.apiKey).toBe('od-bearer-1');
+    expect(resolved.apiKey).toBe('readable-bearer-1');
   });
 
-  it('borrows the Hermes-side xai-oauth token when OD has no native creds', async () => {
+  it('borrows the Hermes-side xai-oauth token when Readable Studio has no native creds', async () => {
     await writeHomeJson('.hermes/auth.json', {
       providers: {
         'xai-oauth': {
@@ -519,9 +519,9 @@ describe('media-config Grok / xAI OAuth fallback', () => {
     expect(resolved.apiKey).toBe('hermes-xai-bearer');
   });
 
-  it('prefers OD-native xai-tokens over Hermes borrowing', async () => {
+  it('prefers Readable Studio-native xai-tokens over Hermes borrowing', async () => {
     await writeOdXaiTokens({
-      accessToken: 'od-bearer-2',
+      accessToken: 'readable-bearer-2',
       expiresAt: Date.now() + 3_600_000,
     });
     await writeHomeJson('.hermes/auth.json', {
@@ -533,13 +533,13 @@ describe('media-config Grok / xAI OAuth fallback', () => {
     });
 
     const resolved = await resolveProviderConfig(projectRoot, 'grok');
-    expect(resolved.apiKey).toBe('od-bearer-2');
+    expect(resolved.apiKey).toBe('readable-bearer-2');
   });
 
   it('keeps env keys ahead of OAuth fallbacks', async () => {
     process.env.XAI_API_KEY = 'env-xai-key';
     await writeOdXaiTokens({
-      accessToken: 'od-bearer-3',
+      accessToken: 'readable-bearer-3',
       expiresAt: Date.now() + 3_600_000,
     });
 
@@ -555,7 +555,7 @@ describe('media-config Grok / xAI OAuth fallback', () => {
       },
     });
     await writeOdXaiTokens({
-      accessToken: 'od-bearer-4',
+      accessToken: 'readable-bearer-4',
       expiresAt: Date.now() + 3_600_000,
     });
 
@@ -569,12 +569,12 @@ describe('media-config Grok / xAI OAuth fallback', () => {
     expect(resolved.apiKey).toBe('');
   });
 
-  it('skips an OD-native token within the expiry skew when no refresh_token is stored', async () => {
+  it('skips an Readable Studio-native token within the expiry skew when no refresh_token is stored', async () => {
     // expiresAt within the 120s skew window → treated as expired by
     // resolveXAIBearer. Without a refresh_token it can't recover, so
     // the resolver falls through to other sources (none here).
     await writeOdXaiTokens({
-      accessToken: 'od-bearer-expired',
+      accessToken: 'readable-bearer-expired',
       expiresAt: Date.now() + 30_000,
     });
 

@@ -8,7 +8,7 @@ import {
   type HostedTestComposition,
 } from '../src/hosted-server.js';
 
-const PUBLIC_ORIGIN = 'https://hosted.open-design.test';
+const PUBLIC_ORIGIN = 'https://hosted.readable-studio.test';
 const USER_A = 'pr07-user-a';
 const USER_B = 'pr07-user-b';
 
@@ -677,7 +677,7 @@ describe('hosted PR07 HTTP surface', () => {
         ...auth(USER_A),
         accept: 'text/event-stream',
         'content-type': 'application/json',
-        'x-open-design-csrf': csrf,
+        'x-readable-studio-csrf': csrf,
         origin: PUBLIC_ORIGIN,
       },
       body: JSON.stringify(runIntent(
@@ -806,7 +806,7 @@ describe('hosted PR07 HTTP surface', () => {
             headers: {
               authorization: `Bearer ${grant.token}`,
               'content-type': 'application/json',
-              'x-open-design-tool-token': `odpi_${'b'.repeat(43)}`,
+              'x-readable-studio-tool-token': `odpi_${'b'.repeat(43)}`,
             },
             body: 'not-json',
           });
@@ -817,7 +817,7 @@ describe('hosted PR07 HTTP surface', () => {
             headers: {
               authorization: `Bearer ${grant.token}`,
               'content-type': 'application/json',
-              'x-open-design-tool-token': carrierToken,
+              'x-readable-studio-tool-token': carrierToken,
             },
             body: JSON.stringify({ designSystemId, path: 'DESIGN.md' }),
           });
@@ -1113,7 +1113,7 @@ async function start(
     | 'startTurn'
   > = {},
 ): Promise<StartedServer> {
-  const runtimeRoot = await mkdtemp(join(tmpdir(), 'od-hosted-pr07-'));
+  const runtimeRoot = await mkdtemp(join(tmpdir(), 'readable-hosted-pr07-'));
   const entityCounters = new Map<string, number>();
   runtimeRoots.push(runtimeRoot);
   const started = await startHostedServer({
@@ -1168,7 +1168,7 @@ function openPartialJson(
         ...auth(user),
         'content-type': 'application/json',
         'content-length': '1024',
-        'x-open-design-csrf': csrfToken,
+        'x-readable-studio-csrf': csrfToken,
         origin: PUBLIC_ORIGIN,
       },
     }, (incoming) => {
@@ -1304,7 +1304,7 @@ function mutate(
     headers: {
       ...auth(user),
       'content-type': 'application/json',
-      'x-open-design-csrf': csrfToken,
+      'x-readable-studio-csrf': csrfToken,
       origin: PUBLIC_ORIGIN,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -1536,7 +1536,7 @@ async function writeTestSession(
 }
 
 async function removeRuntimeRoot(runtimeRoot: string): Promise<void> {
-  const expectedPrefix = join(tmpdir(), 'od-hosted-pr07-');
+  const expectedPrefix = join(tmpdir(), 'readable-hosted-pr07-');
   if (!runtimeRoot.startsWith(expectedPrefix)) {
     throw new Error(`refusing to remove unexpected runtime root: ${runtimeRoot}`);
   }

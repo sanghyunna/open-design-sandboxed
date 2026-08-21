@@ -46,7 +46,7 @@ function defaultHost(): ReadableStudioHostBridge {
       }),
       pickAndReplaceWorkingDir: async () => ({
         ok: true,
-        baseDir: "/tmp/open-design-test",
+        baseDir: "/tmp/readable-studio-test",
         entryFile: null,
       }),
     },

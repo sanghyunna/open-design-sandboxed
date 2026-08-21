@@ -47,7 +47,7 @@ let tmpDir: string;
 let db: Database.Database;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'od-boot-reconcile-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'readable-boot-reconcile-test-'));
   db = freshDb();
 });
 afterEach(async () => {

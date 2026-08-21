@@ -1,5 +1,5 @@
 // Craft references loader. The active skill declares which sections it
-// needs via `od.craft.requires`; this module reads the matching files
+// needs via `readable.craft.requires`; this module reads the matching files
 // from <projectRoot>/craft/<slug>.md and returns a single concatenated
 // body ready to splice into the system prompt. Missing files are
 // dropped silently — a skill that lists `motion` before we ship a
@@ -12,7 +12,7 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /**
  * @param {string} craftDir absolute path to the craft/ directory
- * @param {string[]} requested slugs from `od.craft.requires`
+ * @param {string[]} requested slugs from `readable.craft.requires`
  * @returns {Promise<{ body: string, sections: string[] }>}
  *   body is the concatenated markdown (each file preceded by a level-3
  *   section header). sections lists which slugs actually resolved.

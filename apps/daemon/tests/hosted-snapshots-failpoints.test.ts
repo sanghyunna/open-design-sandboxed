@@ -56,7 +56,7 @@ describe('hosted snapshot process-crash recovery', () => {
   it.each(failureCases)(
     'restores the newest complete version after a publisher is killed at %s',
     async (failpoint, expectedState) => {
-      const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'od-hosted-snapshot-kill-'));
+      const runtimeRoot = mkdtempSync(path.join(tmpdir(), 'readable-hosted-snapshot-kill-'));
       tempRoots.push(runtimeRoot);
       const baselineStorage = createHostedRuntimeStorage({ identity, runtimeRoot });
       const now = Date.now();

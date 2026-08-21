@@ -118,9 +118,9 @@ winTest('applyAgentLaunchEnv injects Node binary dir and wrapper dir into a Wind
 });
 
 fsTest('resolveAgentLaunch selects nvm-installed codex under a minimal PATH and prepends its dirname', () => {
-  const home = mkdtempSync(join(tmpdir(), 'od-launch-nvm-'));
+  const home = mkdtempSync(join(tmpdir(), 'readable-launch-nvm-'));
   try {
-    return withEnvSnapshot(['HOME', 'PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['HOME', 'PATH', 'READABLE_AGENT_HOME'], () => {
       const binDir = join(home, '.nvm', 'versions', 'node', '24.11.0', 'bin');
       const codexBin = join(binDir, 'codex');
       const pathBin = join(home, 'path-bin');
@@ -130,7 +130,7 @@ fsTest('resolveAgentLaunch selects nvm-installed codex under a minimal PATH and 
       chmodSync(codexBin, 0o755);
       process.env.HOME = home;
       process.env.PATH = pathBin;
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
 
       const launch = resolveAgentLaunch(codex);
 
@@ -144,10 +144,10 @@ fsTest('resolveAgentLaunch selects nvm-installed codex under a minimal PATH and 
 });
 
 fsTest('resolveAgentLaunch uses packaged built-in Vela for AMR and prepends its dirname', () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-launch-amr-built-in-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-launch-amr-built-in-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
-      const resourceRoot = join(root, 'resources', 'open-design');
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
+      const resourceRoot = join(root, 'resources', 'readable-studio');
       const builtInDir = join(resourceRoot, 'bin');
       const builtInVela = join(builtInDir, 'vela');
       const companionTree = join(builtInDir, 'libexec', 'opencode');
@@ -164,8 +164,8 @@ fsTest('resolveAgentLaunch uses packaged built-in Vela for AMR and prepends its 
       writeFileSync(companionExe, '#!/bin/sh\nexit 0\n');
       chmodSync(companionExe, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = join(root, 'empty-home');
-      process.env.OD_RESOURCE_ROOT = resourceRoot;
+      process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+      process.env.READABLE_RESOURCE_ROOT = resourceRoot;
       delete process.env.VELA_OPENCODE_BIN;
 
       const launch = resolveAgentLaunch(minimalAgentDef({ id: 'amr', bin: 'vela' }));
@@ -182,9 +182,9 @@ fsTest('resolveAgentLaunch uses packaged built-in Vela for AMR and prepends its 
 });
 
 fsTest('resolveAgentLaunch resolves a Codex npm wrapper to the native packaged binary', () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-launch-codex-wrapper-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-launch-codex-wrapper-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const wrapperPkgDir = join(root, 'node_modules', '@openai', 'codex');
       const wrapperRealPath = join(wrapperPkgDir, 'bin', 'codex.js');
       const wrapperLinkDir = join(root, 'node_modules', '.bin');
@@ -202,7 +202,7 @@ fsTest('resolveAgentLaunch resolves a Codex npm wrapper to the native packaged b
       chmodSync(nativeBin, 0o755);
       symlinkSync(wrapperRealPath, wrapperLinkPath);
       process.env.PATH = wrapperLinkDir;
-      process.env.OD_AGENT_HOME = root;
+      process.env.READABLE_AGENT_HOME = root;
 
       const launch = resolveAgentLaunch(codex);
 
@@ -228,9 +228,9 @@ function codexNativeTargetTriple(): string {
 }
 
 fsTest('resolveAgentLaunch preserves a direct native CODEX_BIN override as the selected launch path', () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-launch-codex-direct-native-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-launch-codex-direct-native-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const nativeBin = join(root, 'codex-native');
       const pathCodex = join(root, 'codex');
       writeFileSync(nativeBin, '#!/bin/sh\nexit 0\n');
@@ -238,7 +238,7 @@ fsTest('resolveAgentLaunch preserves a direct native CODEX_BIN override as the s
       chmodSync(nativeBin, 0o755);
       chmodSync(pathCodex, 0o755);
       process.env.PATH = root;
-      process.env.OD_AGENT_HOME = root;
+      process.env.READABLE_AGENT_HOME = root;
 
       const launch = resolveAgentLaunch(codex, { CODEX_BIN: nativeBin });
 
@@ -256,9 +256,9 @@ fsTest('resolveAgentLaunch preserves a direct native CODEX_BIN override as the s
 });
 
 fsTest('resolveAgentLaunch falls back to the Codex wrapper when the native package is missing', () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-launch-codex-fallback-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-launch-codex-fallback-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const wrapperPkgDir = join(root, 'node_modules', '@openai', 'codex');
       const wrapperRealPath = join(wrapperPkgDir, 'bin', 'codex.js');
       const wrapperLinkDir = join(root, 'node_modules', '.bin');
@@ -269,7 +269,7 @@ fsTest('resolveAgentLaunch falls back to the Codex wrapper when the native packa
       chmodSync(wrapperRealPath, 0o755);
       symlinkSync(wrapperRealPath, wrapperLinkPath);
       process.env.PATH = wrapperLinkDir;
-      process.env.OD_AGENT_HOME = root;
+      process.env.READABLE_AGENT_HOME = root;
 
       const launch = resolveAgentLaunch(codex);
 

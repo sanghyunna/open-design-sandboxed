@@ -73,7 +73,7 @@ describe('diffPlugins — top-level record', () => {
 });
 
 describe('diffPlugins — manifest body', () => {
-  it('detects od.taskKind changes', () => {
+  it('detects readable.taskKind changes', () => {
     const a = make('p', { taskKind: 'new-generation' });
     const b = make('p', { taskKind: 'code-migration' });
     const r = diffPlugins({ a, b });
@@ -113,7 +113,7 @@ describe('diffPlugins — manifest body', () => {
     expect(planAtoms?.summary).toMatch(/1 added/);
   });
 
-  it('emits od.pipeline=added when only the rhs has a pipeline', () => {
+  it('emits readable.pipeline=added when only the rhs has a pipeline', () => {
     const a = make('p', { taskKind: 'new-generation' });
     const b = make('p', { taskKind: 'new-generation', pipeline: { stages: [{ id: 'x', atoms: ['todo-write'] }] } });
     const r = diffPlugins({ a, b });

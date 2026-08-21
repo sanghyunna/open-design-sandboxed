@@ -159,7 +159,7 @@ export function buildDesignTokenContract(input: {
 export function renderDesignTokenContractCss(bindings: readonly DesignTokenBinding[]): string {
   const lines = [
     ':root {',
-    '  /* OD TOKEN_SCHEMA contract. Evidence lives in source/token-contract.report.json. */',
+    '  /* Readable Studio TOKEN_SCHEMA contract. Evidence lives in source/token-contract.report.json. */',
   ];
   for (const binding of bindings) {
     lines.push(`  ${binding.name}: ${binding.value};`);

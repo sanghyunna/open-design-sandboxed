@@ -618,8 +618,8 @@ pnpm tools-dev</pre>
         </p>
         <ul class='dash'>
           <li><strong>Packaged desktop builds</strong> — signed Mac, Windows NSIS, Linux AppImage, all sourced from <code>tools-pack</code>.</li>
-          <li><strong>Multi-tenant brand tokens</strong> — one running daemon, many tenants; <code>OD_DATA_DIR</code> and <code>OD_MEDIA_CONFIG_DIR</code> already laid the groundwork.</li>
-          <li><strong>Daemon-side artifact persistence</strong> — every render is a file on disk under <code>.od/artifacts/</code> with a stable SHA, so design history survives every agent restart.</li>
+          <li><strong>Multi-tenant brand tokens</strong> — one running daemon, many tenants; <code>READABLE_DATA_DIR</code> and <code>READABLE_MEDIA_CONFIG_DIR</code> already laid the groundwork.</li>
+          <li><strong>Daemon-side artifact persistence</strong> — every render is a file on disk under <code>.readable-studio/artifacts/</code> with a stable SHA, so design history survives every agent restart.</li>
         </ul>
         <p>
           Nothing in this list requires a paid plan. <strong>Readable Studio will stay Apache-2.0 forever</strong>; the studio earns by selling brand-grade design systems, not by gating the runtime.

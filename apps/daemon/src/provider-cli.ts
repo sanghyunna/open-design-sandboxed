@@ -30,7 +30,7 @@ export const PROVIDER_CLI_USAGE = `Usage:
                    [--identity-token-file <path|->] [--json]
   readable provider clear [--identity-token-file <path|->] [--json]
 
-Identity is read from --identity-token-file or OD_HOSTED_IDENTITY_TOKEN_FILE.
+Identity is read from --identity-token-file or READABLE_HOSTED_IDENTITY_TOKEN_FILE.
 Provider keys are read only from --key-file; use - for stdin.
 All commands also accept --daemon-url <url>.
 `;
@@ -328,10 +328,10 @@ export async function runProviderCli(
     }
     json = options.json;
     const env = dependencies.env ?? process.env;
-    const identityFile = options.identityTokenFile ?? env.OD_HOSTED_IDENTITY_TOKEN_FILE;
+    const identityFile = options.identityTokenFile ?? env.READABLE_HOSTED_IDENTITY_TOKEN_FILE;
     if (!identityFile) {
       throw new CliError(
-        'identity requires --identity-token-file <path|-> or OD_HOSTED_IDENTITY_TOKEN_FILE',
+        'identity requires --identity-token-file <path|-> or READABLE_HOSTED_IDENTITY_TOKEN_FILE',
         'INVALID_ARGUMENT',
       );
     }

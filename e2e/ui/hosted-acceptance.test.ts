@@ -11,7 +11,7 @@ test('[P0] hosted composition accepts a credential and edits owned project conte
   await suite.with.hosted(async (hosted) => {
     const user = hosted.identity('a');
     await page.context().addCookies([{
-      name: '__Host-od-hosted',
+      name: '__Host-readable-hosted',
       value: 'a',
       domain: new URL(hosted.webUrl).hostname,
       path: '/',

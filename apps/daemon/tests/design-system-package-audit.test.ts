@@ -45,7 +45,7 @@ Avoid generic marketing pages, oversized cards, invented palettes, missing sourc
 
 const AUDIT_README = `# Cherry Studio Design System
 
-This package captures a source-backed Open Design design system for a desktop AI chat workspace. It includes reusable rules, token CSS, focused review previews, preserved assets, preserved fonts, and an applied UI kit.
+This package captures a source-backed Readable Studio design system for a desktop AI chat workspace. It includes reusable rules, token CSS, focused review previews, preserved assets, preserved fonts, and an applied UI kit.
 
 ## Product Overview
 
@@ -53,7 +53,7 @@ Cherry Studio is a desktop AI chat workspace for multi-model assistant workflows
 
 ## Package Contents
 
-- DESIGN.md is the canonical Open Design rules document.
+- DESIGN.md is the canonical Readable Studio rules document.
 - colors_and_type.css contains reusable variables for color, type, spacing, radius, and states.
 - preview/ contains focused HTML cards for color, typography, spacing, components, and brand assets.
 - ui_kits/app/ contains an applied interface example for future project reuse.
@@ -119,7 +119,7 @@ The system uses compact app-shell layouts, source-backed green accents, neutral 
 
 const MARKDOWN_ONLY_AUDIT_SKILL = `# Cherry Studio Design System
 
-Use this skill when creating Open Design artifacts that should match the Cherry Studio desktop AI chat workspace.
+Use this skill when creating Readable Studio artifacts that should match the Cherry Studio desktop AI chat workspace.
 
 ## Workflow
 
@@ -136,7 +136,7 @@ Keep layouts compact, app-like, and productivity-focused. Use real component sta
 
 const AUDIT_SKILL = `---
 name: cherry-studio-design
-description: Use this skill when creating Open Design artifacts that should match the Cherry Studio desktop AI chat workspace.
+description: Use this skill when creating Readable Studio artifacts that should match the Cherry Studio desktop AI chat workspace.
 user-invocable: true
 ---
 
@@ -166,13 +166,13 @@ Load colors_and_type.css, inspect preview/, reuse ui_kits/app/, and preserve com
 
 const SKILL_WITHOUT_REUSE_SECTIONS = `---
 name: cherry-studio-design
-description: Use this skill when creating Open Design artifacts that should match the Cherry Studio desktop AI chat workspace.
+description: Use this skill when creating Readable Studio artifacts that should match the Cherry Studio desktop AI chat workspace.
 user-invocable: true
 ---
 
 Read README.md, DESIGN.md, colors_and_type.css, the preview cards, preserved assets, fonts, and the modular UI kit before generating any new interface.
 
-This package is intended for reusable Open Design work, so future agents should keep the output grounded in captured evidence, use preserved assets instead of redrawing brand marks, keep app surfaces compact, and inspect preview cards before introducing any new component pattern. Treat it as a focused product design kit, not a generic style summary.
+This package is intended for reusable Readable Studio work, so future agents should keep the output grounded in captured evidence, use preserved assets instead of redrawing brand marks, keep app surfaces compact, and inspect preview cards before introducing any new component pattern. Treat it as a focused product design kit, not a generic style summary.
 
 **How to use:**
 Load colors_and_type.css and inspect preview/ before creating new artifacts. Reuse ui_kits/app when composing product-like screens and check README.md plus DESIGN.md before making visual decisions.
@@ -363,7 +363,7 @@ function auditComponent(componentName: string): string {
   return `const ${componentName}Items = [
   { id: 'primary', label: '${componentName} primary state', detail: 'Source-backed density, spacing, and active state.' },
   { id: 'secondary', label: '${componentName} secondary state', detail: 'Muted state with compact metadata and clear affordance.' },
-  { id: 'review', label: '${componentName} review state', detail: 'Reusable review surface for future Open Design projects.' },
+  { id: 'review', label: '${componentName} review state', detail: 'Reusable review surface for future Readable Studio projects.' },
 ];
 
 const ${componentName}Styles = {
@@ -461,7 +461,7 @@ describe('design-system package audit', () => {
   }
 
   it('passes a Claude Design-style design-system package audit', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-pass-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-pass-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app'), { recursive: true });
@@ -544,7 +544,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when manifest docs point at old scaffold paths', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-stale-docs-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-stale-docs-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -600,7 +600,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when package titles come from URL protocol text', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-protocol-title-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-protocol-title-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app'), { recursive: true });
@@ -635,7 +635,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when SKILL.md is missing agent-discoverable frontmatter', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-skill-frontmatter-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-skill-frontmatter-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -677,7 +677,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when SKILL.md lacks Claude-style reusable skill sections', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-skill-sections-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-skill-sections-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -719,7 +719,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when README.md lacks a source-backed product overview', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-readme-overview-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-readme-overview-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -761,7 +761,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when README.md lacks a Claude-style package reuse guide', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-readme-package-guide-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-readme-package-guide-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -803,7 +803,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when README.md lacks a concrete preview manifest', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-readme-preview-manifest-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-readme-preview-manifest-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -845,7 +845,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when the applied UI-kit README lacks a reuse guide', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-uikit-readme-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-uikit-readme-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -890,7 +890,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when build runtime icon evidence is not preserved in the package', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-build-assets-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-build-assets-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -947,7 +947,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when preserved build runtime assets do not match captured evidence bytes', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-fake-build-assets-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-fake-build-assets-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1007,7 +1007,7 @@ describe('design-system package audit', () => {
   });
 
   it('accepts preserved build runtime assets that match captured evidence bytes', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-source-build-assets-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-source-build-assets-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1067,7 +1067,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when the brand-assets preview redraws instead of referencing preserved assets', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-brand-preview-assets-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-brand-preview-assets-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1113,7 +1113,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when modular UI-kit components are placeholders', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-thin-components-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-thin-components-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1162,7 +1162,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when the UI-kit entry does not load its modules or token CSS', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-disconnected-uikit-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-disconnected-uikit-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1212,7 +1212,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when the UI-kit entry lists modules without rendering them', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-unmounted-uikit-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-unmounted-uikit-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1270,7 +1270,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when JSX components are loaded without browser runtime scripts', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-missing-jsx-runtime-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-missing-jsx-runtime-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1334,7 +1334,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when script-loaded JSX components do not expose browser globals', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-missing-browser-global-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-missing-browser-global-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1389,7 +1389,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when chat evidence lacks UI-kit role coverage', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-missing-roles-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-missing-roles-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1446,7 +1446,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when the app shell does not compose role components', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-uncomposed-app-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-uncomposed-app-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1499,7 +1499,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when rich binary evidence is collapsed to one asset and font', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-thin-binaries-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-thin-binaries-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1566,7 +1566,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when preserved fonts are not bound in token CSS', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-font-binding-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-font-binding-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1621,7 +1621,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when visual artifacts do not reference source-backed component names', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-generic-visuals-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-generic-visuals-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1693,7 +1693,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when focused preview cards do not apply tokens to source components', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-preview-source-context-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-preview-source-context-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1754,7 +1754,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when rich component evidence is not preserved as source examples outside context', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-source-examples-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-source-examples-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1815,7 +1815,7 @@ describe('design-system package audit', () => {
   });
 
   it('warns when source-backed examples are only tiny stubs', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-thin-source-examples-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-thin-source-examples-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app/components'), { recursive: true });
@@ -1880,7 +1880,7 @@ describe('design-system package audit', () => {
   });
 
   it('fails a design-system package audit when evidence-backed artifacts are missing', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-fail-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-fail-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/generated_interface'), { recursive: true });
@@ -1917,7 +1917,7 @@ describe('design-system package audit', () => {
   });
 
   it('can audit an external Claude Design reference package without DESIGN.md', async () => {
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-package-audit-reference-'));
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-package-audit-reference-'));
     process.chdir(tmpDir);
     await mkdir(path.join(tmpDir, 'preview'), { recursive: true });
     await mkdir(path.join(tmpDir, 'ui_kits/app'), { recursive: true });
@@ -1964,7 +1964,7 @@ describe('design-system package audit', () => {
       ok: true,
       errors: [],
       warnings: expect.arrayContaining([
-        expect.objectContaining({ code: 'missing_open_design_rules', path: 'DESIGN.md' }),
+        expect.objectContaining({ code: 'missing_readable_studio_rules', path: 'DESIGN.md' }),
       ]),
     });
 

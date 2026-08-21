@@ -25,7 +25,7 @@ function execWithStdin(args: string[], input: string): Promise<{ stdout: string;
   });
 }
 
-describe('od export html', () => {
+describe('readable export html', () => {
   let server: http.Server;
   let baseUrl: string;
   let requestBody: unknown;
@@ -34,7 +34,7 @@ describe('od export html', () => {
   let publishRaceOutput: string | undefined;
 
   beforeAll(async () => {
-    root = await mkdtemp(path.join(tmpdir(), 'od-export-html-cli-'));
+    root = await mkdtemp(path.join(tmpdir(), 'readable-export-html-cli-'));
     server = http.createServer((request, response) => {
       let body = '';
       request.setEncoding('utf8');

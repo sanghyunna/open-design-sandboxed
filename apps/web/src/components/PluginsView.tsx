@@ -86,7 +86,7 @@ const PLUGIN_SHARE_DETAILS: Record<PluginShareAction, {
       'Run the official publish action plugin against the local daemon.',
     ],
   },
-  'contribute-open-design': {
+  'contribute-readable-studio': {
     eyebrow: 'Readable Studio pull request',
     fallbackTitle: 'Contribute Plugin to Readable Studio',
     fallbackDescription:
@@ -164,8 +164,8 @@ export function PluginsView({
 
   useEffect(() => {
     void refresh();
-    window.addEventListener('open-design:plugins-changed', refresh);
-    return () => window.removeEventListener('open-design:plugins-changed', refresh);
+    window.addEventListener('readable-studio:plugins-changed', refresh);
+    return () => window.removeEventListener('readable-studio:plugins-changed', refresh);
   }, []);
 
   const userPlugins = useMemo(
@@ -753,7 +753,7 @@ function pluginShareSlug(name: string): string {
     name
       .toLowerCase()
       .replace(/[^a-z0-9._-]+/g, '-')
-      .replace(/(^[-._]+|[-._]+$)/g, '') || 'open-design-plugin'
+      .replace(/(^[-._]+|[-._]+$)/g, '') || 'readable-studio-plugin'
   );
 }
 
@@ -1941,7 +1941,7 @@ function buildAvailableInstallCommand(
   version: string,
 ): string {
   const suffix = version && version !== 'latest' ? `@${version}` : '';
-  return `od plugin install ${entry.name}${suffix}`;
+  return `readable plugin install ${entry.name}${suffix}`;
 }
 
 function buildAvailablePluginProvenance({

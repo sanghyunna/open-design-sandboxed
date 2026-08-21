@@ -28,7 +28,7 @@ This is the authoritative build brief. Follow it exactly — the named colors, f
 
 Use this exact CloudFront video URL (keep it remote — large stable CDN media):
 
-`https://plugin-assets.open-design.ai/plugins/skyelite-private-jets/hf_20260328_091828_e240eb17-6edc-4129-ad9d-98678e3fd238-86655b.mp4`
+`https://plugin-assets.readable-studio.ai/plugins/skyelite-private-jets/hf_20260328_091828_e240eb17-6edc-4129-ad9d-98678e3fd238-86655b.mp4`
 
 - Attributes: `autoplay muted loop playsInline`.
 - `object-fit: cover`, fills the entire hero viewport (`height: 100vh`), `position: absolute; inset: 0; z-index: 0`. **No overlay.**

@@ -2,7 +2,7 @@
 //
 // These mirror the wire shape that CopilotKit / agent-protocol clients
 // expect (see https://github.com/CopilotKit/CopilotKit). We pin the
-// minimum surface OD currently needs:
+// minimum surface Readable Studio currently needs:
 //
 //   - agent.message            run-level streaming text
 //   - tool_call                run-level tool invocation
@@ -11,7 +11,7 @@
 //   - ui.surface_responded     the user's answer (or a cache hit)
 //   - run.lifecycle            run started / completed / cancelled
 //
-// Spec §10.3.5 / Phase 4 — OD's native PersistedAgentEvent / GenUIEvent
+// Spec §10.3.5 / Phase 4 — Readable Studio's native PersistedAgentEvent / GenUIEvent
 // /PluginPipelineStageEvent union maps onto this set bidirectionally.
 
 export type AGUIEventKind =
@@ -25,7 +25,7 @@ export type AGUIEventKind =
 export interface AGUIEventBase {
   // Event kind discriminator. Stable across protocol versions.
   kind: AGUIEventKind;
-  // The OD run id this event belongs to.
+  // The Readable Studio run id this event belongs to.
   runId: string;
   // Monotonic per-run sequence number. Lets a reconnecting client
   // resume from a specific point.
@@ -68,7 +68,7 @@ export interface AGUIStateUpdateEvent extends AGUIEventBase {
 export interface AGUISurfaceRequestedEvent extends AGUIEventBase {
   kind: 'ui.surface_requested';
   surfaceId: string;
-  // OD's surface kinds map directly onto AG-UI's three tiers
+  // Readable Studio's surface kinds map directly onto AG-UI's three tiers
   // (Static / Declarative / Open-Ended). v1 only emits the
   // Declarative tier (form / choice / confirmation / oauth-prompt).
   surfaceKind: 'form' | 'choice' | 'confirmation' | 'oauth-prompt';

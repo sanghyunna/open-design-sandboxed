@@ -282,10 +282,10 @@ export function HomeView({
       });
     };
     load();
-    window.addEventListener('open-design:plugins-changed', load);
+    window.addEventListener('readable-studio:plugins-changed', load);
     return () => {
       cancelled = true;
-      window.removeEventListener('open-design:plugins-changed', load);
+      window.removeEventListener('readable-studio:plugins-changed', load);
     };
   }, []);
 
@@ -377,7 +377,7 @@ export function HomeView({
   // When the active plugin was bound through a chip, the badge shows
   // the chip label (e.g. "Prototype") instead of the underlying plugin
   // record title (e.g. "New generation (default scenario)"). Several
-  // chips share od-new-generation, so surfacing the raw plugin title
+  // chips share readable-new-generation, so surfacing the raw plugin title
   // would mislabel what the user actually picked.
   const activeBadge = useMemo(() => {
     if (!active) return { title: null as string | null, isExplicitPlugin: false };
@@ -663,7 +663,7 @@ export function HomeView({
   // driver of the next run — i.e. set it as the active plugin so its own
   // pipeline + SKILL.md/asset context are applied — rather than only
   // attaching it as background context. Without this, the submit path
-  // falls back to the hidden od-default scenario and the plugin's design
+  // falls back to the hidden readable-default scenario and the plugin's design
   // brief never reaches the agent.
   //
   // Prompt handling preserves the legacy context-use semantics:
@@ -1004,14 +1004,14 @@ export function HomeView({
       focusPromptAtEnd();
     }, {
       before: active?.record.id ?? null,
-      after: 'od-plugin-authoring',
+      after: 'readable-plugin-authoring',
     });
   }
 
   useEffect(() => {
     if (!pendingAuthoringChipId || pluginsLoading) return;
-    const authoringRecord = plugins.find((plugin) => plugin.id === 'od-plugin-authoring');
-    const record = authoringRecord ?? plugins.find((plugin) => plugin.id === 'od-new-generation');
+    const authoringRecord = plugins.find((plugin) => plugin.id === 'readable-plugin-authoring');
+    const record = authoringRecord ?? plugins.find((plugin) => plugin.id === 'readable-new-generation');
     setPendingAuthoringChipId(null);
     if (!record) {
       setPendingChipId(null);
@@ -1226,7 +1226,7 @@ export function HomeView({
       ...(() => {
         if (!autoSendFirstMessage) return {};
         if (!examplePromptInfoRef.current) return {};
-        const key = 'od:example-prompt-used';
+        const key = 'readable:example-prompt-used';
         if (localStorage.getItem(key)) return {};
         localStorage.setItem(key, '1');
         return { examplePromptContext: examplePromptInfoRef.current };

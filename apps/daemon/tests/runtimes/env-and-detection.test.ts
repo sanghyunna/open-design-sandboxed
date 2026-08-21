@@ -21,13 +21,13 @@ test('spawnEnvForAgent strips Anthropic API credentials for the claude adapter',
     ANTHROPIC_API_KEY: 'sk-leak',
     ANTHROPIC_AUTH_TOKEN: 'sk-token-leak',
     PATH: '/usr/bin',
-    OD_DAEMON_URL: 'http://127.0.0.1:7456',
+    READABLE_DAEMON_URL: 'http://127.0.0.1:7456',
   });
 
   assert.equal('ANTHROPIC_API_KEY' in env, false);
   assert.equal('ANTHROPIC_AUTH_TOKEN' in env, false);
   assert.equal(env.PATH, '/usr/bin');
-  assert.equal(env.OD_DAEMON_URL, 'http://127.0.0.1:7456');
+  assert.equal(env.READABLE_DAEMON_URL, 'http://127.0.0.1:7456');
 });
 
 test('spawnEnvForAgent applies configured Claude Code env before auth stripping', () => {
@@ -64,13 +64,13 @@ test('spawnEnvForAgent applies configured Codex env without mutating the base en
 });
 
 test('spawnEnvForAgent reapplies sandbox state roots after configured env overrides', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-agent-env-sandbox-'));
+  const dataDir = mkdtempSync(join(tmpdir(), 'readable-agent-env-sandbox-'));
   try {
     const codexEnv = spawnEnvForAgent(
       'codex',
       {
-        OD_DATA_DIR: dataDir,
-        OD_SANDBOX_MODE: '1',
+        READABLE_DATA_DIR: dataDir,
+        READABLE_SANDBOX_MODE: '1',
         PATH: '/usr/bin',
       },
       {
@@ -86,8 +86,8 @@ test('spawnEnvForAgent reapplies sandbox state roots after configured env overri
     const claudeEnv = spawnEnvForAgent(
       'claude',
       {
-        OD_DATA_DIR: dataDir,
-        OD_SANDBOX_MODE: '1',
+        READABLE_DATA_DIR: dataDir,
+        READABLE_SANDBOX_MODE: '1',
         PATH: '/usr/bin',
       },
       {
@@ -102,8 +102,8 @@ test('spawnEnvForAgent reapplies sandbox state roots after configured env overri
     const amrEnv = spawnEnvForAgent(
       'amr',
       {
-        OD_DATA_DIR: dataDir,
-        OD_SANDBOX_MODE: '1',
+        READABLE_DATA_DIR: dataDir,
+        READABLE_SANDBOX_MODE: '1',
         PATH: '/usr/bin',
       },
       {
@@ -119,23 +119,23 @@ test('spawnEnvForAgent reapplies sandbox state roots after configured env overri
   }
 });
 
-test('spawnEnvForAgent keeps sandbox roots pinned to the base OD_DATA_DIR', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-agent-env-sandbox-base-'));
+test('spawnEnvForAgent keeps sandbox roots pinned to the base READABLE_DATA_DIR', () => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'readable-agent-env-sandbox-base-'));
   try {
     const env = spawnEnvForAgent(
       'codex',
       {
-        OD_DATA_DIR: dataDir,
-        OD_SANDBOX_MODE: '1',
+        READABLE_DATA_DIR: dataDir,
+        READABLE_SANDBOX_MODE: '1',
         PATH: '/usr/bin',
       },
       {
         CODEX_HOME: '/Users/test/.codex-host',
-        OD_DATA_DIR: '/host/path/.od',
+        READABLE_DATA_DIR: '/host/path/.readable-studio',
       },
     );
 
-    assert.equal(env.OD_DATA_DIR, dataDir);
+    assert.equal(env.READABLE_DATA_DIR, dataDir);
     assert.equal(env.CODEX_HOME, join(dataDir, 'sandbox', 'agent-home', '.codex'));
     assert.equal(env.HOME, join(dataDir, 'sandbox', 'agent-home'));
   } finally {
@@ -143,15 +143,15 @@ test('spawnEnvForAgent keeps sandbox roots pinned to the base OD_DATA_DIR', () =
   }
 });
 
-test('spawnEnvForAgent resolves relative OD_DATA_DIR before applying sandbox roots', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-agent-env-sandbox-relative-'));
+test('spawnEnvForAgent resolves relative READABLE_DATA_DIR before applying sandbox roots', () => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'readable-agent-env-sandbox-relative-'));
   try {
     const relativeDataDir = relative(repoRoot, dataDir);
     const env = spawnEnvForAgent(
       'codex',
       {
-        OD_DATA_DIR: relativeDataDir,
-        OD_SANDBOX_MODE: '1',
+        READABLE_DATA_DIR: relativeDataDir,
+        READABLE_SANDBOX_MODE: '1',
         PATH: '/usr/bin',
       },
       {
@@ -265,7 +265,7 @@ test('spawnEnvForAgent injects the resolved AMR profile after configured env', (
   const env = spawnEnvForAgent(
     'amr',
     {
-      OPEN_DESIGN_AMR_PROFILE: 'test',
+      READABLE_AMR_PROFILE: 'test',
       VELA_PROFILE: 'prod',
       PATH: '/usr/bin',
     },
@@ -275,15 +275,15 @@ test('spawnEnvForAgent injects the resolved AMR profile after configured env', (
   );
 
   assert.equal(env.VELA_PROFILE, 'test');
-  assert.equal(env.OPEN_DESIGN_AMR_PROFILE, 'test');
+  assert.equal(env.READABLE_AMR_PROFILE, 'test');
   assert.equal(env.PATH, '/usr/bin');
 });
 
-test('spawnEnvForAgent gives AMR a stable OpenCode home under OD_DATA_DIR', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-amr-data-'));
+test('spawnEnvForAgent gives AMR a stable OpenCode home under READABLE_DATA_DIR', () => {
+  const dataDir = mkdtempSync(join(tmpdir(), 'readable-amr-data-'));
   try {
     const env = spawnEnvForAgent('amr', {
-      OD_DATA_DIR: dataDir,
+      READABLE_DATA_DIR: dataDir,
       PATH: '/usr/bin',
     });
 
@@ -297,13 +297,13 @@ test('spawnEnvForAgent gives AMR a stable OpenCode home under OD_DATA_DIR', () =
 });
 
 test('spawnEnvForAgent preserves a configured AMR OpenCode home override', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-amr-data-'));
+  const dataDir = mkdtempSync(join(tmpdir(), 'readable-amr-data-'));
   try {
     const configuredHome = join(dataDir, 'custom-opencode-home');
     const env = spawnEnvForAgent(
       'amr',
       {
-        OD_DATA_DIR: dataDir,
+        READABLE_DATA_DIR: dataDir,
         PATH: '/usr/bin',
       },
       {
@@ -318,16 +318,16 @@ test('spawnEnvForAgent preserves a configured AMR OpenCode home override', () =>
 });
 
 fsTest('spawnEnvForAgent gives AMR a discovered OpenCode binary under a minimal child PATH', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-amr-opencode-home-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-amr-opencode-home-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const opencodeBinDir = join(dir, '.opencode', 'bin');
       const opencodeBin = join(opencodeBinDir, 'opencode');
       mkdirSync(opencodeBinDir, { recursive: true });
       writeFileSync(opencodeBin, '#!/bin/sh\nexit 0\n');
       chmodSync(opencodeBin, 0o755);
       process.env.PATH = '/usr/bin';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const env = spawnEnvForAgent('amr', { PATH: '/usr/bin' });
 
@@ -340,14 +340,14 @@ fsTest('spawnEnvForAgent gives AMR a discovered OpenCode binary under a minimal 
 });
 
 fsTest('resolveAgentExecutable prefers a configured CODEX_BIN override over PATH resolution', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-codex-bin-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-codex-bin-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const configured = join(dir, 'codex-custom');
       writeFileSync(configured, '#!/bin/sh\nexit 0\n');
       chmodSync(configured, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const resolved = resolveAgentExecutable(
         minimalAgentDef({ id: 'codex', bin: 'codex' }),
@@ -362,9 +362,9 @@ fsTest('resolveAgentExecutable prefers a configured CODEX_BIN override over PATH
 });
 
 fsTest('inspectAgentExecutableResolution reports configured and PATH Codex binaries separately', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-codex-bin-inspect-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-codex-bin-inspect-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const configured = join(dir, 'codex-custom');
       const fallback = join(dir, 'codex');
       writeFileSync(configured, '#!/bin/sh\nexit 0\n');
@@ -372,7 +372,7 @@ fsTest('inspectAgentExecutableResolution reports configured and PATH Codex binar
       chmodSync(configured, 0o755);
       chmodSync(fallback, 0o755);
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const resolution = inspectAgentExecutableResolution(
         minimalAgentDef({ id: 'codex', bin: 'codex' }),
@@ -403,11 +403,11 @@ fsTest('resolveAgentExecutable supports configured binary overrides for non-Code
     ['trae-cli', 'traecli', 'TRAE_CLI_BIN'],
     ['aider', 'aider', 'AIDER_BIN'],
   ];
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-bin-overrides-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-bin-overrides-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       for (const [id, binName, envKey] of cases) {
         const configured = join(dir, `${binName}-custom`);
@@ -428,9 +428,9 @@ fsTest('resolveAgentExecutable supports configured binary overrides for non-Code
 });
 
 fsTest('resolveAgentExecutable prefers opencode-cli before desktop opencode fallback', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-opencode-cli-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-opencode-cli-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const cli = join(dir, 'opencode-cli');
       const desktop = join(dir, 'opencode');
       writeFileSync(cli, '#!/bin/sh\nexit 0\n');
@@ -438,7 +438,7 @@ fsTest('resolveAgentExecutable prefers opencode-cli before desktop opencode fall
       chmodSync(cli, 0o755);
       chmodSync(desktop, 0o755);
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       assert.equal(resolveAgentExecutable(opencode), cli);
 
@@ -451,11 +451,11 @@ fsTest('resolveAgentExecutable prefers opencode-cli before desktop opencode fall
 });
 
 test('detectAgents includes sanitized install and docs metadata from split runtime metadata', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-install-meta-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-install-meta-'));
   try {
-    return await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    return await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents({}, { enabledAgentIds: ['qoder', 'deepseek'] });
       const qoder = agents.find((agent) => agent.id === 'qoder');
@@ -477,9 +477,9 @@ test('detectAgents includes sanitized install and docs metadata from split runti
 });
 
 fsTest('detectAgents marks Codex available when nvm exposes a node shim but launch resolution upgrades it to the native binary', async () => {
-  const home = mkdtempSync(join(tmpdir(), 'od-detect-codex-nvm-native-'));
+  const home = mkdtempSync(join(tmpdir(), 'readable-detect-codex-nvm-native-'));
   try {
-    return await withEnvSnapshot(['HOME', 'PATH', 'OD_AGENT_HOME'], async () => {
+    return await withEnvSnapshot(['HOME', 'PATH', 'READABLE_AGENT_HOME'], async () => {
       const wrapperBinDir = join(home, '.nvm', 'versions', 'node', '24.14.1', 'bin');
       const wrapperPkgDir = join(home, '.nvm', 'versions', 'node', '24.14.1', 'lib', 'node_modules', '@openai', 'codex');
       const wrapperRealPath = join(wrapperPkgDir, 'bin', 'codex.js');
@@ -511,7 +511,7 @@ fsTest('detectAgents marks Codex available when nvm exposes a node shim but laun
 
       process.env.HOME = home;
       process.env.PATH = pathBin;
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
 
       const agents = await detectAgents();
       const codexAgent = agents.find((agent) => agent.id === 'codex');
@@ -527,10 +527,10 @@ fsTest('detectAgents marks Codex available when nvm exposes a node shim but laun
 });
 
 fsTest('detectAgents keeps packaged built-in AMR unavailable when OpenCode cannot be resolved', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-detect-amr-built-in-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-detect-amr-built-in-'));
   try {
-    return await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
-      const resourceRoot = join(root, 'resources', 'open-design');
+    return await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
+      const resourceRoot = join(root, 'resources', 'readable-studio');
       const builtInVela = join(resourceRoot, 'bin', 'vela');
       mkdirSync(join(resourceRoot, 'bin'), { recursive: true });
       writeFileSync(
@@ -539,8 +539,8 @@ fsTest('detectAgents keeps packaged built-in AMR unavailable when OpenCode canno
       );
       chmodSync(builtInVela, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = join(root, 'empty-home');
-      process.env.OD_RESOURCE_ROOT = resourceRoot;
+      process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+      process.env.READABLE_RESOURCE_ROOT = resourceRoot;
       delete process.env.VELA_OPENCODE_BIN;
 
       const agents = await detectAgents();
@@ -557,10 +557,10 @@ fsTest('detectAgents keeps packaged built-in AMR unavailable when OpenCode canno
 });
 
 fsTest('detectAgents marks AMR available from packaged built-in Vela with the bundled OpenCode companion tree', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-detect-amr-built-in-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-detect-amr-built-in-'));
   try {
-    return await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
-      const resourceRoot = join(root, 'resources', 'open-design');
+    return await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
+      const resourceRoot = join(root, 'resources', 'readable-studio');
       const builtInVela = join(resourceRoot, 'bin', 'vela');
       const companionTree = join(resourceRoot, 'bin', 'libexec', 'opencode');
       mkdirSync(join(resourceRoot, 'bin'), { recursive: true });
@@ -578,8 +578,8 @@ fsTest('detectAgents marks AMR available from packaged built-in Vela with the bu
       writeFileSync(companionExe, '#!/bin/sh\nexit 0\n');
       chmodSync(companionExe, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = join(root, 'empty-home');
-      process.env.OD_RESOURCE_ROOT = resourceRoot;
+      process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+      process.env.READABLE_RESOURCE_ROOT = resourceRoot;
       delete process.env.VELA_OPENCODE_BIN;
 
       const agents = await detectAgents();
@@ -597,9 +597,9 @@ fsTest('detectAgents marks AMR available from packaged built-in Vela with the bu
 
 
 fsTest('detectAgents prefers configured AMR live models over stale fallback defaults', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-detect-amr-live-models-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-detect-amr-live-models-'));
   try {
-    return await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
+    return await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
       const fakeVela = join(root, 'vela');
       const fakeOpenCode = join(root, 'opencode');
       writeFileSync(
@@ -616,8 +616,8 @@ exit 0
       chmodSync(fakeVela, 0o755);
       chmodSync(fakeOpenCode, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = join(root, 'empty-home');
-      delete process.env.OD_RESOURCE_ROOT;
+      process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+      delete process.env.READABLE_RESOURCE_ROOT;
       delete process.env.VELA_OPENCODE_BIN;
 
       const agents = await detectAgents({
@@ -646,9 +646,9 @@ exit 0
 });
 
 fsTest('detectAgents preserves the scoped AMR cache when a later probe returns no models', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'od-detect-amr-empty-models-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-detect-amr-empty-models-'));
   try {
-    return await withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
+    return await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], async () => {
       const fakeVela = join(root, 'vela');
       const fakeOpenCode = join(root, 'opencode');
       const modeFile = join(root, 'models-mode');
@@ -672,15 +672,15 @@ exit 0
       chmodSync(fakeVela, 0o755);
       chmodSync(fakeOpenCode, 0o755);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = join(root, 'empty-home');
-      delete process.env.OD_RESOURCE_ROOT;
+      process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+      delete process.env.READABLE_RESOURCE_ROOT;
       delete process.env.VELA_OPENCODE_BIN;
 
       await detectAgents({
         amr: {
           VELA_BIN: fakeVela,
           VELA_OPENCODE_BIN: fakeOpenCode,
-          OPEN_DESIGN_AMR_PROFILE: 'prod',
+          READABLE_AMR_PROFILE: 'prod',
         },
       });
       assert.deepEqual(getRememberedLiveModels('amr', 'prod'), [
@@ -692,7 +692,7 @@ exit 0
         amr: {
           VELA_BIN: fakeVela,
           VELA_OPENCODE_BIN: fakeOpenCode,
-          OPEN_DESIGN_AMR_PROFILE: 'prod',
+          READABLE_AMR_PROFILE: 'prod',
         },
       });
       const amrAgent = agents.find((agent) => agent.id === 'amr');
@@ -721,16 +721,16 @@ function codexNativeTargetTriple(): string {
 }
 
 test('resolveAgentExecutable ignores relative CODEX_BIN overrides', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-codex-bin-rel-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-codex-bin-rel-'));
   const oldCwd = process.cwd();
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const configured = 'codex-custom';
       writeFileSync(join(dir, configured), '#!/bin/sh\nexit 0\n');
       chmodSync(join(dir, configured), 0o755);
       process.chdir(dir);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const resolved = resolveAgentExecutable(
         minimalAgentDef({ id: 'codex', bin: 'codex' }),
@@ -746,16 +746,16 @@ test('resolveAgentExecutable ignores relative CODEX_BIN overrides', () => {
 });
 
 test('resolveAgentExecutable ignores configured binary overrides that are not executable files', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-bin-invalid-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-bin-invalid-'));
   try {
-    return withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], () => {
       const directoryOverride = join(dir, 'as-directory');
       mkdirSync(directoryOverride);
       const fileOverride = join(dir, 'not-executable');
       writeFileSync(fileOverride, '#!/bin/sh\nexit 0\n');
       if (process.platform !== 'win32') chmodSync(fileOverride, 0o644);
       process.env.PATH = '';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       assert.equal(
         resolveAgentExecutable(minimalAgentDef({ id: 'codex', bin: 'codex' }), { CODEX_BIN: directoryOverride }),
@@ -774,16 +774,16 @@ test('resolveAgentExecutable ignores configured binary overrides that are not ex
 });
 
 test('resolveAgentExecutable ignores Windows CODEX_BIN overrides without executable PATHEXT extension', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-bin-win-invalid-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-bin-win-invalid-'));
   try {
-    return withEnvSnapshot(['PATH', 'PATHEXT', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'PATHEXT', 'READABLE_AGENT_HOME'], () => {
       const invalidOverride = join(dir, 'codex-custom.txt');
       const fallback = join(dir, 'codex.CMD');
       writeFileSync(invalidOverride, '@echo off\r\nexit /b 0\r\n');
       writeFileSync(fallback, '@echo off\r\nexit /b 0\r\n');
       process.env.PATH = dir;
       process.env.PATHEXT = '.EXE;.CMD;.BAT';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const resolved = withPlatform('win32', () =>
         resolveAgentExecutable(
@@ -800,14 +800,14 @@ test('resolveAgentExecutable ignores Windows CODEX_BIN overrides without executa
 });
 
 test('resolveAgentExecutable accepts Windows CODEX_BIN overrides with executable PATHEXT extension', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-bin-win-valid-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-bin-win-valid-'));
   try {
-    return withEnvSnapshot(['PATH', 'PATHEXT', 'OD_AGENT_HOME'], () => {
+    return withEnvSnapshot(['PATH', 'PATHEXT', 'READABLE_AGENT_HOME'], () => {
       const configured = join(dir, 'codex-custom.CMD');
       writeFileSync(configured, '@echo off\r\nexit /b 0\r\n');
       process.env.PATH = '';
       process.env.PATHEXT = '.EXE;.CMD;.BAT';
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const resolved = withPlatform('win32', () =>
         resolveAgentExecutable(
@@ -824,9 +824,9 @@ test('resolveAgentExecutable accepts Windows CODEX_BIN overrides with executable
 });
 
 test('detectAgents applies configured env while probing the CLI', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agent-env-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agent-env-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = join(dir, process.platform === 'win32' ? 'claude.cmd' : 'claude');
       if (process.platform === 'win32') {
         writeFileSync(
@@ -841,7 +841,7 @@ test('detectAgents applies configured env while probing the CLI', async () => {
         chmodSync(bin, 0o755);
       }
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents(
         { claude: { CLAUDE_CONFIG_DIR: '/tmp/claude-config-probe' } },
@@ -858,9 +858,9 @@ test('detectAgents applies configured env while probing the CLI', async () => {
 });
 
 test('detectAgents marks Cursor Agent auth ok when cursor-agent status succeeds', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-cursor-auth-ok-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-cursor-auth-ok-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = join(dir, process.platform === 'win32' ? 'cursor-agent.cmd' : 'cursor-agent');
       if (process.platform === 'win32') {
         writeFileSync(
@@ -875,7 +875,7 @@ test('detectAgents marks Cursor Agent auth ok when cursor-agent status succeeds'
         chmodSync(bin, 0o755);
       }
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const detected = agents.find((agent) => agent.id === 'cursor-agent');
@@ -890,9 +890,9 @@ test('detectAgents marks Cursor Agent auth ok when cursor-agent status succeeds'
 });
 
 test('detectAgents surfaces Cursor Agent model labels without putting labels in ids', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-cursor-model-labels-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-cursor-model-labels-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = join(dir, process.platform === 'win32' ? 'cursor-agent.cmd' : 'cursor-agent');
       if (process.platform === 'win32') {
         writeFileSync(
@@ -907,7 +907,7 @@ test('detectAgents surfaces Cursor Agent model labels without putting labels in 
         chmodSync(bin, 0o755);
       }
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const detected = agents.find((agent) => agent.id === 'cursor-agent');
@@ -926,9 +926,9 @@ test('detectAgents surfaces Cursor Agent model labels without putting labels in 
 });
 
 test('detectAgents keeps Cursor Agent available when auth is missing', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-cursor-auth-missing-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-cursor-auth-missing-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = join(dir, process.platform === 'win32' ? 'cursor-agent.cmd' : 'cursor-agent');
       if (process.platform === 'win32') {
         writeFileSync(
@@ -943,7 +943,7 @@ test('detectAgents keeps Cursor Agent available when auth is missing', async () 
         chmodSync(bin, 0o755);
       }
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const detected = agents.find((agent) => agent.id === 'cursor-agent');
@@ -962,9 +962,9 @@ test('detectAgents keeps Cursor Agent available when auth is missing', async () 
 });
 
 test('detectAgents treats Cursor Agent Not logged in status as missing auth', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-cursor-not-logged-in-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-cursor-not-logged-in-'));
   try {
-    await withEnvSnapshot(['PATH', 'OD_AGENT_HOME'], async () => {
+    await withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME'], async () => {
       const bin = join(dir, process.platform === 'win32' ? 'cursor-agent.cmd' : 'cursor-agent');
       if (process.platform === 'win32') {
         writeFileSync(
@@ -979,7 +979,7 @@ test('detectAgents treats Cursor Agent Not logged in status as missing auth', as
         chmodSync(bin, 0o755);
       }
       process.env.PATH = dir;
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
 
       const agents = await detectAgents();
       const detected = agents.find((agent) => agent.id === 'cursor-agent');
@@ -1038,7 +1038,7 @@ test('antigravity auth matcher covers agy print-mode + log-file auth signals', a
 
   // Classifier wires the agy detector to the user-actionable guidance
   // text so the chat surfaces a re-auth message rather than the raw
-  // OAuth URL the user can't act on from inside OD.
+  // OAuth URL the user can't act on from inside Readable Studio.
   const cls = classifyAgentAuthFailure(
     'antigravity',
     'Authentication required. Please visit the URL to log in: https://example',
@@ -1130,12 +1130,12 @@ test('spawnEnvForAgent strips OPENAI_API_KEY for the codex adapter when OPENAI_B
   const env = spawnEnvForAgent('codex', {
     OPENAI_API_KEY: 'sk-stale-byok',
     PATH: '/usr/bin',
-    OD_DAEMON_URL: 'http://127.0.0.1:7456',
+    READABLE_DAEMON_URL: 'http://127.0.0.1:7456',
   });
 
   assert.equal('OPENAI_API_KEY' in env, false);
   assert.equal(env.PATH, '/usr/bin');
-  assert.equal(env.OD_DAEMON_URL, 'http://127.0.0.1:7456');
+  assert.equal(env.READABLE_DAEMON_URL, 'http://127.0.0.1:7456');
 });
 
 test('spawnEnvForAgent strips CODEX_API_KEY for the codex adapter when OPENAI_BASE_URL is absent', () => {

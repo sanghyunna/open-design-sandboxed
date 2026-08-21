@@ -139,7 +139,7 @@ function writeStoredRailOpen(open: boolean): void {
   }
 }
 
-const ONBOARDING_DROPDOWN_OPEN_EVENT = 'open-design:onboarding-dropdown-open';
+const ONBOARDING_DROPDOWN_OPEN_EVENT = 'readable-studio:onboarding-dropdown-open';
 
 // The topbar chips (GitHub star, model switcher, Use everywhere)
 // collapse into the settings dropdown when the viewport gets
@@ -189,7 +189,7 @@ function defaultPluginInputsForCreate(
     };
   }
 
-  if (pluginId === 'od-new-generation') {
+  if (pluginId === 'readable-new-generation') {
     const templateLabel = input.metadata.templateLabel?.trim();
     const artifactKind =
       kind === 'template'
@@ -491,7 +491,7 @@ export function EntryShell({
   // Stage B of plugin-driven-flow-plan: the rail can stamp a
   // `projectKind` on the payload so the created project records the
   // chosen artifact type. Free-form Home submits now arrive with the
-  // hidden od-default router plugin and projectKind='other', so the
+  // hidden readable-default router plugin and projectKind='other', so the
   // agent asks for the exact task type before continuing.
   function handlePluginLoopSubmit(payload: PluginLoopSubmit) {
     const head = payload.prompt.trim().split(/\s+/).slice(0, 8).join(' ');

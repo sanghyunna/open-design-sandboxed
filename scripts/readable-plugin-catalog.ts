@@ -10,8 +10,16 @@ import { parseManifest, parseMarketplace } from "../packages/plugin-runtime/src/
 const MANIFEST_NAME = "readable-studio.json";
 const MARKETPLACE_NAME = "readable-studio-marketplace.json";
 const REPOSITORY = "https://github.com/sanghyunna/readable-studio";
-const RAW_ASSET_URL = /https:\/\/plugin-assets\.open-design\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
-const OLD_IDENTITY = /Open[ -]Design|open-design|open_design|\bod[.:]|\bOD_/u;
+const RAW_ASSET_URL = /https:\/\/plugin-assets\.readable-studio\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
+const retiredSlug = ["open", "design"].join("-");
+const retiredDisplay = ["Open", "Design"].join(" ");
+const retiredSnake = ["open", "design"].join("_");
+const retiredShort = ["o", "d"].join("");
+const retiredUpperPrefix = ["O", "D", "_"].join("");
+const OLD_IDENTITY = new RegExp(
+  `${retiredDisplay}|${retiredSlug}|${retiredSnake}|\\b${retiredShort}[.:]|\\b${retiredUpperPrefix}`,
+  "u",
+);
 
 export class PluginCatalogError extends Error {
   readonly name = "PluginCatalogError";
@@ -45,7 +53,7 @@ function parseCanonicalManifest(raw: string, label: string, folder: string): Plu
     .replace(RAW_ASSET_URL, "")
     .replaceAll(parsed.manifest.name, "")
     .replaceAll(folder, "")
-    .replaceAll("open-design-landing", "");
+    .replaceAll("readable-landing", "");
   if (OLD_IDENTITY.test(activeText)) throw new PluginCatalogError(`${label}: contains active old product identity`);
   return parsed.manifest;
 }

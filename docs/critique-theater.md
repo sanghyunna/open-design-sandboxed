@@ -8,7 +8,7 @@ threshold or the orchestrator gives up.
 The product label is **Design Jury**. The internal feature name (code paths,
 metrics, env vars) stays **Critique Theater**: `apps/daemon/src/critique/`,
 `apps/web/src/components/Theater/`, SSE channels `critique.*`, env vars
-`OD_CRITIQUE_*`. The user-facing label is sourced from a single i18n key,
+`READABLE_CRITIQUE_*`. The user-facing label is sourced from a single i18n key,
 `critiqueTheater.userFacingName`, so the product name can be renamed without
 touching code.
 
@@ -87,7 +87,7 @@ contract identical to a normal generation: same auth, same env, same logs.
 
 The feature is gated by a four-tier resolver on the daemon side:
 
-1. **Per-skill `od.critique.policy`** (highest priority). A skill that
+1. **Per-skill `readable.critique.policy`** (highest priority). A skill that
    sets `policy: required` forces the panel on for every generation
    that uses it; `policy: opt-out` forces it off; `policy: opt-in`
    lets the panel run only at M2 and above.
@@ -104,7 +104,7 @@ The feature is gated by a four-tier resolver on the daemon side:
    dedicated Settings panel control that wires the `projectId`-aware
    call lands in a follow-up PR; integrators embedding the Theater
    can already call the setter directly today.
-3. **`OD_CRITIQUE_ENABLED` env override.** Power-user lane / CI
+3. **`READABLE_CRITIQUE_ENABLED` env override.** Power-user lane / CI
    fixtures.
 4. **Rollout phase default** (lowest priority). M0 / M1 = `false`,
    M2 = true for `policy: opt-in` skills, M3 = `true` everywhere.
@@ -122,16 +122,16 @@ Enabled by default per skill during M2, then globally during M3 after
 
 ### Per-skill override
 
-A skill can opt in or out via `od.critique.policy` in its `SKILL.md`
+A skill can opt in or out via `readable.critique.policy` in its `SKILL.md`
 frontmatter:
 
 ```yaml
-od:
+readable:
   critique:
     policy: required  # or 'opt-in', 'opt-out'
 ```
 
-Skills that publish a deterministic artifact (e.g. `od-export-pdf`) usually
+Skills that publish a deterministic artifact (e.g. `readable-export-pdf`) usually
 set `opt-out`; skills that generate net-new design output (`magazine-poster`,
 `saas-landing`) set `required`.
 
@@ -222,7 +222,7 @@ contract; see `docs/roadmap.md` for the timeline.
 
 - `docs/spec.md` — protocol v1 wire format.
 - `docs/architecture.md` — orchestrator + parser layout.
-- `docs/skills-protocol.md` — `od.critique.policy` frontmatter contract.
+- `docs/skills-protocol.md` — `readable.critique.policy` frontmatter contract.
 - `docs/agent-adapters.md` — conformance contract and adapter responsibilities.
 - `docs/roadmap.md` — v2 panelist extensions.
 - `apps/daemon/src/critique/AGENTS.md` — daemon-side module map.

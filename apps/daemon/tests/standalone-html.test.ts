@@ -46,7 +46,7 @@ describe('bundleStandaloneHtml', () => {
       },
     ));
 
-    expect(report.html).toContain('data-od-bundled-from="styles/main.css"');
+    expect(report.html).toContain('data-readable-bundled-from="styles/main.css"');
     expect(report.html).toContain('@media screen');
     expect(report.html.match(/data:image\/png;base64,/g)?.length).toBeGreaterThanOrEqual(3);
     expect(report.html).toContain('data:font/woff2;base64,');
@@ -147,7 +147,7 @@ describe('bundleStandaloneHtml', () => {
         'logo.png': PNG,
       },
     ));
-    expect(report.html).toContain('data-od-bundled-module-css');
+    expect(report.html).toContain('data-readable-bundled-module-css');
     expect(report.html.match(/data:image\/png;base64,/g)?.length).toBeGreaterThanOrEqual(2);
   });
 

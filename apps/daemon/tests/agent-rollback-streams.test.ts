@@ -30,7 +30,7 @@ if (process.argv.includes('--version')) { console.log('claude 1.0.0'); process.e
 if (process.argv.includes('--help')) { process.exit(0); }
 console.log(JSON.stringify({ type: 'stream_event', event: { type: 'message_start', message: { id: 'msg-1' } } }));
 console.log(JSON.stringify({ type: 'stream_event', event: { type: 'content_block_start', index: 0, content_block: { type: 'text' } } }));
-console.log(JSON.stringify({ type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'before <od-rollback-request mode="files_only" /> after <' } } }));
+console.log(JSON.stringify({ type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'before <readable-rollback-request mode="files_only" /> after <' } } }));
 console.log(JSON.stringify({ type: 'stream_event', event: { type: 'content_block_stop', index: 0 } }));
 console.log(JSON.stringify({ type: 'result', usage: {}, stop_reason: 'end_turn' }));
 `,
@@ -40,7 +40,7 @@ console.log(JSON.stringify({ type: 'result', usage: {}, stop_reason: 'end_turn' 
       bin: 'qwen',
       script: `
 if (process.argv.includes('--version')) { console.log('qwen 1.0.0'); process.exit(0); }
-process.stdout.write('before <od-rollback-request mode="files_only" /> after <');
+process.stdout.write('before <readable-rollback-request mode="files_only" /> after <');
 `,
     },
   ])('leaves rollback markers inert for legacy $agentId streams', async ({ agentId, bin, script }) => {
@@ -58,7 +58,7 @@ process.stdout.write('before <od-rollback-request mode="files_only" /> after <')
       const body = await events.text();
       expect(body).toContain('before ');
       expect(body).toContain(' after ');
-      expect(body).toContain('od-rollback-request');
+      expect(body).toContain('readable-rollback-request');
       expect(body).not.toContain('"type":"rollback_request"');
     });
   });
@@ -72,13 +72,13 @@ process.stdout.write('before <od-rollback-request mode="files_only" /> after <')
     });
     expect(createProject.status).toBe(200);
     const { conversationId } = await createProject.json() as { conversationId: string };
-    const originalCritiqueEnabled = process.env.OD_CRITIQUE_ENABLED;
-    process.env.OD_CRITIQUE_ENABLED = 'true';
+    const originalCritiqueEnabled = process.env.READABLE_CRITIQUE_ENABLED;
+    process.env.READABLE_CRITIQUE_ENABLED = 'true';
 
     try {
       await withFakeAgent('qwen', `
   process.stdout.write('<CRITIQUE_RUN version="1" maxRounds="1" threshold="8.0" scale="10">\\n');
-  process.stdout.write('<od-rollback-request mode="files_only" reason="critique made the wrong edit" />\\n');
+  process.stdout.write('<readable-rollback-request mode="files_only" reason="critique made the wrong edit" />\\n');
   process.stdout.write('<ROUND n="1">\\n');
   process.stdout.write('<PANELIST role="designer"><NOTES>v1</NOTES><ARTIFACT mime="text/html"><![CDATA[<p>v1</p>]]></ARTIFACT></PANELIST>\\n');
   process.stdout.write('<PANELIST role="critic" score="9"><DIM name="h" score="9">ok</DIM></PANELIST>\\n');
@@ -112,8 +112,8 @@ process.stdout.write('before <od-rollback-request mode="files_only" /> after <')
         expect(body).toContain('event: critique.degraded');
       });
     } finally {
-      if (originalCritiqueEnabled == null) delete process.env.OD_CRITIQUE_ENABLED;
-      else process.env.OD_CRITIQUE_ENABLED = originalCritiqueEnabled;
+      if (originalCritiqueEnabled == null) delete process.env.READABLE_CRITIQUE_ENABLED;
+      else process.env.READABLE_CRITIQUE_ENABLED = originalCritiqueEnabled;
     }
   });
 });

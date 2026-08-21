@@ -115,10 +115,10 @@ describe("sidecar contract", () => {
     const { productId: _productId, ...missingProductId } = descriptor;
 
     expect(() => normalizeRuntimeDescriptor(missingProductId)).toThrowError(/missing productId/);
-    expect(() => normalizeRuntimeDescriptor({ ...descriptor, productId: "open-design" })).toThrowError(
+    expect(() => normalizeRuntimeDescriptor({ ...descriptor, productId: "foreign-product" })).toThrowError(
       /productId must be "readable-studio"/,
     );
-    expect(() => normalizeRuntimeDescriptor({ ...descriptor, appId: "io.open-design.desktop" })).toThrowError(
+    expect(() => normalizeRuntimeDescriptor({ ...descriptor, appId: "io.readable-studio.desktop" })).toThrowError(
       /appId must be "studio.readable.desktop"/,
     );
     expect(() => normalizeRuntimeDescriptor({ ...descriptor, descriptorHash: "0".repeat(64) })).toThrowError(
@@ -127,8 +127,8 @@ describe("sidecar contract", () => {
   });
 
   it("does not export legacy contract symbols", () => {
-    expect(sidecarProto).not.toHaveProperty("OPEN_DESIGN_PRODUCT_NAME");
-    expect(sidecarProto).not.toHaveProperty("OPEN_DESIGN_SIDECAR_CONTRACT");
+    expect(sidecarProto).not.toHaveProperty("READABLE_PRODUCT_NAME");
+    expect(sidecarProto).not.toHaveProperty("READABLE_SIDECAR_CONTRACT");
   });
 
   it("exports the desktop approval launch token key outside the process stamp", () => {

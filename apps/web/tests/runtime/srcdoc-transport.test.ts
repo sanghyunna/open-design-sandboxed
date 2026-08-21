@@ -10,7 +10,7 @@ import {
 
 function extractShellScript(shellHtml: string): string {
   const match = shellHtml.match(
-    /<script\s+data-od-lazy-srcdoc-transport>([\s\S]*?)<\/script>/,
+    /<script\s+data-readable-lazy-srcdoc-transport>([\s\S]*?)<\/script>/,
   );
   if (!match || match[1] == null) {
     throw new Error('lazy transport shell script not found');

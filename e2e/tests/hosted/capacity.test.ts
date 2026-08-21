@@ -41,7 +41,7 @@ type StreamMetrics = {
 };
 
 const LEVELS = [1, 2, 4, 8] as const;
-const CAPACITY_PROMPT = '[capacity-v1] Read input.txt with od_hosted_broker, then report completion.';
+const CAPACITY_PROMPT = '[capacity-v1] Read input.txt with readable_hosted_broker, then report completion.';
 
 describe('hosted local capacity baseline', () => {
   test('runs a comparable deterministic 1/2/4/8-user workload twice', async () => {

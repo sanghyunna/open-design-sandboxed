@@ -112,7 +112,7 @@ function renderTopbar(i: EditorialCollageInputs): string {
   return `
 <div class='topbar' data-readable-id='topbar'>
   <div class='container topbar-inner'>
-    <span><b>OD / ${i.brand.year}</b> &nbsp;·&nbsp; ${i.brand.edition}</span>
+    <span><b>Readable Studio / ${i.brand.year}</b> &nbsp;·&nbsp; ${i.brand.edition}</span>
     <span class='mid'>
       <span>Filed under <b class='coral'>${i.brand.filed_under}</b></span>
       <span>${i.brand.license} · Made on Earth</span>

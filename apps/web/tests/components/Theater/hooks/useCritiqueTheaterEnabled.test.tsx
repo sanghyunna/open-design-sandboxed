@@ -4,7 +4,7 @@
  * Coverage for the M1 Settings-toggle hook (Phase 15.3). The hook
  * reads from the existing `readable-studio:config` localStorage blob and
  * stays in sync via the platform `storage` event (cross-tab) and a
- * `open-design:critique-theater-toggle` CustomEvent (same-tab).
+ * `readable-studio:critique-theater-toggle` CustomEvent (same-tab).
  */
 
 import { act, cleanup, render } from '@testing-library/react';
@@ -177,7 +177,7 @@ describe('useCritiqueTheaterEnabled (Phase 15.3)', () => {
     expect(sink.enabled).toBe(true);
     act(() => {
       window.dispatchEvent(
-        new CustomEvent('open-design:critique-theater-toggle', {
+        new CustomEvent('readable-studio:critique-theater-toggle', {
           // No detail at all.
         }),
       );
@@ -191,7 +191,7 @@ describe('useCritiqueTheaterEnabled (Phase 15.3)', () => {
         JSON.stringify({ critiqueTheaterEnabled: false }),
       );
       window.dispatchEvent(
-        new CustomEvent('open-design:critique-theater-toggle', {
+        new CustomEvent('readable-studio:critique-theater-toggle', {
           // Detail with wrong shape: not a boolean.
           detail: { enabled: 'maybe' },
         }),

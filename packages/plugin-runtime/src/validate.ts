@@ -1,9 +1,9 @@
 import {
   PluginManifestSchema,
-  UNSUPPORTED_OPEN_DESIGN_V1,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   type PluginManifest,
 } from '@readable-studio/contracts';
-import { isUnsupportedOpenDesignV1 } from './parsers/manifest.js';
+import { isUnsupportedLegacyProductV1 } from './parsers/manifest.js';
 
 export interface ValidateResult {
   ok: boolean;
@@ -35,8 +35,8 @@ const KNOWN_CAPABILITIES = new Set([
 
 // @dsp func-30ea3892
 export function validateManifest(value: unknown): ValidateResult {
-  if (isUnsupportedOpenDesignV1(value)) {
-    return { ok: false, warnings: [], errors: [UNSUPPORTED_OPEN_DESIGN_V1] };
+  if (isUnsupportedLegacyProductV1(value)) {
+    return { ok: false, warnings: [], errors: [UNSUPPORTED_LEGACY_PRODUCT_V1] };
   }
 
   const parsed = PluginManifestSchema.safeParse(value);

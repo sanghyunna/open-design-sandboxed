@@ -33,7 +33,7 @@ const PINNED_TEMPLATE_PLUGIN_IDS = [
 
 const CURATED_PROTOTYPE_PLUGIN_IDS = [
   ...PINNED_TEMPLATE_PLUGIN_IDS,
-  'example-open-design-landing',
+  'example-readable-landing',
   'example-kanban-board',
   'example-social-carousel',
   'example-blog-post',

@@ -137,7 +137,7 @@ describe('project design system route gates', () => {
     projectsToClean.push(projectId);
 
     const prompt =
-      'Create this project as a complete Open Design design system workspace.';
+      'Create this project as a complete Readable Studio design system workspace.';
     const patchResp = await fetch(`${baseUrl}/api/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -305,7 +305,7 @@ describe('project design system route gates', () => {
 
   it('rejects draft design systems when importing a folder as a project', async () => {
     const draft = await createUserDesignSystem('draft');
-    const folder = mkdtempSync(path.join(tmpdir(), 'od-import-draft-ds-'));
+    const folder = mkdtempSync(path.join(tmpdir(), 'readable-import-draft-ds-'));
     tempDirs.push(folder);
     await writeFile(path.join(folder, 'index.html'), '<!doctype html>');
 

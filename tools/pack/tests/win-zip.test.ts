@@ -49,7 +49,7 @@ describe("Windows portable zip locale pruning", () => {
   });
 
   it("selects only unsupported top-level Chromium locale paks", async () => {
-    const root = await mkdtemp(join(tmpdir(), "od-tools-pack-locale-prune-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-tools-pack-locale-prune-"));
     try {
       await mkdir(join(root, "locales"), { recursive: true });
       await writeFile(join(root, "locales", "en-US.pak"), "en", "utf8");
@@ -86,12 +86,12 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
     extractedChromiumLocales: string[];
     timings: Awaited<ReturnType<typeof buildWinPortableZip>>;
   }> {
-    const root = await mkdtemp(join(tmpdir(), "od-tools-pack-portable-zip-"));
-    const previousCompression = process.env.OD_PORTABLE_ZIP_COMPRESSION;
+    const root = await mkdtemp(join(tmpdir(), "readable-tools-pack-portable-zip-"));
+    const previousCompression = process.env.READABLE_PORTABLE_ZIP_COMPRESSION;
     if (compression == null) {
-      delete process.env.OD_PORTABLE_ZIP_COMPRESSION;
+      delete process.env.READABLE_PORTABLE_ZIP_COMPRESSION;
     } else {
-      process.env.OD_PORTABLE_ZIP_COMPRESSION = compression;
+      process.env.READABLE_PORTABLE_ZIP_COMPRESSION = compression;
     }
 
     try {
@@ -151,9 +151,9 @@ describe.skipIf(process.platform !== "win32")("buildWinPortableZip portable inje
       return { extractedAppI18nLocales, extractedChromiumLocales, extractedConfig, originalConfig, timings };
     } finally {
       if (previousCompression == null) {
-        delete process.env.OD_PORTABLE_ZIP_COMPRESSION;
+        delete process.env.READABLE_PORTABLE_ZIP_COMPRESSION;
       } else {
-        process.env.OD_PORTABLE_ZIP_COMPRESSION = previousCompression;
+        process.env.READABLE_PORTABLE_ZIP_COMPRESSION = previousCompression;
       }
       await rm(root, { force: true, recursive: true });
     }

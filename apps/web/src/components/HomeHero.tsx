@@ -978,7 +978,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                       )}
                       <button
                         type="button"
-                        className="home-hero__active-clear od-tooltip"
+                        className="home-hero__active-clear readable-tooltip"
                         onClick={() => removeFileChip(index, file)}
                         aria-label={t('chat.removeAria', { name: file.name })}
                         title={t('homeHero.removeFile')}
@@ -1016,7 +1016,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 {activeCreateChip && !activePluginIsExplicit ? null : (
                   <button
                     type="button"
-                    className="home-hero__active-clear od-tooltip"
+                    className="home-hero__active-clear readable-tooltip"
                     onClick={() => {
                       trackHomeChatComposerClick(analytics.track, {
                         page_name: 'home',
@@ -1046,7 +1046,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 <span className="home-hero__active-label">{t('homeHero.skillPrefix', { title: activeSkillTitle })}</span>
                 <button
                   type="button"
-                  className="home-hero__active-clear od-tooltip"
+                  className="home-hero__active-clear readable-tooltip"
                   onClick={onClearActiveSkill}
                   aria-label={t('homeHero.clearActiveSkill')}
                   title={t('homeHero.clearActiveSkill')}
@@ -1068,7 +1068,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                 <span className="home-hero__active-label">{plugin.title}</span>
                 <button
                   type="button"
-                  className="home-hero__active-clear od-tooltip"
+                  className="home-hero__active-clear readable-tooltip"
                   onClick={() => onRemovePluginContext(plugin.id)}
                   aria-label={t('chat.removeAria', { name: plugin.title })}
                   title={t('common.close')}
@@ -1093,7 +1093,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
                   <span className="home-hero__active-label">{label}</span>
                   <button
                     type="button"
-                    className="home-hero__active-clear od-tooltip"
+                    className="home-hero__active-clear readable-tooltip"
                     onClick={() => onRemoveMcpContext(server.id)}
                     aria-label={t('chat.removeAria', { name: label })}
                     title={t('common.close')}
@@ -1380,7 +1380,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
             ) : null}
             <button
               type="button"
-              className={`home-hero__submit od-tooltip${sendAttention ? ' home-hero__attention-sheen' : ''}`}
+              className={`home-hero__submit readable-tooltip${sendAttention ? ' home-hero__attention-sheen' : ''}`}
               data-testid="home-hero-submit"
               onClick={onSubmit}
               onAnimationEnd={() => setSendAttention(false)}
@@ -1519,7 +1519,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
               <span title={previewHomeFile.name}>{previewHomeFile.name}</span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => setPreviewHomeFileKey(null)}
                 aria-label={t('common.close')}
                 title={t('common.close')}
@@ -2715,16 +2715,16 @@ function pluginPresetRank(record: InstalledPluginRecord, chipId: string): number
 }
 
 function pluginRecordSlugs(record: InstalledPluginRecord): Set<string> {
-  const od = record.manifest?.readable ?? {};
+  const readable = record.manifest?.readable ?? {};
   const rawValues = [
     record.id,
     record.title,
     record.manifest?.name,
     record.manifest?.title,
-    fieldString(od, 'mode'),
-    fieldString(od, 'surface'),
-    fieldString(od, 'scenario'),
-    fieldString(od, 'taskKind'),
+    fieldString(readable, 'mode'),
+    fieldString(readable, 'surface'),
+    fieldString(readable, 'scenario'),
+    fieldString(readable, 'taskKind'),
     ...(record.manifest?.tags ?? []),
   ];
   return new Set(rawValues.map((value) => slugifyHomeValue(value ?? '')).filter(Boolean));

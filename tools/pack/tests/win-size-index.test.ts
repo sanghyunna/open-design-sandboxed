@@ -88,7 +88,7 @@ function createBuiltApp(paths: WinPaths): WinBuiltAppManifest {
 
 describe("PathSizeIndex", () => {
   it("indexes directory sizes and filtered file totals in a single tree", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-size-index-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-size-index-"));
 
     try {
       await mkdir(join(root, "app", "node_modules", "@next", "swc-win32-x64"), { recursive: true });
@@ -122,7 +122,7 @@ describe("PathSizeIndex", () => {
 
 describe("collectWinSizeReport", () => {
   it("skips tree indexing for the fast portable zip report and keeps detailed mode requestable", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-size-report-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-size-report-"));
     const paths = createPaths(root);
     const config = createConfig(root);
     const builtApp = createBuiltApp(paths);

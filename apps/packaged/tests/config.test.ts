@@ -37,7 +37,7 @@ describe("resolveDefaultPackagedNodeCommandRelativePath", () => {
 });
 
 // Each case writes a minimal packaged config to a temp file and points
-// OD_PACKAGED_CONFIG_PATH at it, so readPackagedConfig resolves the same raw
+// READABLE_PACKAGED_CONFIG_PATH at it, so readPackagedConfig resolves the same raw
 // config a shipped artifact would, while `app.getPath("userData")` is mocked
 // and `process.execPath` is overridable to assert the exe-adjacent fallback.
 describe("readPackagedConfig namespaceBaseRoot resolution", () => {
@@ -47,7 +47,7 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
   let restoreResourcesPath: () => void = () => {};
 
   beforeEach(() => {
-    configDir = mkdtempSync(join(tmpdir(), "od-packaged-config-"));
+    configDir = mkdtempSync(join(tmpdir(), "readable-packaged-config-"));
     const previousEnv = process.env[PACKAGED_CONFIG_PATH_ENV];
     restoreEnv = () => {
       if (previousEnv == null) delete process.env[PACKAGED_CONFIG_PATH_ENV];
@@ -102,7 +102,7 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
       configPath,
       `${JSON.stringify({
         appVersion: "1.2.3",
-        descriptor: { ...createRuntimeDescriptor("1.2.3"), productId: "open-design" },
+        descriptor: { ...createRuntimeDescriptor("1.2.3"), productId: "foreign-product" },
         namespace: "rg",
       }, null, 2)}\n`,
       "utf8",
@@ -192,7 +192,7 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
   });
 
   it("derives the portable root from dirname(process.execPath)", async () => {
-    const exeDir = join("E:", "tools", "od-extract");
+    const exeDir = join("E:", "tools", "readable-extract");
     stubExecPath(join(exeDir, "Readable Studio.exe"));
     writeConfig({ namespace: "rg", portable: true });
 
@@ -234,7 +234,7 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
   });
 
   it("rejects an explicit portable namespaceBaseRoot outside the exe data container", async () => {
-    const explicitRoot = join("F:", "od-data", "namespaces");
+    const explicitRoot = join("F:", "readable-data", "namespaces");
     stubExecPath(join("D:", "Portable", "Readable Studio", "Readable Studio.exe"));
     writeConfig({ namespace: "rg", namespaceBaseRoot: explicitRoot, portable: true });
 
@@ -242,7 +242,7 @@ describe("readPackagedConfig namespaceBaseRoot resolution", () => {
   });
 
   it("lets an explicit namespaceBaseRoot win for non-portable builds (unchanged behavior)", async () => {
-    const explicitRoot = join("F:", "od-data", "namespaces");
+    const explicitRoot = join("F:", "readable-data", "namespaces");
     stubExecPath(join("D:", "Portable", "Readable Studio", "Readable Studio.exe"));
     writeConfig({ namespace: "rg", namespaceBaseRoot: explicitRoot });
 

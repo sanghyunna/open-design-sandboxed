@@ -555,7 +555,7 @@ export const McpClientSection = forwardRef<McpClientSectionHandle, Props>(
         ) : null}
         <span className="mcp-foot-spacer" />
         <span className="hint">
-          {t('mcpClient.storedAt')} <code>.od/mcp-config.json</code>
+          {t('mcpClient.storedAt')} <code>.readable-studio/mcp-config.json</code>
         </span>
       </div>
     </section>

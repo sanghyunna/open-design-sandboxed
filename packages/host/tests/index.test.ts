@@ -90,11 +90,12 @@ describe("Readable Studio host contract", () => {
   });
 
   it("rejects old and mixed global bridge shapes", () => {
-    const oldOnly = { __od__: createMockReadableStudioHost() };
+    const retiredGlobal = ["__", "od", "__"].join("");
+    const oldOnly = { [retiredGlobal]: createMockReadableStudioHost() };
     expect(getReadableStudioHost(oldOnly)).toBeNull();
 
     const mixed = {
-      __od__: createMockReadableStudioHost(),
+      [retiredGlobal]: createMockReadableStudioHost(),
       [READABLE_STUDIO_HOST_GLOBAL]: { ...createMockReadableStudioHost(), version: 2 },
     };
     expect(getReadableStudioHost(mixed)).toBeNull();

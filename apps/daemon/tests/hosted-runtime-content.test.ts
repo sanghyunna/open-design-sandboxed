@@ -235,7 +235,7 @@ async function fixture() {
 }
 
 function runtimeFixture(): string {
-  const root = mkdtempSync(path.join(tmpdir(), 'od-hosted-runtime-content-'));
+  const root = mkdtempSync(path.join(tmpdir(), 'readable-hosted-runtime-content-'));
   roots.push(root);
   return root;
 }

@@ -21,7 +21,7 @@ afterEach(async () => {
 });
 
 function fresh(): string {
-  return mkdtempSync(path.join(tmpdir(), 'od-design-system-tool-routes-'));
+  return mkdtempSync(path.join(tmpdir(), 'readable-design-system-tool-routes-'));
 }
 
 function writeHybridDesignSystem(root: string, id: string): string {

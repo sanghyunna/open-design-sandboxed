@@ -11,14 +11,14 @@
 // "regular product copy". Extending the list to more general words risks
 // false positives on real artifacts, so the contract is: any future
 // example that wants similar enforcement should either declare structured
-// `od.inputs` (preferred) or contribute its specific placeholder markers
+// `readable.inputs` (preferred) or contribute its specific placeholder markers
 // here together with a fixture that proves they cannot appear in
 // finished output.
 //
-// Pairs with `od.inputs` on `plugins/_official/examples/html-ppt-pitch-deck/
+// Pairs with `readable.inputs` on `plugins/_official/examples/html-ppt-pitch-deck/
 // readable-studio.json`. The inputs gate is the primary contract — this guard
 // is the defense-in-depth invariant that catches agents that bypassed the
-// structured contract (e.g. routed through `od-default`) but still tried
+// structured contract (e.g. routed through `readable-default`) but still tried
 // to publish a placeholder-laden HTML/deck artifact.
 
 import { Buffer } from 'node:buffer';

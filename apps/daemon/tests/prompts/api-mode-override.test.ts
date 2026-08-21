@@ -38,7 +38,7 @@ describe('daemon composeSystemPrompt — API mode (#313)', () => {
     it('pins the override above the discovery layer header', () => {
       const prompt = composeSystemPrompt({ streamFormat: 'plain' });
       const overrideIdx = prompt.search(/API mode — no tools available/i);
-      const discoveryIdx = prompt.indexOf('# OD core directives');
+      const discoveryIdx = prompt.indexOf('# Readable Studio core directives');
       expect(overrideIdx).toBeGreaterThanOrEqual(0);
       expect(discoveryIdx).toBeGreaterThanOrEqual(0);
       expect(overrideIdx).toBeLessThan(discoveryIdx);

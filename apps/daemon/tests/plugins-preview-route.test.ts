@@ -25,9 +25,9 @@ type StartedServer = { server: http.Server; url: string };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../../..');
-const serverRuntimeDataRoot = process.env.OD_DATA_DIR
-  ? path.resolve(projectRoot, process.env.OD_DATA_DIR)
-  : path.join(projectRoot, '.od');
+const serverRuntimeDataRoot = process.env.READABLE_DATA_DIR
+  ? path.resolve(projectRoot, process.env.READABLE_DATA_DIR)
+  : path.join(projectRoot, '.readable-studio');
 
 const PLUGIN_ID = `phase2b-preview-${Date.now()}`;
 let pluginRoot: string;
@@ -35,7 +35,7 @@ let server: http.Server | undefined;
 let baseUrl: string;
 
 beforeAll(async () => {
-  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'od-preview-'));
+  pluginRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-preview-'));
   const folder = path.join(pluginRoot, PLUGIN_ID);
   await mkdir(path.join(folder, 'preview'), { recursive: true });
   await mkdir(path.join(folder, 'examples', 'desk-warm'), { recursive: true });

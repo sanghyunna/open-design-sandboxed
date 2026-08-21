@@ -41,7 +41,7 @@ describe("product identity dependency boundary", () => {
       "@readable-studio/product-identity": "workspace:*",
     });
     expect(source).toContain('from "@readable-studio/product-identity"');
-    expect(source).not.toMatch(/OPEN_DESIGN_PRODUCT_NAME|OpenDesignSidecarContract|OPEN_DESIGN_SIDECAR_CONTRACT/);
+    expect(source).not.toMatch(/READABLE_PRODUCT_NAME|OpenDesignSidecarContract|READABLE_SIDECAR_CONTRACT/);
   });
 
   it("keeps generic sidecar and platform packages product-neutral", async () => {

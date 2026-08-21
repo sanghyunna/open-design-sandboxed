@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PreviewModal } from '../../src/components/PreviewModal';
 
-// Regression coverage for nexu-io/open-design#897: skills declared with a
+// Regression coverage for nexu-io/readable-studio#897: skills declared with a
 // non-html `readable.preview.type` (image, markdown, …) ship no fetchable
 // example artifact. The modal must render a calm "no shipped preview"
 // placeholder distinct from both the loading state (which would never
@@ -312,7 +312,7 @@ describe('PreviewModal unavailable state', () => {
         ]}
         shareTarget={{
           title: 'Media Template',
-          url: 'https://open-design.ai/plugins/media-template',
+          url: 'https://example.test/plugins/media-template',
         }}
         onView={() => {}}
         onClose={() => {}}

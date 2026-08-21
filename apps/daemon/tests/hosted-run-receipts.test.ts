@@ -123,7 +123,7 @@ describe('hosted run receipts', () => {
   });
 
   it('persists status updates and reconciles active receipts after reopening', async () => {
-    const root = await mkdtemp(path.join(tmpdir(), 'od-hosted-receipts-'));
+    const root = await mkdtemp(path.join(tmpdir(), 'readable-hosted-receipts-'));
     cleanupPaths.push(root);
     const databaseFile = path.join(root, 'app.sqlite');
     let database = new Database(databaseFile);

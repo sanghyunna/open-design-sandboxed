@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const SAVED_PLUGIN_IDS_KEY = 'open-design:saved-plugin-ids';
-const SAVED_PLUGIN_IDS_EVENT = 'open-design:saved-plugin-ids-changed';
+const SAVED_PLUGIN_IDS_KEY = 'readable-studio:saved-plugin-ids';
+const SAVED_PLUGIN_IDS_EVENT = 'readable-studio:saved-plugin-ids-changed';
 
 type SavedPluginIdsEvent = CustomEvent<{ ids: string[] }>;
 

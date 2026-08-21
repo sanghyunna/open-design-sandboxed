@@ -18,7 +18,7 @@ describe('parseArtifactManifest', () => {
 
   it('returns null for an unsupported schema', () => {
     const raw = JSON.stringify({
-      schema: 'open-design.artifact-manifest.v1',
+      schema: 'foreign-product.artifact-manifest.v1',
       kind: 'html',
       title: 'x',
       entry: 'index.html',

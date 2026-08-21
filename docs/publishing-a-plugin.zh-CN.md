@@ -1,6 +1,6 @@
-# 发布 Open Design 插件
+# 发布 Readable Studio 插件
 
-Open Design registry v1 复用 GitHub 作为后端。CLI 是 canonical workflow；
+Readable Studio registry v1 复用 GitHub 作为后端。CLI 是 canonical workflow；
 产品 UI 和 agent 创建流程只是包装这些命令。
 
 ## 1. 创建
@@ -29,13 +29,13 @@ readable plugin login
 readable plugin whoami --json
 ```
 
-这两个命令包装 GitHub CLI。token 留在 `gh`，Open Design 不保存 GitHub
+这两个命令包装 GitHub CLI。token 留在 `gh`，Readable Studio 不保存 GitHub
 凭据。
 
 ## 4. 发布
 
 ```bash
-readable plugin publish vendor/plugin-name --to open-design --repo https://github.com/vendor/plugin-name
+readable plugin publish vendor/plugin-name --to readable-studio --repo https://github.com/vendor/plugin-name
 ```
 
 v1 会打开 GitHub registry review flow。发布 payload 包含插件 ID、版本、

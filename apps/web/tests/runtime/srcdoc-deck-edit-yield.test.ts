@@ -27,7 +27,7 @@ function legacyDeckHtml(): string {
     '.slide { display: none; } .slide.active { display: block; }',
     '</style></head><body>',
     '<div class="deck-stage" id="deck-stage">',
-    '  <section class="slide active"><img data-od-id="deck-object" alt="Deck object"></section>',
+    '  <section class="slide active"><img data-readable-id="deck-object" alt="Deck object"></section>',
     '  <section class="slide"><h1>Slide Two</h1></section>',
     '</div>',
     '<span id="deck-cur">01</span>',
@@ -64,13 +64,13 @@ function setupDeck() {
   const postMessage = vi.spyOn(win.parent, 'postMessage');
   // Boot the edit bridge the way the host does: enable edit mode, then mark
   // the deck object as the selected target (revision 1).
-  win.dispatchEvent(new win.MessageEvent('message', { data: { type: 'od-edit-mode', enabled: true } }));
+  win.dispatchEvent(new win.MessageEvent('message', { data: { type: 'readable-edit-mode', enabled: true } }));
   return { dom, win, postMessage };
 }
 
 function selectDeckObject(win: DOMWindow) {
   win.dispatchEvent(new win.MessageEvent('message', {
-    data: { type: 'od-edit-selected-target', id: 'deck-object', revision: 1 },
+    data: { type: 'readable-edit-selected-target', id: 'deck-object', revision: 1 },
   }));
 }
 
@@ -83,13 +83,13 @@ function userKey(win: DOMWindow, key: string) {
 describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legacy decks)', () => {
   it('injects the yield script before any deck script, decks only', () => {
     const deckSrcdoc = buildSrcdoc(legacyDeckHtml(), { deck: true, editBridge: true });
-    expect(deckSrcdoc).toContain('data-od-deck-edit-yield');
+    expect(deckSrcdoc).toContain('data-readable-deck-edit-yield');
     // The whole mechanism depends on registration order: the yield listener
     // must exist before the deck's own capture listeners register.
-    expect(deckSrcdoc.indexOf('data-od-deck-edit-yield')).toBeLessThan(deckSrcdoc.indexOf('addEventListener("keydown", onKey, true)'));
+    expect(deckSrcdoc.indexOf('data-readable-deck-edit-yield')).toBeLessThan(deckSrcdoc.indexOf('addEventListener("keydown", onKey, true)'));
     // Non-deck artifacts carry no slide nav, so no yield script.
     const plainSrcdoc = buildSrcdoc(legacyDeckHtml(), { editBridge: true });
-    expect(plainSrcdoc).not.toContain('data-od-deck-edit-yield');
+    expect(plainSrcdoc).not.toContain('data-readable-deck-edit-yield');
   });
 
   it('yields a user arrow to object nudging instead of advancing the legacy deck', () => {
@@ -104,7 +104,7 @@ describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legac
     expect(win.document.getElementById('deck-cur')?.textContent).toBe('01');
     // Propagation was NOT stopped: the edit bridge still nudged the object.
     expect(postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-nudge', direction: 'right', targetId: 'deck-object' }),
+      expect.objectContaining({ type: 'readable-edit-nudge', direction: 'right', targetId: 'deck-object' }),
       '*',
     );
     expect(event.defaultPrevented).toBe(true);
@@ -119,7 +119,7 @@ describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legac
     win.document.dispatchEvent(userKey(win, 'ArrowRight'));
 
     expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
-    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-nudge' }), '*');
 
     dom.window.close();
   });
@@ -137,7 +137,7 @@ describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legac
     (win as unknown as { __readableStudioDeckSynthetic?: boolean }).__readableStudioDeckSynthetic = false;
 
     expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
-    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-nudge' }), '*');
 
     dom.window.close();
   });
@@ -145,13 +145,13 @@ describe('srcdoc deck edit-yield — trusted arrows vs object nudging (#46 legac
   it('keeps deck navigation while an inline edit session is active', () => {
     const { dom, win, postMessage } = setupDeck();
     selectDeckObject(win);
-    win.document.querySelector('[data-od-id="deck-object"]')?.setAttribute('data-od-editing', 'true');
+    win.document.querySelector('[data-readable-id="deck-object"]')?.setAttribute('data-readable-editing', 'true');
     postMessage.mockClear();
 
     win.document.dispatchEvent(userKey(win, 'ArrowRight'));
 
     expect(win.document.getElementById('deck-cur')?.textContent).toBe('02');
-    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-nudge' }), '*');
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-nudge' }), '*');
 
     dom.window.close();
   });

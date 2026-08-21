@@ -34,19 +34,19 @@ describe('project export manifest route', () => {
   });
 
   function makeFolder(): string {
-    const dir = mkdtempSync(path.join(tmpdir(), 'od-export-manifest-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'readable-export-manifest-'));
     tempDirs.push(dir);
     return dir;
   }
 
   async function withSandboxMode<T>(run: () => Promise<T>): Promise<T> {
-    const previous = process.env.OD_SANDBOX_MODE;
-    process.env.OD_SANDBOX_MODE = '1';
+    const previous = process.env.READABLE_SANDBOX_MODE;
+    process.env.READABLE_SANDBOX_MODE = '1';
     try {
       return await run();
     } finally {
-      if (previous == null) delete process.env.OD_SANDBOX_MODE;
-      else process.env.OD_SANDBOX_MODE = previous;
+      if (previous == null) delete process.env.READABLE_SANDBOX_MODE;
+      else process.env.READABLE_SANDBOX_MODE = previous;
     }
   }
 
@@ -358,7 +358,7 @@ describe('project export manifest route', () => {
       const response = await fetch(`${baseUrl}/api/projects/${importBody.project.id}/export/manifest`);
       expect(response.status).toBe(400);
       const body = (await response.json()) as { error?: { message?: string } };
-      expect(body.error?.message).toMatch(/imported-folder projects.*OD_SANDBOX_MODE/i);
+      expect(body.error?.message).toMatch(/imported-folder projects.*READABLE_SANDBOX_MODE/i);
     });
   });
 });

@@ -436,8 +436,8 @@ export function ManualEditMoveFrame({
       style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
       role="group"
       aria-label={label}
-      data-od-edit-selected-surface
-      data-od-edit-primary-surface
+      data-readable-edit-selected-surface
+      data-readable-edit-primary-surface
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >

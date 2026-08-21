@@ -26,9 +26,9 @@ import { createPackagedStartupPhaseTimer } from "./startup-timing.js";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 function resolveHeadlessNamespaceBaseRoot(): string {
-  const odDataDir = process.env.OD_DATA_DIR;
-  if (odDataDir != null && odDataDir.length > 0) {
-    return join(resolve(odDataDir.replace(/^~/, homedir())), "namespaces");
+  const configuredDataDir = process.env.READABLE_DATA_DIR;
+  if (configuredDataDir != null && configuredDataDir.length > 0) {
+    return join(resolve(configuredDataDir.replace(/^~/, homedir())), "namespaces");
   }
   const xdgDataHome = process.env.XDG_DATA_HOME;
   const dataBase =
@@ -39,7 +39,7 @@ function resolveHeadlessNamespaceBaseRoot(): string {
 }
 
 function resolveHeadlessAmrProfile(): PackagedConfig["amrProfile"] {
-  const value = process.env.OPEN_DESIGN_AMR_PROFILE?.trim();
+  const value = process.env.READABLE_AMR_PROFILE?.trim();
   if (value == null || value.length === 0) return null;
   if (value === "prod" || value === "test" || value === "local") return value;
   throw new Error(`unsupported packaged AMR profile: ${value}`);
@@ -53,14 +53,14 @@ function resolveHeadlessConfig(): PackagedConfig {
 
   const namespaceBaseRoot = resolveHeadlessNamespaceBaseRoot();
 
-  // OD_RESOURCE_ROOT may be set by a launcher script; otherwise default to a
+  // READABLE_RESOURCE_ROOT may be set by a launcher script; otherwise default to a
   // sibling readable-studio/ directory relative to the node_modules that contain
   // this file.
   const resourceRoot =
-    process.env.OD_RESOURCE_ROOT ??
+    process.env.READABLE_RESOURCE_ROOT ??
     join(__dirname, "..", "..", "..", "readable-studio");
 
-  const appVersion = process.env.OD_APP_VERSION?.trim() || "0.0.0";
+  const appVersion = process.env.READABLE_APP_VERSION?.trim() || "0.0.0";
   return {
     amrProfile: resolveHeadlessAmrProfile(),
     appVersion,
@@ -140,7 +140,7 @@ async function main(): Promise<void> {
     pathsAlreadyEnsured: false,
     // PR #974 round-5 (lefarcen P2): headless packaged mode runs daemon
     // + web only, no Electron, no privileged shell.openPath surface.
-    // Pinning OD_REQUIRE_DESKTOP_AUTH here would arm a gate no client
+    // Pinning READABLE_REQUIRE_DESKTOP_AUTH here would arm a gate no client
     // can ever satisfy (no desktop main process to register a secret),
     // so folder import would permanently return DESKTOP_AUTH_PENDING.
     // The Electron entry counterpart in `apps/packaged/src/index.ts`

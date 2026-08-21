@@ -132,7 +132,7 @@ export type RuntimeAgentDef = {
   supportsImagePaths?: boolean;
   maxPromptArgBytes?: number;
   mcpDiscovery?: string;
-  // How the daemon forwards the user's `.od/mcp-config.json` external MCP
+  // How the daemon forwards the user's `.readable-studio/mcp-config.json` external MCP
   // servers to this runtime at spawn time. The shape of the injection
   // is one of three strategies, each of which the server.ts spawn
   // pipeline knows how to apply:
@@ -180,7 +180,7 @@ export type RuntimeAgentDef = {
   // null or the synthetic 'default'. Used by adapters whose CLI rejects
   // 'default' (e.g. AMR / vela) so an operator can swap the hardcoded
   // fallback without a code change — set the env var on the daemon
-  // process when launching `tools-dev` / `od` daemon. The value must be
+  // process when launching `tools-dev` / `readable` daemon. The value must be
   // present in the daemon's `process.env`; Settings-UI per-agent env
   // values only reach the spawned child and are NOT consulted here.
   defaultModelEnvVar?: string;

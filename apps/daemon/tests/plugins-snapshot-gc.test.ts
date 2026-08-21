@@ -27,7 +27,7 @@ let db: Database.Database;
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-gc-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-gc-'));
   db = new Database(path.join(tmpDir, 'test.sqlite'));
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -140,11 +140,11 @@ describe('snapshot GC', () => {
 
   // Plan §3.M1 / spec PB2 — referenced-row TTL.
   //
-  // Operators who opt into OD_SNAPSHOT_RETENTION_DAYS expect referenced
+  // Operators who opt into READABLE_SNAPSHOT_RETENTION_DAYS expect referenced
   // snapshots whose project has been deleted to be reaped after the
   // configured window. Live projects keep their snapshots pinned
   // forever (reproducibility wins).
-  describe('OD_SNAPSHOT_RETENTION_DAYS referenced-row TTL', () => {
+  describe('READABLE_SNAPSHOT_RETENTION_DAYS referenced-row TTL', () => {
     it('prunes referenced snapshots whose project no longer exists and applied_at is older than the window', () => {
       const referenced = createSnapshot(db, baseInput());
       linkSnapshotToRun(db, referenced.snapshotId, 'run-r');
@@ -191,12 +191,12 @@ describe('snapshot GC', () => {
   });
 
   it('defers the startup sweep until after startServer resolves, even when periodic GC is disabled', async () => {
-    const previousInterval = process.env.OD_SNAPSHOT_GC_INTERVAL_MS;
-    const serverDataDir = process.env.OD_DATA_DIR;
+    const previousInterval = process.env.READABLE_SNAPSHOT_GC_INTERVAL_MS;
+    const serverDataDir = process.env.READABLE_DATA_DIR;
     if (serverDataDir == null || serverDataDir.length === 0) {
-      throw new Error('OD_DATA_DIR must be set by the daemon test harness');
+      throw new Error('READABLE_DATA_DIR must be set by the daemon test harness');
     }
-    process.env.OD_SNAPSHOT_GC_INTERVAL_MS = '0';
+    process.env.READABLE_SNAPSHOT_GC_INTERVAL_MS = '0';
 
     const projectRoot = path.join(tmpDir, 'server-project');
     const serverDb = openDatabase(projectRoot, { dataDir: serverDataDir });
@@ -235,8 +235,8 @@ describe('snapshot GC', () => {
         started.server.close(() => resolve());
       });
       closeDatabase();
-      if (previousInterval == null) delete process.env.OD_SNAPSHOT_GC_INTERVAL_MS;
-      else process.env.OD_SNAPSHOT_GC_INTERVAL_MS = previousInterval;
+      if (previousInterval == null) delete process.env.READABLE_SNAPSHOT_GC_INTERVAL_MS;
+      else process.env.READABLE_SNAPSHOT_GC_INTERVAL_MS = previousInterval;
     }
   });
 });

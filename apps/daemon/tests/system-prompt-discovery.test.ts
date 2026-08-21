@@ -11,7 +11,7 @@ describe('composeSystemPrompt discovery controls', () => {
     });
 
     const overrideIdx = out.indexOf('Automated project mode — skip discovery form');
-    const discoveryIdx = out.indexOf('# OD core directives');
+    const discoveryIdx = out.indexOf('# Readable Studio core directives');
     expect(overrideIdx).toBeGreaterThanOrEqual(0);
     expect(discoveryIdx).toBeGreaterThanOrEqual(0);
     expect(overrideIdx).toBeLessThan(discoveryIdx);

@@ -15,7 +15,7 @@
  *   (anchored at the start; mid-string mentions of these tags do NOT count —
  *   AI prose like "Updated the <html lang> attribute…" must be rejected)
  * - URL-bearing attributes or CSS `url(...)` / `@import` values do not point at
- *   internal project storage paths such as `.readable-studio/`, legacy `.od/`,
+ *   internal project storage paths such as `.readable-studio/`, legacy `.readable-studio/`,
  *   or `.tmp/`
  *
  * What this gate is NOT:
@@ -39,7 +39,7 @@
 
 const MIN_HTML_LENGTH = 64;
 const STARTS_WITH_DOCUMENT_RE = /^(?:<!doctype\s+html\b|<html\b)/i;
-const RESERVED_PROJECT_PATH_RE = /(?:^|\/|\.\/)(?:\.readable-studio|\.od|\.tmp)(?=$|[/?#"'`\s>)])/i;
+const RESERVED_PROJECT_PATH_RE = /(?:^|\/|\.\/)(?:\.readable-studio|\.readable-studio|\.tmp)(?=$|[/?#"'`\s>)])/i;
 const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
 const URL_ATTRIBUTE_RE =
   /\b(href|src|srcset|poster|action|formaction|data|xlink:href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`=<>]+))/gi;
@@ -67,7 +67,7 @@ export function validateHtmlArtifact(content: string): HtmlArtifactValidationRes
     return { ok: false, reason: 'content does not start with <!doctype html> or <html — looks like prose, not a complete HTML document' };
   }
   if (referencesReservedProjectPath(trimmed)) {
-    return { ok: false, reason: 'content references an internal project storage path such as .readable-studio, .od, or .tmp' };
+    return { ok: false, reason: 'content references an internal project storage path such as .readable-studio, .readable-studio, or .tmp' };
   }
   return { ok: true };
 }

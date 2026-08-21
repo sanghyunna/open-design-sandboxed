@@ -205,7 +205,7 @@ test("cross-app import check ignores files outside apps/", () => {
 });
 
 test("app registry loading fails loudly when an app manifest is malformed", async () => {
-  const appsRoot = await mkdtemp(path.join(os.tmpdir(), "open-design-apps-"));
+  const appsRoot = await mkdtemp(path.join(os.tmpdir(), "readable-studio-apps-"));
   const appRoot = path.join(appsRoot, "web");
   const manifestPath = path.join(appRoot, "package.json");
 
@@ -224,7 +224,7 @@ test("app registry loading fails loudly when an app manifest is malformed", asyn
 });
 
 test("app registry loading rejects parseable app manifests without a package name", async () => {
-  const appsRoot = await mkdtemp(path.join(os.tmpdir(), "open-design-apps-"));
+  const appsRoot = await mkdtemp(path.join(os.tmpdir(), "readable-studio-apps-"));
   const appRoot = path.join(appsRoot, "web");
   const manifestPath = path.join(appRoot, "package.json");
 

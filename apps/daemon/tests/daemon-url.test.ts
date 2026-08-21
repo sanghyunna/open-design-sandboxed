@@ -7,9 +7,9 @@ import { SIDECAR_ENV, SIDECAR_MESSAGES } from "@readable-studio/sidecar-proto";
 import { resolveDaemonUrl, DEFAULT_DAEMON_URL } from "../src/daemon-url.js";
 import { namedPipePath, writeExecutableScript } from "./helpers/fake-agent.js";
 
-// Verifies the resolution chain: --daemon-url > OD_DAEMON_URL > sidecar
+// Verifies the resolution chain: --daemon-url > READABLE_DAEMON_URL > sidecar
 // IPC status discovery > legacy default. Each layer must short-circuit the next
-// so `od` clients follow the live daemon across ephemeral-port restarts.
+// so `readable` clients follow the live daemon across ephemeral-port restarts.
 
 describe("resolveDaemonUrl", () => {
   let ipcBaseDir: string;
@@ -17,9 +17,9 @@ describe("resolveDaemonUrl", () => {
   let emptyBinDir: string;
 
   beforeAll(() => {
-    ipcBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), "od-mcp-resolve-"));
-    fakeBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "od-tools-dev-resolve-"));
-    emptyBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "od-tools-dev-empty-"));
+    ipcBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), "readable-mcp-resolve-"));
+    fakeBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "readable-tools-dev-resolve-"));
+    emptyBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "readable-tools-dev-empty-"));
   });
 
   afterAll(() => {
@@ -32,17 +32,17 @@ describe("resolveDaemonUrl", () => {
     const url = await resolveDaemonUrl({
       flagUrl: "http://flag.example:1111",
       env: {
-        OD_DAEMON_URL: "http://env.example:2222",
+        READABLE_DAEMON_URL: "http://env.example:2222",
         [SIDECAR_ENV.IPC_PATH]: path.join(ipcBaseDir, "daemon.sock"),
       },
     });
     expect(url).toBe("http://flag.example:1111");
   });
 
-  it("falls back to OD_DAEMON_URL when no flag given", async () => {
+  it("falls back to READABLE_DAEMON_URL when no flag given", async () => {
     const url = await resolveDaemonUrl({
       env: {
-        OD_DAEMON_URL: "http://env.example:2222",
+        READABLE_DAEMON_URL: "http://env.example:2222",
         [SIDECAR_ENV.IPC_PATH]: path.join(ipcBaseDir, "daemon.sock"),
       },
     });

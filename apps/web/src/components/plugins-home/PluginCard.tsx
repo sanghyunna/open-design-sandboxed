@@ -314,18 +314,18 @@ export function PluginCard({
               <button
                 type="button"
                 className="plugins-home__action plugins-home__action--secondary plugins-home__action--compact"
-                onClick={() => onShareAction(record, 'contribute-open-design')}
+                onClick={() => onShareAction(record, 'contribute-readable-studio')}
                 disabled={pendingAny || shareBusy}
-                aria-busy={sharePendingAction === 'contribute-open-design' ? 'true' : undefined}
+                aria-busy={sharePendingAction === 'contribute-readable-studio' ? 'true' : undefined}
                 aria-label={`Contribute ${title} to Readable Studio`}
                 title="Contribute plugin to Readable Studio with a pull request"
-                data-testid={`plugins-home-contribute-open-design-${record.id}`}
+                data-testid={`plugins-home-contribute-readable-studio-${record.id}`}
               >
                 <Icon
-                  name={sharePendingAction === 'contribute-open-design' ? 'spinner' : 'share'}
+                  name={sharePendingAction === 'contribute-readable-studio' ? 'spinner' : 'share'}
                   size={12}
                 />
-                <span>{sharePendingAction === 'contribute-open-design' ? 'Starting…' : 'Contribute'}</span>
+                <span>{sharePendingAction === 'contribute-readable-studio' ? 'Starting…' : 'Contribute'}</span>
               </button>
             </div>
           ) : null}

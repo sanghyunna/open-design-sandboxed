@@ -175,7 +175,7 @@ function faceToRule(family: string, face: SystemFontFace, base64: string): strin
 }
 
 function injectStyle(html: string, css: string): string {
-  const style = `<style data-od-embedded-fonts>${css}</style>`;
+  const style = `<style data-readable-embedded-fonts>${css}</style>`;
   const headClose = /<\/head\s*>/i.exec(html);
   if (headClose) return html.slice(0, headClose.index) + style + html.slice(headClose.index);
   const bodyOpen = /<body\b[^>]*>/i.exec(html);

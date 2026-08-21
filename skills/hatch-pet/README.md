@@ -39,7 +39,7 @@ When the upstream skill changes:
 1. Locate the upstream source (Codex `skills/.curated/hatch-pet` or the
    superseding location).
 2. Replace the contents of this directory with the upstream snapshot,
-   preserving only this `README.md` and any Open-Design-specific notes
+   preserving only this `README.md` and any Readable-Studio-specific notes
    inside `SKILL.md`'s `> **Readable Studio integration.**` blockquote.
 3. Update the `upstream:` field in `SKILL.md` frontmatter with the exact
    commit SHA / tag of the snapshot.

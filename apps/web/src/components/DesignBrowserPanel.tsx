@@ -226,7 +226,7 @@ export interface BrowserPageInfo {
 }
 
 const EMPTY_URL = 'about:blank';
-const DESIGN_BROWSER_PARTITION = 'persist:open-design-design-browser';
+const DESIGN_BROWSER_PARTITION = 'persist:readable-studio-design-browser';
 const HISTORY_LIMIT = 80;
 const HISTORY_SUGGESTION_LIMIT = 20;
 const EMPTY_PREVIEW_COMMENTS: PreviewComment[] = [];
@@ -1703,7 +1703,7 @@ export function DesignBrowserPanel({
               <span title={activeBrowserPreviewImage.file.name}>{activeBrowserPreviewImage.file.name}</span>
               <button
                 type="button"
-                className="icon-only od-tooltip"
+                className="icon-only readable-tooltip"
                 onClick={() => setBrowserPreviewIndex(null)}
                 aria-label={t('common.close')}
                 title={t('common.close')}
@@ -2013,7 +2013,7 @@ function IconTooltipButton({
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <span
-      className={['db-tooltip-anchor od-tooltip', wrapperClassName].filter(Boolean).join(' ')}
+      className={['db-tooltip-anchor readable-tooltip', wrapperClassName].filter(Boolean).join(' ')}
       data-tooltip={label}
       data-tooltip-placement="bottom"
     >
@@ -2839,7 +2839,7 @@ export function saveHistory(projectId: string, history: BrowserHistoryEntry[]) {
 }
 
 function historyStorageKey(projectId: string): string {
-  return `od:design-browser:${projectId}:history:v1`;
+  return `readable:design-browser:${projectId}:history:v1`;
 }
 
 export function isHistoryEntry(value: unknown): value is BrowserHistoryEntry {

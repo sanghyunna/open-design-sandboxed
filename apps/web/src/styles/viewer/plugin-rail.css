@@ -422,7 +422,7 @@
   color: color-mix(in srgb, var(--c-hue) 85%, var(--text-strong));
 }
 
-/* Plugin inputs form — appears when the active plugin declares od.inputs[]
+/* Plugin inputs form — appears when the active plugin declares readable.inputs[]
    ("Artifact kind", "Brief", …). Compact stacked label/input pairs, a
    hairline separating them from the chip strip above. */
 .plugin-inputs-form {

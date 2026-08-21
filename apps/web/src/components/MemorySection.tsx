@@ -217,7 +217,7 @@ function describeExtractionFailure(record: MemoryExtractionRecord): FriendlyExtr
     const usesChatCli = record.provider?.credentialSource === 'chat-cli';
     const parsed = parseProviderError(record.error);
     const haystack = `${parsed.message} ${parsed.code} ${record.error}`.toLowerCase();
-    const source = 'OpenDesign could not run memory extraction for this chat.';
+    const source = 'Readable Studio could not run memory extraction for this chat.';
     if (parsed.status === 401
         || /token[_ -]?expired|authentication token has expired|invalid[_ -]?api[_ -]?key|unauthorized/.test(haystack)) {
         return {
@@ -815,7 +815,7 @@ export function MemorySection({ chatAgentId = null, chatModel = null, }: MemoryS
             <span>{t('settings.memory')}</span>
             {/*
           Storage path used to render as a permanently-visible
-          <code>/Users/.../.od/memory</code> line in the body. Most
+          <code>/Users/.../.readable-studio/memory</code> line in the body. Most
           users only need this once (to peek at the markdown files)
           and then never again, so the line was pure noise after the
           first glance. We tucked it behind an info button next to
@@ -1003,7 +1003,7 @@ export function MemorySection({ chatAgentId = null, chatModel = null, }: MemoryS
             <div>
               <h4>Learn from chats</h4>
               <p className="hint">
-                OpenDesign can learn preferences and project facts from future
+                Readable Studio can learn preferences and project facts from future
                 chat turns.
               </p>
             </div>

@@ -1,4 +1,4 @@
-// Phase 4 / spec §14.1 — `od plugin scaffold` unit test.
+// Phase 4 / spec §14.1 — `readable plugin scaffold` unit test.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
@@ -12,7 +12,7 @@ import {
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-scaffold-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-scaffold-'));
 });
 
 afterEach(async () => {

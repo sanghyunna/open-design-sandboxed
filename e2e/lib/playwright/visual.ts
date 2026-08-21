@@ -4,9 +4,9 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fulfillAgentsRoute } from './mock-factory.js';
 
-const STORAGE_KEY = 'open-design:config';
-const GITHUB_STARS_STORAGE_KEY = 'open-design:gh-stars';
-const VISUAL_STYLE_ID = 'od-visual-stability-style';
+const STORAGE_KEY = 'readable-studio:config';
+const GITHUB_STARS_STORAGE_KEY = 'readable-studio:gh-stars';
+const VISUAL_STYLE_ID = 'readable-visual-stability-style';
 // Keep this exact-route mock narrow so unrelated GitHub UI still behaves normally.
 const VISUAL_GITHUB_REPO_API = 'https://api.github.com/repos/sanghyunna/readable-studio';
 const VISUAL_GITHUB_STARS = 40_000;
@@ -392,7 +392,7 @@ export async function waitForVisualFonts(page: Page): Promise<void> {
 }
 
 export async function captureVisual(page: Page, name: string): Promise<string> {
-  const outputDir = path.resolve(process.env.OD_VISUAL_OUTPUT_DIR || 'ui/reports/visual-screenshots');
+  const outputDir = path.resolve(process.env.READABLE_VISUAL_OUTPUT_DIR || 'ui/reports/visual-screenshots');
   const safeName = sanitizeVisualName(name);
   const outputPath = path.join(outputDir, `${safeName}.png`);
   await mkdir(outputDir, { recursive: true });
@@ -442,7 +442,7 @@ function makeVisualPlugin(input: {
       version: '1.0.0',
       description: input.description,
       tags: input.tags ?? [],
-      od: {
+      readable: {
         kind: 'scenario',
         taskKind: input.taskKind,
         mode: input.mode,

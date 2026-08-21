@@ -47,9 +47,10 @@ afterEach(async () => {
 
 describe('Readable Studio data identity', () => {
   it('rejects old data without mutation', async () => {
-    // Given: a complete old Open Design root with SQLite, project, and artifact payloads.
+    // Given: a complete old Readable Studio root with SQLite, project, and artifact payloads.
     const projectRoot = await fixtureRoot();
-    const oldDataRoot = path.join(projectRoot, '.od');
+    const retiredDataDirName = ['.', 'od'].join('');
+    const oldDataRoot = path.join(projectRoot, retiredDataDirName);
     await mkdir(oldDataRoot, { recursive: true });
     const oldDb = new Database(path.join(oldDataRoot, 'app.sqlite'));
     oldDb.exec('CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL)');

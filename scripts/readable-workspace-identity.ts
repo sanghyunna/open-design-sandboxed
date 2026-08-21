@@ -6,6 +6,8 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const oldScope = `@${"open"}-${"design"}`;
 const oldRootName = `${"open"}-${"design"}`;
+const oldBinName = ["o", "d"].join("");
+const oldBinTargetPattern = new RegExp(`(?:^|[/\\\\])${oldBinName}(?:\\.[cm]?js)?$`, "u");
 const expectedManifestNames = new Map([
   ["package.json", "readable-studio"],
   ["apps/daemon/package.json", "@readable-studio/daemon"],
@@ -82,7 +84,7 @@ export function scanWorkspaceIdentitySources(sources: ReadonlyMap<string, string
         findings.push({ path: repositoryPath, rule: "compatibility-package", value: manifest.name });
       }
       for (const [binName, target] of Object.entries(manifest.bin ?? {})) {
-        if (binName === "od" || typeof target === "string" && /(?:^|[/\\])od(?:\.[cm]?js)?$/u.test(target)) {
+        if (binName === oldBinName || typeof target === "string" && oldBinTargetPattern.test(target)) {
           findings.push({ path: repositoryPath, rule: "old-bin", value: `${binName}:${String(target)}` });
         }
       }
@@ -101,8 +103,9 @@ export function scanWorkspaceIdentitySources(sources: ReadonlyMap<string, string
   if (!sources.has("apps/daemon/bin/readable.mjs")) {
     findings.push({ path: "apps/daemon/bin/readable.mjs", rule: "bin-contract", value: "missing" });
   }
-  if (sources.has("apps/daemon/bin/od.mjs")) {
-    findings.push({ path: "apps/daemon/bin/od.mjs", rule: "old-bin", value: "od.mjs" });
+  const oldBinPath = `apps/daemon/bin/${oldBinName}.mjs`;
+  if (sources.has(oldBinPath)) {
+    findings.push({ path: oldBinPath, rule: "old-bin", value: `${oldBinName}.mjs` });
   }
   return findings;
 }

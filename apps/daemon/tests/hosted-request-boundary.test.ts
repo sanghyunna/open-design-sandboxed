@@ -413,7 +413,7 @@ describe('hosted request boundary', () => {
       expect(multipartResponse.status).toBe(400);
       const multipartBody = await multipartResponse.json() as { error: { code: string } };
       expect(multipartBody.error.code).toBe('HOSTED_OWNER_FIELD_FORBIDDEN');
-      const uploadDir = path.join(os.tmpdir(), 'od-uploads');
+      const uploadDir = path.join(os.tmpdir(), 'readable-uploads');
       let leftovers: string[] = [];
       for (let attempt = 0; attempt < 20; attempt += 1) {
         leftovers = (await readdir(uploadDir)).filter((entry) => entry.endsWith(`-${filename}`));
@@ -845,7 +845,7 @@ async function installHostedClaudeFixture(): Promise<{
   argsLogPath: string;
   restore: () => Promise<void>;
 }> {
-  const binDir = await mkdtemp(path.join(os.tmpdir(), 'od-hosted-boundary-claude-'));
+  const binDir = await mkdtemp(path.join(os.tmpdir(), 'readable-hosted-boundary-claude-'));
   const { bin, argsLogPath } = await writeHostedClaudeFixture(binDir);
   const local = await startServer({ port: 0, returnServer: true }) as {
     url: string;

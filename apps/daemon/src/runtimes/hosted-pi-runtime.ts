@@ -260,18 +260,18 @@ export function createHostedPiInvocation(options: HostedPiInvocationOptions): Ho
       throw new Error('hosted Pi broker connection is invalid');
     }
     ownedExtensions.push(extensionPath);
-    brokerEnv.OD_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
-    brokerEnv.OD_HOSTED_PI_BROKER_TOKEN = options.broker.token;
+    brokerEnv.READABLE_HOSTED_PI_BROKER_SOCKET = options.broker.socketPath;
+    brokerEnv.READABLE_HOSTED_PI_BROKER_TOKEN = options.broker.token;
   }
   if (options.designSystemTool) {
     if (!options.broker) throw new Error('hosted Pi design-system tool requires the broker carrier');
-    brokerEnv.OD_HOSTED_DESIGN_SYSTEM_READ_URL = exactDesignSystemReadUrl(
+    brokerEnv.READABLE_HOSTED_DESIGN_SYSTEM_READ_URL = exactDesignSystemReadUrl(
       options.designSystemTool.readUrl,
     );
-    brokerEnv.OD_TOOL_TOKEN = exactToolToken(options.designSystemTool.token);
+    brokerEnv.READABLE_TOOL_TOKEN = exactToolToken(options.designSystemTool.token);
   }
   for (const extension of ownedExtensions) args.push('--extension', extension);
-  if (options.broker) args.push('--tools', 'od_hosted_broker');
+  if (options.broker) args.push('--tools', 'readable_hosted_broker');
   appendValue(args, '--model', options.model);
   appendValue(args, '--thinking', options.thinking);
 

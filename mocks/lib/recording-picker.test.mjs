@@ -53,7 +53,7 @@ test('ignores the retired trace selector without a compatibility alias', async (
     await writeFile(path.join(root, 'alpha.jsonl'), '{"type":"meta","agent":"claude"}\n');
 
     // When: the old selector requests a nonexistent trace.
-    const picked = await runPicker(root, { OD_MOCKS_TRACE: 'missing' });
+    const picked = await runPicker(root, { READABLE_MOCKS_TRACE: 'missing' });
 
     // Then: the unsupported variable is ignored rather than interpreted.
     assert.equal(picked.traceId, 'alpha');

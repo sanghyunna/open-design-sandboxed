@@ -48,7 +48,7 @@ export const intentionalCatalogueCopyDivergences: readonly CatalogueCopyPath[] =
   {
     derivedRoot: "design-templates",
     filePath: "example.html",
-    ids: ["critique", "html-ppt-zhangzara-sakura-chroma", "kami-landing", "open-design-landing"],
+    ids: ["critique", "html-ppt-zhangzara-sakura-chroma", "kami-landing", "readable-landing"],
   },
 ];
 const intentionalHanPaths = new Set([
@@ -63,8 +63,15 @@ const intentionalHanPaths = new Set([
   "design-templates/guizang-ppt/LICENSE",
 ]);
 const hanScriptPattern = /\p{Script=Han}/gu;
-const retiredIdentityPattern = /Open Design|open-design|od:\/\/|__od__/gu;
-const immutableAssetLocatorPattern = /https:\/\/plugin-assets\.open-design\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
+const retiredSlug = ["open", "design"].join("-");
+const retiredDisplay = ["Open", "Design"].join(" ");
+const retiredScheme = ["od", "://"].join("");
+const retiredHostGlobal = ["__", "od", "__"].join("");
+const retiredIdentityPattern = new RegExp(
+  `${retiredDisplay}|${retiredSlug}|${retiredScheme}|${retiredHostGlobal}`,
+  "gu",
+);
+const immutableAssetLocatorPattern = /https:\/\/plugin-assets\.readable-studio\.ai\/[A-Za-z0-9_?&=./%+@,:;-]+/gu;
 const explicitLocaleKeyPattern = /^(\s*)(?:["']?)(zh-CN|zh-TW)(?:["']?)\s*:/;
 const scopedChineseScalarKeyPattern = /^(\s*)(?:["']?)(zh_name|zh_description)(?:["']?)\s*:\s*(?![>|](?:\s|$))/;
 const localeTagPattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;

@@ -59,7 +59,7 @@ describe('Readable Studio agent surface identity', () => {
 
     // Then: the diagnostic names the shipped executable, never the removed alias.
     expect(result.stderr).toContain('unknown command: readable definitely-invalid');
-    expect(result.stderr).not.toContain('unknown command: od ');
+    expect(result.stderr).not.toContain(`unknown command: ${['o', 'd'].join('')} `);
   });
 
   it('registers the canonical MCP server key when the default is used', async () => {

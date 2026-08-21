@@ -37,8 +37,8 @@ describe('DELETE /api/skills/:id', () => {
     };
     baseUrl = started.url;
     server = started.server;
-    const dataDir = process.env.OD_DATA_DIR;
-    if (!dataDir) throw new Error('OD_DATA_DIR is required for daemon route tests');
+    const dataDir = process.env.READABLE_DATA_DIR;
+    if (!dataDir) throw new Error('READABLE_DATA_DIR is required for daemon route tests');
     userSkillsDir = path.join(dataDir, 'skills');
     mkdirSync(userSkillsDir, { recursive: true });
   });
@@ -89,7 +89,7 @@ describe('DELETE /api/skills/:id', () => {
     // Local-path install: `installFromTarget` symlinks the user's source
     // directory into USER_SKILLS_DIR. Deleting must unlink the symlink,
     // not recurse into and wipe the user's own files.
-    const sourceTree = mkdtempSync(path.join(tmpdir(), 'od-skill-source-'));
+    const sourceTree = mkdtempSync(path.join(tmpdir(), 'readable-skill-source-'));
     tempDirs.push(sourceTree);
     writeFileSync(
       path.join(sourceTree, 'SKILL.md'),

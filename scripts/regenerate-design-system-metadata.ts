@@ -23,7 +23,7 @@ class DesignSystemMetadataError extends Error {
 
 const retiredProductName = ["Open", "Design"].join(" ");
 const retiredProductSlug = ["open", "design"].join("-");
-const retiredDesignMetadataPrefix = ["od", "design"].join("-");
+const retiredDesignMetadataPrefix = ["readable", "design"].join("-");
 
 const REPLACEMENTS_BY_FILE = {
   "USAGE.md": [

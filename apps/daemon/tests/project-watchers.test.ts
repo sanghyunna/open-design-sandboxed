@@ -42,7 +42,7 @@ afterEach(async () => {
 });
 
 async function makeProjectsRoot() {
-  const root = await mkdtemp(path.join(tmpdir(), 'od-watchers-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'readable-watchers-'));
   const projectId = 'proj-' + Math.random().toString(36).slice(2, 10);
   await mkdir(path.join(root, projectId), { recursive: true });
   return { root, projectId };
@@ -164,13 +164,13 @@ describe('project-watchers (real chokidar)', () => {
     }
   }, 8_000);
 
-  it('still emits events when the watch root is itself nested under .od/ (production layout)', async () => {
+  it('still emits events when the watch root is itself nested under .readable-studio/ (production layout)', async () => {
     // Reproduces the layout the daemon actually uses:
-    //   <RUNTIME_DATA_DIR>/.od/projects/<id>/...
+    //   <RUNTIME_DATA_DIR>/.readable-studio/projects/<id>/...
     // The ignore predicate must not match the watch root's ancestor directories,
     // only segments inside the watched tree.
-    const dataRoot = await mkdtemp(path.join(tmpdir(), 'od-data-'));
-    const projectsRoot = path.join(dataRoot, '.od', 'projects');
+    const dataRoot = await mkdtemp(path.join(tmpdir(), 'readable-data-'));
+    const projectsRoot = path.join(dataRoot, '.readable-studio', 'projects');
     const projectId = 'proj-' + Math.random().toString(36).slice(2, 10);
     await mkdir(path.join(projectsRoot, projectId, 'prototype'), { recursive: true });
 
@@ -191,15 +191,15 @@ describe('project-watchers (real chokidar)', () => {
     }
   }, 8_000);
 
-  it('ignores files inside .od/ and node_modules/', async () => {
+  it('ignores files inside .readable-studio/ and node_modules/', async () => {
     const { root, projectId } = await makeProjectsRoot();
     const events: ProjectWatchEvent[] = [];
     const sub = subscribe(root, projectId, (e) => events.push(e), FAST_WATCH_OPTIONS);
     await sub.ready;
 
     try {
-      await mkdir(path.join(root, projectId, '.od'), { recursive: true });
-      await writeFile(path.join(root, projectId, '.od', 'state.json'), '{}');
+      await mkdir(path.join(root, projectId, '.readable-studio'), { recursive: true });
+      await writeFile(path.join(root, projectId, '.readable-studio', 'state.json'), '{}');
       await mkdir(path.join(root, projectId, 'node_modules'), { recursive: true });
       await writeFile(path.join(root, projectId, 'node_modules', 'x.js'), '');
 
@@ -207,7 +207,7 @@ describe('project-watchers (real chokidar)', () => {
       await waitFor(() => events.some((e) => e.path === 'real.txt'));
 
       const ignored = events.filter(
-        (e) => e.path.startsWith('.od/') || e.path.startsWith('node_modules/'),
+        (e) => e.path.startsWith('.readable-studio/') || e.path.startsWith('node_modules/'),
       );
       expect(ignored).toEqual([]);
     } finally {
@@ -279,7 +279,7 @@ describe('project-watchers (chokidar options)', () => {
     // sibling directory outside the project. Writing to the external sibling
     // must NOT produce an event scoped to the symlink path, because
     // followSymlinks is false.
-    const dataRoot = await mkdtemp(path.join(tmpdir(), 'od-symlink-'));
+    const dataRoot = await mkdtemp(path.join(tmpdir(), 'readable-symlink-'));
     const { symlink } = await import('node:fs/promises');
     const projectId = 'proj-' + Math.random().toString(36).slice(2, 10);
     const projectRoot = path.join(dataRoot, projectId);

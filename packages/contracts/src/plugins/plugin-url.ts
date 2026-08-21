@@ -1,23 +1,10 @@
-// Single source of truth for the public marketplace URL scheme of a plugin.
-//
-// Both surfaces that link to a plugin's public detail page derive their URLs
-// here so they can never drift:
-//   - the web client's plugin Share menu (`apps/web` PluginShareMenu)
-//   - the landing site's statically generated detail routes
-//     (`the generated artifact`)
-//
-// The detail route is single-segment — `/plugins/<slug>/` — where the slug is
-// the slugified LAST segment of the plugin id. Plugin ids are globally unique
-// on their last segment across the whole registry (verified), so a single
-// segment keeps the route collision-free and lets `open-design/foo` (registry
-// catalog id) and `foo` (bundled manifest id) resolve to the same page.
-//
-// Keep this module pure (no env, no fs, no browser globals): a self-hosted
-// daemon that wants a different origin reads its env and passes `origin` in —
-// this file never reads env.
+// Shared URL helpers for plugin detail, preview, and repository links.
+// Readable Studio ships no product website, so default share links target the
+// canonical GitHub repository. Self-hosted callers can still pass an origin
+// that serves the existing `/plugins/<slug>/` detail route.
 
-// Canonical public site origin for shareable plugin links.
-export const OPEN_DESIGN_SITE_ORIGIN = 'https://open-design.ai';
+export const READABLE_STUDIO_REPOSITORY_URL =
+  'https://github.com/sanghyunna/readable-studio';
 
 // Slugify one path segment: lower-cased, non-url-safe runs collapsed to `-`,
 // leading/trailing `-` trimmed. Must match the landing site byte-for-byte.
@@ -31,7 +18,7 @@ export function pluginSlugSegment(value: string): string {
 }
 
 // Single-segment detail slug = slugified last `/`-segment of the id, e.g.
-// `open-design/Hero Deck` -> `hero-deck`, `live-dashboard` -> `live-dashboard`.
+// `readable-studio/Hero Deck` -> `hero-deck`, `live-dashboard` -> `live-dashboard`.
 // This is what the `/plugins/[slug]/` route uses.
 export function pluginDetailSlug(id: string): string {
   const last = id.split('/').filter(Boolean).at(-1) ?? id;
@@ -39,7 +26,7 @@ export function pluginDetailSlug(id: string): string {
 }
 
 // Multi-segment slug preserving the namespace as a path separator, e.g.
-// `open-design/Hero Deck` -> `open-design/hero-deck`. Used for the namespaced
+// `readable-studio/Hero Deck` -> `readable-studio/hero-deck`. Used for the namespaced
 // preview route and any list data attributes that want full provenance.
 export function pluginSlug(id: string): string {
   return id
@@ -55,7 +42,7 @@ export function pluginDetailPath(id: string): string {
 }
 
 // Site-relative namespaced live-HTML preview path, e.g.
-// `/plugins/previews/open-design/hero-deck/`.
+// `/plugins/previews/readable-studio/hero-deck/`.
 export function pluginPreviewPath(id: string): string {
   return `/plugins/previews/${pluginSlug(id)}/`;
 }
@@ -66,7 +53,12 @@ export function pluginPreviewPath(id: string): string {
 // we never emit `//plugins/...`.
 export function pluginShareUrl(
   id: string,
-  origin: string = OPEN_DESIGN_SITE_ORIGIN,
+  origin: string = READABLE_STUDIO_REPOSITORY_URL,
 ): string {
-  return `${origin.replace(/\/+$/, '')}${pluginDetailPath(id)}`;
+  const normalizedOrigin = origin.replace(/\/+$/, '');
+  if (normalizedOrigin === READABLE_STUDIO_REPOSITORY_URL) {
+    const query = encodeURIComponent(`path:plugins ${id}`);
+    return `${READABLE_STUDIO_REPOSITORY_URL}/search?q=${query}&type=code`;
+  }
+  return `${normalizedOrigin}${pluginDetailPath(id)}`;
 }

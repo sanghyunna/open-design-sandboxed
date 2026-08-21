@@ -8,7 +8,7 @@ import {
 // description / commands count — and lets Phase 2A enrich the result with
 // command/agent/hook context once the plugin runtime supports the full
 // claude-plugin schema. The point of this adapter today is to make a
-// claude-plugin folder installable through OD without crashing.
+// claude-plugin folder installable through Readable Studio without crashing.
 
 export interface ClaudePluginAdapterOptions {
   folderId: string;
@@ -49,7 +49,7 @@ export function adaptClaudePlugin(
     : opts.folderId;
   const safeName = name.toLowerCase().replace(/[^a-z0-9._-]/g, '-').replace(/^[._-]+/, '') || opts.folderId;
   if (safeName !== name) {
-    warnings.push(`claude-plugin name '${name}' was sanitized to '${safeName}' to fit the OD plugin id pattern`);
+    warnings.push(`claude-plugin name '${name}' was sanitized to '${safeName}' to fit the Readable Studio plugin id pattern`);
   }
   const version = typeof obj['version'] === 'string' ? obj['version'] : '0.0.0';
   const description = typeof obj['description'] === 'string' ? obj['description'] : undefined;

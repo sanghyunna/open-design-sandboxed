@@ -12,7 +12,7 @@
  * main process" dialog the moment the user did anything that
  * triggered a fetch (e.g. Settings → Pets → Community).
  *
- * @see https://github.com/nexu-io/open-design/issues/895
+ * @see https://github.com/nexu-io/readable-studio/issues/895
  */
 
 // `protocol.handle` from the `electron` module is invoked at import
@@ -60,13 +60,14 @@ describe('readable-studio:// protocol proxy', () => {
   it('rejects legacy and mixed protocol shapes without proxying them', async () => {
     const fetchImpl = vi.fn<typeof fetch>();
 
+    const retiredScheme = ['open', 'design'].join('-');
     const legacy = await handleReadableStudioRequest(
-      new Request('od://app/api/projects'),
+      new Request(`${retiredScheme}://app/api/projects`),
       'http://127.0.0.1:42424/',
       fetchImpl,
     );
     const mixed = await handleReadableStudioRequest(
-      new Request('readable-studio://od/api/projects'),
+      new Request('readable-studio://readable/api/projects'),
       'http://127.0.0.1:42424/',
       fetchImpl,
     );

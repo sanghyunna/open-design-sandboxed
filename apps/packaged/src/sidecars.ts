@@ -86,8 +86,8 @@ type ManagedSidecarChild = {
 };
 
 type PackagedDaemonManagedPathEnv = {
-  OD_DATA_DIR: string;
-  OD_RESOURCE_ROOT: string;
+  READABLE_DATA_DIR: string;
+  READABLE_RESOURCE_ROOT: string;
   /**
    * Channel-root path. Lives one level above the namespaces directory so
    * the daemon can persist installationId (and any future fields that
@@ -98,7 +98,7 @@ type PackagedDaemonManagedPathEnv = {
    * channel even when the baked namespace token changes or per-namespace data
    * is cleared. See `apps/daemon/src/installation.ts`.
    */
-  OD_INSTALLATION_DIR: string;
+  READABLE_INSTALLATION_DIR: string;
 };
 
 function resolveSidecarEntry(packageName: string, exportName: string): string {
@@ -164,14 +164,14 @@ const WEB_STATUS_TIMEOUT_MS = 180_000;
  * compiles. The launcher must wait strictly longer than that internal
  * budget, otherwise it gives up first and the sidecar's longer budget
  * is wasted. The default 180s leaves headroom above the 120s internal
- * window. `OD_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
+ * window. `READABLE_WEB_STATUS_TIMEOUT_MS` overrides it for tuning; an
  * absent, non-numeric, or non-positive value falls back to the default.
  */
 // @dsp func-d6d6f242
 export function resolveWebStatusTimeoutMs(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  const raw = env.OD_WEB_STATUS_TIMEOUT_MS;
+  const raw = env.READABLE_WEB_STATUS_TIMEOUT_MS;
   if (raw != null && raw.length > 0) {
     const parsed = Number(raw);
     if (Number.isInteger(parsed) && parsed > 0) return parsed;
@@ -290,9 +290,9 @@ function createPackagedDaemonManagedPathEnv(
   paths: PackagedNamespacePaths,
 ): PackagedDaemonManagedPathEnv {
   return {
-    OD_DATA_DIR: paths.dataRoot,
-    OD_RESOURCE_ROOT: paths.resourceRoot,
-    OD_INSTALLATION_DIR: paths.installationRoot,
+    READABLE_DATA_DIR: paths.dataRoot,
+    READABLE_RESOURCE_ROOT: paths.resourceRoot,
+    READABLE_INSTALLATION_DIR: paths.installationRoot,
   };
 }
 
@@ -337,10 +337,10 @@ export function buildPackagedDaemonSpawnEnv(
     // bypass that a runtime-only handshake left open. Headless skips
     // it because there is no privileged shell.openPath surface and
     // no client to register a secret.
-    ...(options.requireDesktopAuth ? { OD_REQUIRE_DESKTOP_AUTH: "1" } : {}),
+    ...(options.requireDesktopAuth ? { READABLE_REQUIRE_DESKTOP_AUTH: "1" } : {}),
     // Discovery may execute third-party CLI auth/model commands. Keep packaged
     // cold start offline; explicit user agent runs retain their normal network.
-    OD_AGENT_DISCOVERY_OFFLINE: "1",
+    READABLE_AGENT_DISCOVERY_OFFLINE: "1",
     // Packaged daemon managed paths are deliberately delivered through
     // the sidecar launch environment. The daemon may keep its own default
     // fallback, but packaged runtime must not rely on path inference from
@@ -348,8 +348,8 @@ export function buildPackagedDaemonSpawnEnv(
     ...createPackagedDaemonManagedPathEnv(paths),
     ...(options.amrProfile == null || options.amrProfile.length === 0
       ? {}
-      : { OPEN_DESIGN_AMR_PROFILE: options.amrProfile }),
-    ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
+      : { READABLE_AMR_PROFILE: options.amrProfile }),
+    ...(options.appVersion == null ? {} : { READABLE_APP_VERSION: options.appVersion }),
   };
 }
 
@@ -521,9 +521,9 @@ export async function startPackagedSidecars(
         env: {
           [SIDECAR_ENV.DAEMON_PORT]: String(daemonPort),
           [SIDECAR_ENV.WEB_PORT]: "0",
-          ...(options.appVersion == null ? {} : { OD_APP_VERSION: options.appVersion }),
-          ...(options.webStandaloneRoot == null ? {} : { OD_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
-          OD_WEB_OUTPUT_MODE: options.webOutputMode,
+          ...(options.appVersion == null ? {} : { READABLE_APP_VERSION: options.appVersion }),
+          ...(options.webStandaloneRoot == null ? {} : { READABLE_WEB_STANDALONE_ROOT: options.webStandaloneRoot }),
+          READABLE_WEB_OUTPUT_MODE: options.webOutputMode,
           PORT: "0",
         },
         nodeCommand: options.nodeCommand,

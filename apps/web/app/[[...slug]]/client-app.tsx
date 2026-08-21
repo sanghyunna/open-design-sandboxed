@@ -7,7 +7,7 @@ import { installWebObservability } from '../../src/observability/install';
 
 function isHostedComposition(): boolean {
   return typeof document !== 'undefined'
-    && document.documentElement.getAttribute('data-od-composition') === 'hosted';
+    && document.documentElement.getAttribute('data-readable-composition') === 'hosted';
 }
 
 // The server-rendered marker exists before this module and any local app

@@ -272,7 +272,7 @@ function cookieIdentity(header: string | undefined): string | null | undefined {
   if (header === undefined) return undefined;
   const values = header.split(';').map((part) => part.trim()).flatMap((part) => {
     const index = part.indexOf('=');
-    return index > 0 && part.slice(0, index) === '__Host-od-hosted'
+    return index > 0 && part.slice(0, index) === '__Host-readable-hosted'
       ? [part.slice(index + 1)]
       : [];
   });
@@ -375,8 +375,8 @@ function captureBrokerBinding(
   env: NodeJS.ProcessEnv | undefined,
 ): Promise<void> {
   if (grantProbeVerified) return Promise.resolve();
-  const socketPath = env?.OD_HOSTED_PI_BROKER_SOCKET;
-  const token = env?.OD_HOSTED_PI_BROKER_TOKEN;
+  const socketPath = env?.READABLE_HOSTED_PI_BROKER_SOCKET;
+  const token = env?.READABLE_HOSTED_PI_BROKER_TOKEN;
   if (typeof socketPath !== 'string' || typeof token !== 'string') {
     return Promise.reject(new Error('hosted broker grant was not injected'));
   }

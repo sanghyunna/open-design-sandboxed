@@ -1,4 +1,4 @@
-# Open Design Plugin & Marketplace — Implementation Plan (living)
+# Readable Studio Plugin & Marketplace — Implementation Plan (living)
 
 Source spec: [`docs/plugins-spec.md`](../plugins-spec.md) (zh-CN: [`docs/plugins-spec.zh-CN.md`](../plugins-spec.zh-CN.md)).
 
@@ -17,7 +17,7 @@ Update protocol — read first
 
 These are the five rules that decide every downstream design decision. They sit above phases and are checked by reviewers on every plugin-related PR.
 
-- [x] **I1. `SKILL.md` is the floor; `readable-studio.json` is a sidecar; never bidirectionally couple.** `packages/plugin-runtime/adapters/agent-skill.ts` synthesizes a schema-valid `PluginManifest` from `SKILL.md` `od:` frontmatter (verified via `packages/plugin-runtime/tests/adapter-agent-skill.test.ts`). The bundled e2e fixture under `apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/` ships both halves and `apps/daemon/tests/plugins-e2e-fixture.test.ts` exercises the merger.
+- [x] **I1. `SKILL.md` is the floor; `readable-studio.json` is a sidecar; never bidirectionally couple.** `packages/plugin-runtime/adapters/agent-skill.ts` synthesizes a schema-valid `PluginManifest` from `SKILL.md` `readable:` frontmatter (verified via `packages/plugin-runtime/tests/adapter-agent-skill.test.ts`). The bundled e2e fixture under `apps/daemon/tests/fixtures/plugin-fixtures/sample-plugin/` ships both halves and `apps/daemon/tests/plugins-e2e-fixture.test.ts` exercises the merger.
 - [x] **I2. Apply is a pure function; side effects only after `POST /api/projects` / `POST /api/runs`.** `apps/daemon/src/plugins/apply.ts` is FS- and DB-free; the snapshot writer (`snapshots.ts`) and installer are the only modules that mutate persistent state. `apps/daemon/tests/plugins-apply.test.ts` asserts deterministic snapshots from the same inputs and refuses to touch the registry / FS.
 - [x] **I3. `AppliedPluginSnapshot` is the only contract between "plugin" and "run".** `composeSystemPrompt()` now accepts a `pluginBlock` derived from the snapshot via `pluginPromptBlock(snapshot)` (`apps/daemon/src/plugins/apply.ts`); the run reads context through the snapshot. Plugin runs in web API-fallback mode are rejected at the HTTP layer (Phase 2A wires the 409); the snapshot table is the only writable surface for the contract.
 - [ ] **I4. CLI is the canonical agent-facing API; UI mirrors CLI, not the other way round.** Phase 1: `readable plugin install/list/info/uninstall/apply/doctor` and the matching `/api/plugins/*` HTTP routes ship in the same PR. Remaining `readable project/run/files/conversation/marketplace` subcommands roll in over Phase 1 / 2C / 3 PRs.
@@ -76,10 +76,10 @@ This section tracks **what exists in the repo today**. Update in the same PR tha
 
 These notes capture the product/implementation answers that otherwise get lost between the spec and the code:
 
-- **No plugin selected does not mean a naked agent.** `composeSystemPrompt()` still always layers the Open Design base designer/discovery prompt, project metadata, active design system/craft, and daemon-owned safety/tooling guidance. Plugin context is additive: a selected plugin contributes snapshot-derived `## Active plugin`, `## Plugin inputs`, and active-stage atom blocks. Home free-form runs route through the bundled hidden `od-default` scenario, which shapes task type and then returns to the normal design pipeline.
-- **The pipeline is plugin-assembled, not a fixed wizard.** The reference shorthand is `discovery -> plan -> generate -> critique`, but the runnable shape comes from `od.pipeline.stages[].atoms[]` on the applied plugin or bundled scenario fallback. `apps/daemon/src/plugins/pipeline-runner.ts` emits stage/GenUI events and `packages/contracts/src/prompts/atom-block.ts` renders the active stage body. Some atoms are still prompt fragments / permissive workers; observable atoms such as `diff-review`, `build-test`, and `handoff` now emit durable files or signals.
-- **GenUI is controlled rendering.** Agents/plugins emit structured surface requests (`form`, `choice`, `confirmation`) and OD renders them with product-owned React/CLI components. Inline `<question-form>` chat UI follows the same principle: parse structured data, render through `QuestionForm`, and keep styling in OD. Plugin-bundled custom components are a separate sandboxed path behind `genui:custom-component`.
-- **AG-UI is interoperability, not the product UI runtime.** `packages/agui-adapter` and `GET /api/runs/:runId/agui` are shipped so CopilotKit / AG-UI clients can consume an OD run. The internal web/desktop UI remains OD-native; adding CopilotKit itself is only justified for an explicit external embed/demo/client.
+- **No plugin selected does not mean a naked agent.** `composeSystemPrompt()` still always layers the Readable Studio base designer/discovery prompt, project metadata, active design system/craft, and daemon-owned safety/tooling guidance. Plugin context is additive: a selected plugin contributes snapshot-derived `## Active plugin`, `## Plugin inputs`, and active-stage atom blocks. Home free-form runs route through the bundled hidden `readable-default` scenario, which shapes task type and then returns to the normal design pipeline.
+- **The pipeline is plugin-assembled, not a fixed wizard.** The reference shorthand is `discovery -> plan -> generate -> critique`, but the runnable shape comes from `readable.pipeline.stages[].atoms[]` on the applied plugin or bundled scenario fallback. `apps/daemon/src/plugins/pipeline-runner.ts` emits stage/GenUI events and `packages/contracts/src/prompts/atom-block.ts` renders the active stage body. Some atoms are still prompt fragments / permissive workers; observable atoms such as `diff-review`, `build-test`, and `handoff` now emit durable files or signals.
+- **GenUI is controlled rendering.** Agents/plugins emit structured surface requests (`form`, `choice`, `confirmation`) and Readable Studio renders them with product-owned React/CLI components. Inline `<question-form>` chat UI follows the same principle: parse structured data, render through `QuestionForm`, and keep styling in Readable Studio. Plugin-bundled custom components are a separate sandboxed path behind `genui:custom-component`.
+- **AG-UI is interoperability, not the product UI runtime.** `packages/agui-adapter` and `GET /api/runs/:runId/agui` are shipped so CopilotKit / AG-UI clients can consume an Readable Studio run. The internal web/desktop UI remains Readable Studio-native; adding CopilotKit itself is only justified for an explicit external embed/demo/client.
 - **Scenario discovery still has one product gap.** `apps/web/src/components/home-hero/chips.ts` is a curated Home rail for high-frequency scenarios. `apps/web/src/components/plugins-home/facets.ts` is more data-driven and derives category/subcategory facets from plugin metadata. The desired next slice is a single scenario registry / manifest projection that feeds Home chips, plugin filters, composer tools, and `@search`.
 
 ### 3.1 Packages
@@ -110,7 +110,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/plugins/apply.ts` | shipped | Phase 1 — pure resolver; emits `ApplyResult` + draft snapshot |
 | `apps/daemon/src/plugins/snapshots.ts` | shipped | Phase 1 — sole writer of `applied_plugin_snapshots`; PB2 expires_at stamping |
 | `apps/daemon/src/plugins/atoms.ts` | shipped | Phase 1 — first-party atom catalog (spec §10) |
-| `apps/daemon/src/plugins/pipeline.ts` | shipped | Phase 2A — devloop scheduler + `until` evaluator + `OD_MAX_DEVLOOP_ITERATIONS` |
+| `apps/daemon/src/plugins/pipeline.ts` | shipped | Phase 2A — devloop scheduler + `until` evaluator + `READABLE_MAX_DEVLOOP_ITERATIONS` |
 | `apps/daemon/src/plugins/pipeline-runner.ts` | shipped | Phase 2A — runs pipeline against a live run, emits stage + GenUI events |
 | `apps/daemon/src/plugins/resolve-snapshot.ts` | shipped | Phase 2A — snapshot resolver wired into `POST /api/projects` + `/api/runs` |
 | `apps/daemon/src/plugins/marketplaces.ts` | shipped | Phase 3 — add / list / refresh / remove / trust + `resolvePluginInMarketplaces` |
@@ -141,9 +141,9 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `apps/daemon/src/plugins/verify.ts` | shipped | Phase 4 — `verifyPlugin` orchestrator backing `readable plugin verify` (automation meta-command) |
 | `apps/daemon/src/storage/db-inspect.ts` | shipped | Phase 5 — `inspectSqliteDatabase` helper backing `readable daemon db status` |
 | `apps/daemon/src/plugins/events.ts` | shipped | Phase 4 — in-memory plugin event ring buffer + SSE feed backing `readable plugin events tail` |
-| `packages/plugin-runtime/src/pipeline-fallback.ts` | shipped | spec §23.3.3 — resolveAppliedPipeline falls back to a bundled scenario when od.pipeline is absent |
+| `packages/plugin-runtime/src/pipeline-fallback.ts` | shipped | spec §23.3.3 — resolveAppliedPipeline falls back to a bundled scenario when readable.pipeline is absent |
 | `plugins/_official/atoms/<atom>/{SKILL.md,readable-studio.json}` | shipped | Phase 4 / 6 / 7 / 8 — 13 first-party atom plugins (4 implemented + 9 reserved fragments) |
-| `plugins/_official/scenarios/<id>/{SKILL.md,readable-studio.json}` | shipped | Phase 4 (§23.3.3) — bundled scenario/router/export plugins, including the four taskKind defaults plus `od-default` Home free-form routing |
+| `plugins/_official/scenarios/<id>/{SKILL.md,readable-studio.json}` | shipped | Phase 4 (§23.3.3) — bundled scenario/router/export plugins, including the four taskKind defaults plus `readable-default` Home free-form routing |
 | `packages/agui-adapter/` | shipped | Phase 4 — pure-TS AG-UI canonical event encoder |
 | `packages/contracts/src/prompts/atom-block.ts` | shipped | Phase 4 — `renderActiveStageBlock(stageId, bodies)` pure renderer |
 | `apps/daemon/src/storage/project-storage.ts` | shipped | Phase 5 — ProjectStorage interface + Local impl + S3 stub |
@@ -181,8 +181,8 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `GET /api/atoms` | shipped | Phase 1 — first-party atom catalog |
 | `GET /api/applied-plugins/:snapshotId` | shipped | Phase 1 — used by run replay tooling |
 | `POST /api/runs/:runId/replay` | shipped | Phase 2A |
-| `GET /api/plugins/:id/preview` | shipped | Phase 2B — sandboxed iframe entry; resolves `od.preview.entry` with sensible fallbacks |
-| `GET /api/plugins/:id/example/:name` | shipped | Phase 2B — matches against folder name / basename / declared title in `od.useCase.exampleOutputs[]` |
+| `GET /api/plugins/:id/preview` | shipped | Phase 2B — sandboxed iframe entry; resolves `readable.preview.entry` with sensible fallbacks |
+| `GET /api/plugins/:id/example/:name` | shipped | Phase 2B — matches against folder name / basename / declared title in `readable.useCase.exampleOutputs[]` |
 | `POST /api/plugins/:id/trust` | shipped | Phase 2A — capability grant / revoke against §5.3 vocabulary |
 | `GET / POST /api/marketplaces` | shipped | Phase 3 entry slice |
 | `POST /api/marketplaces/:id/trust` | shipped | Phase 3 entry slice |
@@ -220,7 +220,7 @@ These notes capture the product/implementation answers that otherwise get lost b
 | `readable project import` (CLI wrapper of `/api/import/folder`) | absent | Phase 2C |
 | `readable conversation new` | absent | Phase 2C |
 | `readable plugin scaffold` (interactive starter) | shipped | Phase 4 — `apps/daemon/src/plugins/scaffold.ts` + `readable plugin scaffold --id <id>` |
-| `readable plugin export <projectId> --as od\|claude-plugin\|agent-skill` | shipped | Phase 4 — `apps/daemon/src/plugins/export.ts` + `POST /api/applied-plugins/export` |
+| `readable plugin export <projectId> --as readable\|claude-plugin\|agent-skill` | shipped | Phase 4 — `apps/daemon/src/plugins/export.ts` + `POST /api/applied-plugins/export` |
 | `readable plugin publish --to anthropics-skills\|awesome-agent-skills\|clawhub\|skills-sh` | shipped | Phase 4 — `apps/daemon/src/plugins/publish.ts` + `--open` browser launch |
 | `readable atoms list / show` | shipped | Phase 4 — wraps `GET /api/atoms` |
 | `readable skills list / show` | shipped | Phase 4 — wraps `GET /api/skills{,/:id}` |
@@ -292,9 +292,9 @@ Three reads from the graph (drove the §6 phase reorder)
 - [x] **F3. `installed_plugins.source_kind` accepts `'bundled'` from Phase 1.** `PluginSourceKindSchema` permissive: `bundled / user / project / marketplace / github / url / local`.
 - [x] **F4. `PluginAssetRef.stageAt` defaults to `'run-start'`, never `'project-create'`.** Default baked into `packages/contracts/src/plugins/apply.ts`.
 - [ ] **F5. `--json` output uses contracts types; no inline reshape in `cli.ts`.** Phase 1 CLI ships `--json` for `list/info/apply/doctor` returning the daemon JSON verbatim; the next CLI rev imports `ApplyResult` etc. from contracts to satisfy the compile-time guarantee.
-- [x] **F6. `OD_MAX_DEVLOOP_ITERATIONS` lives in `apps/daemon/src/app-config.ts`, default 10, override via env.** Read via `readPluginEnvKnobs()`; consumed by Phase 2A `pipeline.ts`.
+- [x] **F6. `READABLE_MAX_DEVLOOP_ITERATIONS` lives in `apps/daemon/src/app-config.ts`, default 10, override via env.** Read via `readPluginEnvKnobs()`; consumed by Phase 2A `pipeline.ts`.
 - [x] **F7. Cross-conversation cache (`genui_surfaces` lookup) goes live with the table — i.e. Phase 2A — and a daemon test asserts the second GenUI surface does not broadcast.** Covered by `apps/daemon/tests/plugins-pipeline-runner.test.ts` (`reuses a project-tier surface answer across conversations`).
-- [x] **F8. Snapshot lifecycle env vars (PB2)** live in `apps/daemon/src/app-config.ts` from Phase 1: `OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, set to `0` to disable), `OD_SNAPSHOT_RETENTION_DAYS` (default unset, opt-in), `OD_SNAPSHOT_GC_INTERVAL_MS` (default `6 * 60 * 60 * 1000`). All three live in `readPluginEnvKnobs()`; `applied_plugin_snapshots.expires_at` is stamped on insert; the GC worker lands Phase 5.
+- [x] **F8. Snapshot lifecycle env vars (PB2)** live in `apps/daemon/src/app-config.ts` from Phase 1: `READABLE_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`, set to `0` to disable), `READABLE_SNAPSHOT_RETENTION_DAYS` (default unset, opt-in), `READABLE_SNAPSHOT_GC_INTERVAL_MS` (default `6 * 60 * 60 * 1000`). All three live in `readPluginEnvKnobs()`; `applied_plugin_snapshots.expires_at` is stamped on insert; the GC worker lands Phase 5.
 
 ---
 
@@ -329,7 +329,7 @@ Why merged with the spec's "headless MVP CLI loop" — see I4. The spec's Phase 
 Deliverables (week 1: data layer)
 
 - [x] SQLite migration for `installed_plugins`, `plugin_marketplaces`, `applied_plugin_snapshots` (including `expires_at INTEGER` per PB2). The `runs` table is in-memory in `apps/daemon/src/runs.ts`; the in-memory run carries the snapshot id today. `projects` and `conversations` get `applied_plugin_snapshot_id` ALTERs in `migratePlugins()`.
-- [x] `apps/daemon/src/app-config.ts` defines `OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`), `OD_SNAPSHOT_RETENTION_DAYS` (default unset), `OD_SNAPSHOT_GC_INTERVAL_MS`, and `OD_MAX_DEVLOOP_ITERATIONS` (F6) under `readPluginEnvKnobs()`. Apply path stamps `expires_at` on insert; GC worker lands Phase 5.
+- [x] `apps/daemon/src/app-config.ts` defines `READABLE_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default `30`), `READABLE_SNAPSHOT_RETENTION_DAYS` (default unset), `READABLE_SNAPSHOT_GC_INTERVAL_MS`, and `READABLE_MAX_DEVLOOP_ITERATIONS` (F6) under `readPluginEnvKnobs()`. Apply path stamps `expires_at` on insert; GC worker lands Phase 5.
 - [x] `packages/plugin-runtime` parsers / adapters / merger / resolver / validator + digest.
 - [x] `apps/daemon/src/plugins/registry.ts` — install-root scan, sidecar + adapter merge, SQLite reader/writer. (Hot reload + project tier scan land Phase 2A.)
 - [x] `apps/daemon/src/plugins/installer.ts` — local folder install with path-traversal guard, 50 MiB size cap, symlink rejection. GitHub tarball / HTTPS sources land Phase 2A.
@@ -364,7 +364,7 @@ Deliverables
 
 - [x] `readable daemon start --headless` flag (no electron, no web bundle).
 - [x] `readable daemon start --serve-web` flag (web UI without electron). Today this is an alias of `--headless` because the v1 daemon serves both API and web UI from the same Express app; the flag is reserved so packaged callers can branch on it.
-- [x] Honor `OD_BIND_HOST` and `OD_PORT` in headless mode (the flags forward into the env so the existing daemon code path picks them up unchanged).
+- [x] Honor `READABLE_BIND_HOST` and `READABLE_PORT` in headless mode (the flags forward into the env so the existing daemon code path picks them up unchanged).
 - [x] `readable daemon stop`, `readable daemon status --json`.
 
 Validation
@@ -376,7 +376,7 @@ Validation
 
 Deliverables (daemon)
 
-- [x] `apps/daemon/src/plugins/pipeline.ts` — stage scheduler; `until` evaluator; devloop with `OD_MAX_DEVLOOP_ITERATIONS` ceiling.
+- [x] `apps/daemon/src/plugins/pipeline.ts` — stage scheduler; `until` evaluator; devloop with `READABLE_MAX_DEVLOOP_ITERATIONS` ceiling.
 - [x] `apps/daemon/src/plugins/pipeline-runner.ts` — bridges the scheduler onto a live run's SSE stream + GenUI cache.
 - [x] SQLite migration: `run_devloop_iterations`, `genui_surfaces` (3 indexes), `mcp_servers_json` column on `applied_plugin_snapshots`.
 - [x] `apps/daemon/src/genui/{registry,events,store}.ts` — confirmation, form, choice surfaces.
@@ -432,7 +432,7 @@ Deliverables
 - [x] Routes `/marketplace`, `/marketplace/:id` (alias `/plugins/:id`) in `apps/web/src/router.ts:33`.
 - [x] `MarketplaceView`, `PluginDetailView` (`apps/web/src/components/MarketplaceView.tsx`, `apps/web/src/components/PluginDetailView.tsx`).
 - [x] `ChatComposer` integrates `PluginsSection` (which composes `InlinePluginsRail` + `ContextChipStrip` + `PluginInputsForm`) at `ChatComposer.tsx:701`; `applyPlugin()` accepts the bound `projectId` (`apps/web/src/state/projects.ts`).
-- [x] `GET /api/plugins/:id/preview` and `/api/plugins/:id/example/:name` with the §9.2 sandbox CSP (`default-src 'none'; connect-src 'none'; ...`), `X-Content-Type-Options: nosniff`, and the same envelope as `/asset/*`. The preview entry follows `od.preview.entry` with `preview/index.html` + `index.html` fallbacks; the example endpoint matches against folder name / basename / declared title in `od.useCase.exampleOutputs[]`. (`apps/daemon/src/server.ts:servePluginSandboxedHtml`.)
+- [x] `GET /api/plugins/:id/preview` and `/api/plugins/:id/example/:name` with the §9.2 sandbox CSP (`default-src 'none'; connect-src 'none'; ...`), `X-Content-Type-Options: nosniff`, and the same envelope as `/asset/*`. The preview entry follows `readable.preview.entry` with `preview/index.html` + `index.html` fallbacks; the example endpoint matches against folder name / basename / declared title in `readable.useCase.exampleOutputs[]`. (`apps/daemon/src/server.ts:servePluginSandboxedHtml`.)
 - [x] Preview path traversal / symlink / size guards — the helper rejects `..` segments, refuses to follow symlinks via `lstat`, and caps payloads at 5 MiB.
 
 Validation
@@ -474,27 +474,27 @@ Validation
 Deliverables
 
 - [x] `docs/atoms.md`; `GET /api/atoms` returns implemented + reserved (with `(planned)` marker). Source of truth: `apps/daemon/src/plugins/atoms.ts`.
-- [x] `readable plugin export <projectId> --as od|claude-plugin|agent-skill` — `apps/daemon/src/plugins/export.ts` + `POST /api/applied-plugins/export`.
+- [x] `readable plugin export <projectId> --as readable|claude-plugin|agent-skill` — `apps/daemon/src/plugins/export.ts` + `POST /api/applied-plugins/export`.
 - [x] `readable plugin run <id> --input k=v --follow` (apply + run start wrapper) — landed in §3.B3 (Phase 2A). Full ND-JSON streaming via `readable run watch` is also shipped (Phase 1 follow-up §3.F1).
 - [x] `readable plugin scaffold` interactive starter — `apps/daemon/src/plugins/scaffold.ts`.
 - [x] `readable plugin publish --to anthropics-skills|awesome-agent-skills|clawhub|skills-sh` (PR template launcher) — `apps/daemon/src/plugins/publish.ts`.
 - [x] CLI parity remainder: `readable skills/design-systems/craft/atoms list/show`, `readable status`, `readable version`, `readable marketplace search`, `readable doctor`, `readable config get/set/list/unset`.
 - [x] Optional `plugins/_official/atoms/<atom>/SKILL.md` extraction (spec §23.3.2 patch 2) — entry slice ships four atom SKILL.md fragments + the bundled boot walker; the system.ts → SKILL.md prompt-composer rewiring stays open.
 - [x] `@readable-studio/agui-adapter` package; `GET /api/runs/:runId/agui` SSE endpoint emits AG-UI canonical events.
-- [x] Plugin manifest upgrade: `od.genui.surfaces[].component` (capability gate `genui:custom-component`) — schema accepts the field; doctor flags missing-capability + path-traversal; web sandbox loader stays scheduled.
+- [x] Plugin manifest upgrade: `readable.genui.surfaces[].component` (capability gate `genui:custom-component`) — schema accepts the field; doctor flags missing-capability + path-traversal; web sandbox loader stays scheduled.
 
 Validation
 
 - [ ] **e2e-9 UI ↔ CLI parity**: pick 5 desktop UI workflows; replay each through `readable …` only; produced artifacts byte-for-byte equal.
-- [ ] AG-UI smoke: a CopilotKit React client subscribes to `/api/runs/:runId/agui` and renders surfaces unmodified. This is an external-interop smoke, not a blocker for OD-native web/desktop rendering.
+- [ ] AG-UI smoke: a CopilotKit React client subscribes to `/api/runs/:runId/agui` and renders surfaces unmodified. This is an external-interop smoke, not a blocker for Readable Studio-native web/desktop rendering.
 
 ### Phase 5 — Runtime storage and non-loopback security
 
 Deliverables
 
-- [x] Bound-API-token guard: daemon refuses to bind `OD_BIND_HOST=<non-loopback>` without `OD_API_TOKEN`; bearer middleware on `/api/*` skips only loopback peers and open probes.
-- [x] `ProjectStorage` adapter substrate: `LocalProjectStorage` is the reachable v1 default; `resolveProjectStorage` reads `OD_PROJECT_STORAGE`.
-- [x] `DaemonDb` config resolver: SQLite remains the reachable backend; `resolveDaemonDbConfig` reads `OD_DAEMON_DB` and `OD_PG_*`.
+- [x] Bound-API-token guard: daemon refuses to bind `READABLE_BIND_HOST=<non-loopback>` without `READABLE_API_TOKEN`; bearer middleware on `/api/*` skips only loopback peers and open probes.
+- [x] `ProjectStorage` adapter substrate: `LocalProjectStorage` is the reachable v1 default; `resolveProjectStorage` reads `READABLE_PROJECT_STORAGE`.
+- [x] `DaemonDb` config resolver: SQLite remains the reachable backend; `resolveDaemonDbConfig` reads `READABLE_DAEMON_DB` and `READABLE_PG_*`.
 - [x] Snapshot retention enforcement and `readable plugin snapshots prune --before <ts>`.
 
 Hosted/container deployment manifests and publishing automation are intentionally outside this product workspace.
@@ -507,8 +507,8 @@ Validation
 
 These are tracked but **not part of v1 sign-off**. Listed here so spec patches that promote `(planned)` atoms have a place to update.
 
-- [x] **Phase 6 — figma-migration native**: implement `figma-extract` + `token-map`; ship official `figma-migration` plugin. **All atom impls + asset pass landed (plan §3.M3 / §3.N4 / §3.O2 / §3.P1 / §3.P2 / §3.Q2): `figma-extract` walks the Figma REST API into `<cwd>/figma/{tree,tokens,meta}.json` AND honours `offlineAssets:false` to download per-leaf-node assets via `GET /v1/images` (50-id chunks, per-id failure isolation, configurable size cap, `assets/<id>.<ext>` layout). `token-map` crosswalks any source bag against the active design system. Bundled scenario plugin `od-figma-migration` ships the canonical pipeline.**
-- [x] **Phase 7 — code-migration native** (§20.3 §21.3.2): `code-import`, `design-extract`, `rewrite-plan`, `patch-edit`, `diff-review`, `build-test`. **All six atom impls landed (plan §3.N1 / §3.N2 / §3.O2 / §3.O3 / §3.O4 / §3.O5). Bundled scenario plugin `od-code-migration` ships the canonical pipeline (`code-import` → `design-extract` + `token-map` → `rewrite-plan` → `patch-edit ↔ build-test` devloop → `diff-review` → `handoff`). Live HTTP wiring for the per-stage runner keeps to scheduled.**
+- [x] **Phase 6 — figma-migration native**: implement `figma-extract` + `token-map`; ship official `figma-migration` plugin. **All atom impls + asset pass landed (plan §3.M3 / §3.N4 / §3.O2 / §3.P1 / §3.P2 / §3.Q2): `figma-extract` walks the Figma REST API into `<cwd>/figma/{tree,tokens,meta}.json` AND honours `offlineAssets:false` to download per-leaf-node assets via `GET /v1/images` (50-id chunks, per-id failure isolation, configurable size cap, `assets/<id>.<ext>` layout). `token-map` crosswalks any source bag against the active design system. Bundled scenario plugin `readable-figma-migration` ships the canonical pipeline.**
+- [x] **Phase 7 — code-migration native** (§20.3 §21.3.2): `code-import`, `design-extract`, `rewrite-plan`, `patch-edit`, `diff-review`, `build-test`. **All six atom impls landed (plan §3.N1 / §3.N2 / §3.O2 / §3.O3 / §3.O4 / §3.O5). Bundled scenario plugin `readable-code-migration` ships the canonical pipeline (`code-import` → `design-extract` + `token-map` → `rewrite-plan` → `patch-edit ↔ build-test` devloop → `diff-review` → `handoff`). Live HTTP wiring for the per-stage runner keeps to scheduled.**
 - [x] **Phase 8 — production code delivery native**: repo-aware multi-file patch orchestration; native review-and-apply surface; promote `handoffKind: 'deployable-app'` from reservation to implementation. **End-to-end wiring landed (plan §3.N3 / §3.O4 / §3.O5 / §3.P3 / §3.Q1 / §3.R1): `patch-edit` enforces shell-tier safety + writes per-step receipts; `diff-review` emits review/{diff.patch,summary.md,decision.json,meta.json}; the daemon auto-derives a `__auto_diff_review_<stageId>` choice surface for every diff-review stage; the web composer's `GenUISurfaceRenderer` renders the diff-review surface natively (Accept all / Reject all / Partial… per-file checklist) plus a generic single-enum-property choice fallback; `POST /api/runs/:runId/genui/:surfaceId/respond` now bridges the diff-review choice surface response into `runDiffReview()` so the user's decision lands on `review/decision.json` immediately. `recordHandoff()` enforces append-only export/deploy targets; `isDeployableAppEligible()` centralises the §11.5.1 promotion rule. `ArtifactManifest` carries the full reserved provenance surface.**
 
 ---
@@ -521,8 +521,8 @@ These were originally spec §18 open questions; they are now resolved and propag
 - **PB2. `AppliedPluginSnapshot` unreferenced-row TTL.** **Decision: accepted with one modification** to preserve spec §8.2.1's reproducibility-first stance. Final shape:
   - `applied_plugin_snapshots.expires_at INTEGER` column lands in Phase 1 (NULL allowed).
   - Snapshots referenced by any `runs.applied_plugin_snapshot_id` / `conversations.applied_plugin_snapshot_id` / `projects.applied_plugin_snapshot_id` keep `expires_at = NULL` (pinned forever; reproducibility unchanged).
-  - Unreferenced snapshots receive `expires_at = applied_at + OD_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default **30 d**, set to `0` to disable). This is the apply-then-cancel garbage-growth defense.
-  - The "expire even referenced" knob `OD_SNAPSHOT_RETENTION_DAYS` is **operator-opt-in only**, default unset; when set, a referenced row may expire if `applied_at` is older than the window AND the referencing row is itself terminal (run finished, conversation archived, project deleted).
+  - Unreferenced snapshots receive `expires_at = applied_at + READABLE_SNAPSHOT_UNREFERENCED_TTL_DAYS` (default **30 d**, set to `0` to disable). This is the apply-then-cancel garbage-growth defense.
+  - The "expire even referenced" knob `READABLE_SNAPSHOT_RETENTION_DAYS` is **operator-opt-in only**, default unset; when set, a referenced row may expire if `applied_at` is older than the window AND the referencing row is itself terminal (run finished, conversation archived, project deleted).
   - Both env vars live in `apps/daemon/src/app-config.ts` (per F6 pattern). Phase 1 ships the column + config wiring; Phase 5 ships the periodic enforcement job.
   - Spec §11.4 patched to add the `expires_at` column; spec §18 patched to mark the open question resolved.
 
@@ -533,13 +533,13 @@ These were originally spec §18 open questions; they are now resolved and propag
 v1 ships when **all** of the following pass through the documented local validation commands without electron. Each row links to the daemon / e2e test path that asserts it.
 
 - [x] **e2e-1 cold install** — `readable plugin install ./fixtures/sample-plugin` →
-  - `<OD_DATA_DIR>/plugins/sample-plugin/` exists.
+  - `<READABLE_DATA_DIR>/plugins/sample-plugin/` exists.
   - `installed_plugins` has one row with `trust='restricted'`, `source_kind='local'`.
   - Test path: `apps/daemon/tests/plugins-e2e-fixture.test.ts`
 - [x] **e2e-2 pure apply** — two consecutive applies share `manifestSourceDigest`; the project cwd byte size is unchanged; `applied_plugin_snapshots` is not written by `applyPlugin()` itself (the resolver is the writer).
   - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-2 pure apply across runs`).
 - [x] **e2e-3 headless run (full §8 contract).** Install → project create → run start → status → snapshot fetch all walked at the HTTP layer; the run's first SSE event is `pipeline_stage_started` (asserted via the live SSE stream) and the snapshot id is pinned through every step. `firePipelineForRun()` runs synchronously inside `POST /api/runs` before `design.runs.start()` schedules the agent.
-  - Test path: `apps/daemon/tests/plugins-headless-run.test.ts` (both `walks install → project create → run start → status with snapshot pinned` and `first SSE event on a plugin run with od.pipeline is pipeline_stage_started`).
+  - Test path: `apps/daemon/tests/plugins-headless-run.test.ts` (both `walks install → project create → run start → status with snapshot pinned` and `first SSE event on a plugin run with readable.pipeline is pipeline_stage_started`).
 - [x] **e2e-4 replay invariance** — after a same-id plugin upgrade, `renderPluginBlock(snapshot)` returns the byte-equal prompt block; the live applyPlugin against the upgraded plugin produces a different `manifestSourceDigest`.
   - Test path: `apps/daemon/tests/plugins-dod-e2e.test.ts` (`e2e-4 replay invariance`).
 - [x] **e2e-5 GenUI cross-conversation** — second conversation in the same project does not broadcast a fresh `genui_surface_request`; it emits `genui_surface_response { respondedBy: 'cache' }` instead.
@@ -564,10 +564,10 @@ Plus repo-wide gates
 
 | Field | Value |
 | --- | --- |
-| Current phase | Phase 2A + 1 + 1.5 + 2B + 2C entry slice + 3 (full) + 4 (full incl. OD_BUNDLED_ATOM_PROMPTS default ON) + 5 (full incl. live S3 impl; postgres adapter still stubbed) + 6 (full incl. asset rasterisation) + 7 (all six atom impls) + 8 (full incl. GenUI \u2192 decision bridge) + scenarios bundle + bundled-scenario fallback resolver |
+| Current phase | Phase 2A + 1 + 1.5 + 2B + 2C entry slice + 3 (full) + 4 (full incl. READABLE_BUNDLED_ATOM_PROMPTS default ON) + 5 (full incl. live S3 impl; postgres adapter still stubbed) + 6 (full incl. asset rasterisation) + 7 (all six atom impls) + 8 (full incl. GenUI \u2192 decision bridge) + scenarios bundle + bundled-scenario fallback resolver |
 | Next planned PR | (a) Phase 2C — `readable files write/upload/delete/diff` + `readable project import` + `readable conversation new`. (b) Phase 3 — Trust UI on `PluginDetailView` + bundle plugin installer. (c) Phase 4 e2e-9 — UI ↔ CLI parity walkthrough (5 workflows). (d) postgres adapter wiring inside the DaemonDb resolver. (e) Scenario registry convergence so Home chips, plugin filters, composer tools, and `@search` project from the same manifest/scenario taxonomy. |
 | Open spec push-backs | none — PB1 / PB2 resolved (see §7) |
-| Last sync against `docs/plugins-spec.md` | 2026-05-13 (clarified default/no-plugin behavior, `od-default` routing, daemon system-prompt layering, plugin-assembled pipeline stages, OD-native controlled GenUI rendering, AG-UI adapter as interoperability only, and the current Home rail vs PluginsHome facet convergence gap) |
+| Last sync against `docs/plugins-spec.md` | 2026-05-13 (clarified default/no-plugin behavior, `readable-default` routing, daemon system-prompt layering, plugin-assembled pipeline stages, Readable Studio-native controlled GenUI rendering, AG-UI adapter as interoperability only, and the current Home rail vs PluginsHome facet convergence gap) |
 
 Update this table on every plugin-system PR merge. When the value of "Current phase" advances, also flip the matching deliverables in §6 and the modules in §3.
 

@@ -54,34 +54,34 @@ function resolvePackagedDataRoot(
   namespace: string,
   env: NodeJS.ProcessEnv = {},
 ): string {
-  const odDataDir = env.OD_DATA_DIR?.trim();
-  if (odDataDir) {
-    const expanded = expandHomePrefix(odDataDir);
+  const configuredDataDir = env.READABLE_DATA_DIR?.trim();
+  if (configuredDataDir) {
+    const expanded = expandHomePrefix(configuredDataDir);
     const isAbs = process.platform === "win32"
       ? win32.isAbsolute(expanded)
       : posix.isAbsolute(expanded);
     if (!isAbs) {
       throw new PackagedPathAccessError(
         [
-          "Readable Studio's packaged runtime requires OD_DATA_DIR to be an absolute path.",
+          "Readable Studio's packaged runtime requires READABLE_DATA_DIR to be an absolute path.",
           "",
-          `Configured value: ${odDataDir}`,
+          `Configured value: ${configuredDataDir}`,
           "",
-          "Set OD_DATA_DIR to an absolute path (for example, C:\\\\Users\\\\You\\\\ReadableStudio on Windows or /Users/you/ReadableStudio on macOS/Linux) and relaunch Readable Studio.",
+          "Set READABLE_DATA_DIR to an absolute path (for example, C:\\\\Users\\\\You\\\\ReadableStudio on Windows or /Users/you/ReadableStudio on macOS/Linux) and relaunch Readable Studio.",
         ].join("\n"),
-        { title: "Readable Studio cannot start with this OD_DATA_DIR" },
+        { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
       );
     }
     if (config.portable && !isInsidePortableDataContainer(expanded)) {
       throw new PackagedPathAccessError(
         [
-          "Readable Studio's portable runtime requires OD_DATA_DIR to stay inside <exeDir>/ReadableStudioData.",
+          "Readable Studio's portable runtime requires READABLE_DATA_DIR to stay inside <exeDir>/ReadableStudioData.",
           "",
-          `Configured value: ${odDataDir}`,
+          `Configured value: ${configuredDataDir}`,
           "",
-          "Move the override beneath the extracted ReadableStudioData folder or remove OD_DATA_DIR and relaunch Readable Studio.",
+          "Move the override beneath the extracted ReadableStudioData folder or remove READABLE_DATA_DIR and relaunch Readable Studio.",
         ].join("\n"),
-        { title: "Readable Studio cannot start with this OD_DATA_DIR" },
+        { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
       );
     }
     const scopedNamespace = getScopedPackagedDataRootNamespace(expanded);
@@ -89,15 +89,15 @@ function resolvePackagedDataRoot(
       if (scopedNamespace !== namespace) {
         throw new PackagedPathAccessError(
           [
-            "Readable Studio's packaged runtime requires OD_DATA_DIR to target the active namespace.",
+            "Readable Studio's packaged runtime requires READABLE_DATA_DIR to target the active namespace.",
             "",
-            `Configured value: ${odDataDir}`,
+            `Configured value: ${configuredDataDir}`,
             `Configured namespace: ${scopedNamespace}`,
             `Active namespace: ${namespace}`,
             "",
             "Use an unscoped absolute base path or relaunch the matching packaged namespace.",
           ].join("\n"),
-          { title: "Readable Studio cannot start with this OD_DATA_DIR" },
+          { title: "Readable Studio cannot start with this READABLE_DATA_DIR" },
         );
       }
       return expanded;

@@ -41,7 +41,7 @@ export function parseDaemonCliStartupArgs(
   env: NodeJS.ProcessEnv = process.env,
 ): DaemonCliStartupParseResult {
   let port = Number(env[SIDECAR_ENV.DAEMON_PORT]) || 7456;
-  let host = env.OD_BIND_HOST || '127.0.0.1';
+  let host = env.READABLE_BIND_HOST || '127.0.0.1';
   let open = true;
 
   for (let i = 0; i < argv.length; i++) {
@@ -129,7 +129,7 @@ export async function startDaemonRuntime(options: DaemonRuntimeOptions = {}): Pr
   };
 
   if (logListening) {
-    console.log(`[od] listening on ${started.url}`);
+    console.log(`[readable] listening on ${started.url}`);
   }
   if (shouldOpenBrowser) {
     const { openBrowser } = await import('./browser-open.js');

@@ -12,7 +12,7 @@ describe('importLocalDesignSystemProject', () => {
   let userDesignSystemsRoot: string;
 
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-ds-import-'));
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-ds-import-'));
     sourceRoot = path.join(tempRoot, 'source-app');
     userDesignSystemsRoot = path.join(tempRoot, 'user-design-systems');
     fs.mkdirSync(path.join(sourceRoot, 'src', 'components'), { recursive: true });

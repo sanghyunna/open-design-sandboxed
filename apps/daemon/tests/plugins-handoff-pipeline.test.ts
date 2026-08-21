@@ -10,7 +10,7 @@ import { runHandoffAtom } from '../src/plugins/atoms/handoff.js';
 let cwd: string;
 
 beforeEach(async () => {
-  cwd = await mkdtemp(path.join(os.tmpdir(), 'od-handoff-pipeline-'));
+  cwd = await mkdtemp(path.join(os.tmpdir(), 'readable-handoff-pipeline-'));
 });
 
 afterEach(async () => {
@@ -79,7 +79,7 @@ describe('runHandoffAtom — promotion ladder', () => {
   it("decision='accept' + both signals + docker exportTarget \u2192 'deployable-app'", async () => {
     await writeDecision('accept');
     await writeBuildTestReport(true, true);
-    const exportTarget: ArtifactExportTarget = { surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 };
+    const exportTarget: ArtifactExportTarget = { surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 1 };
     const out = await runHandoffAtom({ cwd, manifest: baseManifest(), exportTarget });
     expect(out.manifest.handoffKind).toBe('deployable-app');
     expect(out.signals.deployable).toBe(true);
@@ -120,11 +120,11 @@ describe('runHandoffAtom — append-only contract', () => {
     await writeDecision('accept');
     const incoming: ArtifactExportTarget = { surface: 'cli', target: '/p/a.html', exportedAt: 1 };
     const initial = baseManifest({
-      exportTargets: [{ surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 0 }],
+      exportTargets: [{ surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 0 }],
     });
     const a = await runHandoffAtom({ cwd, manifest: initial, exportTarget: incoming });
     expect(a.manifest.exportTargets).toEqual([
-      { surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 0 },
+      { surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 0 },
       incoming,
     ]);
     // Re-record same target → no duplicate.

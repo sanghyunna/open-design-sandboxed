@@ -4,7 +4,7 @@
 // identify, audit, or embed a plugin:
 //
 //   - Copy plugin id          (raw `<id>` for paste-into-yaml)
-//   - Copy install command    (`od plugin install <ref>`)
+//   - Copy install command    (`readable plugin install <ref>`)
 //   - Copy README badge       (Readable Studio powered, includes link)
 //   - Open source on GitHub   (when the source is a github repo)
 //   - Open homepage           (when manifest.homepage is set)
@@ -23,7 +23,7 @@ import { copyToClipboard } from '../../lib/copy-to-clipboard';
 import { derivePluginSourceLinks } from '../../runtime/plugin-source';
 import { pluginShareUrl } from '@readable-studio/contracts';
 
-const PUBLIC_OPEN_DESIGN_MARKETPLACE_ID = 'official';
+const PUBLIC_READABLE_MARKETPLACE_ID = 'official';
 const PUBLIC_COMMUNITY_MARKETPLACE_ID = 'community';
 
 interface Props {
@@ -68,22 +68,20 @@ function buildInstallCommand(record: InstalledPluginRecord): string {
   // provenance preserved it; sourceMarketplaceId names the catalog,
   // not the plugin package.
   if (typeof record.sourceMarketplaceEntryName === 'string') {
-    return `od plugin install ${record.sourceMarketplaceEntryName}`;
+    return `readable plugin install ${record.sourceMarketplaceEntryName}`;
   }
   if (record.sourceKind === 'marketplace' && typeof record.sourceMarketplaceId === 'string') {
-    return `od plugin install ${record.sourceMarketplaceId}`;
+    return `readable plugin install ${record.sourceMarketplaceId}`;
   }
-  return `od plugin install ${record.source}`;
+  return `readable plugin install ${record.source}`;
 }
 
 export function buildPluginShareUrl(record: InstalledPluginRecord): string | null {
-  // Only plugins with a public detail page on open-design.ai get a shareable
-  // link: bundled (`_official`) plugins and ones installed from the official
-  // or community marketplace. Local/github installs have no public page, so
-  // no link — never leak a local tools-dev origin (127.0.0.1:<port>).
+  // Bundled and catalog plugins get a shareable repository-search link.
+  // Local installs have no public provenance, so never leak their local origin.
   const hasPublicPage =
     record.sourceKind === 'bundled' ||
-    record.sourceMarketplaceId === PUBLIC_OPEN_DESIGN_MARKETPLACE_ID ||
+    record.sourceMarketplaceId === PUBLIC_READABLE_MARKETPLACE_ID ||
     record.sourceMarketplaceId === PUBLIC_COMMUNITY_MARKETPLACE_ID;
   if (!hasPublicPage) return null;
   // Community marketplace entry names use the `community/<folder>` path form
@@ -105,7 +103,7 @@ function buildPluginMarketplacePath(record: InstalledPluginRecord): string {
 }
 
 function buildMarkdownBadge(record: InstalledPluginRecord, url: string): string {
-  return `[![${record.title} — Readable Studio plugin](https://img.shields.io/badge/Open%20Design-${encodeURIComponent(record.title)}-d65a31?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2C)](${url})`;
+  return `[![${record.title} — Readable Studio plugin](https://img.shields.io/badge/Readable%20Studio-${encodeURIComponent(record.title)}-d65a31?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2C)](${url})`;
 }
 
 export function PluginShareMenu({ record, variant = 'default' }: Props) {
@@ -203,8 +201,8 @@ export function PluginShareMenu({ record, variant = 'default' }: Props) {
     key: 'marketplace',
     label: t('plugins.actions.openMarketplace'),
     icon: 'eye',
-    // Prefer the public open-design.ai detail page; fall back to the in-app
-    // /marketplace route only for local/github installs with no public page.
+    // Prefer the public repository lookup; local installs stay on the in-app
+    // marketplace route because they have no public provenance.
     href: publicShareUrl ?? buildPluginMarketplacePath(record),
   });
 

@@ -14,7 +14,7 @@ import {
 let dataDir = '';
 
 beforeEach(async () => {
-  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-memory-tree-'));
+  dataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-memory-tree-'));
 });
 
 afterEach(async () => {
@@ -27,7 +27,7 @@ describe('memory tree helpers', () => {
       dataDir,
       {
         name: 'Design agent goal',
-        description: 'Open Design should evolve from accepted work',
+        description: 'Readable Studio should evolve from accepted work',
         type: 'project',
         body: '- Keep design-system extraction in the loop',
       },

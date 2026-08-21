@@ -20,7 +20,7 @@ let sourceFolder: string;
 let db: Database.Database;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-installer-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-installer-'));
   pluginsRoot = path.join(tmpRoot, 'plugins');
   sourceFolder = path.join(tmpRoot, 'source-plugin');
   await mkdir(sourceFolder, { recursive: true });
@@ -109,7 +109,7 @@ describe('installFromLocalFolder', () => {
   });
 
   it('persists marketplace provenance and inherited trust for resolved installs', async () => {
-    const lockfilePath = path.join(tmpRoot, '.od', 'od-plugin-lock.json');
+    const lockfilePath = path.join(tmpRoot, '.readable-studio', 'readable-plugin-lock.json');
     const manifest = JSON.stringify({
       specVersion: '1.0.0',
       name: 'fixture-registry',

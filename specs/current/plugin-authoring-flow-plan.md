@@ -4,14 +4,14 @@
 
 ## Purpose
 
-Make "create my own plugin" a first-class product flow instead of a disconnected future tab. A user should be able to start from the Plugins area, land on the Home prompt with an authoring query already prepared, run an agent task that produces an Open Design plugin folder, inspect that folder as project output, and add it to `My plugins` with one click.
+Make "create my own plugin" a first-class product flow instead of a disconnected future tab. A user should be able to start from the Plugins area, land on the Home prompt with an authoring query already prepared, run an agent task that produces an Readable Studio plugin folder, inspect that folder as project output, and add it to `My plugins` with one click.
 
 This plan is intentionally focused on the authoring loop. Marketplace publishing, enterprise private catalogs, and team review policies stay out of scope.
 
 ## Requirements
 
 - R1. Plugins tab exposes a create entry that starts a guided plugin authoring task instead of only offering import options.
-- R2. The create entry navigates to Home, focuses `HomeHero`'s textarea, and pre-fills a prompt grounded in the Open Design plugin spec.
+- R2. The create entry navigates to Home, focuses `HomeHero`'s textarea, and pre-fills a prompt grounded in the Readable Studio plugin spec.
 - R3. The task should create a real plugin folder containing at minimum `SKILL.md` and `readable-studio.json`, with optional examples/assets when the user asks for them.
 - R4. Project output must support selecting or viewing the generated plugin folder as a folder, not only as flat single files.
 - R5. A generated plugin folder can be installed into the user plugin registry and then appears in `My plugins` and Home `@` search.
@@ -21,7 +21,7 @@ This plan is intentionally focused on the authoring loop. Marketplace publishing
 
 - No marketplace publishing in this pass. Installing to `My plugins` is enough.
 - No enterprise/team catalog permissions in this pass.
-- No new plugin spec dialect. The generated folder must validate against the existing Open Design plugin shape in `docs/plugins-spec.md` and `docs/schemas/readable-studio.plugin.v1.json`.
+- No new plugin spec dialect. The generated folder must validate against the existing Readable Studio plugin shape in `docs/plugins-spec.md` and `docs/schemas/readable-studio.plugin.v1.json`.
 - No requirement to build a full visual plugin IDE. The first version is an agent-guided task plus a one-click install action.
 
 ### Deferred to follow-up work
@@ -44,7 +44,7 @@ This plan is intentionally focused on the authoring loop. Marketplace publishing
 
 - The product entry is "Create plugin", not "Create from template" alone. Template scaffolding is one possible implementation detail, but the user intent is to describe a workflow and let the agent produce a plugin.
 - The first supported entry should be Plugins tab → Home prompt prefill. This gives a working authoring loop before the Home rail gets another chip.
-- Use a dedicated bundled scenario plugin for authoring if possible, e.g. `od-plugin-authoring`. Falling back to `od-new-generation` plus a long prompt is acceptable only as an interim bridge.
+- Use a dedicated bundled scenario plugin for authoring if possible, e.g. `readable-plugin-authoring`. Falling back to `readable-new-generation` plus a long prompt is acceptable only as an interim bridge.
 - The generated plugin folder should live inside the project work directory so it can be inspected, edited, and installed without forcing a browser folder upload.
 - One-click "Add to My plugins" should install from a daemon-visible project output path through the same local install path used by `/api/plugins/install`, then refresh web plugin state.
 
@@ -117,21 +117,21 @@ sequenceDiagram
   **Goal:** Give the agent a purpose-built plugin authoring context that asks for the right files and validation behavior.
 
   **Files:**
-  - Create: `plugins/_official/scenarios/od-plugin-authoring/readable-studio.json`
-  - Create: `plugins/_official/scenarios/od-plugin-authoring/SKILL.md`
+  - Create: `plugins/_official/scenarios/readable-plugin-authoring/readable-studio.json`
+  - Create: `plugins/_official/scenarios/readable-plugin-authoring/SKILL.md`
   - Modify: `apps/web/src/components/home-hero/chips.ts` only when the Home rail chip lands
   - Test: `apps/daemon/tests/plugins-bundled-scenarios-roster.test.ts`
   - Test: `apps/daemon/tests/plugins-local-skill.test.ts`
 
   **Approach:**
   - The scenario should instruct the agent to output a folder such as `generated-plugin/` with `SKILL.md`, `readable-studio.json`, and optional `examples/` or `assets/`.
-  - The prompt should cite the Open Design plugin spec and require validation-ready output, not a prose-only explanation.
+  - The prompt should cite the Readable Studio plugin spec and require validation-ready output, not a prose-only explanation.
   - If the scenario includes GenUI, it should present checklist/progress and final "Add to My plugins" affordance, but the install action itself should call a daemon API rather than relying on copy/paste.
 
   **Test scenarios:**
   - Happy path: bundled scenario appears in plugin list and can be applied.
   - Integration: applying the scenario injects its local `SKILL.md` body into the run snapshot.
-  - Regression: regular `od-new-generation` and migration scenarios are unaffected.
+  - Regression: regular `readable-new-generation` and migration scenarios are unaffected.
 
 - [x] U4. **Generated folder visibility in project output**
 
@@ -204,7 +204,7 @@ sequenceDiagram
 The authoring prompt should be stable enough for tests and user trust. A first version can be:
 
 ```text
-Create an Open Design plugin for: <user goal>.
+Create an Readable Studio plugin for: <user goal>.
 
 Follow docs/plugins-spec.md and produce a folder named generated-plugin with:
 - SKILL.md describing the agent behavior and workflow

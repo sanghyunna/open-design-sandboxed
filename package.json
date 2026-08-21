@@ -66,7 +66,6 @@
       "better-sqlite3",
       "core-js",
       "electron",
-      "electron-winstaller",
       "esbuild",
       "protobufjs",
       "sharp"

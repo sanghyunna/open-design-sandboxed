@@ -45,7 +45,7 @@
           if (attempt && typeof attempt.catch === "function") attempt.catch(function () {});
         };
         var markFinished = function () {
-          document.documentElement.setAttribute("data-od-splash-finished", "1");
+          document.documentElement.setAttribute("data-readable-splash-finished", "1");
         };
         var markFirstLoopFinished = function () {
           if (Number.isFinite(video.duration) && video.currentTime >= video.duration - 0.25) markFinished();

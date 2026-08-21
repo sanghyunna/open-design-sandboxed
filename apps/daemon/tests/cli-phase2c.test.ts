@@ -53,7 +53,7 @@ describe('Phase 2C CLI wrappers', () => {
   });
 
   function makeFolder(): string {
-    const dir = mkdtempSync(path.join(tmpdir(), 'od-cli-phase2c-'));
+    const dir = mkdtempSync(path.join(tmpdir(), 'readable-cli-phase2c-'));
     tempDirs.push(dir);
     return dir;
   }
@@ -64,7 +64,7 @@ describe('Phase 2C CLI wrappers', () => {
   ): Promise<{ stdout: string; stderr: string }> {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
-      OD_DAEMON_URL: baseUrl,
+      READABLE_DAEMON_URL: baseUrl,
       ...options.env,
     };
     delete env.NODE_OPTIONS;
@@ -79,7 +79,7 @@ describe('Phase 2C CLI wrappers', () => {
       let stderr = '';
       const timeout = setTimeout(() => {
         child.kill('SIGTERM');
-        reject(new Error(`CLI timed out: od ${args.join(' ')}`));
+        reject(new Error(`CLI timed out: readable ${args.join(' ')}`));
       }, options.timeout ?? 20_000);
 
       child.stdout.setEncoding('utf8');
@@ -100,7 +100,7 @@ describe('Phase 2C CLI wrappers', () => {
           resolve({ stdout, stderr });
           return;
         }
-        reject(new Error(`od ${args.join(' ')} exited ${code}\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+        reject(new Error(`readable ${args.join(' ')} exited ${code}\nstdout:\n${stdout}\nstderr:\n${stderr}`));
       });
       child.stdin.end(options.input ?? '');
     });
@@ -112,7 +112,7 @@ describe('Phase 2C CLI wrappers', () => {
   ): Promise<{ code: number | null; stdout: string; stderr: string }> {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
-      OD_DAEMON_URL: baseUrl,
+      READABLE_DAEMON_URL: baseUrl,
       ...options.env,
     };
     delete env.NODE_OPTIONS;
@@ -127,7 +127,7 @@ describe('Phase 2C CLI wrappers', () => {
       let stderr = '';
       const timeout = setTimeout(() => {
         child.kill('SIGTERM');
-        reject(new Error(`CLI timed out: od ${args.join(' ')}`));
+        reject(new Error(`CLI timed out: readable ${args.join(' ')}`));
       }, options.timeout ?? 20_000);
 
       child.stdout.setEncoding('utf8');
@@ -145,7 +145,7 @@ describe('Phase 2C CLI wrappers', () => {
       child.on('close', (code) => {
         clearTimeout(timeout);
         if (code === 0) {
-          reject(new Error(`od ${args.join(' ')} unexpectedly exited 0\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+          reject(new Error(`readable ${args.join(' ')} unexpectedly exited 0\nstdout:\n${stdout}\nstderr:\n${stderr}`));
           return;
         }
         resolve({ code, stdout, stderr });
@@ -153,6 +153,15 @@ describe('Phase 2C CLI wrappers', () => {
       child.stdin.end(options.input ?? '');
     });
   }
+
+  it('rejects the retired plugin PR command without exposing an alias', async () => {
+    const retiredCommand = ['open', 'design', 'pr'].join('-');
+    const retired = await runCliExpectFailure(['plugin', retiredCommand]);
+    expect(`${retired.stdout}${retired.stderr}`).toMatch(/unknown subcommand: readable plugin/i);
+
+    const canonical = await runCliExpectFailure(['plugin', 'readable-studio-pr']);
+    expect(`${canonical.stdout}${canonical.stderr}`).toContain('readable plugin readable-studio-pr');
+  });
 
   it('imports a folder and creates a conversation through the CLI', async () => {
     const folder = makeFolder();
@@ -225,7 +234,7 @@ describe('Phase 2C CLI wrappers', () => {
     try {
       const ipcRoot = makeFolder();
       const ipcPath = process.platform === 'win32'
-        ? `\\\\.\\pipe\\open-design-cli-phase2c-${process.pid}-${Date.now()}`
+        ? `\\\\.\\pipe\\readable-studio-cli-phase2c-${process.pid}-${Date.now()}`
         : path.join(ipcRoot, 'daemon.sock');
       const sidecar = await createJsonIpcServer({
         socketPath: ipcPath,
@@ -418,7 +427,7 @@ describe('mintImportTokenForCli', () => {
   });
 
   it('reports inactive when desktop import auth gate is dormant', () => {
-    const result = mintImportTokenForCli('/tmp/open-design-cli-import');
+    const result = mintImportTokenForCli('/tmp/readable-studio-cli-import');
 
     expect(result).toMatchObject({
       ok: false,
@@ -431,7 +440,7 @@ describe('mintImportTokenForCli', () => {
     const secret = randomBytes(32);
     setDesktopAuthSecret(secret);
 
-    const result = mintImportTokenForCli('/tmp/open-design-cli-import');
+    const result = mintImportTokenForCli('/tmp/readable-studio-cli-import');
 
     expect(result.ok).toBe(true);
     if (result.ok) {

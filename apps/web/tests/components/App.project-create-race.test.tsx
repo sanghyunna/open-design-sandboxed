@@ -824,7 +824,7 @@ describe('App project creation routing', () => {
     // Regression for the "picked project folder + staged attachment" case:
     // replaceProjectWorkingDir flips metadata.baseDir to the external folder,
     // so it must run BEFORE uploadProjectFiles — otherwise the staged files
-    // land in the temporary managed .od/projects/<id> root and vanish once the
+    // land in the temporary managed .readable-studio/projects/<id> root and vanish once the
     // project folder flips. Asserting the call order locks the ordering in.
     mockedListProjects.mockResolvedValue([]);
     mockedReplaceProjectWorkingDir.mockResolvedValue(undefined as never);
@@ -878,7 +878,7 @@ describe('App project creation routing', () => {
     });
     expect(mockedReplaceProjectWorkingDir).toHaveBeenCalledTimes(1);
     // The handoff failed, so the staged attachments must NOT be uploaded into
-    // the managed `.od/projects/<id>` root the user did not pick.
+    // the managed `.readable-studio/projects/<id>` root the user did not pick.
     expect(mockedUploadProjectFiles).not.toHaveBeenCalled();
   });
 });

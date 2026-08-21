@@ -61,7 +61,7 @@ The portable app writes beside the executable:
             └── user-data\
 ```
 
-Keep `ReadableStudioData` with the application when moving it. Back up that directory before deleting or replacing an extracted copy. An absolute `OD_DATA_DIR` can override the data root for controlled deployments.
+Keep `ReadableStudioData` with the application when moving it. Back up that directory before deleting or replacing an extracted copy. An absolute `READABLE_DATA_DIR` can override the data root for controlled deployments.
 
 ## Export behavior
 
@@ -124,7 +124,7 @@ Source-mode daemon data defaults to:
 └── media-config.json
 ```
 
-Development control-plane state is separate under `.tmp\tools-dev\<namespace>\...`. Set `OD_DATA_DIR` to an absolute path to relocate daemon data.
+Development control-plane state is separate under `.tmp\tools-dev\<namespace>\...`. Set `READABLE_DATA_DIR` to an absolute path to relocate daemon data.
 
 ## Build the Windows portable ZIP
 

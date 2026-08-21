@@ -159,15 +159,15 @@ The preview iframe is the selection surface, not the state owner.
 Selection bridge requirements:
 
 - Inject an edit bridge into the iframe `srcDoc`.
-- Host sends `od-edit-mode` to enable or disable edit mode.
+- Host sends `readable-edit-mode` to enable or disable edit mode.
 - Iframe sends:
-  - `od-edit-targets`
-  - `od-edit-select`
+  - `readable-edit-targets`
+  - `readable-edit-select`
 - The bridge must discover meaningful body elements.
 - Explicitly annotated elements are preferred:
-  - `data-od-id`
-  - `data-od-edit`
-  - `data-od-label`
+  - `data-readable-id`
+  - `data-readable-edit`
+  - `data-readable-label`
 - If no explicit id exists, generate a stable DOM-path id such as `path-0-1-2`.
 
 Supported target kinds:
@@ -259,9 +259,9 @@ Rules:
 - Omitted attributes must not be deleted.
 - Empty string values remove that attribute.
 - Protected attributes must not be removed or overwritten by ordinary attribute edits:
-  - `data-od-id`
-  - `data-od-edit`
-  - `data-od-label`
+  - `data-readable-id`
+  - `data-readable-edit`
+  - `data-readable-label`
   - runtime-only ids
 - Invalid attribute names are ignored.
 
@@ -276,8 +276,8 @@ Apply via `set-outer-html`.
 Rules:
 
 - Replacement HTML must parse to one element.
-- Preserve existing `data-od-id` when replacement omits it.
-- Preserve existing `data-od-edit` when replacement omits it.
+- Preserve existing `data-readable-id` when replacement omits it.
+- Preserve existing `data-readable-edit` when replacement omits it.
 - Do not use this as the default editing path for casual users.
 - Treat it as an advanced escape hatch.
 

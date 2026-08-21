@@ -24,13 +24,13 @@ Make plugins 1:1 drive a complete run, give bare query input a deterministic fal
 | G1 | `apps/daemon/src/server.ts#firePipelineForRun` | `runStage` stub returns synthetic `critique.score: 4`; pipeline events are emitted but no real per-atom work runs. |
 | G2 | `apps/daemon/src/plugins/apply.ts#pickFirstSkillId` | `./SKILL.md` is treated as a global skill id and never matches the registry, so a plugin's own SKILL.md is silently dropped from `composeSystemPrompt`. |
 | G3 | `apps/web/src/components/HomeView.tsx#submit` | When no plugin is active, `pluginId` is `null`; `resolvePluginSnapshot` then returns `null` and the run goes through the legacy non-plugin code path. |
-| G4 | `apps/web/src/components/EntryShell.tsx#DEFAULT_SCENARIO_PLUGIN_BY_KIND` | Every kind maps to `od-new-generation`, so image/video/audio and migration kinds never reach their bundled scenarios (`od-figma-migration`, `od-code-migration`). |
+| G4 | `apps/web/src/components/EntryShell.tsx#DEFAULT_SCENARIO_PLUGIN_BY_KIND` | Every kind maps to `readable-new-generation`, so image/video/audio and migration kinds never reach their bundled scenarios (`readable-figma-migration`, `readable-code-migration`). |
 | G5 | `apps/web/src/components/HomeHero.tsx` | No category / model chips below the input card; first-touch users have to know which plugin they want. |
 
 ## Target architecture
 
 ```
-plugin manifest (od.pipeline.stages[])
+plugin manifest (readable.pipeline.stages[])
   └─ daemon stage runner          (real workers; replaces stub in G1)
        └─ atom executor registry  (per-atom handler)
             └─ agent CLI process  (LLM + tool calls, prompt carries plugin skill + active stage)
@@ -44,12 +44,12 @@ plugin manifest (od.pipeline.stages[])
 
 | `metadata.kind` / taskKind | Bundled scenario |
 |---|---|
-| `prototype`, `other`, `template` | `od-new-generation` |
-| `deck` | `od-new-generation` (until a deck-specialised scenario lands) |
-| `image`, `video`, `audio` | `od-media-generation` (Stage C) |
-| `figma-migration` taskKind | `od-figma-migration` |
-| `code-migration` taskKind | `od-code-migration` |
-| `tune-collab` taskKind | `od-tune-collab` |
+| `prototype`, `other`, `template` | `readable-new-generation` |
+| `deck` | `readable-new-generation` (until a deck-specialised scenario lands) |
+| `image`, `video`, `audio` | `readable-media-generation` (Stage C) |
+| `figma-migration` taskKind | `readable-figma-migration` |
+| `code-migration` taskKind | `readable-code-migration` |
+| `tune-collab` taskKind | `readable-tune-collab` |
 
 ## Stages
 
@@ -57,8 +57,8 @@ plugin manifest (od.pipeline.stages[])
 |---|---|---|
 | A | shipped | Plugin-local SKILL.md reaches `## Active skill`; Home query auto-binds default scenario per kind. |
 | B | shipped (MVP) | Chip rail mirrors NewProject taxonomy + adds Figma / folder / template shortcuts. Secondary chip rows (model picker for image, inline figmaUrl input) deferred. |
-| C | shipped (MVP) | Bundled `od-media-generation` scenario for image/video/audio; uses existing `media-image` / `media-video` / `media-audio` atoms rather than a new wrapper atom. |
-| D | shipped (MVP) | `apps/daemon/src/plugins/atoms/registry.ts` + `built-ins.ts` introduce an atom worker registry; `firePipelineForRun` now drives stages through `runStageWithRegistry`. Set `OD_PIPELINE_RUNNER=stub` to fall back to the v1 canned-signal runner. Real workers only ship for `critique-theater` today (reads `run_devloop_iterations.critique_summary` for the latest parseable score); every other FIRST_PARTY_ATOM registers a permissive worker so happy-path convergence matches v1. |
+| C | shipped (MVP) | Bundled `readable-media-generation` scenario for image/video/audio; uses existing `media-image` / `media-video` / `media-audio` atoms rather than a new wrapper atom. |
+| D | shipped (MVP) | `apps/daemon/src/plugins/atoms/registry.ts` + `built-ins.ts` introduce an atom worker registry; `firePipelineForRun` now drives stages through `runStageWithRegistry`. Set `READABLE_PIPELINE_RUNNER=stub` to fall back to the v1 canned-signal runner. Real workers only ship for `critique-theater` today (reads `run_devloop_iterations.critique_summary` for the latest parseable score); every other FIRST_PARTY_ATOM registers a permissive worker so happy-path convergence matches v1. |
 | E | shipped (MVP) | `pnpm guard` + `pnpm typecheck` green; daemon plugin suites (atom-registry, pipeline-runner, local-skill, apply, bundled-scenarios, headless-run, bundled, pipeline, simulate) all green; web 720/720 green; full daemon suite 1847/1852 with the remaining 5 failures all reproduced on `HEAD` without these changes (3× `finalize-design` macOS-tmpdir symlink issue; 2× chat-route/origin-validation order-dependent flakes that pass in isolation). Cross-app browser e2e covering the bare-query / chip-click flows is deferred to a follow-up since the existing Playwright harness only ships packaged-app smoke. |
 
 ### Stage A — Plugin actually injects, Home never runs naked
@@ -88,10 +88,10 @@ Exit criteria
 
 ### Stage C — Media + migration scenario fill-in
 
-- Add bundled scenario `od-media-generation`. The pipeline reuses the already-shipped `media-image` / `media-video` / `media-audio` atoms; no dedicated `media-generate` wrapper is needed and the original plan's mention of a separate atom is superseded by this note.
-- The scenario shares `taskKind: 'new-generation'` with `od-new-generation`. The daemon's `collectBundledScenarios` dedupes by `taskKind`, preferring the canonical `od-<taskKind>` id so the pipeline-fallback stays deterministic.
+- Add bundled scenario `readable-media-generation`. The pipeline reuses the already-shipped `media-image` / `media-video` / `media-audio` atoms; no dedicated `media-generate` wrapper is needed and the original plan's mention of a separate atom is superseded by this note.
+- The scenario shares `taskKind: 'new-generation'` with `readable-new-generation`. The daemon's `collectBundledScenarios` dedupes by `taskKind`, preferring the canonical `readable-<taskKind>` id so the pipeline-fallback stays deterministic.
 - Surface "From Figma" / "From folder" chips on the Home rail.
-  - "From Figma" applies the `od-figma-migration` plugin (which carries the `figmaUrl` input). A dedicated inline `figmaUrl` field is deferred to a follow-up; the chip's prompt-template substitution still surfaces `{{figmaUrl}}` so the user can edit before submit.
+  - "From Figma" applies the `readable-figma-migration` plugin (which carries the `figmaUrl` input). A dedicated inline `figmaUrl` field is deferred to a follow-up; the chip's prompt-template substitution still surfaces `{{figmaUrl}}` so the user can edit before submit.
   - "From folder" prefers the Electron native picker (when available) and falls back to opening the existing modal-based import form.
 
 ### Stage D — Real stage / atom workers (replaces the stub)
@@ -100,7 +100,7 @@ As shipped (MVP):
 
 - `apps/daemon/src/plugins/atoms/registry.ts` owns the atom worker registry: `registerAtomWorker`, `runStageWithRegistry`, and the frozen `PERMISSIVE_DEFAULT_SIGNALS` table. Real-worker outputs replace permissive defaults wholesale so a real score of 5 never gets clipped to 4; cross-worker conflicts inside a single stage still pessimistically merge (false-wins / lowest-number-wins).
 - `apps/daemon/src/plugins/atoms/built-ins.ts` registers a worker for every `FIRST_PARTY_ATOMS` entry on first use. Only `critique-theater` ships a real watcher today — it reads `run_devloop_iterations.critique_summary` for the latest parseable `score=N` token. Every other atom registers a permissive worker that returns no signals (so the defaults flow through) — that keeps backwards-compat with the v1 stub while documenting the worker surface for future migrations.
-- `apps/daemon/src/server.ts#firePipelineForRun` now branches on `OD_PIPELINE_RUNNER`: default (`registry`) drives stages through `runStageWithRegistry`; `OD_PIPELINE_RUNNER=stub` falls back to the canned signal pump for diagnostic bisection.
+- `apps/daemon/src/server.ts#firePipelineForRun` now branches on `READABLE_PIPELINE_RUNNER`: default (`registry`) drives stages through `runStageWithRegistry`; `READABLE_PIPELINE_RUNNER=stub` falls back to the canned signal pump for diagnostic bisection.
 
 Deferred to a follow-up:
 
@@ -116,7 +116,7 @@ Deferred to a follow-up:
 ## File map
 
 **New (planned across stages)**
-- `plugins/_official/scenarios/od-media-generation/{readable-studio.json,SKILL.md}`
+- `plugins/_official/scenarios/readable-media-generation/{readable-studio.json,SKILL.md}`
 - `plugins/_official/atoms/media-generate/{readable-studio.json,SKILL.md}`
 - `apps/daemon/src/plugins/atoms/media-generate.ts`
 - `apps/daemon/src/plugins/atoms/registry.ts`
@@ -140,8 +140,8 @@ Deferred to a follow-up:
 ## Risks
 
 - R1 — Plugin SKILL.md may conflict with a project-pinned skill. Resolution order: plugin > project skill > kind default.
-- R2 — Media surface already drives prompts through the `media generate` CLI; `od-media-generation` must not double-inject.
-- R3 — Stage D changes runtime behaviour. Keep `OD_BUNDLED_ATOM_PROMPTS=0` and an explicit `OD_PIPELINE_RUNNER=stub` escape hatch until e2e stabilises.
+- R2 — Media surface already drives prompts through the `media generate` CLI; `readable-media-generation` must not double-inject.
+- R3 — Stage D changes runtime behaviour. Keep `READABLE_BUNDLED_ATOM_PROMPTS=0` and an explicit `READABLE_PIPELINE_RUNNER=stub` escape hatch until e2e stabilises.
 
 ## Open questions
 

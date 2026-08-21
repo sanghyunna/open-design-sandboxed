@@ -966,7 +966,7 @@ export async function createSocialSharePayload(
   return (await resp.json()) as SocialShareResponse;
 }
 
-// Project files — all paths are scoped under .od/projects/<id>/ on disk.
+// Project files — all paths are scoped under .readable-studio/projects/<id>/ on disk.
 
 export async function fetchProjectFiles(projectId: string): Promise<ProjectFile[]> {
   try {

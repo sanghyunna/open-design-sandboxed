@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveWebStatusTimeoutMs } from '../src/sidecars.js';
 
 describe('resolveWebStatusTimeoutMs', () => {
-  it('uses the default 180-second budget when OD_WEB_STATUS_TIMEOUT_MS is unset', () => {
+  it('uses the default 180-second budget when READABLE_WEB_STATUS_TIMEOUT_MS is unset', () => {
     expect(resolveWebStatusTimeoutMs({})).toBe(180_000);
   });
 
@@ -30,42 +30,42 @@ describe('resolveWebStatusTimeoutMs', () => {
     expect(resolveWebStatusTimeoutMs({})).toBeGreaterThan(120_000);
   });
 
-  it('honors a valid positive-integer OD_WEB_STATUS_TIMEOUT_MS override', () => {
+  it('honors a valid positive-integer READABLE_WEB_STATUS_TIMEOUT_MS override', () => {
     expect(
-      resolveWebStatusTimeoutMs({ OD_WEB_STATUS_TIMEOUT_MS: '240000' }),
+      resolveWebStatusTimeoutMs({ READABLE_WEB_STATUS_TIMEOUT_MS: '240000' }),
     ).toBe(240_000);
   });
 
-  it('falls back to the default when OD_WEB_STATUS_TIMEOUT_MS is zero', () => {
+  it('falls back to the default when READABLE_WEB_STATUS_TIMEOUT_MS is zero', () => {
     expect(
-      resolveWebStatusTimeoutMs({ OD_WEB_STATUS_TIMEOUT_MS: '0' }),
+      resolveWebStatusTimeoutMs({ READABLE_WEB_STATUS_TIMEOUT_MS: '0' }),
     ).toBe(180_000);
   });
 
-  it('falls back to the default when OD_WEB_STATUS_TIMEOUT_MS is non-numeric', () => {
+  it('falls back to the default when READABLE_WEB_STATUS_TIMEOUT_MS is non-numeric', () => {
     expect(
-      resolveWebStatusTimeoutMs({ OD_WEB_STATUS_TIMEOUT_MS: 'abc' }),
+      resolveWebStatusTimeoutMs({ READABLE_WEB_STATUS_TIMEOUT_MS: 'abc' }),
     ).toBe(180_000);
   });
 
-  it('treats an empty OD_WEB_STATUS_TIMEOUT_MS as unset', () => {
+  it('treats an empty READABLE_WEB_STATUS_TIMEOUT_MS as unset', () => {
     expect(
-      resolveWebStatusTimeoutMs({ OD_WEB_STATUS_TIMEOUT_MS: '' }),
+      resolveWebStatusTimeoutMs({ READABLE_WEB_STATUS_TIMEOUT_MS: '' }),
     ).toBe(180_000);
   });
 
   it('falls back to process.env when called with no argument', () => {
-    const original = process.env.OD_WEB_STATUS_TIMEOUT_MS;
+    const original = process.env.READABLE_WEB_STATUS_TIMEOUT_MS;
     try {
-      delete process.env.OD_WEB_STATUS_TIMEOUT_MS;
+      delete process.env.READABLE_WEB_STATUS_TIMEOUT_MS;
       expect(resolveWebStatusTimeoutMs()).toBe(180_000);
-      process.env.OD_WEB_STATUS_TIMEOUT_MS = '300000';
+      process.env.READABLE_WEB_STATUS_TIMEOUT_MS = '300000';
       expect(resolveWebStatusTimeoutMs()).toBe(300_000);
     } finally {
       if (original == null) {
-        delete process.env.OD_WEB_STATUS_TIMEOUT_MS;
+        delete process.env.READABLE_WEB_STATUS_TIMEOUT_MS;
       } else {
-        process.env.OD_WEB_STATUS_TIMEOUT_MS = original;
+        process.env.READABLE_WEB_STATUS_TIMEOUT_MS = original;
       }
     }
   });

@@ -30,7 +30,7 @@ describe('buildSrcdoc', () => {
   it('injects the snapshot bridge used by draw annotations', () => {
     const srcdoc = buildSrcdoc('<main style="color:red">Hero</main>');
 
-    expect(srcdoc).toContain('data-od-snapshot-bridge');
+    expect(srcdoc).toContain('data-readable-snapshot-bridge');
     expect(srcdoc).toContain("data.type !== 'readable-studio:snapshot'");
     expect(srcdoc).toContain("type: 'readable-studio:snapshot:result'");
     expect(srcdoc).toContain('copyComputedStyle');
@@ -102,7 +102,7 @@ describe('buildSrcdoc', () => {
     // for every artifact regardless of what font it actually declared.
     const srcdoc = buildSrcdoc('<main style="font-family: Inter">Hero</main>');
 
-    expect(srcdoc).not.toContain('data-od-pretendard-font');
+    expect(srcdoc).not.toContain('data-readable-pretendard-font');
     expect(srcdoc).not.toContain('PretendardVariable');
     expect(srcdoc).not.toContain("font-family: 'Pretendard', sans-serif !important;");
     expect(srcdoc).toContain('font-family: Inter');
@@ -120,16 +120,16 @@ describe('buildSrcdoc', () => {
   it('can guard preview iframes against load-time focus stealing', () => {
     // This test would fail if injectPreviewFocusGuard were removed from
     // buildSrcdoc — the guard script would be absent, and the assertions
-    // below would not find the data-od-preview-focus-guard marker.
+    // below would not find the data-readable-preview-focus-guard marker.
     const srcdoc = buildSrcdoc(
       '<!doctype html><html><head><script>window.focus();document.body.focus();</script></head><body>Hero</body></html>',
       { previewFocusGuard: true },
     );
 
-    expect(srcdoc).toContain('data-od-preview-focus-guard');
+    expect(srcdoc).toContain('data-readable-preview-focus-guard');
     expect(srcdoc).toContain("Object.defineProperty(window, 'focus'");
     expect(srcdoc).toContain("Object.defineProperty(HTMLElement.prototype, 'focus'");
-    expect(srcdoc.indexOf('data-od-preview-focus-guard')).toBeLessThan(
+    expect(srcdoc.indexOf('data-readable-preview-focus-guard')).toBeLessThan(
       srcdoc.indexOf('<script>window.focus();document.body.focus();</script>'),
     );
   });
@@ -151,11 +151,11 @@ describe('buildSrcdoc', () => {
   });
 
   it('injects the selection bridge for comment mode', () => {
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       commentBridge: true,
     });
 
-    expect(srcdoc).toContain('data-od-selection-bridge');
+    expect(srcdoc).toContain('data-readable-selection-bridge');
     // The bridge boots with the requested mode already on so a click
     // immediately after srcdoc rebuild is not lost to the listener-install
     // race against the host's `readable-studio:*-mode` postMessage.
@@ -166,8 +166,8 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain("type: 'readable-studio:comment-leave'");
     expect(srcdoc).toContain("type: 'readable-studio:comment-targets'");
     expect(srcdoc).toContain("postStroke('readable-studio:pod-stroke')");
-    expect(srcdoc).toContain("postStroke('readable-studio:pod-select')");
-    expect(srcdoc).toContain('data-od-comment-mode-kind');
+    expect(srcdoc).toContain("postStroke('readable-studio:preadable-select')");
+    expect(srcdoc).toContain('data-readable-comment-mode-kind');
     expect(srcdoc).toContain("body * { cursor: crosshair !important; }");
     expect(srcdoc).toContain('MutationObserver(schedulePostTargets)');
     expect(srcdoc).toContain('schedulePostPreviewScroll');
@@ -175,9 +175,9 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain("type: 'readable-studio:preview-scroll-request'");
     expect(srcdoc).toContain("data.type === 'readable-studio:preview-scroll-by'");
     expect(srcdoc).toContain('previewScrollBy(data.left, data.top)');
-    expect(srcdoc).toContain('data-od-selection-bridge-style');
-    expect(srcdoc).toContain('html[data-od-comment-mode] body iframe');
-    expect(srcdoc).toContain('html[data-od-inspect-mode] body iframe');
+    expect(srcdoc).toContain('data-readable-selection-bridge-style');
+    expect(srcdoc).toContain('html[data-readable-comment-mode] body iframe');
+    expect(srcdoc).toContain('html[data-readable-inspect-mode] body iframe');
     expect(srcdoc).toContain('pointer-events: none !important');
   });
 
@@ -189,8 +189,8 @@ describe('buildSrcdoc', () => {
     });
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    expect(srcdoc).toContain('<b data-od-source-path="path-0-0-0">Bold text</b>');
-    expect(srcdoc).toContain('<figcaption data-od-source-path="path-0-0-1">Caption text</figcaption>');
+    expect(srcdoc).toContain('<b data-readable-source-path="path-0-0-0">Bold text</b>');
+    expect(srcdoc).toContain('<figcaption data-readable-source-path="path-0-0-1">Caption text</figcaption>');
   });
 
   it('annotates semantic SVG roots inside deck slides without annotating decorative SVG icons', () => {
@@ -207,10 +207,10 @@ describe('buildSrcdoc', () => {
       const icon = parsed.querySelector('button > svg');
       const hiddenAncestor = parsed.querySelector('[aria-hidden="true"] > svg[role="img"]');
 
-      expect(diagram?.getAttribute('data-od-source-path')).toBe('path-0-0-0');
-      expect(image?.getAttribute('data-od-source-path')).toBe('path-0-0-1');
-      expect(icon?.hasAttribute('data-od-source-path')).toBe(false);
-      expect(hiddenAncestor?.hasAttribute('data-od-source-path')).toBe(false);
+      expect(diagram?.getAttribute('data-readable-source-path')).toBe('path-0-0-0');
+      expect(image?.getAttribute('data-readable-source-path')).toBe('path-0-0-1');
+      expect(icon?.hasAttribute('data-readable-source-path')).toBe(false);
+      expect(hiddenAncestor?.hasAttribute('data-readable-source-path')).toBe(false);
     } finally {
       Reflect.deleteProperty(globalThis, 'DOMParser');
     }
@@ -227,8 +227,8 @@ describe('buildSrcdoc', () => {
       const parsed = new JSDOM(srcdoc).window.document;
       const roots = parsed.querySelectorAll('section.slide > .bd > svg');
 
-      expect(roots[0]?.getAttribute('data-od-source-path')).toBe('path-0-0-0');
-      expect(roots[1]?.getAttribute('data-od-source-path')).toBe('path-0-0-1');
+      expect(roots[0]?.getAttribute('data-readable-source-path')).toBe('path-0-0-0');
+      expect(roots[1]?.getAttribute('data-readable-source-path')).toBe('path-0-0-1');
     } finally {
       Reflect.deleteProperty(globalThis, 'DOMParser');
     }
@@ -250,11 +250,11 @@ describe('buildSrcdoc', () => {
   });
 
   it('injects the selection bridge for inspect mode and exposes override hooks', () => {
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       inspectBridge: true,
     });
 
-    expect(srcdoc).toContain('data-od-selection-bridge');
+    expect(srcdoc).toContain('data-readable-selection-bridge');
     expect(srcdoc).toContain('var commentEnabled = false;');
     expect(srcdoc).toContain('var inspectEnabled = true;');
     expect(srcdoc).toContain("type: 'readable-studio:inspect-overrides'");
@@ -262,8 +262,8 @@ describe('buildSrcdoc', () => {
     expect(srcdoc).toContain("data.type === 'readable-studio:inspect-set'");
     expect(srcdoc).toContain("data.type === 'readable-studio:inspect-reset'");
     expect(srcdoc).toContain("data.type === 'readable-studio:inspect-extract'");
-    expect(srcdoc).toContain("data-od-inspect-overrides");
-    expect(srcdoc).toContain('html[data-od-inspect-mode]');
+    expect(srcdoc).toContain("data-readable-inspect-overrides");
+    expect(srcdoc).toContain('html[data-readable-inspect-mode]');
   });
 
   it('hydrates inspect overrides from a persisted style block on bridge boot', () => {
@@ -271,12 +271,12 @@ describe('buildSrcdoc', () => {
     // sheet from an empty in-memory map and silently drops every previously
     // saved rule for other elements — Save-to-source would then erase them
     // from the artifact too.
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       inspectBridge: true,
     });
     expect(srcdoc).toContain('function hydrateOverridesFromDom()');
     expect(srcdoc).toContain('hydrateOverridesFromDom();');
-    expect(srcdoc).toContain("document.querySelector('style[data-od-inspect-overrides]')");
+    expect(srcdoc).toContain("document.querySelector('style[data-readable-inspect-overrides]')");
     // After hydration, the bridge must seed the host's overrides state so a
     // Save-to-source before the user has touched any control does not splice
     // an empty CSS body that erases the persisted style block.
@@ -284,23 +284,23 @@ describe('buildSrcdoc', () => {
   });
 
   it('reflects the requested initial bridge modes on the documentElement attributes', () => {
-    const commentDoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const commentDoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       commentBridge: true,
     });
-    expect(commentDoc).toContain("document.documentElement.toggleAttribute('data-od-comment-mode', true)");
+    expect(commentDoc).toContain("document.documentElement.toggleAttribute('data-readable-comment-mode', true)");
 
-    const inspectDoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const inspectDoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       inspectBridge: true,
     });
-    expect(inspectDoc).toContain("document.documentElement.toggleAttribute('data-od-inspect-mode', true)");
+    expect(inspectDoc).toContain("document.documentElement.toggleAttribute('data-readable-inspect-mode', true)");
   });
 
   it('omits the selection bridge entirely when neither comment nor inspect mode is on', () => {
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {});
-    expect(srcdoc).not.toContain('data-od-selection-bridge');
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {});
+    expect(srcdoc).not.toContain('data-readable-selection-bridge');
   });
 
-  // Regression for nexu-io/open-design#362: the bridge must accept an
+  // Regression for nexu-io/readable-studio#362: the bridge must accept an
   // readable-studio:inspect-replay message that replaces its in-memory override map
   // with the host's authoritative set. Without this, toggling Inspect
   // off/on or switching to Comment mode reloads the iframe from
@@ -308,7 +308,7 @@ describe('buildSrcdoc', () => {
   // preview and persisted state out of sync — saveInspectToSource()
   // could then commit CSS the user is no longer seeing.
   it('accepts readable-studio:inspect-replay to rehydrate from the host map after a srcdoc rebuild', () => {
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       inspectBridge: true,
     });
     expect(srcdoc).toContain("data.type === 'readable-studio:inspect-replay'");
@@ -327,7 +327,7 @@ describe('buildSrcdoc', () => {
   });
 
   it('hardens inspect overrides with a prop allow-list, value sanitizer, and trusted selector', () => {
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       inspectBridge: true,
     });
 
@@ -347,14 +347,14 @@ describe('buildSrcdoc', () => {
     // Selector is recomputed from elementId, not echoed back from the
     // inbound message — defends against a forged selector breaking out
     // of the override <style> block. The inbound selector is still
-    // inspected to pick the attribute kind (data-od-id vs
+    // inspected to pick the attribute kind (data-readable-id vs
     // data-screen-label) the user clicked, so an artifact that carries
     // both attributes on different nodes with the same id tunes the
     // node the host serializer keys off, not whichever attribute
     // happens to come first in safeSelectorFor's fallback order.
     expect(srcdoc).toContain('function safeSelectorFor(elementId, hint)');
     expect(srcdoc).toContain('var safeSelector = safeSelectorFor(elementId, selector)');
-    expect(srcdoc).toContain("hint.indexOf('[data-od-id=') === 0");
+    expect(srcdoc).toContain("hint.indexOf('[data-readable-id=') === 0");
     expect(srcdoc).toContain("hint.indexOf('[data-screen-label=') === 0");
   });
 
@@ -367,33 +367,33 @@ describe('buildSrcdoc', () => {
     );
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    expect(srcdoc).toContain('data-od-source-path="path-0"');
-    expect(srcdoc).toContain('data-od-source-path="path-0-0"');
-    expect(srcdoc).not.toContain('<script data-od-source-path=');
-    expect(srcdoc.indexOf('data-od-source-path="path-0"')).toBeLessThan(srcdoc.indexOf('document.body.prepend'));
+    expect(srcdoc).toContain('data-readable-source-path="path-0"');
+    expect(srcdoc).toContain('data-readable-source-path="path-0-0"');
+    expect(srcdoc).not.toContain('<script data-readable-source-path=');
+    expect(srcdoc.indexOf('data-readable-source-path="path-0"')).toBeLessThan(srcdoc.indexOf('document.body.prepend'));
   });
 
   it('injects only the manual edit bridge when edit mode is enabled without picker bridges', () => {
     const dom = new JSDOM('');
     globalThis.DOMParser = dom.window.DOMParser;
-    const srcdoc = buildSrcdoc('<main data-od-id="hero">Hero</main>', {
+    const srcdoc = buildSrcdoc('<main data-readable-id="hero">Hero</main>', {
       editBridge: true,
     });
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    expect(srcdoc).toContain('data-od-source-path=');
-    expect(srcdoc).toContain('data-od-edit-bridge');
-    expect(srcdoc).not.toContain('data-od-selection-bridge');
+    expect(srcdoc).toContain('data-readable-source-path=');
+    expect(srcdoc).toContain('data-readable-edit-bridge');
+    expect(srcdoc).not.toContain('data-readable-selection-bridge');
     expect(srcdoc).not.toContain("type: 'readable-studio:comment-target'");
     expect(srcdoc).not.toContain("type: 'readable-studio:inspect-overrides'");
-    expect(srcdoc).not.toContain('html[data-od-comment-mode] body iframe');
+    expect(srcdoc).not.toContain('html[data-readable-comment-mode] body iframe');
   });
 
-  // Regression for nexu-io/open-design#892: imported designs (e.g. Claude
-  // Design ZIP) may not carry data-od-id annotations. The selection bridge
+  // Regression for nexu-io/readable-studio#892: imported designs (e.g. Claude
+  // Design ZIP) may not carry data-readable-id annotations. The selection bridge
   // depends on these attributes to identify clickable targets, so we
   // auto-annotate structural elements when they are missing.
-  it('auto-annotates imported HTML that lacks data-od-id or data-screen-label', () => {
+  it('auto-annotates imported HTML that lacks data-readable-id or data-screen-label', () => {
     const dom = new JSDOM('');
     globalThis.DOMParser = dom.window.DOMParser;
     const srcdoc = buildSrcdoc(
@@ -402,27 +402,27 @@ describe('buildSrcdoc', () => {
     );
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    // Structural elements get path-based data-od-id
-    expect(srcdoc).toContain('data-od-id="');
+    // Structural elements get path-based data-readable-id
+    expect(srcdoc).toContain('data-readable-id="');
     // Script / style elements are skipped
-    expect(srcdoc).not.toContain('<script data-od-id=');
+    expect(srcdoc).not.toContain('<script data-readable-id=');
   });
 
-  it('does not overwrite existing data-od-id or data-screen-label annotations', () => {
+  it('does not overwrite existing data-readable-id or data-screen-label annotations', () => {
     const dom = new JSDOM('');
     globalThis.DOMParser = dom.window.DOMParser;
     const srcdoc = buildSrcdoc(
-      '<section data-od-id="hero">Hero</section><div data-screen-label="cta">CTA</div>',
+      '<section data-readable-id="hero">Hero</section><div data-screen-label="cta">CTA</div>',
       { commentBridge: true },
     );
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
     // Existing annotations must be preserved intact on their elements.
-    expect(srcdoc).toContain('<section data-od-id="hero">');
+    expect(srcdoc).toContain('<section data-readable-id="hero">');
     expect(srcdoc).toContain('<div data-screen-label="cta">');
     // The div already has data-screen-label, so it must not get a fallback
-    // data-od-id injected by auto-annotation.
-    expect(srcdoc).not.toContain('<div data-od-id=');
+    // data-readable-id injected by auto-annotation.
+    expect(srcdoc).not.toContain('<div data-readable-id=');
   });
 
   it('auto-annotates direct-child divs with class or id under semantic containers', () => {
@@ -434,9 +434,9 @@ describe('buildSrcdoc', () => {
     );
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    // Direct-child divs under section get data-od-id
-    expect(srcdoc).toContain('<div class="wrapper" data-od-id=');
-    expect(srcdoc).toContain('<div id="named" data-od-id=');
+    // Direct-child divs under section get data-readable-id
+    expect(srcdoc).toContain('<div class="wrapper" data-readable-id=');
+    expect(srcdoc).toContain('<div id="named" data-readable-id=');
   });
 
   it('skips deeply nested divs to avoid layout-noise in the selection bridge', () => {
@@ -449,9 +449,9 @@ describe('buildSrcdoc', () => {
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
     // The outer div is a direct child of section, so it gets annotated
-    expect(srcdoc).toContain('<div class="outer" data-od-id=');
+    expect(srcdoc).toContain('<div class="outer" data-readable-id=');
     // The inner div is nested two levels deep; it must NOT get annotated
-    expect(srcdoc).not.toContain('<div class="inner" data-od-id=');
+    expect(srcdoc).not.toContain('<div class="inner" data-readable-id=');
   });
 
   it('auto-annotates even when no bridge flags are set (always-on for persistence)', () => {
@@ -464,10 +464,10 @@ describe('buildSrcdoc', () => {
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
     // Without commentBridge or inspectBridge, annotation still runs so that
-    // saved inspect tweaks (which reference data-od-id selectors) survive
+    // saved inspect tweaks (which reference data-readable-id selectors) survive
     // when the user later leaves inspect mode.
-    expect(srcdoc).toContain('<article data-od-id=');
-    expect(srcdoc).toContain('<h1 data-od-id=');
+    expect(srcdoc).toContain('<article data-readable-id=');
+    expect(srcdoc).toContain('<h1 data-readable-id=');
   });
 
   it('skips iframe, object, and embed tags from auto-annotation even when they have id', () => {
@@ -479,10 +479,10 @@ describe('buildSrcdoc', () => {
     );
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
-    expect(srcdoc).not.toContain('<iframe data-od-id=');
-    expect(srcdoc).not.toContain('<object data-od-id=');
-    expect(srcdoc).not.toContain('<embed data-od-id=');
-    expect(srcdoc).not.toContain('<iframe id="framed" data-od-id=');
+    expect(srcdoc).not.toContain('<iframe data-readable-id=');
+    expect(srcdoc).not.toContain('<object data-readable-id=');
+    expect(srcdoc).not.toContain('<embed data-readable-id=');
+    expect(srcdoc).not.toContain('<iframe id="framed" data-readable-id=');
   });
 
   it('annotates div children of elements with id', () => {
@@ -495,9 +495,9 @@ describe('buildSrcdoc', () => {
     Reflect.deleteProperty(globalThis, 'DOMParser');
 
     // The wrapper div itself is matched by [id] and gets annotated
-    expect(srcdoc).toContain('<div id="wrapper" data-od-id=');
+    expect(srcdoc).toContain('<div id="wrapper" data-readable-id=');
     // Its direct-child divs are matched by [id] > div[class] / [id] > div[id]
-    expect(srcdoc).toContain('<div class="content" data-od-id=');
-    expect(srcdoc).toContain('<div id="named" data-od-id=');
+    expect(srcdoc).toContain('<div class="content" data-readable-id=');
+    expect(srcdoc).toContain('<div id="named" data-readable-id=');
   });
 });

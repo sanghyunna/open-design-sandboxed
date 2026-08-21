@@ -133,7 +133,7 @@ describe('AssistantMessage agent rollback banner', () => {
     expect(onAgentRollbackConfirm).toHaveBeenCalledTimes(1);
     expect(onAgentRollbackConfirm).toHaveBeenCalledWith(event, true, expect.any(Function));
     expect(screen.getByRole('status')).toBeTruthy();
-    expect(window.localStorage.getItem('od:agent-rollback-dismissed:request-1')).toBeNull();
+    expect(window.localStorage.getItem('readable:agent-rollback-dismissed:request-1')).toBeNull();
 
     // Canceling or a failed restore does not invoke the completion callback, so
     // Accept remains available for another attempt.
@@ -145,7 +145,7 @@ describe('AssistantMessage agent rollback banner', () => {
     const dismissAfterSuccess = onAgentRollbackConfirm.mock.calls[1]?.[2] as (() => void) | undefined;
     act(() => dismissAfterSuccess?.());
     expect(screen.queryByRole('status')).toBeNull();
-    expect(window.localStorage.getItem('od:agent-rollback-dismissed:request-1')).toBe('1');
+    expect(window.localStorage.getItem('readable:agent-rollback-dismissed:request-1')).toBe('1');
   });
 
   it('disables execution after the opaque request expires', () => {

@@ -29,7 +29,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   const { validateProjectDesignSystemId } = ctx.validation;
   const rejectSandboxFolderImport = () =>
     isSandboxModeEnabled(process.env)
-      ? 'folder imports are disabled when OD_SANDBOX_MODE is enabled'
+      ? 'folder imports are disabled when READABLE_SANDBOX_MODE is enabled'
       : null;
 
   app.post(
@@ -93,7 +93,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   );
 
   // Import an existing local folder as a project. The user picks a folder
-  // and OD works inside it directly: every write goes to metadata.baseDir.
+  // and Readable Studio works inside it directly: every write goes to metadata.baseDir.
   // No copy, no shadow tree — the user owns the workspace and is
   // responsible for their own version control (git, time machine, etc.),
   // mirroring how Cursor / Claude Code / Aider behave.

@@ -6,7 +6,7 @@ import { __forTestReadProjectPluginManifest } from '../src/server.js';
 
 describe('readProjectPluginManifest', () => {
   async function withManifest(name: string, fn: (folder: string) => Promise<void>) {
-    const folder = await mkdtemp(path.join(tmpdir(), 'od-plugin-manifest-'));
+    const folder = await mkdtemp(path.join(tmpdir(), 'readable-plugin-manifest-'));
     try {
       await writeFile(
         path.join(folder, 'readable-studio.json'),

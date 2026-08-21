@@ -111,7 +111,7 @@ Secondary artifact exports remain integrated:
 | --- | --- |
 | Portable app | `<exeDir>\ReadableStudioData\namespaces\<namespace>\...` (daemon data is in `data\`) |
 | Source checkout | `<repo>\.readable-studio\...` |
-| Explicit override | absolute directory in `OD_DATA_DIR` |
+| Explicit override | absolute directory in `READABLE_DATA_DIR` |
 | Development control-plane state | `<repo>\.tmp\tools-dev\<namespace>\...` |
 | Portable build/control-plane state | `<repo>\.tmp\tools-pack\...` |
 

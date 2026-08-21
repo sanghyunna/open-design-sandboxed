@@ -4,7 +4,7 @@ import type { RuntimeDescriptor, SidecarStamp } from "@readable-studio/sidecar-p
 
 import type { PackagedNamespacePaths } from "./paths.js";
 
-const DESKTOP_LOG_ECHO_ENV = "OD_DESKTOP_LOG_ECHO";
+const DESKTOP_LOG_ECHO_ENV = "READABLE_DESKTOP_LOG_ECHO";
 
 type LogLevel = "error" | "info" | "warn";
 

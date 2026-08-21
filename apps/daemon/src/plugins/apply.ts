@@ -106,7 +106,7 @@ export function applyPlugin(input: ApplyInput): ApplyComputed {
   // the bundled scenario whose taskKind matches. The registry view
   // carries the lookup; daemon callers populate it from the
   // `installed_plugins` table filtered to source_kind='bundled' AND
-  // od.kind='scenario'. Tests + non-daemon callers can pass an empty
+  // readable.kind='scenario'. Tests + non-daemon callers can pass an empty
   // list, in which case the pipeline stays undefined.
   const pipelineResolution = resolveAppliedPipeline({
     manifest,
@@ -251,7 +251,7 @@ function buildAssetRefs(manifest: PluginManifest): PluginAssetRef[] {
   return out;
 }
 
-// Pick a global skill id from od.context.skills[]. Two ref shapes are
+// Pick a global skill id from readable.context.skills[]. Two ref shapes are
 // accepted:
 //
 //   - `{ ref: 'skill-id' }` — registry id; returned as-is.

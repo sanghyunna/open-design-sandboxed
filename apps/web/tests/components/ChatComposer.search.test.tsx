@@ -293,11 +293,11 @@ describe('ChatComposer /search command', () => {
         target: {
           filePath: 'index.html',
           elementId: 'metric-card',
-          selector: '[data-od-id="metric-card"]',
+          selector: '[data-readable-id="metric-card"]',
           label: 'Metric card',
           text: '3 important emails',
           position: { x: 10, y: 20, width: 300, height: 120 },
-          htmlHint: '<div data-od-id="metric-card">',
+          htmlHint: '<div data-readable-id="metric-card">',
         },
       },
     }));
@@ -312,7 +312,7 @@ describe('ChatComposer /search command', () => {
       screenshotPath: 'uploads/drawing.png',
       markKind: 'click+stroke',
       elementId: 'metric-card',
-      selector: '[data-od-id="metric-card"]',
+      selector: '[data-readable-id="metric-card"]',
       comment: 'make this card clearer',
       intent: expect.stringContaining('blue focus box and red strokes'),
     });
@@ -510,21 +510,21 @@ describe('ChatComposer /search command', () => {
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     const [prompt, attachments, commentAttachments, meta] = onSend.mock.calls[0]!;
     expect(prompt).toContain(
-      'Before answering, your first tool action must be the OD research command for your shell.',
+      'Before answering, your first tool action must be the Readable Studio research command for your shell.',
     );
     expect(prompt).toContain(
-      'POSIX: "$OD_NODE_BIN" "$OD_BIN" research search --query "<search query>" --max-sources 5',
+      'POSIX: "$READABLE_NODE_BIN" "$READABLE_BIN" research search --query "<search query>" --max-sources 5',
     );
     expect(prompt).toContain(
-      'PowerShell: & $env:OD_NODE_BIN $env:OD_BIN research search --query "<search query>" --max-sources 5',
+      'PowerShell: & $env:READABLE_NODE_BIN $env:READABLE_BIN research search --query "<search query>" --max-sources 5',
     );
     expect(prompt).toContain(
-      'cmd.exe: "%OD_NODE_BIN%" "%OD_BIN%" research search --query "<search query>" --max-sources 5',
+      'cmd.exe: "%READABLE_NODE_BIN%" "%READABLE_BIN%" research search --query "<search query>" --max-sources 5',
     );
     expect(prompt).toContain('Canonical query:');
     expect(prompt).toContain('EV market 2025 trends');
     expect(prompt).toContain(
-      'If the OD command fails because Tavily is not configured or unavailable',
+      'If the Readable Studio command fails because Tavily is not configured or unavailable',
     );
     expect(prompt).toContain(
       'use your own search capability as fallback and label the fallback clearly',
@@ -540,7 +540,7 @@ describe('ChatComposer /search command', () => {
     });
   });
 
-  it('keeps shell metacharacters out of the concrete OD command examples', async () => {
+  it('keeps shell metacharacters out of the concrete Readable Studio command examples', async () => {
     const onSend = vi.fn();
 
     render(
@@ -562,7 +562,7 @@ describe('ChatComposer /search command', () => {
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     const [prompt, , , meta] = onSend.mock.calls[0]!;
     expect(prompt).toContain(
-      'POSIX: "$OD_NODE_BIN" "$OD_BIN" research search --query "<search query>" --max-sources 5',
+      'POSIX: "$READABLE_NODE_BIN" "$READABLE_BIN" research search --query "<search query>" --max-sources 5',
     );
     expect(prompt).toContain('Canonical query:');
     expect(prompt).toContain(query);

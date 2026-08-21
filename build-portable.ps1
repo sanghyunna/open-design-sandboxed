@@ -26,14 +26,17 @@
 [CmdletBinding()]
 param(
     [string]$Namespace = "rg",
-    [string]$DropDir = "D:\dev\open_design_port",
+    [string]$DropDir,
     [string]$PortableZipCompression,
     [string]$AppVersion
 )
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = $PSScriptRoot
-$FallbackToolchainRoot = "D:\dev\open_design_port\.tools\node24"
+$FallbackToolchainRoot = Join-Path $ProjectRoot ".tools\node24"
+if ([string]::IsNullOrWhiteSpace($DropDir)) {
+    $DropDir = Split-Path -Parent $ProjectRoot
+}
 
 if ([string]::IsNullOrWhiteSpace($Namespace)) {
     throw "Namespace must not be empty."
@@ -50,14 +53,14 @@ $ArtifactName = "Readable Studio-$NamespaceToken-portable.zip"
 $ExpectedZip = Join-Path $ProjectRoot ".tmp\tools-pack\out\win\namespaces\$Namespace\builder\$ArtifactName"
 
 if ([string]::IsNullOrWhiteSpace($PortableZipCompression)) {
-    $PortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
+    $PortableZipCompression = $env:READABLE_PORTABLE_ZIP_COMPRESSION
 }
-$previousPortableZipCompression = $env:OD_PORTABLE_ZIP_COMPRESSION
+$previousPortableZipCompression = $env:READABLE_PORTABLE_ZIP_COMPRESSION
 if (-not [string]::IsNullOrWhiteSpace($PortableZipCompression)) {
     if ($PortableZipCompression -notmatch '^\d+$' -or [int]$PortableZipCompression -lt 0 -or [int]$PortableZipCompression -gt 9) {
         throw "Portable ZIP compression must be an integer from 0 to 9, but got '$PortableZipCompression'."
     }
-    $env:OD_PORTABLE_ZIP_COMPRESSION = $PortableZipCompression
+    $env:READABLE_PORTABLE_ZIP_COMPRESSION = $PortableZipCompression
 }
 
 $NodeCommand = $null
@@ -111,9 +114,9 @@ try {
 } finally {
     $ErrorActionPreference = $previousErrorActionPreference
     if ($null -eq $previousPortableZipCompression) {
-        Remove-Item Env:OD_PORTABLE_ZIP_COMPRESSION -ErrorAction SilentlyContinue
+        Remove-Item Env:READABLE_PORTABLE_ZIP_COMPRESSION -ErrorAction SilentlyContinue
     } else {
-        $env:OD_PORTABLE_ZIP_COMPRESSION = $previousPortableZipCompression
+        $env:READABLE_PORTABLE_ZIP_COMPRESSION = $previousPortableZipCompression
     }
     Pop-Location
     $sw.Stop()

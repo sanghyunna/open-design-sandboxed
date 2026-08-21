@@ -32,7 +32,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
   const projectId = 'proj-export-inline-test';
 
   const cssBody = 'body{color:#0a0}';
-  const jsBody = 'window.OD_EXPORT_OK = 42;';
+  const jsBody = 'window.READABLE_EXPORT_OK = 42;';
   const nestedJsBody = 'export const N = 7;';
 
   beforeAll(async () => {
@@ -55,7 +55,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     });
     expect(createProject.status).toBe(200);
 
-    projectsRoot = path.join(process.env.OD_DATA_DIR!, 'projects');
+    projectsRoot = path.join(process.env.READABLE_DATA_DIR!, 'projects');
     const dir = path.join(projectsRoot, projectId);
     const pages = path.join(dir, 'pages');
     const shared = path.join(dir, 'shared');
@@ -258,7 +258,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(body).toContain(jsBody);
     expect(body).not.toContain('href="app.css"');
     expect(body).not.toContain('src="app.js"');
-    expect(body).toContain('<style data-od-bundled-from="app.css">');
+    expect(body).toContain('<style data-readable-bundled-from="app.css">');
   });
 
   it('exported standalone deck advances one slide per physical arrow key', async () => {
@@ -406,7 +406,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(body).not.toContain('/src/main.tsx');
     expect(body).not.toContain('/assets/app.js');
     expect(body).not.toContain('/assets/app.css');
-    expect(body).toContain('data-od-bundled-from="assets/app.css"');
+    expect(body).toContain('data-readable-bundled-from="assets/app.css"');
 
     const post = await fetch(`${baseUrl}/api/exports/standalone-html`, {
       method: 'POST',
@@ -503,7 +503,7 @@ describe('GET /api/projects/:id/export/*?inline=1 route', () => {
     expect(body).not.toContain('/src/main.tsx');
     expect(body).not.toContain('/assets/nested.js');
     expect(body).not.toContain('/assets/nested.css');
-    expect(body).toContain('data-od-bundled-from="assets/nested.css"');
+    expect(body).toContain('data-readable-bundled-from="assets/nested.css"');
   });
 
   it('sends Content-Security-Policy: sandbox allow-scripts to block daemon-origin privilege escalation', async () => {

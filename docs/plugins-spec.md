@@ -45,7 +45,7 @@ The canonical JSON schema is [`docs/schemas/readable-studio.plugin.v1.json`](sch
       { "path": "./SKILL.md" }
     ]
   },
-  "od": {
+  "readable": {
     "kind": "scenario",
     "taskKind": "new-generation",
     "mode": "prototype",
@@ -76,23 +76,23 @@ The checked-in schema and parser are authoritative when this summary differs.
 
 ## Readable Studio extension fields
 
-The `od` object describes how the local product applies the plugin.
+The `readable` object describes how the local product applies the plugin.
 
 ### Kind and task
 
-`od.kind` identifies the plugin role, such as a skill, scenario, atom, or bundle. `od.taskKind` identifies the workflow family. These values drive filtering and defaults; they do not grant capabilities.
+`readable.kind` identifies the plugin role, such as a skill, scenario, atom, or bundle. `readable.taskKind` identifies the workflow family. These values drive filtering and defaults; they do not grant capabilities.
 
 ### Mode
 
-`od.mode` describes the intended artifact surface. It helps the project and plugin pickers choose compatible workflows. The artifact manifest, not the plugin mode alone, determines available exports.
+`readable.mode` describes the intended artifact surface. It helps the project and plugin pickers choose compatible workflows. The artifact manifest, not the plugin mode alone, determines available exports.
 
 ### Inputs
 
-`od.inputs[]` declares typed apply-time values. Input names are stable machine keys; titles and descriptions are display metadata. Required values must be supplied before a run starts. The resolved input map is frozen into the applied snapshot so replay and audit use the same values.
+`readable.inputs[]` declares typed apply-time values. Input names are stable machine keys; titles and descriptions are display metadata. Required values must be supplied before a run starts. The resolved input map is frozen into the applied snapshot so replay and audit use the same values.
 
 ### Capabilities
 
-`od.capabilities[]` declares the minimum access the plugin needs. A restricted install receives only the default prompt-injection capability until the user grants more. Capability checks occur when the plugin is applied and again at the operation boundary; manifest text is not authorization by itself.
+`readable.capabilities[]` declares the minimum access the plugin needs. A restricted install receives only the default prompt-injection capability until the user grants more. Capability checks occur when the plugin is applied and again at the operation boundary; manifest text is not authorization by itself.
 
 Examples include prompt injection, constrained filesystem access, and named MCP access. The schema and runtime capability registry define the accepted strings.
 

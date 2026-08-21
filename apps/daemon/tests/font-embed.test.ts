@@ -55,11 +55,11 @@ describe('embedSystemFonts', () => {
       name.toLowerCase() === 'segoe ui' ? fam('Segoe UI', 'C:/f/segoeui.ttf') : undefined;
     const res = await embedSystemFonts(html, { resolveFamily, readFontBytes });
     expect(res.embedded).toEqual(['Segoe UI']);
-    expect(res.html).toContain('data-od-embedded-fonts');
+    expect(res.html).toContain('data-readable-embedded-fonts');
     expect(res.html).toContain("font-family:'Segoe UI'");
     expect(res.html).toContain(`base64,${bytes.toString('base64')}`);
     // Injected before </head>.
-    expect(res.html.indexOf('data-od-embedded-fonts')).toBeLessThan(res.html.indexOf('</head>'));
+    expect(res.html.indexOf('data-readable-embedded-fonts')).toBeLessThan(res.html.indexOf('</head>'));
   });
 
   it('never embeds web-safe/generic families', async () => {
@@ -101,7 +101,7 @@ describe('embedSystemFonts', () => {
       name.toLowerCase() === evil.toLowerCase() ? fam(evil, 'C:/f/evil.ttf') : undefined;
     const res = await embedSystemFonts(html, { resolveFamily, readFontBytes });
     expect(res.embedded).toEqual([evil]); // still embeds — closed loop preserved
-    const start = res.html.indexOf('<style data-od-embedded-fonts>');
+    const start = res.html.indexOf('<style data-readable-embedded-fonts>');
     const block = res.html.slice(start, res.html.indexOf('</style>', start) + '</style>'.length);
     // The injected element must contain exactly ONE </style> (its own real close) and no <script>.
     expect(block.match(/<\/style>/gi)?.length).toBe(1);

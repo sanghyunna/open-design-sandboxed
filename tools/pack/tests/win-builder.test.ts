@@ -64,7 +64,7 @@ describe("Windows portable builder update-feed absence", () => {
 
 describe("materializeCachedUnpackedForPortableZip", () => {
   it("overwrites cached packaged config and app package version", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-builder-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-builder-"));
     const cachedUnpackedRoot = join(root, "cache", "builder", "win-unpacked");
     const paths = createPaths(root);
 

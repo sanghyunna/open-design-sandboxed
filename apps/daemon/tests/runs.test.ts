@@ -464,13 +464,13 @@ class FakeChildProcess extends EventEmitter {
 // <runsLogDir>/<runId>/events.jsonl. The path is surfaced on statusBody
 // as `eventsLogPath`, which is what the MCP `get_run` tool returns to
 // the external coding agent — so Codex / Cursor / Zed can `tail` the
-// file in their own shell during a long-running OD generation, instead
+// file in their own shell during a long-running Readable Studio generation, instead
 // of cancelling the run because polling shows nothing changing.
 describe('run event log persistence', () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-runs-log-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-runs-log-test-'));
   });
   afterEach(() => {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort */ }

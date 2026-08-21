@@ -1,4 +1,4 @@
-// Plan §3.K3 / spec §10.3.5 — od.genui.surfaces[].component manifest field.
+// Plan §3.K3 / spec §10.3.5 — readable.genui.surfaces[].component manifest field.
 //
 // Two contracts:
 //   1. The Zod schema in @readable-studio/contracts accepts the new

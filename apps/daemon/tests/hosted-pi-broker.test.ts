@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 function fixture(): { root: string; project: string; binding: HostedPiBinding } {
-  const root = mkdtempSync(join(tmpdir(), 'od-hosted-pi-broker-'));
+  const root = mkdtempSync(join(tmpdir(), 'readable-hosted-pi-broker-'));
   roots.push(root);
   const project = join(root, 'project');
   mkdirSync(project, { recursive: true });

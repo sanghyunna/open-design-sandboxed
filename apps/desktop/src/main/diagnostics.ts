@@ -148,7 +148,7 @@ export async function exportDiagnosticsToFile(
 
   try {
     // The packaged daemon writes its runtime data at `<namespaceRoot>/data`
-    // (OD_DATA_DIR), with per-run event logs under `data/runs` and the
+    // (READABLE_DATA_DIR), with per-run event logs under `data/runs` and the
     // AMR-managed OpenCode home under `data/amr`. Derive both so this export
     // — the one users actually trigger from the desktop UI — carries the same
     // run/agent diagnostics the daemon HTTP export does, instead of only the

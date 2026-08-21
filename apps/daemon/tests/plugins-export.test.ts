@@ -1,4 +1,4 @@
-// Phase 4 / spec §14 — `od plugin export` unit test.
+// Phase 4 / spec §14 — `readable plugin export` unit test.
 //
 // Exercises the three export targets directly through `exportPlugin()`
 // against an in-memory daemon DB. The HTTP route mounted in
@@ -18,7 +18,7 @@ let db: Database.Database;
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'od-export-'));
+  tmpDir = await mkdtemp(path.join(os.tmpdir(), 'readable-export-'));
   db = new Database(':memory:');
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -61,7 +61,7 @@ function persistSampleSnapshot() {
 }
 
 describe('exportPlugin', () => {
-  it('target=od writes SKILL.md + readable-studio.json + README.md', async () => {
+  it('target=readable writes SKILL.md + readable-studio.json + README.md', async () => {
     const snap = persistSampleSnapshot();
     const result = await exportPlugin({ db, snapshotId: snap.snapshotId, target: 'readable-studio', outDir: tmpDir });
     expect(result.snapshotId).toBe(snap.snapshotId);

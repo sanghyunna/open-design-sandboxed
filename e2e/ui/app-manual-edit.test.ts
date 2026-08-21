@@ -6,7 +6,7 @@ import type { Locator, Page, Response } from '@playwright/test';
 import { T } from '@/timeouts';
 import { issue41SelectionPaintHtml, magneticEdgeAlignmentHtml, semanticSvgDeckVisualHtml } from '../resources/manual-edit.ts';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 
 test.describe.configure({ timeout: 30_000 });
@@ -75,7 +75,7 @@ test('[P0] manual edit left inspector previews and persists page and selected el
   // With nothing selected the inspector shows the Page section, and the docked
   // toolbars no longer render above the preview canvas.
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   const inspector = page.locator('.manual-edit-left-inspector');
   await expect(inspector).toBeVisible();
   await expect(inspectorSection(page, 'Page')).toBeVisible();
@@ -92,7 +92,7 @@ test('[P0] manual edit left inspector previews and persists page and selected el
 
   // Selecting a text element swaps Page controls for always-visible quick
   // formatting plus folded precision controls.
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Text');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="hero-title"]', 'Text');
   await expect(inspectorSurface(page, 'Shape')).toBeVisible();
   await expect(inspectorSection(page, 'Page')).toHaveCount(0);
 
@@ -125,7 +125,7 @@ test('[P0] manual edit left inspector previews and persists page and selected el
     // Page edits (body) flushed when the element selection took over.
     'background-color: rgb(238, 242, 255)',
   ]);
-  await expectFileSourceExcludes(page, projectId, 'manual-edit.html', ['data-od-edit-selected']);
+  await expectFileSourceExcludes(page, projectId, 'manual-edit.html', ['data-readable-edit-selected']);
   await expect(page.locator('.manual-edit-error')).toHaveCount(0);
 
   await expect(page.getByRole('button', { name: /^Share$/ })).toBeVisible();
@@ -140,11 +140,11 @@ test('[P0] manual edit direct text typing persists text-only elements', async ({
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const textOnlyDiv = frame.locator('[data-od-id="pair-a"]');
+  const textOnlyDiv = frame.locator('[data-readable-id="pair-a"]');
   await expect(textOnlyDiv).toHaveText('Left panel');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await textOnlyDiv.click();
   // Text-only elements open a formatting-capable (rich) contenteditable so
   // B/I/U can emit markup; only links/non-text leaves get plaintext-only.
@@ -197,9 +197,9 @@ test('[P0] manual edit selects and persists semantic SVG visualization roots', a
   const diagramText = diagram.locator('text');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await diagramText.click();
-  await expect(frame.locator('svg[role="img"][aria-label="Diagram"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('svg[role="img"][aria-label="Diagram"][data-readable-edit-selected="true"]')).toHaveCount(1);
   await expect(diagram).not.toHaveAttribute('contenteditable');
   await expect(inspectorSurface(page, 'Shape')).toBeVisible();
 
@@ -216,7 +216,7 @@ test('[P0] manual edit selects and persists semantic SVG visualization roots', a
     if (!resp.ok()) return '';
     const source = await resp.text();
     return source.match(/<svg\b[^>]*aria-label="Diagram"[^>]*>/)?.[0] ?? '';
-  }).not.toMatch(/data-od-(?:source-path|runtime-id|edit-selected)/);
+  }).not.toMatch(/data-readable-(?:source-path|runtime-id|edit-selected)/);
 });
 
 test('[P1] issue 33 manual edit history preserves preview identity and focus', async ({ page }) => {
@@ -227,11 +227,11 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const textOnlyDiv = frame.locator('[data-od-id="pair-a"]');
+  const textOnlyDiv = frame.locator('[data-readable-id="pair-a"]');
   await expect(textOnlyDiv).toHaveText('Left panel');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
 
   const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
   const armFrameLoad = async () => {
@@ -267,7 +267,7 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
         return false;
       }
     }).toBe(false);
-    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(frame.locator('[data-readable-id="pair-a"][data-readable-edit-selected="true"]')).toHaveCount(1);
     await expect(moveSurface).toBeVisible();
   };
 
@@ -283,8 +283,8 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
   const expectHistoryState = async (text: string, excludedText: string[]) => {
     await expectFileSource(page, projectId, 'manual-edit.html', [text]);
     await expectFileSourceExcludes(page, projectId, 'manual-edit.html', excludedText);
-    await expect(frame.locator('[data-od-id="pair-a"]')).toHaveText(text);
-    await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+    await expect(frame.locator('[data-readable-id="pair-a"]')).toHaveText(text);
+    await expect(frame.locator('[data-readable-id="pair-a"][data-readable-edit-selected="true"]')).toHaveCount(1);
     await expect(page.getByRole('group', { name: 'Move element' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Resize bottom-right corner' })).toBeVisible();
     await expect.poll(() => originalFrame.evaluate((node) => node.isConnected)).toBe(true);
@@ -315,7 +315,7 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
       if (!resp.ok()) return '';
       return resp.text();
     })
-    .toMatch(/data-od-id="pair-a"[^>]*style="[^"]*translate:\s*1px(?:\s+0px)?/);
+    .toMatch(/data-readable-id="pair-a"[^>]*style="[^"]*translate:\s*1px(?:\s+0px)?/);
   await expect
     .poll(async () => {
       const afterNudge = await textOnlyDiv.boundingBox();
@@ -323,7 +323,7 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
     })
     .toBe(true);
   await expect.poll(() => page.evaluate((expected) => document.activeElement === expected, originalFrame)).toBe(true);
-  await expect(frame.locator('[data-od-id="pair-a"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="pair-a"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const resizeHandle = page.getByRole('button', { name: 'Resize bottom-right corner' });
   const resizeBox = await resizeHandle.boundingBox();
@@ -339,7 +339,7 @@ test('[P1] issue 33 manual edit history preserves preview identity and focus', a
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return '';
       const source = await resp.text();
-      return source.match(/data-od-id="pair-a"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      return source.match(/data-readable-id="pair-a"[^>]*style="([^"]*)"/)?.[1] ?? '';
     })
     .toMatch(/width:\s*\d+px;.*height:\s*\d+px/);
 });
@@ -356,8 +356,8 @@ test('[P0] manual edit mode preserves preview actions after style edits', async 
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Text');
-  const fontSizeInput = await selectStyleRowInput(page, frame, '[data-od-id="hero-title"]', 'Text', 'Font size');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="hero-title"]', 'Text');
+  const fontSizeInput = await selectStyleRowInput(page, frame, '[data-readable-id="hero-title"]', 'Text', 'Font size');
   await fontSizeInput.fill('48');
 
   // Exit edit mode to flush the staged style edit to the file.
@@ -384,9 +384,9 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
   await page.getByTestId('manual-edit-mode-toggle').click();
   // The Shape section carries sizing controls; the resize handles overlay the
   // preview element itself, independent of where the controls are docked.
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="hero-title"]', 'Shape');
 
-  const heroTitle = frame.locator('[data-od-id="hero-title"]');
+  const heroTitle = frame.locator('[data-readable-id="hero-title"]');
   const before = await heroTitle.evaluate((el) => {
     const rect = el.getBoundingClientRect();
     return { width: rect.width, height: rect.height };
@@ -412,7 +412,7 @@ test('[P1] manual edit resize handle drag grows selected element and persists wi
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return false;
       const source = await resp.text();
-      const match = source.match(/data-od-id="hero-title"[^>]*style="([^"]*)"/);
+      const match = source.match(/data-readable-id="hero-title"[^>]*style="([^"]*)"/);
       const style = match?.[1];
       if (!style) return false;
       const widthMatch = style.match(/width:\s*(\d+)px/);
@@ -434,10 +434,10 @@ test('[P1] constrained resize explains the applied max-width while preserving th
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const constrainedCopy = frame.locator('[data-od-id="constrained-copy"]');
+  const constrainedCopy = frame.locator('[data-readable-id="constrained-copy"]');
   await expect(constrainedCopy).toBeVisible();
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="constrained-copy"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="constrained-copy"]', 'Shape');
 
   const before = await constrainedCopy.evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -483,7 +483,7 @@ test('[P1] constrained resize explains the applied max-width while preserving th
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return '';
       const source = await resp.text();
-      const inlineStyle = source.match(/data-od-id="constrained-copy"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      const inlineStyle = source.match(/data-readable-id="constrained-copy"[^>]*style="([^"]*)"/)?.[1] ?? '';
       return `${inlineStyle}\n${source.includes('max-width: 30ch')}`;
     })
     .toMatch(new RegExp(`width:\\s*${requestedWidth}px[\\s\\S]*true`));
@@ -506,9 +506,9 @@ test('[P1] constrained resize callout remains readable on an 8px target', async 
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const constrainedCopy = frame.locator('[data-od-id="constrained-copy"]');
+  const constrainedCopy = frame.locator('[data-readable-id="constrained-copy"]');
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="constrained-copy"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="constrained-copy"]', 'Shape');
 
   const westHandle = page.getByRole('button', { name: 'Resize left edge' });
   const handleBox = await westHandle.boundingBox();
@@ -557,7 +557,7 @@ test('[P1] Desktop manual edit iframe follows the live canvas width', async ({ p
 
   const frame = artifactPreviewFrame(page);
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="hero-title"]', 'Shape');
 
   const canvas = page.locator('.manual-edit-canvas');
   const beforeCanvas = await canvas.boundingBox();
@@ -582,7 +582,7 @@ test('[P1] Desktop manual edit iframe follows the live canvas width', async ({ p
     })
     .toBeLessThan(4);
 
-  const heroTitle = frame.locator('[data-od-id="hero-title"]');
+  const heroTitle = frame.locator('[data-readable-id="hero-title"]');
   const eastHandle = page.getByRole('button', { name: 'Resize right edge' });
   await expect
     .poll(async () => {
@@ -606,14 +606,14 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const image = frame.locator('[data-od-id="hero-image"]');
+  const image = frame.locator('[data-readable-id="hero-image"]');
   await expect(image).toBeVisible();
   await page.getByRole('button', { name: '100%' }).click();
   await page.getByRole('menuitem', { name: '50%', exact: true }).click();
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await image.click();
-  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="hero-image"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const before = await image.boundingBox();
   if (!before) throw new Error('image has no bounding box before move');
@@ -643,7 +643,7 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return '';
       const source = await resp.text();
-      return source.match(/data-od-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      return source.match(/data-readable-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
     })
     .toMatch(/translate:\s*128px\s+64px/);
   const moved = await image.boundingBox();
@@ -658,7 +658,7 @@ test('[P1] issue 16 move browser verification', async ({ page }) => {
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return false;
       const source = await resp.text();
-      const style = source.match(/data-od-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      const style = source.match(/data-readable-id="hero-image"[^>]*style="([^"]*)"/)?.[1] ?? '';
       return !/\btranslate:/.test(style);
     })
     .toBe(true);
@@ -680,12 +680,12 @@ test('[P1] issue 48 Ctrl-drag duplicates a source object with stable preview and
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const original = frame.locator('[data-od-id="duplicate-card"]');
+  const original = frame.locator('[data-readable-id="duplicate-card"]');
   await expect(original).toBeVisible();
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await frame.locator('[data-od-id="duplicate-card"]').click({ position: { x: 4, y: 4 } });
+  await frame.locator('[data-readable-id="duplicate-card"]').click({ position: { x: 4, y: 4 } });
   await expect(inspectorSurface(page, 'Shape')).toBeVisible();
-  await expect(frame.locator('[data-od-id="duplicate-card"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="duplicate-card"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
   const moveBox = await moveSurface.boundingBox();
@@ -705,7 +705,7 @@ test('[P1] issue 48 Ctrl-drag duplicates a source object with stable preview and
   }).toBe(true);
 
   await page.keyboard.down('Control');
-  const transient = frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-transient="true"]');
+  const transient = frame.locator('[data-readable-id="duplicate-card-copy"][data-readable-edit-transient="true"]');
   await expect(transient).toHaveCount(1);
   await expect.poll(async () => {
     const current = await original.boundingBox();
@@ -729,7 +729,7 @@ test('[P1] issue 48 Ctrl-drag duplicates a source object with stable preview and
     return response.ok() ? response.text() : '';
   };
   const tagFor = (source: string, id: string) =>
-    source.match(new RegExp(`<div[^>]*data-od-id="${id}"[^>]*>`))?.[0] ?? '';
+    source.match(new RegExp(`<div[^>]*data-readable-id="${id}"[^>]*>`))?.[0] ?? '';
   await expect.poll(async () => {
     const source = await readSource();
     const originalTag = tagFor(source, 'duplicate-card');
@@ -739,19 +739,19 @@ test('[P1] issue 48 Ctrl-drag duplicates a source object with stable preview and
       && !originalTag.includes('translate:')
       && source.includes('href="#card-title-copy"');
   }).toBe(true);
-  await expect(frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="duplicate-card-copy"][data-readable-edit-selected="true"]')).toHaveCount(1);
   const committedCloneTag = tagFor(await readSource(), 'duplicate-card-copy');
 
   await page.keyboard.press('Control+z');
   await expectFileSourceExcludes(page, projectId, 'manual-edit.html', [
-    'data-od-id="duplicate-card-copy"',
+    'data-readable-id="duplicate-card-copy"',
     'id="card-root-copy"',
   ]);
-  await expect(frame.locator('[data-od-id="duplicate-card"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="duplicate-card"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   await page.keyboard.press('Control+Shift+z');
   await expect.poll(async () => tagFor(await readSource(), 'duplicate-card-copy')).toBe(committedCloneTag);
-  await expect(frame.locator('[data-od-id="duplicate-card-copy"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="duplicate-card-copy"][data-readable-edit-selected="true"]')).toHaveCount(1);
 });
 
 test('[P1] issue 34 selects a nested child through the selected parent move surface', async ({ page }) => {
@@ -763,18 +763,18 @@ test('[P1] issue 34 selects a nested child through the selected parent move surf
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const parent = frame.locator('[data-od-id="issue-34-parent"]');
-  const child = frame.locator('[data-od-id="issue-34-child"]');
+  const parent = frame.locator('[data-readable-id="issue-34-parent"]');
+  const child = frame.locator('[data-readable-id="issue-34-child"]');
   await expect(parent).toBeVisible();
   await expect(child).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await child.click();
-  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-readable-edit-selected', 'true');
   await page.keyboard.press('Escape');
   await parent.click({ position: { x: 20, y: 20 } });
-  await expect(parent).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(parent).toHaveAttribute('data-readable-edit-selected', 'true');
   await expect(parent).toHaveAttribute('contenteditable', 'true');
   await page.keyboard.press('Escape');
   await expect(parent).not.toHaveAttribute('contenteditable', 'true');
@@ -791,14 +791,14 @@ test('[P1] issue 34 selects a nested child through the selected parent move surf
   await page.mouse.move(startX + 4, startY + 4);
   await page.mouse.up();
 
-  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-readable-edit-selected', 'true');
   await expect(parent).not.toHaveAttribute('contenteditable', 'true');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
   const response = await page.request.get(`/api/projects/${projectId}/files/${fileName}`);
   expect(response.ok()).toBeTruthy();
   const source = await response.text();
-  const parentStyle = source.match(/data-od-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
+  const parentStyle = source.match(/data-readable-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
   expect(parentStyle).not.toMatch(/\btranslate\s*:/);
 });
 
@@ -811,10 +811,10 @@ test('[P1] issue 34 keeps dragging the selected parent when the drag starts over
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const parent = frame.locator('[data-od-id="issue-34-parent"]');
-  const child = frame.locator('[data-od-id="issue-34-child"]');
+  const parent = frame.locator('[data-readable-id="issue-34-parent"]');
+  const child = frame.locator('[data-readable-id="issue-34-child"]');
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await parent.click({ position: { x: 40, y: 20 } });
   await expect(parent).toHaveAttribute('contenteditable', 'true');
   await page.keyboard.press('Escape');
@@ -832,15 +832,15 @@ test('[P1] issue 34 keeps dragging the selected parent when the drag starts over
   await page.mouse.move(startX + 40, startY + 32);
   await page.mouse.up();
 
-  await expect(parent).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(child).not.toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(parent).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(child).not.toHaveAttribute('data-readable-edit-selected', 'true');
   await expect.poll(async () => (await parent.boundingBox())?.x ?? 0).toBeGreaterThan(parentBefore.x + 30);
 
   await page.getByTestId('manual-edit-mode-toggle').click();
   const response = await page.request.get(`/api/projects/${projectId}/files/${fileName}`);
   expect(response.ok()).toBeTruthy();
   const source = await response.text();
-  const parentStyle = source.match(/data-od-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
+  const parentStyle = source.match(/data-readable-id="issue-34-parent"[^>]*style="([^"]*)"/)?.[1] ?? '';
   expect(parentStyle).toMatch(/\btranslate\s*:\s*40px 32px/);
 });
 
@@ -853,10 +853,10 @@ test('[P1] issue 34 selects a nested child whose center is inside the selected r
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const parent = frame.locator('[data-od-id="issue-34-parent"]');
-  const ringChild = frame.locator('[data-od-id="issue-34-ring-child"]');
+  const parent = frame.locator('[data-readable-id="issue-34-parent"]');
+  const ringChild = frame.locator('[data-readable-id="issue-34-ring-child"]');
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await parent.click({ position: { x: 40, y: 20 } });
   await page.keyboard.press('Escape');
   await expect(
@@ -871,7 +871,7 @@ test('[P1] issue 34 selects a nested child whose center is inside the selected r
   expect(childCenterX - parentBox.x).toBeLessThan(10);
   await page.mouse.click(childCenterX, childCenterY);
 
-  await expect(ringChild).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(ringChild).toHaveAttribute('data-readable-edit-selected', 'true');
 });
 
 test('[P1] issue 39 outlines only the inline-edit nested child', async ({ page }) => {
@@ -883,22 +883,22 @@ test('[P1] issue 39 outlines only the inline-edit nested child', async ({ page }
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const parent = frame.locator('[data-od-id="issue-34-parent"]');
-  const child = frame.locator('[data-od-id="issue-34-child"]');
-  const outlinedTargetIds = () => frame.locator('[data-od-id]').evaluateAll((nodes) => nodes
+  const parent = frame.locator('[data-readable-id="issue-34-parent"]');
+  const child = frame.locator('[data-readable-id="issue-34-child"]');
+  const outlinedTargetIds = () => frame.locator('[data-readable-id]').evaluateAll((nodes) => nodes
     .filter((node) => {
       const style = getComputedStyle(node);
       return style.outlineStyle === 'solid'
         && style.outlineColor === 'rgb(37, 99, 235)'
         && Number.parseFloat(style.outlineWidth) > 0;
     })
-    .map((node) => node.getAttribute('data-od-id')));
+    .map((node) => node.getAttribute('data-readable-id')));
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await child.click();
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(child).toHaveAttribute('data-od-editing', 'true');
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(child).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-readable-editing', 'true');
   await expect.poll(outlinedTargetIds).toEqual(['issue-34-child']);
 });
 
@@ -911,10 +911,10 @@ test('[P1] issue 39 clears the parent outline when the selected move surface beg
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const parent = frame.locator('[data-od-id="issue-34-parent"]');
-  const child = frame.locator('[data-od-id="issue-34-child"]');
+  const parent = frame.locator('[data-readable-id="issue-34-parent"]');
+  const child = frame.locator('[data-readable-id="issue-34-child"]');
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await parent.click({ position: { x: 20, y: 20 } });
   await page.keyboard.press('Escape');
   await expect(
@@ -930,18 +930,18 @@ test('[P1] issue 39 clears the parent outline when the selected move surface beg
   await page.mouse.move(childCenterX + 4, childCenterY + 4);
   await page.mouse.up();
 
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(child).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(child).toHaveAttribute('data-od-editing', 'true');
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(child).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(child).toHaveAttribute('data-readable-editing', 'true');
   await expect
-    .poll(() => frame.locator('[data-od-id]').evaluateAll((nodes) => nodes
+    .poll(() => frame.locator('[data-readable-id]').evaluateAll((nodes) => nodes
       .filter((node) => {
         const style = getComputedStyle(node);
         return style.outlineStyle === 'solid'
           && style.outlineColor === 'rgb(37, 99, 235)'
           && Number.parseFloat(style.outlineWidth) > 0;
       })
-      .map((node) => node.getAttribute('data-od-id'))))
+      .map((node) => node.getAttribute('data-readable-id'))))
     .toEqual(['issue-34-child']);
 });
 
@@ -954,9 +954,9 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const image = frame.locator('[data-od-id="issue-41-image"]');
-  const text = frame.locator('[data-od-id="issue-41-text"]');
-  const authoredText = frame.locator('[data-od-id="issue-41-authored-text"]');
+  const image = frame.locator('[data-readable-id="issue-41-image"]');
+  const text = frame.locator('[data-readable-id="issue-41-text"]');
+  const authoredText = frame.locator('[data-readable-id="issue-41-authored-text"]');
   const moveFrame = page.getByRole('group', { name: 'Move element' });
   const resizeHandles = page.getByRole('button', {
     name: /^Resize (?:top|right|bottom|left)/,
@@ -986,22 +986,22 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
   };
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await image.click();
 
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(image).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(image).not.toHaveAttribute('data-od-editing', 'true');
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(image).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(image).not.toHaveAttribute('data-readable-editing', 'true');
   await expect(moveFrame).toHaveCount(1);
   await expect(resizeHandles).toHaveCount(8);
-  await expect.poll(() => paint('[data-od-id="issue-41-image"]')).toEqual(authoredImagePaint);
+  await expect.poll(() => paint('[data-readable-id="issue-41-image"]')).toEqual(authoredImagePaint);
 
   await text.hover();
-  await expect(image).not.toHaveAttribute('data-od-runtime-hovered', 'true');
-  await expect(text).toHaveAttribute('data-od-runtime-hovered', 'true');
-  await expect.poll(() => paint('[data-od-id="issue-41-image"]')).toEqual(authoredImagePaint);
+  await expect(image).not.toHaveAttribute('data-readable-runtime-hovered', 'true');
+  await expect(text).toHaveAttribute('data-readable-runtime-hovered', 'true');
+  await expect.poll(() => paint('[data-readable-id="issue-41-image"]')).toEqual(authoredImagePaint);
   await expect
-    .poll(() => paint('[data-od-id="issue-41-text"]'))
+    .poll(() => paint('[data-readable-id="issue-41-text"]'))
     .toMatchObject({
       hasBridgeOutline: true,
       outlineStyle: 'solid',
@@ -1013,14 +1013,14 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
     });
 
   await text.click();
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(text).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(text).toHaveAttribute('data-od-editing', 'true');
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(text).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(text).toHaveAttribute('data-readable-editing', 'true');
   await expect(text).toHaveAttribute('contenteditable', 'true');
   await expect.poll(() => text.evaluate((node) => getComputedStyle(node).cursor)).toBe('text');
   await expect(moveFrame).toHaveCount(1);
   await expect(resizeHandles).toHaveCount(8);
-  await expect.poll(() => paint('[data-od-id="issue-41-text"]')).toMatchObject({
+  await expect.poll(() => paint('[data-readable-id="issue-41-text"]')).toMatchObject({
     hasBridgeOutline: true,
     outlineStyle: 'solid',
     outlineColor: 'rgb(37, 99, 235)',
@@ -1031,23 +1031,23 @@ test('[P1] issue 41 keeps bridge paint only for hover and inline editing', async
   });
 
   await page.keyboard.press('Escape');
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(text).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(text).not.toHaveAttribute('data-od-editing', 'true');
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(text).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(text).not.toHaveAttribute('data-readable-editing', 'true');
   await expect(text).not.toHaveAttribute('contenteditable', 'true');
   await expect(moveFrame).toHaveCount(1);
   await expect(resizeHandles).toHaveCount(8);
-  await expect.poll(() => paint('[data-od-id="issue-41-text"]')).toMatchObject({
+  await expect.poll(() => paint('[data-readable-id="issue-41-text"]')).toMatchObject({
     hasBridgeOutline: false,
     boxShadow: 'none',
     hasBridgeGlow: false,
   });
 
   await authoredText.click();
-  await expect(frame.locator('[data-od-edit-selected="true"]')).toHaveCount(1);
-  await expect(authoredText).toHaveAttribute('data-od-edit-selected', 'true');
-  await expect(authoredText).toHaveAttribute('data-od-editing', 'true');
-  await expect.poll(() => paint('[data-od-id="issue-41-authored-text"]')).toEqual({
+  await expect(frame.locator('[data-readable-edit-selected="true"]')).toHaveCount(1);
+  await expect(authoredText).toHaveAttribute('data-readable-edit-selected', 'true');
+  await expect(authoredText).toHaveAttribute('data-readable-editing', 'true');
+  await expect.poll(() => paint('[data-readable-id="issue-41-authored-text"]')).toEqual({
     hasBridgeOutline: false,
     outlineStyle: 'double',
     outlineColor: 'rgb(220, 38, 38)',
@@ -1067,15 +1067,15 @@ test('[P1] manual edit hover follows the actual pointer beneath the selected mov
   await openDesignFile(page, fileName);
 
   const frame = artifactPreviewFrame(page);
-  const top = frame.locator('[data-od-id="hover-top"]');
-  const middle = frame.locator('[data-od-id="hover-middle"]');
-  const child = frame.locator('[data-od-id="hover-child"]');
-  const bottom = frame.locator('[data-od-id="hover-bottom"]');
+  const top = frame.locator('[data-readable-id="hover-top"]');
+  const middle = frame.locator('[data-readable-id="hover-middle"]');
+  const child = frame.locator('[data-readable-id="hover-child"]');
+  const bottom = frame.locator('[data-readable-id="hover-bottom"]');
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
 
   await middle.click({ position: { x: 24, y: 24 } });
-  await expect(middle).toHaveAttribute('data-od-edit-selected', 'true');
+  await expect(middle).toHaveAttribute('data-readable-edit-selected', 'true');
   await expect(page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]')).toBeVisible();
 
   const center = async (locator: Locator) => {
@@ -1083,8 +1083,8 @@ test('[P1] manual edit hover follows the actual pointer beneath the selected mov
     if (!box) throw new Error('hover sync fixture target has no bounding box');
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   };
-  const hoveredIds = () => frame.locator('[data-od-runtime-hovered="true"]').evaluateAll((nodes) =>
-    nodes.map((node) => node.getAttribute('data-od-id')),
+  const hoveredIds = () => frame.locator('[data-readable-runtime-hovered="true"]').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-readable-id')),
   );
 
   const topCenter = await center(top);
@@ -1113,12 +1113,12 @@ test('[P1] issue 43 paints no focus outline on the pressed move surfaces', async
   await openDesignFile(page, 'manual-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  const image = frame.locator('[data-od-id="hero-image"]');
+  const image = frame.locator('[data-readable-id="hero-image"]');
   await expect(image).toBeVisible();
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await image.click();
-  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="hero-image"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const moveFrame = page.getByRole('group', { name: 'Move element' });
   const interior = moveFrame.locator('[data-region="interior"]');
@@ -1191,9 +1191,9 @@ test('[P1] manual edit resize handles track the selected element through layout 
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="hero-title"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="hero-title"]', 'Shape');
 
-  const heroTitle = frame.locator('[data-od-id="hero-title"]');
+  const heroTitle = frame.locator('[data-readable-id="hero-title"]');
   // Reflow the selected element WITHOUT a window resize or scroll — the shape
   // of deck slide navigation / transition settle / media-load reflows. The
   // bridge's layout observer must re-broadcast rects or the host overlays
@@ -1230,9 +1230,9 @@ test('[P1] manual edit resize pins flex-fill items so a width drag holds and han
   await expect(frame.getByRole('heading', { name: 'Original Hero' })).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="pair-b"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="pair-b"]', 'Shape');
 
-  const pairB = frame.locator('[data-od-id="pair-b"]');
+  const pairB = frame.locator('[data-readable-id="pair-b"]');
   const before = await pairB.boundingBox();
   if (!before) throw new Error('flex item has no bounding box');
 
@@ -1274,7 +1274,7 @@ test('[P1] manual edit resize pins flex-fill items so a width drag holds and han
       const resp = await page.request.get(`/api/projects/${projectId}/files/manual-edit.html`);
       if (!resp.ok()) return '';
       const source = await resp.text();
-      const match = source.match(/data-od-id="pair-b"[^>]*style="([^"]*)"/);
+      const match = source.match(/data-readable-id="pair-b"[^>]*style="([^"]*)"/);
       return match?.[1] ?? '';
     })
     // Chromium serializes the `flex: none` shorthand as its longhand
@@ -1301,25 +1301,25 @@ test('[P1] magnetic edge alignment shows a guide while dragging and hides it wit
   await openDesignFile(page, 'magnetic-edit.html');
 
   const frame = artifactPreviewFrame(page);
-  await expect(frame.locator('[data-od-id="snap-source"]')).toBeVisible();
+  await expect(frame.locator('[data-readable-id="snap-source"]')).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="snap-target"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="snap-target"]', 'Shape');
 
   const moveSurface = page.getByRole('group', { name: 'Move element' }).locator('[data-region="interior"]');
   await expect(moveSurface).toBeVisible();
   const box = await moveSurface.boundingBox();
   if (!box) throw new Error('move surface has no bounding box');
 
-  const sourceBox = await frame.locator('[data-od-id="snap-source"]').boundingBox();
-  const targetBox = await frame.locator('[data-od-id="snap-target"]').boundingBox();
+  const sourceBox = await frame.locator('[data-readable-id="snap-source"]').boundingBox();
+  const targetBox = await frame.locator('[data-readable-id="snap-target"]').boundingBox();
   if (!sourceBox || !targetBox) throw new Error('snap box has no bounding box');
 
   const startX = box.x + box.width / 2;
   const startY = box.y + box.height / 2;
   const guide = page.locator('[data-testid="manual-edit-snap-guide"]');
-  const leftEdgeGap = () => frame.locator('[data-od-id="snap-target"]').evaluate((el) => {
-    const src = el.ownerDocument.querySelector('[data-od-id="snap-source"]');
+  const leftEdgeGap = () => frame.locator('[data-readable-id="snap-target"]').evaluate((el) => {
+    const src = el.ownerDocument.querySelector('[data-readable-id="snap-source"]');
     return src ? Math.abs(el.getBoundingClientRect().left - src.getBoundingClientRect().left) : Number.NaN;
   });
 
@@ -1342,7 +1342,7 @@ test('[P1] magnetic edge alignment shows a guide while dragging and hides it wit
   await expect.poll(leftEdgeGap, { timeout: 5000 }).toBeLessThanOrEqual(1);
 
   // A second drag with Alt held should not produce a guide.
-  await selectPreviewElementThroughBridge(page, frame, '[data-od-id="snap-target"]', 'Shape');
+  await selectPreviewElementThroughBridge(page, frame, '[data-readable-id="snap-target"]', 'Shape');
   await expect(moveSurface).toBeVisible();
   const box2 = await moveSurface.boundingBox();
   if (!box2) throw new Error('move surface has no bounding box on second drag');
@@ -1361,10 +1361,10 @@ async function selectPreviewElementThroughBridge(
   selector: string,
   section: string,
 ) {
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await frame.locator(selector).click();
   await expect(inspectorSurface(page, section)).toBeVisible();
-  await expect(frame.locator(`${selector}[data-od-edit-selected="true"]`)).toHaveCount(1);
+  await expect(frame.locator(`${selector}[data-readable-edit-selected="true"]`)).toHaveCount(1);
 }
 
 async function selectStyleRowInput(
@@ -1379,7 +1379,7 @@ async function selectStyleRowInput(
     const rect = element.getBoundingClientRect();
     const styles = window.getComputedStyle(element);
     window.parent.postMessage({
-      type: 'od-edit-select',
+      type: 'readable-edit-select',
       target: {
         id: element.dataset.odId ?? element.id,
         kind: 'text',
@@ -1488,7 +1488,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
     .replace('<!-- SLOT: slide 1 content -->', '<h1>Slide One</h1>')
     .replace(
       '<!-- SLOT: slide 2 content -->',
-      '<div data-od-id="issue-58-resize-target" data-od-label="Slide two card" style="width:320px;height:180px;background:#dbeafe;">Slide Two</div>',
+      '<div data-readable-id="issue-58-resize-target" data-readable-label="Slide two card" style="width:320px;height:180px;background:#dbeafe;">Slide Two</div>',
     );
   expect(deckHtml).toContain('issue-58-resize-target');
 
@@ -1530,7 +1530,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
 
   await openDesignFile(page, 'issue-58-deck.html');
   const frame = artifactPreviewFrame(page);
-  const resizeTarget = frame.locator('[data-od-id="issue-58-resize-target"]');
+  const resizeTarget = frame.locator('[data-readable-id="issue-58-resize-target"]');
   await expect.poll(deckBoots).toBeGreaterThan(0);
   await expect(frame.locator('#deck-cur')).toHaveText('01');
   await page.getByLabel('Next slide').click();
@@ -1538,10 +1538,10 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
   await expect(resizeTarget).toBeVisible();
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
   await expect(frame.locator('#deck-cur')).toHaveText('02');
   await resizeTarget.click();
-  await expect(frame.locator('[data-od-id="issue-58-resize-target"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="issue-58-resize-target"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const bootCountBeforeSave = await deckBoots();
   expect(bootCountBeforeSave).toBeGreaterThan(0);
@@ -1580,7 +1580,7 @@ test('[P1] issue 58 manual edit resize does not reboot a deck on slide two', asy
       const resp = await page.request.get(`/api/projects/${projectId}/files/issue-58-deck.html`);
       if (!resp.ok()) return false;
       const source = await resp.text();
-      const style = source.match(/data-od-id="issue-58-resize-target"[^>]*style="([^"]*)"/)?.[1] ?? '';
+      const style = source.match(/data-readable-id="issue-58-resize-target"[^>]*style="([^"]*)"/)?.[1] ?? '';
       const width = Number(style.match(/width:\s*([\d.]+)px/)?.[1]);
       return width > before.width + 1;
     })
@@ -1647,10 +1647,10 @@ test('[P1] manual edit arrow-key nudge on a selected deck object does not advanc
   const deckHtml = template
     .replace(
       '<!-- SLOT: slide 1 content -->',
-      '<img data-od-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;">',
+      '<img data-readable-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;">',
     )
     .replace('<!-- SLOT: slide 2 content -->', '<h1>Second slide</h1>');
-  expect(deckHtml).toContain('data-od-id="deck-object"');
+  expect(deckHtml).toContain('data-readable-id="deck-object"');
   const seedResp = await page.request.post(
     `/api/projects/${projectId}/files`,
     {
@@ -1676,15 +1676,15 @@ test('[P1] manual edit arrow-key nudge on a selected deck object does not advanc
   await expect(artifactPreview(page)).toBeVisible();
 
   const frame = artifactPreviewFrame(page);
-  const deckObject = frame.locator('[data-od-id="deck-object"]');
+  const deckObject = frame.locator('[data-readable-id="deck-object"]');
   await expect(deckObject).toBeVisible();
   await expect(frame.locator('#deck-cur')).toHaveText('01');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
 
   await deckObject.click();
-  await expect(frame.locator('[data-od-id="deck-object"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="deck-object"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const beforeNudge = await deckObject.boundingBox();
   if (!beforeNudge) throw new Error('deck object has no bounding box before keyboard nudge');
@@ -1708,7 +1708,7 @@ test('[P1] manual edit arrow-key nudge on a selected deck object does not advanc
     // The stage is fit()-scaled, so the persisted CSS px depends on viewport
     // scale (1 rect px = 1/scale CSS px) — assert a nonzero translate landed,
     // not an exact value.
-    .toMatch(/data-od-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
+    .toMatch(/data-readable-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
   // The selected slide must still be the active one afterwards.
   await expect(frame.locator('#deck-cur')).toHaveText('01');
 });
@@ -1745,15 +1745,15 @@ test('[P1] manual edit arrow-key nudge on a selected object does not advance a l
   await expect(artifactPreview(page)).toBeVisible();
 
   const frame = artifactPreviewFrame(page);
-  const deckObject = frame.locator('[data-od-id="deck-object"]');
+  const deckObject = frame.locator('[data-readable-id="deck-object"]');
   await expect(deckObject).toBeVisible();
   await expect(frame.locator('#deck-cur')).toHaveText('01');
 
   await page.getByTestId('manual-edit-mode-toggle').click();
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
 
   await deckObject.click();
-  await expect(frame.locator('[data-od-id="deck-object"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await expect(frame.locator('[data-readable-id="deck-object"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   const beforeNudge = await deckObject.boundingBox();
   if (!beforeNudge) throw new Error('deck object has no bounding box before keyboard nudge');
@@ -1772,7 +1772,7 @@ test('[P1] manual edit arrow-key nudge on a selected object does not advance a l
       if (!resp.ok()) return '';
       return resp.text();
     })
-    .toMatch(/data-od-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
+    .toMatch(/data-readable-id="deck-object"[^>]*style="[^"]*translate:\s*[1-9]/);
   await expect(frame.locator('#deck-cur')).toHaveText('01');
 });
 
@@ -1786,10 +1786,10 @@ test('[P1] manual edit held arrow key commits one nudge burst as a single undoab
 
   await page.getByTestId('manual-edit-mode-toggle').click();
   const frame = artifactPreviewFrame(page);
-  await expect(frame.locator('html[data-od-edit-mode]')).toHaveCount(1);
+  await expect(frame.locator('html[data-readable-edit-mode]')).toHaveCount(1);
 
-  await frame.locator('[data-od-id="hero-image"]').click();
-  await expect(frame.locator('[data-od-id="hero-image"][data-od-edit-selected="true"]')).toHaveCount(1);
+  await frame.locator('[data-readable-id="hero-image"]').click();
+  await expect(frame.locator('[data-readable-id="hero-image"][data-readable-edit-selected="true"]')).toHaveCount(1);
 
   for (let i = 0; i < 5; i += 1) {
     await page.keyboard.down('ArrowRight');
@@ -1802,7 +1802,7 @@ test('[P1] manual edit held arrow key commits one nudge burst as a single undoab
       if (!resp.ok()) return '';
       return resp.text();
     })
-    .toMatch(/data-od-id="hero-image"[^>]*style="[^"]*translate:\s*5px/);
+    .toMatch(/data-readable-id="hero-image"[^>]*style="[^"]*translate:\s*5px/);
 
   // The whole held burst is one history entry: a single undo removes it.
   await page.keyboard.press('ControlOrMeta+z');
@@ -1838,7 +1838,7 @@ async function createEmptyProject(page: Page, name: string): Promise<string> {
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);
@@ -1884,7 +1884,7 @@ async function seedDeckArtifact(
   slides: string[],
 ) {
   const slideHtml = slides
-    .map((slide, index) => `<section class="slide" data-od-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
+    .map((slide, index) => `<section class="slide" data-readable-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
     .join('\n');
   const resp = await page.request.post(
     `/api/projects/${projectId}/files`,
@@ -1993,7 +1993,7 @@ function legacyDeckHtml(): string {
   </head>
   <body>
     <div class="deck-stage" id="deck-stage">
-      <section class="slide active"><img data-od-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;"></section>
+      <section class="slide active"><img data-readable-id="deck-object" alt="Deck object" src="/deck-object.png" style="width:240px;height:160px;"></section>
       <section class="slide"><h1>Slide Two</h1></section>
     </div>
     <span id="deck-cur">01</span>
@@ -2040,16 +2040,16 @@ function manualEditHtml(): string {
   </head>
   <body style="font-family: Inter, system-ui, sans-serif; font-size: 16px; letter-spacing: 0.01em;">
     <main>
-      <section data-od-id="responsive-pair" data-od-label="Responsive pair" class="responsive-pair">
-        <div data-od-id="pair-a">Left panel</div>
-        <div data-od-id="pair-b">Right panel</div>
+      <section data-readable-id="responsive-pair" data-readable-label="Responsive pair" class="responsive-pair">
+        <div data-readable-id="pair-a">Left panel</div>
+        <div data-readable-id="pair-b">Right panel</div>
       </section>
-      <section data-od-id="hero" data-od-label="Hero section" style="display:flex;gap:8px;align-items:center;">
-        <h1 data-od-id="hero-title" data-od-label="Hero title">Original Hero</h1>
-        <a data-od-id="cta" data-od-label="Primary CTA" href="/start">Start now</a>
-        <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
+      <section data-readable-id="hero" data-readable-label="Hero section" style="display:flex;gap:8px;align-items:center;">
+        <h1 data-readable-id="hero-title" data-readable-label="Hero title">Original Hero</h1>
+        <a data-readable-id="cta" data-readable-label="Primary CTA" href="/start">Start now</a>
+        <img data-readable-id="hero-image" data-readable-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
-      <p data-od-id="constrained-copy" data-od-label="Constrained copy" class="constrained-copy">Constrained copy</p>
+      <p data-readable-id="constrained-copy" data-readable-label="Constrained copy" class="constrained-copy">Constrained copy</p>
     </main>
   </body>
 </html>`;
@@ -2068,12 +2068,12 @@ function duplicateManualEditHtml(): string {
   </head>
   <body>
     <main>
-      <section class="duplicate-stage" data-od-id="duplicate-stage" data-od-label="Duplicate stage">
+      <section class="duplicate-stage" data-readable-id="duplicate-stage" data-readable-label="Duplicate stage">
         <div
           id="card-root"
           class="duplicate-card"
-          data-od-id="duplicate-card"
-          data-od-label="Duplicate card"
+          data-readable-id="duplicate-card"
+          data-readable-label="Duplicate card"
           aria-labelledby="card-title"
         >
           <h2 id="card-title">Card title</h2>
@@ -2091,22 +2091,22 @@ function issue34NestedChildHtml(): string {
   <head><meta charset="utf-8"><title>Issue 34 nested child</title></head>
   <body>
     <div
-      data-od-id="issue-34-parent"
-      data-od-label="Selected text parent"
-      data-od-edit="text"
+      data-readable-id="issue-34-parent"
+      data-readable-label="Selected text parent"
+      data-readable-edit="text"
       style="position:relative;width:320px;height:180px;padding:16px;background:#eef2ff;"
     >
       Parent copy
       <button
         type="button"
-        data-od-id="issue-34-child"
-        data-od-label="Nested child"
+        data-readable-id="issue-34-child"
+        data-readable-label="Nested child"
         style="position:absolute;left:96px;top:72px;width:128px;height:48px;"
       >Nested child</button>
       <button
         type="button"
-        data-od-id="issue-34-ring-child"
-        data-od-label="Nested ring child"
+        data-readable-id="issue-34-ring-child"
+        data-readable-label="Nested ring child"
         aria-label="Nested ring child"
         style="position:absolute;box-sizing:border-box;left:2px;top:32px;width:12px;height:20px;padding:0;"
       ></button>
@@ -2130,12 +2130,12 @@ function manualEditHoverSyncHtml(): string {
   </head>
   <body>
     <main>
-      <section class="card" data-od-id="hover-top">Top card</section>
-      <section class="card middle" data-od-id="hover-middle">
+      <section class="card" data-readable-id="hover-top">Top card</section>
+      <section class="card middle" data-readable-id="hover-middle">
         Selected middle card
-        <button class="child" type="button" data-od-id="hover-child">Nested child</button>
+        <button class="child" type="button" data-readable-id="hover-child">Nested child</button>
       </section>
-      <section class="card" data-od-id="hover-bottom">Bottom card</section>
+      <section class="card" data-readable-id="hover-bottom">Bottom card</section>
     </main>
   </body>
 </html>`;

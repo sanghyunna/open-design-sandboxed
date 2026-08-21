@@ -33,7 +33,7 @@ export const aiderAgentDef = {
     //   --no-pretty                        — strip ANSI so stdout parses as plain text
     //   --no-stream                        — left as default (streaming on)
     //   --no-git / --no-auto-commits       — the daemon spawns aider inside
-    //                                        an OD project workspace that is
+    //                                        an Readable Studio project workspace that is
     //                                        not the user's git repo, so the
     //                                        commit machinery has nothing
     //                                        useful to do here

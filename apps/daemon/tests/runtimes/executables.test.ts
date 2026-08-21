@@ -44,10 +44,10 @@ test('deepseek entry declares codewhale as a fallback bin (issue #2983)', () => 
 fsTest(
   'resolveAgentExecutable uses packaged built-in Vela for AMR with the bundled OpenCode companion tree',
   () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-amr-built-in-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-amr-built-in-'));
     try {
-      return withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
-        const resourceRoot = join(root, 'resources', 'open-design');
+      return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
+        const resourceRoot = join(root, 'resources', 'readable-studio');
         const builtInVela = join(resourceRoot, 'bin', 'vela');
         const companionTree = join(resourceRoot, 'bin', 'libexec', 'opencode');
         mkdirSync(join(resourceRoot, 'bin'), { recursive: true });
@@ -62,8 +62,8 @@ fsTest(
         writeFileSync(companionExe, '#!/bin/sh\nexit 0\n');
         chmodSync(companionExe, 0o755);
         process.env.PATH = '';
-        process.env.OD_AGENT_HOME = join(root, 'empty-home');
-        process.env.OD_RESOURCE_ROOT = resourceRoot;
+        process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+        process.env.READABLE_RESOURCE_ROOT = resourceRoot;
         delete process.env.VELA_OPENCODE_BIN;
 
         const resolved = resolveAgentExecutable(minimalAgentDef({ id: 'amr', bin: 'vela' }));
@@ -79,17 +79,17 @@ fsTest(
 fsTest(
   'resolveAgentExecutable does not select packaged built-in Vela when OpenCode is missing',
   () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-amr-built-in-no-opencode-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-amr-built-in-no-opencode-'));
     try {
-      return withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
-        const resourceRoot = join(root, 'resources', 'open-design');
+      return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT', 'VELA_OPENCODE_BIN'], () => {
+        const resourceRoot = join(root, 'resources', 'readable-studio');
         const builtInVela = join(resourceRoot, 'bin', 'vela');
         mkdirSync(join(resourceRoot, 'bin'), { recursive: true });
         writeFileSync(builtInVela, '#!/bin/sh\nexit 0\n');
         chmodSync(builtInVela, 0o755);
         process.env.PATH = '';
-        process.env.OD_AGENT_HOME = join(root, 'empty-home');
-        process.env.OD_RESOURCE_ROOT = resourceRoot;
+        process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+        process.env.READABLE_RESOURCE_ROOT = resourceRoot;
         delete process.env.VELA_OPENCODE_BIN;
 
         const resolved = resolveAgentExecutable(minimalAgentDef({ id: 'amr', bin: 'vela' }));
@@ -105,10 +105,10 @@ fsTest(
 fsTest(
   'resolveAgentExecutable prefers configured VELA_BIN over packaged built-in Vela',
   () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-amr-built-in-precedence-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-amr-built-in-precedence-'));
     try {
-      return withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT'], () => {
-        const resourceRoot = join(root, 'resources', 'open-design');
+      return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT'], () => {
+        const resourceRoot = join(root, 'resources', 'readable-studio');
         const builtInVela = join(resourceRoot, 'bin', 'vela');
         const configuredVela = join(root, 'configured', 'vela');
         mkdirSync(join(resourceRoot, 'bin'), { recursive: true });
@@ -118,8 +118,8 @@ fsTest(
         chmodSync(builtInVela, 0o755);
         chmodSync(configuredVela, 0o755);
         process.env.PATH = '';
-        process.env.OD_AGENT_HOME = join(root, 'empty-home');
-        process.env.OD_RESOURCE_ROOT = resourceRoot;
+        process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+        process.env.READABLE_RESOURCE_ROOT = resourceRoot;
 
         const resolved = resolveAgentExecutable(
           minimalAgentDef({ id: 'amr', bin: 'vela' }),
@@ -137,17 +137,17 @@ fsTest(
 fsTest(
   'resolveAgentExecutable falls back to PATH Vela when packaged built-in Vela is absent',
   () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-amr-path-fallback-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-amr-path-fallback-'));
     try {
-      return withEnvSnapshot(['PATH', 'OD_AGENT_HOME', 'OD_RESOURCE_ROOT'], () => {
+      return withEnvSnapshot(['PATH', 'READABLE_AGENT_HOME', 'READABLE_RESOURCE_ROOT'], () => {
         const pathBin = join(root, 'path-bin');
         const pathVela = join(pathBin, 'vela');
         mkdirSync(pathBin, { recursive: true });
         writeFileSync(pathVela, '#!/bin/sh\nexit 0\n');
         chmodSync(pathVela, 0o755);
         process.env.PATH = pathBin;
-        process.env.OD_AGENT_HOME = join(root, 'empty-home');
-        process.env.OD_RESOURCE_ROOT = join(root, 'resources', 'open-design');
+        process.env.READABLE_AGENT_HOME = join(root, 'empty-home');
+        process.env.READABLE_RESOURCE_ROOT = join(root, 'resources', 'readable-studio');
 
         const resolved = resolveAgentExecutable(minimalAgentDef({ id: 'amr', bin: 'vela' }));
 
@@ -162,13 +162,13 @@ fsTest(
 fsTest(
   'resolveAgentExecutable prefers def.bin over fallbackBins when bin is on PATH',
   () => {
-    const dir = mkdtempSync(join(tmpdir(), 'od-agents-resolve-'));
+    const dir = mkdtempSync(join(tmpdir(), 'readable-agents-resolve-'));
     try {
       writeFileSync(join(dir, 'claude'), '');
       writeFileSync(join(dir, 'openclaude'), '');
       chmodSync(join(dir, 'claude'), 0o755);
       chmodSync(join(dir, 'openclaude'), 0o755);
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
       process.env.PATH = dir;
 
       const resolved = resolveAgentExecutable(minimalAgentDef({
@@ -185,12 +185,12 @@ fsTest(
 fsTest(
   'resolveAgentExecutable falls back through fallbackBins when def.bin is missing',
   () => {
-    const dir = mkdtempSync(join(tmpdir(), 'od-agents-resolve-'));
+    const dir = mkdtempSync(join(tmpdir(), 'readable-agents-resolve-'));
     try {
       // Only `openclaude` is installed (Claude Code fork-only setup).
       writeFileSync(join(dir, 'openclaude'), '');
       chmodSync(join(dir, 'openclaude'), 0o755);
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
       process.env.PATH = dir;
 
       const resolved = resolveAgentExecutable(minimalAgentDef({
@@ -207,9 +207,9 @@ fsTest(
 fsTest(
   'resolveAgentExecutable returns null when neither def.bin nor any fallback is on PATH',
   () => {
-    const dir = mkdtempSync(join(tmpdir(), 'od-agents-resolve-'));
+    const dir = mkdtempSync(join(tmpdir(), 'readable-agents-resolve-'));
     try {
-      process.env.OD_AGENT_HOME = dir;
+      process.env.READABLE_AGENT_HOME = dir;
       process.env.PATH = dir;
 
       const resolved = resolveAgentExecutable(minimalAgentDef({
@@ -226,7 +226,7 @@ fsTest(
 fsTest(
   'resolveAgentExecutable searches mise node bins when PATH is minimal',
   () => {
-    const home = mkdtempSync(join(tmpdir(), 'od-agents-home-'));
+    const home = mkdtempSync(join(tmpdir(), 'readable-agents-home-'));
     try {
       const dir = join(
         home,
@@ -243,7 +243,7 @@ fsTest(
       mkdirSync(pathBin, { recursive: true });
       writeFileSync(join(dir, 'codex'), '');
       chmodSync(join(dir, 'codex'), 0o755);
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
       process.env.PATH = pathBin;
 
       const resolved = resolveAgentExecutable(minimalAgentDef({
@@ -262,7 +262,7 @@ fsTest(
     // Guard against a regression that would require every AGENT_DEF to
     // declare fallbackBins. Most agents (codex / gemini / opencode / ...)
     // only have a single binary name and must keep working unchanged.
-    const dir = mkdtempSync(join(tmpdir(), 'od-agents-resolve-'));
+    const dir = mkdtempSync(join(tmpdir(), 'readable-agents-resolve-'));
     try {
       writeFileSync(join(dir, 'codex'), '');
       chmodSync(join(dir, 'codex'), 0o755);
@@ -285,13 +285,13 @@ fsTest(
 fsTest(
   'resolveAgentExecutable searches ~/.npm-global/bin under a minimal GUI-launched PATH (issue #442)',
   () => {
-    const home = mkdtempSync(join(tmpdir(), 'od-agents-npm-global-'));
+    const home = mkdtempSync(join(tmpdir(), 'readable-agents-npm-global-'));
     try {
       const dir = join(home, '.npm-global', 'bin');
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, 'gemini'), '');
       chmodSync(join(dir, 'gemini'), 0o755);
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
       // Mirror the launchd default a `.app` actually inherits — no
       // `~/.npm-global/bin`, no `/opt/homebrew/bin`, nothing user-side.
       process.env.PATH = '/usr/bin:/bin';
@@ -309,13 +309,13 @@ fsTest(
 fsTest(
   'resolveAgentExecutable also searches ~/.npm-packages/bin (alt npm prefix)',
   () => {
-    const home = mkdtempSync(join(tmpdir(), 'od-agents-npm-packages-'));
+    const home = mkdtempSync(join(tmpdir(), 'readable-agents-npm-packages-'));
     try {
       const dir = join(home, '.npm-packages', 'bin');
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, 'gemini'), '');
       chmodSync(join(dir, 'gemini'), 0o755);
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
       process.env.PATH = '/usr/bin:/bin';
 
       const resolved = resolveAgentExecutable(minimalAgentDef({ bin: 'gemini' }));
@@ -329,13 +329,13 @@ fsTest(
 fsTest(
   'resolveAgentExecutable searches ~/.vite-plus/bin under a minimal GUI-launched PATH (vp global install)',
   () => {
-    const home = mkdtempSync(join(tmpdir(), 'od-agents-vp-home-'));
+    const home = mkdtempSync(join(tmpdir(), 'readable-agents-vp-home-'));
     try {
       const dir = join(home, '.vite-plus', 'bin');
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, 'vp-cli-probe'), '');
       chmodSync(join(dir, 'vp-cli-probe'), 0o755);
-      process.env.OD_AGENT_HOME = home;
+      process.env.READABLE_AGENT_HOME = home;
       process.env.PATH = '/usr/bin:/bin';
 
       const resolved = resolveAgentExecutable(minimalAgentDef({ bin: 'vp-cli-probe' }));
@@ -349,7 +349,7 @@ fsTest(
 fsTest(
   'resolveAgentExecutable honors $VP_HOME/bin when the custom Vite+ home is outside PATH',
   () => {
-    const vpHome = mkdtempSync(join(tmpdir(), 'od-agents-vp-custom-'));
+    const vpHome = mkdtempSync(join(tmpdir(), 'readable-agents-vp-custom-'));
     try {
       const dir = join(vpHome, 'bin');
       mkdirSync(dir, { recursive: true });
@@ -366,7 +366,7 @@ fsTest(
   },
 );
 
-// Test isolation: when OD_AGENT_HOME points at a sandbox, an exported
+// Test isolation: when READABLE_AGENT_HOME points at a sandbox, an exported
 // $NPM_CONFIG_PREFIX / $npm_config_prefix on the developer's or CI
 // runner's environment must not leak a real <prefix>/bin into the
 // sandboxed search list. Otherwise an agent installed by the host
@@ -374,20 +374,20 @@ fsTest(
 // make detection tests environment-dependent. Raised in PR review on
 // #442 (review comment by @mrcfps on apps/daemon/src/agents.ts:742).
 fsTest(
-  'OD_AGENT_HOME isolates resolution from $NPM_CONFIG_PREFIX leakage',
+  'READABLE_AGENT_HOME isolates resolution from $NPM_CONFIG_PREFIX leakage',
   () => {
-    const sandbox = mkdtempSync(join(tmpdir(), 'od-agents-sandbox-'));
-    const realPrefix = mkdtempSync(join(tmpdir(), 'od-agents-real-prefix-'));
+    const sandbox = mkdtempSync(join(tmpdir(), 'readable-agents-sandbox-'));
+    const realPrefix = mkdtempSync(join(tmpdir(), 'readable-agents-real-prefix-'));
     const realPrefixBin = join(realPrefix, 'bin');
     try {
-      // Sandbox is empty — gemini does not exist under OD_AGENT_HOME.
+      // Sandbox is empty — gemini does not exist under READABLE_AGENT_HOME.
       // Real prefix has a gemini, simulating the developer's /opt/...
       // or ~/.npm-global install. NPM_CONFIG_PREFIX points at it.
       mkdirSync(realPrefixBin, { recursive: true });
       writeFileSync(join(realPrefixBin, 'gemini'), '');
       chmodSync(join(realPrefixBin, 'gemini'), 0o755);
 
-      process.env.OD_AGENT_HOME = sandbox;
+      process.env.READABLE_AGENT_HOME = sandbox;
       process.env.PATH = '/usr/bin:/bin';
       process.env.NPM_CONFIG_PREFIX = realPrefix;
 
@@ -395,7 +395,7 @@ fsTest(
       assert.equal(
         resolved,
         null,
-        `OD_AGENT_HOME sandbox must not see the real $NPM_CONFIG_PREFIX bin; ` +
+        `READABLE_AGENT_HOME sandbox must not see the real $NPM_CONFIG_PREFIX bin; ` +
           `got ${resolved}`,
       );
     } finally {
@@ -411,23 +411,23 @@ fsTest(
 );
 
 fsTest(
-  'OD_SANDBOX_MODE scopes fallback toolchain discovery to OD_DATA_DIR',
+  'READABLE_SANDBOX_MODE scopes fallback toolchain discovery to READABLE_DATA_DIR',
   () => {
-    const dataDir = mkdtempSync(join(tmpdir(), 'od-agents-sandbox-data-'));
-    const emptyPath = mkdtempSync(join(tmpdir(), 'od-agents-empty-path-'));
-    const realPrefix = mkdtempSync(join(tmpdir(), 'od-agents-real-prefix-'));
+    const dataDir = mkdtempSync(join(tmpdir(), 'readable-agents-sandbox-data-'));
+    const emptyPath = mkdtempSync(join(tmpdir(), 'readable-agents-empty-path-'));
+    const realPrefix = mkdtempSync(join(tmpdir(), 'readable-agents-real-prefix-'));
     const realPrefixBin = join(realPrefix, 'bin');
     try {
       return withEnvSnapshot(
-        ['PATH', 'OD_AGENT_HOME', 'OD_DATA_DIR', 'OD_SANDBOX_MODE', 'NPM_CONFIG_PREFIX'],
+        ['PATH', 'READABLE_AGENT_HOME', 'READABLE_DATA_DIR', 'READABLE_SANDBOX_MODE', 'NPM_CONFIG_PREFIX'],
         () => {
           mkdirSync(realPrefixBin, { recursive: true });
           writeFileSync(join(realPrefixBin, 'gemini'), '');
           chmodSync(join(realPrefixBin, 'gemini'), 0o755);
 
-          delete process.env.OD_AGENT_HOME;
-          process.env.OD_DATA_DIR = dataDir;
-          process.env.OD_SANDBOX_MODE = '1';
+          delete process.env.READABLE_AGENT_HOME;
+          process.env.READABLE_DATA_DIR = dataDir;
+          process.env.READABLE_SANDBOX_MODE = '1';
           process.env.PATH = emptyPath;
           process.env.NPM_CONFIG_PREFIX = realPrefix;
 
@@ -448,26 +448,26 @@ fsTest(
 );
 
 fsTest(
-  'OD_SANDBOX_MODE resolves relative OD_DATA_DIR before fallback toolchain discovery',
+  'READABLE_SANDBOX_MODE resolves relative READABLE_DATA_DIR before fallback toolchain discovery',
   () => {
     const projectRoot = resolve(process.cwd(), '../..');
-    const parent = mkdtempSync(join(tmpdir(), 'od-agents-relative-data-parent-'));
+    const parent = mkdtempSync(join(tmpdir(), 'readable-agents-relative-data-parent-'));
     const dataDir = join(parent, 'data');
     const sandboxBin = join(dataDir, 'sandbox', 'agent-home', '.local', 'bin');
-    const emptyPath = mkdtempSync(join(tmpdir(), 'od-agents-empty-path-'));
+    const emptyPath = mkdtempSync(join(tmpdir(), 'readable-agents-empty-path-'));
     try {
       return withEnvSnapshot(
-        ['PATH', 'OD_AGENT_HOME', 'OD_DATA_DIR', 'OD_SANDBOX_MODE', 'NPM_CONFIG_PREFIX'],
+        ['PATH', 'READABLE_AGENT_HOME', 'READABLE_DATA_DIR', 'READABLE_SANDBOX_MODE', 'NPM_CONFIG_PREFIX'],
         () => {
           mkdirSync(sandboxBin, { recursive: true });
           const geminiPath = join(sandboxBin, 'gemini');
           writeFileSync(geminiPath, '');
           chmodSync(geminiPath, 0o755);
 
-          delete process.env.OD_AGENT_HOME;
+          delete process.env.READABLE_AGENT_HOME;
           delete process.env.NPM_CONFIG_PREFIX;
-          process.env.OD_DATA_DIR = relative(projectRoot, dataDir);
-          process.env.OD_SANDBOX_MODE = '1';
+          process.env.READABLE_DATA_DIR = relative(projectRoot, dataDir);
+          process.env.READABLE_SANDBOX_MODE = '1';
           process.env.PATH = emptyPath;
 
           const resolved = resolveAgentExecutable(minimalAgentDef({ bin: 'gemini' }));
@@ -482,17 +482,17 @@ fsTest(
 );
 
 fsTest(
-  'OD_AGENT_HOME isolates resolution from $VP_HOME leakage',
+  'READABLE_AGENT_HOME isolates resolution from $VP_HOME leakage',
   () => {
-    const sandbox = mkdtempSync(join(tmpdir(), 'od-agents-vp-sandbox-'));
-    const realVpHome = mkdtempSync(join(tmpdir(), 'od-agents-vp-real-home-'));
+    const sandbox = mkdtempSync(join(tmpdir(), 'readable-agents-vp-sandbox-'));
+    const realVpHome = mkdtempSync(join(tmpdir(), 'readable-agents-vp-real-home-'));
     const realVpBin = join(realVpHome, 'bin');
     try {
       mkdirSync(realVpBin, { recursive: true });
       writeFileSync(join(realVpBin, 'vp-cli-probe'), '');
       chmodSync(join(realVpBin, 'vp-cli-probe'), 0o755);
 
-      process.env.OD_AGENT_HOME = sandbox;
+      process.env.READABLE_AGENT_HOME = sandbox;
       process.env.PATH = '/usr/bin:/bin';
       process.env.VP_HOME = realVpHome;
 
@@ -500,7 +500,7 @@ fsTest(
       assert.equal(
         resolved,
         null,
-        `OD_AGENT_HOME sandbox must not see the real $VP_HOME bin; got ${resolved}`,
+        `READABLE_AGENT_HOME sandbox must not see the real $VP_HOME bin; got ${resolved}`,
       );
     } finally {
       rmSync(sandbox, { recursive: true, force: true });

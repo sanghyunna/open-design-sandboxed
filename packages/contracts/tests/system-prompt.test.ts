@@ -43,7 +43,7 @@ describe('DISCOVERY_AND_PHILOSOPHY (contracts copy) — TodoWrite plan item coun
   });
 
   it('does not advertise daemon-only rollback markers to API/BYOK agents', () => {
-    expect(composeSystemPrompt({})).not.toContain('<od-rollback-request');
+    expect(composeSystemPrompt({})).not.toContain('<readable-rollback-request');
   });
 });
 

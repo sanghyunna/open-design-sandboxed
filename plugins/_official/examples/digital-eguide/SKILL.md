@@ -73,7 +73,7 @@ serif display headings, careful column rhythm.
    - `<!doctype html>` through `</html>`, CSS inline.
    - Pages are 600×860 paper-tone cards with 6px shadow, slight rotation
      opposing each other (±0.6deg) for a magazine-on-desk feel.
-   - `data-od-id` on cover, spread, toc, pull-quote, exercise.
+   - `data-readable-id` on cover, spread, toc, pull-quote, exercise.
 5. **Self-check**:
    - Type hierarchy is editorial — title owns page 1, sub-title owns page 2.
    - Italic accent appears once per page.

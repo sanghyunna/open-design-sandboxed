@@ -116,7 +116,7 @@ saas-landing-skill/
 ```
 
 Things to notice:
-- The `od:` front-matter block is optional for Claude-Code-only compatibility, but adding it lights up Readable Studio's typed inputs, sliders, preview metadata, and capability gating.
+- The `readable:` front-matter block is optional for Claude-Code-only compatibility, but adding it lights up Readable Studio's typed inputs, sliders, preview metadata, and capability gating.
 - The workflow below the front-matter is plain Markdown that the agent reads as its system prompt.
 - DESIGN.md is treated as a collaborator, not an override. The skill gives the agent authority to override when the brief conflicts, but never to invent new tokens.
 - `data-readable-id` tagging is how we wire elements to comment mode. Skills that want comment-mode compatibility must annotate their output.

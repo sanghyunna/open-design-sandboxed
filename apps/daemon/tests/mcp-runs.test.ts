@@ -194,11 +194,11 @@ describe('public MCP discovery + generation tools', () => {
   });
 
   // When a run is mid-flight, the outer agent has no in-band signal
-  // that OD is making progress — which led real Codex clients to cancel
+  // that Readable Studio is making progress — which led real Codex clients to cancel
   // after a few polls and substitute their own output. Surfacing
   // eventsLogPath plus a hint to tail it gives Codex a way to see live
   // progress in its own shell and trust the run.
-  // studioUrl deep-links to the OD studio page that shows BOTH the
+  // studioUrl deep-links to the Readable Studio studio page that shows BOTH the
   // file preview and the chat history for a run. Built when the
   // daemon advertises a webBaseUrl (via /api/mcp/install-info) and
   // the run is bound to a project + conversation. This is the URL
@@ -323,14 +323,14 @@ describe('public MCP discovery + generation tools', () => {
       id: 'run-99',
       status: 'running',
       projectId: 'project-1',
-      eventsLogPath: '/Users/x/.od/runs/run-99/events.jsonl',
+      eventsLogPath: '/Users/x/.readable-studio/runs/run-99/events.jsonl',
     }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await handleMcpToolCall('http://127.0.0.1:17456', 'get_run', { runId: 'run-99' });
     const parsed = JSON.parse(firstText(result));
     expect(parsed.status).toBe('running');
-    expect(parsed.eventsLogPath).toBe('/Users/x/.od/runs/run-99/events.jsonl');
+    expect(parsed.eventsLogPath).toBe('/Users/x/.readable-studio/runs/run-99/events.jsonl');
     expect(parsed.hint).toMatch(/tail/i);
     expect(parsed.hint).toContain('events.jsonl');
   });
@@ -492,7 +492,7 @@ describe('public MCP discovery + generation tools', () => {
     expect(parsed.previewUrl).toBeUndefined();
   });
 
-  // Discovery-stage / clarifying-question fallback: when Open Design's
+  // Discovery-stage / clarifying-question fallback: when Readable Studio's
   // inner agent does NOT write files (e.g. it asks back with a discovery
   // form), the run still terminates "succeeded" but the only output
   // lives in the SSE event stream as text_delta chunks. get_run must
@@ -613,9 +613,9 @@ describe('public MCP discovery + generation tools', () => {
     expect(parsed.hint).not.toMatch(/project defaults to this run/i);
   });
 
-  // #2: MCP-driven projects skip Open Design's interactive discovery
+  // #2: MCP-driven projects skip Readable Studio's interactive discovery
   // stage. The outer agent (Codex, Cursor, …) IS the user-facing surface;
-  // having OD ask a discovery form back through MCP creates a confusing
+  // having Readable Studio ask a discovery form back through MCP creates a confusing
   // nested-clarification loop where the form ends up dropped because no
   // file is produced. So create_project pre-sets skipDiscoveryBrief.
 
@@ -651,7 +651,7 @@ describe('public MCP discovery + generation tools', () => {
               title: 'HTML PPT Pitch Deck',
               description: 'Investor-ready 10-slide HTML pitch deck — gradient hero, big numbers, traction bar chart.',
               tags: ['deck', 'pitch'],
-              od: { kind: 'scenario', taskKind: 'deck' },
+              readable: { kind: 'scenario', taskKind: 'deck' },
             },
           },
         ],

@@ -148,7 +148,7 @@ describe('AssistantMessage — chat file-link routing (#1239)', () => {
     const { container } = render(
       <AssistantMessage
         message={messageWithText(
-          '已完成单文件原型：[index.html](/Users/mac/open-design/open-design-preview-0.10.0/projects/Web%20Prototype/index.html)。',
+          '已完成单文件原型：[index.html](/Users/mac/readable-studio/readable-studio-preview-0.10.0/projects/Web%20Prototype/index.html)。',
         )}
         streaming={false}
         projectId="project-1"

@@ -41,20 +41,7 @@ export const SIDECAR_SOURCES = Object.freeze({
 
 export type SidecarSource = (typeof SIDECAR_SOURCES)[keyof typeof SIDECAR_SOURCES];
 
-const LEGACY_SIDECAR_ENV_NAMES = Object.freeze([
-  "OD_SIDECAR_BASE",
-  "OD_DAEMON_CLI_PATH",
-  "OD_PORT",
-  "OD_DESKTOP_APPROVAL_TOKEN",
-  "OD_SIDECAR_IPC_BASE",
-  "OD_SIDECAR_IPC_PATH",
-  "OD_SIDECAR_NAMESPACE",
-  "OD_SIDECAR_SOURCE",
-  "OD_TOOLS_DEV_PARENT_PID",
-  "OD_WEB_DIST_DIR",
-  "OD_WEB_PORT",
-  "OD_WEB_TSCONFIG_PATH",
-] as const);
+const LEGACY_SIDECAR_ENV_NAMES = Object.freeze([] as const);
 
 function createSidecarEnv(identity: ProductIdentity) {
   return Object.freeze({
@@ -163,7 +150,7 @@ export type DaemonStatusSnapshot = {
    * PR #974 round 6 (mrcfps): true when the daemon's
    * `/api/import/folder` route refuses tokenless requests. Surfaced
    * over IPC so `tools-dev start desktop` can detect a daemon that
-   * was spawned without `OD_REQUIRE_DESKTOP_AUTH=1` (the split-start
+   * was spawned without `READABLE_REQUIRE_DESKTOP_AUTH=1` (the split-start
    * dev flow `start daemon` -> `start desktop`) and restart it
    * before launching desktop main, instead of letting a renderer
    * race the registration handshake. Mirrors

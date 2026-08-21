@@ -29,8 +29,8 @@ import path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import { c as tarCreate } from 'tar';
 import {
-  isUnsupportedOpenDesignV1,
-  UNSUPPORTED_OPEN_DESIGN_V1,
+  isUnsupportedLegacyProductV1,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
 } from '@readable-studio/plugin-runtime';
 
 export interface PackPluginInput {
@@ -72,9 +72,6 @@ export async function packPlugin(input: PackPluginInput): Promise<PackPluginResu
   const folder = path.resolve(input.folder);
 
   // Confirm the folder shape — readable-studio.json must exist + parse.
-  if (await fsp.access(path.join(folder, 'open-design.json')).then(() => true, () => false)) {
-    throw new PackPluginError(UNSUPPORTED_OPEN_DESIGN_V1);
-  }
   let manifestRaw: string;
   try {
     manifestRaw = await fsp.readFile(path.join(folder, 'readable-studio.json'), 'utf8');
@@ -91,8 +88,8 @@ export async function packPlugin(input: PackPluginInput): Promise<PackPluginResu
     const message = error instanceof Error ? error.message : String(error);
     throw new PackPluginError(`readable-studio.json failed to parse as JSON: ${message}`);
   }
-  if (isUnsupportedOpenDesignV1(manifest)) {
-    throw new PackPluginError(UNSUPPORTED_OPEN_DESIGN_V1);
+  if (isUnsupportedLegacyProductV1(manifest)) {
+    throw new PackPluginError(UNSUPPORTED_LEGACY_PRODUCT_V1);
   }
   const pluginId = typeof Reflect.get(Object(manifest), 'name') === 'string'
     ? String(Reflect.get(Object(manifest), 'name'))

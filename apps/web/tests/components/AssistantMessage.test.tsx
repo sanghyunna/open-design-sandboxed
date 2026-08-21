@@ -202,7 +202,7 @@ describe('AssistantMessage status badge updates (Bug A)', () => {
               kind: 'status',
               label: 'error',
               detail:
-                'AMR Cloud reported insufficient balance. Recharge at https://open-design.ai/amr/wallet, then retry.',
+                'AMR Cloud reported insufficient balance. Recharge at https://vela.powerformer.net/wallet, then retry.',
             } as ChatMessage['events'][number],
           ],
         })}
@@ -211,8 +211,8 @@ describe('AssistantMessage status badge updates (Bug A)', () => {
       />,
     );
 
-    const link = screen.getByRole('link', { name: 'https://open-design.ai/amr/wallet' });
-    expect(link.getAttribute('href')).toBe('https://open-design.ai/amr/wallet');
+    const link = screen.getByRole('link', { name: 'https://vela.powerformer.net/wallet' });
+    expect(link.getAttribute('href')).toBe('https://vela.powerformer.net/wallet');
     expect(link.classList.contains('md-link')).toBe(true);
   });
 });

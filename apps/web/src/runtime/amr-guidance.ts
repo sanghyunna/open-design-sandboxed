@@ -5,17 +5,16 @@
 // own module so ChatPane / ProjectView / AssistantMessage can import it without
 // a circular dependency.
 
-// AMR model-gateway console wallet (account, balance, recharge).
-// `source=open_design` tags the landing page_view so vela analytics can
-// attribute the visit to Readable Studio (per-product revenue/traffic attribution).
+// AMR is a third-party Vela service. Keep account links on the vendor origin;
+// Readable Studio does not own or ship a product website.
 export const AMR_CONSOLE_URL =
-  'https://open-design.ai/amr/wallet?source=open_design';
+  'https://vela.powerformer.net/wallet?source=readable_studio';
 export const AMR_RECHARGE_URL = AMR_CONSOLE_URL;
 
 const AMR_CONSOLE_URL_BY_PROFILE: Record<string, string> = {
   prod: AMR_CONSOLE_URL,
-  test: 'https://vela.powerformer.net/wallet?source=open_design',
-  local: 'http://localhost:5173/wallet?source=open_design',
+  test: AMR_CONSOLE_URL,
+  local: 'http://localhost:5173/wallet?source=readable_studio',
 };
 
 export function amrConsoleUrlForProfile(profile: string | null | undefined): string {
@@ -40,7 +39,7 @@ export function amrProfileBadgeLabel(profile: string | null | undefined): string
 //   - launch-terminal-auth:        Antigravity-specific. agy's `-p`
 //                                  print mode cannot complete Google
 //                                  Sign-In on its own (no input field
-//                                  for the auth code), so OD spawns a
+//                                  for the auth code), so Readable Studio spawns a
 //                                  system Terminal running `agy` and
 //                                  the user finishes OAuth there.
 //   - launch-terminal-switch-model: Antigravity-specific. agy has no

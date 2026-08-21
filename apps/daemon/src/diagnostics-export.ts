@@ -54,7 +54,7 @@ async function resolveAgentHomes(dataDir: string | null | undefined): Promise<Re
     const envFor = (agentId: string) =>
       spawnEnvForAgent(
         agentId,
-        { ...process.env, OD_DATA_DIR: dataDir },
+        { ...process.env, READABLE_DATA_DIR: dataDir },
         agentCliEnvForAgent(appConfig.agentCliEnv, agentId),
       );
     const clean = (value: string | undefined): string | null => {
@@ -83,7 +83,7 @@ export interface DiagnosticsHandlerOptions {
   projectRoot: string;
   /** Directory containing per-run event logs at <runsDir>/<runId>/events.jsonl. */
   runsDir?: string | null;
-  /** Open Design data dir (OD_DATA_DIR), used to locate the AMR OpenCode home. */
+  /** Readable Studio data dir (READABLE_DATA_DIR), used to locate the AMR OpenCode home. */
   dataDir?: string | null;
 }
 
@@ -99,7 +99,7 @@ function safeUsername(): string | undefined {
 }
 
 export const STANDALONE_LAUNCH_WARNING =
-  "Daemon started without a sidecar runtime (plain `od` / standalone launch); " +
+  "Daemon started without a sidecar runtime (plain `readable` / standalone launch); " +
   "file-based logs are not captured. Re-run via `pnpm tools-dev` or the packaged " +
   "desktop app to include daemon/web/desktop log files in the bundle.";
 
@@ -167,7 +167,7 @@ export function createDiagnosticsExportHandler(options: DiagnosticsHandlerOption
       const result = await buildDiagnosticsZip({
         context: {
           app: {
-            name: 'open-design',
+            name: 'readable-studio',
             version: versionInfo?.version,
             channel: versionInfo?.channel,
             packaged: versionInfo?.packaged,
@@ -186,11 +186,11 @@ export function createDiagnosticsExportHandler(options: DiagnosticsHandlerOption
         sources,
         redaction: { username },
         crashReports: {
-          // Restrict to Open Design's own process names. A generic "Electron"
+          // Restrict to Readable Studio's own process names. A generic "Electron"
           // substring would sweep up crash reports from any other Electron
           // app on the host (VS Code, Slack, …) and leak unrelated user data
           // into the support bundle.
-          matchSubstrings: ['Open Design', 'open-design'],
+          matchSubstrings: ['Readable Studio', 'readable-studio'],
           withinDays: 7,
           maxReports: 10,
           homeDir: home,

@@ -1730,7 +1730,7 @@ export function FileWorkspace({
         {onFocusModeChange && focusMode ? (
           <button
             type="button"
-            className="icon-only ws-focus-expand od-tooltip"
+            className="icon-only ws-focus-expand readable-tooltip"
             data-testid="workspace-focus-toggle"
             aria-pressed={focusMode}
             title={t('workspace.showChat')}
@@ -1925,7 +1925,7 @@ export function FileWorkspace({
           <button
             ref={launcherBtnRef}
             type="button"
-            className="icon-only ws-tab-add od-tooltip"
+            className="icon-only ws-tab-add readable-tooltip"
             data-testid="workspace-add-tab"
             aria-haspopup="dialog"
             aria-expanded={launcherOpen}
@@ -3685,7 +3685,7 @@ function Tab({
       {closable && onClose ? (
         <button
           type="button"
-          className="ws-tab-close od-tooltip"
+          className="ws-tab-close readable-tooltip"
           onClick={(e) => {
             e.stopPropagation();
             onClose();

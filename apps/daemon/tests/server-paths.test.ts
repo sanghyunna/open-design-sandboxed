@@ -34,7 +34,7 @@ describe('resolveProjectRoot', () => {
 });
 
 describe('resolveDaemonCliPath', () => {
-  it('resolves the od CLI from the daemon package root', () => {
+  it('resolves the readable CLI from the daemon package root', () => {
     const packageRoot = path.resolve(import.meta.dirname, '..');
 
     expect(resolveDaemonCliPath()).toBe(path.join(packageRoot, 'dist', 'cli.js'));
@@ -46,8 +46,8 @@ describe('resolveDaemonCliPath', () => {
     );
   });
 
-  it('uses OD_BIN as a fallback override for bundled wrapper invocations', () => {
-    expect(resolveDaemonCliPath({ OD_BIN: '/app/prebundled/daemon-cli.mjs' })).toBe(
+  it('uses READABLE_BIN as a fallback override for bundled wrapper invocations', () => {
+    expect(resolveDaemonCliPath({ READABLE_BIN: '/app/prebundled/daemon-cli.mjs' })).toBe(
       '/app/prebundled/daemon-cli.mjs',
     );
   });
@@ -79,7 +79,7 @@ describe('resolveDaemonResourceRoot', () => {
       'versions',
       '0.10.0-beta.15',
       'payload',
-      'Open Design Beta.app',
+      'Readable Studio Beta.app',
       'Contents',
       'Resources',
       'readable-studio',
@@ -93,7 +93,7 @@ describe('resolveDaemonResourceRoot', () => {
     const configured = path.resolve(import.meta.dirname, '..', 'fixtures-other', 'resources');
 
     expect(() => resolveDaemonResourceRoot({ configured, safeBases: [safeBase] })).toThrow(
-      /OD_RESOURCE_ROOT must be under/,
+      /READABLE_RESOURCE_ROOT must be under/,
     );
   });
 });
@@ -101,9 +101,9 @@ describe('resolveDaemonResourceRoot', () => {
 describe('resolveDaemonPluginPreviewsDir', () => {
   it('resolves under the resource root in the packaged layout', () => {
     // Packaged: the prebundled daemon's PROJECT_ROOT is Resources/app (no data/),
-    // but the bundled manifest lives under OD_RESOURCE_ROOT (Resources/readable-studio).
-    const resourceRoot = '/Applications/Open Design.app/Contents/Resources/readable-studio';
-    const projectRoot = '/Applications/Open Design.app/Contents/Resources/app';
+    // but the bundled manifest lives under READABLE_RESOURCE_ROOT (Resources/readable-studio).
+    const resourceRoot = '/Applications/Readable Studio.app/Contents/Resources/readable-studio';
+    const projectRoot = '/Applications/Readable Studio.app/Contents/Resources/app';
 
     expect(
       resolveDaemonPluginPreviewsDir({ env: {}, resourceRoot, projectRoot }),
@@ -118,21 +118,21 @@ describe('resolveDaemonPluginPreviewsDir', () => {
     ).toBe(path.join(projectRoot, 'data', 'plugin-previews'));
   });
 
-  it('honors an OD_PLUGIN_PREVIEWS_DIR override from the injected env', () => {
+  it('honors an READABLE_PLUGIN_PREVIEWS_DIR override from the injected env', () => {
     const projectRoot = '/repo';
 
     // Absolute override passes through; a relative one resolves against projectRoot.
     expect(
       resolveDaemonPluginPreviewsDir({
-        env: { OD_PLUGIN_PREVIEWS_DIR: '/abs/previews' },
-        resourceRoot: '/res/open-design',
+        env: { READABLE_PLUGIN_PREVIEWS_DIR: '/abs/previews' },
+        resourceRoot: '/res/readable-studio',
         projectRoot,
       }),
     ).toBe('/abs/previews');
     expect(
       resolveDaemonPluginPreviewsDir({
-        env: { OD_PLUGIN_PREVIEWS_DIR: 'rel/previews' },
-        resourceRoot: '/res/open-design',
+        env: { READABLE_PLUGIN_PREVIEWS_DIR: 'rel/previews' },
+        resourceRoot: '/res/readable-studio',
         projectRoot,
       }),
     ).toBe(path.join(projectRoot, 'rel', 'previews'));

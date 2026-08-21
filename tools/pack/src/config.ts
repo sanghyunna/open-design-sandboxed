@@ -93,7 +93,7 @@ function defaultNamespaceForAppVersion(appVersion: string | undefined): string {
 function resolveToolPackWebOutputMode(value: string | undefined): ToolPackWebOutputMode {
   if (value == null || value.length === 0) return "standalone";
   if (value === "server" || value === "standalone") return value;
-  throw new Error(`unsupported OD_WEB_OUTPUT_MODE value: ${value}`);
+  throw new Error(`unsupported READABLE_WEB_OUTPUT_MODE value: ${value}`);
 }
 
 function resolveToolPackAmrProfile(value: string | undefined): ToolPackAmrProfile | undefined {
@@ -101,7 +101,7 @@ function resolveToolPackAmrProfile(value: string | undefined): ToolPackAmrProfil
   const normalized = value.trim();
   if (normalized.length === 0) return undefined;
   if (normalized === "prod" || normalized === "test" || normalized === "local") return normalized;
-  throw new Error(`OPEN_DESIGN_AMR_PROFILE must be prod, test, or local: ${value}`);
+  throw new Error(`READABLE_AMR_PROFILE must be prod, test, or local: ${value}`);
 }
 
 function resolveElectronVersion(workspaceRoot: string): string {
@@ -171,8 +171,8 @@ export function resolveToolPackConfig(
     removeSidecars: options.removeSidecars === true,
     signed: options.signed === true,
     silent: options.silent !== false,
-    amrProfile: resolveToolPackAmrProfile(process.env.OPEN_DESIGN_AMR_PROFILE),
-    webOutputMode: resolveToolPackWebOutputMode(process.env.OD_WEB_OUTPUT_MODE),
+    amrProfile: resolveToolPackAmrProfile(process.env.READABLE_AMR_PROFILE),
+    webOutputMode: resolveToolPackWebOutputMode(process.env.READABLE_WEB_OUTPUT_MODE),
     workspaceRoot: WORKSPACE_ROOT,
   };
 }

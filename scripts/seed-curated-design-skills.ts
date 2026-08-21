@@ -1120,7 +1120,7 @@ function buildFrontmatter(s: CuratedSkill): string {
   for (const t of s.triggers) {
     lines.push(`  - "${t.replace(/"/g, '\\"')}"`);
   }
-  lines.push('od:');
+  lines.push('readable:');
   lines.push(`  mode: ${s.mode}`);
   lines.push(`  category: ${s.category}`);
   lines.push(`  upstream: "${s.upstream}"`);

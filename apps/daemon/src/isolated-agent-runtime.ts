@@ -21,8 +21,8 @@ const BROKER_CLIENT_SOURCE = String.raw`import { readFile } from 'node:fs/promis
 import net from 'node:net';
 import path from 'node:path';
 
-const pipe = process.env.OD_ISOLATED_TOOL_BROKER_PIPE;
-const token = process.env.OD_ISOLATED_TOOL_BROKER_TOKEN;
+const pipe = process.env.READABLE_ISOLATED_TOOL_BROKER_PIPE;
+const token = process.env.READABLE_ISOLATED_TOOL_BROKER_TOKEN;
 if (!pipe || !token) throw new Error('isolated tool broker is unavailable');
 const args = process.argv.slice(2);
 const inputIndex = args.indexOf('--input');
@@ -189,7 +189,7 @@ export function isolatedBrokerHostPathsAreProtected(options: {
 }
 
 export function isolatedRunPaths(runId: string): IsolatedRunPaths {
-  const root = path.join(os.tmpdir(), 'open-design-isolated-agents', safeRunId(runId));
+  const root = path.join(os.tmpdir(), 'readable-studio-isolated-agents', safeRunId(runId));
   const systemRoots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.SystemRoot]
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
     .map((value) => path.resolve(value).toLowerCase());
@@ -198,7 +198,7 @@ export function isolatedRunPaths(runId: string): IsolatedRunPaths {
     (systemRoot) => executable.toLowerCase() === systemRoot || executable.toLowerCase().startsWith(`${systemRoot}${path.sep}`),
   );
   return {
-    clientPath: path.join(root, 'od-tool-broker-client.mjs'),
+    clientPath: path.join(root, 'readable-tool-broker-client.mjs'),
     home: path.join(root, 'home'),
     nodeBin: needsPrivateNode ? path.join(root, 'bin', path.basename(process.execPath)) : process.execPath,
     root,
@@ -278,7 +278,7 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
   }
   const paths = isolatedRunPaths(options.runId);
   const brokerNonce = randomBytes(18).toString('hex');
-  const pipeName = `\\\\.\\pipe\\LOCAL\\OpenDesign.${process.pid}.${brokerNonce}`;
+  const pipeName = `\\\\.\\pipe\\LOCAL\\ReadableStudio.${process.pid}.${brokerNonce}`;
   await rm(paths.root, { force: true, recursive: true });
   await Promise.all([
     mkdir(paths.home, { recursive: true }),
@@ -301,12 +301,12 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
       cwd: options.cwd,
       env: {
         ...options.hostEnv,
-        OD_BIN: options.hostOdBin,
-        OD_DAEMON_URL: options.daemonUrl,
-        OD_NODE_BIN: options.hostNodeBin,
-        OD_PROJECT_DIR: options.projectDir,
-        OD_PROJECT_ID: options.projectId,
-        OD_TOOL_TOKEN: options.toolToken,
+        READABLE_BIN: options.hostOdBin,
+        READABLE_DAEMON_URL: options.daemonUrl,
+        READABLE_NODE_BIN: options.hostNodeBin,
+        READABLE_PROJECT_DIR: options.projectDir,
+        READABLE_PROJECT_ID: options.projectId,
+        READABLE_TOOL_TOKEN: options.toolToken,
       },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -374,8 +374,8 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
     readExecutePaths,
     ipc: { pipeName, handleRequest },
     clientEnv: {
-      OD_ISOLATED_TOOL_BROKER_PIPE: pipeName,
-      OD_ISOLATED_TOOL_BROKER_TOKEN: brokerToken,
+      READABLE_ISOLATED_TOOL_BROKER_PIPE: pipeName,
+      READABLE_ISOLATED_TOOL_BROKER_TOKEN: brokerToken,
     },
     close: async () => {
       if (closed) return;
@@ -391,16 +391,16 @@ export async function startIsolatedToolBroker(options: BrokerOptions): Promise<I
 }
 
 const STRIPPED_ISOLATED_ENV_KEYS = new Set([
-  'OD_BIN',
-  'OD_API_TOKEN',
-  'OD_DAEMON_URL',
-  'OD_DATA_DIR',
+  'READABLE_BIN',
+  'READABLE_API_TOKEN',
+  'READABLE_DAEMON_URL',
+  'READABLE_DATA_DIR',
   SIDECAR_ENV.DESKTOP_APPROVAL_TOKEN,
-  'OD_MEDIA_CONFIG_DIR',
+  'READABLE_MEDIA_CONFIG_DIR',
   SIDECAR_ENV.DAEMON_PORT,
-  'OD_RESOURCE_ROOT',
+  'READABLE_RESOURCE_ROOT',
   SIDECAR_ENV.IPC_PATH,
-  'OD_TOOL_TOKEN',
+  'READABLE_TOOL_TOKEN',
 ]);
 
 export function isolatedAgentEnv(
@@ -424,8 +424,8 @@ export function isolatedAgentEnv(
       TEMP: paths.temp,
       TMP: paths.temp,
       TMPDIR: paths.temp,
-      OD_BIN: paths.clientPath,
-      OD_NODE_BIN: paths.nodeBin,
+      READABLE_BIN: paths.clientPath,
+      READABLE_NODE_BIN: paths.nodeBin,
     });
     env.NODE_OPTIONS = [env.NODE_OPTIONS, '--preserve-symlinks', '--preserve-symlinks-main']
       .filter(Boolean)

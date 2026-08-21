@@ -2,7 +2,7 @@
 
 The pet companion in the web app can adopt pets packaged by the upstream
 Codex `hatch-pet` skill. This doc explains where those pets live, how
-Open Design discovers them, and what to do if you do not have Codex
+Readable Studio discovers them, and what to do if you do not have Codex
 installed.
 
 ## Where pets live
@@ -27,7 +27,7 @@ panel calls these endpoints from
 
 ## I do not have Codex installed
 
-You do not need Codex to use Open Design. The pet companion ships with
+You do not need Codex to use Readable Studio. The pet companion ships with
 built-in pets that work out of the box. The "Recently hatched" section
 will simply stay empty until something appears under
 `${CODEX_HOME:-$HOME/.codex}/pets/`.
@@ -51,7 +51,7 @@ You have three ways to populate it without running Codex:
 If `~/.codex/pets/` does not exist, the daemon does **not** auto-create
 it — empty list is returned and the UI shows "no recently hatched pets
 yet". Creating the directory is intentionally an explicit user step so
-the daemon never writes outside `OD_DATA_DIR` / project-owned paths
+the daemon never writes outside `READABLE_DATA_DIR` / project-owned paths
 without a user opting in.
 
 ## Manifest shape

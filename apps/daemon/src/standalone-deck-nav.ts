@@ -1,4 +1,4 @@
-const MARKER = 'data-od-standalone-deck-nav-dedupe';
+const MARKER = 'data-readable-standalone-deck-nav-dedupe';
 
 export function injectStandaloneDeckKeyDedupe(html: string): string {
   if (!shouldInjectStandaloneDeckKeyDedupe(html)) return html;

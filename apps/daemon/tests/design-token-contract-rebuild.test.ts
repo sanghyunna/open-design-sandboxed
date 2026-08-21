@@ -10,7 +10,7 @@ describe('prepareDesignTokenContractRebuild', () => {
   let systemDir: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(path.join(tmpdir(), 'od-token-rebuild-'));
+    root = await mkdtemp(path.join(tmpdir(), 'readable-token-rebuild-'));
     systemDir = path.join(root, 'imported-system');
     await mkdir(path.join(systemDir, 'source'), { recursive: true });
     await writeFile(path.join(systemDir, 'DESIGN.md'), '# Imported System\n\n> Category: Imported\n', 'utf8');

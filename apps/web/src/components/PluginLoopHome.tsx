@@ -39,7 +39,7 @@ export interface PluginLoopSubmit {
   // stamp on the new project's metadata. The daemon-side default
   // binding then resolves to the matching scenario plugin for that kind.
   // Null means the caller did not stamp an explicit kind. HomeView's
-  // free-form fallback uses `other` and binds the hidden od-default
+  // free-form fallback uses `other` and binds the hidden readable-default
   // router plugin so the agent asks for the exact task type in-chat.
   projectKind?: 'prototype' | 'deck' | 'template' | 'image' | 'video' | 'audio' | 'other' | null;
   projectMetadata?: ProjectMetadata | null;
@@ -236,7 +236,7 @@ export function PluginLoopHome({ onSubmit }: Props) {
         ) : sortedPlugins.length === 0 ? (
           <div className="plugin-loop-home__empty">
             No plugins installed. Install one with{' '}
-            <code>od plugin install &lt;source&gt;</code>.
+            <code>readable plugin install &lt;source&gt;</code>.
           </div>
         ) : (
           sortedPlugins.map((p) => {

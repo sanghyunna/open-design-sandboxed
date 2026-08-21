@@ -5,8 +5,8 @@ import { renderHook } from '@testing-library/react';
 import { installMockReadableStudioHost } from '@readable-studio/host/testing';
 import { detectInitialLocale, useI18n } from '../../src/i18n';
 
-const LS_KEY = 'open-design:locale';
-const LS_SOURCE_KEY = 'open-design:locale-source';
+const LS_KEY = 'readable-studio:locale';
+const LS_SOURCE_KEY = 'readable-studio:locale-source';
 
 function setStoredLocale(locale: string, source: 'manual' | 'untagged' = 'manual'): void {
   window.localStorage.setItem(LS_KEY, locale);

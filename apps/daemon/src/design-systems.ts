@@ -548,7 +548,7 @@ export async function readDesignSystemPullFile(
 export function isDesignTokenChannelEnabled(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return env.OD_DESIGN_TOKEN_CHANNEL !== '0';
+  return env.READABLE_DESIGN_TOKEN_CHANNEL !== '0';
 }
 
 export async function resolveDesignSystemAssets(
@@ -1639,7 +1639,7 @@ function renderUiKitComponent(name: string, title: string, purpose: string): str
   if (name === 'Composer') return renderComposerUiKitComponent(title);
   return `function ${name}({ children, title = '${escapeJsString(title)}' }) {
   return (
-    <section className="od-ui-kit-${name.toLowerCase()}">
+    <section className="readable-ui-kit-${name.toLowerCase()}">
       <small>${escapeTsxText(purpose)}</small>
       <h2>{title}</h2>
       <div>{children}</div>
@@ -1652,7 +1652,7 @@ window.${name} = ${name};
 }
 
 function isReplaceableUiKitScaffold(text: string): boolean {
-  return Buffer.byteLength(text, 'utf8') < 700 && /od-ui-kit-[a-z-]+/u.test(text);
+  return Buffer.byteLength(text, 'utf8') < 700 && /readable-ui-kit-[a-z-]+/u.test(text);
 }
 
 function renderAppUiKitComponent(title: string): string {
@@ -2653,7 +2653,7 @@ function renderCssTokens(input: { title: string; palette: GeneratedPalette }): s
   --space-4: var(--${slug}-space-4);
 }
 
-.od-design-system-preview {
+.readable-studio-design-system-preview {
   color: var(--${slug}-foreground);
   background: var(--${slug}-background);
   font-family: var(--${slug}-font-sans);
@@ -2680,7 +2680,7 @@ function renderLogoSvg(title: string, palette: GeneratedPalette): string {
 function renderReferenceComponent(title: string): string {
   return `export function DesignSystemReference() {
   return (
-    <section className="od-design-system-preview">
+    <section className="readable-design-system-preview">
       <h1>${escapeTsxText(title)}</h1>
       <p>Use DESIGN.md and colors_and_type.css as the source of truth.</p>
     </section>

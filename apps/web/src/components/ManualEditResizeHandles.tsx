@@ -286,7 +286,7 @@ export function ManualEditResizeHandles({
       style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
       role="group"
       aria-label={frameLabel}
-      data-od-edit-selected-surface
+      data-readable-edit-selected-surface
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >

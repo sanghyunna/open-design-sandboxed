@@ -5,7 +5,7 @@ import { automatedUiScenarios } from '@/playwright/resources';
 import type { UiScenario } from '@/playwright/resources';
 import { T } from '@/timeouts';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const ACTIVE_ARTIFACT_PREVIEW_SELECTOR = '[data-testid="artifact-preview-frame"]:visible, [data-testid="artifact-preview-frame-url-load"]:visible, [data-testid="artifact-preview-frame-srcdoc"]:visible';
 
 test.describe.configure({ timeout: 30_000 });
@@ -2321,10 +2321,10 @@ function manualEditHtml(): string {
   <head><meta charset="utf-8"><title>Manual Edit</title></head>
   <body>
     <main>
-      <section data-od-id="hero" data-od-label="Hero section">
-        <h1 data-od-id="hero-title" data-od-label="Hero title">Original Hero</h1>
-        <a data-od-id="cta" data-od-label="Primary CTA" href="/start">Start now</a>
-        <img data-od-id="hero-image" data-od-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
+      <section data-readable-id="hero" data-readable-label="Hero section">
+        <h1 data-readable-id="hero-title" data-readable-label="Hero title">Original Hero</h1>
+        <a data-readable-id="cta" data-readable-label="Primary CTA" href="/start">Start now</a>
+        <img data-readable-id="hero-image" data-readable-label="Hero image" src="/hero.png" alt="Hero" style="width:64px;height:64px;">
       </section>
     </main>
   </body>
@@ -2335,8 +2335,8 @@ function deckHtml(): string {
   return `<!doctype html>
 <html>
   <body>
-    <section class="slide" data-od-id="slide-1"><h1>Slide One</h1></section>
-    <section class="slide" data-od-id="slide-2" hidden><h1>Slide Two</h1></section>
+    <section class="slide" data-readable-id="slide-1"><h1>Slide One</h1></section>
+    <section class="slide" data-readable-id="slide-2" hidden><h1>Slide Two</h1></section>
     <script>
       let active = 0;
       const slides = Array.from(document.querySelectorAll('.slide'));
@@ -2549,7 +2549,7 @@ async function runCommentAttachmentFlow(
   await page.getByTestId('board-mode-toggle').click();
   await page.getByTestId('comment-mode-toggle').click();
   const frame = artifactPreviewFrame(page);
-  await frame.locator('[data-od-id="hero-title"]').click();
+  await frame.locator('[data-readable-id="hero-title"]').click();
   await expect(page.getByTestId('comment-popover')).toBeVisible();
   await page.getByTestId('comment-popover-input').fill('Make the headline more specific.');
   await page.getByTestId('comment-popover').getByRole('button', { name: 'Save comment' }).click();
@@ -2560,7 +2560,7 @@ async function runCommentAttachmentFlow(
   await expect(page.getByTestId('chat-send')).toBeDisabled();
   await page.getByTestId('comment-popover').getByRole('button', { name: 'Close' }).click();
 
-  await frame.locator('[data-od-id="hero-copy"]').hover();
+  await frame.locator('[data-readable-id="hero-copy"]').hover();
   await expect(page.getByTestId('comment-target-overlay')).toBeVisible();
   await expect(page.getByTestId('comment-target-overlay')).toContainText('hero-copy');
 
@@ -2698,7 +2698,7 @@ async function seedDeckArtifact(
   slides: string[],
 ) {
   const slideHtml = slides
-    .map((slide, index) => `<section class="slide" data-od-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
+    .map((slide, index) => `<section class="slide" data-readable-id="slide-${index + 1}"${index === 0 ? '' : ' hidden'}><h1>${slide}</h1></section>`)
     .join('\n');
   await seedProjectFile(
     page,
@@ -2750,7 +2750,7 @@ async function createProjectNameOnly(
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
     await expect(privacyDialog).toHaveCount(0);

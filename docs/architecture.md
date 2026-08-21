@@ -53,7 +53,7 @@ The package is portable: no installer, updater, or destination-machine developme
 
 ### Source development
 
-`pnpm tools-dev` owns daemon, web, and desktop lifecycle. Source daemon data defaults to `<repo>\.readable-studio`; control-plane runtime state is separate under `<repo>\.tmp\tools-dev\<namespace>`. `OD_DATA_DIR` relocates daemon data when set to an accepted path.
+`pnpm tools-dev` owns daemon, web, and desktop lifecycle. Source daemon data defaults to `<repo>\.readable-studio`; control-plane runtime state is separate under `<repo>\.tmp\tools-dev\<namespace>`. `READABLE_DATA_DIR` relocates daemon data when set to an accepted path.
 
 ## Components
 

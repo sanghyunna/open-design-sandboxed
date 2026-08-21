@@ -94,9 +94,9 @@ export function PluginMediaDetail({
   const [copied, setCopied] = useState(false);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.readable ?? {};
+  const readable = manifest.readable ?? {};
   const description = manifest.description ?? '';
-  const query = resolvePluginQueryFallback(od.useCase?.query);
+  const query = resolvePluginQueryFallback(readable.useCase?.query);
   const media = useMemo(() => readMedia(record), [record]);
   const hasAsset = Boolean(media.poster || media.videoUrl || media.audioUrl);
 

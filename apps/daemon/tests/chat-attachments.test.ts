@@ -9,16 +9,16 @@ import {
 describe('resolveSafeProjectAttachments', () => {
   it('keeps Windows attachments when root and attachment path use different separators and drive casing', () => {
     const existing = new Set([
-      'C:\\Users\\Designer\\Open Design\\m5-logo.png',
+      'C:\\Users\\Designer\\Readable Studio\\m5-logo.png',
       'c:\\users\\designer\\open design\\assets\\mark.png',
     ]);
 
     const safe = resolveSafeProjectAttachments(
-      'C:/Users/Designer/Open Design/',
+      'C:/Users/Designer/Readable Studio/',
       [
         'm5-logo.png',
         'c:/users/designer/open design/assets/mark.png',
-        'C:/Users/Designer/Open Design Adjacent/secret.png',
+        'C:/Users/Designer/Readable Studio Adjacent/secret.png',
         '..\\secret.png',
       ],
       {
@@ -49,7 +49,7 @@ describe('resolveSafeProjectAttachments', () => {
 describe('formatDesignFilesWorkspaceHint', () => {
   it('treats unselected Design Files as searchable project context', () => {
     const hint = formatDesignFilesWorkspaceHint(
-      '/tmp/open-design/project-1',
+      '/tmp/readable-studio/project-1',
       [
         { name: 'slides/pitch.html', path: 'slides/pitch.html', kind: 'html', size: 2048 },
         { name: 'image.png', path: 'image.png', kind: 'image', size: 196_100 },

@@ -59,8 +59,8 @@ function slugify(value: string): string {
 }
 
 function manifestField(record: InstalledPluginRecord, key: string): string | undefined {
-  const od = (record.manifest?.readable ?? {}) as Record<string, unknown>;
-  const v = od[key];
+  const readable = (record.manifest?.readable ?? {}) as Record<string, unknown>;
+  const v = readable[key];
   return typeof v === 'string' ? v : undefined;
 }
 
@@ -474,10 +474,10 @@ export function applyFacetSelection(
 }
 
 export function isFeaturedPlugin(record: InstalledPluginRecord): boolean {
-  const od = (record.manifest?.readable ?? {}) as Record<string, unknown>;
+  const readable = (record.manifest?.readable ?? {}) as Record<string, unknown>;
   return (
-    od.featured === true ||
-    (typeof od.featured === 'number' && Number.isFinite(od.featured))
+    readable.featured === true ||
+    (typeof readable.featured === 'number' && Number.isFinite(readable.featured))
   );
 }
 

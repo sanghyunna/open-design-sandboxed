@@ -1,6 +1,6 @@
 // Plan §3.F4 / spec §8 e2e-3 anchor.
 //
-// Verifies the headless `od plugin install → project create → run start`
+// Verifies the headless `readable plugin install → project create → run start`
 // loop end-to-end at the HTTP layer (the same paths the CLI subcommands
 // from §3.F1 / §3.F2 hit). Without an actual agent backend we can't
 // assert "first ND-JSON event has kind='pipeline_stage_started'" — that
@@ -68,7 +68,7 @@ async function runCli(
 ): Promise<{ stdout: string; stderr: string }> {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    OD_DAEMON_URL: baseUrl,
+    READABLE_DAEMON_URL: baseUrl,
   };
   delete env.NODE_OPTIONS;
   return await execFileP(process.execPath, [TSX_CLI, CLI_SRC, ...args], {
@@ -214,11 +214,11 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       prompt: string;
     };
     expect(shareBody.ok).toBe(true);
-    expect(shareBody.actionPluginId).toBe('od-plugin-publish-github');
+    expect(shareBody.actionPluginId).toBe('readable-plugin-publish-github');
     expect(shareBody.sourcePluginId).toBe('sample-plugin');
     expect(shareBody.appliedPluginSnapshotId).toBeTruthy();
     expect(shareBody.stagedPath).toBe('plugin-source/sample-plugin');
-    expect(shareBody.prompt).toContain('/api/projects/$OD_PROJECT_ID/plugins/publish-github');
+    expect(shareBody.prompt).toContain('/api/projects/$READABLE_PROJECT_ID/plugins/publish-github');
     expect(shareBody.prompt).toContain('plugin-source/sample-plugin');
     expect(shareBody.project.pendingPrompt).toBe(shareBody.prompt);
 
@@ -239,7 +239,7 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       pluginId: string;
       inputs?: Record<string, string | number | boolean>;
     };
-    expect(snapshot.pluginId).toBe('od-plugin-publish-github');
+    expect(snapshot.pluginId).toBe('readable-plugin-publish-github');
     expect(snapshot.inputs).toMatchObject({
       source_plugin_id: 'sample-plugin',
       plugin_context_path: 'plugin-source/sample-plugin',
@@ -248,7 +248,7 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
     const contributeResp = await fetch(`${baseUrl}/api/plugins/sample-plugin/share-project`, {
       method:  'POST',
       headers: { 'content-type': 'application/json' },
-      body:    JSON.stringify({ action: 'contribute-open-design', locale: 'en' }),
+      body:    JSON.stringify({ action: 'contribute-readable-studio', locale: 'en' }),
     });
     expect(contributeResp.status).toBe(200);
     const contributeBody = (await contributeResp.json()) as {
@@ -261,11 +261,11 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       prompt: string;
     };
     expect(contributeBody.ok).toBe(true);
-    expect(contributeBody.actionPluginId).toBe('od-plugin-contribute-open-design');
+    expect(contributeBody.actionPluginId).toBe('readable-plugin-contribute-readable-studio');
     expect(contributeBody.sourcePluginId).toBe('sample-plugin');
     expect(contributeBody.appliedPluginSnapshotId).toBeTruthy();
     expect(contributeBody.stagedPath).toBe('plugin-source/sample-plugin');
-    expect(contributeBody.prompt).toContain('/api/projects/$OD_PROJECT_ID/plugins/contribute-open-design');
+    expect(contributeBody.prompt).toContain('/api/projects/$READABLE_PROJECT_ID/plugins/contribute-readable-studio');
 
     const locator = process.platform === 'win32' ? 'where' : 'which';
     const realGit = ((await execFileP(locator, ['git'])).stdout as string)
@@ -274,16 +274,16 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
       ?.trim();
     expect(realGit).toBeTruthy();
     if (!realGit) throw new Error('git executable not found');
-    const previousRealGit = process.env.OD_REAL_GIT;
+    const previousRealGit = process.env.READABLE_REAL_GIT;
     const previousGitAuthorName = process.env.GIT_AUTHOR_NAME;
     const previousGitAuthorEmail = process.env.GIT_AUTHOR_EMAIL;
     const previousGitCommitterName = process.env.GIT_COMMITTER_NAME;
     const previousGitCommitterEmail = process.env.GIT_COMMITTER_EMAIL;
     const previousGitConfigGlobal = process.env.GIT_CONFIG_GLOBAL;
-    const publishBareDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-publish-'));
-    const forkBareDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-fork-'));
-    const forkSeedDir = await mkdtemp(path.join(tmpdir(), 'od-fake-gh-fork-seed-'));
-    const gitConfigPath = path.join(await mkdtemp(path.join(tmpdir(), 'od-fake-gh-config-')), 'gitconfig');
+    const publishBareDir = await mkdtemp(path.join(tmpdir(), 'readable-fake-gh-publish-'));
+    const forkBareDir = await mkdtemp(path.join(tmpdir(), 'readable-fake-gh-fork-'));
+    const forkSeedDir = await mkdtemp(path.join(tmpdir(), 'readable-fake-gh-fork-seed-'));
+    const gitConfigPath = path.join(await mkdtemp(path.join(tmpdir(), 'readable-fake-gh-config-')), 'gitconfig');
     await execFileP(realGit, ['init', '--bare', publishBareDir]);
     await execFileP(realGit, ['init', '--bare', forkBareDir]);
     await execFileP(realGit, ['init', '-b', 'main', forkSeedDir]);
@@ -299,11 +299,11 @@ describe('Plan §8 e2e-3 (entry slice) — headless install → project → run'
 `,
       'utf8',
     );
-    process.env.OD_REAL_GIT = realGit;
-    process.env.GIT_AUTHOR_NAME = 'Open Design Test';
-    process.env.GIT_AUTHOR_EMAIL = 'open-design-test@example.com';
-    process.env.GIT_COMMITTER_NAME = 'Open Design Test';
-    process.env.GIT_COMMITTER_EMAIL = 'open-design-test@example.com';
+    process.env.READABLE_REAL_GIT = realGit;
+    process.env.GIT_AUTHOR_NAME = 'Readable Studio Test';
+    process.env.GIT_AUTHOR_EMAIL = 'readable-studio-test@example.com';
+    process.env.GIT_COMMITTER_NAME = 'Readable Studio Test';
+    process.env.GIT_COMMITTER_EMAIL = 'readable-studio-test@example.com';
     process.env.GIT_CONFIG_GLOBAL = gitConfigPath;
     try {
       await withFakeAgent(
@@ -325,8 +325,8 @@ if (args[0] === 'repo' && args[1] === 'create') {
   const [owner, name] = repoArg.includes('/') ? repoArg.split('/') : ['test-user', repoArg];
   const url = 'https://github.com/' + owner + '/' + name;
   if (args.includes('--source') && args.includes('--push')) {
-    spawnSync(process.env.OD_REAL_GIT, ['remote', 'add', 'origin', url], { stdio: 'inherit' });
-    spawnSync(process.env.OD_REAL_GIT, ['push', '-u', 'origin', 'HEAD'], { stdio: 'inherit' });
+    spawnSync(process.env.READABLE_REAL_GIT, ['remote', 'add', 'origin', url], { stdio: 'inherit' });
+    spawnSync(process.env.READABLE_REAL_GIT, ['push', '-u', 'origin', 'HEAD'], { stdio: 'inherit' });
   }
   ok(url);
 }
@@ -346,7 +346,7 @@ if (args[0] === 'repo' && args[1] === 'fork') ok('forked sanghyunna/readable-stu
 if (args[0] === 'repo' && args[1] === 'clone') {
   const dest = args[3] || path.basename(args[2]);
   fs.mkdirSync(dest, { recursive: true });
-  const init = spawnSync(process.env.OD_REAL_GIT, ['init'], { cwd: dest, stdio: 'inherit' });
+  const init = spawnSync(process.env.READABLE_REAL_GIT, ['init'], { cwd: dest, stdio: 'inherit' });
   process.exit(init.status ?? 0);
 }
 if (args[0] === 'pr' && args[1] === 'create') ok('https://github.com/sanghyunna/readable-studio/pull/123');
@@ -368,13 +368,13 @@ if (args[0] === 'push') {
 if (args[0] === 'clone') {
   const dest = args[args.length - 1];
   fs.mkdirSync(dest, { recursive: true });
-  const init = spawnSync(process.env.OD_REAL_GIT, ['init', '-b', 'main'], { cwd: dest, encoding: 'utf8' });
+  const init = spawnSync(process.env.READABLE_REAL_GIT, ['init', '-b', 'main'], { cwd: dest, encoding: 'utf8' });
   if (init.status !== 0) {
     if (init.stderr) process.stderr.write(init.stderr);
     process.exit(init.status ?? 1);
   }
   const remote = args.find((arg) => String(arg).startsWith('https://')) || 'https://github.com/test-user/readable-studio.git';
-  const remoteAdd = spawnSync(process.env.OD_REAL_GIT, ['remote', 'add', 'origin', remote], { cwd: dest, encoding: 'utf8' });
+  const remoteAdd = spawnSync(process.env.READABLE_REAL_GIT, ['remote', 'add', 'origin', remote], { cwd: dest, encoding: 'utf8' });
   if (remoteAdd.status !== 0) {
     if (remoteAdd.stderr) process.stderr.write(remoteAdd.stderr);
     process.exit(remoteAdd.status ?? 1);
@@ -389,7 +389,7 @@ if (args[0] === 'config' && args[1] === 'user.email') {
   console.log(process.env.GIT_AUTHOR_EMAIL || 'test-user@example.com');
   process.exit(0);
 }
-const result = spawnSync(process.env.OD_REAL_GIT, args, {
+const result = spawnSync(process.env.READABLE_REAL_GIT, args, {
   cwd: process.cwd(),
   env: process.env,
   encoding: 'utf8',
@@ -416,7 +416,7 @@ process.exit(result.status ?? 0);
               expect(publishEndpointBody.url).toBe('https://github.com/test-user/sample-plugin');
 
               const contributeEndpointResp = await fetch(
-                `${baseUrl}/api/projects/${encodeURIComponent(contributeBody.project.id)}/plugins/contribute-open-design`,
+                `${baseUrl}/api/projects/${encodeURIComponent(contributeBody.project.id)}/plugins/contribute-readable-studio`,
                 {
                   method: 'POST',
                   headers: { 'content-type': 'application/json' },
@@ -436,9 +436,9 @@ process.exit(result.status ?? 0);
       );
     } finally {
       if (previousRealGit === undefined) {
-        delete process.env.OD_REAL_GIT;
+        delete process.env.READABLE_REAL_GIT;
       } else {
-        process.env.OD_REAL_GIT = previousRealGit;
+        process.env.READABLE_REAL_GIT = previousRealGit;
       }
       if (previousGitAuthorName === undefined) {
         delete process.env.GIT_AUTHOR_NAME;
@@ -473,7 +473,7 @@ process.exit(result.status ?? 0);
   }, 120_000);
 
   it('runs the CLI install → project create → plugin run path with query and local SKILL.md in the agent prompt', async () => {
-    const pluginRoot = await mkdtemp(path.join(tmpdir(), 'od-headless-cli-plugin-'));
+    const pluginRoot = await mkdtemp(path.join(tmpdir(), 'readable-headless-cli-plugin-'));
     const pluginId = `headless-cli-plugin-${randomUUID().slice(0, 8)}`;
     const fixture = path.join(pluginRoot, pluginId);
     await mkdir(fixture, { recursive: true });
@@ -537,10 +537,10 @@ process.exit(result.status ?? 0);
       };
       expect(createBody.appliedPluginSnapshotId).toBeTruthy();
 
-      const captureRoot = await mkdtemp(path.join(tmpdir(), 'od-headless-cli-capture-'));
+      const captureRoot = await mkdtemp(path.join(tmpdir(), 'readable-headless-cli-capture-'));
       const capturePath = path.join(captureRoot, 'prompt.txt');
-      const previousCapture = process.env.OD_PROMPT_CAPTURE;
-      process.env.OD_PROMPT_CAPTURE = capturePath;
+      const previousCapture = process.env.READABLE_PROMPT_CAPTURE;
+      process.env.READABLE_PROMPT_CAPTURE = capturePath;
       try {
         await withFakeAgent(
           'opencode',
@@ -550,7 +550,7 @@ let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => { input += chunk; });
 process.stdin.on('end', () => {
-  const capturePath = process.env.OD_PROMPT_CAPTURE;
+  const capturePath = process.env.READABLE_PROMPT_CAPTURE;
   fs.appendFileSync(capturePath + '.all', '--- prompt ---\\n' + input + '\\n');
   if (input.includes('# Headless Local Skill') || input.includes('## Active plugin')) {
     fs.writeFileSync(capturePath, input);
@@ -589,9 +589,9 @@ process.stdin.on('end', () => {
         expect(prompt).toContain(`# User request\n\nGenerate a ${topic} brief for general.`);
       } finally {
         if (previousCapture === undefined) {
-          delete process.env.OD_PROMPT_CAPTURE;
+          delete process.env.READABLE_PROMPT_CAPTURE;
         } else {
-          process.env.OD_PROMPT_CAPTURE = previousCapture;
+          process.env.READABLE_PROMPT_CAPTURE = previousCapture;
         }
         await rm(captureRoot, { recursive: true, force: true });
       }
@@ -605,13 +605,13 @@ process.stdin.on('end', () => {
   // `pipeline_stage_started`. Plan §3.I1 wires firePipelineForRun into
   // POST /api/runs so any plugin run with `readable.pipeline.stages[*]`
   // emits the stage timeline before the agent's message_chunk stream.
-  it('first SSE event on a plugin run with od.pipeline is pipeline_stage_started', async () => {
+  it('first SSE event on a plugin run with readable.pipeline is pipeline_stage_started', async () => {
     // Install a fixture plugin with a 2-stage pipeline. We use a
     // disposable manifest rather than the on-disk fixture so the
     // pipeline shape is locked here.
     const fs = await import('node:fs/promises');
     const os = await import('node:os');
-    const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'od-headless-pipeline-'));
+    const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'readable-headless-pipeline-'));
     const fixture = path.join(tmpRoot, 'pipeline-plugin');
     await fs.mkdir(fixture, { recursive: true });
     await fs.writeFile(
@@ -651,7 +651,7 @@ process.stdin.on('end', () => {
     await readSseUntilSuccess(installResp);
 
     const projectId = `pipeline-${Date.now()}`;
-    // The fixture declares od.pipeline.stages and is installed under
+    // The fixture declares readable.pipeline.stages and is installed under
     // sourceKind='local', which is trusted by default (trust.ts
     // defaultTrustForRecord). The trusted default grant therefore already
     // includes pipeline:*, so the snapshot is created without any ephemeral

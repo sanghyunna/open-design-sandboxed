@@ -61,17 +61,17 @@ describe('namespace isolation spec', () => {
         : `/tmp/readable-studio/ipc/${suite.namespace}/daemon.sock`;
       expect(ipcPath).toBe(expectedIpcPath);
       expect(installInfo.args).not.toContain('--daemon-url');
-      expect(installInfo.env.OD_DATA_DIR).toBe(suite.dataDir);
-      expect(installInfo.env).not.toHaveProperty('OD_NAMESPACE');
+      expect(installInfo.env.READABLE_DATA_DIR).toBe(suite.dataDir);
+      expect(installInfo.env).not.toHaveProperty('READABLE_NAMESPACE');
       expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_NAMESPACE');
       expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_IPC_BASE');
-      expect(installInfo.env).not.toHaveProperty('OD_SIDECAR_IPC_PATH');
+      expect(installInfo.env).not.toHaveProperty('READABLE_SIDECAR_IPC_PATH');
 
       const legacyIdentityResult = await runDaemonCliExpectFailure(
         ['daemon', 'status', '--json'],
         {
-          OD_SIDECAR_IPC_PATH: ipcPath,
-          OD_SIDECAR_NAMESPACE: suite.namespace,
+          READABLE_SIDECAR_IPC_PATH: ipcPath,
+          READABLE_SIDECAR_NAMESPACE: suite.namespace,
         },
       );
       expect(`${legacyIdentityResult.stdout}\n${legacyIdentityResult.stderr}`.trim()).not.toBe('');
@@ -79,8 +79,8 @@ describe('namespace isolation spec', () => {
       const cliStatus = await runDaemonCliJson<DaemonStatusResponse>(
         ['daemon', 'status', '--json'],
         {
-          OD_DATA_DIR: suite.dataDir,
-          OD_NAMESPACE: 'wrong-daemon-namespace',
+          READABLE_DATA_DIR: suite.dataDir,
+          READABLE_NAMESPACE: 'wrong-daemon-namespace',
           READABLE_SIDECAR_IPC_BASE: path.join(suite.scratchDir, 'wrong-ipc-base'),
           READABLE_SIDECAR_IPC_PATH: ipcPath,
           READABLE_SIDECAR_NAMESPACE: 'wrong-sidecar-namespace',
@@ -167,7 +167,7 @@ async function writeLocalPluginFixture(root: string): Promise<string> {
     JSON.stringify(
       {
         name: 'e2e-namespace-plugin',
-        od: {
+        readable: {
           inputs: [{ name: 'topic', required: true, type: 'string' }],
           kind: 'skill',
           taskKind: 'new-generation',
@@ -221,7 +221,7 @@ async function runDaemonCli(
     ...process.env,
     ...env,
   };
-  delete mergedEnv.OD_DAEMON_URL;
+  delete mergedEnv.READABLE_DAEMON_URL;
   delete mergedEnv.READABLE_PORT;
 
   const { stderr, stdout } = await execFileAsync(

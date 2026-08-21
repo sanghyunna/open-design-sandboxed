@@ -12,7 +12,7 @@ import { Icon } from './Icon';
 // system font stack.
 
 function fontBannerDismissKey(projectId: string): string {
-  return `od:font-banner-dismissed:${projectId}`;
+  return `readable:font-banner-dismissed:${projectId}`;
 }
 
 /** True when the user has dismissed the banner for this project. */

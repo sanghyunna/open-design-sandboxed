@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript((key) => {

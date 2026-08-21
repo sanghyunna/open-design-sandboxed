@@ -85,9 +85,9 @@ my-plugin/
 }
 ```
 
-### 2.1 Open Design v1 is unsupported
+### 2.1 Readable Studio v1 is unsupported
 
-Readable Studio does not normalize the former `open-design.json`, `od` metadata namespace, Open Design schema URLs, marketplace indexes, or `.od/project.json` files. Every boundary rejects those inputs with the machine-readable code `UNSUPPORTED_OPEN_DESIGN_V1`. Authors must publish `readable-studio.json` with the `readable` namespace; there is no dual parser.
+Readable Studio does not normalize the former `readable-studio.json`, `readable` metadata namespace, Readable Studio schema URLs, marketplace indexes, or `.readable-studio/project.json` files. Every boundary rejects those inputs with the machine-readable code `UNSUPPORTED_LEGACY_PRODUCT_V1`. Authors must publish `readable-studio.json` with the `readable` namespace; there is no dual parser.
 
 ## 3. Workflow Taxonomy
 

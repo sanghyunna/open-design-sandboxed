@@ -27,7 +27,7 @@ type ViewMode = "grid" | "kanban";
 
 type DesignListItem = { type: "project"; project: Project; updatedAt: number; createdAt: number };
 
-const DESIGNS_VIEW_STORAGE_KEY = "od:designs:view";
+const DESIGNS_VIEW_STORAGE_KEY = "readable:designs:view";
 
 export const STATUS_ORDER = [
 	"not_started",

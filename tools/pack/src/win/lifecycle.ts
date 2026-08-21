@@ -37,7 +37,7 @@ import type {
   WinStopResult,
 } from "./types.js";
 
-const PACKAGED_CONFIG_PATH_ENV = "OD_PACKAGED_CONFIG_PATH";
+const PACKAGED_CONFIG_PATH_ENV = "READABLE_PACKAGED_CONFIG_PATH";
 
 function desktopStamp(config: ToolPackConfig): SidecarStamp {
   return {

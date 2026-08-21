@@ -39,7 +39,7 @@ vi.mock('../../src/components/EntryView', () => ({
         {config.agentModels?.amr?.model ?? 'none'}
       </div>
       <div data-testid="amr-profile">
-        {config.agentCliEnv?.amr?.OPEN_DESIGN_AMR_PROFILE ?? 'none'}
+        {config.agentCliEnv?.amr?.READABLE_AMR_PROFILE ?? 'none'}
       </div>
       <button onClick={() => onOpenSettings()}>open settings</button>
     </>
@@ -77,7 +77,7 @@ vi.mock('../../src/components/SettingsDialog', () => ({
         onClick={() =>
           void onRefreshAgents({
             agentCliEnv: {
-              amr: { OPEN_DESIGN_AMR_PROFILE: 'next-profile' },
+              amr: { READABLE_AMR_PROFILE: 'next-profile' },
             },
           })}
       >
@@ -426,7 +426,7 @@ describe('App AMR polling', () => {
       ...baseConfig,
       agentModels: { amr: { model: 'old-remote', reasoning: 'default' } },
       agentCliEnv: {
-        amr: { OPEN_DESIGN_AMR_PROFILE: 'prod' },
+        amr: { READABLE_AMR_PROFILE: 'prod' },
       },
     });
     mockedFetchAmrModels.mockReset();
@@ -445,7 +445,7 @@ describe('App AMR polling', () => {
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({
         agentCliEnv: {
-          amr: { OPEN_DESIGN_AMR_PROFILE: 'local' },
+          amr: { READABLE_AMR_PROFILE: 'local' },
         },
       });
     mockedMergeDaemonConfig.mockImplementation((local, daemon) => ({
@@ -509,14 +509,14 @@ describe('App AMR polling', () => {
     mockedLoadConfig.mockReturnValue({
       ...baseConfig,
       agentCliEnv: {
-        amr: { OPEN_DESIGN_AMR_PROFILE: 'prod' },
+        amr: { READABLE_AMR_PROFILE: 'prod' },
       },
     });
     mockedFetchDaemonConfig
       .mockResolvedValueOnce({})
       .mockResolvedValueOnce({
         agentCliEnv: {
-          amr: { OPEN_DESIGN_AMR_PROFILE: 'local' },
+          amr: { READABLE_AMR_PROFILE: 'local' },
         },
       });
     mockedMergeDaemonConfig.mockImplementation((local, daemon) => ({

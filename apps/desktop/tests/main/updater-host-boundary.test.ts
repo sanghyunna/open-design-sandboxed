@@ -35,8 +35,8 @@ describe("desktop updater removal boundary", () => {
     const runtime = source("src/main/runtime.ts");
 
     for (const removedToken of [
-      "OD_UPDATE_",
-      "releases.open-design.ai",
+      "READABLE_UPDATE_",
+      "releases.readable-studio.ai",
       "checkForUpdates",
       "updateScheduler",
       "updateMetadataUrl",

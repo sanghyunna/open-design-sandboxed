@@ -29,7 +29,7 @@ describe('app-config', () => {
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-appconfig-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-appconfig-'));
   });
 
   afterEach(async () => {
@@ -242,8 +242,8 @@ describe('app-config', () => {
           },
           amr: {
             VELA_BIN: '~/bin/vela',
-            OPEN_DESIGN_AMR_PROFILE: '  local  ',
-            OPENCODE_TEST_HOME: '  ~/.open-design-amr-opencode  ',
+            READABLE_AMR_PROFILE: '  local  ',
+            OPENCODE_TEST_HOME: '  ~/.readable-studio-amr-opencode  ',
             HOME: 'should-not-persist',
           },
           'trae-cli': {
@@ -265,8 +265,8 @@ describe('app-config', () => {
         codex: { CODEX_HOME: '~/.codex-alt', CODEX_BIN: '~/bin/codex-next', OPENAI_API_KEY: 'sk-proxy-openai' },
         amr: {
           VELA_BIN: '~/bin/vela',
-          OPEN_DESIGN_AMR_PROFILE: 'local',
-          OPENCODE_TEST_HOME: '~/.open-design-amr-opencode',
+          READABLE_AMR_PROFILE: 'local',
+          OPENCODE_TEST_HOME: '~/.readable-studio-amr-opencode',
         },
         'trae-cli': { TRAE_CLI_BIN: '~/bin/traecli-public' },
       });
@@ -361,7 +361,7 @@ describe('app-config disabled lists', () => {
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-disabled-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-disabled-'));
   });
 
   afterEach(async () => {
@@ -404,7 +404,7 @@ describe('app-config telemetry prefs', () => {
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-telemetry-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-telemetry-'));
   });
 
   afterEach(async () => {
@@ -539,7 +539,7 @@ describe('app-config projectLocations', () => {
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-projectLocations-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-projectLocations-'));
   });
 
   afterEach(async () => {
@@ -548,8 +548,8 @@ describe('app-config projectLocations', () => {
 
   it('persists valid projectLocations and reads them back', async () => {
     const locs = [
-      { id: 'ext-one', name: 'One', path: '/tmp/od-loc-one' },
-      { id: 'ext-two', name: 'Two', path: '/tmp/od-loc-two' },
+      { id: 'ext-one', name: 'One', path: '/tmp/readable-loc-one' },
+      { id: 'ext-two', name: 'Two', path: '/tmp/readable-loc-two' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
@@ -558,18 +558,18 @@ describe('app-config projectLocations', () => {
 
   it('normalizes ~/ paths via expandHomePrefix', async () => {
     const home = homedir();
-    const locs = [{ id: 'home-loc', name: 'Home', path: '~/od-projects' }];
+    const locs = [{ id: 'home-loc', name: 'Home', path: '~/readable-projects' }];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
     expect(cfg.projectLocations).toHaveLength(1);
     const first = cfg.projectLocations![0]!;
-    expect(first.path).toBe(path.join(home, 'od-projects'));
+    expect(first.path).toBe(path.join(home, 'readable-projects'));
     expect(path.isAbsolute(first.path)).toBe(true);
   });
 
   it('drops relative paths that cannot be resolved to absolute', async () => {
     const locs = [
-      { id: 'good', name: 'Good', path: '/tmp/od-good' },
+      { id: 'good', name: 'Good', path: '/tmp/readable-good' },
       { id: 'bad-relative', name: 'Bad Rel', path: './relative/path' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs });
@@ -581,7 +581,7 @@ describe('app-config projectLocations', () => {
 
   it('drops entries without a string path', async () => {
     const locs = [
-      { id: 'good', name: 'Good', path: '/tmp/od-good' },
+      { id: 'good', name: 'Good', path: '/tmp/readable-good' },
       { id: 'no-path', name: 'No Path' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs as any });
@@ -593,31 +593,31 @@ describe('app-config projectLocations', () => {
 
   it('deduplicates paths (case-sensitive on unix)', async () => {
     const locs = [
-      { id: 'first', name: 'First', path: '/tmp/od-same' },
-      { id: 'second', name: 'Second', path: '/tmp/od-same' },
+      { id: 'first', name: 'First', path: '/tmp/readable-same' },
+      { id: 'second', name: 'Second', path: '/tmp/readable-same' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
     // Single canonical entry, second deduplicated
     expect(cfg.projectLocations).toHaveLength(1);
     const first = cfg.projectLocations![0]!;
-    expect(first.path).toBe(path.normalize('/tmp/od-same'));
+    expect(first.path).toBe(path.normalize('/tmp/readable-same'));
   });
 
   it('deduplicates by resolved path after normalization', async () => {
     const locs = [
-      { id: 'first', name: 'First', path: '/tmp/od-dup/../od-dup' },
-      { id: 'second', name: 'Second', path: '/tmp/od-dup' },
+      { id: 'first', name: 'First', path: '/tmp/readable-dup/../readable-dup' },
+      { id: 'second', name: 'Second', path: '/tmp/readable-dup' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
     expect(cfg.projectLocations).toHaveLength(1);
     const first = cfg.projectLocations![0]!;
-    expect(first.path).toBe(path.normalize('/tmp/od-dup'));
+    expect(first.path).toBe(path.normalize('/tmp/readable-dup'));
   });
 
   it('rejects reserved id "default" and falls back to auto-generated id', async () => {
-    const locs = [{ id: 'default', name: 'Hijack', path: '/tmp/od-hijack' }];
+    const locs = [{ id: 'default', name: 'Hijack', path: '/tmp/readable-hijack' }];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
     expect(cfg.projectLocations).toHaveLength(1);
@@ -626,13 +626,13 @@ describe('app-config projectLocations', () => {
     expect(first.id).not.toBe('default');
     // The auto-generated id follows the hash-backed base64url pattern
     expect(first.id).toMatch(/^loc_[A-Za-z0-9_-]{1,16}$/);
-    expect(first.path).toBe(path.normalize('/tmp/od-hijack'));
+    expect(first.path).toBe(path.normalize('/tmp/readable-hijack'));
   });
 
   it('generates distinct ids for sibling paths with long shared prefixes', async () => {
     const locs = [
-      { path: '/tmp/open-design-project-locations/shared-prefix-one' },
-      { path: '/tmp/open-design-project-locations/shared-prefix-two' },
+      { path: '/tmp/readable-studio-project-locations/shared-prefix-one' },
+      { path: '/tmp/readable-studio-project-locations/shared-prefix-two' },
     ];
     await writeAppConfig(dataDir, { projectLocations: locs });
     const cfg = await readAppConfig(dataDir);
@@ -644,7 +644,7 @@ describe('app-config projectLocations', () => {
 
   it('persists a defaultProjectLocationId preference', async () => {
     await writeAppConfig(dataDir, {
-      projectLocations: [{ id: 'external-default', name: 'External', path: '/tmp/od-default-location' }],
+      projectLocations: [{ id: 'external-default', name: 'External', path: '/tmp/readable-default-location' }],
       defaultProjectLocationId: 'external-default',
     });
     const cfg = await readAppConfig(dataDir);
@@ -669,7 +669,7 @@ describe('app-config projectLocations', () => {
 
   it('clears projectLocations when empty array is sent', async () => {
     await writeAppConfig(dataDir, {
-      projectLocations: [{ id: 'ext', name: 'ext', path: '/tmp/od-ext' }],
+      projectLocations: [{ id: 'ext', name: 'ext', path: '/tmp/readable-ext' }],
       onboardingCompleted: true,
     });
     expect((await readAppConfig(dataDir)).projectLocations).toHaveLength(1);
@@ -681,7 +681,7 @@ describe('app-config projectLocations', () => {
 
   it('clears projectLocations when null is sent', async () => {
     await writeAppConfig(dataDir, {
-      projectLocations: [{ id: 'ext', name: 'ext', path: '/tmp/od-ext' }],
+      projectLocations: [{ id: 'ext', name: 'ext', path: '/tmp/readable-ext' }],
       onboardingCompleted: true,
     });
     expect((await readAppConfig(dataDir)).projectLocations).toHaveLength(1);
@@ -697,13 +697,13 @@ describe('app-config projectLocations', () => {
       path.join(dataDir, 'app-config.json'),
       JSON.stringify({
         projectLocations: [
-          { id: 'good', name: 'Good', path: '/tmp/od-good' },
+          { id: 'good', name: 'Good', path: '/tmp/readable-good' },
           { id: 'bad-relative', name: 'Bad', path: 'relative' },
           { id: 'no-path', name: 'No Path' },
           'not-an-object',
           null,
-          { id: 'good2', name: 'Dup Path', path: '/tmp/od-good' },
-          { id: 'default', name: 'Reserved', path: '/tmp/od-reserved' },
+          { id: 'good2', name: 'Dup Path', path: '/tmp/readable-good' },
+          { id: 'default', name: 'Reserved', path: '/tmp/readable-reserved' },
         ],
       }),
     );
@@ -803,14 +803,14 @@ describe('app-config origin guard', () => {
   });
 
   it('rejects no-Origin requests that only match configured deployment hosts', async () => {
-    process.env.OD_ALLOWED_ORIGINS = 'https://od.example.com';
+    process.env.READABLE_ALLOWED_ORIGINS = 'https://readable.example.com';
     try {
       const res = await httpRequest(`${baseUrl}/api/app-config`, {
-        headers: { Host: 'od.example.com' },
+        headers: { Host: 'readable.example.com' },
       });
       expect(res.status).toBe(403);
     } finally {
-      delete process.env.OD_ALLOWED_ORIGINS;
+      delete process.env.READABLE_ALLOWED_ORIGINS;
     }
   });
 

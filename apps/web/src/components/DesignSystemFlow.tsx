@@ -194,7 +194,7 @@ const EMPTY_SETUP: SetupState = {
   notes: '',
 };
 
-const GENERATION_JOB_STORAGE_PREFIX = 'od:design-system-generation-job:';
+const GENERATION_JOB_STORAGE_PREFIX = 'readable:design-system-generation-job:';
 const LOCAL_CODE_UPLOAD_ROOT = 'context/local-code';
 const FIGMA_CONTEXT_ROOT = 'context/figma';
 const ASSET_UPLOAD_ROOT = 'assets';
@@ -1397,7 +1397,7 @@ export function DesignSystemDetailView({
       // a pending revision and switch entry_from accordingly.
       const wasOnboardingHandoff =
         Boolean(peekOnboardingSessionId())
-        || sessionStorage.getItem(`od:auto-send-first:${projectId}`) === '1';
+        || sessionStorage.getItem(`readable:auto-send-first:${projectId}`) === '1';
       void streamViaDaemon({
         agentId: config.agentId,
         history: agentHistory,
@@ -3090,7 +3090,7 @@ async function prepareCreatedDesignSystemProject({
     );
     const preparedProject = await patchProject(project.id, { pendingPrompt: prompt });
     try {
-      window.sessionStorage.setItem(`od:auto-send-first:${project.id}`, '1');
+      window.sessionStorage.setItem(`readable:auto-send-first:${project.id}`, '1');
     } catch {
       // If sessionStorage is unavailable, the project still opens with the
       // pending prompt ready for the user to send manually.
@@ -3590,7 +3590,7 @@ function buildCreationAgentPrompt(
     '- For private repositories, local git credentials or GitHub CLI authentication (`gh auth login --web`) are preferred intake paths because the command still writes local evidence snapshots.',
     '- If repository intake cannot write snapshots, stop with the permission, GitHub CLI login, connection, rate-limit, or clone issue. Do not substitute ad-hoc public GitHub browsing, memory, or URL-only inference.',
     '- Finish only after the project contains reviewable design-system artifacts: `DESIGN.md`, `README.md`, `SKILL.md`, reusable token/style files, focused preview HTML cards, UI-kit examples, preserved assets/fonts when supported, and provenance/context notes.',
-    '- Before your final response, run `"$OD_NODE_BIN" "$OD_BIN" tools design-system-package-audit --path . --fail-on-warnings`. Fix every audit error and design-quality warning, including generic visual artifacts, thin source-backed modules, stale manifest paths, and missing representative assets/fonts. If an issue cannot be fixed because source evidence is missing, explain that blocker instead of claiming the design system is ready.',
+    '- Before your final response, run `"$READABLE_NODE_BIN" "$READABLE_BIN" tools design-system-package-audit --path . --fail-on-warnings`. Fix every audit error and design-quality warning, including generic visual artifacts, thin source-backed modules, stale manifest paths, and missing representative assets/fonts. If an issue cannot be fixed because source evidence is missing, explain that blocker instead of claiming the design system is ready.',
     '',
     `Design system workspace title:\n${title}`,
     '',
@@ -3724,7 +3724,7 @@ function buildSourceContextManifest(
     BUILD_ASSET_PRESERVATION_CONTRACT,
     '- preview/brand-assets.html should visibly reference preserved files from assets/ or build/ instead of recreating logos/icons as inline placeholder drawings.',
     '- Browser-copied local code snapshots under `context/local-code/` are the local source evidence for this project.',
-    '- Before marking the design system ready, run `"$OD_NODE_BIN" "$OD_BIN" tools design-system-package-audit --path . --fail-on-warnings` and fix every reported error or warning.',
+    '- Before marking the design system ready, run `"$READABLE_NODE_BIN" "$READABLE_BIN" tools design-system-package-audit --path . --fail-on-warnings` and fix every reported error or warning.',
     '- Draft design systems cannot be used by other projects until published.',
   );
 

@@ -38,7 +38,7 @@ type SkillCatalogEntry = {
 };
 
 function fresh(): string {
-  return mkdtempSync(path.join(tmpdir(), 'od-skills-'));
+  return mkdtempSync(path.join(tmpdir(), 'readable-skills-'));
 }
 
 function writeSkill(
@@ -145,7 +145,7 @@ describe('listSkills', () => {
           'description: "English fallback description."',
           'zh_description: "中文描述。"',
           'en_description: "English localized description."',
-          'od:',
+          'readable:',
           '  example_prompt: "English fallback prompt."',
           '  example_prompt_i18n:',
           '    zh-CN: "中文 prompt。"',
@@ -222,7 +222,7 @@ describe('listSkills', () => {
     expect(skill.body).toContain('--remote-debugging-port=9223');
     expect(skill.body).toContain('Chrome crashed before CDP became available');
     expect(skill.body).toContain('command -v agent-browser');
-    expect(skill.body).toContain('Open Design Smoke Path');
+    expect(skill.body).toContain('Readable Studio Smoke Path');
     expect(skill.body).toContain('`daemon-cli.mjs browser snapshot`');
     expect(skill.body).toContain('misinterpreted as daemon startup');
     expect(skill.body).toContain('trap cleanup_agent_browser EXIT INT TERM');

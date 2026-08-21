@@ -101,7 +101,7 @@ const IGNORED_DIRS = new Set([
   '.hg',
   '.next',
   '.nuxt',
-  '.od',
+  '.readable-studio',
   '.tmp',
   'build',
   'coverage',

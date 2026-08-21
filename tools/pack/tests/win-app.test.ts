@@ -54,7 +54,7 @@ function createConfig(root: string, webOutputMode: ToolPackConfig["webOutputMode
 
 describe("createWorkspaceTarballsCacheKey", () => {
   it("invalidates when the web output mode changes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "open-design-win-app-"));
+    const root = await mkdtemp(join(tmpdir(), "readable-studio-win-app-"));
 
     try {
       await writeWorkspace(root);

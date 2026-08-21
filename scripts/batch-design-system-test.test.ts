@@ -151,7 +151,7 @@ test("CLI dry-run with explicit design systems succeeds without daemon discovery
       encoding: "utf8",
       env: {
         ...process.env,
-        OD_DAEMON_URL: "",
+        READABLE_DAEMON_URL: "",
         READABLE_PORT: "",
       },
     },

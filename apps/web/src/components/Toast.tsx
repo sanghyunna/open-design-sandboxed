@@ -80,7 +80,7 @@ export function Toast({ message, details, code, ttlMs = DEFAULT_TTL, onDismiss, 
 
   return (
     <motion.div
-      className={`od-toast tone-${tone} placement-${placement}${leaving ? ' leaving' : ''}`}
+      className={`readable-toast tone-${tone} placement-${placement}${leaving ? ' leaving' : ''}`}
       role={role}
       aria-live={role === 'alert' ? 'assertive' : 'polite'}
       variants={toastSlideUp}
@@ -88,22 +88,22 @@ export function Toast({ message, details, code, ttlMs = DEFAULT_TTL, onDismiss, 
       animate="visible"
       exit="exit"
     >
-      <div className="od-toast-body">
+      <div className="readable-toast-body">
         {iconName ? (
-          <span className="od-toast-icon" aria-hidden>
+          <span className="readable-toast-icon" aria-hidden>
             <Icon name={iconName} size={14} />
           </span>
         ) : null}
-        <div className="od-toast-message">{message}</div>
+        <div className="readable-toast-message">{message}</div>
       </div>
-      {details ? <div className="od-toast-details">{details}</div> : null}
+      {details ? <div className="readable-toast-details">{details}</div> : null}
       {code ? (
-        <pre className="od-toast-code">{code}</pre>
+        <pre className="readable-toast-code">{code}</pre>
       ) : null}
       {code && onDismiss ? (
         <button
           type="button"
-          className="od-toast-dismiss"
+          className="readable-toast-dismiss"
           onClick={onDismiss}
           aria-label="Dismiss"
         >

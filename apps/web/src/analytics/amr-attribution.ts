@@ -15,7 +15,7 @@ interface RecordAmrEntryOptions {
   reuseExistingFrom?: readonly TrackingAmrEntrySource[];
 }
 
-const AMR_ATTRIBUTION_STORAGE_KEY = 'open-design:amr-entry-attribution:v1';
+const AMR_ATTRIBUTION_STORAGE_KEY = 'readable-studio:amr-entry-attribution:v1';
 const AMR_ATTRIBUTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const ENTRY_PAGE_BY_SOURCE: Record<TrackingAmrEntrySource, TrackingPageName> = {
@@ -52,8 +52,8 @@ export function recordAmrEntry(
   if (existing) return existing;
 
   const attribution: AmrEntryAttribution = {
-    entryId: `od-amr-${randomId()}`,
-    sourceProduct: 'open_design',
+    entryId: `readable-amr-${randomId()}`,
+    sourceProduct: 'readable_studio',
     sourceDetail,
     occurredAt: now.toISOString(),
   };
@@ -92,18 +92,18 @@ export function readAmrAttribution(now: Date = new Date()): AmrEntryAttribution 
 export function attributedAmrUrl(baseUrl: string, attribution: AmrEntryAttribution): string {
   try {
     const url = new URL(baseUrl);
-    url.searchParams.set('od_origin', attribution.sourceProduct);
-    url.searchParams.set('od_entry_id', attribution.entryId);
-    url.searchParams.set('od_entry_source', attribution.sourceDetail);
-    url.searchParams.set('od_entry_at', attribution.occurredAt);
+    url.searchParams.set('readable_origin', attribution.sourceProduct);
+    url.searchParams.set('readable_entry_id', attribution.entryId);
+    url.searchParams.set('readable_entry_source', attribution.sourceDetail);
+    url.searchParams.set('readable_entry_at', attribution.occurredAt);
     return url.toString();
   } catch {
     const separator = baseUrl.includes('?') ? '&' : '?';
     return `${baseUrl}${separator}${new URLSearchParams({
-      od_origin: attribution.sourceProduct,
-      od_entry_id: attribution.entryId,
-      od_entry_source: attribution.sourceDetail,
-      od_entry_at: attribution.occurredAt,
+      readable_origin: attribution.sourceProduct,
+      readable_entry_id: attribution.entryId,
+      readable_entry_source: attribution.sourceDetail,
+      readable_entry_at: attribution.occurredAt,
     }).toString()}`;
   }
 }
@@ -138,7 +138,7 @@ async function mirrorAmrEntryToAmrAnalytics(
 }
 
 function isValidAmrAttribution(value: Partial<AmrEntryAttribution>): value is AmrEntryAttribution {
-  return value.sourceProduct === 'open_design'
+  return value.sourceProduct === 'readable_studio'
     && typeof value.entryId === 'string'
     && value.entryId.length > 0
     && typeof value.sourceDetail === 'string'

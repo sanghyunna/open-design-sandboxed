@@ -22,7 +22,7 @@ function ids(agents: { id: string }[]): string[] {
 
 describe('packaged offline discovery', () => {
   test('skips only network-capable discovery probes when explicitly requested', () => {
-    expect(shouldRunAgentNetworkDiscovery({ OD_AGENT_DISCOVERY_OFFLINE: '1' })).toBe(false);
+    expect(shouldRunAgentNetworkDiscovery({ READABLE_AGENT_DISCOVERY_OFFLINE: '1' })).toBe(false);
     expect(shouldRunAgentNetworkDiscovery({})).toBe(true);
   });
 });

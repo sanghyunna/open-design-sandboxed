@@ -6,8 +6,8 @@ import { describe, expect, it } from "vitest";
 
 const packagedRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REMOVED_RUNTIME_TOKENS = [
-  "OD_UPDATE_",
-  "releases.open-design.ai",
+  "READABLE_UPDATE_",
+  "releases.readable-studio.ai",
   "updateMetadataUrl",
   "setInterval(",
   "setTimeout(",

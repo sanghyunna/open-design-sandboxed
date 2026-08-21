@@ -43,7 +43,7 @@ path inside its inner viewport:
 ></iframe>
 \`\`\`
 
-In an OD-managed project, the recommended pattern is:
+In an Readable Studio-managed project, the recommended pattern is:
 
 \`\`\`
 my-project/

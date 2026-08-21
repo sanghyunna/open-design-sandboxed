@@ -100,7 +100,7 @@ export function buildDesignSystemPackageAuditRepairPrompt(
       ...targetedActions,
       '',
     ] : []),
-    'Update the package files directly, then rerun `"$OD_NODE_BIN" "$OD_BIN" tools design-system-package-audit --path . --fail-on-warnings` until it passes.',
+    'Update the package files directly, then rerun `"$READABLE_NODE_BIN" "$READABLE_BIN" tools design-system-package-audit --path . --fail-on-warnings` until it passes.',
     '',
     'Audit findings:',
     ...findings,

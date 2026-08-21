@@ -1,6 +1,6 @@
-# Open Design VDI Optimization Plan
+# Readable Studio VDI Optimization Plan
 
-이 문서는 사내 VDI 환경에서 Open Design fork의 초기 부팅 비용과 런타임 부담을 줄이기 위한 1차 최적화 계획이다. 범위는 두 가지다.
+이 문서는 사내 VDI 환경에서 Readable Studio fork의 초기 부팅 비용과 런타임 부담을 줄이기 위한 1차 최적화 계획이다. 범위는 두 가지다.
 
 1. 기본 agent 탐색 범위를 `codex`, `cursor-agent`로 축소하고, 나머지 agent는 Settings에서 활성화했을 때만 탐색한다.
 2. UI locale과 built-in localized content를 한국어/영어만 남긴다.

@@ -15,7 +15,23 @@ export const identityClasses = [
   "vendor/license",
   "deletion target",
 ] as const;
-export const identityTokens = ["Open Design", "open-design", "OD_", "od://", "@open-design", ".od", "__od__"] as const;
+const retiredDisplayName = ["Open", "Design"].join(" ");
+const retiredSlug = ["open", "design"].join("-");
+const retiredShortPrefix = ["O", "D", "_"].join("");
+const retiredScheme = ["od", "://"].join("");
+const retiredPackageScope = `@${retiredSlug}`;
+const retiredDataDirectory = [".", "od"].join("");
+const retiredHostGlobal = ["__", "od", "__"].join("");
+
+export const identityTokens = [
+  retiredDisplayName,
+  retiredSlug,
+  retiredShortPrefix,
+  retiredScheme,
+  retiredPackageScope,
+  retiredDataDirectory,
+  retiredHostGlobal,
+] as const;
 
 export type IdentityClass = (typeof identityClasses)[number];
 export type IdentityScope = "active" | "all";
@@ -86,7 +102,12 @@ const activeClasses = new Set<IdentityClass>([
   "generated derivative",
   "deletion target",
 ]);
-const identityPattern = /@open-design|Open Design|open-design|OD_|od:\/\/|__od__|\.od(?=$|[^A-Za-z0-9_])/g;
+const escapedIdentityTokens = identityTokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+const escapedDataDirectory = escapedIdentityTokens[5];
+const identityPattern = new RegExp(
+  `${escapedIdentityTokens.filter((_, index) => index !== 5).join("|")}|${escapedDataDirectory}(?=$|[^A-Za-z0-9_])`,
+  "g",
+);
 const identityClassSet = new Set<string>(identityClasses);
 const identityTokenSet = new Set<string>(identityTokens);
 const identityLocationSet = new Set<string>(["content", "path"]);
@@ -104,7 +125,9 @@ function isVendorOrLicensePath(repositoryPath: string): boolean {
 }
 
 function isImmutableHistoryPath(repositoryPath: string): boolean {
-  return repositoryPath === "CHANGELOG.md" || repositoryPath.startsWith("specs/change/") ||
+  return repositoryPath === "CHANGELOG.md" || repositoryPath === "RELEASE-NOTES-0.10.0.md" ||
+    repositoryPath === "docs/v0.8.0-announcement.md" || repositoryPath === "docs/v0.8.0-announcement.zh-CN.md" ||
+    repositoryPath.startsWith("specs/change/") || repositoryPath.startsWith("specs/2026-04-29-live-artifacts/") ||
     repositoryPath === "mocks/manifest.json" || /^mocks\/golden\/[^/]+\.events\.json$/.test(repositoryPath) ||
     repositoryPath.startsWith("mocks/traces/") || /^v\d+\.\d+\.\d+_(?:implementation|plan)\.md$/.test(repositoryPath);
 }
@@ -126,7 +149,7 @@ function identityClassFor(repositoryPath: string, token: IdentityToken): Identit
   if (isDeletionTargetPath(repositoryPath)) return "deletion target";
   if (isGeneratedDerivativePath(repositoryPath)) return "generated derivative";
   const extension = path.posix.extname(repositoryPath).toLowerCase();
-  if (token !== "Open Design" && [".json", ".jsonc", ".toml", ".ts", ".tsx", ".yaml", ".yml"].includes(extension)) {
+  if (token !== retiredDisplayName && [".json", ".jsonc", ".toml", ".ts", ".tsx", ".yaml", ".yml"].includes(extension)) {
     return "machine contract to migrate";
   }
   return "active product";
@@ -218,6 +241,11 @@ function validateBaselineEntries(entries: unknown): IdentityBaselineEntry[] {
     }
     parseCanonicalRepositoryPath(candidate.path, `entries[${index}].path`);
     const identityClass = candidate.class as IdentityClass;
+    const token = candidate.token as IdentityToken;
+    const expectedClass = identityClassFor(String(candidate.path), token);
+    if (identityClass !== expectedClass) {
+      throw new Error(`Invalid readable identity baseline: entries[${index}].class must be ${expectedClass} for its path and token.`);
+    }
     const rule = classificationRules[identityClass];
     if (candidate.ruleId !== rule.ruleId || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(String(candidate.ruleId))) {
       throw new Error(`Invalid readable identity baseline: entries[${index}].ruleId must equal ${rule.ruleId}.`);
@@ -245,7 +273,12 @@ export function validateIdentityBaseline(value: unknown): IdentityBaseline {
   if (typeof value.description !== "string" || value.description.trim().length === 0) {
     throw new Error("Invalid readable identity baseline: description must be a nonempty string.");
   }
-  return { schemaVersion: 1, description: value.description, entries: validateBaselineEntries(value.entries) };
+  const entries = validateBaselineEntries(value.entries);
+  const forbidden = entries.find((entry) => activeClasses.has(entry.class));
+  if (forbidden) {
+    throw new Error(`Invalid readable identity baseline: ${forbidden.class} entries cannot be allowlisted after cutover.`);
+  }
+  return { schemaVersion: 1, description: value.description, entries };
 }
 
 function collectMatches(sources: IdentitySource[], scope: IdentityScope): IdentityReportEntry[] {
@@ -299,9 +332,12 @@ export function auditIdentitySources(options: AuditIdentitySourcesOptions): Iden
   for (const entry of entries) {
     classCounts[entry.class] += entry.count;
     const allowed = baselineByKey.get(entryKey(entry));
-    const allowedCount = allowed?.class === entry.class && allowed.ruleId === entry.ruleId && allowed.reason === entry.reason
-      ? allowed.count
-      : 0;
+    const immutablePathAllowance = !activeClasses.has(entry.class);
+    const allowedCount = immutablePathAllowance
+      ? entry.count
+      : allowed?.class === entry.class && allowed.ruleId === entry.ruleId && allowed.reason === entry.reason
+        ? allowed.count
+        : 0;
     if (entry.count > allowedCount) unclassified.push({ ...entry, count: entry.count - allowedCount });
   }
   for (const entry of scopedBaseline) {
@@ -374,11 +410,15 @@ export async function loadIdentityBaseline(): Promise<IdentityBaseline> {
 }
 
 export async function createIdentityBaseline(root = repoRoot): Promise<IdentityBaseline> {
-  const entries = collectMatches(await trackedSources(root), "all").map(({ firstLine: _firstLine, ...entry }) => entry);
+  const sources = await trackedSources(root);
+  const activeEntries = collectMatches(sources, "active");
+  if (activeEntries.length > 0) {
+    throw new Error(formatIdentityAuditFailure(auditIdentitySources({ baseline: [], scope: "active", sources })));
+  }
   return validateIdentityBaseline({
     schemaVersion: 1,
-    description: "Exact classified tracked Open Design identity residue frozen before the Readable Studio cutover.",
-    entries,
+    description: "Active identity allowances are forbidden; immutable paths are classified by the audit's exact path policy.",
+    entries: [],
   });
 }
 

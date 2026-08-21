@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { startHostedServer } from '../src/hosted-server.js';
 
-const PUBLIC_ORIGIN = 'https://hosted.open-design.test';
+const PUBLIC_ORIGIN = 'https://hosted.readable-studio.test';
 const USER_A = 'pr08-user-a';
 const USER_B = 'pr08-user-b';
 
@@ -144,7 +144,7 @@ describe('hosted PR08 HTTP content boundary', () => {
       headers: {
         ...auth(USER_A),
         'content-type': 'application/json',
-        'x-open-design-csrf': csrf,
+        'x-readable-studio-csrf': csrf,
         origin: 'https://attacker.example',
       },
       body: JSON.stringify({ name: 'x.txt', content: 'x' }),
@@ -431,7 +431,7 @@ interface ArtifactResponse {
 }
 
 async function start(): Promise<StartedServer> {
-  const runtimeRoot = await mkdtemp(join(tmpdir(), 'od-hosted-pr08-'));
+  const runtimeRoot = await mkdtemp(join(tmpdir(), 'readable-hosted-pr08-'));
   const counters = new Map<string, number>();
   runtimeRoots.push(runtimeRoot);
   const started = await startHostedServer({
@@ -512,7 +512,7 @@ function mutate(
     headers: {
       ...auth(user),
       'content-type': 'application/json',
-      'x-open-design-csrf': csrf,
+      'x-readable-studio-csrf': csrf,
       origin: PUBLIC_ORIGIN,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -572,7 +572,7 @@ async function upload(
     method: 'POST',
     headers: {
       ...auth(user),
-      'x-open-design-csrf': csrf,
+      'x-readable-studio-csrf': csrf,
       origin: PUBLIC_ORIGIN,
     },
     body: form,
@@ -659,7 +659,7 @@ async function bodyOnFailure(response: Response): Promise<string> {
 }
 
 async function removeRuntimeRoot(runtimeRoot: string): Promise<void> {
-  const expectedPrefix = join(tmpdir(), 'od-hosted-pr08-');
+  const expectedPrefix = join(tmpdir(), 'readable-hosted-pr08-');
   if (!runtimeRoot.startsWith(expectedPrefix)) {
     throw new Error(`refusing to remove unexpected runtime root: ${runtimeRoot}`);
   }

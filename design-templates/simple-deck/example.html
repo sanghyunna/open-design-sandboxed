@@ -95,7 +95,7 @@
 
     // Detect the real scroller — when body has `display: flex` + `overflow-x: auto`
     // the scroller can be body OR documentElement depending on the host (in
-    // particular, the OD srcdoc iframe). Pick whichever actually overflows.
+    // particular, the Readable Studio srcdoc iframe). Pick whichever actually overflows.
     function scrollContainers() {
       return [document.scrollingElement, document.documentElement, document.body]
         .filter(Boolean)

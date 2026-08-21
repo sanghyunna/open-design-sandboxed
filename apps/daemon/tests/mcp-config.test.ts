@@ -18,7 +18,7 @@ describe('mcp-config storage', () => {
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-mcpconfig-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-mcpconfig-'));
   });
 
   afterEach(async () => {
@@ -585,12 +585,12 @@ describe('buildOpenCodeMcpConfigContent', () => {
 });
 
 describe('isManagedProjectCwd', () => {
-  const projectsDir = '/abs/.od/projects';
+  const projectsDir = '/abs/.readable-studio/projects';
 
   it('accepts a real per-project subdir', () => {
-    expect(isManagedProjectCwd('/abs/.od/projects/abc', projectsDir)).toBe(true);
+    expect(isManagedProjectCwd('/abs/.readable-studio/projects/abc', projectsDir)).toBe(true);
     expect(
-      isManagedProjectCwd('/abs/.od/projects/abc/sub', projectsDir),
+      isManagedProjectCwd('/abs/.readable-studio/projects/abc/sub', projectsDir),
     ).toBe(true);
   });
 
@@ -613,11 +613,11 @@ describe('isManagedProjectCwd', () => {
   });
 
   it('rejects path-prefix collisions (different sibling dir)', () => {
-    // `/abs/.od/projects-other` starts with `/abs/.od/projects` as a string,
-    // but is NOT a child of `/abs/.od/projects/`. Strict-separator check
+    // `/abs/.readable-studio/projects-other` starts with `/abs/.readable-studio/projects` as a string,
+    // but is NOT a child of `/abs/.readable-studio/projects/`. Strict-separator check
     // makes sure we don't accidentally write to an unrelated tree.
     expect(
-      isManagedProjectCwd('/abs/.od/projects-other/x', projectsDir),
+      isManagedProjectCwd('/abs/.readable-studio/projects-other/x', projectsDir),
     ).toBe(false);
   });
 });

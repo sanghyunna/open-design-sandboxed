@@ -77,10 +77,10 @@ export function PluginScenarioDetail({
   }, []);
 
   const manifest: PluginManifest = record.manifest ?? ({} as PluginManifest);
-  const od = manifest.readable ?? {};
+  const readable = manifest.readable ?? {};
   const examples = useMemo(
-    () => (od.useCase?.exampleOutputs ?? []) as Array<{ path: string; title?: string }>,
-    [od.useCase?.exampleOutputs],
+    () => (readable.useCase?.exampleOutputs ?? []) as Array<{ path: string; title?: string }>,
+    [readable.useCase?.exampleOutputs],
   );
   const tags = manifest.tags ?? [];
 
@@ -106,8 +106,8 @@ export function PluginScenarioDetail({
             </div>
             <div className="plugin-details-modal__meta">
               <span>v{record.version}</span>
-              {od.taskKind ? <span>· {od.taskKind}</span> : null}
-              {od.kind ? <span>· {od.kind}</span> : null}
+              {readable.taskKind ? <span>· {readable.taskKind}</span> : null}
+              {readable.kind ? <span>· {readable.kind}</span> : null}
               <span>· {record.sourceKind}</span>
               {tags.length > 0 ? (
                 <span className="plugin-details-modal__meta-tags">

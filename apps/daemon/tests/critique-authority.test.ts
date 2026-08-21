@@ -60,7 +60,7 @@ let tmpDir: string;
 let db: Database.Database;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'od-authority-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'readable-authority-test-'));
   db = freshDb();
 });
 

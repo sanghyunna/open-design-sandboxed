@@ -99,7 +99,7 @@ describe("Readable Studio product identity", () => {
   it("rejects invalid descriptors", () => {
     const { appId: _appId, ...missingAppId } = expectedIdentity;
     expectParseError(missingAppId, "missing_field", "appId");
-    expectParseError({ ...expectedIdentity, productId: "open-design" }, "noncanonical_value", "productId");
+    expectParseError({ ...expectedIdentity, productId: "foreign-product" }, "noncanonical_value", "productId");
     expectParseError({ ...expectedIdentity, urlScheme: "readable-studio:" }, "malformed_value", "urlScheme");
     expectParseError({ ...expectedIdentity, envPrefix: "READABLE" }, "malformed_value", "envPrefix");
     expectParseError({ ...expectedIdentity, packageScope: "readable-studio" }, "malformed_value", "packageScope");

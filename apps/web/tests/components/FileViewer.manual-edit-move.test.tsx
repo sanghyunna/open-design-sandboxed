@@ -42,8 +42,8 @@ afterEach(() => {
 
 describe('FileViewer manual edit move frame', () => {
   const SOURCE =
-    '<!doctype html><html><body><main data-od-id="hero">Hero</main>'
-    + '<img data-od-id="pic" src="x.png"></body></html>';
+    '<!doctype html><html><body><main data-readable-id="hero">Hero</main>'
+    + '<img data-readable-id="pic" src="x.png"></body></html>';
 
   async function previewFrame() {
     return waitFor(() => {
@@ -58,7 +58,7 @@ describe('FileViewer manual edit move frame', () => {
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target },
+        data: { type: 'readable-edit-select', target },
         source: frame.contentWindow,
       }));
     });
@@ -66,11 +66,11 @@ describe('FileViewer manual edit move frame', () => {
       expect(screen.queryByLabelText('Move element')).not.toBeNull();
     });
     // Wait for any async target-broadcast re-post to settle, then read the
-    // latest od-edit-selected-target revision the bridge would echo back.
+    // latest readable-edit-selected-target revision the bridge would echo back.
     let revision = 0;
     await waitFor(() => {
       const selectedCalls = postSpy.mock.calls.filter(([message]) => (
-        (message as { type?: string }).type === 'od-edit-selected-target'
+        (message as { type?: string }).type === 'readable-edit-selected-target'
       ));
       const latest = selectedCalls.at(-1)?.[0] as { id?: string; revision?: number } | undefined;
       expect(latest?.id).toBe(target.id);
@@ -172,7 +172,7 @@ describe('FileViewer manual edit move frame', () => {
       clientX: 150,
       clientY: 80,
     });
-    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*');
+    expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-click-cancel' }, '*');
 
     fireEvent.pointerUp(interiorSurface(), {
       pointerId: 13,
@@ -182,7 +182,7 @@ describe('FileViewer manual edit move frame', () => {
     });
 
     expect(postSpy).toHaveBeenCalledWith(
-      { type: 'od-edit-alt-click', clientX: 50, clientY: 30 },
+      { type: 'readable-edit-alt-click', clientX: 50, clientY: 30 },
       '*',
     );
   });
@@ -203,10 +203,10 @@ describe('FileViewer manual edit move frame', () => {
     for (const [pointerId, surface] of [[31, interiorSurface()], [32, ringSurface()]] as const) {
       postSpy.mockClear();
       fireEvent.pointerDown(surface, { pointerId, clientX: 150, clientY: 80 });
-      expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*');
+      expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-click-cancel' }, '*');
       fireEvent.pointerUp(surface, { pointerId, clientX: 150, clientY: 80 });
       expect(postSpy).toHaveBeenCalledWith(
-        { type: 'od-edit-click', clientX: 50, clientY: 30, selectedId: 'pic' },
+        { type: 'readable-edit-click', clientX: 50, clientY: 30, selectedId: 'pic' },
         '*',
       );
     }
@@ -231,7 +231,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerDown(interiorSurface(), { pointerId: 40, clientX: 200, clientY: 150 });
     fireEvent.pointerUp(interiorSurface(), { pointerId: 40, clientX: 200, clientY: 150 });
     expect(postSpy).toHaveBeenCalledWith({
-      type: 'od-edit-click',
+      type: 'readable-edit-click',
       clientX: 100 / (zoom / 100),
       clientY: 100 / (zoom / 100),
       selectedId: 'pic',
@@ -256,7 +256,7 @@ describe('FileViewer manual edit move frame', () => {
 
     fireEvent.pointerEnter(interior, { clientX: 200, clientY: 150 });
     expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'od-edit-hover-at',
+      type: 'readable-edit-hover-at',
       clientX: 100,
       clientY: 100,
       selectedId: 'pic',
@@ -265,7 +265,7 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-hover', target: { ...imageTarget(), id: 'hovered' } },
+        data: { type: 'readable-edit-hover', target: { ...imageTarget(), id: 'hovered' } },
         source: frame.contentWindow,
       }));
     });
@@ -273,9 +273,9 @@ describe('FileViewer manual edit move frame', () => {
     postSpy.mockClear();
     fireEvent.pointerDown(interior, { pointerId: 41, clientX: 200, clientY: 150 });
     fireEvent.pointerMove(interior, { pointerId: 41, clientX: 220, clientY: 170 });
-    expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-hover-reset' }, '*');
+    expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-hover-reset' }, '*');
     expect(postSpy.mock.calls.some(([message]) => (
-      (message as { type?: string }).type === 'od-edit-hover-at'
+      (message as { type?: string }).type === 'readable-edit-hover-at'
     ))).toBe(false);
   });
 
@@ -288,7 +288,7 @@ describe('FileViewer manual edit move frame', () => {
     const frame = await previewFrame();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false },
+        data: { type: 'readable-edit-selection-state', editing: false, hasSelection: false, bold: false, italic: false, underline: false },
         source: frame.contentWindow,
       }));
     });
@@ -297,8 +297,8 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerDown(interiorSurface(), { pointerId: 41, clientX: 100, clientY: 100 });
     fireEvent.pointerUp(interiorSurface(), { pointerId: 41, clientX: 100, clientY: 100 });
 
-    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-click', selectedId: 'hero' }), '*');
-    expect(postSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-begin-text-edit' }), '*');
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-click', selectedId: 'hero' }), '*');
+    expect(postSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-begin-text-edit' }), '*');
   });
 
   it('double-clicks through the selected overlay to edit structured text containers', async () => {
@@ -320,7 +320,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-begin-text-edit', id: 'fancy-title' }),
+        expect.objectContaining({ type: 'readable-edit-begin-text-edit', id: 'fancy-title' }),
         '*',
       );
     });
@@ -344,14 +344,14 @@ describe('FileViewer manual edit move frame', () => {
     doubleClickSurface(interiorSurface());
 
     expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-begin-text-edit' }),
+      expect.objectContaining({ type: 'readable-edit-begin-text-edit' }),
       '*',
     );
     expect(interiorSurface()).not.toBeNull();
   });
 
   it('saves structured rich text commits through the host pipeline', async () => {
-    const structuredSource = '<!doctype html><html><body><div data-od-id="fancy-title">Big Headline<div class="glow-underline"></div></div></body></html>';
+    const structuredSource = '<!doctype html><html><body><div data-readable-id="fancy-title">Big Headline<div class="glow-underline"></div></div></body></html>';
     let savedContent = '';
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -375,7 +375,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-html-commit',
+          type: 'readable-edit-html-commit',
           id: 'fancy-title',
           html: 'Edited Headline<div class="glow-underline"></div>',
         },
@@ -407,11 +407,11 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(ring, { pointerId: 7, clientX: 100, clientY: 100 });
 
     expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-end-text-edit' }),
+      expect.objectContaining({ type: 'readable-edit-end-text-edit' }),
       '*',
     );
     expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-click' }),
+      expect.objectContaining({ type: 'readable-edit-click' }),
       '*',
     );
     expect(interiorSurface()).toBeNull();
@@ -429,7 +429,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerDown(ring, { pointerId: 42, clientX: 100, clientY: 100, altKey: true });
     fireEvent.pointerUp(ring, { pointerId: 42, clientX: 100, clientY: 100, altKey: true });
 
-    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-alt-click' }), '*');
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-alt-click' }), '*');
     expect(interiorSurface()).toBeNull();
   });
 
@@ -444,7 +444,7 @@ describe('FileViewer manual edit move frame', () => {
 
     fireEvent.click(screen.getByTestId('manual-edit-mode-toggle'));
 
-    await waitFor(() => expect(postSpy).toHaveBeenCalledWith({ type: 'od-edit-click-cancel' }, '*'));
+    await waitFor(() => expect(postSpy).toHaveBeenCalledWith({ type: 'readable-edit-click-cancel' }, '*'));
     await waitFor(() => expect(screen.getByTestId('manual-edit-mode-toggle').getAttribute('aria-pressed')).toBe('false'));
   });
 
@@ -479,7 +479,7 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'pic',
           styles: expect.objectContaining({ translate: '30px 40px' }),
         }),
@@ -488,7 +488,7 @@ describe('FileViewer manual edit move frame', () => {
     });
     fireEvent.pointerUp(interior, { pointerId: 1, clientX: 330, clientY: 190 });
     await waitFor(() => {
-      expect(savedContent).toMatch(/data-od-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
+      expect(savedContent).toMatch(/data-readable-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
     });
     fireEvent.click(screen.getByRole('button', { name: /Size & position/ }));
     await waitFor(() => {
@@ -505,7 +505,7 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'pic',
           styles: expect.objectContaining({ translate: '40px 40px' }),
         }),
@@ -533,7 +533,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(savedContent).toMatch(/translate:\s*40px\s+0px/));
     const previewIndex = postSpy.mock.calls.findIndex(([message]) => (
-      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      (message as { type?: string; styles?: { translate?: string } }).type === 'readable-edit-preview-style'
       && (message as { styles?: { translate?: string } }).styles?.translate === '40px 0px'
     ));
     const saveIndex = fetchMock.mock.calls.findIndex(([, init]) => (
@@ -571,14 +571,14 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-duplicate-create',
+        type: 'readable-edit-duplicate-create',
         originalId: 'pic',
         duplicateRootId: 'pic-copy',
       }),
       '*',
     ));
     const create = postSpy.mock.calls.find(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-create'
+      (message as { type?: string }).type === 'readable-edit-duplicate-create'
     ))?.[0] as {
       documentEpoch: string;
       transactionId: string;
@@ -587,7 +587,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-duplicate-preview',
+          type: 'readable-edit-duplicate-preview',
           documentEpoch: create.documentEpoch,
           transactionId: create.transactionId,
           sequence: create.sequence,
@@ -604,12 +604,12 @@ describe('FileViewer manual edit move frame', () => {
     // preview but retains the prepared identity plan and transaction key.
     manualEditMoveFrameProbe.current!.onCtrlChange?.(false);
     const cancel = [...postSpy.mock.calls].reverse().find(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-cancel'
+      (message as { type?: string }).type === 'readable-edit-duplicate-cancel'
     ))?.[0] as { documentEpoch: string; transactionId: string; sequence: number };
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-duplicate-removed',
+          type: 'readable-edit-duplicate-removed',
           documentEpoch: cancel.documentEpoch,
           transactionId: cancel.transactionId,
           sequence: cancel.sequence,
@@ -619,10 +619,10 @@ describe('FileViewer manual edit move frame', () => {
     });
     manualEditMoveFrameProbe.current!.onCtrlChange?.(true);
     await waitFor(() => expect(postSpy.mock.calls.filter(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-create'
+      (message as { type?: string }).type === 'readable-edit-duplicate-create'
     ))).toHaveLength(2));
     const secondCreate = [...postSpy.mock.calls].reverse().find(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-create'
+      (message as { type?: string }).type === 'readable-edit-duplicate-create'
     ))?.[0] as {
       transactionId: string;
       previewHtml: string;
@@ -630,12 +630,12 @@ describe('FileViewer manual edit move frame', () => {
     };
     expect(secondCreate.transactionId).toBe(create.transactionId);
     expect(secondCreate.previewHtml).toBe((postSpy.mock.calls.find(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-create'
+      (message as { type?: string }).type === 'readable-edit-duplicate-create'
     ))?.[0] as { previewHtml: string }).previewHtml);
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-duplicate-preview',
+          type: 'readable-edit-duplicate-preview',
           documentEpoch: create.documentEpoch,
           transactionId: secondCreate.transactionId,
           sequence: secondCreate.sequence,
@@ -649,11 +649,11 @@ describe('FileViewer manual edit move frame', () => {
     manualEditMoveFrameProbe.current!.onMoveCommit(update);
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-duplicate-update' }),
+      expect.objectContaining({ type: 'readable-edit-duplicate-update' }),
       '*',
     ));
     const finalUpdate = [...postSpy.mock.calls].reverse().find(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-update'
+      (message as { type?: string }).type === 'readable-edit-duplicate-update'
     ))?.[0] as {
       documentEpoch: string;
       transactionId: string;
@@ -662,7 +662,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-duplicate-preview',
+          type: 'readable-edit-duplicate-preview',
           documentEpoch: finalUpdate.documentEpoch,
           transactionId: finalUpdate.transactionId,
           sequence: finalUpdate.sequence,
@@ -675,37 +675,37 @@ describe('FileViewer manual edit move frame', () => {
     });
 
     await waitFor(() => expect(savedBodies).toHaveLength(1));
-    expect(savedBodies[0]).toContain('data-od-id="pic"');
-    expect(savedBodies[0]).toContain('data-od-id="pic-copy"');
+    expect(savedBodies[0]).toContain('data-readable-id="pic"');
+    expect(savedBodies[0]).toContain('data-readable-id="pic-copy"');
     expect(savedBodies[0]).toContain('translate: 21.5px -2.25px');
-    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-duplicate-update' }), '*');
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-duplicate-update' }), '*');
     expect(postSpy.mock.calls.filter(([message]) => (
-      (message as { type?: string }).type === 'od-edit-duplicate-update'
+      (message as { type?: string }).type === 'readable-edit-duplicate-update'
     ))).toHaveLength(3);
-    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'od-edit-duplicate-cancel' }), '*');
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'readable-edit-duplicate-cancel' }), '*');
 
     // A later target rediscovery must not steal a newer explicit selection.
     postSpy.mockClear();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-select', target: textTarget() },
+        data: { type: 'readable-edit-select', target: textTarget() },
         source: frame.contentWindow,
       }));
     });
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-selected-target', id: 'hero' }),
+      expect.objectContaining({ type: 'readable-edit-selected-target', id: 'hero' }),
       '*',
     ));
     postSpy.mockClear();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-targets', targets: [{ ...imageTarget(), id: 'pic-copy', label: 'Pic copy' }] },
+        data: { type: 'readable-edit-targets', targets: [{ ...imageTarget(), id: 'pic-copy', label: 'Pic copy' }] },
         source: frame.contentWindow,
       }));
     });
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     expect(postSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'od-edit-selected-target', id: 'pic-copy' }),
+      expect.objectContaining({ type: 'readable-edit-selected-target', id: 'pic-copy' }),
       '*',
     );
   });
@@ -730,10 +730,10 @@ describe('FileViewer manual edit move frame', () => {
     const frame = await previewFrame();
     const postSpy = vi.spyOn(frame.contentWindow as Window, 'postMessage');
     postSpy.mockImplementation((message) => {
-      if ((message as { type?: string }).type !== 'od-edit-end-text-edit') return;
+      if ((message as { type?: string }).type !== 'readable-edit-end-text-edit') return;
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-targets',
+          type: 'readable-edit-targets',
           targets: [{
             ...initial,
             rectScale: { x: 4, y: 4 },
@@ -750,16 +750,16 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-end-text-edit' }),
+        expect.objectContaining({ type: 'readable-edit-end-text-edit' }),
         '*',
       );
     });
     expect(postSpy.mock.calls.filter(([message]) => (
-      (message as { type?: string }).type === 'od-edit-end-text-edit'
+      (message as { type?: string }).type === 'readable-edit-end-text-edit'
     ))).toHaveLength(1);
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'hero',
         styles: { translate: '26px 24px' },
       }),
@@ -797,12 +797,12 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => {
       expect(postSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'od-edit-preview-style', id: 'pic' }),
+        expect.objectContaining({ type: 'readable-edit-preview-style', id: 'pic' }),
         '*',
       );
     });
     const revertCall = postSpy.mock.calls.find((call) => (
-      (call[0] as { type?: string }).type === 'od-edit-preview-style'
+      (call[0] as { type?: string }).type === 'readable-edit-preview-style'
     ));
     expect((revertCall?.[0] as { styles?: Record<string, unknown> }).styles).toEqual({ translate: '' });
 
@@ -846,7 +846,7 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => {
       const revertCall = postSpy.mock.calls.find((call) => {
         const msg = call[0] as { type?: string; id?: string; styles?: Record<string, unknown> };
-        return msg.type === 'od-edit-preview-style' && msg.id === 'pic' && msg.styles?.translate === '';
+        return msg.type === 'readable-edit-preview-style' && msg.id === 'pic' && msg.styles?.translate === '';
       });
       expect(revertCall).toBeDefined();
     });
@@ -869,7 +869,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerMove(interior, { pointerId: 8, clientX: 330, clientY: 190 });
     fireEvent.pointerUp(interior, { pointerId: 8, clientX: 330, clientY: 190 });
     await waitFor(() => {
-      expect(savedContent).toMatch(/data-od-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
+      expect(savedContent).toMatch(/data-readable-id="pic"[^>]*style="[^"]*translate:\s*30px\s+40px/);
     });
 
     // Exit and re-enter edit mode. Exit is async (flush-then-exit), so wait
@@ -911,7 +911,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(interior, { pointerId: 5, clientX: 340, clientY: 190 });
 
     await waitFor(() => {
-      expect(savedContent).toMatch(/data-od-id="pic"[^>]*style="[^"]*translate:\s*20px\s+20px/);
+      expect(savedContent).toMatch(/data-readable-id="pic"[^>]*style="[^"]*translate:\s*20px\s+20px/);
     });
   });
 
@@ -946,7 +946,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '20px -5px' },
       }),
@@ -977,7 +977,7 @@ describe('FileViewer manual edit move frame', () => {
       act(() => {
         window.dispatchEvent(new MessageEvent('message', {
           data: {
-            type: 'od-edit-targets',
+            type: 'readable-edit-targets',
             targets: [{
               ...initial,
               rectScale: { x: 4, y: 4 },
@@ -991,7 +991,7 @@ describe('FileViewer manual edit move frame', () => {
 
       await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'pic',
           styles: { translate: '30px 6px' },
         }),
@@ -1002,7 +1002,7 @@ describe('FileViewer manual edit move frame', () => {
       else fireEvent.pointerCancel(interior, { pointerId: 52 });
       await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'od-edit-preview-style',
+          type: 'readable-edit-preview-style',
           id: 'pic',
           styles: { translate: '10px 6px' },
         }),
@@ -1033,7 +1033,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerDown(interior, { pointerId: 62, clientX: 300, clientY: 150 });
     fireEvent.pointerMove(interior, { pointerId: 62, clientX: 320, clientY: 150 });
     const firstPreview = postSpy.mock.calls.find(([message]) => (
-      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      (message as { type?: string; styles?: { translate?: string } }).type === 'readable-edit-preview-style'
       && (message as { styles?: { translate?: string } }).styles?.translate === '20px 6px'
     ))?.[0] as { version?: number } | undefined;
     expect(firstPreview?.version).toBeTypeOf('number');
@@ -1041,7 +1041,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'pic',
           version: firstPreview?.version,
           ok: true,
@@ -1058,7 +1058,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerMove(interior, { pointerId: 62, clientX: 340, clientY: 150 });
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '30px 6px' },
       }),
@@ -1097,7 +1097,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-targets',
+          type: 'readable-edit-targets',
           targets: [{
             ...initial,
             rectScale: { x: 4, y: 4 },
@@ -1130,7 +1130,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerMove(interior, { pointerId: 68, clientX: 330, clientY: 150 });
     const activeFrame = manualEditMoveFrameProbe.current!;
     const preview = postSpy.mock.calls.find(([message]) => (
-      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      (message as { type?: string; styles?: { translate?: string } }).type === 'readable-edit-preview-style'
       && (message as { styles?: { translate?: string } }).styles?.translate === '30px 0px'
     ));
     expect(preview).toBeDefined();
@@ -1147,7 +1147,7 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => expect(manualEditMoveFrameProbe.current).not.toBe(activeFrame));
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         styles: { translate: '' },
       }),
       '*',
@@ -1156,7 +1156,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'pic',
           version: staleVersion,
           ok: true,
@@ -1211,7 +1211,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerMove(secondInterior, { pointerId: 70, clientX: 340, clientY: 150 });
     const secondFrame = manualEditMoveFrameProbe.current!;
     const secondPreview = postSpy.mock.calls.slice().reverse().find(([message]) => (
-      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      (message as { type?: string; styles?: { translate?: string } }).type === 'readable-edit-preview-style'
       && (message as { styles?: { translate?: string } }).styles?.translate === '40px 0px'
     ));
     expect(secondPreview).toBeDefined();
@@ -1224,7 +1224,7 @@ describe('FileViewer manual edit move frame', () => {
     }));
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         styles: { translate: '' },
       }),
       '*',
@@ -1234,7 +1234,7 @@ describe('FileViewer manual edit move frame', () => {
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
-          type: 'od-edit-preview-style-applied',
+          type: 'readable-edit-preview-style-applied',
           id: 'pic',
           version: staleVersion,
           ok: true,
@@ -1299,7 +1299,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '7px -3px' },
       }),
@@ -1328,7 +1328,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'missing-target',
         styles: { translate: '13px -2px' },
       }),
@@ -1365,7 +1365,7 @@ describe('FileViewer manual edit move frame', () => {
 
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '7px 5px' },
       }),
@@ -1412,7 +1412,7 @@ describe('FileViewer manual edit move frame', () => {
     fireEvent.pointerUp(second, { pointerId: 67, clientX: 340, clientY: 150 });
     await waitFor(() => expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '9px 2px' },
       }),
@@ -1443,13 +1443,13 @@ describe('FileViewer manual edit move frame', () => {
     postSpy.mockClear();
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1457,7 +1457,7 @@ describe('FileViewer manual edit move frame', () => {
     await waitFor(() => expect(savedContent).toMatch(/translate:\s*5px\s+3px/));
     const movementPreviews = postSpy.mock.calls.filter(([message]) => {
       const data = message as { type?: string; styles?: { translate?: string } };
-      return data.type === 'od-edit-preview-style' && data.styles?.translate === '5px 3px';
+      return data.type === 'readable-edit-preview-style' && data.styles?.translate === '5px 3px';
     });
     expect(movementPreviews).toHaveLength(1);
     const posts = fetchMock.mock.calls.filter(([input, init]) => (
@@ -1506,7 +1506,7 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right' },
+        data: { type: 'readable-edit-nudge', direction: 'right' },
         source: frame.contentWindow,
       }));
     });
@@ -1579,13 +1579,13 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1595,7 +1595,7 @@ describe('FileViewer manual edit move frame', () => {
     ))).toHaveLength(1));
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'od-edit-preview-style',
+        type: 'readable-edit-preview-style',
         id: 'pic',
         styles: { translate: '' },
       }),
@@ -1748,7 +1748,7 @@ describe('FileViewer manual edit move frame', () => {
     for (let i = 0; i < 3; i += 1) {
       act(() => {
         window.dispatchEvent(new MessageEvent('message', {
-          data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+          data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
           source: frame.contentWindow,
         }));
       });
@@ -1761,7 +1761,7 @@ describe('FileViewer manual edit move frame', () => {
     ))).toHaveLength(0);
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1771,7 +1771,7 @@ describe('FileViewer manual edit move frame', () => {
     ))).toHaveLength(1));
     expect(savedContent).toMatch(/translate:\s*3px\s+0px/);
     const previews = postSpy.mock.calls.filter(([message]) => (
-      (message as { type?: string }).type === 'od-edit-preview-style'
+      (message as { type?: string }).type === 'readable-edit-preview-style'
     ));
     expect(previews.length).toBeGreaterThanOrEqual(1);
   });
@@ -1787,7 +1787,7 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1801,7 +1801,7 @@ describe('FileViewer manual edit move frame', () => {
       (init as RequestInit | undefined)?.method === 'POST'
     ))).toHaveLength(0);
     expect(postSpy.mock.calls.some(([message]) => (
-      (message as { type?: string; styles?: { translate?: string } }).type === 'od-edit-preview-style'
+      (message as { type?: string; styles?: { translate?: string } }).type === 'readable-edit-preview-style'
       && (message as { styles?: { translate?: string } }).styles?.translate === ''
     ))).toBe(true);
   });
@@ -1836,7 +1836,7 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'other-target', revision },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'other-target', revision },
         source: frame.contentWindow,
       }));
     });
@@ -1856,7 +1856,7 @@ describe('FileViewer manual edit move frame', () => {
 
     act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision: revision - 1 },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision: revision - 1 },
         source: frame.contentWindow,
       }));
     });
@@ -1938,13 +1938,13 @@ describe('FileViewer manual edit move frame', () => {
 
     const nudge = () => act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
     const commit = () => act(() => {
       window.dispatchEvent(new MessageEvent('message', {
-        data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+        data: { type: 'readable-edit-nudge-commit', targetId: 'pic', revision },
         source: frame.contentWindow,
       }));
     });
@@ -2037,13 +2037,13 @@ describe('FileViewer manual edit move frame', () => {
     const tap = () => {
       act(() => {
         window.dispatchEvent(new MessageEvent('message', {
-          data: { type: 'od-edit-nudge', direction: 'right', targetId: 'pic', revision },
+          data: { type: 'readable-edit-nudge', direction: 'right', targetId: 'pic', revision },
           source: frame.contentWindow,
         }));
       });
       act(() => {
         window.dispatchEvent(new MessageEvent('message', {
-          data: { type: 'od-edit-nudge-commit', targetId: 'pic', revision },
+          data: { type: 'readable-edit-nudge-commit', targetId: 'pic', revision },
           source: frame.contentWindow,
         }));
       });
@@ -2228,10 +2228,10 @@ function textTarget(): ManualEditTarget {
     text: 'Hero',
     rect: { x: 24, y: 24, width: 160, height: 48 },
     fields: { text: 'Hero' },
-    attributes: { 'data-od-id': 'hero' },
+    attributes: { 'data-readable-id': 'hero' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<main data-od-id="hero">Hero</main>',
+    outerHtml: '<main data-readable-id="hero">Hero</main>',
   };
 }
 
@@ -2245,10 +2245,10 @@ function imageTarget(): ManualEditTarget {
     text: '',
     rect: { x: 40, y: 40, width: 200, height: 120 },
     fields: { src: 'x.png' },
-    attributes: { 'data-od-id': 'pic' },
+    attributes: { 'data-readable-id': 'pic' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
-    outerHtml: '<img data-od-id="pic" src="x.png">',
+    outerHtml: '<img data-readable-id="pic" src="x.png">',
   };
 }
 
@@ -2262,11 +2262,11 @@ function structuredTextContainerTarget(): ManualEditTarget {
     text: 'Big Headline',
     rect: { x: 24, y: 24, width: 260, height: 80 },
     fields: { text: 'Big Headline' },
-    attributes: { 'data-od-id': 'fancy-title' },
+    attributes: { 'data-readable-id': 'fancy-title' },
     styles: emptyManualEditStyles(),
     isLayoutContainer: false,
     textEditTargetId: 'fancy-title',
-    outerHtml: '<div data-od-id="fancy-title" class="fancy-title">Big Headline<div class="glow-underline"></div></div>',
+    outerHtml: '<div data-readable-id="fancy-title" class="fancy-title">Big Headline<div class="glow-underline"></div></div>',
   };
 }
 

@@ -11,7 +11,7 @@ import { collectReadableParityInventory } from "./readable-parity.ts";
 const execFileAsync = promisify(execFile);
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const resourceRoots = ["skills", "design-templates", "craft"] as const;
-const retiredIdentity = /Open Design|open-design|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|^od:/mu;
+const retiredIdentity = /Readable Studio|readable-studio|\bod\.(?:mode|category|scenario|preview|outputs|inputs|upstream)\b|^readable:/mu;
 const retiredProviderLogos = [
   "anthropic.svg",
   "deepseek.svg",
@@ -44,8 +44,8 @@ test("preserves resource inventory when product-owned identities are converted",
   assert.equal(inventory.templates.length, 104);
   assert.ok(inventory.templates.includes("readable-landing"));
   assert.ok(inventory.templates.includes("readable-landing-deck"));
-  assert.ok(!inventory.templates.includes("open-design-landing"));
-  assert.ok(!inventory.templates.includes("open-design-landing-deck"));
+  assert.ok(!inventory.templates.includes("readable-landing"));
+  assert.ok(!inventory.templates.includes("readable-landing-deck"));
 });
 
 test("rejects old resource frontmatter and stale generated copies", async () => {
@@ -58,7 +58,7 @@ test("rejects old resource frontmatter and stale generated copies", async () => 
     const relativePath = path.relative(repoRoot, file).replaceAll(path.sep, "/");
     if (relativePath.endsWith("/LICENSE") || relativePath.endsWith("/LICENSE.md")) continue;
     const source = await readFile(file, "utf8");
-    if (retiredIdentity.test(source) || relativePath.includes("open-design")) stale.push(relativePath);
+    if (retiredIdentity.test(source) || relativePath.includes("readable-studio")) stale.push(relativePath);
   }
 
   // Then: no active source, metadata, path, or generated copy retains it.

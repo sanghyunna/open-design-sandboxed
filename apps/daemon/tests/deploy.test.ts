@@ -44,7 +44,7 @@ import { closeDatabase, getDeployment, insertProject, openDatabase, upsertDeploy
 import { ensureProject } from '../src/projects.js';
 
 async function setupProject() {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-test-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-test-'));
   const projectId = 'p1';
   const dir = await ensureProject(path.join(root, 'projects'), projectId);
   return { projectsRoot: path.join(root, 'projects'), projectId, dir };
@@ -71,9 +71,9 @@ afterEach(() => {
 
 describe('deploy config', () => {
   it('stores Vercel credentials in vercel.json and returns only the public mask', async () => {
-    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-config-test-'));
-    const priorStateRoot = process.env.OD_USER_STATE_DIR;
-    process.env.OD_USER_STATE_DIR = stateRoot;
+    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-config-test-'));
+    const priorStateRoot = process.env.READABLE_USER_STATE_DIR;
+    process.env.READABLE_USER_STATE_DIR = stateRoot;
     try {
       const saved = await writeVercelConfig({
         token: 'vercel-token-secret',
@@ -108,8 +108,8 @@ describe('deploy config', () => {
         teamSlug: 'renamed-team',
       });
     } finally {
-      if (priorStateRoot === undefined) delete process.env.OD_USER_STATE_DIR;
-      else process.env.OD_USER_STATE_DIR = priorStateRoot;
+      if (priorStateRoot === undefined) delete process.env.READABLE_USER_STATE_DIR;
+      else process.env.READABLE_USER_STATE_DIR = priorStateRoot;
       await rm(stateRoot, { recursive: true, force: true });
     }
   });
@@ -130,9 +130,9 @@ describe('deploy config', () => {
   });
 
   it('stores Cloudflare Pages credentials separately from vercel.json', async () => {
-    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-config-test-'));
-    const priorStateRoot = process.env.OD_USER_STATE_DIR;
-    process.env.OD_USER_STATE_DIR = stateRoot;
+    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-config-test-'));
+    const priorStateRoot = process.env.READABLE_USER_STATE_DIR;
+    process.env.READABLE_USER_STATE_DIR = stateRoot;
     try {
       const saved = await writeCloudflarePagesConfig({
         token: 'cloudflare-token-secret',
@@ -207,16 +207,16 @@ describe('deploy config', () => {
         'lastDomainPrefix',
       );
     } finally {
-      if (priorStateRoot === undefined) delete process.env.OD_USER_STATE_DIR;
-      else process.env.OD_USER_STATE_DIR = priorStateRoot;
+      if (priorStateRoot === undefined) delete process.env.READABLE_USER_STATE_DIR;
+      else process.env.READABLE_USER_STATE_DIR = priorStateRoot;
       await rm(stateRoot, { recursive: true, force: true });
     }
   });
 
   it('requires Cloudflare Pages token and account id while deriving project names automatically', async () => {
-    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-config-required-'));
-    const priorStateRoot = process.env.OD_USER_STATE_DIR;
-    process.env.OD_USER_STATE_DIR = stateRoot;
+    const stateRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-config-required-'));
+    const priorStateRoot = process.env.READABLE_USER_STATE_DIR;
+    process.env.READABLE_USER_STATE_DIR = stateRoot;
     try {
       await expect(writeCloudflarePagesConfig({
         token: 'cloudflare-token-secret',
@@ -225,14 +225,14 @@ describe('deploy config', () => {
         accountId: 'account_123',
       })).rejects.toThrow(/API token is required/i);
       expect(cloudflarePagesProjectNameForProject('project-123', 'AI 生图网站')).toBe(
-        'od-ai-project-123',
+        'readable-ai-project-123',
       );
       expect(cloudflarePagesProjectNameForProject('12345678', '中文项目')).toBe(
-        'od-project-12345678',
+        'readable-project-12345678',
       );
     } finally {
-      if (priorStateRoot === undefined) delete process.env.OD_USER_STATE_DIR;
-      else process.env.OD_USER_STATE_DIR = priorStateRoot;
+      if (priorStateRoot === undefined) delete process.env.READABLE_USER_STATE_DIR;
+      else process.env.READABLE_USER_STATE_DIR = priorStateRoot;
       await rm(stateRoot, { recursive: true, force: true });
     }
   });
@@ -256,8 +256,8 @@ describe('deploy file set', () => {
     const index = files.find((item) => item.file === 'index.html');
     const html = index?.data.toString();
 
-    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-    expect(html!.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
+    expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+    expect(html!.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
   });
 
   it('can include all visible project files while keeping the selected entry at index.html', async () => {
@@ -293,12 +293,12 @@ describe('deploy file set', () => {
     const deck = files.find((item) => item.file === 'deck.html');
     const html = deck?.data.toString();
 
-    expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-    expect(html!.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
+    expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+    expect(html!.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html!.indexOf('function onKey'));
   });
 
   it('does not publish unreferenced files from linked-folder projects', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-linked-test-'));
+    const root = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-linked-test-'));
     const projectsRoot = path.join(root, 'projects');
     const linkedDir = path.join(root, 'linked');
     const projectId = 'linked-p1';
@@ -325,12 +325,12 @@ describe('deploy file set', () => {
     await writeFile(path.join(dir, 'page.html'), '<!doctype html><body><h1>Hello</h1></body>');
 
     const files = await buildDeployFileSet(projectsRoot, projectId, 'page.html', {
-      hookScriptUrl: 'https://cdn.example.com/open-design-hook.js',
+      hookScriptUrl: 'https://cdn.example.com/readable-studio-hook.js',
     });
     const html = files.find((f) => f.file === 'index.html')?.data.toString('utf8') ?? '';
 
     expect(html).toContain(
-      '<script src="https://cdn.example.com/open-design-hook.js" defer data-open-design-deploy-hook="true" data-closeable="true"></script></body>',
+      '<script src="https://cdn.example.com/readable-studio-hook.js" defer data-readable-studio-deploy-hook="true" data-closeable="true"></script></body>',
     );
   });
 
@@ -712,7 +712,7 @@ describe('deploy file set', () => {
 
 describe('deploy plan and analyzer', () => {
   async function setupProject() {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'od-deploy-plan-test-'));
+    const root = await mkdtemp(path.join(os.tmpdir(), 'readable-deploy-plan-test-'));
     const projectId = 'p1';
     const dir = await ensureProject(path.join(root, 'projects'), projectId);
     return { projectsRoot: path.join(root, 'projects'), projectId, dir };
@@ -1563,9 +1563,9 @@ describe('cloudflare pages deploys', () => {
   });
 
   it('round-trips typed Cloudflare info while keeping provider metadata internal', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'od-deployment-db-test-'));
+    const root = await mkdtemp(path.join(os.tmpdir(), 'readable-deployment-db-test-'));
     try {
-      const db = openDatabase(root, { dataDir: path.join(root, '.od') });
+      const db = openDatabase(root, { dataDir: path.join(root, '.readable-studio') });
       insertProject(db, {
         id: 'project-1',
         name: 'Project 1',
@@ -1609,7 +1609,7 @@ describe('cloudflare pages deploys', () => {
             projectId: 'project-1',
             pagesProjectName: 'demo-pages',
             hostname: 'demo.example.com',
-            marker: 'od:cfp:aaaaaaaaaaaa:bbbbbbbbbbbb',
+            marker: 'readable:cfp:aaaaaaaaaaaa:bbbbbbbbbbbb',
             dnsRecordId: 'dns-1',
           },
         },
@@ -1629,7 +1629,7 @@ describe('cloudflare pages deploys', () => {
         providerMetadata: {
           cloudflarePagesProjectName: 'demo-pages',
           cloudflarePagesCustomDomain: {
-            marker: 'od:cfp:aaaaaaaaaaaa:bbbbbbbbbbbb',
+            marker: 'readable:cfp:aaaaaaaaaaaa:bbbbbbbbbbbb',
           },
         },
       });
@@ -1717,7 +1717,7 @@ describe('cloudflare pages deploys', () => {
           proxied: true,
           ttl: 1,
         });
-        expect(body.comment).toMatch(/^od:cfp:[a-f0-9]{12}:[a-f0-9]{12}$/);
+        expect(body.comment).toMatch(/^readable:cfp:[a-f0-9]{12}:[a-f0-9]{12}$/);
         return new Response(JSON.stringify({ success: true, result: { id: 'dns-1', ...body } }), {
           status: 200,
           headers: { 'content-type': 'application/json' },

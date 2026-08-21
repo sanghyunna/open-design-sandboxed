@@ -41,7 +41,7 @@ describe("Readable Studio copy policy", () => {
     const report = auditCopySources([
       {
         path: "retired.md",
-        source: `${APPROVED_DOCTRINE}\nThe open-source Claude Design alternative includes the official Model Router. Join the Open Design community as an Open Design Fellow.`,
+        source: `${APPROVED_DOCTRINE}\nThe open-source Claude Design alternative includes the official Model Router. Join the Readable Studio community as an Readable Studio Fellow.`,
       },
     ]);
 

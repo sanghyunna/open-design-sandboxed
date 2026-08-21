@@ -143,7 +143,7 @@ export function GenUISurfaceRenderer(props: Props) {
   //     { kind: 'genui:respond', value } envelope. Other messages are
   //     ignored.
   //   - The capability gate (`genui:custom-component`) was enforced at
-  //     install time by `od plugin doctor`; the renderer trusts the
+  //     install time by `readable plugin doctor`; the renderer trusts the
   //     manifest's `component` field and falls back to the default
   //     when missing.
   //
@@ -902,7 +902,7 @@ function SandboxedComponentSurface({
         data-testid="genui-component-iframe"
         data-run-id={runId}
         className="genui-surface__component-frame"
-        style={{ width: '100%', minHeight: 320, border: '1px solid var(--od-border, #ddd)' }}
+        style={{ width: '100%', minHeight: 320, border: '1px solid var(--readable-border, #ddd)' }}
       />
       {onSkip ? (
         <div className="genui-surface__actions">

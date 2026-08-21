@@ -48,13 +48,13 @@ describe('langfuse-bridge telemetry egress policy', () => {
     LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
     LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
     LANGFUSE_BASE_URL: process.env.LANGFUSE_BASE_URL,
-    OPEN_DESIGN_TELEMETRY_RELAY_URL: process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL,
+    READABLE_TELEMETRY_RELAY_URL: process.env.READABLE_TELEMETRY_RELAY_URL,
   };
 
   let dataDir: string;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(path.join(tmpdir(), 'od-bridge-'));
+    dataDir = await mkdtemp(path.join(tmpdir(), 'readable-bridge-'));
   });
 
   afterEach(async () => {
@@ -71,8 +71,8 @@ describe('langfuse-bridge telemetry egress policy', () => {
     process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
     process.env.LANGFUSE_SECRET_KEY = 'sk-test';
     process.env.LANGFUSE_BASE_URL = 'https://cloud.langfuse.com';
-    process.env.OPEN_DESIGN_TELEMETRY_RELAY_URL =
-      'https://telemetry.open-design.ai/api/langfuse';
+    process.env.READABLE_TELEMETRY_RELAY_URL =
+      'https://telemetry.readable-studio.ai/api/langfuse';
   }
 
   it('does not submit run traces even when a stale config has full telemetry consent', async () => {

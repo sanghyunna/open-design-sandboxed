@@ -61,7 +61,7 @@ jobs:
           path: |
             .tmp/e2e
             .tmp/h
-            ${{ runner.temp }}/od-h
+            ${{ runner.temp }}/readable-h
             e2e/ui/reports
           if-no-files-found: warn
           include-hidden-files: true

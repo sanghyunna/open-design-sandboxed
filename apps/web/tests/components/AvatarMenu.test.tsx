@@ -215,7 +215,7 @@ describe('AvatarMenu', () => {
         agentId: 'amr',
         agentCliEnv: {
           amr: {
-            OPEN_DESIGN_AMR_PROFILE: 'test',
+            READABLE_AMR_PROFILE: 'test',
           },
         },
       },
@@ -236,6 +236,6 @@ describe('AvatarMenu', () => {
       screen
         .getByRole('link', { name: 'avatar.amrConsoleavatar.amrConsoleMeta' })
         .getAttribute('href'),
-    ).toBe('https://vela.powerformer.net/wallet?source=open_design');
+    ).toBe('https://vela.powerformer.net/wallet?source=readable_studio');
   });
 });

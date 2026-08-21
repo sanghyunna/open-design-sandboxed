@@ -1,6 +1,6 @@
-// Map an Open Design native event onto the AG-UI canonical wire shape.
+// Map an Readable Studio native event onto the AG-UI canonical wire shape.
 //
-// The OD native union covers more than AG-UI cares about (e.g. internal
+// The Readable Studio native union covers more than AG-UI cares about (e.g. internal
 // daemon-control events). We project only what an external AG-UI client
 // would meaningfully consume; unrecognised events return null and the
 // daemon SSE relay drops them.
@@ -19,7 +19,7 @@ import type {
   AGUIToolCallEvent,
 } from './types.js';
 
-// The PersistedAgentEvent variants OD emits on a run's SSE stream.
+// The PersistedAgentEvent variants Readable Studio emits on a run's SSE stream.
 // We model the subset we map; the daemon may emit other shapes (errors,
 // system messages, …) which the encoder drops.
 export interface OdMessageChunkEvent {
@@ -72,14 +72,14 @@ export type OdNativeEvent =
   | OdRunStartedEvent;
 
 export interface EncodeContext {
-  // The run's id; OD may have it on the event already, but the daemon
+  // The run's id; Readable Studio may have it on the event already, but the daemon
   // SSE relay always knows it from the route, so we pass it in to keep
   // the encoder pure.
   runId: string;
   // Optional monotonic sequence the daemon assigns per-run. Phase 4's
   // SSE relay can pass design.runs.events[i].id directly.
   seq?: number;
-  // Wall-clock fallback. The encoder uses this when the OD event
+  // Wall-clock fallback. The encoder uses this when the Readable Studio event
   // lacks `requestedAt` / `startedAt` / etc.
   now?: number;
 }

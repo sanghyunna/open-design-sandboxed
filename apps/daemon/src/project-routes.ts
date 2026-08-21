@@ -93,7 +93,7 @@ function projectDetailResolvedDir(
   });
 }
 
-const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
+const URL_PREVIEW_SCROLL_BRIDGE = `<script data-readable-url-scroll-bridge>
 (function(){
   if (window.__readableStudioUrlScrollBridge) return;
   window.__readableStudioUrlScrollBridge = true;
@@ -178,7 +178,7 @@ const URL_PREVIEW_SCROLL_BRIDGE = `<script data-od-url-scroll-bridge>
 })();
 </script>`;
 
-const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
+const URL_PREVIEW_SELECTION_BRIDGE = `<script data-readable-url-selection-bridge>
 (function(){
   if (window.__readableStudioUrlSelectionBridge) return;
   window.__readableStudioUrlSelectionBridge = true;
@@ -198,20 +198,20 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     catch (_) { return String(value); }
   }
   function ensureStyle(){
-    if (document.querySelector('style[data-od-url-selection-style]')) return;
+    if (document.querySelector('style[data-readable-url-selection-style]')) return;
     var style = document.createElement('style');
-    style.setAttribute('data-od-url-selection-style', '');
+    style.setAttribute('data-readable-url-selection-style', '');
     style.textContent =
-      'html[data-od-comment-mode] body * { cursor: crosshair !important; }' +
-      'html[data-od-comment-mode][data-od-comment-mode-kind="pod"] body * { cursor: cell !important; }' +
-      'html[data-od-comment-mode] body iframe,html[data-od-comment-mode] body object,html[data-od-comment-mode] body embed { pointer-events: none !important; }';
+      'html[data-readable-comment-mode] body * { cursor: crosshair !important; }' +
+      'html[data-readable-comment-mode][data-readable-comment-mode-kind="pod"] body * { cursor: cell !important; }' +
+      'html[data-readable-comment-mode] body iframe,html[data-readable-comment-mode] body object,html[data-readable-comment-mode] body embed { pointer-events: none !important; }';
     (document.head || document.documentElement).appendChild(style);
   }
   function active(){ return commentEnabled; }
   function annotatedSelectorFor(el){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (!id) return null;
-    return el.hasAttribute('data-od-id') ? '[data-od-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
+    return el.hasAttribute('data-readable-id') ? '[data-readable-id="' + esc(id) + '"]' : '[data-screen-label="' + esc(id) + '"]';
   }
   function domSelectorFor(el){
     if (!el || !el.tagName || el === document.documentElement || el === document.body) return null;
@@ -288,7 +288,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     } catch (_) { return null; }
   }
   function targetFrom(el, allowDomFallback, clickedEl, clickPoint){
-    var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+    var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
     if (allowDomFallback && id && generatedRootAnnotation(el, id)) return null;
     var selector = annotatedSelectorFor(el);
     if (!id && allowDomFallback && meaningfulDomFallbackTarget(el)) {
@@ -327,7 +327,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
   }
   function allTargets(){
     var includeDomFallback = commentEnabled && mode === 'picker';
-    var nodes = includeDomFallback ? document.querySelectorAll('body *') : document.querySelectorAll('[data-od-id], [data-screen-label]');
+    var nodes = includeDomFallback ? document.querySelectorAll('body *') : document.querySelectorAll('[data-readable-id], [data-screen-label]');
     var items = [];
     var seen = Object.create(null);
     for (var i = 0; i < nodes.length; i++) {
@@ -363,7 +363,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     if (!el && elementId) {
       try {
         var id = String(elementId).replace(/"/g, '\\\\"');
-        el = document.querySelector('[data-od-id="' + id + '"], [data-screen-label="' + id + '"]');
+        el = document.querySelector('[data-readable-id="' + id + '"], [data-screen-label="' + id + '"]');
       } catch (_) { el = null; }
     }
     return el;
@@ -416,8 +416,8 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       var el = clicked;
       while (el && el !== document.documentElement) {
         if (allowDomFallback && meaningfulDomFallbackTarget(el)) return { target: el, clicked: clicked };
-        if (el.getAttribute && (el.hasAttribute('data-od-id') || el.hasAttribute('data-screen-label'))) {
-          var id = el.getAttribute('data-od-id') || el.getAttribute('data-screen-label');
+        if (el.getAttribute && (el.hasAttribute('data-readable-id') || el.hasAttribute('data-screen-label'))) {
+          var id = el.getAttribute('data-readable-id') || el.getAttribute('data-screen-label');
           if (allowDomFallback && generatedRootAnnotation(el, id)) {
             el = el.parentElement;
             continue;
@@ -450,8 +450,8 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     if (data.type === 'readable-studio:comment-mode') {
       commentEnabled = !!data.enabled;
       mode = data.mode === 'pod' ? 'pod' : 'picker';
-      document.documentElement.toggleAttribute('data-od-comment-mode', commentEnabled);
-      document.documentElement.setAttribute('data-od-comment-mode-kind', mode);
+      document.documentElement.toggleAttribute('data-readable-comment-mode', commentEnabled);
+      document.documentElement.setAttribute('data-readable-comment-mode-kind', mode);
       if (commentEnabled) setTimeout(postTargets, 0);
       else {
         hoveredId = null;
@@ -522,7 +522,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
     window.parent.postMessage({
       type: 'readable-studio:comment-target',
       elementId: pinId,
-      selector: '[data-od-pin="' + pinId + '"]',
+      selector: '[data-readable-pin="' + pinId + '"]',
       label: 'pin',
       text: '',
       position: { x: pinX - 12, y: pinY - 12, width: 24, height: 24 },
@@ -558,7 +558,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
       ev.preventDefault();
       ev.stopPropagation();
     }
-    postStroke('readable-studio:pod-select');
+    postStroke('readable-studio:preadable-select');
   }
   document.addEventListener('pointerup', finishStroke, true);
   document.addEventListener('pointercancel', finishStroke, true);
@@ -574,7 +574,7 @@ const URL_PREVIEW_SELECTION_BRIDGE = `<script data-od-url-selection-bridge>
 })();
 </script>`;
 
-const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-od-url-snapshot-bridge>
+const URL_PREVIEW_SNAPSHOT_BRIDGE = `<script data-readable-url-snapshot-bridge>
 (function(){
   if (window.__readableStudioUrlSnapshotBridge) return;
   window.__readableStudioUrlSnapshotBridge = true;
@@ -781,12 +781,12 @@ function injectBeforeBodyClose(html: string, marker: string, injection: string):
 
 function injectUrlPreviewBridge(html: string, bridge: 'scroll' | 'selection' | 'snapshot'): string {
   if (bridge === 'scroll') {
-    return injectBeforeBodyClose(html, 'data-od-url-scroll-bridge', URL_PREVIEW_SCROLL_BRIDGE);
+    return injectBeforeBodyClose(html, 'data-readable-url-scroll-bridge', URL_PREVIEW_SCROLL_BRIDGE);
   }
   if (bridge === 'selection') {
-    return injectBeforeBodyClose(html, 'data-od-url-selection-bridge', URL_PREVIEW_SELECTION_BRIDGE);
+    return injectBeforeBodyClose(html, 'data-readable-url-selection-bridge', URL_PREVIEW_SELECTION_BRIDGE);
   }
-  return injectBeforeBodyClose(html, 'data-od-url-snapshot-bridge', URL_PREVIEW_SNAPSHOT_BRIDGE);
+  return injectBeforeBodyClose(html, 'data-readable-url-snapshot-bridge', URL_PREVIEW_SNAPSHOT_BRIDGE);
 }
 
 function normalizeChatSessionMode(value: unknown): ChatSessionMode {
@@ -847,10 +847,10 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       const all = listInstalledPlugins(db);
       for (const row of all) {
         if (row.sourceKind !== 'bundled') continue;
-        const od = row.manifest.readable;
-        if (!od || od.kind !== 'scenario') continue;
-        if (!od.pipeline || !Array.isArray(od.pipeline.stages) || od.pipeline.stages.length === 0) continue;
-        const taskKind = (od.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
+        const readable = row.manifest.readable;
+        if (!readable || readable.kind !== 'scenario') continue;
+        if (!readable.pipeline || !Array.isArray(readable.pipeline.stages) || readable.pipeline.stages.length === 0) continue;
+        const taskKind = (readable.taskKind ?? 'new-generation') as ScenarioEntry['taskKind'];
         if (
           taskKind !== 'new-generation' &&
           taskKind !== 'figma-migration' &&
@@ -859,9 +859,9 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
         ) {
           continue;
         }
-        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: od.pipeline };
+        const entry: ScenarioEntry = { id: row.id, taskKind, pipeline: readable.pipeline };
         const existing = byTaskKind.get(taskKind);
-        if (!existing || entry.id === `od-${taskKind}`) {
+        if (!existing || entry.id === `readable-${taskKind}`) {
           byTaskKind.set(taskKind, entry);
         }
       }
@@ -1371,7 +1371,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       //      updateProject() replaces metadata wholesale, so without
       //      preservation the existing baseDir gets wiped and the project
       //      detaches from the user's folder — subsequent reads/writes
-      //      silently fall back to .od/projects/<id>.
+      //      silently fall back to .readable-studio/projects/<id>.
       // For case 2 we re-stamp the immutable fields from the existing
       // project record onto the incoming patch so the user can keep
       // patching other metadata without ever losing their import root.
@@ -2229,7 +2229,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
     );
   }
 
-  // Project files. Each project owns a flat folder under .od/projects/<id>/
+  // Project files. Each project owns a flat folder under .readable-studio/projects/<id>/
   // containing every file the user has uploaded, pasted, sketched, or that
   // the agent has generated. Names are sanitized; paths are confined to the
   // project's own folder (see apps/daemon/src/projects.ts).

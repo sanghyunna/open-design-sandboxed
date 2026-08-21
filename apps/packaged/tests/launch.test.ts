@@ -110,7 +110,7 @@ describe("applyPackagedElectronPathOverrides", () => {
 
 describe("verifyPackagedDataRootWritable", () => {
   it("accepts a writable dataRoot", async () => {
-    const root = mkdtempSync(join(tmpdir(), "od-packaged-launch-"));
+    const root = mkdtempSync(join(tmpdir(), "readable-packaged-launch-"));
     try {
       const dataRoot = join(root, "namespaces", "release-beta", "data");
       await expect(verifyPackagedDataRootWritable({ dataRoot })).resolves.toBeUndefined();
@@ -140,7 +140,7 @@ describe("verifyPackagedDataRootWritable", () => {
   });
 
   it("wraps low-level mkdir/access failures with a user-actionable error", async () => {
-    const root = mkdtempSync(join(tmpdir(), "od-packaged-launch-"));
+    const root = mkdtempSync(join(tmpdir(), "readable-packaged-launch-"));
     try {
       const blocker = join(root, "namespaces", "release-beta");
       mkdirSync(blocker, { recursive: true });

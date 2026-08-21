@@ -6,7 +6,7 @@
 // silently misses the sidecar transport endpoint.
 //
 // Side effects (the fs.existsSync probes, process.execPath, the
-// ELECTRON_RUN_AS_NODE env read, OD_DATA_DIR resolution, sidecar IPC
+// ELECTRON_RUN_AS_NODE env read, READABLE_DATA_DIR resolution, sidecar IPC
 // detection) all stay in the caller. This module is intentionally pure
 // and free of @readable-studio/sidecar-proto so it can be unit-tested
 // without booting the daemon.
@@ -66,14 +66,14 @@ export function buildMcpInstallPayload(
       `Node-compatible runtime at ${inputs.execPath} no longer exists. Reinstall Readable Studio or Node and restart the daemon.`,
     );
   }
-  // Pin OD_DATA_DIR to the daemon's resolved data root so the spawned
+  // Pin READABLE_DATA_DIR to the daemon's resolved data root so the spawned
   // MCP process writes to the same directory the daemon already uses
   // even when the IDE that launched it (Antigravity, VS Code, etc.)
   // does not inherit the packaged app's environment. Without this,
-  // `readable mcp` falls back to `<cwd>/.od/...` which is the read-only
+  // `readable mcp` falls back to `<cwd>/.readable-studio/...` which is the read-only
   // macOS app bundle for packaged installs and trips EPERM. Issue #848.
   const env: Record<string, string> = {
-    OD_DATA_DIR: inputs.dataDir,
+    READABLE_DATA_DIR: inputs.dataDir,
     ...inputs.sidecarEnv,
   };
   if (inputs.electronAsNode) {

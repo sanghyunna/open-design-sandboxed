@@ -89,7 +89,7 @@ export interface InstallOptions {
   manifestDigest?: string;
   archiveIntegrity?: string;
   // Optional runtime-data lockfile path. Daemon routes pass
-  // `<OD_DATA_DIR>/od-plugin-lock.json`; tests can point at temp dirs.
+  // `<READABLE_DATA_DIR>/readable-plugin-lock.json`; tests can point at temp dirs.
   lockfilePath?: string;
 }
 
@@ -291,7 +291,7 @@ async function* installFromGithubContents(
   if (!candidate.subpath) return;
   const fetcher = opts.fetcher ?? defaultFetcher;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-plugin-github-contents-'));
+  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-github-contents-'));
   const stagingFolder = path.join(tmpRoot, 'plugin');
   try {
     yield {
@@ -459,7 +459,7 @@ async function* installFromArchiveUrl(
 ): AsyncGenerator<InstallEvent, void, void> {
   const fetcher = opts.fetcher ?? defaultFetcher;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
-  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'od-plugin-archive-'));
+  const tmpRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'readable-plugin-archive-'));
   try {
     const resp = await fetcher(url);
     if (!resp.ok || !resp.body) {

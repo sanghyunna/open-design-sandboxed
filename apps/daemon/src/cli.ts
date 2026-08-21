@@ -349,7 +349,7 @@ function printRootHelp() {
   readable tools design-system-package-audit --path <dir> [--fail-on-warnings] [--reference-package] [--json]
       Audit a design-system package locally for required files, manifest quality,
       and gallery preview completeness. Use --project-id <id> to call the daemon
-      API instead (requires OD_DAEMON_URL and OD_TOOL_TOKEN).
+      API instead (requires READABLE_DAEMON_URL and READABLE_TOOL_TOKEN).
 
   readable research search --query <text> [--max-sources 5] [--daemon-url <url>]
       Run agent-callable Tavily research through the local daemon.
@@ -358,7 +358,7 @@ function printRootHelp() {
       Discover, install, and apply plugins through the local daemon.
   readable plugin publish-repo <folder>
       Create/update the author's GitHub repo for a local plugin folder.
-  readable plugin open-design-pr <folder>
+  readable plugin readable-studio-pr <folder>
       Push a community-catalog branch and open the Readable Studio PR form.
 
   readable automation <list|get|create|update|run|runs|pause|resume|delete> [args]
@@ -370,7 +370,7 @@ function printRootHelp() {
   readable memory tree <list|view|edit|move> [args]
       Inspect and edit the memory tree that is injected into agent prompts.
 
-  readable share <open-design|url> [options]
+  readable share <readable-studio|url> [options]
       Build localized social-share targets for the Readable Studio repo or a
       deployed project URL. Use --json for scripted integrations.
 
@@ -387,7 +387,7 @@ function printRootHelp() {
       into a zip for support tickets. Same output as Settings → About →
       Export diagnostics.
 
-  "$OD_NODE_BIN" "$OD_BIN" tools ...
+  "$READABLE_NODE_BIN" "$READABLE_BIN" tools ...
       Recommended agent-runtime form; avoids relying on user PATH for readable or node.
 
   readable mcp [--daemon-url <url>]
@@ -399,7 +399,7 @@ function printRootHelp() {
 
 Options:
   --port <n>       Port to listen on (default: 7456, env: READABLE_PORT).
-  --host <addr>    Interface address to bind to (default: 127.0.0.1, env: OD_BIND_HOST).
+  --host <addr>    Interface address to bind to (default: 127.0.0.1, env: READABLE_BIND_HOST).
                    Set to a specific IP (e.g. a Tailscale address) to restrict access
                    to that interface only.
   --no-open        Do not open the browser after start.
@@ -496,7 +496,7 @@ Output is JSON only on stdout:
 Flags:
   --query        Required search query.
   --max-sources  Optional source cap. Defaults to 5, clamped to Tavily's max.
-  --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
+  --daemon-url   Local daemon URL. Defaults to READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
 }
 
 function surfaceFetchError(err, daemonUrl) {
@@ -640,7 +640,7 @@ every iteration.
 
 Options:
   --daemon-url <url>   Readable Studio daemon HTTP base URL. Resolution
-                       order: this flag, OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH,
+                       order: this flag, READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH,
                        then http://127.0.0.1:7456. Each new MCP spawn
                        discovers the live daemon URL at startup, so
                        MCP client configs stay valid across daemon
@@ -1031,7 +1031,7 @@ async function runPlugin(args) {
     case 'export':   return runPluginExport(rest);
     case 'publish':  return runPluginPublish(rest);
     case 'publish-repo': return runPluginPublishRepo(rest);
-    case 'open-design-pr': return runPluginOpenDesignPr(rest);
+    case 'readable-studio-pr': return runPluginReadableStudioPr(rest);
     case 'yank':     return runPluginYank(rest);
     default:
       console.error(`unknown subcommand: readable plugin ${sub}`);
@@ -1422,7 +1422,7 @@ function inferGithubHost(target) {
 //
 // Produces a publish-ready folder from the AppliedPluginSnapshot
 // behind a given project (or directly from a snapshot id). Three
-// targets: 'od', 'claude-plugin', 'agent-skill'.
+// targets: 'readable', 'claude-plugin', 'agent-skill'.
 async function runPluginExport(rest) {
   const flags = parseFlags(rest, {
     string: new Set(['daemon-url', 'as', 'out', 'snapshot-id', 'project']),
@@ -1445,7 +1445,7 @@ view is the single source of truth.`);
     console.error('Usage: readable plugin export <projectId> --as <target> --out <dir>');
     process.exit(2);
   }
-  const target = String(flags.as ?? 'od');
+  const target = String(flags.as ?? 'readable');
   if (target !== 'readable-studio' && target !== 'claude-plugin' && target !== 'agent-skill') {
     console.error(`--as must be one of: readable-studio, claude-plugin, agent-skill (got "${target}")`);
     process.exit(2);
@@ -1492,7 +1492,7 @@ async function runMarketplace(args) {
                                                               Update the marketplace trust tier.
 
 Common options:
-  --daemon-url <url>   Readable Studio daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts).`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -1927,9 +1927,9 @@ async function runPluginList(rest) {
 Lists installed plugins. Filters AND together: --task-kind=code-migration
 + --tag=phase-7 returns only code-migration plugins tagged 'phase-7'.
 
-  --task-kind   Match od.taskKind (new-generation / figma-migration /
+  --task-kind   Match readable.taskKind (new-generation / figma-migration /
                 code-migration / tune-collab).
-  --mode        Match od.mode.
+  --mode        Match readable.mode.
   --tag         Match an entry in tags[].
   --trust       Match trust tier (trusted / restricted / bundled).
   --bundled     Restrict to bundled plugins (sourceKind='bundled' OR
@@ -2535,7 +2535,7 @@ Lifecycle vocabulary:
 
 // Plan §3.FF1 — `readable plugin verify <pluginId>` CI meta-command.
 //
-// Reads an optional .od-verify.json config from the plugin folder
+// Reads an optional .readable-studio-verify.json config from the plugin folder
 // or --config <path> and runs the enabled subset of:
 //
 //   doctor   — calls /api/plugins/<id>/doctor
@@ -2557,7 +2557,7 @@ async function runPluginVerify(rest) {
   readable plugin verify <pluginId> [--config <path>] [--json]
 
 CI meta-command. Reads an optional config from
-'<plugin-folder>/.od-verify.json' (or --config <path>) and runs:
+'<plugin-folder>/.readable-studio-verify.json' (or --config <path>) and runs:
 
   doctor    — manifest + atom + ref lint
   simulate  — convergence dry-run for every until expression,
@@ -2566,7 +2566,7 @@ CI meta-command. Reads an optional config from
               config.canon.fixturePath using the snapshot at
               config.canon.snapshotId
 
-Sample .od-verify.json:
+Sample .readable-studio-verify.json:
 
   {
     "enabled": ["doctor", "simulate"],
@@ -2600,12 +2600,12 @@ Exit codes:
   }
   const plugin = await pluginResp.json();
 
-  // 2. Load .od-verify.json from --config or <fsPath>/.od-verify.json.
+  // 2. Load .readable-studio-verify.json from --config or <fsPath>/.readable-studio-verify.json.
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
   const configPath = typeof flags.config === 'string'
     ? path.resolve(flags.config)
-    : (typeof plugin?.fsPath === 'string' ? path.join(plugin.fsPath, '.od-verify.json') : null);
+    : (typeof plugin?.fsPath === 'string' ? path.join(plugin.fsPath, '.readable-studio-verify.json') : null);
   let config = { enabled: ['doctor', 'simulate', 'canon'] };
   if (configPath) {
     try {
@@ -2636,7 +2636,7 @@ Exit codes:
   // 4. simulate (when enabled)
   let simulateReport = null;
   if (enabledSet.has('simulate')) {
-    const pipeline = plugin?.manifest?.od?.pipeline;
+    const pipeline = plugin?.manifest?.readable?.pipeline;
     if (pipeline && Array.isArray(pipeline.stages) && pipeline.stages.length > 0) {
       const { simulatePipeline } = await import('./plugins/simulate.js');
       simulateReport = simulatePipeline({
@@ -2769,12 +2769,12 @@ Closed signal vocabulary:
     process.exit(1);
   }
   const plugin = await resp.json();
-  const pipeline = plugin?.manifest?.od?.pipeline;
+  const pipeline = plugin?.manifest?.readable?.pipeline;
   if (!pipeline || !Array.isArray(pipeline.stages) || pipeline.stages.length === 0) {
     if (flags.json) {
       process.stdout.write(JSON.stringify({ outcome: 'no-pipeline', stages: [] }, null, 2) + '\n');
     } else {
-      console.log(`[simulate] plugin ${id} has no od.pipeline (or it is empty); nothing to walk.`);
+      console.log(`[simulate] plugin ${id} has no readable.pipeline (or it is empty); nothing to walk.`);
     }
     return;
   }
@@ -3137,7 +3137,7 @@ async function runPluginPublish(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  readable plugin publish <pluginId> --to open-design|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
+  readable plugin publish <pluginId> --to readable-studio|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
                     [--repo <github-url>] [--snapshot-id <id>] [--open] [--json]
   readable plugin publish <pluginId> --to marketplace-json --catalog ./readable-studio-marketplace.json --repo <github-url>
 
@@ -3156,7 +3156,7 @@ publish from a frozen run snapshot rather than the live installed copy.`);
     process.exit(2);
   }
   if (!target) {
-    console.error('--to <catalog> is required (one of: open-design, anthropics-skills, awesome-agent-skills, clawhub, skills-sh)');
+    console.error('--to <catalog> is required (one of: readable-studio, anthropics-skills, awesome-agent-skills, clawhub, skills-sh)');
     process.exit(2);
   }
   const base = (await pluginDaemonUrl(flags)).replace(/\/$/, '');
@@ -3345,7 +3345,7 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
   let workdir = absFolder;
   let cleanupDir = null;
   if (exists && !flags['dry-run']) {
-    cleanupDir = await mkdtemp(join(os.tmpdir(), 'od-plugin-publish-sync-'));
+    cleanupDir = await mkdtemp(join(os.tmpdir(), 'readable-plugin-publish-sync-'));
     workdir = join(cleanupDir, repo.name);
     await run('clone repo', 'gh', ['repo', 'clone', repo.fullName, workdir], { cwd: cleanupDir, timeout: 240_000 });
     for (const entry of await readdir(workdir)) {
@@ -3410,14 +3410,14 @@ GitHub API as a last resort. It never publishes to placeholder owners.`);
   });
 }
 
-async function runPluginOpenDesignPr(rest) {
+async function runPluginReadableStudioPr(rest) {
   const flags = parseFlags(rest, {
     string: new Set(['host', 'owner']),
     boolean: new Set(['help', 'h', 'json', 'dry-run']),
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  readable plugin open-design-pr <folder> [--host github.com] [--owner github-login-or-fork-owner] [--dry-run] [--json]
+  readable plugin readable-studio-pr <folder> [--host github.com] [--owner github-login-or-fork-owner] [--dry-run] [--json]
 
 Copies a local plugin folder into plugins/community/<name>/ on the author's
 fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with --web.`);
@@ -3425,7 +3425,7 @@ fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with 
   }
   const folder = rest.find((a) => !a.startsWith('-') && a !== flags.host && a !== flags.owner);
   if (!folder) {
-    console.error('Usage: readable plugin open-design-pr <folder>');
+    console.error('Usage: readable plugin readable-studio-pr <folder>');
     process.exit(2);
   }
   const [{ resolve, join }, fsp, os] = await Promise.all([
@@ -3437,15 +3437,15 @@ fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with 
   const manifestPath = resolve(absFolder, 'readable-studio.json');
   const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8'));
   const host = typeof flags.host === 'string' ? flags.host : 'github.com';
-  const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'open-design-pr' });
+  const target = await resolvePluginGithubTarget({ host, owner: flags.owner, manifest, purpose: 'readable-studio-pr' });
   const name = String(manifest.name ?? '').trim();
   if (!name) {
-    console.error('[open-design-pr] manifest.name is required');
+    console.error('[readable-studio-pr] manifest.name is required');
     process.exit(2);
   }
   const title = String(manifest.title ?? name).trim();
   const branch = `plugin/${name}-${Math.floor(Date.now() / 1000)}`;
-  const tmpRoot = await fsp.mkdtemp(join(os.tmpdir(), 'od-open-design-pr-'));
+  const tmpRoot = await fsp.mkdtemp(join(os.tmpdir(), 'readable-readable-studio-pr-'));
   const checkout = join(tmpRoot, 'readable-studio');
   const steps = [];
   const run = async (label, command, args, opts = {}) => {
@@ -3460,7 +3460,7 @@ fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with 
     if (!result.ok && !opts.tolerate?.(result)) {
       emitPluginWorkflowResult(flags, {
         ok: false,
-        action: 'open-design-pr',
+        action: 'readable-studio-pr',
         folder: absFolder,
         login: target.login,
         owner: target.owner,
@@ -3517,7 +3517,7 @@ fork of sanghyunna/readable-studio, pushes a branch, and opens the PR form with 
   const prUrl = extractFirstUrl(pr.stdout || pr.stderr) ?? `https://github.com/${target.owner}/readable-studio/pull/new/${branch}`;
   emitPluginWorkflowResult(flags, {
     ok: true,
-    action: 'open-design-pr',
+    action: 'readable-studio-pr',
     folder: absFolder,
     login: target.login,
     owner: target.owner,
@@ -3613,12 +3613,12 @@ async function resolvePluginGithubTarget({ host = 'github.com', owner, manifest,
     console.error(`[plugin github] could not resolve the GitHub owner for ${purpose}.`);
     if (apiError?.stderr || apiError?.stdout) console.error(apiError.stderr || apiError.stdout);
     if (apiError && isGhApiRateLimit(apiError)) {
-      const ownerHint = purpose === 'open-design-pr' ? '<github-login-or-fork-owner>' : '<github-login-or-org>';
+      const ownerHint = purpose === 'readable-studio-pr' ? '<github-login-or-fork-owner>' : '<github-login-or-org>';
       console.error(`GitHub API is rate limited. Re-run with --owner ${ownerHint}, or authenticate/refresh gh and retry.`);
     } else {
       console.error('Run: gh auth refresh -h github.com -s repo,workflow');
       console.error('Or:  gh auth login -h github.com -s repo,workflow');
-      console.error(purpose === 'open-design-pr'
+      console.error(purpose === 'readable-studio-pr'
         ? 'If the fork owner differs from your auth login, pass --owner <github-login-or-fork-owner>.'
         : 'If this is an org-owned plugin, pass --owner <github-org>.');
     }
@@ -3708,7 +3708,7 @@ function parseGithubRepoUrl(raw) {
 }
 
 function isPlaceholderRepoOwner(owner) {
-  return /^(open-design-user|<vendor>|vendor|example-user|your-org|your-username|owner|user|username)$/i.test(String(owner ?? '').trim());
+  return /^(readable-studio-user|<vendor>|vendor|example-user|your-org|your-username|owner|user|username)$/i.test(String(owner ?? '').trim());
 }
 
 function isRepoNotFound(result) {
@@ -3747,9 +3747,9 @@ function emitPluginWorkflowResult(flags, payload) {
     if (payload.manifestRewritten) console.log('[publish-repo] manifest repo fields were normalized before publishing.');
     return;
   }
-  if (payload.action === 'open-design-pr') {
-    if (payload.ownerSource) console.log(`[open-design-pr] owner resolved from ${payload.ownerSource}: ${payload.owner}`);
-    if (payload.apiRateLimited) console.log('[open-design-pr] GitHub API was rate limited; continued with the locally resolved owner.');
+  if (payload.action === 'readable-studio-pr') {
+    if (payload.ownerSource) console.log(`[readable-studio-pr] owner resolved from ${payload.ownerSource}: ${payload.owner}`);
+    if (payload.apiRateLimited) console.log('[readable-studio-pr] GitHub API was rate limited; continued with the locally resolved owner.');
     console.log(`Open this URL and click Create to file the PR: ${payload.prUrl}`);
     return;
   }
@@ -3772,7 +3772,7 @@ async function runPluginYank(rest) {
   });
   if (rest.length === 0 || flags.help || flags.h) {
     console.log(`Usage:
-  readable plugin yank <vendor/plugin-name>@<version> --reason "<why>" [--to open-design] [--json]
+  readable plugin yank <vendor/plugin-name>@<version> --reason "<why>" [--to readable-studio] [--json]
 
 Yanking never deletes metadata or bytes. It opens the registry review flow that
 marks a version unresolvable for new installs while preserving lockfile replay.`);
@@ -3789,9 +3789,9 @@ marks a version unresolvable for new installs while preserving lockfile replay.`
     console.error('--reason is required for yanking');
     process.exit(2);
   }
-  const target = flags.to ?? 'open-design';
-  if (target !== 'open-design') {
-    console.error('Only --to open-design is supported in this v1 GitHub-backed yank flow.');
+  const target = flags.to ?? 'readable-studio';
+  if (target !== 'readable-studio') {
+    console.error('Only --to readable-studio is supported in this v1 GitHub-backed yank flow.');
     process.exit(2);
   }
   const title = `Yank ${parsed.name}@${parsed.range}`;
@@ -3815,7 +3815,7 @@ marks a version unresolvable for new installs while preserving lockfile replay.`
   ].join('\n');
   const params = new URLSearchParams({ title, body });
   const payload = {
-    catalog: 'open-design',
+    catalog: 'readable-studio',
     name: parsed.name,
     version: parsed.range,
     reason,
@@ -4221,7 +4221,7 @@ function printUiHelp() {
                                                      Pre-answer a surface so the run never broadcasts it.
 
 Common options:
-  --daemon-url <url>   Readable Studio daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.`);
 }
 
@@ -4244,7 +4244,7 @@ function printPluginHelp() {
                                           signals; report stage convergence + iterations
                                           (no LLM in the loop).
   readable plugin verify <pluginId>             CI meta-command: doctor + simulate + canon --check
-                                          driven by an .od-verify.json config in the plugin folder.
+                                          driven by an .readable-studio-verify.json config in the plugin folder.
   readable plugin events tail [-f] [--kind k]   Tail the in-memory plugin event ring buffer.
   readable plugin events snapshot               One-shot read (filterable, no SSE).
   readable plugin events stats                  Roll-up: counts by kind / pluginId / time range.
@@ -4260,15 +4260,15 @@ function printPluginHelp() {
                                           folder for distribution.
   readable plugin publish-repo <folder>         Create/update the author's public
                                           GitHub repo for a plugin folder.
-  readable plugin open-design-pr <folder>       Push a community-catalog branch and
+  readable plugin readable-studio-pr <folder>       Push a community-catalog branch and
                                           open the sanghyunna/readable-studio PR form.
-  readable plugin publish <folder> --to open-design|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
+  readable plugin publish <folder> --to readable-studio|anthropics-skills|awesome-agent-skills|clawhub|skills-sh
                                           Prepare a registry submission link.
   readable plugin login [--host github.com]      Authenticate registry publishing via gh.
   readable plugin whoami [--host github.com]     Show the gh account used for publishing.
 
 Common options:
-  --daemon-url <url>   Readable Studio daemon HTTP base (default OD_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
+  --daemon-url <url>   Readable Studio daemon HTTP base (default READABLE_DAEMON_URL, READABLE_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456).
   --json               Emit raw JSON (suitable for scripts) instead of human-readable output.
 
 Installs support local folders, github:owner/repo refs, HTTPS .tgz archives,
@@ -4292,7 +4292,7 @@ async function projectDaemonUrl(flags) {
 
 function printShareUsage() {
   console.log(`Usage:
-  readable share open-design [--locale <locale>] [--platform <id>] [--json]
+  readable share readable-studio [--locale <locale>] [--platform <id>] [--json]
   readable share url --url <https-url> [--title <title>] [--text <text>]
                [--copy-text <text>] [--locale <locale>] [--platform <id>] [--json]
 
@@ -4314,7 +4314,7 @@ async function runShare(args) {
     process.exit(args.length === 0 ? 2 : 0);
   }
 
-  const sub = args[0] && !args[0].startsWith('-') ? args[0] : 'open-design';
+  const sub = args[0] && !args[0].startsWith('-') ? args[0] : 'readable-studio';
   const rest = sub === args[0] ? args.slice(1) : args;
   const flags = parseFlags(rest, {
     string: SHARE_STRING_FLAGS,
@@ -4333,14 +4333,14 @@ async function runShare(args) {
         locale: flags.locale,
       }
     : {
-        kind: 'open-design-repo',
+        kind: 'readable-studio-repo',
         title: flags.title,
         text: flags.text,
         copyText: flags['copy-text'],
         locale: flags.locale,
       };
 
-  if (sub !== 'open-design' && sub !== 'url') {
+  if (sub !== 'readable-studio' && sub !== 'url') {
     console.error(`unknown share target: ${sub}`);
     printShareUsage();
     process.exit(2);
@@ -4630,7 +4630,7 @@ async function runProject(args) {
 Common options:
   --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -4827,7 +4827,7 @@ async function runRun(args) {
 Common options:
   --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -5316,7 +5316,7 @@ async function safeHostedCliFetch(baseOrigin, input, init) {
 
 async function createContentCliClient(flags, { stdinInUse = false } = {}) {
   const base = (await projectDaemonUrl(flags)).replace(/\/$/, '');
-  const identityFile = flags['identity-token-file'] ?? process.env.OD_HOSTED_IDENTITY_TOKEN_FILE;
+  const identityFile = flags['identity-token-file'] ?? process.env.READABLE_HOSTED_IDENTITY_TOKEN_FILE;
   if (typeof identityFile !== 'string' || identityFile.length === 0) {
     return {
       hosted: false,
@@ -5363,7 +5363,7 @@ async function createContentCliClient(flags, { stdinInUse = false } = {}) {
       if (mutation) {
         const current = session ?? await loadSession();
         headers.set('origin', current.publicOrigin);
-        headers.set('X-Open-Design-CSRF', current.csrfToken);
+        headers.set('X-Readable-Studio-CSRF', current.csrfToken);
       }
       return safeHostedCliFetch(baseOrigin, `${baseOrigin}${pathname}`, { ...init, headers });
     };
@@ -5400,7 +5400,7 @@ async function runHostedArtifacts(args) {
 Common options:
   --daemon-url <url>
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).`);
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).`);
     process.exit(0);
   }
   const flags = parseFlags(rest, {
@@ -5477,7 +5477,7 @@ async function runFiles(args) {
 Common options:
   --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6026,7 +6026,7 @@ async function runConversation(args) {
 Common options:
   --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6265,7 +6265,7 @@ async function runChat(args) {
 Common options:
   --daemon-url <url>   Readable Studio daemon HTTP base.
   --identity-token-file <path|->
-                       Hosted identity (or OD_HOSTED_IDENTITY_TOKEN_FILE).
+                       Hosted identity (or READABLE_HOSTED_IDENTITY_TOKEN_FILE).
   --json               Emit raw JSON.`);
     process.exit(args.length === 0 ? 2 : 0);
   }
@@ -6547,7 +6547,7 @@ async function runDaemonDb(rest, flags) {
 
 status:
   Prints a structured inventory of the daemon's SQLite backend:
-    - file path (under .od/ by default; OD_DATA_DIR overrides)
+    - file path (under .readable-studio/ by default; READABLE_DATA_DIR overrides)
     - size on disk (primary + WAL + SHM)
     - schema version (user_version PRAGMA)
     - per-table row counts (system tables excluded)
@@ -6645,7 +6645,7 @@ function formatBytes(n) {
 
 async function runDaemonStart(flags) {
   const port = Number(flags.port ?? process.env[SIDECAR_ENV.DAEMON_PORT] ?? 7456);
-  const host = String(flags.host ?? process.env.OD_BIND_HOST ?? '127.0.0.1');
+  const host = String(flags.host ?? process.env.READABLE_BIND_HOST ?? '127.0.0.1');
   const headless = Boolean(flags.headless || flags['no-open'] || flags['serve-web']);
   const runtime = await startDaemonRuntime({
     host,
@@ -7136,7 +7136,7 @@ into a zip. The bundle is the same one Settings → About → Export
 diagnostics produces.
 
   <path>                 Where to write the zip. Defaults to
-                         ./open-design-diagnostics-<timestamp>.zip in the
+                         ./readable-studio-diagnostics-<timestamp>.zip in the
                          current working directory. Alias: --output <path>.
   --json                 Print {path, sizeBytes} on stdout instead of a
                          human-readable summary. The file is still written

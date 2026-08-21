@@ -65,7 +65,7 @@ async function waitForRun(baseUrl: string, runId: string): Promise<string> {
 
 describe('hosted Pi server runtime seam', () => {
   test('spawns the injected package-local invocation instead of ambient Pi discovery', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'od-hosted-pi-server-'));
+    const root = mkdtempSync(join(tmpdir(), 'readable-hosted-pi-server-'));
     temporaryRoots.push(root);
     const fakeScript = join(root, 'fake-pi.cjs');
     writeFileSync(fakeScript, FAKE_PI);

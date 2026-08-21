@@ -72,12 +72,12 @@ test("rejects old product metadata instead of normalizing external v1 content", 
   await writeFile(path.join(folder, "readable-studio.json"), JSON.stringify({
     name: "legacy-plugin",
     version: "1.0.0",
-    author: { name: "Open Design" },
+    author: { name: "Readable Studio" },
   }), "utf8");
 
   // When: the canonical-source collector parses the boundary.
   const action = readBundledManifestSources(fixtureRoot);
 
   // Then: the old format is rejected with no compatibility conversion.
-  await assert.rejects(action, (error: unknown) => error instanceof PluginCatalogError && error.message.includes("UNSUPPORTED_OPEN_DESIGN_V1"));
+  await assert.rejects(action, (error: unknown) => error instanceof PluginCatalogError && error.message.includes("UNSUPPORTED_LEGACY_PRODUCT_V1"));
 });

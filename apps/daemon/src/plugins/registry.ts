@@ -1,6 +1,6 @@
 // Plugin registry. Phase 1 scope:
 //
-// - Scans `<daemonDataDir>/plugins/<id>/` (the OD-canonical install root) for
+// - Scans `<daemonDataDir>/plugins/<id>/` (the Readable Studio-canonical install root) for
 //   manifest folders.
 // - Resolves a plugin folder into either an `readable-studio.json`-anchored
 //   manifest or a synthesized one derived from `SKILL.md` /
@@ -21,7 +21,7 @@ import {
   adaptClaudePlugin,
   mergeManifests,
   parseManifest,
-  UNSUPPORTED_OPEN_DESIGN_V1,
+  UNSUPPORTED_LEGACY_PRODUCT_V1,
   validateSafe,
   type ManifestParseResult,
 } from '@readable-studio/plugin-runtime';
@@ -51,7 +51,7 @@ export function registryRootsForDataDir(dataDir: string): RegistryRoots {
 }
 
 export function defaultRegistryRoots(): RegistryRoots {
-  return registryRootsForDataDir(path.resolve(process.env.OD_DATA_DIR ?? path.join(process.cwd(), '.od')));
+  return registryRootsForDataDir(path.resolve(process.env.READABLE_DATA_DIR ?? path.join(process.cwd(), '.readable-studio')));
 }
 
 export interface ScannedPlugin {
@@ -110,10 +110,26 @@ export async function resolvePluginFolder(opts: ResolveOptions): Promise<Resolve
     return { ok: false, errors: [`Plugin path is not a directory: ${folder}`], warnings };
   }
 
-  const sidecarPath = path.join(folder, 'readable-studio.json');
-  const legacySidecarPath = path.join(folder, 'open-design.json');
-  if (fs.existsSync(legacySidecarPath)) {
-    return { ok: false, errors: [UNSUPPORTED_OPEN_DESIGN_V1], warnings };
+  const sidecarName = 'readable-studio.json';
+  const sidecarPath = path.join(folder, sidecarName);
+  if (!fs.existsSync(sidecarPath)) {
+    const alternateJsonFiles = (await fsp.readdir(folder, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && entry.name !== sidecarName && entry.name !== 'package.json');
+    for (const entry of alternateJsonFiles) {
+      try {
+        const candidate = JSON.parse(await fsp.readFile(path.join(folder, entry.name), 'utf8')) as unknown;
+        if (
+          candidate !== null
+          && typeof candidate === 'object'
+          && 'name' in candidate
+          && 'version' in candidate
+        ) {
+          return { ok: false, errors: [UNSUPPORTED_LEGACY_PRODUCT_V1], warnings };
+        }
+      } catch {
+        // Unrelated JSON files are validated by their owning tool, not the plugin registry.
+      }
+    }
   }
   const skillPath = path.join(folder, 'SKILL.md');
   const claudePath = path.join(folder, '.claude-plugin', 'plugin.json');

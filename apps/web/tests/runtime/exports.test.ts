@@ -60,10 +60,10 @@ async function storedZipEntry(blob: Blob, entryName: string): Promise<string> {
 }
 
 function expectSingleStepStandaloneDeckNavigation(html: string) {
-  expect(html).toContain('data-od-standalone-deck-nav-dedupe');
-  expect(html.indexOf('data-od-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
+  expect(html).toContain('data-readable-standalone-deck-nav-dedupe');
+  expect(html.indexOf('data-readable-standalone-deck-nav-dedupe')).toBeLessThan(html.indexOf('function onKey'));
 
-  const guardBody = html.match(/<script data-od-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
+  const guardBody = html.match(/<script data-readable-standalone-deck-nav-dedupe>\n?([\s\S]*?)<\/script>/)?.[1];
   const deckBody = html.match(/<script>function onKey([\s\S]*?)<\/script>/)?.[0]
     .replace(/^<script>/, '')
     .replace(/<\/script>$/, '');
@@ -284,7 +284,7 @@ describe('buildDesignHandoffContent', () => {
       files: ['index.html', 'src/app.css', 'src/app.js'],
     }));
 
-    expect(manifest.schema).toBe('open-design.design-manifest.v1');
+    expect(manifest.schema).toBe('readable-studio.design-manifest.v1');
     expect(manifest.entryFile).toBe('index.html');
     expect(manifest.sourceFiles.css).toEqual(['src/app.css']);
     expect(manifest.sourceFiles.scriptsAndComponents).toEqual(['src/app.js']);
@@ -630,8 +630,8 @@ describe('sandboxed preview Blob exports', () => {
     });
     vi.stubGlobal('window', {
       location: {
-        href: 'https://open-design.test/plugins/example',
-        origin: 'https://open-design.test',
+        href: 'https://readable-studio.test/plugins/example',
+        origin: 'https://readable-studio.test',
       },
       open: (_url: string, _target: string, features?: string) => {
         openCalls.push([_url, _target]);
@@ -664,7 +664,7 @@ describe('sandboxed preview Blob exports', () => {
 
     expect(capturedBlob).toBeDefined();
     const wrapper = await capturedBlob!.text();
-    expect(wrapper).toContain('&lt;base href=&quot;https://open-design.test/&quot;&gt;');
+    expect(wrapper).toContain('&lt;base href=&quot;https://readable-studio.test/&quot;&gt;');
   });
 
   it('passes srcdoc options through the sandboxed new-tab wrapper', async () => {

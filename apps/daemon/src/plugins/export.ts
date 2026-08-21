@@ -7,7 +7,7 @@
 // can re-publish to anthropics/skills, awesome-agent-skills, clawhub,
 // or skills.sh. Three targets:
 //
-//   - `od`            → SKILL.md + readable-studio.json (canonical OD shape).
+//   - `readable`            → SKILL.md + readable-studio.json (canonical Readable Studio shape).
 //   - `claude-plugin` → SKILL.md + .claude-plugin/plugin.json (Claude
 //                       Code listing format).
 //   - `agent-skill`   → SKILL.md only (every catalog accepts this).

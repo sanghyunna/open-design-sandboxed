@@ -195,7 +195,7 @@ const ASSISTANT_MESSAGE_COMPARED_PROPS: Array<keyof Props> = [
   // memo swallows the deltas and the card only updates on the final tool_use.
   'liveToolInput',
 ];
-export const ASSISTANT_ROLLBACK_EVENT = 'open-design:assistant-rollback';
+export const ASSISTANT_ROLLBACK_EVENT = 'readable-studio:assistant-rollback';
 
 function areAssistantMessagePropsEqual(prev: Props, next: Props): boolean {
   for (const key of ASSISTANT_MESSAGE_COMPARED_PROPS) {
@@ -256,7 +256,7 @@ function AssistantMessageImpl({
   const rollbackEvent = events.find(
     (e): e is AgentRollbackRequestEvent => e.kind === "agent_rollback_request",
   );
-  const rollbackDismissalKey = `od:agent-rollback-dismissed:${rollbackEvent?.requestId ?? message.id}`;
+  const rollbackDismissalKey = `readable:agent-rollback-dismissed:${rollbackEvent?.requestId ?? message.id}`;
   const [rollbackDismissed, setRollbackDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -925,7 +925,7 @@ function AssistantForkButton({
   return (
     <button
       type="button"
-      className="assistant-copy-button od-tooltip"
+      className="assistant-copy-button readable-tooltip"
       disabled={disabled}
       data-tooltip={label}
       data-tooltip-placement="top"
@@ -944,7 +944,7 @@ function AssistantRollbackButton({ onRollback }: { onRollback: () => void }) {
   return (
     <button
       type="button"
-      className="assistant-copy-button od-tooltip"
+      className="assistant-copy-button readable-tooltip"
       data-tooltip={label}
       data-tooltip-placement="top"
       onClick={onRollback}
@@ -982,7 +982,7 @@ function AssistantMarkdownCopyButton({ markdown }: { markdown: string }) {
   return (
     <button
       type="button"
-      className="assistant-copy-button od-tooltip"
+      className="assistant-copy-button readable-tooltip"
       data-copied={copied ? "true" : "false"}
       data-tooltip={label}
       data-tooltip-placement="top"
@@ -1129,7 +1129,7 @@ function PluginActionPanel({
         <div>
           <div className="plugin-action-panel__title">Plugin ready</div>
           <div className="plugin-action-panel__subtitle">
-            Send the next step to the agent so it can run the od CLI.
+            Send the next step to the agent so it can run the readable CLI.
           </div>
         </div>
       </div>

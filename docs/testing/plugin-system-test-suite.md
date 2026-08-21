@@ -192,7 +192,7 @@ pnpm tools-dev run web --daemon-port 17456 --web-port 17573
 | PS-E03 | Community seed | community registry 作为 `restricted` source 加载 | `apps/daemon/tests/plugins-marketplaces.test.ts` |
 | PS-E04 | Version resolution | exact、dist-tag、semver range、yanked beta 解析正确 | `apps/daemon/tests/plugins-marketplaces.test.ts` |
 | PS-E05 | Provenance | marketplace install 保留 sourceMarketplaceId、entry name/version、resolved ref、integrity | `apps/daemon/tests/plugins-installer.test.ts` |
-| PS-E06 | Lockfile replay | `.od/od-plugin-lock.json` 可以重放 exact install | `apps/daemon/tests/plugins-lockfile.test.ts` |
+| PS-E06 | Lockfile replay | `.readable-studio/readable-plugin-lock.json` 可以重放 exact install | `apps/daemon/tests/plugins-lockfile.test.ts` |
 | PS-E07 | Marketplace doctor | invalid name/source/capability/license/yank reason 被报告 | `apps/daemon/tests/plugins-marketplace-doctor.test.ts` |
 | PS-E08 | Public site renderer | `/plugins`、detail route、`/plugins/search.json` build 通过 | `pnpm --filter @readable-studio/landing-page build` |
 
@@ -215,7 +215,7 @@ pnpm tools-dev run web --daemon-port 17456 --web-port 17573
 | --- | --- | --- | --- |
 | PS-G01 | Capability grant/revoke | trust endpoint 可授予/撤销 capability，非法 capability 被拒 | `apps/daemon/tests/plugins-trust.test.ts` |
 | PS-G02 | Asset sandbox | plugin asset route 不允许路径穿越，返回合适 CSP/content-type | `apps/daemon/tests/plugins-asset-route.test.ts` |
-| PS-G03 | API token guard | public bind 没有 `OD_API_TOKEN` 被拒，loopback 跳过 bearer | `apps/daemon/tests/api-token-guard.test.ts` |
+| PS-G03 | API token guard | public bind 没有 `READABLE_API_TOKEN` 被拒，loopback 跳过 bearer | `apps/daemon/tests/api-token-guard.test.ts` |
 | PS-G04 | Origin/CORS | daemon route origin validation 不放宽 | `apps/daemon/tests/origin-validation.test.ts`、`server-cors.test.ts` |
 
 ### H. Web Product Surface

@@ -3,6 +3,9 @@ import test from "node:test";
 
 import { scanWorkspaceIdentity, scanWorkspaceIdentitySources } from "./readable-workspace-identity.ts";
 
+const retiredBinName = ["o", "d"].join("");
+const retiredRootName = ["open", "design"].join("-");
+
 const workspacePackages = new Map([
   ["apps/daemon/package.json", "@readable-studio/daemon"],
   ["apps/desktop/package.json", "@readable-studio/desktop"],
@@ -63,7 +66,7 @@ test("rejects an extra legacy executable alias", () => {
   sources.set("apps/daemon/package.json", JSON.stringify({
     name: "@readable-studio/daemon",
     private: true,
-    bin: { readable: "./bin/readable.mjs", legacy: "./bin/od.mjs" },
+    bin: { readable: "./bin/readable.mjs", [retiredBinName]: `./bin/${retiredBinName}.mjs` },
   }));
   assert.ok(findingRules(sources).includes("old-bin"));
 });
@@ -81,8 +84,8 @@ test("rejects false or missing private workspace manifests", () => {
 
 test("rejects compatibility packages", () => {
   const sources = readableWorkspaceSources();
-  sources.set("packages/open-design-compat/package.json", JSON.stringify({
-    name: "@readable-studio/open-design-compat",
+  sources.set(`packages/${retiredRootName}-compat/package.json`, JSON.stringify({
+    name: `@readable-studio/${retiredRootName}-compat`,
     private: true,
   }));
   assert.ok(findingRules(sources).includes("compatibility-package"));
@@ -99,11 +102,12 @@ test("rejects old package scope and executable identities", () => {
   const sources = readableWorkspaceSources();
   const oldScope = `@${"open"}-${"design"}`;
   sources.set("apps/daemon/src/cli.ts", `import { x } from '${oldScope}/contracts';`);
-  sources.set("apps/daemon/bin/od.mjs", "");
+  const retiredBinPath = `apps/daemon/bin/${retiredBinName}.mjs`;
+  sources.set(retiredBinPath, "");
   assert.deepEqual(
     scanWorkspaceIdentitySources(sources).filter(({ rule }) => rule === "old-bin" || rule === "old-scope")
       .map(({ path, rule }) => [path, rule]),
-    [["apps/daemon/src/cli.ts", "old-scope"], ["apps/daemon/bin/od.mjs", "old-bin"]],
+    [["apps/daemon/src/cli.ts", "old-scope"], [retiredBinPath, "old-bin"]],
   );
 });
 

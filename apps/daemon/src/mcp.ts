@@ -5,7 +5,7 @@
 // export-zip-import dance.
 //
 // The server itself holds no state and never touches the filesystem;
-// every tool resolves to a fetch() against `OD_DAEMON_URL`. Spawn the
+// every tool resolves to a fetch() against `READABLE_DAEMON_URL`. Spawn the
 // MCP server with no daemon running and tool calls return a clear
 // "daemon not reachable" error - the server itself still launches so
 // the client can list its tool schema.
@@ -905,18 +905,18 @@ async function createProject(baseUrl: string, args: McpArgs) {
 // record carries 16+ fields (fsPath, sourceMarketplaceId, installedAt,
 // resolvedSource, …) that an agent never reasons about, and the
 // human-readable description / kind live one level deeper in
-// `manifest.description` / `manifest.od.kind`.
+// `manifest.description` / `manifest.readable.kind`.
 async function listPlugins(baseUrl: string): Promise<JsonObject> {
   const raw = await getJson<{ plugins?: JsonObject[] }>(`${baseUrl}/api/plugins`);
   const plugins = (raw?.plugins ?? []).map((p) => {
     const manifest = (p?.manifest as JsonObject | undefined) ?? {};
-    const od = (manifest.od as JsonObject | undefined) ?? {};
+    const readable = (manifest.readable as JsonObject | undefined) ?? {};
     const result: JsonObject = {
       id: p?.id,
       title: manifest.title ?? p?.title ?? p?.id,
     };
     if (typeof manifest.description === 'string') result.description = manifest.description;
-    const kind = od.taskKind ?? od.kind;
+    const kind = readable.taskKind ?? readable.kind;
     if (typeof kind === 'string') result.kind = kind;
     if (Array.isArray(manifest.tags)) result.tags = manifest.tags;
     return result;

@@ -98,7 +98,7 @@ describe('parseShadcnReference', () => {
 });
 
 describe('wrapShadcnColorValue', () => {
-  it('wraps bare HSL triplets so the OD scanner recognizes them as colors', () => {
+  it('wraps bare HSL triplets so the Readable Studio scanner recognizes them as colors', () => {
     expect(wrapShadcnColorValue('222.2 47.4% 11.2%')).toBe('hsl(222.2 47.4% 11.2%)');
     expect(wrapShadcnColorValue('0 0% 100% / 50%')).toBe('hsl(0 0% 100% / 50%)');
   });
@@ -150,7 +150,7 @@ describe('importShadcnDesignSystemProject', () => {
   let userDesignSystemsRoot: string;
 
   beforeEach(() => {
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'od-ds-shadcn-import-'));
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'readable-ds-shadcn-import-'));
     tmpRoot = path.join(tempRoot, '.tmp');
     userDesignSystemsRoot = path.join(tempRoot, 'user-design-systems');
   });

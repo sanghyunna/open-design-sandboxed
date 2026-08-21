@@ -25,7 +25,7 @@ import {
 import path from 'node:path';
 import { hostedPiBrokerExtensionPath } from './hosted-pi-runtime.js';
 
-export const HOSTED_PI_BROKER_TOOL_NAME = 'od_hosted_broker';
+export const HOSTED_PI_BROKER_TOOL_NAME = 'readable_hosted_broker';
 export const HOSTED_PI_BROKER_ENDPOINTS = [
   '/api/projects/:id/files',
   '/api/projects/:id/files/*',
@@ -322,7 +322,7 @@ function writeProjectFile(root: string, rootIdentity: RootIdentity, target: Reso
     throw new Error('project parent became a link');
   }
   const destination = path.join(parentResolved, path.basename(target.path));
-  const temporary = path.join(parentResolved, `.od-hosted-${randomBytes(12).toString('hex')}.tmp`);
+  const temporary = path.join(parentResolved, `.readable-studio-hosted-${randomBytes(12).toString('hex')}.tmp`);
   try {
     writeFileSync(temporary, content, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
     if (!projectRootStillBound(root, rootIdentity)) throw new Error('project root escaped');
@@ -480,7 +480,7 @@ export async function createHostedPiBroker(options: {
   if (socketRoot) chmodSync(socketRoot, 0o700);
   const socketPath = socketRoot
     ? path.join(socketRoot, 'broker.sock')
-    : `\\\\.\\pipe\\OpenDesign.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`;
+    : `\\\\.\\pipe\\ReadableStudio.HostedPi.${process.pid}.${randomBytes(12).toString('hex')}`;
 
   let closed = false;
   let operationTail: Promise<void> = Promise.resolve();

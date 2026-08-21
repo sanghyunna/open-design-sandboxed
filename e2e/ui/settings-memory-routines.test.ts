@@ -4,7 +4,7 @@ import { routeAgents } from '@/playwright/mock-factory';
 import type { Page } from '@playwright/test';
 import { openSettingsDialog } from '../lib/playwright/amr.js';
 
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定/i;
 
 test.describe.configure({ timeout: 30_000 });
@@ -60,7 +60,7 @@ async function waitForLoadingToClear(page: Page) {
 async function gotoEntryHome(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('dialog').filter({ hasText: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible()) {
     await privacyDialog.getByRole('button', { name: /I get it|not now|got it|don't share/i }).click();
   }
@@ -135,7 +135,7 @@ test.describe('Settings Memory and Automations flows', () => {
             {
               id: 'feedback_ui_density',
               parentId: 'folder-feedback',
-              path: '/FEEDBACK/open-design-plugin-authoring-flow',
+              path: '/FEEDBACK/readable-studio-plugin-authoring-flow',
               name: 'Readable Studio plugin authoring flow',
               description: 'Keep plugin setup terse and reproducible.',
               kind: 'entry',

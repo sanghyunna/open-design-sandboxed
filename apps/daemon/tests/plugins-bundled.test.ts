@@ -27,7 +27,7 @@ const SAMPLE_MANIFEST = (id: string) =>
 const SAMPLE_SKILL = (id: string) => `---\nname: ${id}\ndescription: bundled fixture\n---\n# ${id}\n`;
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-bundled-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-bundled-'));
   db = new Database(':memory:');
   db.exec(`
     CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT);
@@ -45,18 +45,18 @@ describe('registerBundledPlugins', () => {
   it('registers every <bundledRoot>/<tier>/<id>/ folder under source_kind=bundled', async () => {
     // Build a layout with one atom + one scenario:
     //   <bundledRoot>/atoms/discovery-question-form/{readable-studio.json,SKILL.md}
-    //   <bundledRoot>/scenarios/od-new-generation/{readable-studio.json,SKILL.md}
+    //   <bundledRoot>/scenarios/readable-new-generation/{readable-studio.json,SKILL.md}
     const atomDir = path.join(tmpRoot, 'atoms', 'discovery-question-form');
-    const sceneDir = path.join(tmpRoot, 'scenarios', 'od-new-generation');
+    const sceneDir = path.join(tmpRoot, 'scenarios', 'readable-new-generation');
     await mkdir(atomDir, { recursive: true });
     await mkdir(sceneDir, { recursive: true });
     await writeFile(path.join(atomDir, 'readable-studio.json'), SAMPLE_MANIFEST('discovery-question-form'));
     await writeFile(path.join(atomDir, 'SKILL.md'), SAMPLE_SKILL('discovery-question-form'));
-    await writeFile(path.join(sceneDir, 'readable-studio.json'), SAMPLE_MANIFEST('od-new-generation'));
-    await writeFile(path.join(sceneDir, 'SKILL.md'), SAMPLE_SKILL('od-new-generation'));
+    await writeFile(path.join(sceneDir, 'readable-studio.json'), SAMPLE_MANIFEST('readable-new-generation'));
+    await writeFile(path.join(sceneDir, 'SKILL.md'), SAMPLE_SKILL('readable-new-generation'));
 
     const result = await registerBundledPlugins({ db, bundledRoot: tmpRoot });
-    expect(result.registered.map((r) => r.id).sort()).toEqual(['discovery-question-form', 'od-new-generation']);
+    expect(result.registered.map((r) => r.id).sort()).toEqual(['discovery-question-form', 'readable-new-generation']);
     const installed = listInstalledPlugins(db);
     expect(installed.length).toBe(2);
     for (const row of installed) {
@@ -77,20 +77,20 @@ describe('registerBundledPlugins', () => {
       marketplaceProvenance: {
         sourceMarketplaceId: 'official',
         marketplaceTrust: 'official',
-        entryNamePrefix: 'open-design',
+        entryNamePrefix: 'readable-studio',
       },
     });
 
     expect(result.registered[0]?.sourceKind).toBe('bundled');
     expect(result.registered[0]?.sourceMarketplaceId).toBe('official');
-    expect(result.registered[0]?.sourceMarketplaceEntryName).toBe('open-design/starter');
+    expect(result.registered[0]?.sourceMarketplaceEntryName).toBe('readable-studio/starter');
     expect(result.registered[0]?.sourceMarketplaceEntryVersion).toBe('0.1.0');
     expect(result.registered[0]?.marketplaceTrust).toBe('official');
     expect(result.registered[0]?.resolvedSource).toBe(folder);
 
     const [row] = listInstalledPlugins(db);
     expect(row?.sourceMarketplaceId).toBe('official');
-    expect(row?.sourceMarketplaceEntryName).toBe('open-design/starter');
+    expect(row?.sourceMarketplaceEntryName).toBe('readable-studio/starter');
   });
 
   it('also registers a direct <bundledRoot>/<plugin-id>/ folder', async () => {

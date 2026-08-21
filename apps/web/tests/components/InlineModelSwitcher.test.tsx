@@ -99,8 +99,8 @@ function expectVelaLoginWithAttribution(
     };
   };
   expect(body.attribution).toEqual(expect.objectContaining({
-    entryId: expect.stringMatching(/^od-amr-/u),
-    sourceProduct: 'open_design',
+    entryId: expect.stringMatching(/^readable-amr-/u),
+    sourceProduct: 'readable_studio',
     sourceDetail,
   }));
   expect(Number.isFinite(Date.parse(body.attribution?.occurredAt ?? ''))).toBe(true);

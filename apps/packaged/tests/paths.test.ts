@@ -65,11 +65,11 @@ describe("resolvePackagedNamespacePaths", () => {
       daemonSidecarEntry: null,
       descriptor: createRuntimeDescriptor("1.2.3"),
       namespace: "release",
-      namespaceBaseRoot: "/tmp/open-design-packaged/namespaces",
+      namespaceBaseRoot: "/tmp/readable-studio-packaged/namespaces",
       nodeCommand: null,
       portable: false,
       platform: null,
-      resourceRoot: "/tmp/open-design-packaged/resources",
+      resourceRoot: "/tmp/readable-studio-packaged/resources",
       webSidecarEntry: null,
       webStandaloneRoot: null,
       webOutputMode: "server",
@@ -86,16 +86,16 @@ describe("resolvePackagedNamespacePaths", () => {
     );
   });
 
-  it("uses OD_DATA_DIR as a base for the namespace-scoped packaged daemon dataRoot", () => {
+  it("uses READABLE_DATA_DIR as a base for the namespace-scoped packaged daemon dataRoot", () => {
     const config = fakeConfig();
-    const override = join("C:", "Users", "Fred", "MyProject", "design", ".od");
+    const override = join("C:", "Users", "Fred", "MyProject", "design", ".readable-studio");
 
     expect(
-      resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: override }).dataRoot,
+      resolvePackagedNamespacePaths(config, config.namespace, { READABLE_DATA_DIR: override }).dataRoot,
     ).toBe(join(override, "namespaces", config.namespace, "data"));
   });
 
-  it("rejects portable OD_DATA_DIR overrides outside the exe data container", () => {
+  it("rejects portable READABLE_DATA_DIR overrides outside the exe data container", () => {
     const config = fakeConfig();
     const exeDir = join("D:", "Portable", "Readable Studio");
     const originalExecPath = process.execPath;
@@ -108,15 +108,15 @@ describe("resolvePackagedNamespacePaths", () => {
       config.namespaceBaseRoot = join(exeDir, "ReadableStudioData", "namespaces");
       expect(
         () => resolvePackagedNamespacePaths(config, config.namespace, {
-          OD_DATA_DIR: join("C:", "Users", "Fred", "AppData", "Roaming", "Readable Studio"),
+          READABLE_DATA_DIR: join("C:", "Users", "Fred", "AppData", "Roaming", "Readable Studio"),
         }),
-      ).toThrow(/OD_DATA_DIR.*ReadableStudioData/);
+      ).toThrow(/READABLE_DATA_DIR.*ReadableStudioData/);
     } finally {
       Object.defineProperty(process, "execPath", { configurable: true, value: originalExecPath });
     }
   });
 
-  it("accepts portable OD_DATA_DIR overrides inside the exe data container", () => {
+  it("accepts portable READABLE_DATA_DIR overrides inside the exe data container", () => {
     const config = fakeConfig();
     const exeDir = join("D:", "Portable", "Readable Studio");
     const originalExecPath = process.execPath;
@@ -128,21 +128,21 @@ describe("resolvePackagedNamespacePaths", () => {
       config.portable = true;
       config.namespaceBaseRoot = join(exeDir, "ReadableStudioData", "namespaces");
       const override = join(exeDir, "ReadableStudioData", "daemon-data");
-      expect(resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: override }).dataRoot)
+      expect(resolvePackagedNamespacePaths(config, config.namespace, { READABLE_DATA_DIR: override }).dataRoot)
         .toBe(join(override, "namespaces", config.namespace, "data"));
     } finally {
       Object.defineProperty(process, "execPath", { configurable: true, value: originalExecPath });
     }
   });
 
-  it("keeps shared OD_DATA_DIR overrides isolated across packaged namespaces", () => {
+  it("keeps shared READABLE_DATA_DIR overrides isolated across packaged namespaces", () => {
     const config = fakeConfig();
-    const override = join("C:", "Users", "Fred", "MyProject", "design", ".od");
+    const override = join("C:", "Users", "Fred", "MyProject", "design", ".readable-studio");
     const stable = resolvePackagedNamespacePaths(config, "release-stable-win", {
-      OD_DATA_DIR: override,
+      READABLE_DATA_DIR: override,
     });
     const beta = resolvePackagedNamespacePaths(config, "release-beta-win", {
-      OD_DATA_DIR: override,
+      READABLE_DATA_DIR: override,
     });
 
     expect(stable.dataRoot).toBe(join(override, "namespaces", "release-stable-win", "data"));
@@ -150,7 +150,7 @@ describe("resolvePackagedNamespacePaths", () => {
     expect(stable.dataRoot).not.toBe(beta.dataRoot);
   });
 
-  it("preserves already-scoped packaged OD_DATA_DIR values as the final daemon dataRoot", () => {
+  it("preserves already-scoped packaged READABLE_DATA_DIR values as the final daemon dataRoot", () => {
     const config = fakeConfig();
     const override = join(
       "C:",
@@ -165,11 +165,11 @@ describe("resolvePackagedNamespacePaths", () => {
     );
 
     expect(
-      resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: override }).dataRoot,
+      resolvePackagedNamespacePaths(config, config.namespace, { READABLE_DATA_DIR: override }).dataRoot,
     ).toBe(override);
   });
 
-  it("rejects already-scoped OD_DATA_DIR values that point at a different packaged namespace", () => {
+  it("rejects already-scoped READABLE_DATA_DIR values that point at a different packaged namespace", () => {
     const config = fakeConfig();
     const override = join(
       "C:",
@@ -186,16 +186,16 @@ describe("resolvePackagedNamespacePaths", () => {
     expect(
       () =>
         resolvePackagedNamespacePaths(config, config.namespace, {
-          OD_DATA_DIR: override,
+          READABLE_DATA_DIR: override,
         }),
     ).toThrow(PackagedPathAccessError);
   });
 
-  it("forwards the OD_DATA_DIR-resolved dataRoot into sidecar launch paths", () => {
+  it("forwards the READABLE_DATA_DIR-resolved dataRoot into sidecar launch paths", () => {
     const config = fakeConfig();
-    const override = join("C:", "Users", "Fred", "MyProject", "design", ".od");
+    const override = join("C:", "Users", "Fred", "MyProject", "design", ".readable-studio");
     const paths = resolvePackagedNamespacePaths(config, config.namespace, {
-      OD_DATA_DIR: override,
+      READABLE_DATA_DIR: override,
     });
 
     expect(paths.dataRoot).toBe(join(override, "namespaces", config.namespace, "data"));
@@ -203,59 +203,59 @@ describe("resolvePackagedNamespacePaths", () => {
     expect(paths.runtimeRoot).toBe(join(config.namespaceBaseRoot, config.namespace, "runtime"));
   });
 
-  it("does not read process.env implicitly so headless can keep namespace-root OD_DATA_DIR semantics", () => {
+  it("does not read process.env implicitly so headless can keep namespace-root READABLE_DATA_DIR semantics", () => {
     const config = fakeConfig();
-    const original = process.env.OD_DATA_DIR;
+    const original = process.env.READABLE_DATA_DIR;
     try {
-      process.env.OD_DATA_DIR = join("C:", "Users", "Fred", "MyProject", "design", ".od");
+      process.env.READABLE_DATA_DIR = join("C:", "Users", "Fred", "MyProject", "design", ".readable-studio");
       expect(resolvePackagedNamespacePaths(config).dataRoot).toBe(
         join(config.namespaceBaseRoot, config.namespace, "data"),
       );
     } finally {
-      if (original == null) delete process.env.OD_DATA_DIR;
-      else process.env.OD_DATA_DIR = original;
+      if (original == null) delete process.env.READABLE_DATA_DIR;
+      else process.env.READABLE_DATA_DIR = original;
     }
   });
 
-  it("rejects relative OD_DATA_DIR values instead of resolving them against cwd", () => {
+  it("rejects relative READABLE_DATA_DIR values instead of resolving them against cwd", () => {
     const config = fakeConfig();
 
     expect(
-      () => resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: "project/.od" }),
-    ).toThrow(/OD_DATA_DIR.*absolute path/);
+      () => resolvePackagedNamespacePaths(config, config.namespace, { READABLE_DATA_DIR: "project/.readable-studio" }),
+    ).toThrow(/READABLE_DATA_DIR.*absolute path/);
   });
 
-  it("surfaces the relative-OD_DATA_DIR rejection as PackagedPathAccessError so packaged main() can show a dialog", () => {
+  it("surfaces the relative-READABLE_DATA_DIR rejection as PackagedPathAccessError so packaged main() can show a dialog", () => {
     const config = fakeConfig();
 
     let captured: unknown;
     try {
-      resolvePackagedNamespacePaths(config, config.namespace, { OD_DATA_DIR: "project/.od" });
+      resolvePackagedNamespacePaths(config, config.namespace, { READABLE_DATA_DIR: "project/.readable-studio" });
     } catch (error) {
       captured = error;
     }
 
     expect(captured).toBeInstanceOf(PackagedPathAccessError);
     const err = captured as PackagedPathAccessError;
-    expect(err.title).toMatch(/OD_DATA_DIR/);
-    expect(err.message).toContain("project/.od");
+    expect(err.title).toMatch(/READABLE_DATA_DIR/);
+    expect(err.message).toContain("project/.readable-studio");
     expect(err.message).toMatch(/absolute path/);
   });
 
-  it("rejects Windows-style OD_DATA_DIR values on non-Windows hosts so the absolute-path guard is platform-correct", () => {
+  it("rejects Windows-style READABLE_DATA_DIR values on non-Windows hosts so the absolute-path guard is platform-correct", () => {
     const config = fakeConfig();
     const restore = stubPlatform("linux");
     try {
       expect(
         () =>
           resolvePackagedNamespacePaths(config, config.namespace, {
-            OD_DATA_DIR: "C:\\Users\\Fred\\OD",
+            READABLE_DATA_DIR: "C:\\Users\\Fred\\Readable Studio",
           }),
       ).toThrow(PackagedPathAccessError);
       expect(
         () =>
           resolvePackagedNamespacePaths(config, config.namespace, {
-            OD_DATA_DIR: "\\\\server\\share",
+            READABLE_DATA_DIR: "\\\\server\\share",
           }),
       ).toThrow(PackagedPathAccessError);
     } finally {

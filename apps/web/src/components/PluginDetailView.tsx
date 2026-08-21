@@ -74,16 +74,16 @@ export function PluginDetailView(props: Props) {
 
   const localizedTitle = localizePluginTitle(locale, plugin);
   const localizedDescription = localizePluginDescription(locale, plugin);
-  const od = plugin.manifest?.readable ?? {};
-  const surfaces = od.genui?.surfaces ?? [];
-  const capabilities = od.capabilities ?? [];
+  const readable = plugin.manifest?.readable ?? {};
+  const surfaces = readable.genui?.surfaces ?? [];
+  const capabilities = readable.capabilities ?? [];
   // Plan §6 Phase 2B / spec §11.6 — show a sandboxed iframe of the
   // plugin's preview entry when one is declared. The daemon serves
   // it under `/api/plugins/:id/preview` with the §9.2 CSP +
   // sandbox="allow-scripts" envelope; we only hint here that a
   // preview is available.
-  const hasPreview = typeof od.preview?.entry === 'string' && od.preview.entry.length > 0;
-  const examples = (od.useCase?.exampleOutputs ?? []) as Array<{
+  const hasPreview = typeof readable.preview?.entry === 'string' && readable.preview.entry.length > 0;
+  const examples = (readable.useCase?.exampleOutputs ?? []) as Array<{
     path: string;
     title?: string;
   }>;
@@ -121,7 +121,7 @@ export function PluginDetailView(props: Props) {
           <span>v{plugin.version}</span>
           <span>trust: {plugin.trust}</span>
           <span>source: {plugin.sourceKind}</span>
-          {od.taskKind ? <span>{od.taskKind}</span> : null}
+          {readable.taskKind ? <span>{readable.taskKind}</span> : null}
         </div>
       </header>
 
@@ -156,7 +156,7 @@ export function PluginDetailView(props: Props) {
             style={{
               width: '100%',
               minHeight: 360,
-              border: '1px solid var(--od-border, #ddd)',
+              border: '1px solid var(--readable-border, #ddd)',
               borderRadius: 6,
               background: '#fff',
             }}
@@ -183,7 +183,7 @@ export function PluginDetailView(props: Props) {
                     {name}
                   </a>
                   {e.title && e.title !== stem ? (
-                    <span style={{ marginLeft: '0.5em', color: 'var(--od-muted, #888)' }}>
+                    <span style={{ marginLeft: '0.5em', color: 'var(--readable-muted, #888)' }}>
                       <code>{stem}</code>
                     </span>
                   ) : null}

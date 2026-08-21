@@ -10,7 +10,7 @@ import { processWebSourcemaps } from "../src/web-sourcemaps.js";
 let tempRoot: string;
 
 beforeEach(async () => {
-  tempRoot = await mkdtemp(join(tmpdir(), "od-web-sourcemaps-"));
+  tempRoot = await mkdtemp(join(tmpdir(), "readable-web-sourcemaps-"));
 });
 
 afterEach(async () => {

@@ -55,7 +55,7 @@ Source development uses the same web and daemon services under `pnpm tools-dev`.
 
 The supported artifact is a Windows 10/11 x64 portable ZIP downloaded manually from GitHub Releases. Users extract the archive and run `Readable Studio.exe`. The destination computer does not need Node.js, pnpm, Git, an installer, or an updater.
 
-Portable data lives under `<exeDir>\ReadableStudioData\namespaces\<namespace>`. Source-mode daemon data defaults to `<repo>\.readable-studio`. `OD_DATA_DIR` accepts an absolute override.
+Portable data lives under `<exeDir>\ReadableStudioData\namespaces\<namespace>`. Source-mode daemon data defaults to `<repo>\.readable-studio`. `READABLE_DATA_DIR` accepts an absolute override.
 
 There is no product website, installer, updater, macOS package, Linux package, Nix package, or release-publishing workflow.
 

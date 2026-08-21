@@ -130,12 +130,12 @@ async function buildWorkspaceArtifacts(config: ToolPackConfig): Promise<void> {
 
   try {
     // One recursive invocation builds every workspace package in dependency
-    // order with up to `workspaceConcurrency` running at once. OD_WEB_OUTPUT_MODE
+    // order with up to `workspaceConcurrency` running at once. READABLE_WEB_OUTPUT_MODE
     // is consumed only by the web build; it is inert for the other packages.
     await runPnpm(
       config,
       ["-r", `--workspace-concurrency=${workspaceConcurrency}`, ...filterArgs, "run", "build"],
-      { OD_WEB_OUTPUT_MODE: config.webOutputMode },
+      { READABLE_WEB_OUTPUT_MODE: config.webOutputMode },
     );
     await runPnpm(config, ["--filter", "@readable-studio/platform", "build:native:win32"]);
     await runPnpm(config, ["--filter", "@readable-studio/web", "build:sidecar"]);
@@ -368,7 +368,7 @@ async function buildPrebundledStandaloneRuntime(
     [
       'import { fileURLToPath } from "node:url";',
       "const selfPath = fileURLToPath(import.meta.url);",
-      "process.env.OD_BIN ??= selfPath;",
+      "process.env.READABLE_BIN ??= selfPath;",
       `process.env[${JSON.stringify(SIDECAR_ENV.DAEMON_CLI_PATH)}] ??= selfPath;`,
       `await import(${JSON.stringify(
         toRelativeImportSpecifier(

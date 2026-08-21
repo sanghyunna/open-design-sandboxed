@@ -86,7 +86,7 @@ export const playwrightUiScenarios: UiScenario[] = [
       fileName: 'commentable-artifact.html',
       heading: 'Prototype headline',
       html:
-        '<!doctype html><html><body><main data-od-id="hero-section"><h1 data-od-id="hero-title" data-screen-label="Hero title">Prototype headline</h1><p data-od-id="hero-copy">Preview copy for comment mode.</p></main></body></html>',
+        '<!doctype html><html><body><main data-readable-id="hero-section"><h1 data-readable-id="hero-title" data-screen-label="Hero title">Prototype headline</h1><p data-readable-id="hero-copy">Preview copy for comment mode.</p></main></body></html>',
     },
     notes: [
       'The composer textarea stays empty; selected preview comments are sent through commentAttachments.',

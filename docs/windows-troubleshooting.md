@@ -87,7 +87,7 @@ pnpm tools-dev check
 
 ### Data directory
 
-Source data defaults to `<repo>\.readable-studio`. `OD_DATA_DIR` may point to an explicit absolute directory. Development lifecycle state is separate under `<repo>\.tmp\tools-dev\<namespace>`.
+Source data defaults to `<repo>\.readable-studio`. `READABLE_DATA_DIR` may point to an explicit absolute directory. Development lifecycle state is separate under `<repo>\.tmp\tools-dev\<namespace>`.
 
 ## Portable build diagnosis
 

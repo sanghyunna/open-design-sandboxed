@@ -20,7 +20,7 @@ describe('public MCP get_project', () => {
   it('surfaces the daemon-resolved project directory', async () => {
     const base = 'http://127.0.0.1:19001';
     const projectId = '11111111-1111-1111-1111-111111111111';
-    const resolvedDir = '/tmp/open-design/projects/demo';
+    const resolvedDir = '/tmp/readable-studio/projects/demo';
     const fetchMock = vi.fn(async (url: string) => {
       if (url.endsWith('/api/mcp/install-info')) {
         return new Response(JSON.stringify({ webBaseUrl: null }), { status: 200 });

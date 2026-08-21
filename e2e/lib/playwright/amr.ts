@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-export const STORAGE_KEY = 'open-design:config';
+export const STORAGE_KEY = 'readable-studio:config';
 export const OPEN_SETTINGS_LABEL = /Open settings|打开设置|開啟設定|Account & settings/i;
 export const SETTINGS_MENU_LABEL = /Settings|设置|設定/i;
 
@@ -10,7 +10,7 @@ export async function waitForLoadingToClear(page: Page) {
 }
 
 export async function dismissPrivacyDialog(page: Page) {
-  const privacyRegion = page.getByRole('region', { name: /Help us improve Open Design/i });
+  const privacyRegion = page.getByRole('region', { name: /Help us improve Readable Studio/i });
   if (await privacyRegion.isVisible().catch(() => false)) {
     await privacyRegion.getByRole('button', { name: /not now|i get it|got it/i }).click();
     await expect(privacyRegion).toBeHidden();

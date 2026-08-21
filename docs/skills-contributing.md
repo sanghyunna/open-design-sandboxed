@@ -32,7 +32,7 @@ cp -r skills/dating-web skills/<your-skill-name>
 # 4. Run the dev loop and verify the picker
 pnpm tools-dev run web
 # Open the URL it prints (typically http://127.0.0.1:5173).
-# Switch to the mode you set in od.mode — see "Skill modes" below for the
+# Switch to the mode you set in readable.mode — see "Skill modes" below for the
 # full list (Prototype / Deck / Template / Design system / Image / Video / Audio).
 # Your skill's name should appear in the picker. Click it, send the example_prompt.
 
@@ -62,7 +62,7 @@ A skill is a **recipe for producing one kind of artifact**. Not a feature, not a
 
 **No:**
 - A wrapper around a third-party API (Stripe, Alipay, Slack API, GitHub API). That's a feature; submit it via the agent / daemon path, not as a skill.
-- A model loader, vendor SDK bundle, or "BYOK for `<provider>`". OD's bet is "your existing CLI is enough."
+- A model loader, vendor SDK bundle, or "BYOK for `<provider>`". Readable Studio's bet is "your existing CLI is enough."
 - A brand-promotion bundle for a sponsor or product launch. Skills are reusable artifact recipes, not campaigns.
 - A duplicate of an existing skill with marginal differentiation. Before opening, search `skills/` and read the descriptions of the closest 2–3 — if you can't articulate the differentiator in one sentence, fold your work into the existing skill instead.
 - A skill whose only output is a screenshot or a video. The artifact has to be something the agent generates from a prompt, not a static asset shipped in `assets/`.
@@ -78,7 +78,7 @@ If you're not sure your idea fits, **open a discussion first** ([github.com/sang
 ```text
 skills/<your-skill>/
 ├── SKILL.md                    # required — frontmatter + workflow
-├── example.html                # required if od.preview.type is html or jsx — the hand-built sample
+├── example.html                # required if readable.preview.type is html or jsx — the hand-built sample
 ├── assets/                     # optional but typical — seed files the skill copies into the artifact
 │   └── template.html
 └── references/                 # optional — knowledge files the agent reads during planning
@@ -89,7 +89,7 @@ skills/<your-skill>/
 
 ### `SKILL.md` frontmatter cheat sheet
 
-The first three keys (`name`, `description`, `triggers`) are the [Claude Code base spec](https://docs.anthropic.com/en/docs/claude-code/skills) — your skill works in plain Claude Code with just these. Everything under `od:` is OD-specific and optional, but **`od.mode`** decides which group the skill shows up under.
+The first three keys (`name`, `description`, `triggers`) are the [Claude Code base spec](https://docs.anthropic.com/en/docs/claude-code/skills) — your skill works in plain Claude Code with just these. Everything under `readable:` is Readable Studio-specific and optional, but **`readable.mode`** decides which group the skill shows up under.
 
 ```yaml
 ---
@@ -103,7 +103,7 @@ triggers:
   - "another phrase"
   - "中文触发词"
 
-od:
+readable:
   mode: prototype           # prototype | deck | template | design-system | image | video | audio
   platform: desktop         # desktop | mobile
   scenario: marketing       # free-form tag for grouping in the picker
@@ -124,7 +124,7 @@ Numbered steps work well. Lift the format from skills/dating-web/SKILL.md
 or skills/guizang-ppt/SKILL.md.
 ```
 
-Full grammar — typed inputs, slider parameters (`od.parameters`), capability gating (`od.capabilities_required`), `od.craft.requires` for cross-brand craft references — lives in [`skills-protocol.md`](skills-protocol.md). You don't need any of those to ship v1.
+Full grammar — typed inputs, slider parameters (`readable.parameters`), capability gating (`readable.capabilities_required`), `readable.craft.requires` for cross-brand craft references — lives in [`skills-protocol.md`](skills-protocol.md). You don't need any of those to ship v1.
 
 ---
 
@@ -149,7 +149,7 @@ pnpm tools-dev run web
 #    and check the daemon stderr for the parse error.
 
 # 4. Verify your skill end-to-end:
-#    - Switch to the mode you set in od.mode (Prototype / Deck / Template /
+#    - Switch to the mode you set in readable.mode (Prototype / Deck / Template /
 #      Design system / Image / Video / Audio)
 #    - Find your skill in the picker
 #    - Click it, paste the example_prompt
@@ -192,12 +192,12 @@ The `e2e/tests/localized-content.test.ts` test enforces that every directory und
 For a non-featured skill, the cheap path is to keep the source metadata complete:
 
 - [ ] **Ensure `SKILL.md` has complete English display copy**: title/name, description, example prompt, and any picker metadata required by the skill schema. The localized runtime uses these fields as the fallback display path.
-- [ ] **Use optional localized display fields when useful**: `en_name` / `zh_name`, `en_description` / `zh_description`, and `od.example_prompt_i18n.<locale>`. Keep `description` and `od.example_prompt` in English because those are the fallback fields for every locale without localized copy.
+- [ ] **Use optional localized display fields when useful**: `en_name` / `zh_name`, `en_description` / `zh_description`, and `readable.example_prompt_i18n.<locale>`. Keep `description` and `readable.example_prompt` in English because those are the fallback fields for every locale without localized copy.
 - [ ] **Run `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`** locally before pushing. These suites catch undisplayable discovered resources and verify localized fallback behavior.
 
 ### Featured skills (optional path)
 
-If you set `od.featured: 1`, also:
+If you set `readable.featured: 1`, also:
 
 - [ ] **Add a screenshot** at `docs/screenshots/skills/<skill>.png`. PNG, ~1024×640 retina, captured from the real `example.html` at zoomed-out browser scale.
 - [ ] **Optionally add full localized display copy** in `content.ts` (DE), `content.fr.ts` (FR), `content.ru.ts` (RU) — title, summary, scenario tag. The featured row in the picker uses this copy when present; the default fallback path renders English everywhere.
@@ -239,7 +239,7 @@ they don't cover this case. If you can't, fold into the existing skill instead.
 - [ ] Ran `pnpm --filter @readable-studio/web test` and `pnpm --filter @readable-studio/e2e test tests/localized-content.test.ts`; localized-content coverage is green
 
 ## Screenshot
-(Required if `od.featured` is set. Otherwise nice-to-have.)
+(Required if `readable.featured` is set. Otherwise nice-to-have.)
 
 ## Forked from
 (Only if applicable. Name the source skill and the LICENSE you preserved.)

@@ -23,7 +23,7 @@ import { createSmokeSuite } from '@/smoke-suite';
 
 const HELD_PROMPT = 'Hold the daemon run open until canceled for the send-now smoke';
 const QUEUED_PROMPT = 'Create a deterministic smoke artifact';
-const STORAGE_KEY = 'open-design:config';
+const STORAGE_KEY = 'readable-studio:config';
 
 type ProjectResponse = {
   conversationId: string;
@@ -137,7 +137,7 @@ describe('dialog send-now interrupt', () => {
 
 async function expectWorkspaceReady(page: Page) {
   await waitForLoadingToClear(page);
-  const privacyDialog = page.getByRole('region', { name: 'Help us improve Open Design' });
+  const privacyDialog = page.getByRole('region', { name: 'Help us improve Readable Studio' });
   if (await privacyDialog.isVisible().catch(() => false)) {
     await privacyDialog.getByRole('button', { name: /don't share|not now/i }).click();
     await playwrightExpect(privacyDialog).toHaveCount(0);

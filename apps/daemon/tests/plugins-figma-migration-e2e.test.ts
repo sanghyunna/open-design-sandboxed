@@ -70,7 +70,7 @@ const stubFetch = (response: { ok?: boolean; body?: unknown }) =>
   } as unknown as Response));
 
 beforeEach(async () => {
-  cwd = await mkdtemp(path.join(os.tmpdir(), 'od-figma-pipeline-e2e-'));
+  cwd = await mkdtemp(path.join(os.tmpdir(), 'readable-figma-pipeline-e2e-'));
 });
 
 afterEach(async () => {
@@ -159,11 +159,11 @@ describe('figma-migration pipeline — full atom chain', () => {
     // This is a property assertion; no atoms run here. The
     // bundled-scenario fallback resolver (O1) wires the canonical
     // figma-migration pipeline whenever a consumer plugin omits
-    // od.pipeline + has taskKind='figma-migration'. The smoke test
+    // readable.pipeline + has taskKind='figma-migration'. The smoke test
     // for the resolver lives in plugins-scenario-fallback; this
     // case just locks the scenario folder still ships the canonical
     // stage list so the resolver has something to copy.
-    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'od-figma-migration', 'readable-studio.json');
+    const scenariosRoot = path.resolve(__dirname, '../../..', 'plugins', '_official', 'scenarios', 'readable-figma-migration', 'readable-studio.json');
     const manifest = JSON.parse(await readFile(scenariosRoot, 'utf8'));
     expect(manifest.readable.pipeline.stages.map((s: { id: string }) => s.id)).toEqual([
       'extract', 'tokens', 'generate', 'critique',

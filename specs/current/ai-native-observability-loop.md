@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the target observability loop that lets Open Design improve agent
+Define the target observability loop that lets Readable Studio improve agent
 quality, reliability, latency, and cost from production evidence.
 
 This is a planning spec. It does not implement runtime behavior. It starts from
@@ -10,11 +10,11 @@ the existing Langfuse trace forwarding and PostHog run analytics, then defines
 the target loop that adds datasets, experiments, annotation, and release gates
 around those signals.
 
-Issue: [#3713](https://github.com/nexu-io/open-design/issues/3713)
+Issue: [#3713](https://github.com/nexu-io/readable-studio/issues/3713)
 
 ## Current State
 
-Open Design already reports completed runs to Langfuse and PostHog. The current
+Readable Studio already reports completed runs to Langfuse and PostHog. The current
 implementation captures useful operational facts:
 
 - trace identity: `run_id == langfuse_trace_id == traceId`;
@@ -32,7 +32,7 @@ The current Langfuse tree is still mostly runtime-oriented. A typical trace is
 shaped like:
 
 ```text
-open-design-turn
+readable-studio-turn
   agent-run
     llm
     tool:read
@@ -45,7 +45,7 @@ answer "which product task stage made the run succeed, fail, become slow, become
 expensive, or require human judgment?"
 
 The current project also has far more traces than durable evaluation assets.
-That means Open Design can inspect individual runs, but the system does not yet
+That means Readable Studio can inspect individual runs, but the system does not yet
 turn production evidence into enough datasets, experiments, annotation queues,
 and release gates to drive continuous improvement.
 
@@ -67,14 +67,14 @@ observability boundary:
   the repository has S3-compatible operational precedent outside the product
   runtime.
 
-The gap is therefore not "does Open Design know how to talk to object storage?"
+The gap is therefore not "does Readable Studio know how to talk to object storage?"
 The gap is productizing that substrate for user attachments, generated
 artifacts, access control, manifest indexing, retention, signed inspection URLs,
 and Langfuse-safe observability payloads.
 
 ## Target Model
 
-Open Design should treat observability as a closed loop:
+Readable Studio should treat observability as a closed loop:
 
 ```text
 production trace
@@ -92,7 +92,7 @@ production trace
 Langfuse is the trace, score, dataset, experiment, and annotation surface. It is
 the observability index, not the durable storage layer for user attachments or
 generated artifacts. PostHog remains the aggregate product analytics and
-alerting surface. Open Design owns the domain model that maps a design-agent run
+alerting surface. Readable Studio owns the domain model that maps a design-agent run
 onto task stages, quality signals, storage references, and release decisions.
 
 ### Semantic Trace Shape
@@ -101,7 +101,7 @@ The target trace tree should expose product stages in addition to low-level
 runtime spans:
 
 ```text
-open-design-turn
+readable-studio-turn
   brief-intake
     attachment-manifest
   route-task-kind
@@ -133,7 +133,7 @@ semantic task stages so humans and agents can diagnose by product intent.
 
 ### Heavy Input and Artifact Boundary
 
-Open Design is a design product, so the input and output surface is heavier than
+Readable Studio is a design product, so the input and output surface is heavier than
 a short chat prompt. A run can include long briefs, reference images, PDFs,
 brand files, prior project files, generated HTML, images, decks, documents,
 preview screenshots, export bundles, and reproducibility materials. These
@@ -143,7 +143,7 @@ The target boundary is:
 
 | Layer | Responsibility |
 | --- | --- |
-| Open Design object storage | Stores original user attachments, parsed text, thumbnails, OCR or embedding outputs, generated artifacts, preview screenshots, export bundles, and reproducibility files. |
+| Readable Studio object storage | Stores original user attachments, parsed text, thumbnails, OCR or embedding outputs, generated artifacts, preview screenshots, export bundles, and reproducibility files. |
 | Langfuse | Stores trace-safe manifests, summaries, hashes, stage status, storage references, evaluator scores, usage, latency, and cost fields. |
 | PostHog | Stores aggregate product analytics and user/workspace-level trend metrics derived from trace-safe fields. |
 
@@ -155,12 +155,12 @@ default policy is:
   default;
 - always emit an `attachment_manifest` and `artifact_manifest` with stable ids,
   MIME type, byte size, SHA-256 hash, parse/build status, truncation status,
-  redaction status, and Open Design storage references;
+  redaction status, and Readable Studio storage references;
 - include short summaries and product-analysis fields that are safe to index in
   Langfuse;
 - use short-lived signed URLs only for interactive inspection, not as the
   durable reference stored in Langfuse;
-- store durable `od://`-style references, object ids, or artifact ids that Open
+- store durable `readable-studio://`-style references, object ids, or artifact ids that Open
   Design can resolve after authorization;
 - only upload a raw attachment to Langfuse Media when the file type is supported,
   the data is low sensitivity or explicitly allowed, and replaying the trace
@@ -183,9 +183,9 @@ The minimum manifest shape should be stable across traces:
       "summary": "Brand reference image with dark UI styling.",
       "redacted": false,
       "truncated": false,
-      "stored_in_open_design": true,
+      "stored_in_readable_studio": true,
       "langfuse_media_id": null,
-      "storage_ref": "od://objects/workspaces/ws_1/projects/proj_1/runs/run_1/attachment/att_123"
+      "storage_ref": "readable-studio://objects/workspaces/ws_1/projects/proj_1/runs/run_1/attachment/att_123"
     }
   ],
   "artifact_manifest": [
@@ -201,8 +201,8 @@ The minimum manifest shape should be stable across traces:
       "summary": "Generated HTML prototype for the requested dashboard flow.",
       "redacted": false,
       "truncated": false,
-      "storage_ref": "od://objects/workspaces/ws_1/projects/proj_1/runs/run_1/artifact/art_456",
-      "thumbnail_ref": "od://objects/workspaces/ws_1/projects/proj_1/runs/run_1/preview/prev_thumb_789"
+      "storage_ref": "readable-studio://objects/workspaces/ws_1/projects/proj_1/runs/run_1/artifact/art_456",
+      "thumbnail_ref": "readable-studio://objects/workspaces/ws_1/projects/proj_1/runs/run_1/preview/prev_thumb_789"
     }
   ]
 }
@@ -215,7 +215,7 @@ policies.
 
 ### Attachment and Artifact Registry
 
-Open Design should add a registry layer above `ProjectStorage` instead of
+Readable Studio should add a registry layer above `ProjectStorage` instead of
 letting traces, filesystem paths, and UI URLs each invent their own storage
 semantics. The registry is the product source of truth for durable input and
 output objects; Langfuse stores only registry-derived manifest fields.
@@ -240,7 +240,7 @@ or run.
 The storage reference in Langfuse should be durable and non-secret:
 
 ```text
-od://objects/workspaces/<workspaceId>/projects/<projectId>/runs/<runId>/<objectClass>/<objectId>
+readable-studio://objects/workspaces/<workspaceId>/projects/<projectId>/runs/<runId>/<objectClass>/<objectId>
 ```
 
 The daemon should resolve that reference through product authorization and then,
@@ -285,7 +285,7 @@ should receive automatic scores where the signal can be computed safely:
 
 Score applicability must be explicit so dashboards and datasets do not confuse
 not-applicable scores with failures or evaluator gaps. When a score does not
-apply, Open Design should not write a score value; it should record
+apply, Readable Studio should not write a score value; it should record
 `score_applicability.<score> = "not_applicable"`. When a score applies but cannot
 be computed because required trace fields or evaluator inputs are missing, it
 should record `score_applicability.<score> = "insufficient_signal"` and treat the
@@ -477,12 +477,12 @@ Data completeness:
 
 ### Slice 3: Object Storage and Manifest Contract
 
-- Define the Open Design object storage contract for attachments, parsed
+- Define the Readable Studio object storage contract for attachments, parsed
   derivatives, generated artifacts, preview screenshots, export bundles, and
   reproducibility files.
-- Define the registry schema and `od://` reference format for `attachment`,
+- Define the registry schema and `readable-studio://` reference format for `attachment`,
   `parsed_attachment`, `artifact`, `preview`, `export`, and `replay` objects.
-- Store original heavy inputs and outputs in Open Design controlled storage,
+- Store original heavy inputs and outputs in Readable Studio controlled storage,
   not in Langfuse by default.
 - Store durable object references, hashes, summaries, redaction state,
   truncation state, and parse/build status in Langfuse.

@@ -12,7 +12,7 @@ test('cursor-agent args deliver prompts via stdin without passing a literal dash
     [],
     [],
     {},
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.deepEqual(args, [
@@ -23,7 +23,7 @@ test('cursor-agent args deliver prompts via stdin without passing a literal dash
     '--force',
     '--trust',
     '--workspace',
-    '/tmp/od-project',
+    '/tmp/readable-project',
   ]);
 });
 
@@ -102,7 +102,7 @@ test('copilot args append model and extra dirs after the base flags without rein
   const args = copilot.buildArgs(
     prompt,
     [],
-    ['/tmp/od-skills', '/tmp/od-design-systems'],
+    ['/tmp/readable-skills', '/tmp/readable-design-systems'],
     { model: 'claude-sonnet-4.6' },
   );
   assert.ok(!args.includes('-p'));
@@ -114,9 +114,9 @@ test('copilot args append model and extra dirs after the base flags without rein
     '--model',
     'claude-sonnet-4.6',
     '--add-dir',
-    '/tmp/od-skills',
+    '/tmp/readable-skills',
     '--add-dir',
-    '/tmp/od-design-systems',
+    '/tmp/readable-design-systems',
   ]);
 });
 
@@ -125,13 +125,13 @@ test('copilot drops empty / non-string entries from extraAllowedDirs without rei
   const args = copilot.buildArgs(
     prompt,
     [],
-    ['', null, '/tmp/od-skills', undefined] as unknown as string[],
+    ['', null, '/tmp/readable-skills', undefined] as unknown as string[],
     {},
   );
   assert.ok(!args.includes('-p'));
   // Only the one valid path survives.
   const addDirIndex = args.indexOf('--add-dir');
-  assert.equal(args[addDirIndex + 1], '/tmp/od-skills');
+  assert.equal(args[addDirIndex + 1], '/tmp/readable-skills');
   assert.equal(args.filter((a) => a === '--add-dir').length, 1);
 });
 
@@ -330,7 +330,7 @@ test('qoder args use non-interactive print mode with cwd, model, and add-dir', (
       '/repo/design-systems',
     ],
     { model: 'performance' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.deepEqual(args, [
@@ -339,7 +339,7 @@ test('qoder args use non-interactive print mode with cwd, model, and add-dir', (
     'stream-json',
     '--yolo',
     '-w',
-    '/tmp/od-project',
+    '/tmp/readable-project',
     '--model',
     'performance',
     '--add-dir',
@@ -406,12 +406,12 @@ test('qoder adapter inherits QODER_PERSONAL_ACCESS_TOKEN from daemon env', () =>
   const env = spawnEnvForAgent('qoder', {
     QODER_PERSONAL_ACCESS_TOKEN: 'qoder-pat',
     PATH: '/usr/bin',
-    OD_DAEMON_URL: 'http://127.0.0.1:7456',
+    READABLE_DAEMON_URL: 'http://127.0.0.1:7456',
   });
 
   assert.equal(env.QODER_PERSONAL_ACCESS_TOKEN, 'qoder-pat');
   assert.equal(env.PATH, '/usr/bin');
-  assert.equal(env.OD_DAEMON_URL, 'http://127.0.0.1:7456');
+  assert.equal(env.READABLE_DAEMON_URL, 'http://127.0.0.1:7456');
 });
 
 test('qoder adapter does not define static secret env', () => {
@@ -422,9 +422,9 @@ test('qoder adapter does not define static secret env', () => {
 });
 
 test('detectAgents keeps qoder unavailable with fallback metadata when qodercli is missing', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-agents-empty-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-agents-empty-'));
   try {
-    process.env.OD_AGENT_HOME = dir;
+    process.env.READABLE_AGENT_HOME = dir;
     process.env.PATH = dir;
 
     const agents = await detectAgents();
@@ -449,7 +449,7 @@ test('detectAgents keeps qoder unavailable with fallback metadata when qodercli 
 test('qwen args check promptViaStdin, base args, model args and exclude `-` sentinel', () => {
   assert.equal(qwen.promptViaStdin, true);
 
-  const baseArgs = qwen.buildArgs('', [], [], {}, { cwd: '/tmp/od-project' });
+  const baseArgs = qwen.buildArgs('', [], [], {}, { cwd: '/tmp/readable-project' });
   assert.deepEqual(baseArgs, ['--yolo']);
   assert.equal(baseArgs.includes('-'), false);
 
@@ -458,7 +458,7 @@ test('qwen args check promptViaStdin, base args, model args and exclude `-` sent
     [],
     [],
     { model: 'qwen3-coder-plus' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.deepEqual(withModel, ['--yolo', '--model', 'qwen3-coder-plus']);
@@ -483,31 +483,31 @@ test('antigravity pipes prompt via stdin via -p flag (print mode)', () => {
   assert.deepEqual(args, ['-p', '-']);
 
   const argsWithLog = antigravity.buildArgs('write hello world', [], [], {}, {
-    agentLogFilePath: '/tmp/od-agy-test.log',
+    agentLogFilePath: '/tmp/readable-agy-test.log',
   });
-  assert.deepEqual(argsWithLog, ['--log-file', '/tmp/od-agy-test.log', '-p', '-']);
+  assert.deepEqual(argsWithLog, ['--log-file', '/tmp/readable-agy-test.log', '-p', '-']);
 
   // No `--model` flag exists upstream, so buildArgs argv must stay the
   // same regardless of which label the user picks.
   // Pass a temp antigravitySettingsPath so buildArgs does not touch the
   // real ~/.gemini/antigravity-cli/settings.json during a unit test run.
-  const settingsDir = mkdtempSync(join(tmpdir(), 'od-agy-argv-'));
+  const settingsDir = mkdtempSync(join(tmpdir(), 'readable-agy-argv-'));
   try {
     const withModel = antigravity.buildArgs('hi', [], [], {
       model: 'Gemini 3.1 Pro (High)',
     }, {
-      agentLogFilePath: '/tmp/od-agy-test.log',
+      agentLogFilePath: '/tmp/readable-agy-test.log',
       antigravitySettingsPath: join(settingsDir, 'settings.json'),
     });
     assert.equal(withModel.includes('--model'), false);
-    assert.deepEqual(withModel, ['--log-file', '/tmp/od-agy-test.log', '-p', '-']);
+    assert.deepEqual(withModel, ['--log-file', '/tmp/readable-agy-test.log', '-p', '-']);
   } finally {
     rmSync(settingsDir, { recursive: true, force: true });
   }
 
   // Argv must NOT carry `-c` even on follow-up turns. We tested resume
   // mode and found agy's `-c` activates an internal agentic loop (tool
-  // calls, retries, fallback-to-cached-response) that overrides OD's
+  // calls, retries, fallback-to-cached-response) that overrides Readable Studio's
   // system-prompt OVERRIDE — producing byte-identical form re-emissions
   // on turn 2. The stateless path + sanitized transcript injection is
   // what actually breaks the discovery loop. Pin both shapes so a
@@ -548,7 +548,7 @@ test('antigravity pipes prompt via stdin via -p flag (print mode)', () => {
 
   // `agy` v1.0.3 has no `--model` flag (upstream #35), no `models`
   // subcommand, and no `/model` slash command — a user-typed model id
-  // would be silently ignored at spawn, looking like an OD bug. The
+  // would be silently ignored at spawn, looking like an Readable Studio bug. The
   // settings UI hides the "Custom (fill below)" option when this is
   // `false`. Remove this opt-out once upstream wires #35.
   assert.equal(antigravity.supportsCustomModel, false);
@@ -556,7 +556,7 @@ test('antigravity pipes prompt via stdin via -p flag (print mode)', () => {
 
 // `agy` reads `~/.gemini/antigravity-cli/settings.json` on every CLI
 // startup — verified by capturing the `--log-file` line `Propagating
-// selected model override to backend: label=…`. Routing OD's model
+// selected model override to backend: label=…`. Routing Readable Studio's model
 // picker through that file lets the user choose a model from Settings
 // even though agy has no `--model` flag (upstream issue #35).
 //
@@ -568,7 +568,7 @@ test('antigravity pipes prompt via stdin via -p flag (print mode)', () => {
 //      `model` field while preserving every other key (e.g.
 //      `trustedWorkspaces` that agy populates on first-run consent).
 test('antigravity persists model selection to agy settings.json', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'od-antigravity-settings-'));
+  const dir = mkdtempSync(join(tmpdir(), 'readable-antigravity-settings-'));
   try {
     const settingsPath = join(dir, 'settings.json');
 
@@ -579,7 +579,7 @@ test('antigravity persists model selection to agy settings.json', () => {
       JSON.stringify(
         {
           model: 'GPT-OSS 120B (Medium)',
-          trustedWorkspaces: ['/tmp/od-project'],
+          trustedWorkspaces: ['/tmp/readable-project'],
         },
         null,
         2,
@@ -590,7 +590,7 @@ test('antigravity persists model selection to agy settings.json', () => {
     writeAntigravityModelSelection('Gemini 3.1 Pro (High)', settingsPath);
     const after = JSON.parse(readFileSync(settingsPath, 'utf8'));
     assert.equal(after.model, 'Gemini 3.1 Pro (High)');
-    assert.deepEqual(after.trustedWorkspaces, ['/tmp/od-project']);
+    assert.deepEqual(after.trustedWorkspaces, ['/tmp/readable-project']);
 
     // 3. When the file doesn't exist (fresh install before onboarding),
     //    we must create it rather than crash the spawn pipeline.
@@ -649,7 +649,7 @@ test('aider args carry the non-TTY suppression flags, deliver the prompt via --m
   assert.equal(aider.maxPromptArgBytes, 30_000);
   assert.equal(aider.streamFormat, 'plain');
 
-  const baseArgs = aider.buildArgs('hello world', [], [], {}, { cwd: '/tmp/od-project' });
+  const baseArgs = aider.buildArgs('hello world', [], [], {}, { cwd: '/tmp/readable-project' });
   assert.deepEqual(baseArgs, [
     '--yes-always',
     '--no-pretty',
@@ -668,7 +668,7 @@ test('aider args carry the non-TTY suppression flags, deliver the prompt via --m
     [],
     [],
     { model: 'default' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.equal(defaultModelArgs.includes('--model'), false);
 
@@ -677,7 +677,7 @@ test('aider args carry the non-TTY suppression flags, deliver the prompt via --m
     [],
     [],
     { model: 'deepseek/deepseek-chat' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
   assert.deepEqual(withModel, [
     '--yes-always',
@@ -751,7 +751,7 @@ test('codex buildArgs clamps reasoning effort per model', () => {
       [],
       [],
       { ...(model === undefined ? {} : { model }), reasoning },
-      { cwd: '/tmp/od-project' },
+      { cwd: '/tmp/readable-project' },
     );
     assert.ok(
       args.includes(`model_reasoning_effort="${expected}"`),
@@ -766,7 +766,7 @@ test('codex buildArgs omits model_reasoning_effort when reasoning is "default"',
     [],
     [],
     { reasoning: 'default' },
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.equal(
@@ -779,13 +779,13 @@ test('codex buildArgs omits model_reasoning_effort when reasoning is "default"',
 
 test('grok-build uses --prompt-file and never embeds the prompt in argv or stdin', () => {
   const prompt = 'summarize the current page layout';
-  const promptFilePath = '/tmp/od-grok-prompt/prompt.md';
+  const promptFilePath = '/tmp/readable-grok-prompt/prompt.md';
   const args = grokBuild.buildArgs(
     prompt,
     [],
     [],
     { model: 'grok-4.3', reasoning: 'high' },
-    { cwd: '/tmp/od-project', promptFilePath },
+    { cwd: '/tmp/readable-project', promptFilePath },
   );
 
   assert.equal(grokBuild.promptViaFile, true);
@@ -804,7 +804,7 @@ test('grok-build uses --prompt-file and never embeds the prompt in argv or stdin
 });
 
 test('grok-build omits effort for default/build models but keeps it for reasoning models', () => {
-  const promptFilePath = '/tmp/od-grok-prompt/prompt.md';
+  const promptFilePath = '/tmp/readable-grok-prompt/prompt.md';
   const defaultArgs = grokBuild.buildArgs('', [], [], { model: 'default', reasoning: 'high' }, { promptFilePath });
   assert.equal(defaultArgs.includes('--effort'), false);
 
@@ -824,7 +824,7 @@ test('grok-build omits effort for default/build models but keeps it for reasonin
 
 test('grok-build requires a daemon-provided prompt file path', () => {
   assert.throws(
-    () => grokBuild.buildArgs('hi', [], [], {}, { cwd: '/tmp/od-project' }),
+    () => grokBuild.buildArgs('hi', [], [], {}, { cwd: '/tmp/readable-project' }),
     /promptFilePath/,
   );
 });
@@ -843,7 +843,7 @@ test('claude flags promptViaStdin and never embeds the prompt in argv', () => {
     [],
     [],
     {},
-    { cwd: '/tmp/od-project' },
+    { cwd: '/tmp/readable-project' },
   );
 
   assert.ok(Array.isArray(args), 'claude.buildArgs must return argv');

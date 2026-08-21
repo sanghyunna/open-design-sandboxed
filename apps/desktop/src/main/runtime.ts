@@ -229,7 +229,7 @@ const RUNNING_POLL_MS = 2000;
 const MIN_SPLASH_MS = 6800;
 // While the splash is up, the real web app loads in a hidden main window. We
 // reveal it only once the web bundle reports it has actually mounted (it sets
-// `data-od-app-mounted="1"` on first paint of the real UI), so the user never
+// `data-readable-app-mounted="1"` on first paint of the real UI), so the user never
 // sees the web's own "Loading Readable Studio…" shell flash between the splash and
 // the app. Poll cadence + a hard ceiling so a missing mount signal can never
 // strand the user on the splash forever.
@@ -241,7 +241,7 @@ const MAX_CONSOLE_ENTRIES = 200;
 const DESKTOP_PET_WINDOW_WIDTH = 360;
 const DESKTOP_PET_WINDOW_HEIGHT = 300;
 const DESKTOP_PET_WINDOW_MARGIN = 24;
-const DESIGN_BROWSER_PARTITION = "persist:open-design-design-browser";
+const DESIGN_BROWSER_PARTITION = "persist:readable-studio-design-browser";
 
 export type DesktopEvalInput = {
   expression: string;
@@ -1562,7 +1562,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     const enabled = await window.webContents.executeJavaScript(
       `(() => {
         try {
-          const raw = localStorage.getItem("open-design:config");
+          const raw = localStorage.getItem("readable-studio:config");
           if (!raw) return false;
           return JSON.parse(raw)?.pet?.enabled === true;
         } catch {
@@ -1776,7 +1776,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
         : await Promise.all([
             window.webContents
               .executeJavaScript(
-                `document.documentElement.getAttribute("data-od-app-mounted") === "1"`,
+                `document.documentElement.getAttribute("data-readable-app-mounted") === "1"`,
                 true,
               )
               .catch(() => false),
@@ -1785,7 +1785,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
             !splash.webContents.isDestroyed()
               ? splash.webContents
                   .executeJavaScript(
-                    `document.documentElement.getAttribute("data-od-splash-finished") === "1"`,
+                    `document.documentElement.getAttribute("data-readable-splash-finished") === "1"`,
                     true,
                   )
                   .catch(() => false)

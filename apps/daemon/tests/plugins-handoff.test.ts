@@ -18,11 +18,11 @@ describe('recordHandoff — append-only contracts', () => {
   it('appends a new exportTargets entry', () => {
     const out = recordHandoff({
       manifest: baseManifest(),
-      exportTarget: { surface: 'cli', target: '/workspace/od/x.html', exportedAt: 1000 },
+      exportTarget: { surface: 'cli', target: '/workspace/readable/x.html', exportedAt: 1000 },
     });
     expect(out.changed).toContain('exportTargets');
     expect(out.manifest.exportTargets).toEqual([
-      { surface: 'cli', target: '/workspace/od/x.html', exportedAt: 1000 },
+      { surface: 'cli', target: '/workspace/readable/x.html', exportedAt: 1000 },
     ]);
   });
 
@@ -84,7 +84,7 @@ describe('recordHandoff — handoffKind monotonicity', () => {
 
 describe('isDeployableAppEligible', () => {
   it('requires both build + tests passing', () => {
-    const m = baseManifest({ exportTargets: [{ surface: 'docker', target: 'ghcr.io/od/x:1', exportedAt: 1 }] });
+    const m = baseManifest({ exportTargets: [{ surface: 'docker', target: 'ghcr.io/readable/x:1', exportedAt: 1 }] });
     expect(isDeployableAppEligible({ manifest: m, buildPassing: true, testsPassing: true })).toBe(true);
     expect(isDeployableAppEligible({ manifest: m, buildPassing: false, testsPassing: true })).toBe(false);
     expect(isDeployableAppEligible({ manifest: m, buildPassing: true, testsPassing: false })).toBe(false);

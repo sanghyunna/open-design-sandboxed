@@ -36,7 +36,7 @@ async function buildFixtureTarball(args: {
 }): Promise<Buffer> {
   // Write the fixture into a temp folder that mirrors the tar layout
   // codeload uses: `<repo>-<sha>/<files>`.
-  const tmp = await mkdtemp(path.join(os.tmpdir(), 'od-fixture-'));
+  const tmp = await mkdtemp(path.join(os.tmpdir(), 'readable-fixture-'));
   const wrapper = path.join(tmp, args.rootPrefix);
   const pluginRoot = args.pluginSubpath
     ? path.join(wrapper, args.pluginSubpath)
@@ -83,7 +83,7 @@ function makeResponse(body: Buffer | string, status = 200, statusText = 'OK'): A
 }
 
 beforeEach(async () => {
-  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'od-installer-archive-'));
+  tmpRoot = await mkdtemp(path.join(os.tmpdir(), 'readable-installer-archive-'));
   pluginsRoot = path.join(tmpRoot, 'plugins');
   db = new Database(':memory:');
   db.exec(`
@@ -109,7 +109,7 @@ describe('archive installer', () => {
     let success = false;
     let error: string | undefined;
     for await (const ev of installPlugin(db, {
-      source: 'github:open-design/sample-plugin',
+      source: 'github:readable-studio/sample-plugin',
       roots: { userPluginsRoot: pluginsRoot },
       fetcher,
     })) {
@@ -120,9 +120,9 @@ describe('archive installer', () => {
       throw new Error(`install failed: ${error}`);
     }
     expect(success).toBe(true);
-    expect(urlSeen).toBe('https://codeload.github.com/open-design/sample-plugin/tar.gz/HEAD');
+    expect(urlSeen).toBe('https://codeload.github.com/readable-studio/sample-plugin/tar.gz/HEAD');
     const row = db.prepare(`SELECT source_kind, source FROM installed_plugins WHERE id = 'sample-plugin'`).get();
-    expect(row).toEqual({ source_kind: 'github', source: 'github:open-design/sample-plugin' });
+    expect(row).toEqual({ source_kind: 'github', source: 'github:readable-studio/sample-plugin' });
   });
 
   it('extracts a github source with a ref and plugin subpath', async () => {
@@ -130,7 +130,7 @@ describe('archive installer', () => {
     const fixtureFiles = await readdir(fixtureSrc);
     const urlsSeen: string[] = [];
     const apiUrl =
-      'https://api.github.com/repos/nexu-io/open-design/contents/plugins/community/registry-starter?ref=garnet-hemisphere';
+      'https://api.github.com/repos/nexu-io/readable-studio/contents/plugins/community/registry-starter?ref=garnet-hemisphere';
     const downloadBase = 'https://raw.example.test/plugins/community/registry-starter';
     const entries = fixtureFiles.map((name) => ({
       type: 'file',
@@ -151,7 +151,7 @@ describe('archive installer', () => {
     };
     let success = false;
     let error: string | undefined;
-    const source = 'github:nexu-io/open-design@garnet-hemisphere/plugins/community/registry-starter';
+    const source = 'github:nexu-io/readable-studio@garnet-hemisphere/plugins/community/registry-starter';
     for await (const ev of installPlugin(db, {
       source,
       roots: { userPluginsRoot: pluginsRoot },
@@ -164,7 +164,7 @@ describe('archive installer', () => {
       throw new Error(`install failed: ${error}`);
     }
     expect(urlsSeen).toContain(apiUrl);
-    expect(urlsSeen).not.toContain('https://codeload.github.com/nexu-io/open-design/tar.gz/garnet-hemisphere');
+    expect(urlsSeen).not.toContain('https://codeload.github.com/nexu-io/readable-studio/tar.gz/garnet-hemisphere');
     const row = db.prepare(`SELECT source_kind, source FROM installed_plugins WHERE id = 'sample-plugin'`).get();
     expect(row).toEqual({ source_kind: 'github', source });
   });
@@ -174,13 +174,13 @@ describe('archive installer', () => {
     [429, 'Too Many Requests', 'too many requests'],
   ])('falls back to codeload when GitHub contents returns %i for a plugin subpath', async (status, statusText, body) => {
     const tarball = await buildFixtureTarball({
-      rootPrefix: 'open-design-main',
+      rootPrefix: 'readable-studio-main',
       pluginSubpath: 'plugins/community/import-smoke-test',
     });
     const urlsSeen: string[] = [];
     const contentsUrl =
-      'https://api.github.com/repos/nexu-io/open-design/contents/plugins/community/import-smoke-test?ref=main';
-    const tarballUrl = 'https://codeload.github.com/nexu-io/open-design/tar.gz/main';
+      'https://api.github.com/repos/nexu-io/readable-studio/contents/plugins/community/import-smoke-test?ref=main';
+    const tarballUrl = 'https://codeload.github.com/nexu-io/readable-studio/tar.gz/main';
     const fetcher: ArchiveFetcher = async (u) => {
       urlsSeen.push(u);
       if (u === contentsUrl) {
@@ -192,7 +192,7 @@ describe('archive installer', () => {
 
     let success = false;
     let error: string | undefined;
-    const source = 'github:nexu-io/open-design@main/plugins/community/import-smoke-test';
+    const source = 'github:nexu-io/readable-studio@main/plugins/community/import-smoke-test';
     for await (const ev of installPlugin(db, {
       source,
       roots: { userPluginsRoot: pluginsRoot },
@@ -213,8 +213,8 @@ describe('archive installer', () => {
   it('reports both GitHub contents and codeload URLs when subpath fallback fails', async () => {
     const urlsSeen: string[] = [];
     const contentsUrl =
-      'https://api.github.com/repos/nexu-io/open-design/contents/plugins/community/import-smoke-test?ref=main';
-    const tarballUrl = 'https://codeload.github.com/nexu-io/open-design/tar.gz/main';
+      'https://api.github.com/repos/nexu-io/readable-studio/contents/plugins/community/import-smoke-test?ref=main';
+    const tarballUrl = 'https://codeload.github.com/nexu-io/readable-studio/tar.gz/main';
     const fetcher: ArchiveFetcher = async (u) => {
       urlsSeen.push(u);
       if (u === contentsUrl) {
@@ -225,7 +225,7 @@ describe('archive installer', () => {
     };
 
     let error: string | undefined;
-    const source = 'github:nexu-io/open-design@main/plugins/community/import-smoke-test';
+    const source = 'github:nexu-io/readable-studio@main/plugins/community/import-smoke-test';
     for await (const ev of installPlugin(db, {
       source,
       roots: { userPluginsRoot: pluginsRoot },
